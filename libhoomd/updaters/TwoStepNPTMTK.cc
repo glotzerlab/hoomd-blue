@@ -64,14 +64,6 @@ using namespace boost::python;
     \brief Contains code for the TwoStepNPTMTK class
 */
 
-//! Coefficients used for calculation of power series
-const Scalar f_coeff[] = {Scalar(1.0), Scalar(1.0/6.0), Scalar(1.0/120.0), Scalar(1.0/5040.0),
-                        Scalar(1.0/362880.0), Scalar(1.0/39916800.0)};
-//! Coefficients used for calculation of power series
-const Scalar g_coeff[] = {Scalar(1.0/2.0), Scalar(1.0/3.0), Scalar(1.0/6.0),
-                          Scalar(1.0/15.0), Scalar(1.0/45.0), Scalar(1.0/315.0), Scalar(1.0/630.0),
-                          Scalar(1.0/2835.0), Scalar(1.0/14175.0)};
-
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
@@ -213,200 +205,13 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
 
     // precompute loop invariant quantities
-   
-    Scalar mtk_term_2 = (nuxx+nuyy+nuzz)/m_thermo_group->getNDOF();
-    m_v_fac = make_scalar3(-Scalar(1.0/4.0)*(nuxx+mtk_term_2),
-                           -Scalar(1.0/4.0)*(nuyy+mtk_term_2),
-                           -Scalar(1.0/4.0)*(nuzz+mtk_term_2));
-    Scalar3 exp_v_fac = make_scalar3(exp(m_v_fac.x*m_deltaT),
-                               exp(m_v_fac.y*m_deltaT),
-                               exp(m_v_fac.z*m_deltaT));
     Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
-    Scalar3 exp_v_fac_2 = make_scalar3(exp(Scalar(2.0)*m_v_fac.x*m_deltaT),
-                               exp(Scalar(2.0)*m_v_fac.y*m_deltaT),
-                               exp(Scalar(2.0)*m_v_fac.z*m_deltaT));
 
-    Scalar3 r_fac = make_scalar3(Scalar(1.0/2.0)*nuxx,
-                                 Scalar(1.0/2.0)*nuyy,
-                                 Scalar(1.0/2.0)*nuzz);
-    Scalar3 exp_r_fac = make_scalar3(exp(r_fac.x*m_deltaT),
-                                     exp(r_fac.y*m_deltaT),
-                                     exp(r_fac.z*m_deltaT));
-    Scalar3 exp_r_fac_2 = make_scalar3(exp(nuxx*m_deltaT),
-                                       exp(nuyy*m_deltaT),
-                                       exp(nuzz*m_deltaT));
+    // update the propagator matrix
+    m_ndof = m_thermo_group->getNDOF();
+    updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
 
-    Scalar arg_v_xy = -Scalar(1.0/4.0)*(nuxx-nuyy)*m_deltaT;
-    Scalar arg_v_xz = -Scalar(1.0/4.0)*(nuxx-nuzz)*m_deltaT;
-    Scalar arg_v_yz = -Scalar(1.0/4.0)*(nuyy-nuzz)*m_deltaT;
-    Scalar arg_v_yz_2 = -Scalar(1.0/8.0)*(nuyy-nuzz)*m_deltaT;
-    Scalar arg_r_xy = Scalar(1.0/2.0)*(nuxx-nuyy)*m_deltaT;
-    Scalar arg_r_xz = Scalar(1.0/2.0)*(nuxx-nuzz)*m_deltaT;
-    Scalar arg_r_yz = Scalar(1.0/2.0)*(nuyy-nuzz)*m_deltaT;
-    Scalar arg_r_yz_2 = Scalar(1.0/4.0)*(nuyy-nuzz)*m_deltaT;
-
-    Scalar3 arg_v = m_v_fac*m_deltaT;
-    Scalar3 arg_r = r_fac*m_deltaT;
-
-    // precalculate power series of functions occuring in update equations
-    m_power_v_xy= Scalar(0.0);
-    m_power_v_xz= Scalar(0.0);
-    m_power_v_yz= Scalar(0.0);
-    m_power_v_yz_2 = Scalar(0.0);
-
-    Scalar3 sinhx_v_diag = make_scalar3(0.0,0.0,0.0);
-    Scalar3 sinhx_r_diag = make_scalar3(0.0,0.0,0.0);
-
-    Scalar power_r_xy= Scalar(0.0);
-    Scalar power_r_xz= Scalar(0.0);
-    Scalar power_r_yz= Scalar(0.0);
-    Scalar power_r_yz_2 = Scalar(0.0);
-    
-    Scalar term_v_xy = Scalar(1.0);
-    Scalar term_v_xz = Scalar(1.0);
-    Scalar term_v_yz = Scalar(1.0);
-    Scalar term_v_yz_2 = Scalar(1.0);
-
-    Scalar term_r_xy = Scalar(1.0);
-    Scalar term_r_xz = Scalar(1.0);
-    Scalar term_r_yz = Scalar(1.0);
-    Scalar term_r_yz_2 = Scalar(1.0);
-    
-    Scalar3 term_r = make_scalar3(1.0,1.0,1.0);
-    Scalar3 term_v = make_scalar3(1.0,1.0,1.0);
-
-    for (unsigned int i = 0; i < 6; i++)
-        {
-        // calculate sinh(x)/x
-        m_power_v_xy += f_coeff[i] * term_v_xy;
-        m_power_v_xz += f_coeff[i] * term_v_xz;
-        m_power_v_yz += f_coeff[i] * term_v_yz;
-        m_power_v_yz_2 += f_coeff[i] * term_v_yz_2;
-
-        power_r_xy += f_coeff[i] * term_r_xy;
-        power_r_xz += f_coeff[i] * term_r_xz;
-        power_r_yz += f_coeff[i] * term_r_yz;
-        power_r_yz_2 += f_coeff[i] * term_r_yz_2;
-
-        sinhx_v_diag += f_coeff[i] * term_v;
-        sinhx_r_diag += f_coeff[i] * term_r;
-
-        term_v_xy = term_v_xy * arg_v_xy * arg_v_xy;
-        term_v_xz = term_v_xz * arg_v_xz * arg_v_xz;
-        term_v_yz = term_v_yz * arg_v_yz * arg_v_yz;
-
-        term_v_xy = term_v_xy * arg_v_xy * arg_v_xy;
-        term_v_xz = term_v_xz * arg_v_xz * arg_v_xz;
-        term_v_yz = term_v_yz * arg_v_yz * arg_v_yz;
-        term_v_yz_2 = term_v_yz_2 * arg_v_yz_2 * arg_v_yz_2;
-
-        term_r_xy = term_r_xy * arg_r_xy * arg_r_xy;
-        term_r_xz = term_r_xz * arg_r_xz * arg_r_xz;
-        term_r_yz = term_r_yz * arg_r_yz * arg_r_yz;
-        term_r_yz_2 = term_v_yz_2 * arg_r_yz_2 * arg_r_yz_2;
-
-        term_r = term_r * arg_r * arg_r;
-        term_v = term_v * arg_v * arg_v;
-        }
-
-   
-    // construct bivariate power series
-    Scalar bivar_v_xy = Scalar(0.0);
-    Scalar bivar_v_xz = Scalar(0.0);
-    Scalar bivar_v_yz = Scalar(0.0);
-
-    Scalar bivar_r_xy = Scalar(0.0);
-    Scalar bivar_r_xz = Scalar(0.0);
-    Scalar bivar_r_yz = Scalar(0.0);
-
-    // up to and including x^i*y^j, i+j = 8
-    for (unsigned int i = 0; i < 9; i++)
-        {
-        // construct bivariate polynomial term x^j y^(i-j)
-        for (unsigned int j = 0; j <= i; j++)
-            {
-            Scalar monomial_v_xy = Scalar(1.0);
-            Scalar monomial_v_xz = Scalar(1.0);
-            Scalar monomial_v_yz = Scalar(1.0);
-
-            Scalar monomial_r_xy = Scalar(1.0);
-            Scalar monomial_r_xz = Scalar(1.0);
-            Scalar monomial_r_yz = Scalar(1.0);
-
-            for (unsigned int k = 0; k<j; k++)
-                {
-                monomial_v_xy *= arg_v.x;
-                monomial_v_xz *= arg_v.x;
-                monomial_v_yz *= arg_v.y;
-
-                monomial_r_xy *= arg_r.x;
-                monomial_r_xz *= arg_r.x;
-                monomial_r_yz *= arg_r.y;
-                }
-            for (unsigned int k = j; k<i; k++)
-                {
-                monomial_v_xy *= arg_v.y;
-                monomial_v_xz *= arg_v.z;
-                monomial_v_yz *= arg_v.z;
-
-                monomial_r_xy *= arg_r.y;
-                monomial_r_xz *= arg_r.z;
-                monomial_r_yz *= arg_r.z;
-                }
-
-            bivar_v_xy += g_coeff[i] * monomial_v_xy;
-            bivar_v_xz += g_coeff[i] * monomial_v_xz;
-            bivar_v_yz += g_coeff[i] * monomial_v_yz;
-
-            bivar_r_xy += g_coeff[i] * monomial_r_xy;
-            bivar_r_xz += g_coeff[i] * monomial_r_xz;
-            bivar_r_yz += g_coeff[i] * monomial_r_yz;
-            }
-        }
-
-
-    // Calculate matrix exponentials
-  
-    // Matrix exp. for velocity update
-    Scalar mat_exp_v[6];
-    mat_exp_v[0] = exp_thermo_fac*exp_v_fac_2.x;                                               // xx
-    mat_exp_v[1] = -exp_thermo_fac*m_deltaT*Scalar(1.0/2.0)*nuxy*exp((m_v_fac.x+m_v_fac.y)*m_deltaT)
-                   *m_power_v_xy;  // xy
-    mat_exp_v[2] = -exp_thermo_fac*m_deltaT*Scalar(1.0/2.0)*nuxz*exp((m_v_fac.x+m_v_fac.z)*m_deltaT)
-                   *m_power_v_xz +m_deltaT*m_deltaT*Scalar(1.0/8.0)*nuxy*nuyz;
-    mat_exp_v[3] = exp_thermo_fac*exp_v_fac_2.y;                                            // yy
-    mat_exp_v[4] = -exp_thermo_fac*m_deltaT*Scalar(1.0/2.0)*nuyz*exp((m_v_fac.y+m_v_fac.z)*m_deltaT)
-                   *m_power_v_yz;   // yz
-    mat_exp_v[5] = exp_thermo_fac*exp_v_fac_2.z;                                                // zz
-
-    // integrated matrix exponential w.r.t. t' (after substitution delta t -> t' - delta t)
-    m_mat_exp_v_int[0] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.x * sinhx_v_diag.x;    // xx
-    m_mat_exp_v_int[1] = -nuxy*m_deltaT*m_deltaT*Scalar(1.0/4.0)*bivar_v_xy;       // xy
-    m_mat_exp_v_int[2] = -nuxz*m_deltaT*m_deltaT*Scalar(1.0/4.0)*bivar_v_xz        // xz
-                         + m_deltaT*m_deltaT*m_deltaT*Scalar(1.0/24.0)*nuxy*nuyz;
-    m_mat_exp_v_int[3] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.y * sinhx_v_diag.y;    // yy
-    m_mat_exp_v_int[4] = -nuyz*m_deltaT*m_deltaT*Scalar(1.0/4.0)*bivar_v_yz;       // yz
-    m_mat_exp_v_int[5] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.z * sinhx_v_diag.z;     // zz
-
-    // Matrix exp. for position update
-    m_mat_exp_r[0] = exp_r_fac_2.x;                                               // xx
-    m_mat_exp_r[1] = m_deltaT*nuxy*exp(Scalar(1.0/2.0)*(nuxx+nuyy)*m_deltaT)*power_r_xy;   // xy
-    m_mat_exp_r[2] = m_deltaT*nuxz*exp(Scalar(1.0/2.0)*(nuxx+nuzz)*m_deltaT)*power_r_xz
-                     +m_deltaT*m_deltaT*Scalar(1.0/2.0)*nuxy*nuyz;
-    m_mat_exp_r[3] = exp_r_fac_2.y;                                               // yy
-    m_mat_exp_r[4] = m_deltaT*nuyz*exp(Scalar(1.0/2.0)*(nuyy+nuzz)*m_deltaT)*power_r_yz;  // yz
-    m_mat_exp_r[5] = exp_r_fac_2.z;                                               // zz
-
-    // integrated matrix exp. for position update
-    m_mat_exp_r_int[0] = m_deltaT*exp_r_fac.x*sinhx_r_diag.x;                     // xx
-    m_mat_exp_r_int[1] = m_deltaT*m_deltaT*nuxy*bivar_r_xy;                       // xy  
-    m_mat_exp_r_int[2] = m_deltaT*m_deltaT*nuxz*bivar_r_xz                        // xz
-                         + m_deltaT*m_deltaT*m_deltaT*Scalar(1.0/6.0)*nuxy*nuyz;
-    m_mat_exp_r_int[3] = m_deltaT*exp_r_fac.y*sinhx_r_diag.y;                     // yy
-    m_mat_exp_r_int[4] = m_deltaT*m_deltaT*nuyz*bivar_r_yz;                       // yz
-    m_mat_exp_r_int[5] = m_deltaT*exp_r_fac.z*sinhx_r_diag.z;                     // zz
-
-        {
+       {
         ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -419,12 +224,15 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
             Scalar3 accel = h_accel.data[j];
             Scalar3 r = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
 
+            // apply thermostat update of velocity
+            v *= exp_thermo_fac;
+
             // update velocity and position by multiplication with upper triangular matrices
-            v.x = mat_exp_v[0] * v.x + mat_exp_v[1] * v.y + mat_exp_v[2] * v.z
+            v.x = m_mat_exp_v[0] * v.x + m_mat_exp_v[1] * v.y + m_mat_exp_v[2] * v.z
                   + m_mat_exp_v_int[0] * accel.x + m_mat_exp_v_int[1] * accel.y + m_mat_exp_v_int[2] * accel.z;
-            v.y = mat_exp_v[3] * v.y + mat_exp_v[4] * v.z
+            v.y = m_mat_exp_v[3] * v.y + m_mat_exp_v[4] * v.z
                   + m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
-            v.z = mat_exp_v[5] * v.z + m_mat_exp_v_int[5] * accel.z;
+            v.z = m_mat_exp_v[5] * v.z + m_mat_exp_v_int[5] * accel.z;
 
             r.x = m_mat_exp_r[0] * r.x + m_mat_exp_r[1] * r.y + m_mat_exp_r[2] * r.z
                   + m_mat_exp_r_int[0] * v.x + m_mat_exp_r_int[1] * v.y + m_mat_exp_r_int[2] * v.z;
@@ -535,20 +343,6 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
     Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
     // precalculate loop-invariant quantities
-    Scalar3 exp_v_fac_2 = make_scalar3(exp(Scalar(2.0)*m_v_fac.x*m_deltaT),
-                                       exp(Scalar(2.0)*m_v_fac.y*m_deltaT),
-                                       exp(Scalar(2.0)*m_v_fac.z*m_deltaT));
-
-    Scalar mat_exp_v[6];
-    mat_exp_v[0] = exp_v_fac_2.x;                                               // xx
-    mat_exp_v[1] = -m_deltaT*Scalar(1.0/2.0)*nuxy*exp((m_v_fac.x+m_v_fac.y)*m_deltaT)*m_power_v_xy;  // xy
-    mat_exp_v[2] = -m_deltaT*Scalar(1.0/2.0)*nuxz*exp((m_v_fac.x+m_v_fac.z)*m_deltaT)*m_power_v_xz
-                    +m_deltaT*m_deltaT*Scalar(1.0/8.0)*nuxy*nuyz;
-    mat_exp_v[3] = exp_v_fac_2.y;                                            // yy
-    mat_exp_v[4] = -m_deltaT*Scalar(1.0/2.0)*nuyz*exp((m_v_fac.y+m_v_fac.z)*m_deltaT)*m_power_v_yz;   // yz
-    mat_exp_v[5] = exp_v_fac_2.z;                                                // zz
-
- 
     {
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
@@ -574,11 +368,11 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
 
         // update velocity by multiplication with upper triangular matrix
         Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        v.x = mat_exp_v[0] * v.x + mat_exp_v[1] * v.y + mat_exp_v[2] * v.z
+        v.x = m_mat_exp_v[0] * v.x + m_mat_exp_v[1] * v.y + m_mat_exp_v[2] * v.z
               + m_mat_exp_v_int[0] * accel.x + m_mat_exp_v_int[1] * accel.y + m_mat_exp_v_int[2] * accel.z;
-        v.y = mat_exp_v[3] * v.y + mat_exp_v[4] * v.z
+        v.y = m_mat_exp_v[3] * v.y + m_mat_exp_v[4] * v.z
               + m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
-        v.z = mat_exp_v[5] * v.z + m_mat_exp_v_int[5] * accel.z;
+        v.z = m_mat_exp_v[5] * v.z + m_mat_exp_v_int[5] * accel.z;
 
         // store velocity
         h_vel.data[j].x = v.x; h_vel.data[j].y = v.y; h_vel.data[j].z = v.z;
@@ -734,6 +528,78 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
         }
     else
         return Scalar(0);
+    }
+
+/*! \param nuxx Barostat matrix, xx element
+    \param nuxy xy element
+    \param nuxz xz element
+    \param nuyy yy element
+    \param nuyz yz element
+    \param nuzz zz element
+*/
+void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz)
+    {
+    // calculate some factors needed for the update matrix
+    Scalar mtk_term_2 = (nuxx+nuyy+nuzz)/(Scalar)m_ndof;
+    Scalar3 v_fac = make_scalar3(-Scalar(1.0/4.0)*(nuxx+mtk_term_2),
+                           -Scalar(1.0/4.0)*(nuyy+mtk_term_2),
+                           -Scalar(1.0/4.0)*(nuzz+mtk_term_2));
+    Scalar3 exp_v_fac = make_scalar3(exp(v_fac.x*m_deltaT),
+                               exp(v_fac.y*m_deltaT),
+                               exp(v_fac.z*m_deltaT));
+    Scalar3 exp_v_fac_2 = make_scalar3(exp(Scalar(2.0)*v_fac.x*m_deltaT),
+                               exp(Scalar(2.0)*v_fac.y*m_deltaT),
+                               exp(Scalar(2.0)*v_fac.z*m_deltaT));
+
+    Scalar3 exp_r_fac = make_scalar3(exp(Scalar(1.0/2.0)*nuxx*m_deltaT),
+                                     exp(Scalar(1.0/2.0)*nuyy*m_deltaT),
+                                     exp(Scalar(1.0/2.0)*nuzz*m_deltaT));
+    Scalar3 exp_r_fac_2 = make_scalar3(exp(nuxx*m_deltaT),
+                                       exp(nuyy*m_deltaT),
+                                       exp(nuzz*m_deltaT));
+
+    // Calculate matrix exponentials for upper triangular barostat matrix
+ 
+    /*
+       Strategy (short version, see notes for longer version):
+       - calculate diagonal matrix elements exactly (required for determinant)
+       - expand off diagonal elements to delta t^2 (higher order terms are irrelevant)
+       - for time integral of matrix exponential, accuracy up to delta t^2 is sufficient and necessary
+    */
+
+    // Matrix exp. for velocity update
+    m_mat_exp_v[0] = exp_v_fac_2.x;                                                  // xx
+    m_mat_exp_v[1] = -m_deltaT*Scalar(1.0/2.0)*nuxy*exp((v_fac.x+v_fac.y)*m_deltaT); // xy
+    m_mat_exp_v[2] = -m_deltaT*Scalar(1.0/2.0)*nuxz*exp((v_fac.x+v_fac.z)*m_deltaT)
+                   +m_deltaT*m_deltaT*Scalar(1.0/8.0)*nuxy*nuyz;                     // xz
+    m_mat_exp_v[3] = exp_v_fac_2.y;                                                  // yy
+    m_mat_exp_v[4] = -m_deltaT*Scalar(1.0/2.0)*nuyz*exp((v_fac.y+v_fac.z)*m_deltaT); // yz
+    m_mat_exp_v[5] = exp_v_fac_2.z;                                                  // zz
+
+    // integrated matrix exponential over deltaT
+    m_mat_exp_v_int[0] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.x;                         // xx
+    m_mat_exp_v_int[1] = -nuxy*m_deltaT*m_deltaT*Scalar(1.0/8.0);                      // xy
+    m_mat_exp_v_int[2] = -nuxz*m_deltaT*m_deltaT*Scalar(1.0/8.0);                      // xz
+    m_mat_exp_v_int[3] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.y;                         // yy
+    m_mat_exp_v_int[4] = -nuyz*m_deltaT*m_deltaT*Scalar(1.0/8.0);                      // yz
+    m_mat_exp_v_int[5] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.z;                         // zz
+
+    // Matrix exp. for position update
+    m_mat_exp_r[0] = exp_r_fac_2.x;                                                    // xx
+    m_mat_exp_r[1] = m_deltaT*nuxy*exp(Scalar(1.0/2.0)*(nuxx+nuyy)*m_deltaT);          // xy
+    m_mat_exp_r[2] = m_deltaT*nuxz*exp(Scalar(1.0/2.0)*(nuxx+nuzz)*m_deltaT)           // xz
+                     +m_deltaT*m_deltaT*Scalar(1.0/2.0)*nuxy*nuyz;
+    m_mat_exp_r[3] = exp_r_fac_2.y;                                                    // yy
+    m_mat_exp_r[4] = m_deltaT*nuyz*exp(Scalar(1.0/2.0)*(nuyy+nuzz)*m_deltaT);          // yz
+    m_mat_exp_r[5] = exp_r_fac_2.z;                                                    // zz
+
+    // integrated matrix exp. for position update
+    m_mat_exp_r_int[0] = m_deltaT*exp_r_fac.x;                                         // xx
+    m_mat_exp_r_int[1] = m_deltaT*m_deltaT*nuxy*Scalar(1.0/2.0);                       // xy  
+    m_mat_exp_r_int[2] = m_deltaT*m_deltaT*nuxz*Scalar(1.0/2.0);                       // xz
+    m_mat_exp_r_int[3] = m_deltaT*exp_r_fac.y;                                         // yy
+    m_mat_exp_r_int[4] = m_deltaT*m_deltaT*nuyz*Scalar(1.0/2.0);                       // yz
+    m_mat_exp_r_int[5] = m_deltaT*exp_r_fac.z;                                         // zz
     }
 
 void export_TwoStepNPTMTK()
