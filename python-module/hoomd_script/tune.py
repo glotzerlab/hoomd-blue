@@ -386,7 +386,7 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('pair.dpdlj', 'pair_dpdlj_setup', 500),                
                 ('pair.dpd_conservative', 'pair_dpd_conservative_setup', 500),
                 ('bond.harmonic', 'bond.harmonic', 10000),
-                ('bond.fene', 'bond_fene_setup', 2000)
+                ('bond.fene', 'bond_fene_setup', 2000),
                 ('angle.harmonic', 'angle.harmonic', 3000),
                 ('angle.cgcmm', 'angle.cgcmm', 2000),
                 ('dihedral.harmonic', 'dihedral.harmonic', 1000),
