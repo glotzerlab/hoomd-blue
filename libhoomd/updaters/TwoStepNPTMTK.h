@@ -68,10 +68,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements the Martyna Tobias Klein (MTK) equations for rigorous integration in the NPT ensemble.
     The update equations are derived from a strictly measure-preserving and
-    time-reversal symmetric integration scheme, closely following the one proposed by Tuckerman,
-    Alejandre et al..
+    time-reversal symmetric integration scheme, closely following the one proposed by Tuckerman et al.
+
     Supports anisotropic (orthorhombic or tetragonal) integration modes, by implementing a special
-    version of the the fully flexible cell update equations proposed in Yu, Alejandre et al.
+    version of the the fully flexible cell update equations proposed in Yu et al.
+
+    Triclinic integration for an upper triangular cell parameter matrix is supported with
+    fully time-reversible and measure-preserving update equations (Glaser et al. 2013 to be published)
 
     \cite Martyna1994
     \cite Tuckerman2006

@@ -64,7 +64,18 @@ using namespace boost::python;
     \brief Contains code for the TwoStepNPTMTK class
 */
 
+//! Coefficients of f(x) = sinh(x)/x = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 * x^10
+const Scalar f_coeff[] = {Scalar(1.0), Scalar(1.0/6.0), Scalar(1.0/120.0), Scalar(1.0/5040.0),
+                          Scalar(1.0/362880.0), Scalar(1.0/39916800.0)};
 
+//! Coefficients of g(x) = coth(x) - 1/x =  a_1 * x + a_3 * x^3 + a_5 * x^5 + a_7 * x^7 + a_9 * x^9
+const Scalar g_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/45.0), Scalar(2.0/945.0),
+                          Scalar(-1.0/4725.0), Scalar(1.0/93555.0)};
+
+//! Coefficients of h(x) = (-1/sinh^2(x)+1/x^2) = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 * x^10
+const Scalar h_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/15.0), Scalar(2.0/189.0), Scalar(-1.0/675.0),
+                          Scalar(2.0/10395.0), Scalar(-1382.0/58046625.0)};
+ 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
@@ -551,6 +562,9 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
                                exp(Scalar(2.0)*v_fac.y*m_deltaT),
                                exp(Scalar(2.0)*v_fac.z*m_deltaT));
 
+    Scalar3 r_fac = make_scalar3(Scalar(1.0/2.0)*nuxx,
+                                 Scalar(1.0/2.0)*nuyy,
+                                 Scalar(1.0/2.0)*nuzz);
     Scalar3 exp_r_fac = make_scalar3(exp(Scalar(1.0/2.0)*nuxx*m_deltaT),
                                      exp(Scalar(1.0/2.0)*nuyy*m_deltaT),
                                      exp(Scalar(1.0/2.0)*nuzz*m_deltaT));
@@ -558,48 +572,122 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
                                        exp(nuyy*m_deltaT),
                                        exp(nuzz*m_deltaT));
 
+    // Calculate power series approximations of analytical functions entering the update equations
+
+    Scalar3 arg_v = v_fac*m_deltaT;
+    Scalar3 arg_r = r_fac*m_deltaT;
+
+    // Calculate function f = sinh(x)/x
+    Scalar3 f_v = make_scalar3(0.0,0.0,0.0);
+    Scalar3 f_r = make_scalar3(0.0,0.0,0.0);
+    Scalar3 term_v = make_scalar3(1.0,1.0,1.0);
+    Scalar3 term_r = make_scalar3(1.0,1.0,1.0);
+
+    for (unsigned int i = 0; i < 6; i++)
+        {
+        f_v += f_coeff[i] * term_v;
+        f_r += f_coeff[i] * term_r;
+        term_v = term_v * arg_v * arg_v;
+        term_r = term_r * arg_r * arg_r;
+        }
+
+    // Calculate function g = cth(x) - 1/x
+    Scalar3 g_v = make_scalar3(0.0,0.0,0.0);
+    Scalar3 g_r = make_scalar3(0.0,0.0,0.0);
+
+    term_v = arg_v;
+    term_r = arg_r;
+
+    for (unsigned int i = 0; i < 5; i++)
+        {
+        g_v += g_coeff[i] * term_v;
+        g_r += g_coeff[i] * term_r;
+        term_v = term_v * arg_v * arg_v;
+        term_r = term_r * arg_r * arg_r;
+        }
+
+    // Calculate function h = -1/sinh^2(x) + 1/x^2
+    Scalar3 h_v = make_scalar3(0.0,0.0,0.0);
+    Scalar3 h_r = make_scalar3(0.0,0.0,0.0);
+
+    term_v = term_r = make_scalar3(1.0,1.0,1.0);
+
+    for (unsigned int i = 0; i < 6; i++)
+        {
+        h_v += h_coeff[i] * term_v;
+        h_r += h_coeff[i] * term_r;
+        
+        term_v = term_v * arg_v * arg_v;
+        term_r = term_r * arg_r * arg_r;
+        }
+
     // Calculate matrix exponentials for upper triangular barostat matrix
- 
-    /*
-       Strategy (short version, see notes for longer version):
-       - calculate diagonal matrix elements exactly (required for determinant)
-       - expand off diagonal elements to delta t^2 (higher order terms are irrelevant)
-       - for time integral of matrix exponential, accuracy up to delta t^2 is sufficient and necessary
-    */
+    /* These are approximations accurate up to and including delta_t^2.
+       They are fully time reversible  */   
 
     // Matrix exp. for velocity update
     m_mat_exp_v[0] = exp_v_fac_2.x;                                                  // xx
-    m_mat_exp_v[1] = -m_deltaT*Scalar(1.0/2.0)*nuxy*exp((v_fac.x+v_fac.y)*m_deltaT); // xy
-    m_mat_exp_v[2] = -m_deltaT*Scalar(1.0/2.0)*nuxz*exp((v_fac.x+v_fac.z)*m_deltaT)
-                   +m_deltaT*m_deltaT*Scalar(1.0/8.0)*nuxy*nuyz;                     // xz
+    m_mat_exp_v[1] = -m_deltaT*Scalar(1.0/4.0)*nuxy*(exp_v_fac_2.x + exp_v_fac_2.y); // xy
+    m_mat_exp_v[2] = -m_deltaT*Scalar(1.0/4.0)*nuxz*(exp_v_fac_2.x + exp_v_fac_2.z)
+                     +m_deltaT*m_deltaT*Scalar(1.0/32.0)*nuxy*nuyz
+                      *(exp_v_fac_2.x + Scalar(2.0)*exp_v_fac_2.y + exp_v_fac_2.z);  // xz
     m_mat_exp_v[3] = exp_v_fac_2.y;                                                  // yy
-    m_mat_exp_v[4] = -m_deltaT*Scalar(1.0/2.0)*nuyz*exp((v_fac.y+v_fac.z)*m_deltaT); // yz
+    m_mat_exp_v[4] = -m_deltaT*Scalar(1.0/4.0)*nuyz*(exp_v_fac_2.y + exp_v_fac_2.z); // yz
     m_mat_exp_v[5] = exp_v_fac_2.z;                                                  // zz
 
     // integrated matrix exponential over deltaT
-    m_mat_exp_v_int[0] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.x;                         // xx
-    m_mat_exp_v_int[1] = -nuxy*m_deltaT*m_deltaT*Scalar(1.0/8.0);                      // xy
-    m_mat_exp_v_int[2] = -nuxz*m_deltaT*m_deltaT*Scalar(1.0/8.0);                      // xz
-    m_mat_exp_v_int[3] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.y;                         // yy
-    m_mat_exp_v_int[4] = -nuyz*m_deltaT*m_deltaT*Scalar(1.0/8.0);                      // yz
-    m_mat_exp_v_int[5] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.z;                         // zz
+    Scalar3 xz_fac_v = make_scalar3((Scalar(1.0)+g_v.x)*(Scalar(1.0)+g_v.x)+h_v.x,
+                                    (Scalar(1.0)+g_v.y)*(Scalar(1.0)+g_v.y)+h_v.y,
+                                    (Scalar(1.0)+g_v.z)*(Scalar(1.0)+g_v.z)+h_v.z);
+
+    m_mat_exp_v_int[0] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.x*f_v.x;                   // xx
+    m_mat_exp_v_int[1] = -nuxy*m_deltaT*m_deltaT*Scalar(1.0/16.0)
+                         *(exp_v_fac.x*f_v.x*(Scalar(1.0)+g_v.x)
+                          +exp_v_fac.y*f_v.y*(Scalar(1.0)+g_v.y));                     // xy
+    m_mat_exp_v_int[2] = -nuxz*m_deltaT*m_deltaT*Scalar(1.0/16.0)
+                         *(exp_v_fac.x*f_v.x*(Scalar(1.0)+g_v.x)
+                          +exp_v_fac.z*f_v.z*(Scalar(1.0)+g_v.z))
+                         +m_deltaT*m_deltaT*m_deltaT*nuxy*nuyz*Scalar(1.0/256.0)
+                          *(exp_v_fac.x*f_v.x*xz_fac_v.x
+                           +Scalar(2.0)*exp_v_fac.y*f_v.y*xz_fac_v.y
+                           +exp_v_fac.z*f_v.z*xz_fac_v.z);                             // xz
+    m_mat_exp_v_int[3] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.y*f_v.y;                   // yy
+    m_mat_exp_v_int[4] = -nuyz*m_deltaT*m_deltaT*Scalar(1.0/16.0)
+                         *(exp_v_fac.x*f_v.y*(Scalar(1.0)+g_v.y)
+                          +exp_v_fac.z*f_v.z*(Scalar(1.0)+g_v.z));                     // yz
+    m_mat_exp_v_int[5] = m_deltaT*Scalar(1.0/2.0)*exp_v_fac.z*f_v.z;                   // zz
 
     // Matrix exp. for position update
     m_mat_exp_r[0] = exp_r_fac_2.x;                                                    // xx
-    m_mat_exp_r[1] = m_deltaT*nuxy*exp(Scalar(1.0/2.0)*(nuxx+nuyy)*m_deltaT);          // xy
-    m_mat_exp_r[2] = m_deltaT*nuxz*exp(Scalar(1.0/2.0)*(nuxx+nuzz)*m_deltaT)           // xz
-                     +m_deltaT*m_deltaT*Scalar(1.0/2.0)*nuxy*nuyz;
+    m_mat_exp_r[1] = m_deltaT*Scalar(1.0/2.0)*nuxy*(exp_r_fac_2.x + exp_r_fac_2.y);    // xy
+    m_mat_exp_r[2] = m_deltaT*Scalar(1.0/2.0)*nuxz*(exp_r_fac_2.x + exp_r_fac_2.z)  
+                     +m_deltaT*m_deltaT*Scalar(1.0/8.0)*nuxy*nuyz
+                      *(exp_r_fac_2.x + Scalar(2.0)*exp_r_fac_2.y + exp_r_fac_2.z);    // xz
     m_mat_exp_r[3] = exp_r_fac_2.y;                                                    // yy
-    m_mat_exp_r[4] = m_deltaT*nuyz*exp(Scalar(1.0/2.0)*(nuyy+nuzz)*m_deltaT);          // yz
+    m_mat_exp_r[4] = m_deltaT*Scalar(1.0/2.0)*nuyz*(exp_r_fac_2.y + exp_r_fac_2.z);    // yz
     m_mat_exp_r[5] = exp_r_fac_2.z;                                                    // zz
 
     // integrated matrix exp. for position update
-    m_mat_exp_r_int[0] = m_deltaT*exp_r_fac.x;                                         // xx
-    m_mat_exp_r_int[1] = m_deltaT*m_deltaT*nuxy*Scalar(1.0/2.0);                       // xy  
-    m_mat_exp_r_int[2] = m_deltaT*m_deltaT*nuxz*Scalar(1.0/2.0);                       // xz
-    m_mat_exp_r_int[3] = m_deltaT*exp_r_fac.y;                                         // yy
-    m_mat_exp_r_int[4] = m_deltaT*m_deltaT*nuyz*Scalar(1.0/2.0);                       // yz
-    m_mat_exp_r_int[5] = m_deltaT*exp_r_fac.z;                                         // zz
+    Scalar3 xz_fac_r = make_scalar3((Scalar(1.0)+g_r.x)*(Scalar(1.0)+g_r.x)+h_r.x,
+                                    (Scalar(1.0)+g_r.y)*(Scalar(1.0)+g_r.y)+h_r.y,
+                                    (Scalar(1.0)+g_r.z)*(Scalar(1.0)+g_r.z)+h_r.z);
+
+    m_mat_exp_r_int[0] = m_deltaT*exp_r_fac.x*f_r.x;                                   // xx
+    m_mat_exp_r_int[1] = m_deltaT*m_deltaT*nuxy*Scalar(1.0/4.0)
+                         *(exp_r_fac.x*f_r.x*(Scalar(1.0)+g_r.x)
+                          +exp_r_fac.y*f_r.y*(Scalar(1.0)+g_r.y));                      // xy  
+    m_mat_exp_r_int[2] = m_deltaT*m_deltaT*nuxz*Scalar(1.0/4.0)
+                         *(exp_r_fac.x*f_r.x*(Scalar(1.0)+g_r.x)
+                          +exp_r_fac.z*f_r.z*(Scalar(1.0)+g_r.z))
+                        +m_deltaT*m_deltaT*m_deltaT*nuxy*nuyz*Scalar(1.0/32.0)
+                         *(exp_r_fac.x*f_r.x*xz_fac_r.x
+                          +Scalar(2.0)*exp_r_fac.y*f_r.y*xz_fac_r.y
+                          +exp_r_fac.z*f_r.z*xz_fac_r.z);                              // xz
+    m_mat_exp_r_int[3] = m_deltaT*exp_r_fac.y*f_r.y;                                   // yy
+    m_mat_exp_r_int[4] = m_deltaT*m_deltaT*nuyz*Scalar(1.0/4.0)
+                         *(exp_r_fac.y*f_r.y*(Scalar(1.0)+g_r.y)
+                          +exp_r_fac.z*f_r.z*(Scalar(1.0)+g_r.z));                     // yz
+    m_mat_exp_r_int[5] = m_deltaT*exp_r_fac.z*f_r.z;                                   // zz
     }
 
 void export_TwoStepNPTMTK()
