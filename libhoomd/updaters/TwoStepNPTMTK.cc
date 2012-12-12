@@ -239,17 +239,21 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
             v *= exp_thermo_fac;
 
             // update velocity and position by multiplication with upper triangular matrices
-            v.x = m_mat_exp_v[0] * v.x + m_mat_exp_v[1] * v.y + m_mat_exp_v[2] * v.z
-                  + m_mat_exp_v_int[0] * accel.x + m_mat_exp_v_int[1] * accel.y + m_mat_exp_v_int[2] * accel.z;
-            v.y = m_mat_exp_v[3] * v.y + m_mat_exp_v[4] * v.z
-                  + m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
-            v.z = m_mat_exp_v[5] * v.z + m_mat_exp_v_int[5] * accel.z;
+            v.x = m_mat_exp_v[0] * v.x + m_mat_exp_v[1] * v.y + m_mat_exp_v[2] * v.z;
+            v.y = m_mat_exp_v[3] * v.y + m_mat_exp_v[4] * v.z;
+            v.z = m_mat_exp_v[5] * v.z;
 
-            r.x = m_mat_exp_r[0] * r.x + m_mat_exp_r[1] * r.y + m_mat_exp_r[2] * r.z
-                  + m_mat_exp_r_int[0] * v.x + m_mat_exp_r_int[1] * v.y + m_mat_exp_r_int[2] * v.z;
-            r.y = m_mat_exp_r[3] * r.y + m_mat_exp_r[4] * r.z
-                  + m_mat_exp_r_int[3] * v.y + m_mat_exp_r_int[4] * v.z;
-            r.z = m_mat_exp_r[5] * r.z + m_mat_exp_r_int[5] * v.z;
+            v.x += m_mat_exp_v_int[0] * accel.x + m_mat_exp_v_int[1] * accel.y + m_mat_exp_v_int[2] * accel.z;
+            v.y += m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
+            v.z += m_mat_exp_v_int[5] * accel.z;
+
+            r.x = m_mat_exp_r[0] * r.x + m_mat_exp_r[1] * r.y + m_mat_exp_r[2] * r.z;
+            r.y = m_mat_exp_r[3] * r.y + m_mat_exp_r[4] * r.z;
+            r.z = m_mat_exp_r[5] * r.z;
+
+            r.x += m_mat_exp_r_int[0] * v.x + m_mat_exp_r_int[1] * v.y + m_mat_exp_r_int[2] * v.z;
+            r.y += m_mat_exp_r_int[3] * v.y + m_mat_exp_r_int[4] * v.z;
+            r.z += m_mat_exp_r_int[5] * v.z;
 
             // store velocity
             h_vel.data[j].x = v.x;
@@ -269,7 +273,8 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     Scalar3 b = global_box.getLatticeVector(1);
     Scalar3 c = global_box.getLatticeVector(2);
 
-    // (a,b,c) are the columns of the (upper triangular) cell parameter matrix, multiply with upper triangular matrix
+    // (a,b,c) are the columns of the (upper triangular) cell parameter matrix
+    // multiply with upper triangular matrix
     a.x = m_mat_exp_r[0] * a.x;
     b.x = m_mat_exp_r[0] * b.x + m_mat_exp_r[1] * b.y;
     b.y = m_mat_exp_r[3] * b.y;
@@ -379,11 +384,13 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
 
         // update velocity by multiplication with upper triangular matrix
         Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        v.x = m_mat_exp_v[0] * v.x + m_mat_exp_v[1] * v.y + m_mat_exp_v[2] * v.z
-              + m_mat_exp_v_int[0] * accel.x + m_mat_exp_v_int[1] * accel.y + m_mat_exp_v_int[2] * accel.z;
-        v.y = m_mat_exp_v[3] * v.y + m_mat_exp_v[4] * v.z
-              + m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
-        v.z = m_mat_exp_v[5] * v.z + m_mat_exp_v_int[5] * accel.z;
+        v.x = m_mat_exp_v[0] * v.x + m_mat_exp_v[1] * v.y + m_mat_exp_v[2] * v.z;
+        v.y = m_mat_exp_v[3] * v.y + m_mat_exp_v[4] * v.z;
+        v.z = m_mat_exp_v[5] * v.z;
+
+        v.x += m_mat_exp_v_int[0] * accel.x + m_mat_exp_v_int[1] * accel.y + m_mat_exp_v_int[2] * accel.z;
+        v.y += m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
+        v.z += m_mat_exp_v_int[5] * accel.z;
 
         // store velocity
         h_vel.data[j].x = v.x; h_vel.data[j].y = v.y; h_vel.data[j].z = v.z;

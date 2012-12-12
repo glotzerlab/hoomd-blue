@@ -195,76 +195,12 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 
     eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
 
-    // store eigenvectors of barostat matrix in row major order
-    Scalar *evec[3];
-    evec[0] = &m_evec_arr[0];
-    evec[1] = &m_evec_arr[3];
-    evec[2] = &m_evec_arr[6];
+    // precompute loop invariant quantities
+    Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
 
-    Scalar eval[3];
-    if (m_mode == triclinic)
-        {
-        // find eigenvalues and -vectors of barostat matrix
-
-        // store matrix in row-major order
-        Scalar mat_array[9];
-        Scalar *mat[3];
-        mat[0] = &mat_array[0];
-        mat[1] = &mat_array[3];
-        mat[2] = &mat_array[6];
-
-        mat[0][0] = nuxx; mat[0][1] = nuxy; mat[0][2] = nuxz;
-        mat[1][0] = nuxy; mat[1][1] = nuyy; mat[1][2] = nuyz;
-        mat[2][0] = nuxz; mat[2][1] = nuyz; mat[2][2] = nuzz;
-
-        // the columns of evec are the normalized eigenvectors
-        m_sysdef->getRigidData()->diagonalize(mat, eval, evec);
-        }
-    else
-        {
-        eval[0] = nuxx; eval[1] = nuyy; eval[2] = nuzz;
-        evec[0][0] = Scalar(1.0); evec[0][1] = Scalar(0.0); evec[0][2] = Scalar(0.0);
-        evec[1][0] = Scalar(0.0); evec[1][1] = Scalar(1.0); evec[1][2] = Scalar(0.0);
-        evec[2][0] = Scalar(0.0); evec[2][1] = Scalar(0.0); evec[2][2] = Scalar(1.0);
-        }
-
-    Scalar mtk_term_2 = (nuxx+nuyy+nuzz)/m_thermo_group->getNDOF();
-    Scalar3 v_fac = make_scalar3(Scalar(1.0/4.0)*(eval[0]+mtk_term_2),
-                                 Scalar(1.0/4.0)*(eval[1]+mtk_term_2),
-                                 Scalar(1.0/4.0)*(eval[2]+mtk_term_2));
-
-    m_exp_v_fac = make_scalar3(exp(-v_fac.x*m_deltaT),
-                               exp(-v_fac.y*m_deltaT),
-                               exp(-v_fac.z*m_deltaT));
-    Scalar3 exp_v_fac_2 = make_scalar3(exp(-(Scalar(2.0)*v_fac.x+Scalar(1.0/2.0)*xi_prime)*m_deltaT),
-                               exp(-(Scalar(2.0)*v_fac.y+Scalar(1.0/2.0)*xi_prime)*m_deltaT),
-                               exp(-(Scalar(2.0)*v_fac.z+Scalar(1.0/2.0)*xi_prime)*m_deltaT));
-
-    Scalar3 r_fac = make_scalar3(Scalar(1.0/2.0)*eval[0],
-                                 Scalar(1.0/2.0)*eval[1],
-                                 Scalar(1.0/2.0)*eval[2]);
-    Scalar3 exp_r_fac = make_scalar3(exp(r_fac.x*m_deltaT),
-                                     exp(r_fac.y*m_deltaT),
-                                     exp(r_fac.z*m_deltaT));
-
-    // Coefficients of sinh(x)/x = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 * x^10
-    const Scalar coeff[] = {Scalar(1.0), Scalar(1.0/6.0), Scalar(1.0/120.0), Scalar(1.0/5040.0), Scalar(1.0/362880.0), Scalar(1.0/39916800.0)};
-
-    Scalar3 arg_v = v_fac*m_deltaT;
-    Scalar3 arg_r = r_fac*m_deltaT;
-
-    m_sinhx_fac_v = make_scalar3(0.0,0.0,0.0);
-    Scalar3 sinhx_fac_r = make_scalar3(0.0,0.0,0.0);
-    Scalar3 term_v = make_scalar3(1.0,1.0,1.0);
-    Scalar3 term_r = make_scalar3(1.0,1.0,1.0);
-
-    for (unsigned int i = 0; i < 6; i++)
-        {
-        m_sinhx_fac_v += coeff[i] * term_v;
-        sinhx_fac_r += coeff[i] * term_r;
-        term_v = term_v * arg_v * arg_v;
-        term_r = term_r * arg_r * arg_r;
-        }
+    // update the propagator matrix
+    m_ndof = m_thermo_group->getNDOF();
+    updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
 
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -280,14 +216,12 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
                              d_accel.data,
                              d_index_array.data,
                              group_size,
-                             exp_r_fac,
-                             m_exp_v_fac,
-                             exp_v_fac_2,
-                             sinhx_fac_r,
-                             m_sinhx_fac_v,
-                             m_evec_arr,
-                             m_deltaT,
-                             m_mode == triclinic);
+                             exp_thermo_fac,
+                             m_mat_exp_v,
+                             m_mat_exp_v_int,
+                             m_mat_exp_r,
+                             m_mat_exp_r_int,
+                             m_deltaT);
 
         } // end of GPUArray scope
 
@@ -297,48 +231,14 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     Scalar3 b = global_box.getLatticeVector(1);
     Scalar3 c = global_box.getLatticeVector(2);
 
-    // (a,b,c) are the columns of the cell parameter matrix
-    Scalar3 scale = exp_r_fac*exp_r_fac;
-    if (m_mode == triclinic)
-        {
-        // rotate cell parameter matrix
-        Scalar3 a_rot, b_rot, c_rot;
-
-        a_rot.x = evec[0][0]*a.x + evec[1][0]*a.y + evec[2][0]*a.z;
-        a_rot.y = evec[0][1]*a.x + evec[1][1]*a.y + evec[2][1]*a.z;
-        a_rot.z = evec[0][2]*a.x + evec[1][2]*a.y + evec[2][2]*a.z;
-
-        b_rot.x = evec[0][0]*b.x + evec[1][0]*b.y + evec[2][0]*b.z;
-        b_rot.y = evec[0][1]*b.x + evec[1][1]*b.y + evec[2][1]*b.z;
-        b_rot.z = evec[0][2]*b.x + evec[1][2]*b.y + evec[2][2]*b.z;
-
-        c_rot.x = evec[0][0]*c.x + evec[1][0]*c.y + evec[2][0]*c.z;
-        c_rot.y = evec[0][1]*c.x + evec[1][1]*c.y + evec[2][1]*c.z;
-        c_rot.z = evec[0][2]*c.x + evec[1][2]*c.y + evec[2][2]*c.z;
-
-        a_rot *= scale;
-        b_rot *= scale;
-        c_rot *= scale;
-
-        // rotate cell parameter matrix back
-        a.x = evec[0][0]*a_rot.x + evec[0][1]*a_rot.y + evec[0][2]*a_rot.z;
-        a.y = evec[1][0]*a_rot.x + evec[1][1]*a_rot.y + evec[1][2]*a_rot.z;
-        a.z = evec[2][0]*a_rot.x + evec[2][1]*a_rot.y + evec[2][2]*a_rot.z;
-
-        b.x = evec[0][0]*b_rot.x + evec[0][1]*b_rot.y + evec[0][2]*b_rot.z;
-        b.y = evec[1][0]*b_rot.x + evec[1][1]*b_rot.y + evec[1][2]*b_rot.z;
-        b.z = evec[2][0]*b_rot.x + evec[2][1]*b_rot.y + evec[2][2]*b_rot.z;
-
-        c.x = evec[0][0]*c_rot.x + evec[0][1]*c_rot.y + evec[0][2]*c_rot.z;
-        c.y = evec[1][0]*c_rot.x + evec[1][1]*c_rot.y + evec[1][2]*c_rot.z;
-        c.z = evec[2][0]*c_rot.x + evec[2][1]*c_rot.y + evec[2][2]*c_rot.z;
-        }
-    else
-        {
-        a *= scale;
-        b *= scale;
-        c *= scale;
-        }
+    // (a,b,c) are the columns of the (upper triangular) cell parameter matrix,
+    // multiply with upper triangular matrix
+    a.x = m_mat_exp_r[0] * a.x;
+    b.x = m_mat_exp_r[0] * b.x + m_mat_exp_r[1] * b.y;
+    b.y = m_mat_exp_r[3] * b.y;
+    c.x = m_mat_exp_r[0] * c.x + m_mat_exp_r[1] * c.y + m_mat_exp_r[2] * c.z;
+    c.y = m_mat_exp_r[3] * c.y + m_mat_exp_r[4] * c.z;
+    c.z = m_mat_exp_r[5] * c.z;
 
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -360,7 +260,12 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 #endif
 
     // update box dimensions
-//    global_box.setLatticeVectors(a,b,c);
+    global_box.setL(make_scalar3(a.x,b.y,c.z));
+
+    Scalar xy = b.x/b.y;
+    Scalar xz = c.x/c.z;
+    Scalar yz = c.y/c.z;
+    global_box.setTiltFactors(xy, xz, yz); 
 
     // set global box
     m_pdata->setGlobalBox(global_box);
@@ -429,10 +334,9 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
                      d_index_array.data,
                      group_size,
                      d_net_force.data,
-                     m_exp_v_fac,
-                     m_sinhx_fac_v,
-                     m_deltaT,
-                     m_mode == triclinic);
+                     m_mat_exp_v,
+                     m_mat_exp_v_int,
+                     m_deltaT);
 
         {
         // recalulate temperature
