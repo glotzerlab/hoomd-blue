@@ -68,7 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "IntegratorTwoStep.h"
 
-#include "NeighborListBinned.h"
+#include "NeighborList.h"
 #include "Initializers.h"
 #include "AllPairPotentials.h"
 
@@ -106,16 +106,16 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     Scalar T0 = 2.0;
     Scalar deltaT = 0.001;
 
-    TwoStepNPTMTK::integrationMode mode = TwoStepNPTMTK::cubic;
+    const TwoStepNPTMTK::integrationMode modes[] = {TwoStepNPTMTK::cubic,
+                                             TwoStepNPTMTK::orthorhombic,
+                                             TwoStepNPTMTK::tetragonal,
+                                             TwoStepNPTMTK::triclinic};
+    const std::string mode_name[] = {"cubic", "orthorhombic", "tetragonal", "triclinic"};
+    unsigned int n_modes = 4;
+ 
     Scalar tau = .1;
     Scalar tauP = .1;
 
-/* the anisotropic integration modes work, too, but since the test particle system is isotropic,
-   it has a degenerate box shape and thus does not constitute a good test case for these
-   integration modes */
-
-//   mode = TwoStepNPTMTK::orthorhombic;
-//   mode = TwoStepNPTMTK::tetragonal;
 
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
@@ -134,7 +134,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8)));
+    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
 
     shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(pow(Scalar(2.0),Scalar(1./6.))));
@@ -154,85 +154,126 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
 
     shared_ptr<ComputeThermo> thermo_group(new ComputeThermo(sysdef, group_all, "name"));
     thermo_group->setNDOF(3*N);
-
-    shared_ptr<TwoStepNPTMTK> two_step_npt_mtk = npt_mtk_creator(sysdef, group_all, thermo_group, tau, tauP,T0,P, mode);
     shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
-    npt_mtk->addIntegrationMethod(two_step_npt_mtk);
     npt_mtk->addForceCompute(fc);
-    npt_mtk->prepRun(0);
 
-    // step for a 10,000 timesteps to relax pessure and tempreratue
-    // before computing averages
-
-    std::cout << "Equilibrating 10,000 steps... " << std::endl;
-    for (int i = 0; i < 10000; i++)
+    // successively integrate the system using all methods
+    unsigned int offs=0;
+    for (unsigned int i_mode = 0; i_mode < n_modes; i_mode++)
         {
-        if (i % 1000 == 0)
-            std::cout << i << std::endl;
-        npt_mtk->update(i);
-        }
+        TwoStepNPTMTK::integrationMode mode = modes[i_mode];
+        std::cout << "Testing NPT with mode " << mode_name[i_mode] << std::endl;
+        shared_ptr<TwoStepNPTMTK> two_step_npt_mtk = npt_mtk_creator(sysdef, group_all, thermo_group, tau, tauP,T0,P, mode);
+        npt_mtk->removeAllIntegrationMethods();
+        npt_mtk->addIntegrationMethod(two_step_npt_mtk);
+        npt_mtk->prepRun(0);
 
-    // now do the averaging for next 100k steps
-    Scalar avrPxx = 0.0;
-    Scalar avrPyy = 0.0;
-    Scalar avrPzz = 0.0;
-    Scalar avrT = 0.0;
-    int count = 0;
+        // step for a 10,000 timesteps to relax pessure and tempreratue
+        // before computing averages
 
-    thermo_group->compute(0);
-    BoxDim box = pdata->getBox();
-    Scalar3 L = box.getL();
-    Scalar volume = L.x*L.y*L.z;
-    Scalar enthalpy =  thermo_group->getKineticEnergy() + thermo_group->getPotentialEnergy() + P * volume;
-    Scalar barostat_energy = npt_mtk->getLogValue("npt_mtk_barostat_energy", 0);
-    Scalar thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", 0);
-    Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
-
-    std::cout << "Measuring up to 50,000 steps... " << std::endl;
-    for (int i = 10000; i < 50000; i++)
-        {
-        if (i % 1000 == 0)
-            std::cout << i << std::endl;
-        if (i % 100 == 0)
+        std::cout << "Equilibrating 10,000 steps... " << std::endl;
+        unsigned int timestep;
+        for (unsigned int i = 0; i < 10000; i++)
             {
-            thermo_group->compute(i);
-            PressureTensor P_current = thermo_group->getPressureTensor();
-            avrPxx += P_current.xx;
-            avrPyy += P_current.yy;
-            avrPzz += P_current.zz;
-
-            avrT += thermo_group->getTemperature();
-            count++;
-
-            //box = pdata->getBox();
-            //L = box.getL();
-            //std::cout << "L == (" << L.x << ", " << L.y << ", " << L.z << ")" << std::endl;
+            timestep = offs + i;
+            if (i % 1000 == 0)
+                std::cout << i << std::endl;
+            npt_mtk->update(timestep);
             }
-        npt_mtk->update(i);
+
+        // now do the averaging for next 40k steps
+        Scalar avrPxx(0.0);
+        Scalar avrPxy(0.0);
+        Scalar avrPxz(0.0);
+        Scalar avrPyy(0.0);
+        Scalar avrPyz(0.0);
+        Scalar avrPzz(0.0);
+        Scalar avrT(0.0);
+        int count = 0;
+
+        thermo_group->compute(0);
+        BoxDim box = pdata->getBox();
+        Scalar volume = box.getVolume();
+        Scalar enthalpy =  thermo_group->getKineticEnergy() + thermo_group->getPotentialEnergy() + P * volume;
+        Scalar barostat_energy = npt_mtk->getLogValue("npt_mtk_barostat_energy", 0);
+        Scalar thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", 0);
+        Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
+
+        std::cout << "Measuring up to 50,000 steps... " << std::endl;
+        for (unsigned int i = 10000; i < 50000; i++)
+            {
+            timestep = offs + i;
+            if (i % 1000 == 0)
+                std::cout << i << std::endl;
+            if (i% 100 == 0)
+                {
+                thermo_group->compute(timestep);
+                PressureTensor P_current = thermo_group->getPressureTensor();
+                avrPxx += P_current.xx;
+                avrPxy += P_current.xy;
+                avrPxz += P_current.xz;
+                avrPyy += P_current.yy;
+                avrPyz += P_current.yz;
+                avrPzz += P_current.zz;
+
+                avrT += thermo_group->getTemperature();
+                count++;
+
+                /*
+                box = pdata->getBox();
+                Scalar3 L = box.getL();
+                std::cout << "L == (" << L.x << ", " << L.y << ", " << L.z << ")" << std::endl;
+                */
+                }
+            npt_mtk->update(timestep);
+            }
+
+        thermo_group->compute(timestep+1);
+        box = pdata->getBox();
+        volume = box.getVolume();
+        enthalpy =  thermo_group->getKineticEnergy() + thermo_group->getPotentialEnergy() + P * volume;
+        barostat_energy = npt_mtk->getLogValue("npt_mtk_barostat_energy", count+1);
+        thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", count+1);
+        Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
+
+        // check conserved quantity, required accuracy 2*10^-4
+        Scalar tol = 0.02;
+        MY_BOOST_CHECK_CLOSE(H_ref,H_final,tol);
+
+        avrPxx /= Scalar(count);
+        avrPxy /= Scalar(count);
+        avrPxz /= Scalar(count);
+        avrPyy /= Scalar(count);
+        avrPyz /= Scalar(count);
+        avrPzz /= Scalar(count);
+        avrT /= Scalar(count);
+        Scalar avrP= Scalar(1./3.)*(avrPxx+avrPyy+avrPzz);
+        Scalar rough_tol = 2.0;
+        if (mode == TwoStepNPTMTK::cubic)
+            MY_BOOST_CHECK_CLOSE(avrP, P, rough_tol);
+        else if (mode == TwoStepNPTMTK::tetragonal)
+            {
+            MY_BOOST_CHECK_CLOSE(avrPxx, P, rough_tol);
+            MY_BOOST_CHECK_CLOSE(Scalar(1.0/2.0)*(avrPyy+avrPzz), avrP, rough_tol);
+            }
+        else if (mode == TwoStepNPTMTK::orthorhombic)
+            {
+            MY_BOOST_CHECK_CLOSE(avrPxx, P, rough_tol);
+            MY_BOOST_CHECK_CLOSE(avrPyy, P, rough_tol);
+            MY_BOOST_CHECK_CLOSE(avrPzz, P, rough_tol);
+            }
+        else if (mode == TwoStepNPTMTK::triclinic)
+            {
+            MY_BOOST_CHECK_CLOSE(avrPxx, P, rough_tol);
+            MY_BOOST_CHECK_CLOSE(avrPyy, P, rough_tol);
+            MY_BOOST_CHECK_CLOSE(avrPzz, P, rough_tol);
+            MY_BOOST_CHECK_SMALL(avrPxy,rough_tol);
+            MY_BOOST_CHECK_SMALL(avrPxz,rough_tol);
+            MY_BOOST_CHECK_SMALL(avrPyz,rough_tol);
+            }
+        MY_BOOST_CHECK_CLOSE(T0, avrT, rough_tol);
+        offs+=timestep;
         }
-
-    thermo_group->compute(count+1);
-    box = pdata->getBox();
-    L = box.getL();
-    volume = L.x*L.y*L.z;
-    enthalpy =  thermo_group->getKineticEnergy() + thermo_group->getPotentialEnergy() + P * volume;
-    barostat_energy = npt_mtk->getLogValue("npt_mtk_barostat_energy", count+1);
-    thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", count+1);
-    Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
-    // check conserved quantity
-    Scalar tol = 0.02;
-    MY_BOOST_CHECK_CLOSE(H_ref,H_final,tol);
-
-    avrPxx /= Scalar(count);
-    avrPyy /= Scalar(count);
-    avrPzz /= Scalar(count);
-    avrT /= Scalar(count);
-    Scalar avrP= Scalar(1./3.)*(avrPxx+avrPyy+avrPzz);
-    Scalar rough_tol = 2.0;
-    MY_BOOST_CHECK_CLOSE(P, avrP, rough_tol);
-
-    MY_BOOST_CHECK_CLOSE(T0, avrT, rough_tol);
-
     }
 
 //! IntegratorTwoStepNPTMTK factory for the unit tests
