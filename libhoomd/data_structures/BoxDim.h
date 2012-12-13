@@ -266,6 +266,24 @@ class BoxDim
             m_yz = yz;
             }
 
+        //! Returns the xy tilt factor
+        HOSTDEVICE Scalar getTiltFactorXY()
+            {
+            return m_xy;
+            }
+
+        //! Returns the xz tilt factor
+        HOSTDEVICE Scalar getTiltFactorXZ()
+            {
+            return m_xz;
+            }
+
+        //! Returns the yz tilt factor
+        HOSTDEVICE Scalar getTiltFactorYZ()
+            {
+            return m_yz;
+            }
+
         //! Compute fractional coordinates, allowing for a ghost layer
         /*! \param v Vector to scale
             \param ghost_width Width of extra ghost padding layer to take into account
