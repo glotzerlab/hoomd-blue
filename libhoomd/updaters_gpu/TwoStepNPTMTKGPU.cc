@@ -132,8 +132,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     m_curr_group_T = m_thermo_group->getTemperature();
 
     // compute pressure for the next half time step
-    assert(m_mode == cubic || m_mode == orthorhombic || m_mode == tetragonal);
-
     PressureTensor P = m_thermo_group->getPressureTensor();
 
     if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
@@ -145,7 +143,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push("NPT MTK step 1");
+        m_prof->push("NPT step 1");
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& eta = v.variable[0];  // Thermostat variable
@@ -308,7 +306,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push("NPT MTK step 2");
+        m_prof->push("NPT step 2");
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& eta = v.variable[0];  // Thermostat variable
@@ -392,7 +390,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     m_thermo_group->compute(timestep+1);
 
     if (m_prof)
-        m_prof->push("NPT MTK step 2");
+        m_prof->push("NPT step 2");
 
     // compute temperature for the next half time step
     m_curr_group_T = m_thermo_group->getTemperature();

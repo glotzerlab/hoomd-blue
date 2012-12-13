@@ -165,7 +165,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push("NPT MTK step 1");
+        m_prof->push("NPT step 1");
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& eta = v.variable[0];  // Thermostat variable
@@ -346,7 +346,7 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
 
    // profile this step
     if (m_prof)
-        m_prof->push("NPT MTK step 2");
+        m_prof->push("NPT step 2");
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& eta = v.variable[0];  // Thermostat variable
@@ -434,7 +434,7 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
     m_thermo_group->compute(timestep+1);
 
     if (m_prof)
-        m_prof->push("NPT MTK step 2");
+        m_prof->push("NPT step 2");
 
     // compute temperature for the next half time step
     m_curr_group_T = m_thermo_group->getTemperature();
