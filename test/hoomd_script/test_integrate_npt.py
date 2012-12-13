@@ -39,6 +39,11 @@ class integrate_npt_tests (unittest.TestCase):
         integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5, mode="tetragonal");
         run(100);
 
+    def test_mtk_triclinic(self):
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5, mode="triclinic");
+        run(100);
 
     # test set_params
     def test_set_params(self):
