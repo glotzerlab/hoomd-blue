@@ -267,19 +267,19 @@ class BoxDim
             }
 
         //! Returns the xy tilt factor
-        HOSTDEVICE Scalar getTiltFactorXY()
+        HOSTDEVICE Scalar getTiltFactorXY() const
             {
             return m_xy;
             }
 
         //! Returns the xz tilt factor
-        HOSTDEVICE Scalar getTiltFactorXZ()
+        HOSTDEVICE Scalar getTiltFactorXZ() const
             {
             return m_xz;
             }
 
         //! Returns the yz tilt factor
-        HOSTDEVICE Scalar getTiltFactorYZ()
+        HOSTDEVICE Scalar getTiltFactorYZ() const
             {
             return m_yz;
             }
