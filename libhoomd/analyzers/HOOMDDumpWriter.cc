@@ -243,17 +243,21 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
  
     BoxDim box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
+    Scalar xy = box.getTiltFactorXY();
+    Scalar xz = box.getTiltFactorXZ();
+    Scalar yz = box.getTiltFactorYZ();
     
     f.precision(13);
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
-    f << "<hoomd_xml version=\"1.4\">" << "\n";
+    f << "<hoomd_xml version=\"1.5\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
       << "natoms=\"" << m_pdata->getNGlobal() << "\" ";
     if (m_vizsigma_set)
         f << "vizsigma=\"" << m_vizsigma << "\" ";
     f << ">" << "\n";
-    f << "<box " << "lx=\"" << L.x << "\" ly=\""<< L.y << "\" lz=\""<< L.z << "\"/>" << "\n";
+    f << "<box " << "lx=\"" << L.x << "\" ly=\""<< L.y << "\" lz=\""<< L.z
+      << "\" xy=\"" << xy << "\" xz=\"" << xz << "\" yz=\"" << yz << "\"/>" << "\n";
     
     f.precision(12);
 

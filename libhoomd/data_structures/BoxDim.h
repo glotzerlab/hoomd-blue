@@ -91,9 +91,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     The conditions for a particle to be inside the triclinic box are
 
-                      -m_L.z/2 <= z <= m_L.z/2
-               -m_L.y/2 + yz*z <= y <= m_L.y/2 + yz*z
-        -m_L.x/2 + xz*z + xy*y <= x <= m_L.x/2 + xz*rz + xy*y
+                              -m_L.z/2 <= z <= m_L.z/2
+                       -m_L.y/2 + yz*z <= y <= m_L.y/2 + yz*z
+        -m_L.x/2 + (xz-xy*yz)*z + xy*y <= x <= m_L.x/2 + (xz-xy*yz)*z + xy*y
 
     Boxes constructed via length default to periodic in all 3 directions. Any direction may be made non-periodic with
     setPeriodic(). Boxes constructed via lo and hi must be explicity given periodic flags for each direction.
