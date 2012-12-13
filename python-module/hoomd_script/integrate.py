@@ -455,9 +455,9 @@ class nvt(_integration_method):
 # The following integration modes are avaible:
 # - \b cubic box, the ratios between the box lengths do not change,  angles are 90 \f$ ^o \f$
 # - \b orthorhombic box, all box lengths can vary independently, angles are 90 \f$ ^o \f$
-# - \b tetragonal lattice, the \b x- direction is independently integrated from the \b y- and \b z- directions,
+# - \b tetragonal box, the \b x- direction is independently integrated from the \b y- and \b z- directions,
 #   and the ratio between the box lengths in the latter directions remains constant, angles are \f$ ^o \f$
-# - \b triclinic lattice, all box lengths and angles can vary independently
+# - \b triclinic box, all box lengths and angles can vary independently
 #
 # When not using the MTK equations, only cubic integration is available.
 #
