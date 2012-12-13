@@ -445,19 +445,21 @@ class nvt(_integration_method):
         if tau is not None:
             self.cpp_method.setTau(tau);
 
-## NPT Integration with various box-shape symmetries
+## NPT Integration
 #
-# integrate.npt performs constant pressure, constant temperature simulations.
+# integrate.npt performs constant pressure, constant temperature simulations, allowing for a fully deformable simulation box
 #
-# It supports two different integration algorithms:
-# - a Nos&eacute;-Hoover thermostat and Anderson barostat
-# - rigorous integration in the NPT ensemble based on the Martyna-Tobias-Klein (MTK) equations
+# The integration method is based on the rigorous Martyna-Tobias-Klein equations of motion for NPT.
+# For optimal stability, the update equations leave the phase-space meeasure invariant and are manifestly time-reversible.
 #
-# When using the MTK equations, additional integration sub-modes are available, namely
-# - cubic symmetry, the ratios between the box lengths do not change
-# - orthorhombic symmetry, all box lengths can vary independently
-# - tetragonal symmetry, the \b x- direction is independently integrated from the \b y- and \b z- directions,
-#   and the ratio between the box lengths in the latter directions remains constant
+# The following integration modes are avaible:
+# - \b cubic box, the ratios between the box lengths do not change,  angles are 90 \f$ ^o \f$
+# - \b orthorhombic box, all box lengths can vary independently, angles are 90 \f$ ^o \f$
+# - \b tetragonal lattice, the \b x- direction is independently integrated from the \b y- and \b z- directions,
+#   and the ratio between the box lengths in the latter directions remains constant, angles are \f$ ^o \f$
+# - \b triclinic lattice, all box lengths and angles can vary independently
+#
+# When not using the MTK equations, only cubic integration is available.
 #
 # integrate.npt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -471,17 +473,18 @@ class nvt(_integration_method):
 # \cite Martyna1994
 # \cite Tuckerman2006
 # \cite Yu2010
+# Glaser et. al (2013), to be published
 class npt(_integration_method):
     ## Specifies the NPT integrator
     # \param group Group of particles on which to apply this method.
-    # \param T Temperature set point for the Nos&eacute;-Hoover thermostat (in energy units)
-    # \param P Pressure set point for the Anderson barostat (in pressure units)
-    # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. (in time units)
+    # \param T Temperature set point for the thermostat (in energy units)
+    # \param P Pressure set point for the barostat (in pressure units)
+    # \param tau Coupling constant for the thermostat. (in time units)
     # \param tauP Coupling constant for the barostat (in time units)
-    # \param mtk True if the MTK equations should be used (default), False if the original Nos&eacute;-Hoover equations should be used
+    # \param mtk True if the MTK equations should be used (default), False if the Nos&eacute;-Hoover equations should be used
     # \param partial_scale In Nos&eacute;-Hoover mode, if False (the default), \b all particles in the box are scaled due to the box size changes
     #                      during NPT integration. If True, only those particles that belong to \a group will be scaled. In MTK mode, this parameter cannot be changed, and only the particles in the group are rescaled.
-    # \param mode Only available in MTK mode, can be "cubic" (default), "orthorhombic" or "tetragonal".
+    # \param mode Only available in MTK mode, can be \b "cubic" (default), \b "orthorhombic", \b "tetragonal" or \b "triclinic"
     #
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
