@@ -67,14 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HOSTDEVICE inline
 #endif
  
-// call different optimized sqrt functions on the host / device
-// SQRT is sqrtf when included in nvcc and sqrt when included into the host compiler
-#ifdef NVCC
-#define SQRT sqrtf
-#else
-#define SQRT sqrt
-#endif
-
 // RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
 #ifdef NVCC
 #define RSQRT(x) rsqrtf( (x) )
@@ -321,7 +313,6 @@ class BoxDim
             Scalar3 w = v;
             Scalar3 L = getL();
 
-            #ifdef NVCC
             if (m_periodic.z)
                 {
                 Scalar img = rintf(w.z * m_Linv.z);
@@ -341,47 +332,7 @@ class BoxDim
                 {
                 w.x -= L.x * rintf(w.x * m_Linv.x);
                 }
-            #else
-            // on the cpu, branches are faster than calling rintf
-            if (m_periodic.z)
-                {
-                if (w.z >= m_hi.z)
-                    {
-                    w.z -= L.z;
-                    w.y -= L.z * m_yz;
-                    w.x -= L.z * m_xz;
-                    }
-                else if (w.z < m_lo.z)
-                    {
-                    w.z += L.z;
-                    w.y += L.z * m_yz;
-                    w.x += L.z * m_xz;
-                    }
-                }
- 
-            if (m_periodic.y)
-                {
-                if (w.y >= m_hi.y)
-                    {
-                    w.y -= L.y;
-                    w.x -= L.y * m_xy;
-                    }
-                else if (w.y < m_lo.y)
-                    {
-                    w.y += L.y;
-                    w.x += L.y * m_xy;
-                    }
-                }
 
-            if (m_periodic.x)
-                {
-                if (w.x >= m_hi.x)
-                    w.x -= L.x;
-                else if (w.x < m_lo.x)
-                    w.x += L.x;
-                }
-
-            #endif
             return w;
             }
 
@@ -571,5 +522,4 @@ class BoxDim
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE
 #undef RSQRT
-#undef SQRT
 #endif // __BOXDIM_H__
