@@ -313,6 +313,7 @@ class BoxDim
             Scalar3 w = v;
             Scalar3 L = getL();
 
+            #ifdef NVCC
             if (m_periodic.z)
                 {
                 Scalar img = rintf(w.z * m_Linv.z);
@@ -332,6 +333,46 @@ class BoxDim
                 {
                 w.x -= L.x * rintf(w.x * m_Linv.x);
                 }
+            #else
+            // on the cpu, branches are faster than calling rintf
+            if (m_periodic.z)
+                {
+                if (w.z >= m_hi.z)
+                    {
+                    w.z -= L.z;
+                    w.y -= L.z * m_yz;
+                    w.x -= L.z * m_xz;
+                    }
+                else if (w.z < m_lo.z)
+                    {
+                    w.z += L.z;
+                    w.y += L.z * m_yz;
+                    w.x += L.z * m_xz;
+                    }
+                }
+ 
+            if (m_periodic.y)
+                {
+                while (w.y >= m_hi.y)
+                    {
+                    w.y -= L.y;
+                    w.x -= L.y * m_xy;
+                    }
+                while (w.y < m_lo.y)
+                    {
+                    w.y += L.y;
+                    w.x += L.y * m_xy;
+                    }
+                }
+
+            if (m_periodic.x)
+                {
+                while (w.x >= m_hi.x)
+                    w.x -= L.x;
+                while (w.x < m_lo.x)
+                    w.x += L.x;
+                }
+            #endif 
 
             return w;
             }
