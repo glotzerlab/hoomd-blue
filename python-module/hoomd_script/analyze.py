@@ -335,6 +335,12 @@ class imd(_analyzer):
 #
 # Quantities that can be logged at any time:
 # - \b volume - Volume of the simulation box (in volume units)
+# - \b lx - Box length in x direction (in length units)
+# - \b ly - Box length in y direction (in length units)
+# - \b lz - Box length in z direction (in length units)
+# - \b xy - Box tilt factor in xy plane (dimensionless)
+# - \b xz - Box tilt factor in xz plane (dimensionless)
+# - \b yz - Box tilt factor in yz plane (dimensionless)
 # - \b momentum - Magnitude of the average momentum of all particles (in momentum units)
 # - \b time - Wall-clock running time from the start of the log (in seconds)
 #
