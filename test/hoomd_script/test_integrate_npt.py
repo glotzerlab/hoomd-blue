@@ -30,19 +30,19 @@ class integrate_npt_tests (unittest.TestCase):
     def test_mtk_orthorhombic(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
-        integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5, mode="orthorhombic");
+        integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5, couple="none");
         run(100);
 
     def test_mtk_tetragonal(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
-        integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5, mode="tetragonal");
+        integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5, couple="xy");
         run(100);
 
     def test_mtk_triclinic(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
-        integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5, mode="triclinic");
+        integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5, couple="none", all=True);
         run(100);
 
     # test set_params

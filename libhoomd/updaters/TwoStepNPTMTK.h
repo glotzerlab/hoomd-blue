@@ -84,13 +84,26 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class TwoStepNPTMTK : public IntegrationMethodTwoStep
     {
     public:
-        //! Enum to specify possible integration modes
-        enum integrationMode
+        //! Specify possible couplings between the diagonal elements of the pressure tensor
+        enum couplingMode
             {
-            cubic = 0,
-            orthorhombic,
-            tetragonal,
-            triclinic
+            couple_none = 0,
+            couple_xy,
+            couple_xz,
+            couple_yz,
+            couple_xyz};
+
+        /*! Flags to indicate which degrees of freedom of the simulation box should be put under
+            barostat control
+         */
+        enum baroFlags
+            {
+            baro_x = 1,
+            baro_y = 2,
+            baro_z = 4,
+            baro_xy = 8,
+            baro_xz = 16,
+            baro_yz = 32
             };
 
         //! Constructs the integration method and associates it with the system
@@ -101,7 +114,8 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
                    boost::shared_ptr<Variant> P,
-                   integrationMode mode);
+                   couplingMode couple,
+                   unsigned int flags);
         virtual ~TwoStepNPTMTK();
 
         //! Update the temperature
@@ -177,28 +191,25 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         boost::shared_ptr<Variant> m_P; //!< Pressure set point
         Scalar m_curr_group_T;          //!< Current group temperature
-        Scalar3 m_curr_P_diag;          //!< Current pressure tensor (diagonal elements)
-        Scalar m_evec_arr[9];          //!< Eigenvectors of the barostat tensor
         Scalar m_V;                     //!< Current volume
 
-        Scalar3 m_v_fac;                //!< Exponent of factor multiplying velocity
-        Scalar3 m_exp_v_fac;            //!< Factor multiplying velocity
-        Scalar3 m_sinhx_fac_v;          //!< Factor multiplying acceleration
-
-
+        couplingMode m_couple;          //!< Coupling of diagonal elements
+        unsigned int m_flags;             //!< Coupling flags for barostat 
         Scalar m_mat_exp_v[6];          //!< Matrix exponential for velocity update (upper triangular)
         Scalar m_mat_exp_r[6];          //!< Matrix exponential for position update (upper triangular)
         Scalar m_mat_exp_v_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
         Scalar m_mat_exp_r_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
 
-        integrationMode m_mode;         //!< Current integration mode
-
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
 
+        //! Helper function to advance the barostat parameters
+        void advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Scalar &nuyy, Scalar &nuyz, Scalar &nuzz,
+                             PressureTensor& P, unsigned int timestep);
         
         //! Helper function to update the propagator elements
         void updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);
-    };
+
+        };
 
 //! Exports the TwoStepNPTMTK class to python
 void export_TwoStepNPTMTK();

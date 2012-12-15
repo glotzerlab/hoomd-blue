@@ -77,7 +77,8 @@ using namespace boost::python;
     \param tauP NPT pressure period
     \param T Temperature set point
     \param P Pressure set point
-    \param mode Mode of integration
+    \param couple Coupling mode
+    \param flags Barostatted simulation box degrees of freedom
 */
 TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
@@ -86,8 +87,10 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P,
-                       integrationMode mode)
-    : TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP, T, P, mode)
+                       couplingMode couple,
+                       unsigned int flags)
+
+    : TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP, T, P, couple, flags)
     {
     if (!exec_conf->isCUDAEnabled())
         {
@@ -125,6 +128,9 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     if (group_size == 0)
         return;
 
+    // update degrees of freedom
+    m_ndof = m_thermo_group->getNDOF();
+
     // compute the current thermodynamic properties
     m_thermo_group->compute(timestep);
 
@@ -156,35 +162,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
     // advance barostat (nux, nuy, nuz) half a time step
-    Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
-    Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
-    if (m_mode == cubic)
-        {
-        Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_iso - m_P->getValue(timestep)) + mtk_term;
-        nuyy = nuzz = nuxx;
-        }
-    else if (m_mode == tetragonal)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((P.yy + P.zz)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
-        nuzz = nuyy;
-        }
-    else if (m_mode == orthorhombic)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
-        }
-    else if (m_mode == triclinic)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
-        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
-        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
-        }
+    advanceBarostat(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz, P, timestep);
 
     // advance thermostat (xi, eta) half a time step
     Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0));
@@ -197,7 +175,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
 
     // update the propagator matrix
-    m_ndof = m_thermo_group->getNDOF();
     updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
 
         {
@@ -406,35 +383,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         }
 
     // advance barostat (nux, nuy, nuz) half a time step
-    Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
-    Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
-    if (m_mode == cubic)
-        {
-        Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_iso - m_P->getValue(timestep)) + mtk_term;
-        nuyy = nuzz = nuxx;
-        }
-    else if (m_mode == tetragonal)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((P.yy + P.zz)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
-        nuzz = nuyy;
-        }
-    else if (m_mode == orthorhombic)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
-        }
-    else if (m_mode == triclinic)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
-        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
-        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
-        }
+    advanceBarostat(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz, P, timestep);
 
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -469,7 +418,8 @@ void export_TwoStepNPTMTKGPU()
                        Scalar,
                        boost::shared_ptr<Variant>,
                        boost::shared_ptr<Variant>,
-                       TwoStepNPTMTKGPU::integrationMode>())
+                       TwoStepNPTMTKGPU::couplingMode,
+                       unsigned int>())
         ;
 
     }

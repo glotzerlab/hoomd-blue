@@ -83,7 +83,8 @@ const Scalar h_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/15.0), Scalar(2.0/189.0),
     \param tauP NPT pressure period
     \param T Temperature set point
     \param P Pressure set point
-    \param mode Mode of integration
+    \param couple Coupling mode
+    \param flags Barostatted simulation box degrees of freedom
 */
 TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
@@ -92,9 +93,10 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P,
-                       integrationMode mode)
+                       couplingMode couple,
+                       unsigned int flags)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group),
-      m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_mode(mode)
+      m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
 
@@ -102,6 +104,10 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->warning() << "integrate.npt: tau set less than 0.0" << endl;
     if (m_tauP <= 0.0)
         m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
+
+    if (flags == 0)
+        m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified." 
+                                    << endl;
 
     m_V = m_pdata->getGlobalBox().getVolume();  // volume
 
@@ -125,9 +131,6 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
     m_log_names.resize(2);
     m_log_names[0] = "npt_mtk_thermostat_energy";
     m_log_names[1] = "npt_mtk_barostat_energy";
-
-    for (unsigned int i = 0; i < 9; ++i)
-        m_evec_arr[i] = Scalar(0.0);
     }
 
 TwoStepNPTMTK::~TwoStepNPTMTK()
@@ -144,6 +147,9 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 
     if (group_size == 0)
         return;
+
+    // update degrees of freedom
+    m_ndof = m_thermo_group->getNDOF();
 
     // compute the current thermodynamic properties
     m_thermo_group->compute(timestep);
@@ -178,35 +184,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
-    Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
-    Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
-    if (m_mode == cubic)
-        {
-        Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_iso - m_P->getValue(timestep)) + mtk_term;
-        nuyy = nuzz = nuxx;
-        }
-    else if (m_mode == tetragonal)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((P.yy + P.zz)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
-        nuzz = nuyy;
-        }
-    else if (m_mode == orthorhombic)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
-        }
-    else if (m_mode == triclinic)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
-        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
-        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
-        }
+    advanceBarostat(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz, P, timestep);
 
     // advance thermostat (xi, eta) half a time step
     Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0));
@@ -219,7 +197,6 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
 
     // update the propagator matrix
-    m_ndof = m_thermo_group->getNDOF();
     updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
 
        {
@@ -450,35 +427,7 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
         }
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
-    Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
-    Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
-    if (m_mode == cubic)
-        {
-        Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_iso - m_P->getValue(timestep)) + mtk_term;
-        nuyy = nuzz = nuxx;
-        }
-    else if (m_mode == tetragonal)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*((P.yy + P.zz)/Scalar(2.0) - m_P->getValue(timestep)) + mtk_term;
-        nuzz = nuyy;
-        }
-    else if (m_mode == orthorhombic)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
-        }
-    else if (m_mode == triclinic)
-        {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xx - m_P->getValue(timestep)) + mtk_term;
-        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
-        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yy - m_P->getValue(timestep)) + mtk_term;
-        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.zz - m_P->getValue(timestep)) + mtk_term;
-        }
+    advanceBarostat(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz, P, timestep);
 
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -697,6 +646,60 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
     m_mat_exp_r_int[5] = m_deltaT*exp_r_fac.z*f_r.z;                                   // zz
     }
 
+//! Helper function to advance the barostat parameters
+void TwoStepNPTMTK::advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Scalar &nuyy, Scalar &nuyz, Scalar &nuzz,
+                                    PressureTensor &P, unsigned int timestep)
+    {
+    // advance barostat (nuxx, nuyy, nuzz) half a time step
+    Scalar W = m_ndof*m_T->getValue(timestep)*m_tauP*m_tauP;
+    Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
+
+    // couple diagonal elements of pressure tensor together
+    Scalar3 P_diag = make_scalar3(0.0,0.0,0.0);
+    if (m_couple == couple_none)
+        {
+        P_diag.x = P.xx;
+        P_diag.y = P.yy;
+        P_diag.z = P.zz;
+        }
+    else if (m_couple == couple_xy)
+        {
+        P_diag.x = Scalar(1.0/2.0)*(P.xx + P.yy);
+        P_diag.y = Scalar(1.0/2.0)*(P.xx + P.yy);
+        P_diag.z = P.zz;
+        }
+    else if (m_couple == couple_xz)
+        {
+        P_diag.x = Scalar(1.0/2.0)*(P.xx + P.zz);
+        P_diag.y = P.yy;
+        P_diag.z = Scalar(1.0/2.0)*(P.xx + P.zz);
+        }
+    else if (m_couple == couple_yz)
+        {
+        P_diag.x = P.xx;
+        P_diag.y = Scalar(1.0/2.0)*(P.yy + P.zz);
+        P_diag.z = Scalar(1.0/2.0)*(P.yy + P.zz);
+        }
+    else if (m_couple == couple_xyz) 
+        {
+        Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
+        P_diag.x = P_diag.y = P_diag.z = P_iso;
+        }
+    else
+        {
+        m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl << std::endl;
+        throw std::runtime_error("Error in NPT integration");
+        }
+
+    // update barostat matrix
+    if (m_flags & baro_x) nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - m_P->getValue(timestep)) + mtk_term;
+    if (m_flags & baro_xy) nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
+    if (m_flags & baro_xz) nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
+    if (m_flags & baro_y) nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.y - m_P->getValue(timestep)) + mtk_term;
+    if (m_flags & baro_yz) nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
+    if (m_flags & baro_z) nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_P->getValue(timestep)) + mtk_term;
+    }
+
 void export_TwoStepNPTMTK()
     {
     scope in_npt_mtk = class_<TwoStepNPTMTK, boost::shared_ptr<TwoStepNPTMTK>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
@@ -707,7 +710,8 @@ void export_TwoStepNPTMTK()
                        Scalar,
                        boost::shared_ptr<Variant>,
                        boost::shared_ptr<Variant>,
-                       TwoStepNPTMTK::integrationMode>())
+                       TwoStepNPTMTK::couplingMode,
+                       unsigned int>())
         .def("setT", &TwoStepNPTMTK::setT)
         .def("setP", &TwoStepNPTMTK::setP)
         .def("setTau", &TwoStepNPTMTK::setTau)
@@ -715,13 +719,22 @@ void export_TwoStepNPTMTK()
         .def("setPartialScale", &TwoStepNPTMTK::setPartialScale)
         ;
 
-    enum_<TwoStepNPTMTK::integrationMode>("integrationMode")
-    .value("cubic", TwoStepNPTMTK::cubic)
-    .value("orthorhombic", TwoStepNPTMTK::orthorhombic)
-    .value("tetragonal", TwoStepNPTMTK::tetragonal)
-    .value("triclinic", TwoStepNPTMTK::triclinic)
+    enum_<TwoStepNPTMTK::couplingMode>("couplingMode")
+    .value("couple_none", TwoStepNPTMTK::couple_none)
+    .value("couple_xy", TwoStepNPTMTK::couple_xy)
+    .value("couple_xz", TwoStepNPTMTK::couple_none)
+    .value("couple_yz", TwoStepNPTMTK::couple_yz)
+    .value("couple_xyz", TwoStepNPTMTK::couple_xyz)
     ;
-
+    
+    enum_<TwoStepNPTMTK::baroFlags>("baroFlags")
+    .value("baro_x", TwoStepNPTMTK::baro_x)
+    .value("baro_y", TwoStepNPTMTK::baro_y)
+    .value("baro_z", TwoStepNPTMTK::baro_z)
+    .value("baro_xy", TwoStepNPTMTK::baro_xy)
+    .value("baro_xz", TwoStepNPTMTK::baro_xz)
+    .value("baro_yz", TwoStepNPTMTK::baro_yz)
+    ;
     }
 
 #ifdef WIN32

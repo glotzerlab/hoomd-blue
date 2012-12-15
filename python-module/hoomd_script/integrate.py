@@ -447,19 +447,53 @@ class nvt(_integration_method):
 
 ## NPT Integration
 #
-# integrate.npt performs constant pressure, constant temperature simulations, allowing for a fully deformable simulation box
+# integrate.npt performs constant pressure, constant temperature simulations, allowing for a fully deformable
+# simulation box
 #
 # The integration method is based on the rigorous Martyna-Tobias-Klein equations of motion for NPT.
-# For optimal stability, the update equations leave the phase-space meeasure invariant and are manifestly time-reversible.
+# For optimal stability, the update equations leave the phase-space meeasure invariant and are manifestly
+# time-reversible.
 #
-# The following integration modes are avaible:
-# - \b cubic box, the ratios between the box lengths do not change,  angles are 90 \f$ ^o \f$
-# - \b orthorhombic box, all box lengths can vary independently, angles are 90 \f$ ^o \f$
-# - \b tetragonal box, the \b x- direction is independently integrated from the \b y- and \b z- directions,
-#   and the ratio between the box lengths in the latter directions remains constant, angles are \f$ ^o \f$
-# - \b triclinic box, all box lengths and angles can vary independently
+# By default, integrate.npt performs integration in a cubic box under hydrostatic pressure by simultaneously
+# rescaling the lengths \a Lx, \a Ly and \a Lz of the simulation box.
 #
-# When not using the MTK equations, only cubic integration is available.
+# integrate.npt can also perform more advanced integration modes. The integration mode
+# is specified by a set of \a couplings and by specifying the box degrees of freedom that are put under
+# barostat control.
+#
+# \a Couplings define which diagonal elements of the pressure tensor \f$ P_{\alpha,\beta} \f$
+# should be averaged over, so that the corresponding box lengths are rescaled by the same amount.
+#
+# Valid \a couplings are:<br>
+# - \b none (all box lengths are updated independently)
+# - \b xy (\a Lx and \a Ly are coupled)
+# - \b xz (\a Lx and \a Lz are coupled)
+# - \b yz (\a Ly and \a Lz are coupled)
+# - \b xyz (\a Lx and \a Ly and \a Lz are coupled)
+#
+# The default coupling is \b xyz, i.e. the ratios between all box lengths stay constant.
+#
+# <em>Degrees of freedom</em> of the box specify which lengths and tilt factors of the box should be updated,
+# and how particle coordinates and velocities should be rescaled.
+# 
+# Valid keywords for degrees of freedom are:
+# - \b x (the box length Lx is updated)
+# - \b y (the box length Ly is updated)
+# - \b z (the box length Lz is updated)
+# - \b xy (the tilt factor xy is updated)
+# - \b xz (the tilt factor xz is updated)
+# - \b yz (the tilt factor yz is updated)
+# - \b all (all elements are updated, equivalent to \b x, \b y, \b z, \b xy, \b xz, and \b yz together)
+#
+# Any of the six keywords can be combined together. By default, the \b x, \b y, and \b z degrees of freedom
+# are updated.
+#
+# For example:
+# - Specifying \b xyz copulings and \b x, \b y, and \b z degrees of freedom amounts to \a cubic symmetry (default)
+# - Specifying \b xy couplings and \b x, \b y, and \b z degrees of freedom amounts to \a tetragonal symmetry.
+# - Specifing no couplings and \b all degrees of freedom amounts to a fully deformable \a triclinic unit cell
+#
+# When not using the MTK equations, only cubic symmetry is available.
 #
 # integrate.npt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -484,7 +518,14 @@ class npt(_integration_method):
     # \param mtk True if the MTK equations should be used (default), False if the Nos&eacute;-Hoover equations should be used
     # \param partial_scale In Nos&eacute;-Hoover mode, if False (the default), \b all particles in the box are scaled due to the box size changes
     #                      during NPT integration. If True, only those particles that belong to \a group will be scaled. In MTK mode, this parameter cannot be changed, and only the particles in the group are rescaled.
-    # \param mode Only available in MTK mode, can be \b "cubic" (default), \b "orthorhombic", \b "tetragonal" or \b "triclinic"
+    # \param couple Couplings of diagonal elements of the stress tensor, can be \b "none", \b "xy", \b "xz",\b "yz", or \b "xyz" (default) (only available with mtk=True)
+    # \param x if \b True, rescale \a Lx and x component of particle coordinates and velocities 
+    # \param y if \b True, rescale \a Ly and y component of particle coordinates and velocities
+    # \param z if \b True, rescale \a Lz and z component of particle coordinates and velocities
+    # \param xy if \b True, rescale \a xy tilt factor and x and y components of particle coordinates and velocities
+    # \param xz if \b True, rescale \a xz tilt factor and x and z components of particle coordinates and velocities
+    # \param yz if \b True, rescale \a yz tilt factor and y and z components of particle coordinates and velocities
+    # \param all if \b True, rescale all lengths and tilt factors and components of particle coordinates and velocities
     #
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
@@ -498,10 +539,14 @@ class npt(_integration_method):
     # \code
     # integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0)
     # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
-    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, mtk=False)
-    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, mode="tetragonal")
+    # # orthorhombic symmetry
+    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none")
+    # # tetragonal symmetry
+    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="xy")
+    # # triclinic symmetry
+    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
     # \endcode
-    def __init__(self, group, T, tau, P, tauP, partial_scale=False, mtk=True, mode="cubic"):
+    def __init__(self, group, T, tau, P, tauP, partial_scale=False, mtk=True, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False):
         util.print_status_line();
         
         # initialize base class
@@ -519,24 +564,40 @@ class npt(_integration_method):
 
         # initialize the reflected c++ class
         if mtk:
-            if mode == "cubic":
-                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.cubic
-            elif mode == "orthorhombic":
-                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.orthorhombic
-            elif mode == "tetragonal":
-                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.tetragonal
-            elif mode == "triclinic":
-                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.triclinic
+            if couple == "none":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+            elif couple == "xy":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+            elif couple == "xz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xz
+            elif couple == "yz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_yz
+            elif couple == "xyz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xyz
             else:
-                globals.msg.error("Invalid integration mode\n");
+                globals.msg.error("Invalid coupling mode\n");
                 raise RuntimeError("Error setting up NPT integration.");
 
+            flags = 0;
+            if x or all:
+                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_x
+            if y or all:
+                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_y
+            if z or all:
+                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_z
+            if xy or all:
+                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xy
+            if xz or all:
+                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xz
+            if yz or all:
+                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_yz
+
             if not globals.exec_conf.isCUDAEnabled():
-                self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_mode);
+                self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags);
             else:
-                self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_mode);
+                self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags);
         else:
-            if mode != "cubic":
+            if couple != "xyz":
                 globals.msg.error("In Nose-Hoover mode, only cubic symmetry is supported.");
                 raise RuntimeError("Error setting up NPT integration.");
 
