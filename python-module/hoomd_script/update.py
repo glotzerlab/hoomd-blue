@@ -466,7 +466,7 @@ class box_resize(_updater):
     # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), Ly = 10, Lz = 10)
     # 
     # # Shear the box in the xy plane using Lees-Edwards boundary conditions
-    # update.box_resize(xy = variant.liner_interp([(0,0), (1e6, 1)])
+    # update.box_resize(xy = variant.linear_interp([(0,0), (1e6, 1)]))
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
