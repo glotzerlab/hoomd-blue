@@ -1044,6 +1044,20 @@ void RigidData::setAngMom(unsigned int body, Scalar3 angmom)
     angmom_handle.data[body].y = angmom.y;
     angmom_handle.data[body].z = angmom.z;
     angmom_handle.data[body].w = 0;
+
+    ArrayHandle<Scalar4> angvel_handle(m_angvel, access_location::host, access_mode::readwrite);
+
+    ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ex_space_handle(m_ex_space, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ey_space_handle(m_ey_space, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::host, access_mode::read);
+
+    computeAngularVelocity(angmom_handle.data[body], 
+                           moment_inertia_handle.data[body],
+                           ex_space_handle.data[body], 
+                           ey_space_handle.data[body], 
+                           ez_space_handle.data[body], 
+                           angvel_handle.data[body]);
     }
 
 /*! computeVirialCorrectionStart() must be called at the start of any time step update when there are rigid bodies
