@@ -353,24 +353,32 @@ class BoxDim
  
             if (m_periodic.y)
                 {
-                while (w.y >= m_hi.y)
+                if (w.y >= m_hi.y)
                     {
-                    w.y -= L.y;
-                    w.x -= L.y * m_xy;
+                    int i = (w.y*m_Linv.y+Scalar(0.5));
+                    w.y -= (Scalar)i*L.y;
+                    w.x -= (Scalar)i*L.y * m_xy;
                     }
-                while (w.y < m_lo.y)
+                if (w.y < m_lo.y)
                     {
-                    w.y += L.y;
-                    w.x += L.y * m_xy;
+                    int i = (-w.y*m_Linv.y+Scalar(0.5));
+                    w.y += (Scalar)i*L.y;
+                    w.x += (Scalar)i*L.y * m_xy;
                     }
                 }
 
             if (m_periodic.x)
                 {
-                while (w.x >= m_hi.x)
-                    w.x -= L.x;
-                while (w.x < m_lo.x)
-                    w.x += L.x;
+                if (w.x >= m_hi.x)
+                    {
+                    int i = (w.x*m_Linv.x+Scalar(0.5));
+                    w.x -= (Scalar)i*L.x;
+                    }
+                if (w.x < m_lo.x)
+                    {
+                    int i = (-w.x*m_Linv.x+Scalar(0.5));
+                    w.x += (Scalar)i*L.x;
+                    }
                 }
             #endif 
 
