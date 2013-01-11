@@ -316,14 +316,24 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     double unitcell[6];
     BoxDim box = m_pdata->getBox();
     // set box dimensions
-    Scalar3 L = box.getL();
-    unitcell[0] = L.x;
-    unitcell[2] = L.y;
-    unitcell[5] = L.z;
+    Scalar a,b,c,alpha,beta,gamma;
+    Scalar3 va = box.getLatticeVector(0);
+    Scalar3 vb = box.getLatticeVector(1);
+    Scalar3 vc = box.getLatticeVector(2);
+    a = sqrt(dot(va,va));
+    b = sqrt(dot(vb,vb));
+    c = sqrt(dot(vc,vc));
+    alpha = dot(vb,vc)/(b*c);
+    beta = dot(va,vc)/(a*c);
+    gamma = dot(va,vb)/(a*b);
+    
+    unitcell[0] = a;
+    unitcell[2] = b;
+    unitcell[5] = c;
     // box angles are 90 degrees
-    unitcell[1] = 0.0f;
-    unitcell[3] = 0.0f;
-    unitcell[4] = 0.0f;
+    unitcell[1] = gamma;
+    unitcell[3] = beta;
+    unitcell[4] = alpha;
     
     write_int(file, 48);
     file.write((char *)unitcell, 48);
