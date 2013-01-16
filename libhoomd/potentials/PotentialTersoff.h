@@ -138,22 +138,8 @@ class PotentialTersoff : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
-        //! Shifting modes that can be applied to the energy
-        enum energyShiftMode
-            {
-            no_shift = 0,
-            shift,
-            xplor
-            };
-
-        //! Set the mode to use for shifting the energy
-        void setShiftMode(energyShiftMode mode)
-            {
-            m_shift_mode = mode;
-            }
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
-        energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
         GPUArray<Scalar> m_ronsq;                   //!< ron squared per type pair
@@ -173,7 +159,7 @@ template < class evaluator >
 PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefinition> sysdef,
                                                 boost::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
-    : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
+    : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
     {
     this->exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << endl;
     
@@ -588,14 +574,7 @@ template < class T > void export_PotentialTersoff(const std::string& name)
                   .def("setParams", &T::setParams)
                   .def("setRcut", &T::setRcut)
                   .def("setRon", &T::setRon)
-                  .def("setShiftMode", &T::setShiftMode)
                   ;
-
-    boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")
-        .value("no_shift", T::no_shift)
-        .value("shift", T::shift)
-        .value("xplor", T::xplor)
-    ;
     }
 
 #ifdef WIN32

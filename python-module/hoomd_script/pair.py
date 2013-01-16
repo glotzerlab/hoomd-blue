@@ -2388,7 +2388,6 @@ class moliere(pair):
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
-        neighbor_list.set_params(r_buff = 0.3);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -2416,6 +2415,85 @@ class moliere(pair):
         Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
         if (not (Z_i == 0)) or (not (Z_j == 0)):
             aF = 0.8853 * a_0 / math.pow(math.sqrt(Z_i) + math.sqrt(Z_j), 2.0 / 3.0);
+        else:
+            aF = 1.0;
+        return hoomd.make_scalar2(Zsq, aF);
+
+## ZBL %pair %force
+#
+# The command pair.zbl specifies that a ZBL %pair %force should be added to every
+# non-bonded particle pair in the simulation
+#
+# \f{eqnarray*}
+# V_{\mathrm{ZBL}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818 \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right], & r < r_{\mathrm{cut}} \\
+#                         = & 0, & r > r_{\mathrm{cut}} \\
+# \f}
+#
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled,
+# see pair.
+#
+# The following coefficients must be set per unique %pair of particle types.  See hoomd_script.pair
+# or the \ref page_quick_start for information on how to set coefficients.
+# - \f$ Z_i \f$ - \c Z_i - Atomic number of species i (unitless)
+# - \f$ Z_j \f$ - \c Z_j - Atomic number of species j (unitless)
+# - \f$ e \f$ - \c elementary_charge - The elementary charge (in charge units)
+# - \f$ a_0 \f$ - \c a_0 - The Bohr radius (in distance units)
+#
+# pair.zbl is a standard %pair potential and supports a number of energy shift / smoothing
+# modes.  See pair for a full description of the various options.
+#
+class zbl(pair):
+    ## Specify the ZBL %pair %force
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param name Name of the force instance
+    # \param block_size Block size to run on the GPU
+    #
+    # \code
+    # zbl = pair.zbl(r_cut = 3.0)
+    # zbl.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
+    # started with run().
+    def __init__(self, r_cut, name=None, block_size=256):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairZBL(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairZBL;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairZBLGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairZBLGPU;
+            self.cpp_force.setBlockSize(block_size);
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
+        self.pair_coeff.set_default_coeff('a_0', 1.0);
+
+    def process_coeff(self, coeff):
+        Z_i = coeff['Z_i'];
+        Z_j = coeff['Z_j'];
+        elementary_charge = coeff['elementary_charge'];
+        a_0 = coeff['a_0'];
+
+        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
+        if (not (Z_i == 0)) or (not (Z_j == 0)):
+            aF = 0.88534 * a_0 / ( math.pow( Z_i, 0.23 ) + math.pow( Z_j, 0.23 ) );
         else:
             aF = 1.0;
         return hoomd.make_scalar2(Zsq, aF);
@@ -2456,9 +2534,6 @@ class tersoff(pair):
 
         # this potential cannot handle a half neighbor list
         neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-
-        # the tersoff neighbor list only requires a buffer of 0.3
-        neighbor_list.set_params(r_buff = 0.3);
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():

@@ -64,6 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairEwald.h"
 #include "EvaluatorPairMoliere.h"
+#include "EvaluatorPairZBL.h"
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 
@@ -131,6 +132,13 @@ cudaError_t gpu_compute_moliere_forces(const pair_args_t& pair_args,
     {
     return gpu_compute_pair_forces<EvaluatorPairMoliere>(pair_args,
                                                          d_params);
+    }
+
+cudaError_t gpu_compute_zbl_forces(const pair_args_t& pair_args,
+				   const Scalar2 *d_params)
+    {
+    return gpu_compute_pair_forces<EvaluatorPairZBL>(pair_args,
+						     d_params);
     }
 
 cudaError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,

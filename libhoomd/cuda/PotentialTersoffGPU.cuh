@@ -56,34 +56,32 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_TERSOFF_GPU_CUH__
 #define __POTENTIAL_TERSOFF_GPU_CUH__
 
-//! Wrapps arguments to gpu_cgpf
+//! Wraps arguments to gpu_cgpf
 struct tersoff_args_t
     {
     //! Construct a tersoff_args_t
     tersoff_args_t(Scalar4 *_d_force,
-                const unsigned int _N,
-                const Scalar4 *_d_pos,
-                const BoxDim& _box,
-                const unsigned int *_d_n_neigh,
-                const unsigned int *_d_nlist,
-                const Index2D& _nli,
-                const Scalar *_d_rcutsq,
-                const Scalar *_d_ronsq,
-                const unsigned int _ntypes,
-                const unsigned int _block_size,
-                const unsigned int _shift_mode)
-                : d_force(_d_force),
-                  N(_N),
-                  d_pos(_d_pos),
-                  box(_box),
-                  d_n_neigh(_d_n_neigh),
-                  d_nlist(_d_nlist),
-                  nli(_nli),
-                  d_rcutsq(_d_rcutsq),
-                  d_ronsq(_d_ronsq),
-                  ntypes(_ntypes),
-                  block_size(_block_size),
-                  shift_mode(_shift_mode)
+		   const unsigned int _N,
+		   const Scalar4 *_d_pos,
+		   const BoxDim& _box,
+		   const unsigned int *_d_n_neigh,
+		   const unsigned int *_d_nlist,
+		   const Index2D& _nli,
+		   const Scalar *_d_rcutsq,
+		   const Scalar *_d_ronsq,
+		   const unsigned int _ntypes,
+		   const unsigned int _block_size)
+                   : d_force(_d_force),
+                     N(_N),
+                     d_pos(_d_pos),
+                     box(_box),
+                     d_n_neigh(_d_n_neigh),
+                     d_nlist(_d_nlist),
+                     nli(_nli),
+                     d_rcutsq(_d_rcutsq),
+                     d_ronsq(_d_ronsq),
+                     ntypes(_ntypes),
+                     block_size(_block_size)
         {
         };
 
@@ -98,7 +96,6 @@ struct tersoff_args_t
     const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
-    const unsigned int shift_mode;  //!< The potential energy shift mode
     };
 
 
@@ -159,14 +156,13 @@ static __device__ inline double atomicAdd(double* address, double val)
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
-    \tparam shift_mode This parameter is not used by the triplet potentials
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator, unsigned int shift_mode >
+template< class evaluator >
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int N,
                                                   const Scalar4 *d_pos,
@@ -658,7 +654,7 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                                             pair_args.N);
 
     // compute the new forces
-    gpu_compute_triplet_forces_kernel<evaluator, 0>
+    gpu_compute_triplet_forces_kernel<evaluator>
       <<<grid, threads, shared_bytes>>>(pair_args.d_force,
                                         pair_args.N,
                                         pair_args.d_pos,

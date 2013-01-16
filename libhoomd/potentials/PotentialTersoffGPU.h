@@ -159,10 +159,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
-    // access flags
-    PDataFlags flags = this->m_pdata->getFlags();
-
-
     gpu_cgpf(tersoff_args_t(d_force.data,
                             this->m_pdata->getN(),
                             d_pos.data,
@@ -173,8 +169,7 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             d_rcutsq.data,
                             d_ronsq.data,
                             this->m_pdata->getNTypes(),
-                            m_block_size,
-                            this->m_shift_mode),
+                            m_block_size),
                             d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

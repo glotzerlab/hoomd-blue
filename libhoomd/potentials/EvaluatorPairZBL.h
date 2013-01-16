@@ -39,12 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: EvaluatorPairLJ.h 2862 2010-03-12 19:16:16Z joaander $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/potentials/EvaluatorPairLJ.h $
-// Maintainer: joaander
-
-#ifndef __PAIR_EVALUATOR_MOLIERE__
-#define __PAIR_EVALUATOR_MOLIERE__
+#ifndef __PAIR_EVALUATOR_ZBL__
+#define __PAIR_EVALUATOR_ZBL__
 
 #ifndef NVCC
 #include <string>
@@ -52,8 +48,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 
-/*! \file EvaluatorPairMoliere.h
-    \brief Defines the pair evaluator class for Moliere potentials
+/*! \file EvaluatorPairZBL.h
+    \brief Defines the pair evaluator class for ZBL potentials
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -79,20 +75,20 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SQRT sqrt
 #endif
 
-//! Class for evaluating the Moliere pair potential.
-/*! EvaluatorPairMoliere evaluates the function
-    \f[ V_{\mathrm{Moliere}}(r) = \frac{Z_i Z_j e^2}{4 \pi \varepsilon_0 r_{ij}} \left[ 0.35 \exp \left(-0.3 \frac{r_{ij}}{a_F} \right) +
-                                    0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) +
-                                    0.10 \exp \left( -6.0 \frac{r_{ij}}{a_F} \right) \right] \f]
+//! Class for evaluating the ZBL pair potential.
+/*! EvaluatorPairZBL evaluates the function
+    \f[
+	V_{\mathrm{ZBL}}(r) =  \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818 \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right] & r < r_{\mathrm{cut}}
+    \f]
 
     where
-    \f[ a_F = \frac{0.8853 a_0}{ \left( \sqrt{Z_i} + \sqrt{Z_j} \right)^{2/3}} \f]
+    \f[ a_F = \frac{0.8853 a_0}{ \left( Z_i^{0.23} + Z_j^{0.23} \right) } \f]
 
     and \a a_0 is the Bohr radius and \a Z_x denotes the atomic number of species \a x.
 
 */
 
-class EvaluatorPairMoliere
+class EvaluatorPairZBL
 {
     public:
         //! Define the parameter type used by this pair potential evaluator
@@ -103,12 +99,12 @@ class EvaluatorPairMoliere
             \param _rcutsq Squared distance at which the potential goes to zero.
             \param _params Per type-pair parameters of this potential
         */
-        DEVICE EvaluatorPairMoliere(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        DEVICE EvaluatorPairZBL(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
             : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.x), aF(_params.y)
             {
             }
 
-        //! Moliere potential does not use particle diameters.
+        //! ZBL potential does not use particle diameters.
         DEVICE static bool needsDiameter() { return false; }
         //! Accept the optional diameter values
         /*! \param di Diameter of particle i
@@ -116,7 +112,7 @@ class EvaluatorPairMoliere
         */
         DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
-        //! Moliere potential does not use particles charges
+        //! ZBL potential does not use particle charges
         DEVICE static bool needsCharge() { return false; }
         //! Accept the optional charge values
         /*! \param qi Charge of particle i
@@ -140,27 +136,20 @@ class EvaluatorPairMoliere
                 Scalar rinv = RSQRT(rsq);
 
                 // precalculate the exponential terms
-                Scalar exp1 = Scalar(0.35) * EXP( Scalar(-0.3) / aF / rinv );
-                Scalar exp2 = Scalar(0.55) * EXP( Scalar(-1.2) / aF / rinv );
-                Scalar exp3 = Scalar(0.1) * EXP( Scalar(-6.0) / aF / rinv );
+                Scalar exp1 = Scalar(0.1818) * EXP( Scalar(-3.2) / aF / rinv );
+                Scalar exp2 = Scalar(0.5099) * EXP( Scalar(-0.9423) / aF / rinv );
+                Scalar exp3 = Scalar(0.2802) * EXP( Scalar(-0.4029) / aF / rinv );
+                Scalar exp4 = Scalar(0.02817) * EXP( Scalar(-0.2016) / aF / rinv );
 
                 // evaluate the force
-                force_divr = rinv * ( exp1 + exp2 + exp3 );
-                force_divr += Scalar(1.0) / aF * ( Scalar(0.3) * exp1 + Scalar(1.2) * exp2 + Scalar(6.0) * exp3 );
+                force_divr = rinv * ( exp1 + exp2 + exp3 + exp3 );
+                force_divr += Scalar(1.0) / aF * ( Scalar(3.2) * exp1 \
+			+ Scalar(0.9423) * exp2 + Scalar(0.4029) * exp3 \
+			+ Scalar(0.2016) * exp4 );
                 force_divr *= Zsq * r2inv;
 
                 // evaluate the pair energy
-                pair_eng = Zsq * rinv * ( exp1 + exp2 + exp3 );
-                if (energy_shift)
-                {
-                    Scalar rcutinv = RSQRT(rcutsq);
-
-                    Scalar expcut1 = Scalar(0.35) * EXP( Scalar(-0.3) / aF / rcutinv );
-                    Scalar expcut2 = Scalar(0.55) * EXP( Scalar(-1.2) / aF / rcutinv );
-                    Scalar expcut3 = Scalar(0.1) * EXP( Scalar(-6.0) / aF / rcutinv);
-
-                    pair_eng -= Zsq * rcutinv * ( expcut1 + expcut2 + expcut3 );
-                }
+                pair_eng = Zsq * rinv * ( exp1 + exp2 + exp3 + exp4 );
 
                 return true;
             }
@@ -175,7 +164,7 @@ class EvaluatorPairMoliere
         */
         static std::string getName()
         {
-            return std::string("moliere");
+            return std::string("zbl");
         }
         #endif
 
@@ -186,4 +175,4 @@ class EvaluatorPairMoliere
         Scalar aF;      //!< aF parameter extracted from the params passed to the constructor
 };
 
-#endif // __PAIR_EVALUATOR_MOLIERE__
+#endif // __PAIR_EVALUATOR_ZBL__
