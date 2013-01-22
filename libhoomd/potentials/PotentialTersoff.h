@@ -93,12 +93,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Unlike the pair potentials, the three-body potentials offer two force directions: ij and ik.
     In addition, some three-body potentials (such as the Tersoff potential) compute unique forces on
     each of the three particles involved.  Three-body evaluators must thus return six force magnitudes:
-    two for each particle.  These values are returned in the Scalar4 values \a force_divr_ij and
+    two for each particle.  These values are returned in the Scalar3 values \a force_divr_ij and
     \a force_divr_ik.  The x components refer to particle i, y to particle j, and z to particle k.
     If your particular three-body potential does not compute one of these forces, then the evaluator
     can simply return 0 for that force.  In addition, the potential energy is stored in the w component
-    of force_divr_ij.  Scalar4 values are used instead of Scalar3's in order to
-    maintain compatibility between the CPU and GPU codes.
+    of force_divr_ij.
 
     rcutsq, ronsq, and the params are stored per particle type-pair. It wastes a little bit of space, but benchmarks
     show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
@@ -505,8 +504,8 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                             eval.setAngle(cos_th);
 
                         // compute the total force and energy
-                        Scalar4 force_divr_ij = make_scalar4(0.0, 0.0, 0.0, 0.0);
-                        Scalar4 force_divr_ik = make_scalar4(0.0, 0.0, 0.0, 0.0);
+                        Scalar3 force_divr_ij = make_scalar3(0.0, 0.0, 0.0);
+                        Scalar3 force_divr_ik = make_scalar3(0.0, 0.0, 0.0);
                         eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
 
                         // add the force to particle i

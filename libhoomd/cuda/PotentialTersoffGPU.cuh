@@ -324,7 +324,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
                             if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxik) * rsqrtf(rij_sq * rik_sq);
+                                cos_th = dot(dxij, dxik) * RSQRT(rij_sq * rik_sq);
                             else cos_th += Scalar(1.0); // shuts up the compiler warning
 
                             // set up the evaluator
@@ -412,7 +412,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
                             if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxik) * rsqrtf(rij_sq * rik_sq);
+                                cos_th = dot(dxij, dxik) * RSQRT(rij_sq * rik_sq);
                             else cos_th += Scalar(1.0); // shuts up the compiler warning
 
                             // set up the evaluator
@@ -421,8 +421,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                 eval.setAngle(cos_th);
 
                             // compute the force
-                            Scalar4 force_divr_ij = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-                            Scalar4 force_divr_ik = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+                            Scalar3 force_divr_ij = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+                            Scalar3 force_divr_ik = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
                             bool evaluatedjk = eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_ik);
 
                             if (evaluatedjk)
@@ -511,7 +511,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
                             if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxjk) * rsqrtf(rij_sq * rjk_sq);
+                                cos_th = dot(dxij, dxjk) * RSQRT(rij_sq * rjk_sq);
                             else cos_th += Scalar(1.0); // shuts up the compiler warning
 
                             // set up the evaluator
@@ -566,7 +566,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
                             if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxjk) * rsqrtf(rij_sq * rjk_sq);
+                                cos_th = dot(dxij, dxjk) * RSQRT(rij_sq * rjk_sq);
                             else cos_th += Scalar(1.0); // shuts up the compiler warning
 
                             // set up the evaluator
@@ -575,8 +575,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                 eval.setAngle(cos_th);
 
                             // evaluate the force
-                            Scalar4 force_divr_ij = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-                            Scalar4 force_divr_jk = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+                            Scalar3 force_divr_ij = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+                            Scalar3 force_divr_jk = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
                             eval.evalForceik(fR, fA, chi, bij, force_divr_ij, force_divr_jk);
 
                             // add the force to particle i

@@ -259,8 +259,8 @@ class EvaluatorTersoff
                                 Scalar fA,
                                 Scalar chi,
                                 Scalar bij,
-                                Scalar4& force_divr_ij,
-                                Scalar4& force_divr_ik)
+                                Scalar3& force_divr_ij,
+                                Scalar3& force_divr_ik)
             {
             if (rik_sq < rcutsq && chi != Scalar(0.0))
                 {
