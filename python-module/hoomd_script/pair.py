@@ -2368,7 +2368,6 @@ class moliere(pair):
     #
     # \param r_cut Default cutoff radius (in distance units)
     # \param name Name of the force instance
-    # \param block_size Block size to run on the GPU
     #
     # \code
     # moliere = pair.moliere(r_cut = 3.0)
@@ -2377,7 +2376,7 @@ class moliere(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
     # started with run().
-    def __init__(self, r_cut, name=None, block_size=256):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -2397,7 +2396,7 @@ class moliere(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairMoliereGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMoliereGPU;
-            self.cpp_force.setBlockSize(block_size);
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.moliere'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2447,7 +2446,6 @@ class zbl(pair):
     #
     # \param r_cut Default cutoff radius (in distance units)
     # \param name Name of the force instance
-    # \param block_size Block size to run on the GPU
     #
     # \code
     # zbl = pair.zbl(r_cut = 3.0)
@@ -2456,7 +2454,7 @@ class zbl(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
     # started with run().
-    def __init__(self, r_cut, name=None, block_size=256):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -2476,7 +2474,7 @@ class zbl(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairZBLGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairZBLGPU;
-            self.cpp_force.setBlockSize(block_size);
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.zbl'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2517,10 +2515,9 @@ class tersoff(pair):
     #
     # \param r_cut Default cutoff radius (in distance units)
     # \param name Name of the force instance
-    # \param block_size Block size to run on the GPU
     #
     # \note %Pair coefficients for all type pairs in the simulation must be set before it can be started with run()
-    def __init__(self, r_cut, name=None, block_size=256):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
 
         # tell the base class how we operate
@@ -2542,7 +2539,7 @@ class tersoff(pair):
         else:
             self.cpp_force = hoomd.PotentialTersoffGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialTersoffGPU;
-            self.cpp_force.setBlockSize(block_size);
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.tersoff'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

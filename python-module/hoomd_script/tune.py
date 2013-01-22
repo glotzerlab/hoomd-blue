@@ -73,17 +73,17 @@ import sys
 # Defaults are saved per compute capability and per command
 _default_block_size_db = {};
 
-_default_block_size_db['1.3'] = {'pair.ewald': 96, 'improper.harmonic': 128, 'pair.dpd_conservative': 352, 'bond.harmonic': 160, 'dihedral.harmonic': 64, 'pair.dpd': 160, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 352, 'nlist.filter': 160, 'pair.lj': 416, 'pair.table': 96, 'pair.cgcmm': 96, 'pair.dpdlj': 160, 'pair.slj': 416, 'pair.morse': 416, 'nlist': 416, 'bond.table': 160, 'pair.yukawa': 352, 'bond.fene': 96, 'angle.harmonic': 96, 'pair.gauss': 416}
+_default_block_size_db['1.3'] = {'pair.ewald': 96, 'improper.harmonic': 128, 'pair.dpd_conservative': 352, 'bond.harmonic': 160, 'dihedral.harmonic': 64, 'pair.dpd': 160, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 352, 'nlist.filter': 160, 'pair.lj': 416, 'pair.table': 96, 'pair.cgcmm': 96, 'pair.dpdlj': 160, 'pair.slj': 416, 'pair.morse': 416, 'pair.moliere': 256, 'pair.zbl': 256, 'pair.tersoff': 256, 'nlist': 416, 'bond.table': 160, 'pair.yukawa': 352, 'bond.fene': 96, 'angle.harmonic': 96, 'pair.gauss': 416}
 
 # no 1.2 devices to tune on. Assume the same as 1.3
 _default_block_size_db['1.2'] = _default_block_size_db['1.3'];
 
-_default_block_size_db['2.0'] = {'pair.ewald': 480, 'improper.harmonic': 256, 'pair.dpd_conservative': 256, 'bond.harmonic': 448, 'dihedral.harmonic': 160, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 192, 'nlist.filter': 256, 'pair.lj': 288, 'pair.table': 128, 'pair.cgcmm': 96, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 416, 'nlist': 512, 'bond.table': 288, 'pair.yukawa': 352, 'bond.fene': 224, 'angle.harmonic': 224, 'pair.gauss': 288}
+_default_block_size_db['2.0'] = {'pair.ewald': 480, 'improper.harmonic': 256, 'pair.dpd_conservative': 256, 'bond.harmonic': 448, 'dihedral.harmonic': 160, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 192, 'nlist.filter': 256, 'pair.lj': 288, 'pair.table': 128, 'pair.cgcmm': 96, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 416, 'pair.moliere': 256, 'pair.zbl': 256, 'pair.tersoff': 256, 'nlist': 512, 'bond.table': 288, 'pair.yukawa': 352, 'bond.fene': 224, 'angle.harmonic': 224, 'pair.gauss': 288}
 
 # it is no longer convenient to tune on 2.1, just set values to 2.0
 _default_block_size_db['2.1'] = _default_block_size_db['2.0'];
 
-_default_block_size_db['3.0'] = {'pair.ewald': 128, 'improper.harmonic': 64, 'pair.dpd_conservative': 160, 'bond.harmonic': 320, 'dihedral.harmonic': 64, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 128, 'nlist.filter': 128, 'pair.lj': 160, 'pair.table': 128, 'pair.cgcmm': 128, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 160, 'nlist': 448, 'bond.table': 96, 'pair.yukawa': 160, 'bond.fene': 128, 'angle.harmonic': 96, 'pair.gauss': 160}
+_default_block_size_db['3.0'] = {'pair.ewald': 128, 'improper.harmonic': 64, 'pair.dpd_conservative': 160, 'bond.harmonic': 320, 'dihedral.harmonic': 64, 'pair.dpd': 64, 'angle.cgcmm': 64, 'pair.force_shifted_lj': 128, 'nlist.filter': 128, 'pair.lj': 160, 'pair.table': 128, 'pair.cgcmm': 128, 'pair.dpdlj': 64, 'pair.slj': 128, 'pair.morse': 160, 'pair.moliere': 256, 'pair.zbl': 256, 'pair.tersoff': 256, 'nlist': 448, 'bond.table': 96, 'pair.yukawa': 160, 'bond.fene': 128, 'angle.harmonic': 96, 'pair.gauss': 160}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -380,9 +380,12 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('pair.cgcmm', 'pair_cgcmm_setup', 500),
                 ('pair.gauss', 'pair_gauss_setup', 500),
                 ('pair.morse', 'pair_morse_setup', 500),
+		('pair.moliere', 'pair_moliere_setup', 500),
+		('pair.zbl', 'pair_zbl_setup', 500),
                 ('pair.dpd', 'pair_dpd_setup', 500),
                 ('pair.dpdlj', 'pair_dpdlj_setup', 500),                
                 ('pair.dpd_conservative', 'pair_dpd_conservative_setup', 500),
+		('pair.tersoff', 'pair_tersoff_setup', 2500),
                 ('bond.harmonic', 'bond.harmonic', 10000),
                 ('angle.harmonic', 'angle.harmonic', 3000),
                 ('angle.cgcmm', 'angle.cgcmm', 2000),
@@ -603,6 +606,28 @@ def pair_morse_setup():
     return fc;
 
 ## \internal
+# \brief Setup pair.moliere for benchmarking
+def pair_moliere_setup():
+    from hoomd_script import pair
+    fc = pair.moliere(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', Z_i = 7, Z_j = 7, a_0 = 0.52918, elementary_charge = 3.7947)
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
+# \brief Setup pair.zbl for benchmarking
+def pair_zbl_setup():
+    from hoomd_script import pair
+    fc = pair.zbl(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', Z_i = 7, Z_j = 7, a_0 = 0.52918, elementary_charge = 3.7947)
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
 # \brief Setup pair.dpd for benchmarking
 def pair_dpd_setup():
     from hoomd_script import pair
@@ -630,6 +655,30 @@ def pair_dpd_conservative_setup():
     from hoomd_script import pair
     fc = pair.dpd_conservative(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', A=40);
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
+# \brief Setup pair.tersoff for benchmarking
+def pair_tersoff_setup():
+    from hoomd_script import pair
+
+    c1nn = 9.91 / (1.0769 - 1);
+    c2nn = 1.0769 * c1nn;
+    l1nn = 1.92787 * math.sqrt(2 * 1.0769);
+    l2nn = l1nn / 1.0769;
+    l3nn = 0.0;
+    nnn = 0.6184432;
+    gammann = 0.019251;
+    cnn = 17.7959;
+    dnn = 5.9484;
+    mnn = 0.0;
+    r0nn = 1.11;
+
+    fc = pair.tersoff(r_cut=2.1);
+    fc.pair_coeff.set('A', 'A', cutoff_thickness = 0.2, C1 = c1nn, C2 = c2nn, lambda1 = l1nn, lambda2 = l2nn, lambda3 = l3nn, dimer_r = r0nn, n = nnn, gamma = gammann, c = cnn, d = dnn, m = mnn, alpha = 3.0)
     
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
