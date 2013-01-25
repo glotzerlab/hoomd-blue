@@ -132,24 +132,18 @@ void assign_charges_to_grid_kernel(const unsigned int N,
         float qi = tex1Dfetch(pdata_charge_tex, idx);
 
         if(fabs(qi) > 0.0f) {
-            float4 posi = tex1Dfetch(pdata_pos_tex, idx);
+            float4 postypei = tex1Dfetch(pdata_pos_tex, idx);
+            Scalar3 posi = make_scalar3(postypei.x,postypei.y,postypei.z);
             //calculate dx, dy, dz for the charge density grid:
             Scalar3 L = box.getL();
-            float box_dx = L.x / ((float)Nx);
-            float box_dy = L.y / ((float)Ny);
-            float box_dz = L.z / ((float)Nz);
-    
+            Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
         
             //normalize position to gridsize:
-            posi.x += L.x / 2.0f;
-            posi.y += L.y / 2.0f;
-            posi.z += L.z / 2.0f;
-   
-            posi.x /= box_dx;
-            posi.y /= box_dy;
-            posi.z /= box_dz;
-    
-    
+            Scalar3 pos_frac = box.makeFraction(posi);
+            pos_frac.x *= (Scalar)Nx;
+            pos_frac.y *= (Scalar)Ny;
+            pos_frac.z *= (Scalar)Nz;
+
             float shift, shiftone, x0, y0, z0, dx, dy, dz;
             int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
     
@@ -167,19 +161,19 @@ void assign_charges_to_grid_kernel(const unsigned int N,
                 shiftone = 0.5f;
                 }
         
-            nxi = __float2int_rd(posi.x + shift);
-            nyi = __float2int_rd(posi.y + shift);
-            nzi = __float2int_rd(posi.z + shift);
+            nxi = __float2int_rd(pos_frac.x + shift);
+            nyi = __float2int_rd(pos_frac.y + shift);
+            nzi = __float2int_rd(pos_frac.z + shift);
     
-            dx = shiftone+(float)nxi-posi.x;
-            dy = shiftone+(float)nyi-posi.y;
-            dz = shiftone+(float)nzi-posi.z;
+            dx = shiftone+(float)nxi-pos_frac.x;
+            dy = shiftone+(float)nyi-pos_frac.y;
+            dz = shiftone+(float)nzi-pos_frac.z;
     
             int n,m,l,k;
             float result;
             int mult_fact = 2*order+1;
 
-            x0 = qi / (box_dx*box_dy*box_dz);
+            x0 = qi / V_cell;
             for (n = nlower; n <= nupper; n++) {
                 mx = n+nxi;
                 if(mx >= Nx) mx -= Nx;
@@ -313,23 +307,19 @@ void calculate_forces_kernel(float4 *d_force,
         //get particle information
         float qi = tex1Dfetch(pdata_charge_tex, idx);
         if(fabs(qi) > 0.0f) {
-            float4 posi = tex1Dfetch(pdata_pos_tex, idx);
+            float4 postypei = tex1Dfetch(pdata_pos_tex, idx);
+            Scalar3 posi = make_scalar3(postypei.x,postypei.y,postypei.z);
     
             //calculate dx, dy, dz for the charge density grid:
             Scalar3 L = box.getL();
-            float box_dx = L.x / ((float)Nx);
-            float box_dy = L.y / ((float)Ny);
-            float box_dz = L.z / ((float)Nz);
-    
+            Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
+        
             //normalize position to gridsize:
-            posi.x += L.x * 0.5f;
-            posi.y += L.y * 0.5f;
-            posi.z += L.z * 0.5f;
-   
-            posi.x /= box_dx;
-            posi.y /= box_dy;
-            posi.z /= box_dz;
-    
+            Scalar3 pos_frac = box.makeFraction(posi);
+            pos_frac.x *= (Scalar)Nx;
+            pos_frac.y *= (Scalar)Ny;
+            pos_frac.z *= (Scalar)Nz;
+
             float shift, shiftone, x0, y0, z0, dx, dy, dz;
             int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
     
@@ -347,16 +337,15 @@ void calculate_forces_kernel(float4 *d_force,
                 shift = 0.0f;
                 shiftone = 0.5f;
                 }
+            
+            nxi = __float2int_rd(pos_frac.x + shift);
+            nyi = __float2int_rd(pos_frac.y + shift);
+            nzi = __float2int_rd(pos_frac.z + shift);
     
-    
-            nxi = __float2int_rd(posi.x + shift);
-            nyi = __float2int_rd(posi.y + shift);
-            nzi = __float2int_rd(posi.z + shift);
-    
-            dx = shiftone+(float)nxi-posi.x;
-            dy = shiftone+(float)nyi-posi.y;
-            dz = shiftone+(float)nzi-posi.z;
-
+            dx = shiftone+(float)nxi-pos_frac.x;
+            dy = shiftone+(float)nyi-pos_frac.y;
+            dz = shiftone+(float)nzi-pos_frac.z;
+ 
             int n,m,l,k;
             float result;
             int mult_fact = 2*order+1;
@@ -748,6 +737,7 @@ void gpu_compute_pppm_thermo(int Nx,
     cudaThreadSynchronize();
 
     int n = Nx*Ny*Nz;
+    cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
     pppm_virial_energy[0] = float_reduce(energy_sum, o_data, n);
 
     cudaMemset(o_data, 0, sizeof(float)*Nx*Ny*Nz);
@@ -820,6 +810,9 @@ float float_reduce(float* i_data, float* o_data, int n) {
 
 //! The developer has chosen not to document this function
 __global__ void reset_kvec_green_hat_kernel(BoxDim box, 
+                                            Scalar3 b1,
+                                            Scalar3 b2,
+                                            Scalar3 b3,
                                             int Nx, 
                                             int Ny, 
                                             int Nz, 
@@ -844,22 +837,16 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         int zn = (idx - xn*N2 - yn*Nz);
 
         Scalar3 L = box.getL();
-        float invdet = 6.28318531f/(L.x*L.y*L.z);
-        float3 inverse_lattice_vector, j;
+        float3 j;
         float kappa2 = kappa*kappa;
-
-        inverse_lattice_vector.x = invdet*L.y*L.z;
-        inverse_lattice_vector.y = invdet*L.x*L.z;
-        inverse_lattice_vector.z = invdet*L.x*L.y;
 
         j.x = xn > Nx/2 ? (float)(xn - Nx) : (float)xn;
         j.y = yn > Ny/2 ? (float)(yn - Ny) : (float)yn;
         j.z = zn > Nz/2 ? (float)(zn - Nz) : (float)zn;
-        kvec_array[idx].x = j.x*inverse_lattice_vector.x;
-        kvec_array[idx].y = j.y*inverse_lattice_vector.y;
-        kvec_array[idx].z = j.z*inverse_lattice_vector.z;
+        Scalar3 k = j.x * b1 +  j.y * b2 + j.z * b3;
+        kvec_array[idx] = k;
 
-        float sqk =  kvec_array[idx].x*kvec_array[idx].x + kvec_array[idx].y*kvec_array[idx].y + kvec_array[idx].z*kvec_array[idx].z;
+        float sqk = dot(k,k);
         if(sqk == 0.0f) {
             vg[0+6*idx] = 0.0f;
             vg[1+6*idx] = 0.0f;
@@ -878,27 +865,24 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
             vg[5+6*idx] = 1.0f+vterm*kvec_array[idx].z*kvec_array[idx].z;
             }
 
-        float unitkx = (6.28318531f/L.x);
-        float unitky = (6.28318531f/L.y);
-        float unitkz = (6.28318531f/L.z);
-        int ix, iy, iz, kper, lper, mper;
+        Scalar3 kH = Scalar(2.0*M_PI)*make_scalar3(Scalar(1.0)/(Scalar)Nx,
+                                                   Scalar(1.0)/(Scalar)Ny,
+                                                   Scalar(1.0)/(Scalar)Nz);
+
+        int ix, iy, iz;
         float snx, sny, snz, snx2, sny2, snz2;
         float argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
         float sum1, dot1, dot2;
         float numerator, denominator;
 
-        mper = zn - Nz*(2*zn/Nz);
-        snz = sinf(0.5f*unitkz*mper*L.z/Nz);
+        snz = sinf(0.5f*j.z*kH.z);
         snz2 = snz*snz;
 
-        lper = yn - Ny*(2*yn/Ny);
-        sny = sinf(0.5f*unitky*lper*L.y/Ny);
+        sny = sinf(0.5f*j.y*kH.y);
         sny2 = sny*sny;
 
-        kper = xn - Nx*(2*xn/Nx);
-        snx = sinf(0.5f*unitkx*kper*L.x/Nx);
+        snx = sinf(0.5f*j.x*kH.x);
         snx2 = snx*snx;
-        sqk = unitkx*kper*unitkx*kper + unitky*lper*unitky*lper + unitkz*mper*unitkz*mper;
 
 
         int l;
@@ -911,33 +895,48 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         denominator = sx*sy*sz;
         denominator *= denominator;
 
+        Scalar3 kn, kn1, kn2, kn3;
         float W;
         if (sqk != 0.0f) {
             numerator = 12.5663706f/sqk;
             sum1 = 0.0f;
             for (ix = -nbx; ix <= nbx; ix++) {
-                qx = unitkx*(kper+(float)(Nx*ix));
-                sx = expf(-.25f*qx*qx/kappa2);
-                wx = 1.0f;
-                argx = 0.5f*qx*L.x/(float)Nx;
-                if (argx != 0.0f) wx = powf(sinf(argx)/argx,order);
-                for (iy = -nby; iy <= nby; iy++) {
-                    qy = unitky*(lper+(float)(Ny*iy));
-                    sy = expf(-.25f*qy*qy/kappa2);
-                    wy = 1.0f;
-                    argy = 0.5f*qy*L.y/(float)Ny;
-                    if (argy != 0.0f) wy = powf(sinf(argy)/argy,order);
-                    for (iz = -nbz; iz <= nbz; iz++) {
-                        qz = unitkz*(mper+(float)(Nz*iz));
-                        sz = expf(-.25f*qz*qz/kappa2);
-                        wz = 1.0f;
-                        argz = 0.5f*qz*L.z/(float)Nz;
-                        if (argz != 0.0f) wz = powf(sinf(argz)/argz,order);
+                qx = (j.x+(float)(Nx*ix));
+                kn1 = b1 * qx;
+                argx = Scalar(0.5)*qx*kH.x;
+                if (argx != 0.0f)
+                    wx = powf(sinf(argx)/argx,order);
+                else
+                    wx = Scalar(1.0);
 
-                        dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
-                        dot2 = qx*qx+qy*qy+qz*qz;
+               for (iy = -nby; iy <= nby; iy++) {
+                    qy = (j.y+(float)(Ny*iy));
+                    kn2 = b2 * qy;
+                    argy = Scalar(0.5)*qy*kH.y;
+                    if (argy != 0.0f)
+                        wy = powf(sinf(argy)/argy,order);
+                    else
+                        wy = Scalar(1.0);
+
+                    for (iz = -nbz; iz <= nbz; iz++) {
+                        qz = (j.z+(float)(Nz*iz));
+                        kn3 = b3 * qz;
+                        wz = 1.0f;
+                        kn = kn1+kn2+kn3;
+
+                        argz = Scalar(0.5)*qz*kH.z;
+                        if (argz != 0.0f)
+                            wz = powf(sinf(argz)/argz,order);
+                        else
+                            wz = Scalar(1.0);
+
+                        dot1 = dot(kn,k);
+                        dot2 = dot(kn,kn);
+                        Scalar arg_gauss = Scalar(0.25)*dot2/kappa2;
+                        Scalar gauss = expf(-arg_gauss);
+ 
                         W = wx*wy*wz;
-                        sum1 += (dot1/dot2) * sx*sy*sz * W*W;
+                        sum1 += (dot1/dot2) * gauss * W*W;
                         }
                     }
                 }
@@ -962,9 +961,19 @@ cudaError_t reset_kvec_green_hat(const BoxDim& box,
                                  float *gf_b,
                                  int block_size)
     {
+    // compute reciprocal lattice vectors
+    Scalar3 a1 = box.getLatticeVector(0);
+    Scalar3 a2 = box.getLatticeVector(1);
+    Scalar3 a3 = box.getLatticeVector(2);
+
+    Scalar V_box = box.getVolume();
+    Scalar3 b1 = Scalar(2.0*M_PI)*make_scalar3(a2.y*a3.z-a2.z*a3.y, a2.z*a3.x-a2.x*a3.z, a2.x*a3.y-a2.y*a3.x)/V_box;
+    Scalar3 b2 = Scalar(2.0*M_PI)*make_scalar3(a3.y*a1.z-a3.z*a1.y, a3.z*a1.x-a3.x*a1.z, a3.x*a1.y-a3.y*a1.x)/V_box;
+    Scalar3 b3 = Scalar(2.0*M_PI)*make_scalar3(a1.y*a2.z-a1.z*a2.y, a1.z*a2.x-a1.x*a2.z, a1.x*a2.y-a1.y*a2.x)/V_box;
+
     dim3 grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
-    reset_kvec_green_hat_kernel <<< grid, threads >>> (box, Nx, Ny, Nz, order, kappa, kvec, green_hat, vg, nbx, nby, nbz, gf_b);
+    reset_kvec_green_hat_kernel <<< grid, threads >>> (box, b1, b2, b3, Nx, Ny, Nz, order, kappa, kvec, green_hat, vg, nbx, nby, nbz, gf_b);
     return cudaSuccess;
     }
 
@@ -1105,7 +1114,7 @@ cudaError_t fix_exclusions(float4 *d_force,
     // zero the force arrays for all particles
     // zero_forces <<< grid, threads >>> (force_data, N);
 //    cudaMemset(d_force, 0, sizeof(float4)*N);
-    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
+//    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
 
     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,
