@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
 #include "HOOMDMath.h"
+#include "BoxDim.h"
 
 /*! \file EvaluatorExternalPeriodic.h
     \brief Defines the external potential evaluator to induce a periodic ordered phase
@@ -78,12 +79,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
 
     \f[
-    V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(\frac{2 \pi p r_i}{L_i}\right)\right]
+    V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(p \vec{b}_i\cdot\vec{r}\right)\right]
     \f]
 
-    where \f$A\f$ is the ordering parameter, \f$p\f$ the periodicity and \f$w\f$ the interface width
-    (relative to the box length \f$L_i\f$ in the \f$i\f$-direction). The modulation is one-dimensional,
-    i.e. it extends along the cartesian coordinate \f$i\f$.
+    where \f$A\f$ is the ordering parameter, \f$\vec{b}_i\f$ is the reciprocal lattice vector direction
+    \f$i=0..2\f$, \f$p\f$ the periodicity and \f$w\f$ the interface width
+    (relative to the distance \f$2\pi/|\mathbf{b_i}|\f$ between planes in the \f$i\f$-direction).
+    The modulation is one-dimensional. It extends along the lattice vector \f$\mathbf{a}_i\f$ of the
+    simulation cell.
 */
 class EvaluatorExternalPeriodic
     {
@@ -94,16 +97,12 @@ class EvaluatorExternalPeriodic
 
         //! Constructs the constraint evaluator
         /*! \param X position of particle
-            \param Lx length of simulation box in x direction
-            \param Ly length of simulation box in y direction
-            \param Lz length of simulation box in z direction
+            \param box box dimensions
             \param params per-type parameters of external potential
         */
-        DEVICE EvaluatorExternalPeriodic(Scalar3 X, const Scalar Lx, const Scalar Ly, const Scalar Lz, const param_type& params)
+        DEVICE EvaluatorExternalPeriodic(Scalar3 X, const BoxDim& box, const param_type& params)
             : m_pos(X),
-              m_Lx(Lx),
-              m_Ly(Ly),
-              m_Lz(Lz)
+              m_box(box)
             {
             m_index=  SCALARASINT(params.x);
             m_orderParameter = params.y;
@@ -118,8 +117,7 @@ class EvaluatorExternalPeriodic
         */
         DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
             {
-            Scalar d = Scalar(0.0);
-            Scalar perpLength = Scalar(0.0);
+            Scalar3 a2, a3;
 
             F.x = Scalar(0.0);
             F.y = Scalar(0.0);
@@ -130,43 +128,38 @@ class EvaluatorExternalPeriodic
             for (unsigned int i = 0; i < 6; i++)
                 virial[i] = Scalar(0.0);
 
+            Scalar V_box = m_box.getVolume();
             // compute the vector pointing from P to V
             if (m_index == 0)
                 {
-                d = m_pos.x;
-                perpLength = m_Lx;
+                a2 = m_box.getLatticeVector(1);
+                a3 = m_box.getLatticeVector(2);
                 }
             else if (m_index == 1)
                 {
-                d = m_pos.y;
-                perpLength = m_Ly;
+                a2 = m_box.getLatticeVector(2);
+                a3 = m_box.getLatticeVector(0);
                 }
             else if (m_index == 2)
                 {
-                d = m_pos.z;
-                perpLength = m_Lz;
+                a2 = m_box.getLatticeVector(0);
+                a3 = m_box.getLatticeVector(1);
                 }
 
-            Scalar q, clipParameter, arg, clipcos, tanH, sechSq;
+            Scalar3 b = Scalar(2.0*M_PI)*make_scalar3(a2.y*a3.z-a2.z*a3.y,
+                                                      a2.z*a3.x-a2.x*a3.z,
+                                                      a2.x*a3.y-a2.y*a3.x)/V_box;
+            Scalar clipParameter, arg, clipcos, tanH, sechSq;
 
-            q = (Scalar(2.0)*Scalar(M_PI)*m_periodicity)/perpLength;
-            clipParameter   = Scalar(1.0)/(q*(m_interfaceWidth*perpLength));
-            arg = q*d;
+            Scalar3 q = b*m_periodicity;
+            clipParameter   = Scalar(1.0)/Scalar(2.0*M_PI)/(m_periodicity*m_interfaceWidth);
+            arg = dot(m_pos,q);
             clipcos = clipParameter*cosf(arg);
             tanH = tanhf(clipcos);
             sechSq = (Scalar(1.0) - tanH*tanH);
 
-            Scalar force = Scalar(0.0);
-            force = m_orderParameter*sechSq*clipParameter*sinf(arg)*q;
+            F = m_orderParameter*sechSq*clipParameter*sinf(arg)*q;
             energy = m_orderParameter*tanH;
-
-            if (m_index == 0)
-                F.x = force;
-            else if (m_index == 1)
-                F.y = force;
-            else if (m_index == 2)
-                F.z = force;
-
             }
 
         #ifndef NVCC
@@ -182,9 +175,7 @@ class EvaluatorExternalPeriodic
 
     protected:
         Scalar3 m_pos;                //!< particle position
-        Scalar m_Lx;                  //!< box length in x direction
-        Scalar m_Ly;                  //!< box length in y direction
-        Scalar m_Lz;                  //!< box length in z direction
+        BoxDim m_box;                 //!< box dimensions
         unsigned int m_index;         //!< cartesian index of direction along which the lammellae should be orientied
         Scalar m_orderParameter;      //!< ordering parameter
         Scalar m_interfaceWidth;      //!< width of interface between lamellae (relative to box length)
