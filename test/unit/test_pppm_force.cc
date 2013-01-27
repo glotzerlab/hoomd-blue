@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE( PPPMForceCompute_triclinic )
     pppm_force_particle_test_triclinic(pppm_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#
+
 #ifdef ENABLE_CUDA
 //! boost test case for bond forces on the GPU
 BOOST_AUTO_TEST_CASE( PPPMForceComputeGPU_basic )
