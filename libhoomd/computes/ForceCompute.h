@@ -83,9 +83,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     The per particle potential energy is defined such that \f$ \sum_i^N \mathrm{pe}_i = V_{\mathrm{total}} \f$
 
-    The per particle virial is a symmetrized 3x3 matrix that is defined such
+    The per particle virial is a upper triangular 3x3 matrix that is defined such
     that
-    \f$ \sum_k^N \left(\mathrm{virial}_{ij}\right)_k = \sum_k^N \sum_{l>k} \frac{1}{2} \left( \vec{r}_{kl,i} \vec{f}_{kl,j} + \vec{r}_{kl,j} \vec{f}_{kl, i} \right) \f$
+    \f$ \sum_k^N \left(\mathrm{virial}_{ij}\right)_k = \sum_k^N \sum_{l>k} \frac{1}{2} \left( \vec{f}_{kl,i} \vec{r}_{kl,j} \right) \f$
 
     \ingroup data_structs
 */
@@ -179,7 +179,7 @@ class ForceCompute : public Compute
         GPUArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
 
         /*! per-particle virial, a 2D GPUArray with width=number
-            of particles and height=6. The elements of the (symmetrized)
+            of particles and height=6. The elements of the (upper triangular)
             3x3 virial matrix \f$ \left(\mathrm{virial}_{ij}\right),k \f$ for
             particle \f$k\f$ are stored in the rows and are indexed in the
             order xx, xy, xz, yy, yz, zz

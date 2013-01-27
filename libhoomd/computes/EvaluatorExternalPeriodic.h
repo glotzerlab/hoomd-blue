@@ -113,7 +113,7 @@ class EvaluatorExternalPeriodic
         //! Evaluate the force, energy and virial
         /*! \param F force vector
             \param energy value of the energy
-            \param virial array of six scalars for the symmetrized virial tensor
+            \param virial array of six scalars for the upper triangular virial tensor
         */
         DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
             {

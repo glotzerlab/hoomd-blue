@@ -276,7 +276,7 @@ void ComputeThermo::computeProperties()
 
     if (flags[pdata_flag::pressure_tensor])
         {
-        // Calculate symmetrized virial tensor
+        // Calculate upper triangular virial tensor
         unsigned int virial_pitch = net_virial.getPitch();
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
