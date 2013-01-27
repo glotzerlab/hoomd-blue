@@ -896,6 +896,8 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         denominator *= denominator;
 
         Scalar3 kn, kn1, kn2, kn3;
+        Scalar arg_gauss, gauss;
+
         float W;
         if (sqk != 0.0f) {
             numerator = 12.5663706f/sqk;
@@ -932,8 +934,8 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
 
                         dot1 = dot(kn,k);
                         dot2 = dot(kn,kn);
-                        Scalar arg_gauss = Scalar(0.25)*dot2/kappa2;
-                        Scalar gauss = expf(-arg_gauss);
+                        arg_gauss = Scalar(0.25)*dot2/kappa2;
+                        gauss = expf(-arg_gauss);
  
                         W = wx*wy*wz;
                         sum1 += (dot1/dot2) * gauss * W*W;

@@ -209,153 +209,11 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         printf("Notice: PPPM RMS error: %g\n", RMS_error);
         }
 
-     PPPMForceCompute::compute_rho_coeff();
+    PPPMForceCompute::compute_rho_coeff();
 
-    Scalar3 inverse_lattice_vector;
-    Scalar invdet = 2.0f*M_PI/(L.x*L.y*L.z);
-    inverse_lattice_vector.x = invdet*L.y*L.z;
-    inverse_lattice_vector.y = invdet*L.x*L.z;
-    inverse_lattice_vector.z = invdet*L.x*L.y;
+    // compute k vectors, virial contribution and Green's function
+    PPPMForceCompute::reset_kvec_green_hat_cpu();
 
-    ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
-    // Set up the k-vectors
-    int ix, iy, iz, kper, lper, mper, k, l, m;
-    for (ix = 0; ix < Nx; ix++) {
-        Scalar3 j;
-        j.x = ix > Nx/2 ? ix - Nx : ix;
-        for (iy = 0; iy < Ny; iy++) {
-            j.y = iy > Ny/2 ? iy - Ny : iy;
-            for (iz = 0; iz < Nz; iz++) {
-                j.z = iz > Nz/2 ? iz - Nz : iz;
-                h_kvec.data[iz + Nz * (iy + Ny * ix)].x =  j.x*inverse_lattice_vector.x;
-                h_kvec.data[iz + Nz * (iy + Ny * ix)].y =  j.y*inverse_lattice_vector.y;
-                h_kvec.data[iz + Nz * (iy + Ny * ix)].z =  j.z*inverse_lattice_vector.z;
-                }
-            }
-        }
- 
-    // Set up constants for virial calculation
-    ArrayHandle<Scalar> h_vg(m_vg, access_location::host, access_mode::readwrite);;
-    for(int x = 0; x < Nx; x++)
-        {
-        for(int y = 0; y < Ny; y++)
-            {
-            for(int z = 0; z < Nz; z++)
-                {
-                Scalar3 kvec = h_kvec.data[z + Nz * (y + Ny * x)];
-                Scalar sqk =  kvec.x*kvec.x;
-                sqk += kvec.y*kvec.y;
-                sqk += kvec.z*kvec.z;
-                int grid_point = z + Nz * (y + Ny * x);    
-                if (sqk == 0.0) 
-                    {
-                    h_vg.data[0 + 6*grid_point] = 0.0f;
-                    h_vg.data[1 + 6*grid_point] = 0.0f;
-                    h_vg.data[2 + 6*grid_point] = 0.0f;
-                    h_vg.data[3 + 6*grid_point] = 0.0f;
-                    h_vg.data[4 + 6*grid_point] = 0.0f;
-                    h_vg.data[5 + 6*grid_point] = 0.0f;
-                   }
-                else
-                    {
-                    Scalar vterm = -2.0 * (1.0/sqk + 0.25/(kappa*kappa));
-                    h_vg.data[0 + 6*grid_point] =  1.0 + vterm*kvec.x*kvec.x;
-                    h_vg.data[1 + 6*grid_point] =        vterm*kvec.x*kvec.y;
-                    h_vg.data[2 + 6*grid_point] =        vterm*kvec.x*kvec.z;
-                    h_vg.data[3 + 6*grid_point] =  1.0 + vterm*kvec.y*kvec.y;
-                    h_vg.data[4 + 6*grid_point] =        vterm*kvec.y*kvec.z;
-                    h_vg.data[5 + 6*grid_point] =  1.0 + vterm*kvec.z*kvec.z;
-                    }
-                } 
-            } 
-        }
-
-
-    // Set up the grid based Green's function
-    ArrayHandle<Scalar> h_green_hat(m_green_hat, access_location::host, access_mode::readwrite);
-    Scalar snx, sny, snz, snx2, sny2, snz2;
-    Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
-    Scalar sum1, dot1, dot2;
-    Scalar numerator, denominator, sqk;
-
-    Scalar unitkx = (2.0*M_PI/L.x);
-    Scalar unitky = (2.0*M_PI/L.y);
-    Scalar unitkz = (2.0*M_PI/L.z);
-   
-    
-    Scalar xprd = L.x; 
-    Scalar yprd = L.y; 
-    Scalar zprd_slab = L.z; 
-    
-    Scalar form = 1.0;
-
-    PPPMForceCompute::compute_gf_denom();
-
-    Scalar temp = floor(((kappa*xprd/(M_PI*Nx)) * 
-                         pow(-log(EPS_HOC),0.25)));
-    int nbx = (int)temp;
-
-    temp = floor(((kappa*yprd/(M_PI*Ny)) * 
-                  pow(-log(EPS_HOC),0.25)));
-    int nby = (int)temp;
-
-    temp =  floor(((kappa*zprd_slab/(M_PI*Nz)) * 
-                   pow(-log(EPS_HOC),0.25)));
-    int nbz = (int)temp;
-
-    
-    for (m = 0; m < Nz; m++) {
-        mper = m - Nz*(2*m/Nz);
-        snz = sin(0.5*unitkz*mper*zprd_slab/Nz);
-        snz2 = snz*snz;
-
-        for (l = 0; l < Ny; l++) {
-            lper = l - Ny*(2*l/Ny);
-            sny = sin(0.5*unitky*lper*yprd/Ny);
-            sny2 = sny*sny;
-
-            for (k = 0; k < Nx; k++) {
-                kper = k - Nx*(2*k/Nx);
-                snx = sin(0.5*unitkx*kper*xprd/Nx);
-                snx2 = snx*snx;
-      
-                sqk = pow(Scalar(unitkx*kper),Scalar(2.0)) + pow(Scalar(unitky*lper),Scalar(2.0)) + 
-                    pow(Scalar(unitkz*mper),Scalar(2.0));
-                if (sqk != 0.0) {
-                    numerator = form*12.5663706/sqk;
-                    denominator = gf_denom(snx2,sny2,snz2);  
-
-                    sum1 = 0.0;
-                    for (ix = -nbx; ix <= nbx; ix++) {
-                        qx = unitkx*(kper+(Scalar)(Nx*ix));
-                        sx = exp(-.25*pow(Scalar(qx/kappa),Scalar(2.0)));
-                        wx = 1.0;
-                        argx = 0.5*qx*xprd/(Scalar)Nx;
-                        if (argx != 0.0) wx = pow(sin(argx)/argx,order);
-                        for (iy = -nby; iy <= nby; iy++) {
-                            qy = unitky*(lper+(Scalar)(Ny*iy));
-                            sy = exp(-.25*pow(Scalar(qy/kappa),Scalar(2.0)));
-                            wy = 1.0;
-                            argy = 0.5*qy*yprd/(Scalar)Ny;
-                            if (argy != 0.0) wy = pow(sin(argy)/argy,order);
-                            for (iz = -nbz; iz <= nbz; iz++) {
-                                qz = unitkz*(mper+(Scalar)(Nz*iz));
-                                sz = exp(-.25*pow(Scalar(qz/kappa),Scalar(2.0)));
-                                wz = 1.0;
-                                argz = 0.5*qz*zprd_slab/(Scalar)Nz;
-                                if (argz != 0.0) wz = pow(sin(argz)/argz,order);
-
-                                dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
-                                dot2 = qx*qx+qy*qy+qz*qz;
-                                sum1 += (dot1/dot2) * sx*sy*sz * pow(Scalar(wx*wy*wz),Scalar(2.0));
-                                }
-                            }
-                        }
-                    h_green_hat.data[m + Nz * (l + Ny * k)] = numerator*sum1/denominator;
-                    } else h_green_hat.data[m + Nz * (l + Ny * k)] = 0.0;
-                }
-            }
-        }
     Scalar scale = 1.0f/((Scalar)(Nx * Ny * Nz));
     m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
     }
@@ -634,11 +492,15 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getL();
 
-    Scalar3 inverse_lattice_vector;
-    Scalar invdet = 2.0f*M_PI/(L.x*L.y*L.z);
-    inverse_lattice_vector.x = invdet*L.y*L.z;
-    inverse_lattice_vector.y = invdet*L.x*L.z;
-    inverse_lattice_vector.z = invdet*L.x*L.y;
+    // compute reciprocal lattice vectors
+    Scalar3 a1 = box.getLatticeVector(0);
+    Scalar3 a2 = box.getLatticeVector(1);
+    Scalar3 a3 = box.getLatticeVector(2);
+
+    Scalar V_box = box.getVolume();
+    Scalar3 b1 = Scalar(2.0*M_PI)*make_scalar3(a2.y*a3.z-a2.z*a3.y, a2.z*a3.x-a2.x*a3.z, a2.x*a3.y-a2.y*a3.x)/V_box;
+    Scalar3 b2 = Scalar(2.0*M_PI)*make_scalar3(a3.y*a1.z-a3.z*a1.y, a3.z*a1.x-a3.x*a1.z, a3.x*a1.y-a3.y*a1.x)/V_box;
+    Scalar3 b3 = Scalar(2.0*M_PI)*make_scalar3(a1.y*a2.z-a1.z*a2.y, a1.z*a2.x-a1.x*a2.z, a1.x*a2.y-a1.y*a2.x)/V_box;
 
     // Set up the k-vectors
     int ix, iy, iz, kper, lper, mper, k, l, m;
@@ -649,9 +511,7 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
             j.y = iy > m_Ny/2 ? iy - m_Ny : iy;
             for (iz = 0; iz < m_Nz; iz++) {
                 j.z = iz > m_Nz/2 ? iz - m_Nz : iz;
-                h_kvec.data[iz + m_Nz * (iy + m_Ny * ix)].x =  j.x*inverse_lattice_vector.x;
-                h_kvec.data[iz + m_Nz * (iy + m_Ny * ix)].y =  j.y*inverse_lattice_vector.y;
-                h_kvec.data[iz + m_Nz * (iy + m_Ny * ix)].z =  j.z*inverse_lattice_vector.z;
+                h_kvec.data[iz + m_Nz * (iy + m_Ny * ix)] =  j.x*b1+j.y*b2+j.z*b3;
                 }
             }
         }
@@ -697,15 +557,13 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
     // Set up the grid based Green's function
     ArrayHandle<Scalar> h_green_hat(m_green_hat, access_location::host, access_mode::readwrite);
     Scalar snx, sny, snz, snx2, sny2, snz2;
-    Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
+    Scalar argx, argy, argz, wx, wy, wz, qx, qy, qz;
     Scalar sum1, dot1, dot2;
     Scalar numerator, denominator, sqk;
 
-    Scalar unitkx = (2.0*M_PI/L.x);
-    Scalar unitky = (2.0*M_PI/L.y);
-    Scalar unitkz = (2.0*M_PI/L.z);
-   
-    
+    Scalar3 kH = Scalar(2.0*M_PI)*make_scalar3(Scalar(1.0)/(Scalar)m_Nx,
+                                               Scalar(1.0)/(Scalar)m_Ny,
+                                               Scalar(1.0)/(Scalar)m_Nz);
     Scalar xprd = L.x; 
     Scalar yprd = L.y; 
     Scalar zprd_slab = L.z; 
@@ -726,51 +584,60 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                    pow(-log(EPS_HOC),0.25)));
     int nbz = (int)temp;
 
-    
+    Scalar3 kvec,kn, kn1, kn2, kn3;
+    Scalar arg_gauss, gauss;
+
     for (m = 0; m < m_Nz; m++) {
         mper = m - m_Nz*(2*m/m_Nz);
-        snz = sin(0.5*unitkz*mper*zprd_slab/m_Nz);
+        snz = sin(0.5*kH.z*mper);
         snz2 = snz*snz;
 
         for (l = 0; l < m_Ny; l++) {
             lper = l - m_Ny*(2*l/m_Ny);
-            sny = sin(0.5*unitky*lper*yprd/m_Ny);
+            sny = sin(0.5*kH.y*lper);
             sny2 = sny*sny;
 
             for (k = 0; k < m_Nx; k++) {
                 kper = k - m_Nx*(2*k/m_Nx);
-                snx = sin(0.5*unitkx*kper*xprd/m_Nx);
+                snx = sin(0.5*kH.x*kper);
                 snx2 = snx*snx;
-      
-                sqk = pow(Scalar(unitkx*kper),Scalar(2.0)) + pow(Scalar(unitky*lper),Scalar(2.0)) + 
-                    pow(Scalar(unitkz*mper),Scalar(2.0));
+     
+                kvec = kper*b1 + lper*b2 + mper*b3;
+                sqk = dot(kvec, kvec);
+
                 if (sqk != 0.0) {
                     numerator = form*12.5663706/sqk;
                     denominator = gf_denom(snx2,sny2,snz2);  
 
                     sum1 = 0.0;
                     for (ix = -nbx; ix <= nbx; ix++) {
-                        qx = unitkx*(kper+(Scalar)(m_Nx*ix));
-                        sx = exp(-.25*pow(Scalar(qx/m_kappa),Scalar(2.0)));
+                        qx = (kper+(Scalar)(m_Nx*ix));
+                        kn1 = b1*qx;
                         wx = 1.0;
-                        argx = 0.5*qx*xprd/(Scalar)m_Nx;
+                        argx = 0.5*qx*kH.x;
                         if (argx != 0.0) wx = pow(sin(argx)/argx,m_order);
                         for (iy = -nby; iy <= nby; iy++) {
-                            qy = unitky*(lper+(Scalar)(m_Ny*iy));
-                            sy = exp(-.25*pow(Scalar(qy/m_kappa),Scalar(2.0)));
+                            qy = (lper+(Scalar)(m_Ny*iy));
+                            kn2 = b2*qy;
                             wy = 1.0;
-                            argy = 0.5*qy*yprd/(Scalar)m_Ny;
+                            argy = 0.5*qy*kH.y;
                             if (argy != 0.0) wy = pow(sin(argy)/argy,m_order);
                             for (iz = -nbz; iz <= nbz; iz++) {
-                                qz = unitkz*(mper+(Scalar)(m_Nz*iz));
-                                sz = exp(-.25*pow(Scalar(qz/m_kappa),Scalar(2.0)));
+                                qz = (mper+(Scalar)(m_Nz*iz));
+                                kn3 = b3*qz;
                                 wz = 1.0;
-                                argz = 0.5*qz*zprd_slab/(Scalar)m_Nz;
+                                argz = 0.5*qz*kH.z;
                                 if (argz != 0.0) wz = pow(sin(argz)/argz,m_order);
 
-                                dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
-                                dot2 = qx*qx+qy*qy+qz*qz;
-                                sum1 += (dot1/dot2) * sx*sy*sz * pow(Scalar(wx*wy*wz),Scalar(2.0));
+                                kn = kn1 + kn2 + kn3;
+                                
+                                dot1 = dot(kn,kvec);
+                                dot2 = dot(kn,kn);
+                                
+                                arg_gauss = Scalar(0.25)*dot2/m_kappa/m_kappa;
+                                gauss = exp(-arg_gauss);
+
+                                sum1 += (dot1/dot2) * gauss* pow(Scalar(wx*wy*wz),Scalar(2.0));
                                 }
                             }
                         }
@@ -795,27 +662,21 @@ void PPPMForceCompute::assign_charges_to_grid()
 
     memset(h_rho_real_space.data, 0, sizeof(cufftComplex)*m_Nx*m_Ny*m_Nz);
 
+    Scalar V_cell = box.getVolume()/(Scalar)(m_Nx*m_Ny*m_Nz);
+
     for(int i = 0; i < (int)m_pdata->getN(); i++)
         {
         Scalar qi = h_charge.data[i];
-        Scalar4 posi;
+        Scalar3 posi;
         posi.x = h_pos.data[i].x;
         posi.y = h_pos.data[i].y;
         posi.z = h_pos.data[i].z;
 
-        Scalar box_dx = L.x / ((Scalar)m_Nx);
-        Scalar box_dy = L.y / ((Scalar)m_Ny);
-        Scalar box_dz = L.z / ((Scalar)m_Nz);
- 
         //normalize position to gridsize:
-        posi.x += L.x / 2.0f;
-        posi.y += L.y / 2.0f;
-        posi.z += L.z / 2.0f;
-   
-        posi.x /= box_dx;
-        posi.y /= box_dy;
-        posi.z /= box_dz;
-
+        Scalar3 pos_frac = box.makeFraction(posi);
+        pos_frac.x *= (Scalar)m_Nx;
+        pos_frac.y *= (Scalar)m_Ny;
+        pos_frac.z *= (Scalar)m_Nz;
 
         Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
         int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
@@ -834,19 +695,19 @@ void PPPMForceCompute::assign_charges_to_grid()
             shiftone = 0.5;
             }
 
-        nxi = (int)(posi.x + shift);
-        nyi = (int)(posi.y + shift);
-        nzi = (int)(posi.z + shift);
+        nxi = (int)(pos_frac.x + shift);
+        nyi = (int)(pos_frac.y + shift);
+        nzi = (int)(pos_frac.z + shift);
  
-        dx = shiftone+(Scalar)nxi-posi.x;
-        dy = shiftone+(Scalar)nyi-posi.y;
-        dz = shiftone+(Scalar)nzi-posi.z;
+        dx = shiftone+(Scalar)nxi-pos_frac.x;
+        dy = shiftone+(Scalar)nyi-pos_frac.y;
+        dz = shiftone+(Scalar)nzi-pos_frac.z;
 
         int n,m,l,k;
         Scalar result;
         int mult_fact = 2*m_order+1;
 
-        x0 = qi / (box_dx*box_dy*box_dz);
+        x0 = qi / V_cell;
         for (n = nlower; n <= nupper; n++) {
             mx = n+nxi;
             if(mx >= m_Nx) mx -= m_Nx;
@@ -938,24 +799,16 @@ void PPPMForceCompute::calculate_forces()
     for(int i = 0; i < (int)m_pdata->getN(); i++)
         {
         Scalar qi = h_charge.data[i];
-        Scalar4 posi;
+        Scalar3 posi;
         posi.x = h_pos.data[i].x;
         posi.y = h_pos.data[i].y;
         posi.z = h_pos.data[i].z;
 
-        Scalar box_dx = L.x / ((Scalar)m_Nx);
-        Scalar box_dy = L.y / ((Scalar)m_Ny);
-        Scalar box_dz = L.z / ((Scalar)m_Nz);
- 
         //normalize position to gridsize:
-        posi.x += L.x / 2.0f;
-        posi.y += L.y / 2.0f;
-        posi.z += L.z / 2.0f;
-   
-        posi.x /= box_dx;
-        posi.y /= box_dy;
-        posi.z /= box_dz;
-
+        Scalar3 pos_frac = box.makeFraction(posi);
+        pos_frac.x *= (Scalar)m_Nx;
+        pos_frac.y *= (Scalar)m_Ny;
+        pos_frac.z *= (Scalar)m_Nz;
 
         Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
         int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
@@ -974,13 +827,13 @@ void PPPMForceCompute::calculate_forces()
             shiftone = 0.5;
             }
 
-        nxi = (int)(posi.x + shift);
-        nyi = (int)(posi.y + shift);
-        nzi = (int)(posi.z + shift);
+        nxi = (int)(pos_frac.x + shift);
+        nyi = (int)(pos_frac.y + shift);
+        nzi = (int)(pos_frac.z + shift);
  
-        dx = shiftone+(Scalar)nxi-posi.x;
-        dy = shiftone+(Scalar)nyi-posi.y;
-        dz = shiftone+(Scalar)nzi-posi.z;
+        dx = shiftone+(Scalar)nxi-pos_frac.x;
+        dy = shiftone+(Scalar)nyi-pos_frac.y;
+        dz = shiftone+(Scalar)nzi-pos_frac.z;
 
         int n,m,l,k;
         Scalar result;
