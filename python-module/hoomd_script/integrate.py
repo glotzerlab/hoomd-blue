@@ -669,6 +669,11 @@ class npt(_integration_method):
 # The available options are identical to those of integrate.npt, for further information,
 # refer to its documentation.
 #
+# \note A time scale \b tau_p for the relaxation of the barostat is required. This is defined as the
+#       relaxation time the barostat would have at a temperature \f$ T_0 =1 \f$, and is related to the
+#       internally used Barostat mass \f$W\f$ via \f $W=d N T_0 \tau_p^2 \f $, where \f$ d \f$ is the
+#       dimensionsality.
+#       
 # integrate.nph is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
@@ -690,7 +695,7 @@ class nph(npt):
 
         # initialize base class
         util._disable_status_lines = True;
-        npt.__init__(self, nph=True, **params);
+        npt.__init__(self, nph=True, T=1.0, **params);
         util._disable_status_lines = False;
 
 ## NVE Integration via Velocity-Verlet
