@@ -83,6 +83,11 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sys
         throw std::runtime_error("Error initializing PPMForceComputeGPU");
         }
     CHECK_CUDA_ERROR();
+
+    //Zero pppm forces on ALL particles, including neutral ones that aren't taken
+    //care of in calculate_forces_kernel
+    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+    cudaMemset(d_force.data, 0, sizeof(Scalar4)*m_force.getNumElements());
     }
 
 PPPMForceComputeGPU::~PPPMForceComputeGPU()
