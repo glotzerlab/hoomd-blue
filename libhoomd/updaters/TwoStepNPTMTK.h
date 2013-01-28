@@ -115,7 +115,8 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
                    boost::shared_ptr<Variant> T,
                    boost::shared_ptr<Variant> P,
                    couplingMode couple,
-                   unsigned int flags);
+                   unsigned int flags,
+                   const bool nph=false);
         virtual ~TwoStepNPTMTK();
 
         //! Update the temperature
@@ -195,6 +196,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
 
         couplingMode m_couple;          //!< Coupling of diagonal elements
         unsigned int m_flags;             //!< Coupling flags for barostat 
+        bool m_nph;                     //!< True if integrating without thermostat
         Scalar m_mat_exp_v[6];          //!< Matrix exponential for velocity update (upper triangular)
         Scalar m_mat_exp_r[6];          //!< Matrix exponential for position update (upper triangular)
         Scalar m_mat_exp_v_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)

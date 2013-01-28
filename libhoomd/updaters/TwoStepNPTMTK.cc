@@ -94,9 +94,10 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P,
                        couplingMode couple,
-                       unsigned int flags)
+                       unsigned int flags,
+                       const bool nph)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group),
-      m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags)
+      m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags), m_nph(nph)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
 
@@ -186,15 +187,19 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     // advance barostat (nuxx, nuyy, nuzz) half a time step
     advanceBarostat(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz, P, timestep);
 
-    // advance thermostat (xi, eta) half a time step
-    Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0));
-    xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep)*
-          exp(-xi_prime*m_deltaT) - Scalar(1.0));
+    Scalar exp_thermo_fac(1.0);
+    if (! m_nph)
+        {
+        // advance thermostat (xi, eta) half a time step
+        Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0));
+        xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep)*
+              exp(-xi_prime*m_deltaT) - Scalar(1.0));
 
-    eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
+        eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
 
-    // precompute loop invariant quantities
-    Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
+        // precompute loop invariant quantities
+        exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
+        }
 
     // update the propagator matrix
     updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
@@ -381,18 +386,21 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
         MPI_Allreduce(MPI_IN_PLACE, &m_v2_sum, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator() );
 #endif
 
-    // Advance thermostat half a time step
-    Scalar T_prime =  m_v2_sum/m_thermo_group->getNDOF();
-    Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(T_prime/m_T->getValue(timestep) - Scalar(1.0));
-    xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(T_prime/m_T->getValue(timestep) *
-          exp(-xi_prime*m_deltaT) - Scalar(1.0));
+    Scalar exp_v_fac_thermo(1.0);
+    if (!m_nph)
+        {
+        // Advance thermostat half a time step
+        Scalar T_prime =  m_v2_sum/m_thermo_group->getNDOF();
+        Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(T_prime/m_T->getValue(timestep) - Scalar(1.0));
+        xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(T_prime/m_T->getValue(timestep) *
+              exp(-xi_prime*m_deltaT) - Scalar(1.0));
 
-    eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
+        eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
 
+        exp_v_fac_thermo = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
+        }
 
     // rescale velocities
-    Scalar exp_v_fac_thermo = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
-
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
@@ -711,7 +719,8 @@ void export_TwoStepNPTMTK()
                        boost::shared_ptr<Variant>,
                        boost::shared_ptr<Variant>,
                        TwoStepNPTMTK::couplingMode,
-                       unsigned int>())
+                       unsigned int,
+                       const bool>())
         .def("setT", &TwoStepNPTMTK::setT)
         .def("setP", &TwoStepNPTMTK::setP)
         .def("setTau", &TwoStepNPTMTK::setTau)

@@ -82,7 +82,8 @@ class TwoStepNPTMTKGPU : public TwoStepNPTMTK
                    boost::shared_ptr<Variant> T,
                    boost::shared_ptr<Variant> P,
                    couplingMode couple,
-                   unsigned int flags);
+                   unsigned int flags,
+                   const bool nph=false);
         virtual ~TwoStepNPTMTKGPU();
 
         //! Performs the first step of the integration

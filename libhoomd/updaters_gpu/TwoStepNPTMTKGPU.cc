@@ -88,9 +88,10 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P,
                        couplingMode couple,
-                       unsigned int flags)
+                       unsigned int flags,
+                       const bool nph)
 
-    : TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP, T, P, couple, flags)
+    : TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP, T, P, couple, flags,nph)
     {
     if (!exec_conf->isCUDAEnabled())
         {
@@ -164,15 +165,19 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     // advance barostat (nux, nuy, nuz) half a time step
     advanceBarostat(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz, P, timestep);
 
-    // advance thermostat (xi, eta) half a time step
-    Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0));
-    xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep)*
-          exp(-xi_prime*m_deltaT) - Scalar(1.0));
+    Scalar exp_thermo_fac(1.0);
+    if (!m_nph)
+        {
+        // advance thermostat (xi, eta) half a time step
+        Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0));
+        xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep)*
+              exp(-xi_prime*m_deltaT) - Scalar(1.0));
 
-    eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
+        eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
 
-    // precompute loop invariant quantities
-    Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
+        // precompute loop invariant quantities
+        exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
+        }
 
     // update the propagator matrix
     updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
@@ -343,13 +348,16 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         MPI_Allreduce(MPI_IN_PLACE, &T_prime, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator() );
 #endif
 
-    // Advance thermostat half a time step
-    Scalar xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(T_prime/m_T->getValue(timestep) - Scalar(1.0));
-    xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(T_prime/m_T->getValue(timestep) *
-          exp(-xi_prime*m_deltaT) - Scalar(1.0));
+    Scalar xi_prime(0.0);
+    if (!m_nph)
+        {
+        // Advance thermostat half a time step
+        xi_prime = xi + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(T_prime/m_T->getValue(timestep) - Scalar(1.0));
+        xi = xi_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(T_prime/m_T->getValue(timestep) *
+              exp(-xi_prime*m_deltaT) - Scalar(1.0));
 
-    eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
-
+        eta += Scalar(1.0/2.0)*xi_prime*m_deltaT;
+        }
 
     // rescale velocities
     gpu_npt_mtk_thermostat(d_vel.data,
@@ -419,7 +427,8 @@ void export_TwoStepNPTMTKGPU()
                        boost::shared_ptr<Variant>,
                        boost::shared_ptr<Variant>,
                        TwoStepNPTMTKGPU::couplingMode,
-                       unsigned int>())
+                       unsigned int,
+                       const bool>())
         ;
 
     }

@@ -84,7 +84,6 @@ set(TEST_LIST
     test_constraint_sphere
     test_ewald_force
     test_pppm_force
-    test_nph_integrator
     test_npt_mtk_integrator
     )
 

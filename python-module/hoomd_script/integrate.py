@@ -511,9 +511,9 @@ class nvt(_integration_method):
 class npt(_integration_method):
     ## Specifies the NPT integrator
     # \param group Group of particles on which to apply this method.
-    # \param T Temperature set point for the thermostat (in energy units)
+    # \param T Temperature set point for the thermostat, not needed if \b nph=True (in energy units)
     # \param P Pressure set point for the barostat (in pressure units)
-    # \param tau Coupling constant for the thermostat. (in time units)
+    # \param tau Coupling constant for the thermostat, not needed if \nph=True (in time units)
     # \param tauP Coupling constant for the barostat (in time units)
     # \param mtk True if the MTK equations should be used (default), False if the Nos&eacute;-Hoover equations should be used
     # \param partial_scale In Nos&eacute;-Hoover mode, if False (the default), \b all particles in the box are scaled due to the box size changes
@@ -526,6 +526,7 @@ class npt(_integration_method):
     # \param xz if \b True, rescale \a xz tilt factor and x and z components of particle coordinates and velocities
     # \param yz if \b True, rescale \a yz tilt factor and y and z components of particle coordinates and velocities
     # \param all if \b True, rescale all lengths and tilt factors and components of particle coordinates and velocities
+    # \param nph if \b True, integrate without a thermostat, i.e. in the NPH ensemble
     #
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
@@ -546,9 +547,19 @@ class npt(_integration_method):
     # # triclinic symmetry
     # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
     # \endcode
-    def __init__(self, group, T, tau, P, tauP, partial_scale=False, mtk=True, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False):
+    def __init__(self, group, P, tauP, partial_scale=False, mtk=True, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None):
         util.print_status_line();
-        
+       
+        # check the input
+        if (T is None or tau is None):
+            if nph is False:
+                globals.msg.error("integrate.npt: Need temperature T and thermostat time scale tau.\n");
+                raise RuntimeError("Error setting up NPT integration.");
+            else:
+                # use dummy values
+                T=1.0
+                tau=1.0
+
         # initialize base class
         _integration_method.__init__(self);
         
@@ -593,9 +604,9 @@ class npt(_integration_method):
                 flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_yz
 
             if not globals.exec_conf.isCUDAEnabled():
-                self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags);
+                self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
             else:
-                self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags);
+                self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
         else:
             if couple != "xyz":
                 globals.msg.error("In Nose-Hoover mode, only cubic symmetry is supported.");
@@ -651,123 +662,36 @@ class npt(_integration_method):
 
 ## NPH Integration via Andersen barostat or Parrinello-Rahman barostat restricted to anisotropic length fluctuations
 #
-# integrate.nph performs constant pressure (NPH) simulations using an Andersen barostat or a version of
-# the Rahman-Parrinello barostat for anisotropic box shape fluctuations.
-# An explicitly reversible and measure-preserving integration scheme is implemented.
+# integrate.nph performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
+# explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
+# cells and uses the same underying integrator as integrate.npt (with \b nph=True).
+#
+# The available options are identical to those of integrate.npt, for further information,
+# refer to its documentation.
 #
 # integrate.nph is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
 #
-class nph(_integration_method):
+# \sa integrate.npt
+class nph(npt):
     ## Specifies the NPH integrator
-    # \param group Group of particles on which to apply this method.
-    # \param P isotropic pressure set point for the Andersen barostat (in pressure units)
-    # \param W generalized mass of the barostat (units: see below)
-    # \param mode mode for anisotropic volume fluctuations: cubic, orthorhombic or tetragonal
+    # \param params Parameters used for the underlying integrate.npt (for documentation, see there)
     #
-    # \note it is limitation of the current implementation that only the particles in \a group are scaled but
-    #       the pressure tensor is calculated from the contribution of all particles in the simulation
-    #
-    # Internally, a compute.thermo is automatically specified and associated with \a group.
-    #
-    # Valid settings for \a mode are:
-    # - \b cubic (default) specifies cubic symmetry of the simulation box. This corresponds to isotropic volume
-    #   fluctuations. The barostat mass \a W has units of mass/length^4.
-    # - \b orthorhombic specifies orthorhombic symmetry of the simulation box. All three
-    #   box lengths \f$ L_x, \f$ \f$ L_y \f$, and \f$ L_z \f$ fluctuate indepently.
-    #   The barostat mass \a W has units of mass.
-    # - \b tetragonal specifies tetragonal symmetry of the simulation box. Two independent box lengths,
-    #   \f$ L_x = L_\perp \f$ and \f$ L_y = L_z = L_\parallel \f$, fluctuate independently.
-    #   The barostat mass \a W has units of mass.
-    #
-    # In
     # \b Examples:
     # \code
-    # integrate.nph(group=all, P=2.0, W=1.0, mode="orthorhombic")
-    # integrator = integrate.nph(group=all, P=2.0, W=1.0)
+    # # Triclinic unit cell
+    # nph=integrate.nph(group=all, P=2.0, tau_p=1.0, couple="none", all=True)
+    # # Cubic unit cell
+    # nph = integrate.nph(group=all, P=2.0, tau_p=1.0)
     # \endcode
-    def __init__(self, group, P, W, mode="cubic"):
+    def __init__(self, **params):
         util.print_status_line();
 
         # initialize base class
-        _integration_method.__init__(self);
-
-        # setup the variant inputs
-        P = variant._setup_variant_input(P);
-
-        # create the compute thermo
-        thermo_all = compute._get_unique_thermo(group=globals.group_all);
-
-        # setup suffix
-        suffix = '_' + group.name;
-
-        # set integration mode
-        # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
-            if (mode == "cubic"):
-                cpp_mode = hoomd.TwoStepNPH.integrationMode.cubic;
-            elif (mode == "orthorhombic"):
-                cpp_mode = hoomd.TwoStepNPH.integrationMode.orthorhombic;
-            elif (mode == "tetragonal"):
-                cpp_mode = hoomd.TwoStepNPH.integrationMode.tetragonal;
-            else:
-                globals.msg.error("Invalid mode\n");
-                raise RuntimeError("Error changing parameters in integrate.nph");
-            self.cpp_method = hoomd.TwoStepNPH(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
-        else:
-            if (mode == "cubic"):
-                cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.cubic;
-            elif (mode == "orthorhombic"):
-                cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.orthorhombic;
-            elif (mode == "tetragonal"):
-                cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.tetragonal;
-            else:
-                globals.msg.error("Invalid mode\n");
-                raise RuntimeError("Error changing parameters in integrate.nph");
-            self.cpp_method = hoomd.TwoStepNPHGPU(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
-
-        self.cpp_method.validateGroup()
-
-    ## Changes parameters of an existing integrator
-    # \param P New pressure (if set) (in pressure units)
-    # \param W New barostat mass constant (if set) (in mass units for \a mode = orthogonal or \a mode = tetragonal,
-    #          or mass/length^4 for \a mode = cubic )
-    # \param mode integration mode (\b cubic, \b orthorhombic or \b tetragonal)
-    #
-    # To change the parameters of an existing integrator, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # integrator = integrate.nph(P=1.2)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # integrator.set_params(P=1.2)
-    # integrator.set_params(P=1.0, W=.01)
-    # integrator.set_params(mode="tetragonal")
-    # \endcode
-    def set_params(self, P=None, W=None, mode=None):
-        util.print_status_line();
-        self.check_initialization();
-
-        # change the parameters
-        if P is not None:
-            # setup the variant inputs
-            P = variant._setup_variant_input(P);
-            self.cpp_method.setP(P.cpp_variant);
-        if W is not None:
-            self.cpp_method.setW(W);
-        if mode is not None:
-            if (mode == "cubic"):
-                self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.cubic);
-            elif (mode == "orthorhombic"):
-                self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.orthorhombic);
-            elif (mode == "tetragonal"):
-                self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.tetragonal);
-            else:
-                globals.msg.error("Invalid mode\n");
-                raise RuntimeError("Error changing parameters in integrate.nph");
+        util._disable_status_lines = True;
+        npt.__init__(self, nph=True, **params);
+        util._disable_status_lines = False;
 
 ## NVE Integration via Velocity-Verlet
 #
