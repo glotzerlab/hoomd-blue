@@ -177,6 +177,13 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
         ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
+        // reset virial
+        cudaMemset(d_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
+
+        //Zero pppm forces on ALL particles, including neutral ones that aren't taken
+        //care of in calculate_forces_kernel
+        cudaMemset(d_force.data, 0, sizeof(Scalar4)*m_force.getNumElements());
+
         // access the group
         ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
