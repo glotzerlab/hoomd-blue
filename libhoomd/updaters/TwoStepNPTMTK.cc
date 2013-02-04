@@ -159,8 +159,6 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     m_curr_group_T = m_thermo_group->getTemperature();
 
     // compute pressure for the next half time step
-    assert(m_mode == cubic || m_mode == orthorhombic || m_mode == tetragonal || m_mode == triclinic);
-
     PressureTensor P = m_thermo_group->getPressureTensor();
 
     if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
