@@ -92,12 +92,11 @@ __constant__ unsigned int d_face_plan_lookup[6];   //!< Lookup-table faces -> pl
 __constant__ unsigned int d_is_communicating[6]; //!< Per-direction flag indicating whether we are communicating in that direction
 __constant__ unsigned int d_is_at_boundary[6]; //!< Per-direction flag indicating whether the box has a global boundary
 
-extern unsigned int *corner_plan_lookup[];
-extern unsigned int *edge_plan_lookup[];
-extern unsigned int *face_plan_lookup[];
-
 void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
-                              const unsigned int *is_at_boundary)
+                              const unsigned int *is_at_boundary,
+                              const unsigned int *corner_plan_lookup,
+                              const unsigned int *edge_plan_lookup,
+                              const unsigned int *face_plan_lookup)
     {
     cudaMalloc(&d_n_fetch_ptl,sizeof(unsigned int));
 
@@ -1603,5 +1602,6 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                                                            NULL,
                                                                            shifted_global_box);
     } 
+
 
 #endif

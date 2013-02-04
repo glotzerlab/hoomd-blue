@@ -137,36 +137,9 @@ class CommunicatorGPU : public Communicator
        
         //! Check that restrictions on bond lengths etc. are not violated
         void checkValid(unsigned int timestep);
- 
+
     private:
-        enum edgeEnum
-            {
-            edge_east_north = 0 ,
-            edge_east_south,
-            edge_east_up,
-            edge_east_down,
-            edge_west_north,
-            edge_west_south,
-            edge_west_up,
-            edge_west_down,
-            edge_north_up,
-            edge_north_down,
-            edge_south_up,
-            edge_south_down
-            };
         
-        enum cornerEnum
-            {
-            corner_east_north_up = 0,
-            corner_east_north_down,
-            corner_east_south_up,
-            corner_east_south_down,
-            corner_west_north_up,
-            corner_west_north_down,
-            corner_west_south_up,
-            corner_west_south_down
-            };
-         
         GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
         GPUArray<unsigned int> m_ptl_plan;          //!< Particle sending plans
 
@@ -196,7 +169,7 @@ class CommunicatorGPU : public Communicator
 
         unsigned int m_remote_send_corner[8*6];     //!< Remote corner particles, per direction
         unsigned int m_remote_send_edge[12*6];       //!< Remote edge particles, per direction
-        unsigned int m_remote_send_face[6*6];       //!< Remote face particles, per direction
+        unsigned int m_remote_send_face[6];         //!< Remote face particles, per direction
 
         GPUArray<char> m_corner_ghosts_buf;         //!< Copy buffer for ghosts lying at the edge
         GPUArray<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
@@ -231,12 +204,26 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_n_recv_ghosts_edge; //!< Number of received ghosts for sending over an edge, per direction
         GPUArray<unsigned int> m_n_recv_ghosts_local;//!< Number of received ghosts that stay in the local box, per direction
 
+#ifndef ENABLE_MPI_CUDA
+        GPUBufferMapped<char> m_mesh_exchange_buf;   //!< Copy buffer for exchange of mesh cells
+#else
+        GPUArray<char> m_mesh_exchange_buf;          //!< Copy buffer for exchange of mesh cells
+#endif
+
         unsigned int m_n_tot_recv_ghosts;           //!< Total number of received ghots
         unsigned int m_n_tot_recv_ghosts_local;     //!< Total number of received ghosts for local box
         unsigned int m_n_forward_ghosts_face[6];    //!< Total number of received ghosts for the face send buffer
         unsigned int m_n_forward_ghosts_edge[12];   //!< Total number of received ghosts for the edge send buffer
 
         bool m_buffers_allocated;                   //!< True if buffers have been allocated
+        bool m_mesh_buffers_allocated;              //!< True if buffers for ghost mesh exchange have been allocated
+
+        uint3 m_mesh_dim;                           //!< Dimensions of mesh for which we allocated buffers
+        uint3 m_inner_dim;                          //!< Number of non-ghost cells along every axis
+        unsigned int m_n_ghost_cells;               //!< Number of ghost cells of mesh along non-periodic axes
+        unsigned int m_n_corner_cells;              //!< Number of corner cells 
+        uint3 m_n_edge_cells;                       //!< Number of edge cells, for every four edges along every axis
+        uint3 m_n_face_cells;                       //!< Number of face cells for every axis
 
         GPUFlags<unsigned int> m_condition;         //!< Condition variable set to a value unequal zero if send buffers need to be resized
 
@@ -249,6 +236,9 @@ class CommunicatorGPU : public Communicator
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
+
+        //! Helper function to allocate buffers for ghost mesh exchange
+        void allocateMeshBuffers(const uint3 dim, const uint3 n_ghost_cells, size_t size_datatype);
     };
 
 //! Export CommunicatorGPU class to python
