@@ -146,7 +146,7 @@ bool GeneratedParticles::canPlace(const particle& p)
     Scalar3 pos = make_scalar3(p.x,p.y,p.z);
     int3 img = m_box.getImage(pos);
     int3 negimg = make_int3(-img.x, -img.y, -img.z);
-    m_box.shift(pos, negimg);
+    pos = m_box.shift(pos, negimg);
 
     // determine the bin the particle is in
     Scalar3 f = m_box.makeFraction(pos);
@@ -208,7 +208,7 @@ bool GeneratedParticles::canPlace(const particle& p)
                     
                     int3 img = m_box.getImage(pos);
                     int3 negimg = make_int3(-img.x, -img.y, -img.z);
-                    m_box.shift(cmp_pos,negimg);
+                    cmp_pos = m_box.shift(cmp_pos,negimg);
 
                     Scalar3 dx = pos - cmp_pos;
                     // minimum image convention for dx
@@ -246,7 +246,7 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
     Scalar3 pos = make_scalar3(p.x,p.y,p.z);
     int3 img = m_box.getImage(pos);
     int3 negimg = make_int3(-img.x,-img.y,-img.z);
-    m_box.shift(pos,negimg);
+    pos = m_box.shift(pos,negimg);
 
     // set the particle data
     m_particles[idx].x = pos.x;
