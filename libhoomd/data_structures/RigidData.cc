@@ -663,9 +663,6 @@ void RigidData::setRVCPU(bool set_x)
     {
     // get box
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
-    Scalar3 hi = box.getHi();
-    Scalar3 lo = box.getLo();
 
     // access to the force
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();

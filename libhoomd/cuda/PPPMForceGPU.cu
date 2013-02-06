@@ -135,7 +135,6 @@ void assign_charges_to_grid_kernel(const unsigned int N,
             float4 postypei = tex1Dfetch(pdata_pos_tex, idx);
             Scalar3 posi = make_scalar3(postypei.x,postypei.y,postypei.z);
             //calculate dx, dy, dz for the charge density grid:
-            Scalar3 L = box.getL();
             Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
         
             //normalize position to gridsize:
@@ -311,7 +310,6 @@ void calculate_forces_kernel(float4 *d_force,
             Scalar3 posi = make_scalar3(postypei.x,postypei.y,postypei.z);
     
             //calculate dx, dy, dz for the charge density grid:
-            Scalar3 L = box.getL();
             Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
         
             //normalize position to gridsize:
@@ -836,7 +834,6 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         int yn = (idx - xn*N2)/Nz;
         int zn = (idx - xn*N2 - yn*Nz);
 
-        Scalar3 L = box.getL();
         float3 j;
         float kappa2 = kappa*kappa;
 

@@ -143,7 +143,6 @@ void PDBDumpWriter::writeFile(std::string fname)
     
     // get the box dimensions
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
 
     // start writing the heinous PDB format
     const int linesize = 82;
