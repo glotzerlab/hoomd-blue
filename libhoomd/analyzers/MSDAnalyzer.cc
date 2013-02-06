@@ -118,7 +118,6 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     // for each particle in the data
     for (unsigned int tag = 0; tag < m_pdata->getN(); tag++)
@@ -127,9 +126,11 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
         unsigned int idx = h_rtag.data[tag];
         
         // save its initial position
-        m_initial_x[tag] = h_pos.data[idx].x + Scalar(h_image.data[idx].x) * L.x;
-        m_initial_y[tag] = h_pos.data[idx].y + Scalar(h_image.data[idx].y) * L.y;
-        m_initial_z[tag] = h_pos.data[idx].z + Scalar(h_image.data[idx].z) * L.z;
+        Scalar3 pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+        Scalar3 unwrapped = box.shift(pos, h_image.data[idx]);
+        m_initial_x[tag] = unwrapped.x;
+        m_initial_y[tag] = unwrapped.y;
+        m_initial_z[tag] = unwrapped.z;
         }
     }
 
@@ -226,7 +227,6 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
     
     // reset the initial positions
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     // for each particle in the data
     for (unsigned int tag = 0; tag < nparticles; tag++)
@@ -241,9 +241,12 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
         if (have_image)
             {
             HOOMDInitializer::vec_int image = xml.getImage()[tag];
-            m_initial_x[tag] += Scalar(image.x) * L.x;
-            m_initial_y[tag] += Scalar(image.y) * L.y;
-            m_initial_z[tag] += Scalar(image.z) * L.z;
+            Scalar3 pos = make_scalar3(m_initial_x[tag], m_initial_y[tag], m_initial_z[tag]);
+            int3 image_i = make_int3(image.x, image.y, image.z);
+            Scalar3 unwrapped = box.shift(pos, image_i);
+            m_initial_x[tag] += unwrapped.x;
+            m_initial_y[tag] += unwrapped.y;
+            m_initial_z[tag] += unwrapped.z;
             }
         }
     }
@@ -287,7 +290,6 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     // initial sum for the average
     Scalar msd = Scalar(0.0);
@@ -309,9 +311,11 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
         unsigned int idx = h_rtag.data[tag];
         
         // save its initial position
-        Scalar dx = h_pos.data[idx].x + Scalar(h_image.data[idx].x) * L.x - m_initial_x[tag];
-        Scalar dy = h_pos.data[idx].y + Scalar(h_image.data[idx].y) * L.y - m_initial_y[tag];
-        Scalar dz = h_pos.data[idx].z + Scalar(h_image.data[idx].z) * L.z - m_initial_z[tag];
+        Scalar3 pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+        Scalar3 unwrapped = box.shift(pos, h_image.data[idx]);
+        Scalar dx = unwrapped.x - m_initial_x[tag];
+        Scalar dy = unwrapped.y - m_initial_y[tag];
+        Scalar dz = unwrapped.z - m_initial_z[tag];
         
         msd += dx*dx + dy*dy + dz*dz;
         }
