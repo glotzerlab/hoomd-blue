@@ -100,8 +100,8 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
 template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(boost::shared_ptr<SystemDefinition> sysdef,
-								boost::shared_ptr<NeighborList> nlist,
-								const std::string& log_suffix)
+                                                                boost::shared_ptr<NeighborList> nlist,
+                                                                const std::string& log_suffix)
     : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
     this->exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << endl;

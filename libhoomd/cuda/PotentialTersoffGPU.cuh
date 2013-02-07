@@ -61,16 +61,16 @@ struct tersoff_args_t
     {
     //! Construct a tersoff_args_t
     tersoff_args_t(Scalar4 *_d_force,
-		   const unsigned int _N,
-		   const Scalar4 *_d_pos,
-		   const BoxDim& _box,
-		   const unsigned int *_d_n_neigh,
-		   const unsigned int *_d_nlist,
-		   const Index2D& _nli,
-		   const Scalar *_d_rcutsq,
-		   const Scalar *_d_ronsq,
-		   const unsigned int _ntypes,
-		   const unsigned int _block_size)
+                   const unsigned int _N,
+                   const Scalar4 *_d_pos,
+                   const BoxDim& _box,
+                   const unsigned int *_d_n_neigh,
+                   const unsigned int *_d_nlist,
+                   const Index2D& _nli,
+                   const Scalar *_d_rcutsq,
+                   const Scalar *_d_ronsq,
+                   const unsigned int _ntypes,
+                   const unsigned int _block_size)
                    : d_force(_d_force),
                      N(_N),
                      d_pos(_d_pos),

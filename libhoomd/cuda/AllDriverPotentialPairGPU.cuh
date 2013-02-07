@@ -100,7 +100,7 @@ cudaError_t gpu_compute_moliere_forces(const pair_args_t& pair_args,
 
 //! Compute zbl pair forces on the GPU with EvaluatorPairZBL
 cudaError_t gpu_compute_zbl_forces(const pair_args_t& pair_args,
-				   const Scalar2 *d_params);
+                                   const Scalar2 *d_params);
 
 //! Compute dpdlj thermostat on GPU with PairEvaluatorDPDThermo
 cudaError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,

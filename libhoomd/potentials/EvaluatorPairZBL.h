@@ -145,8 +145,8 @@ class EvaluatorPairZBL
                 // evaluate the force
                 force_divr = rinv * ( exp1 + exp2 + exp3 + exp3 );
                 force_divr += Scalar(1.0) / aF * ( Scalar(3.2) * exp1 \
-			+ Scalar(0.9423) * exp2 + Scalar(0.4029) * exp3 \
-			+ Scalar(0.2016) * exp4 );
+                            + Scalar(0.9423) * exp2 + Scalar(0.4029) * exp3 \
+                            + Scalar(0.2016) * exp4 );
                 force_divr *= Zsq * r2inv;
 
                 // evaluate the pair energy
