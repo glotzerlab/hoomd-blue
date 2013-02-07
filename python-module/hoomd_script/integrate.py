@@ -572,35 +572,58 @@ class npt(_integration_method):
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
 
         self.mtk = mtk
+        
+        # need to know if we are running 2D simulations
+        twod = (globals.system_definition.getNDimensions() == 2);
+        if twod:
+            globals.msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n");
 
         # initialize the reflected c++ class
         if mtk:
-            if couple == "none":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
-            elif couple == "xy":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
-            elif couple == "xz":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xz
-            elif couple == "yz":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_yz
-            elif couple == "xyz":
-                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xyz
+            if twod:
+                # silently ignore any couplings that involve z
+                if couple == "none":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+                elif couple == "xy":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+                elif couple == "xz":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+                elif couple == "yz":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+                elif couple == "xyz":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+                else:
+                    globals.msg.error("Invalid coupling mode\n");
+                    raise RuntimeError("Error setting up NPT integration.");
             else:
-                globals.msg.error("Invalid coupling mode\n");
-                raise RuntimeError("Error setting up NPT integration.");
+                if couple == "none":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+                elif couple == "xy":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+                elif couple == "xz":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xz
+                elif couple == "yz":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_yz
+                elif couple == "xyz":
+                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xyz
+                else:
+                    globals.msg.error("Invalid coupling mode\n");
+                    raise RuntimeError("Error setting up NPT integration.");
 
+            # set degrees of freedom flags
+            # silently ignore z related degrees of freedom when running in 2d
             flags = 0;
             if x or all:
                 flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_x
             if y or all:
                 flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_y
-            if z or all:
+            if (z or all) and not twod:
                 flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_z
             if xy or all:
                 flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xy
-            if xz or all:
+            if (xz or all) and not twod:
                 flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xz
-            if yz or all:
+            if (yz or all) and not twod:
                 flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_yz
 
             if not globals.exec_conf.isCUDAEnabled():
