@@ -77,9 +77,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Class for evaluating the ZBL pair potential.
 /*! EvaluatorPairZBL evaluates the function
-    \f[
-	V_{\mathrm{ZBL}}(r) =  \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818 \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right] & r < r_{\mathrm{cut}}
-    \f]
+    \f{eqnarray*}
+        V_{\mathrm{ZBL}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818 \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right], & r < r_{\mathrm{cut}} \\
+                            = & 0, & r > r_{\mathrm{cut}} \\
+    \f}
 
     where
     \f[ a_F = \frac{0.8853 a_0}{ \left( Z_i^{0.23} + Z_j^{0.23} \right) } \f]
