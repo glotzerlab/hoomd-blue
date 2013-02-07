@@ -2420,7 +2420,7 @@ class moliere(pair):
 
 ## ZBL %pair %force
 #
-# The command pair.zbl specifies that a ZBL %pair %force should be added to every
+# The command pair.zbl specifies that a Ziegler-Biersack-Littmark %pair %force should be added to every
 # non-bonded particle pair in the simulation
 #
 # \f{eqnarray*}
