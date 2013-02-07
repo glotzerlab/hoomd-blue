@@ -379,7 +379,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
             {
             tmp_pos[i] = box.shift(tmp_pos[i], snapshot.image[i]);
             }
-        else if (m_unwrap_rigid)
+        else if (m_unwrap_rigid && snapshot.body[i] != NO_BODY)
             {
             int body_ix = body_image_handle.data[snapshot.body[i]].x;
             int body_iy = body_image_handle.data[snapshot.body[i]].y;
