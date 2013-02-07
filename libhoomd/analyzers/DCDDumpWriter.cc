@@ -370,7 +370,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     unsigned int nparticles = m_group->getNumMembers();
 
     // Create a tmp copy of the particle data and unwrap particles
-    std::vector<Scalar3> tmp_pos = snapshot.pos;
+    std::vector<Scalar3> tmp_pos(snapshot.pos);
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
@@ -382,7 +382,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         else if (m_unwrap_rigid)
             {
             int body_ix = body_image_handle.data[snapshot.body[i]].x;
-            int body_iy = body_image_handle.data[snapshot.body[i]].x;
+            int body_iy = body_image_handle.data[snapshot.body[i]].y;
             int body_iz = body_image_handle.data[snapshot.body[i]].z;
             int3 particle_img = snapshot.image[i];
             int3 img_diff = make_int3(particle_img.x - body_ix,
