@@ -666,8 +666,8 @@ class npt(_integration_method):
 # explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
 # cells and uses the same underying integrator as integrate.npt (with \b nph=True).
 #
-# The available options are identical to those of integrate.npt, for further information,
-# refer to its documentation.
+# The available options are identical to those of integrate.npt, Except that *T* is fixed at 1.0. For further
+# information, refer to its documentation.
 #
 # \note A time scale \b tau_p for the relaxation of the barostat is required. This is defined as the
 #       relaxation time the barostat would have at a temperature \f$ T_0 =1 \f$, and is related to the
