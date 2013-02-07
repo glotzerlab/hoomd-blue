@@ -493,8 +493,6 @@ class nvt(_integration_method):
 # - Specifying \b xy couplings and \b x, \b y, and \b z degrees of freedom amounts to \a tetragonal symmetry.
 # - Specifing no couplings and \b all degrees of freedom amounts to a fully deformable \a triclinic unit cell
 #
-# When not using the MTK equations, only cubic symmetry is available.
-#
 # integrate.npt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
@@ -515,10 +513,7 @@ class npt(_integration_method):
     # \param P Pressure set point for the barostat (in pressure units)
     # \param tau Coupling constant for the thermostat, not needed if \nph=True (in time units)
     # \param tauP Coupling constant for the barostat (in time units)
-    # \param mtk True if the MTK equations should be used (default), False if the Nos&eacute;-Hoover equations should be used
-    # \param partial_scale In Nos&eacute;-Hoover mode, if False (the default), \b all particles in the box are scaled due to the box size changes
-    #                      during NPT integration. If True, only those particles that belong to \a group will be scaled. In MTK mode, this parameter cannot be changed, and only the particles in the group are rescaled.
-    # \param couple Couplings of diagonal elements of the stress tensor, can be \b "none", \b "xy", \b "xz",\b "yz", or \b "xyz" (default) (only available with mtk=True)
+    # \param couple Couplings of diagonal elements of the stress tensor, can be \b "none", \b "xy", \b "xz",\b "yz", or \b "xyz" (default)
     # \param x if \b True, rescale \a Lx and x component of particle coordinates and velocities 
     # \param y if \b True, rescale \a Ly and y component of particle coordinates and velocities
     # \param z if \b True, rescale \a Lz and z component of particle coordinates and velocities
@@ -547,7 +542,7 @@ class npt(_integration_method):
     # # triclinic symmetry
     # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
     # \endcode
-    def __init__(self, group, P, tauP, partial_scale=False, mtk=True, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None):
+    def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None):
         util.print_status_line();
        
         # check the input
@@ -571,76 +566,62 @@ class npt(_integration_method):
         thermo_group = compute._get_unique_thermo(group=group);
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
 
-        self.mtk = mtk
-        
         # need to know if we are running 2D simulations
         twod = (globals.system_definition.getNDimensions() == 2);
         if twod:
             globals.msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n");
 
         # initialize the reflected c++ class
-        if mtk:
-            if twod:
-                # silently ignore any couplings that involve z
-                if couple == "none":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
-                elif couple == "xy":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
-                elif couple == "xz":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
-                elif couple == "yz":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
-                elif couple == "xyz":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
-                else:
-                    globals.msg.error("Invalid coupling mode\n");
-                    raise RuntimeError("Error setting up NPT integration.");
+        if twod:
+            # silently ignore any couplings that involve z
+            if couple == "none":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+            elif couple == "xy":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+            elif couple == "xz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+            elif couple == "yz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+            elif couple == "xyz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
             else:
-                if couple == "none":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
-                elif couple == "xy":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
-                elif couple == "xz":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xz
-                elif couple == "yz":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_yz
-                elif couple == "xyz":
-                    cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xyz
-                else:
-                    globals.msg.error("Invalid coupling mode\n");
-                    raise RuntimeError("Error setting up NPT integration.");
-
-            # set degrees of freedom flags
-            # silently ignore z related degrees of freedom when running in 2d
-            flags = 0;
-            if x or all:
-                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_x
-            if y or all:
-                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_y
-            if (z or all) and not twod:
-                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_z
-            if xy or all:
-                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xy
-            if (xz or all) and not twod:
-                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xz
-            if (yz or all) and not twod:
-                flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_yz
-
-            if not globals.exec_conf.isCUDAEnabled():
-                self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
-            else:
-                self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+                globals.msg.error("Invalid coupling mode\n");
+                raise RuntimeError("Error setting up NPT integration.");
         else:
-            if couple != "xyz":
-                globals.msg.error("In Nose-Hoover mode, only cubic symmetry is supported.");
+            if couple == "none":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+            elif couple == "xy":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+            elif couple == "xz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xz
+            elif couple == "yz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_yz
+            elif couple == "xyz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xyz
+            else:
+                globals.msg.error("Invalid coupling mode\n");
                 raise RuntimeError("Error setting up NPT integration.");
 
-            if not globals.exec_conf.isCUDAEnabled():
-                self.cpp_method = hoomd.TwoStepNPT(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
-            else:
-                self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
+        # set degrees of freedom flags
+        # silently ignore z related degrees of freedom when running in 2d
+        flags = 0;
+        if x or all:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_x
+        if y or all:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_y
+        if (z or all) and not twod:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_z
+        if xy or all:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xy
+        if (xz or all) and not twod:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xz
+        if (yz or all) and not twod:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_yz
 
-            self.cpp_method.setPartialScale(partial_scale);
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+        else:
+            self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
 
         self.cpp_method.validateGroup()
 
@@ -649,8 +630,6 @@ class npt(_integration_method):
     # \param tau New coupling constant (if set) (in time units)
     # \param P New pressure (if set) (in pressure units)
     # \param tauP New barostat coupling constant (if set) (in time units)
-    # \param partial_scale (if set) Change whether all particles in the box are scaled (False), or just those in the
-    #                      group (True)
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -663,7 +642,7 @@ class npt(_integration_method):
     # integrator.set_params(tau=0.6)
     # integrator.set_params(dt=3e-3, T=2.0, P=1.0)
     # \endcode
-    def set_params(self, T=None, tau=None, P=None, tauP=None, partial_scale=None):
+    def set_params(self, T=None, tau=None, P=None, tauP=None):
         util.print_status_line();
         self.check_initialization();
         
@@ -680,8 +659,6 @@ class npt(_integration_method):
             self.cpp_method.setP(P.cpp_variant);
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
-        if partial_scale is not None:
-            self.cpp_method.setPartialScale(partial_scale);
 
 ## NPH Integration via Andersen barostat or Parrinello-Rahman barostat restricted to anisotropic length fluctuations
 #
