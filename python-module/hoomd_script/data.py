@@ -441,7 +441,7 @@ class particle_data:
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Particle Data for %d particles of %d type(s)" % (self.pdata.getN(), self.pdata.getNTypes());
+        result = "Particle Data for %d particles of %d type(s)" % (self.pdata.getNGlobal(), self.pdata.getNTypes());
         return result
     
     ## \internal
@@ -668,7 +668,7 @@ class force_data:
     ## \internal
     # \brief Get the number of particles
     def __len__(self):
-        return globals.system_definition.getParticleData().getN();
+        return globals.system_definition.getParticleData().getNGlobal();
     
     ## \internal
     # \brief Get an informal string representing the object
