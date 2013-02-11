@@ -62,14 +62,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 
 //! Kernel driver for gpu_nlist_needs_update_check_new_kernel()
-cudaError_t gpu_nlist_needs_update_check_new(unsigned int * d_result,
+cudaError_t gpu_nlist_needs_update_check_new(uint2 * d_result,
                                              const Scalar4 *d_last_pos,
                                              const Scalar4 *d_pos,
                                              const unsigned int N,
                                              const BoxDim& box,
                                              const Scalar maxshiftsq,
                                              const Scalar3 lambda,
-                                             const unsigned int checkn);
+                                             const unsigned int checkn,
+                                             const bool check_bounds);
 
 //! Kernel driver for gpu_nlist_filter_kernel()
 cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
@@ -89,8 +90,20 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   const Index2D& nli,
                                   const Scalar4 *d_pos,
                                   const unsigned int N,
+                                  const unsigned int n_ghost,
                                   const BoxDim& box,
                                   const Scalar r_maxsq);
 
+//! GPU function to update the exclusion list on the device
+cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
+                                const unsigned int *d_rtag,
+                                const unsigned int *d_n_ex_tag,
+                                const unsigned int *d_ex_list_tag,
+                                const Index2D& ex_list_tag_indexer,
+                                unsigned int *d_n_ex_idx,
+                                unsigned int *d_ex_list_idx,
+                                const Index2D& ex_list_indexer,
+                                const unsigned int N);
+ 
 #endif
 

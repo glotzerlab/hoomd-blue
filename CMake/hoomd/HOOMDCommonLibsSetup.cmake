@@ -44,6 +44,12 @@ else (WIN32)
         set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})
     endif (Boost_SYSTEM_LIBRARY)
 
+
+    # these libraries are needed for MPI
+    if(ENABLE_MPI)
+    set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SERIALIZATION_LIBRARY})
+    endif(ENABLE_MPI)
+
     ## An update to to CentOS5's python broke linking of the hoomd exe. According
     ## to an ancient post online, adding -lutil fixed this in python 2.2
     set(ADDITIONAL_LIBS "")
@@ -64,7 +70,11 @@ else (WIN32)
             ${ADDITIONAL_LIBS}
             )
 endif (WIN32)
-    
+
 if (ENABLE_CUDA)
     list(APPEND HOOMD_COMMON_LIBS ${CUDA_LIBRARIES} ${CUDA_cufft_LIBRARY})
 endif (ENABLE_CUDA)
+
+if (ENABLE_MPI)
+    list(APPEND HOOMD_COMMON_LIBS ${MPI_CXX_LIBRARIES})
+endif (ENABLE_MPI)

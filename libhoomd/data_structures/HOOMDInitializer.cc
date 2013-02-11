@@ -124,13 +124,13 @@ unsigned int HOOMDInitializer::getNumParticles() const
     return (unsigned int)m_pos_array.size();
     }
 
-/*! \returns Number of particle types parsed from the XML file
+/*! \returns Number of bonds parsed from the XML file
 */
-unsigned int HOOMDInitializer::getNumParticleTypes() const
+unsigned int HOOMDInitializer::getNumBonds() const
     {
-    assert(m_type_mapping.size() > 0);
-    return (unsigned int)m_type_mapping.size();
+    return (unsigned int)m_bonds.size();
     }
+
 
 /*! \returns Box dimensions parsed from the XML file
 */
@@ -220,6 +220,8 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
             snapshot.body[i] = m_body_array[i];
         }
 
+    snapshot.type_mapping = m_type_mapping;
+    snapshot.num_particle_types = m_type_mapping.size();
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -431,7 +433,7 @@ void HOOMDInitializer::readFile(const string &fname)
         cout << m_mass_array.size() << " masses" << endl;
     if (m_diameter_array.size() > 0)
         cout << m_diameter_array.size() << " diameters" << endl;
-    cout << getNumParticleTypes() <<  " particle types" << endl;
+    cout << m_type_mapping.size() <<  " particle types" << endl;
     if (m_body_array.size() > 0)
         cout << m_body_array.size() << " particle body values" << endl;        
     if (m_bonds.size() > 0)
@@ -1071,16 +1073,21 @@ unsigned int HOOMDInitializer::getNumImproperTypes() const
     return (unsigned int)m_improper_type_mapping.size();
     }
 
-/*! \param bond_data Shared pointer to the BondData to be initialized
-    Adds all bonds found in the XML file to the BondData
+/*! \param snapshot The snapshot to be initialized
+    Adds all bonds found in the XML file to the snapshot
 */
-void HOOMDInitializer::initBondData(boost::shared_ptr<BondData> bond_data) const
+void HOOMDInitializer::initBondDataSnapshot(SnapshotBondData& snapshot) const
     {
+    assert(snapshot.bonds.size() == m_bonds.size());
+
     // loop through all the bonds and add a bond for each
     for (unsigned int i = 0; i < m_bonds.size(); i++)
-        bond_data->addBond(m_bonds[i]);
+        {
+        snapshot.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
+        snapshot.type_id[i] = m_bonds[i].type;
+        }
         
-    bond_data->setBondTypeMapping(m_bond_type_mapping);
+    snapshot.type_mapping = m_bond_type_mapping;
     }
 
 /*! \param angle_data Shared pointer to the AngleData to be initialized
@@ -1129,13 +1136,6 @@ void HOOMDInitializer::initMomentInertia(InertiaTensor *moment_inertia) const
     {
     for (unsigned int i = 0; i < m_moment_inertia.size(); i++)
         moment_inertia[i] = m_moment_inertia[i];
-    }
-
-/*! \returns A mapping of type ids to type names deteremined from the XML input file
-*/
-std::vector<std::string> HOOMDInitializer::getTypeMapping() const
-    {
-    return m_type_mapping;
     }
 
 void export_HOOMDInitializer()

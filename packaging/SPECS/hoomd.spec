@@ -3,8 +3,8 @@
 # The version number to tag the build with is %{version}.
 # Both should be specified, as we cannot determine the version until we have checked out the code
 #  - if they are not speicified, then the most recent tag is built
-%global version	%{?version}%{!?version:0.11.0}
-%global refspec	%{?refspec}%{!?refspec:v0.11.0}
+%global version	%{?version}%{!?version:0.11.2}
+%global refspec	%{?refspec}%{!?refspec:v0.11.2}
 %global release	%{?release}%{!?release:0}
 
 # the Red Hat convention is to put 64-bit libs in lib64
@@ -20,12 +20,12 @@ Name: 			hoomd
 Version: 		%{version}
 Release: 		%{release}
 # sources will be retrieved with subversion
-# Source: 		http://codeblue.umich.edu/hoomd-blue/downloads/0.10/hoomd-0.11.0.tar.bz2
+# Source: 		http://codeblue.umich.edu/hoomd-blue/downloads/0.10/hoomd-0.11.2.tar.bz2
 URL:			http://codeblue.umich.edu/hoomd-blue/
 Prefix:			/usr
 Group: 			Applications
 BuildRequires:		gcc-c++, boost-devel, zlib-devel, glibc-devel, python-devel
-Requires:		python >= 2.4, boost >= 1.32
+Requires:		python >= 2.4
 
 %description
 HOOMD-blue stands for Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition. It performs general purpose particle dynamics simulations on a single workstation, taking advantage of NVIDIA GPUs to attain a level of performance equivalent to many processor cores on a fast cluster.

@@ -60,6 +60,10 @@ using namespace boost::python;
 
 #include "IntegrationMethodTwoStep.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 /*! \file IntegrationMethodTwoStep.h
     \brief Contains code for the IntegrationMethodTwoStep class
 */
@@ -145,14 +149,8 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(IntegratorVariables& v, std:
 */
 unsigned int IntegrationMethodTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> query_group)
     {
-    // count the number of particles both in query_group and m_group
-    unsigned int intersect_size = 0;
-    for (unsigned int group_idx = 0; group_idx < query_group->getNumMembers(); group_idx++)
-        {
-        unsigned int j = query_group->getMemberIndex(group_idx);
-        if (m_group->isMember(j))
-            intersect_size++;
-        }
+    // get the size of the intersecion between query_group and m_group
+    unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();
     
     return m_sysdef->getNDimensions() * intersect_size;
     }
@@ -165,24 +163,36 @@ unsigned int IntegrationMethodTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> 
 */
 void IntegrationMethodTwoStep::validateGroup()
     {
-    for (unsigned int gidx = 0; gidx < m_group->getNumMembers(); gidx++)
+    for (unsigned int gidx = 0; gidx < m_group->getNumMembersGlobal(); gidx++)
         {
         unsigned int tag = m_group->getMemberTag(gidx);
-        if (m_pdata->getBody(tag) != NO_BODY)
+        if (m_pdata->isParticleLocal(tag))
             {
-            m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body. "
-                 << "This integration method does not operate on rigid bodies" << endl;
-                
-            throw std::runtime_error("Error initializing integration method");
+            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+            unsigned int body = h_body.data[h_rtag.data[tag]];
+
+            if (body != NO_BODY)
+                {
+                m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body. "
+                     << "This integration method does not operate on rigid bodies" << endl;
+                    
+                throw std::runtime_error("Error initializing integration method");
+                }
             }
         }
     }
+
 
 void export_IntegrationMethodTwoStep()
     {
     class_<IntegrationMethodTwoStep, boost::shared_ptr<IntegrationMethodTwoStep>, boost::noncopyable>
         ("IntegrationMethodTwoStep", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
+#ifdef ENABLE_MPI
+        .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
+#endif
         ;
     }
 

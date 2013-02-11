@@ -264,6 +264,14 @@ __device__ inline Scalar4 fetchScalar4Tex(texture<int4, 1> tex_ref, unsigned int
 #endif
 
 // ------------ Vector math functions --------------------------
+//! Comparison operator needed for export of std::vector<uint2>
+HOSTDEVICE inline bool operator== (const uint2 &a, const uint2 &b)
+    {
+    return (a.x == b.x &&
+            a.y == b.y);
+    }
+
+
 //! Comparison operator needed for export of std::vector<Scalar3>
 HOSTDEVICE inline bool operator== (const Scalar3 &a, const Scalar3 &b)
     {

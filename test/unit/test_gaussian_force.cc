@@ -295,9 +295,8 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
-    
+
     shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
     shared_ptr<PotentialPairGauss> fc2 = gauss_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));

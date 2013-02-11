@@ -56,8 +56,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
 */
 
+//! Texture for reading d_cell_xyzf
+texture<float4, 1, cudaReadModeElementType> cell_xyzf_1d_tex;
+
 //! Kernel call for generating neighbor list on the GPU
-/*! \tparam filter_flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
+/*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering. 
     \param d_nlist Neighbor list data structure to write
     \param d_n_neigh Number of neighbors to write
     \param d_last_updated_pos Particle positions at this update are written to this array
@@ -77,10 +80,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param box Simulation box dimensions
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
+    \param ghost_width Width of ghost cell layer
     
     \note optimized for Fermi
 */
-template<unsigned char filter_flags>
+template<unsigned char flags>
 __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     unsigned int *d_n_neigh,
                                                     Scalar4 *d_last_updated_pos,
@@ -99,10 +103,11 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     const Index2D cadji,
                                                     const BoxDim box,
                                                     const Scalar r_maxsq,
-                                                    const Scalar r_max)
+                                                    const Scalar r_max,
+                                                    const Scalar3 ghost_width) 
     {
-    bool filter_body = filter_flags & 1;
-    bool filter_diameter = filter_flags & 2;
+    bool filter_body = flags & 1;
+    bool filter_diameter = flags & 2;
 
     // each thread is going to compute the neighbor list for a single particle
     int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -122,10 +127,10 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     Scalar my_diameter = d_diameter[my_pidx];
 
     // find the bin each particle belongs in
-    Scalar3 f = box.makeFraction(my_pos);
-    unsigned int ib = (unsigned int)(f.x * ci.getW());
-    unsigned int jb = (unsigned int)(f.y * ci.getH());
-    unsigned int kb = (unsigned int)(f.z * ci.getD());
+    Scalar3 f = box.makeFraction(my_pos, ghost_width);
+    int ib = (int)(f.x * ci.getW());
+    int jb = (int)(f.y * ci.getH());
+    int kb = (int)(f.z * ci.getD());
 
     // need to handle the case where the particle is exactly at the box hi
     if (ib == ci.getW())
@@ -150,8 +155,8 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
             {
-            Scalar4 cur_xyzf = d_cell_xyzf[cli(cur_offset, neigh_cell)];
-            Scalar4 cur_tdb = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+            Scalar4 cur_xyzf = tex1Dfetch(cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
+            Scalar4 cur_tdb = make_float4(0, 0, 0, 0);
             if (filter_diameter || filter_body)
                 cur_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
             unsigned int neigh_body = __scalar_as_int(cur_tdb.z);
@@ -172,11 +177,11 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
             Scalar drsq = dot(dx,dx);
 
             bool excluded = (my_pidx == cur_neigh);
-
+ 
             if (filter_body && my_body != 0xffffffff)
                 excluded = excluded | (my_body == neigh_body);
 
-            Scalar sqshift = Scalar(0.0);
+            Scalar sqshift = 0;
             if (filter_diameter)
                 {
                 // compute the shift in radius to accept neighbors based on their diameters
@@ -188,6 +193,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
 
             if (drsq <= (r_maxsq + sqshift) && !excluded)
                 {
+                // regular particle
                 if (n_neigh < nli.getH())
                     d_nlist[nli(my_pidx, n_neigh)] = cur_neigh;
                 else
@@ -199,6 +205,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
         }
 
     d_n_neigh[my_pidx] = n_neigh;
+
     d_last_updated_pos[my_pidx] = my_postype;
 
     if (n_neigh_needed > 0)
@@ -225,9 +232,19 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const Scalar r_maxsq,
                                      const unsigned int block_size,
                                      bool filter_body,
-                                     bool filter_diameter)
+                                     bool filter_diameter,
+                                     const Scalar3& ghost_width)
     {
-    int n_blocks = (int)ceil(Scalar(N)/(Scalar)block_size);
+    int n_blocks = (int)ceil(float(N)/(float)block_size);
+
+    // bind the position texture
+    cell_xyzf_1d_tex.normalized = false;
+    cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
+    cudaError_t error = cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*(cli.getNumElements()));
+    if (error != cudaSuccess)
+        return error;
+
+
     if (!filter_diameter && !filter_body)
         {
         gpu_compute_nlist_binned_new_kernel<0><<<n_blocks, block_size>>>(d_nlist,
@@ -248,7 +265,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cadji,
                                                                          box,
                                                                          r_maxsq,
-                                                                         sqrtf(r_maxsq));
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width);
         }
     if (!filter_diameter && filter_body)
         {
@@ -270,7 +288,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cadji,
                                                                          box,
                                                                          r_maxsq,
-                                                                         sqrtf(r_maxsq));
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width);
         }
     if (filter_diameter && !filter_body)
         {
@@ -292,7 +311,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cadji,
                                                                          box,
                                                                          r_maxsq,
-                                                                         sqrtf(r_maxsq));
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width);
         }
     if (filter_diameter && filter_body)
         {
@@ -314,8 +334,10 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                          cadji,
                                                                          box,
                                                                          r_maxsq,
-                                                                         sqrtf(r_maxsq));
+                                                                         sqrtf(r_maxsq),
+                                                                         ghost_width);
         }
+
 
     return cudaSuccess;
     }
@@ -345,6 +367,7 @@ texture<Scalar4, 2, cudaReadModeElementType> cell_tdb_tex;
     \param box Simulation box dimensions
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
+    \param ghost_width Width of ghost cell layer
     
     \note optimized for compute 1.x devices
 */
@@ -360,8 +383,9 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
                                                    const unsigned int N,
                                                    const Index3D ci,
                                                    const BoxDim box,
-                                                   const Scalar r_maxsq,
-                                                   const Scalar r_max)
+                                                   const float r_maxsq,
+                                                   const float r_max,
+                                                   const Scalar3 ghost_width)
     {
     bool filter_body = filter_flags & 1;
     bool filter_diameter = filter_flags & 2;
@@ -384,7 +408,7 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
     Scalar my_diameter = d_diameter[my_pidx];
 
     // find the bin each particle belongs in
-    Scalar3 f = box.makeFraction(my_pos);
+    Scalar3 f = box.makeFraction(my_pos,ghost_width);
     unsigned int ib = (unsigned int)(f.x * ci.getW());
     unsigned int jb = (unsigned int)(f.y * ci.getH());
     unsigned int kb = (unsigned int)(f.z * ci.getD());
@@ -432,7 +456,6 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
 
             // wrap the periodic boundary conditions
             dx = box.minImage(dx);
-
             // compute dr squared
             Scalar drsq = dot(dx,dx);
 
@@ -489,9 +512,10 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         const Scalar r_maxsq,
                                         const unsigned int block_size,
                                         bool filter_body,
-                                        bool filter_diameter)
+                                        bool filter_diameter,
+                                        const Scalar3& ghost_width)
     {
-    int n_blocks = (int)ceil(Scalar(N)/(Scalar)block_size);
+    int n_blocks = (int)ceil(double(N)/double(block_size));
     
     cudaError_t err = cudaBindTextureToArray(cell_adj_tex, dca_cell_adj);
     if (err != cudaSuccess)
@@ -508,7 +532,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
     err = cudaBindTexture(0, cell_size_tex, d_cell_size, sizeof(unsigned int)*ci.getNumElements());
     if (err != cudaSuccess)
         return err;
-    
+
     if (!filter_diameter && !filter_body)
         {
         gpu_compute_nlist_binned_1x_kernel<0><<<n_blocks, block_size>>>(d_nlist,
@@ -523,7 +547,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         ci,
                                                                         box,
                                                                         r_maxsq,
-                                                                        sqrtf(r_maxsq));
+                                                                        sqrtf(r_maxsq),
+                                                                        ghost_width);
         }
     if (!filter_diameter && filter_body)
         {
@@ -539,7 +564,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         ci,
                                                                         box,
                                                                         r_maxsq,
-                                                                        sqrtf(r_maxsq));
+                                                                        sqrtf(r_maxsq),
+                                                                        ghost_width);
         }
     if (filter_diameter && !filter_body)
         {
@@ -555,7 +581,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         ci,
                                                                         box,
                                                                         r_maxsq,
-                                                                        sqrtf(r_maxsq));
+                                                                        sqrtf(r_maxsq),
+                                                                        ghost_width);
         }
     if (filter_diameter && filter_body)
         {
@@ -571,7 +598,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         ci,
                                                                         box,
                                                                         r_maxsq,
-                                                                        sqrtf(r_maxsq));
+                                                                        sqrtf(r_maxsq),
+                                                                        ghost_width );
         }
     return cudaSuccess;
     }

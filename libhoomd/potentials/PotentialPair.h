@@ -349,6 +349,9 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
     
+    PDataFlags flags = this->m_pdata->getFlags();
+    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+
 #pragma omp parallel
     {
     #ifdef ENABLE_OPENMP
@@ -395,7 +398,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[nli(i, k)];
-            assert(j < m_pdata->getN());
+            assert(j < m_pdata->getN() + m_pdata->getNGhosts());
             
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
@@ -483,28 +486,34 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                 // (FLOPS: 8)
                 fi += dx*force_divr;
                 pei += pair_eng * Scalar(0.5);
-                virialxxi += force_div2r*dx.x*dx.x;
-                virialxyi += force_div2r*dx.x*dx.y;
-                virialxzi += force_div2r*dx.x*dx.z;
-                virialyyi += force_div2r*dx.y*dx.y;
-                virialyzi += force_div2r*dx.y*dx.z;
-                virialzzi += force_div2r*dx.z*dx.z;
-
+                if (compute_virial)
+                    {
+                    virialxxi += force_div2r*dx.x*dx.x;
+                    virialxyi += force_div2r*dx.x*dx.y;
+                    virialxzi += force_div2r*dx.x*dx.z;
+                    virialyyi += force_div2r*dx.y*dx.y;
+                    virialyzi += force_div2r*dx.y*dx.z;
+                    virialzzi += force_div2r*dx.z*dx.z;
+                    }
                 
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
-                if (third_law)
+                // only add force to local particles
+                if (third_law && j < m_pdata->getN())
                     {
                     unsigned int mem_idx = m_index_thread_partial(j,tid);
                     m_fdata_partial[mem_idx].x -= dx.x*force_divr;
                     m_fdata_partial[mem_idx].y -= dx.y*force_divr;
                     m_fdata_partial[mem_idx].z -= dx.z*force_divr;
                     m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
-                    m_virial_partial[0+6*mem_idx] += force_div2r*dx.x*dx.x;
-                    m_virial_partial[1+6*mem_idx] += force_div2r*dx.x*dx.y;
-                    m_virial_partial[2+6*mem_idx] += force_div2r*dx.x*dx.z;
-                    m_virial_partial[3+6*mem_idx] += force_div2r*dx.y*dx.y;
-                    m_virial_partial[4+6*mem_idx] += force_div2r*dx.y*dx.z;
-                    m_virial_partial[5+6*mem_idx] += force_div2r*dx.z*dx.z;
+                    if (compute_virial)
+                        {
+                        m_virial_partial[0+6*mem_idx] += force_div2r*dx.x*dx.x;
+                        m_virial_partial[1+6*mem_idx] += force_div2r*dx.x*dx.y;
+                        m_virial_partial[2+6*mem_idx] += force_div2r*dx.x*dx.z;
+                        m_virial_partial[3+6*mem_idx] += force_div2r*dx.y*dx.y;
+                        m_virial_partial[4+6*mem_idx] += force_div2r*dx.y*dx.z;
+                        m_virial_partial[5+6*mem_idx] += force_div2r*dx.z*dx.z;
+                        }
                     }
                 }
             }
@@ -515,12 +524,15 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
         m_fdata_partial[mem_idx].y += fi.y;
         m_fdata_partial[mem_idx].z += fi.z;
         m_fdata_partial[mem_idx].w += pei;
-        m_virial_partial[0+6*mem_idx] += virialxxi;
-        m_virial_partial[1+6*mem_idx] += virialxyi;
-        m_virial_partial[2+6*mem_idx] += virialxzi;
-        m_virial_partial[3+6*mem_idx] += virialyyi;
-        m_virial_partial[4+6*mem_idx] += virialyzi;
-        m_virial_partial[5+6*mem_idx] += virialzzi;
+        if (compute_virial)
+            {
+            m_virial_partial[0+6*mem_idx] += virialxxi;
+            m_virial_partial[1+6*mem_idx] += virialxyi;
+            m_virial_partial[2+6*mem_idx] += virialxzi;
+            m_virial_partial[3+6*mem_idx] += virialyyi;
+            m_virial_partial[4+6*mem_idx] += virialyzi;
+            m_virial_partial[5+6*mem_idx] += virialzzi;
+            }
         }
 #pragma omp barrier
     
@@ -529,10 +541,11 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     for (int i = 0; i < (int) m_pdata->getN(); i++)
         {
         // assign result from thread 0
-        h_force.data[i].x  = m_fdata_partial[i].x;
+        h_force.data[i].x = m_fdata_partial[i].x;
         h_force.data[i].y = m_fdata_partial[i].y;
         h_force.data[i].z = m_fdata_partial[i].z;
         h_force.data[i].w = m_fdata_partial[i].w;
+
         for (int j = 0; j < 6; j++)
             h_virial.data[j*m_virial_pitch+i] = m_virial_partial[j+6*i];
 

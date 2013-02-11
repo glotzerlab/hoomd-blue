@@ -59,6 +59,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff,
@@ -104,14 +108,20 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     
     // check that at least 3x3x3 cells are computed
     uint3 dim = m_cl->getDim();
-    if (dim.x < 3 || dim.y < 3 || dim.z < 3)
+    if (dim.x < 3 || dim.y < 3 || (m_sysdef->getNDimensions() != 2 && dim.z < 3))
         {
         m_exec_conf->msg->error() << "nlist: O(N) neighbor list doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl;
         throw runtime_error("Error computing neighbor list");
         }
 
+    uint3 num_ghost_cells = m_cl->getNGhostCells();
+
+    Scalar nominal_width  = m_r_cut + m_r_buff + m_d_max - Scalar(1.0);
+    Scalar3 ghost_width = nominal_width*Scalar(1.0/2.0)*make_scalar3((Scalar)num_ghost_cells.x, (Scalar)num_ghost_cells.y, (Scalar)num_ghost_cells.z);
+
     if (m_prof)
         m_prof->push(exec_conf, "compute");
+
 
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -134,16 +144,18 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
-    
+
+    unsigned int conditions = 0;
+
     // access indexers
     Index3D ci = m_cl->getCellIndexer();
     Index2D cli = m_cl->getCellListIndexer();
     Index2D cadji = m_cl->getCellAdjIndexer();
 
-    // for each particle
+    // for each local particle
+    unsigned int nparticles = m_pdata->getN();
 #pragma omp parallel for schedule(dynamic, 100)
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
+    for (int i = 0; i < (int)nparticles; i++)
         {
         unsigned int cur_n_neigh = 0;
         
@@ -152,17 +164,17 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         Scalar di = h_diameter.data[i];
         
         // find the bin each particle belongs in
-        Scalar3 f = box.makeFraction(my_pos);
-        unsigned int ib = (unsigned int)(f.x * dim.x);
-        unsigned int jb = (unsigned int)(f.y * dim.y);
-        unsigned int kb = (unsigned int)(f.z * dim.z);
+        Scalar3 f = box.makeFraction(my_pos,ghost_width);
+        int ib = (unsigned int)(f.x * dim.x);
+        int jb = (unsigned int)(f.y * dim.y);
+        int kb = (unsigned int)(f.z * dim.z);
 
         // need to handle the case where the particle is exactly at the box hi
-        if (ib == dim.x)
+        if (ib == (int)dim.x)
             ib = 0;
-        if (jb == dim.y)
+        if (jb == (int)dim.y)
             jb = 0;
-        if (kb == dim.z)
+        if (kb == (int)dim.z)
             kb = 0;
             
         // identify the bin
@@ -177,17 +189,17 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
             unsigned int size = h_cell_size.data[neigh_cell];
             for (unsigned int cur_offset = 0; cur_offset < size; cur_offset++)
                 {
-                Scalar4 cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
-                
-                Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
+                Scalar4& cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
-                
+               
+                Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
+
                 Scalar3 dx = my_pos - neigh_pos;
                 
                 dx = box.minImage(dx);
 
                 bool excluded = (i == (int)cur_neigh);
-                
+
                 if (m_filter_body && bodyi != NO_BODY)
                     excluded = excluded | (bodyi == h_body.data[cur_neigh]);
                 
@@ -207,20 +219,24 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                     {
                     if (m_storage_mode == full || i < (int)cur_neigh)
                         {
+                        // local neighbor
                         if (cur_n_neigh < m_nlist_indexer.getH())
                             h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
                         else
-                            h_conditions.data[0] = max(h_conditions.data[0], cur_n_neigh+1);
-                        
+                            conditions = max(conditions, cur_n_neigh+1);
+
                         cur_n_neigh++;
                         }
-                    }
+                    } 
                 }
             }
         
         h_n_neigh.data[i] = cur_n_neigh;
         }
-    
+   
+    // write out conditions
+    m_conditions.resetFlags(conditions);
+
     if (m_prof)
         m_prof->pop(exec_conf);
     }

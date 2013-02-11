@@ -62,6 +62,7 @@ using namespace boost::python;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
+#include "HOOMDMPI.h"
 #endif 
 
 /*! \file TwoStepNPTMTK.h
@@ -136,7 +137,7 @@ TwoStepNPTMTK::~TwoStepNPTMTK()
 void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     {
 #ifdef ENABLE_MPI
-    unsigned int group_size = m_group->getNumLocalMembers();
+    unsigned int group_size = m_group->getNumMembers();
 #else
     unsigned int group_size = m_group->getNumMembers();
 #endif
@@ -282,16 +283,15 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_comm->getMPICommunicator()->size());
         // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_comm->getMPICommunicator(), eta, 0);
-        broadcast(*m_comm->getMPICommunicator(), xi, 0);
-        broadcast(*m_comm->getMPICommunicator(), nux, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuy, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuz, 0);
+        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nux, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
 
         // broadcast box dimensions
-        broadcast(*m_comm->getMPICommunicator(), m_L, 0);
+        MPI_Bcast(&m_L,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -325,7 +325,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
     {
 #ifdef ENABLE_MPI
-    unsigned int group_size = m_group->getNumLocalMembers();
+    unsigned int group_size = m_group->getNumMembers();
 #else
     unsigned int group_size = m_group->getNumMembers();
 #endif
@@ -386,11 +386,7 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
 
 #ifdef ENABLE_MPI
     if (m_comm)
-        {
-        assert(m_comm->getMPICommunicator()->size());
-        // broadcast integrator variables from rank 0 to other processors
-        m_v2_sum = all_reduce(*m_comm->getMPICommunicator(), m_v2_sum, std::plus<double>());
-        } 
+        MPI_Allreduce(MPI_IN_PLACE, &m_v2_sum, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator() );
 #endif
 
     // Advance thermostat half a time step
@@ -480,13 +476,12 @@ void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        assert(m_comm->getMPICommunicator()->size());
         // broadcast integrator variables from rank 0 to other processors
-        broadcast(*m_comm->getMPICommunicator(), eta, 0);
-        broadcast(*m_comm->getMPICommunicator(), xi, 0);
-        broadcast(*m_comm->getMPICommunicator(), nux, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuy, 0);
-        broadcast(*m_comm->getMPICommunicator(), nuz, 0);
+        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nux, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&nuz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 

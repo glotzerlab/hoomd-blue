@@ -87,7 +87,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
         PotentialBondGPU(boost::shared_ptr<SystemDefinition> sysdef,
                          const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialBondGPU() { };
+        virtual ~PotentialBondGPU() {}
 
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
@@ -102,6 +102,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
         unsigned int m_block_size;      //!< Block size to execute on the GPU
 
         GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -128,6 +129,9 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<Syst
     GPUArray<unsigned int> flags(1, this->exec_conf);
     m_flags.swap(flags);
 
+    // reset flags
+    ArrayHandle<unsigned int> h_flags(m_flags,access_location::host, access_mode::overwrite);
+    h_flags.data[0] = 0;
     }
 
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
@@ -148,27 +152,30 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
 
     // access net force & virial
-    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
         {
-        // Access the bond table for reading
-        ArrayHandle<uint2> d_gpu_bondlist(this->m_bond_data->getGPUBondList(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(), access_location::device, access_mode::read);
+        const GPUArray<uint2>& gpu_bond_list = this->m_bond_data->getGPUBondList();
+
+        ArrayHandle<uint2> d_gpu_bondlist(gpu_bond_list, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(),
+                                                 access_location::device, access_mode::read);
 
         // access the flags array for overwriting
-        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
         gpu_cgbf(bond_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
                              this->m_pdata->getN(),
+                             this->m_pdata->getNGhosts(),
                              d_pos.data,
                              d_charge.data,
                              d_diameter.data,
                              box,
                              d_gpu_bondlist.data,
-                             this->m_bond_data->getGPUBondList().getPitch(),
+                             gpu_bond_list.getPitch(),
                              d_gpu_n_bonds.data,
                              this->m_bond_data->getNBondTypes(),
                              m_block_size),
@@ -183,9 +190,9 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
         // check the flags for any errors
         ArrayHandle<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
 
-        if (h_flags.data[0])
+        if (h_flags.data[0] & 1)
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds (" << h_flags.data[0] << ")" << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
         }

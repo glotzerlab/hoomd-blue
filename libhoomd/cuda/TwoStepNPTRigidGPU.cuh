@@ -83,13 +83,13 @@ struct gpu_npt_rigid_data
     };
 
 //! Kernel driver for the first part of the NPT update called by TwoStepNPTRigidGPU
-cudaError_t gpu_npt_rigid_step_one(     const gpu_rigid_data_arrays& rigid_data,
-                                        unsigned int *d_group_members,
-                                        unsigned int group_size,
-                                        Scalar4 *d_net_force,
-                                        const BoxDim& box, 
-                                        const gpu_npt_rigid_data &npt_rdata,
-                                        Scalar deltaT);
+cudaError_t gpu_npt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   Scalar4 *d_net_force,
+                                   const BoxDim& box, 
+                                   const gpu_npt_rigid_data &npt_rdata,
+                                   Scalar deltaT);
 
 //! Kernel driver for the second part of the NPT update called by TwoStepNPTRigidGPU
 cudaError_t gpu_npt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,

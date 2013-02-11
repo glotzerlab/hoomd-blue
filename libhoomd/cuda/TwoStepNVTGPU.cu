@@ -72,6 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param box Box dimensions for periodic boundary condition handling
     \param denominv Intermediate variable computed on the host and used in the NVT integration step
     \param deltaT Amount of real time to step forward in one time step
+
     
     Take the first half step forward in the NVT integration.
     
@@ -145,7 +146,7 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
     // setup the grid to run the kernel
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+   
     // run the kernel
     gpu_nvt_step_one_kernel<<< grid, threads, block_size * sizeof(Scalar) >>>(d_pos,
                                                                              d_vel,

@@ -247,7 +247,6 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
-    
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
     pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
     pdata_6->setPosition(2, make_scalar3(0.0,-19.35,0.0));
@@ -367,9 +366,8 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
-    
+
     shared_ptr<PotentialPairSLJ> fc1 = shiftedlj_creator1(sysdef, nlist);
     shared_ptr<PotentialPairSLJ> fc2 = shiftedlj_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));

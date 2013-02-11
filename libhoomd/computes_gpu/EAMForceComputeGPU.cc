@@ -153,7 +153,7 @@ void EAMForceComputeGPU::setBlockSize(int block_size)
     }
 
 
-void EAMForceComputeGPU::computeForces(unsigned int timestep)
+void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

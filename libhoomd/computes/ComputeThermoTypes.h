@@ -75,6 +75,8 @@ struct thermo_index
         pressure_yz,         //!< Index for the yz component of the symmetrized pressure tensor in the GPUArray
         pressure_zz,         //!< Index for the zz component of the symmetrized pressure tensor in the GPUArray
         };
+
+        const static unsigned int num_quantities = 10;
     };
 
 //! structure for storing the components of the pressure tensor

@@ -182,7 +182,7 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
     int block_size = 256;
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     // run the kernel
     gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
     

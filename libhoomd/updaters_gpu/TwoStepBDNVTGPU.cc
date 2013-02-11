@@ -64,6 +64,10 @@ using namespace boost;
 #include "TwoStepNVEGPU.cuh"
 #include "TwoStepBDNVTGPU.cuh"
 
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 /*! \file TwoStepBDNVTGPU.h
     \brief Contains code for the TwoStepBDNVTGPU class
 */
@@ -97,7 +101,7 @@ TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     
     // initialize the partial sum array
     m_block_size = 256; 
-    unsigned int group_size = m_group->getIndexArray().getNumElements();    
+    unsigned int group_size = m_group->getNumMembers();
     m_num_blocks = group_size / m_block_size + 1;
     GPUArray<Scalar> partial_sum1(m_num_blocks, exec_conf);
     m_partial_sum1.swap(partial_sum1);          
@@ -119,7 +123,7 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getIndexArray().getNumElements();
+    unsigned int group_size = m_group->getNumMembers();
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -174,6 +178,9 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
         
+        unsigned int group_size = m_group->getNumMembers();
+        m_num_blocks = group_size / m_block_size + 1;
+
         // perform the update on the GPU
         bdnvt_step_two_args args;
         args.d_gamma = d_gamma.data;
@@ -188,8 +195,6 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         args.num_blocks = m_num_blocks;
         args.tally = m_tally;
         
-        unsigned int group_size = m_group->getIndexArray().getNumElements();
-   
         gpu_bdnvt_step_two(d_pos.data,
                            d_vel.data,
                            d_accel.data,
@@ -212,6 +217,12 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     if (m_tally)
         {
         ArrayHandle<Scalar> h_sumBD(m_sum, access_location::host, access_mode::read);   
+        #ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &h_sumBD.data[0], 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator()); 
+            } 
+        #endif
         m_reservoir_energy -= h_sumBD.data[0]*m_deltaT;
         m_extra_energy_overdeltaT= 0.5*h_sumBD.data[0];
         }

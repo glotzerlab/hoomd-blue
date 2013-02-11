@@ -824,6 +824,7 @@ void gpu_compute_pppm_thermo(int Nx,
     cudaThreadSynchronize();
 
     int n = Nx*Ny*Nz;
+    cudaMemset(o_data, 0, sizeof(Scalar)*Nx*Ny*Nz);
     pppm_virial_energy[0] = Scalar_reduce(energy_sum, o_data, n);
 
     cudaMemset(o_data, 0, sizeof(Scalar)*Nx*Ny*Nz);
@@ -1196,10 +1197,10 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
 
 
 
-    // zero the force arrays for all particles
-    // zero_forces <<< grid, threads >>> (force_data, N);
-//    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
-    cudaMemset(d_virial, 0, 6*sizeof(Scalar)*virial_pitch);
+    // Update the force and virial with fixed exclusions. The memsets are merely commented and not removed
+    // to avoid merge conflicts.
+//    cudaMemset(d_force, 0, sizeof(float4)*N);
+//    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
 
     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,

@@ -122,7 +122,7 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
     else
         {
         // non-participating thread: contribute 0 to the sum
-        my_element = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+        my_element = make_scalar3(0, 0, 0);
         }
         
     compute_thermo_sdata[threadIdx.x] = my_element;
@@ -146,7 +146,7 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
     if (threadIdx.x == 0)
         {
         Scalar3 res = compute_thermo_sdata[0];
-        d_scratch[blockIdx.x] = make_scalar4(res.x, res.y, res.z, Scalar(0.0));
+        d_scratch[blockIdx.x] = make_scalar4(res.x, res.y, res.z, 0);
         }
     }
 
@@ -194,12 +194,12 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
     else
         {
         // non-participating thread: contribute 0 to the sum
-        my_element[0] = Scalar(0.0);
-        my_element[1] = Scalar(0.0);
-        my_element[2] = Scalar(0.0);
-        my_element[3] = Scalar(0.0);
-        my_element[4] = Scalar(0.0);
-        my_element[5] = Scalar(0.0);
+        my_element[0] = 0;
+        my_element[1] = 0;
+        my_element[2] = 0;
+        my_element[3] = 0;
+        my_element[4] = 0;
+        my_element[5] = 0;
         }
 
     for (unsigned int i = 0; i < 6; i++)
@@ -333,6 +333,13 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
     \param group_size Number of particles in the group
     \param num_partial_sums Number of partial sums in \a d_scratch
 
+    \param external_virial_xx External contribution to virial (xx component)
+    \param external_virial_xy External contribution to virial (xy component)
+    \param external_virial_xz External contribution to virial (xz component)
+    \param external_virial_yy External contribution to virial (yy component)
+    \param external_virial_yz External contribution to virial (yz component)
+    \param external_virial_zz External contribution to virial (zz component)
+
     Only one block is executed. In that block, the partial sums are read in and reduced to final values. From the final
     sums, the thermodynamic properties are computed and written to d_properties.
 
@@ -342,12 +349,22 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
                                               Scalar *d_scratch,
                                               BoxDim box,
                                               unsigned int group_size,
-                                              unsigned int num_partial_sums)
+                                              unsigned int num_partial_sums,
+                                              Scalar external_virial_xx,
+                                              Scalar external_virial_xy,
+                                              Scalar external_virial_xz,
+                                              Scalar external_virial_yy,
+                                              Scalar external_virial_yz,
+                                              Scalar external_virial_zz)
     {
     Scalar final_sum[6];
 
-    for (unsigned int i = 0; i < 6; i++)
-        final_sum[i] = Scalar(0.0);
+    final_sum[0] = external_virial_xx;
+    final_sum[1] = external_virial_xy;
+    final_sum[2] = external_virial_xz;
+    final_sum[3] = external_virial_yy;
+    final_sum[4] = external_virial_yz;
+    final_sum[5] = external_virial_zz;
 
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_partial_sums; start += blockDim.x)
@@ -479,7 +496,14 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                                                                args.d_scratch_pressure_tensor,
                                                                                box,
                                                                                group_size,
-                                                                               args.n_blocks);
+                                                                               args.n_blocks,
+                                                                               args.external_virial_xx,
+                                                                               args.external_virial_xy,
+                                                                               args.external_virial_xz,
+                                                                               args.external_virial_yy,
+                                                                               args.external_virial_yz,
+                                                                               args.external_virial_zz
+                                                                               );
         }
 
     return cudaSuccess;

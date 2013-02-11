@@ -132,11 +132,15 @@ class Logger : public Analyzer
             PDataFlags flags;
             flags[pdata_flag::isotropic_virial] = 1;
             flags[pdata_flag::potential_energy] = 1;
+            flags[pdata_flag::pressure_tensor] = 1;
             return flags;
             }
+
     private:
         //! The delimiter to put between columns in the file
         std::string m_delimiter;
+        //! The output file name
+        std::string m_filename;
         //! The prefix written at the beginning of the header line
         std::string m_header_prefix;
         //! Flag indicating this file is being appended to
@@ -155,9 +159,14 @@ class Logger : public Analyzer
         int cached_timestep;
         //! The values of the logged quantities at the last logger update.
         std::vector< Scalar > cached_quantities;
-        
+        //! Flag to indicate whether we have initialized the file IO
+        bool m_is_initialized;
+
         //! Helper function to get a value for a given quantity
         Scalar getValue(const std::string &quantity, int timestep);
+
+        //! Helper function to open output files
+        void openOutputFiles();
     };
 
 //! exports the Logger class to python

@@ -151,58 +151,46 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
     
-    Scalar tmp, akin_t, akin_r, scale;
+    Scalar akin_t, akin_r, scale;
     Scalar dt_half;    
     dt_half = 0.5 * m_deltaT;
 
-        {
-        // compute the current thermodynamic properties
-        // m_thermo_group->compute(timestep);
-        m_thermo_all->compute(timestep);
+    // compute the current thermodynamic properties
+    // m_thermo_group->compute(timestep);
+    m_thermo_all->compute(timestep);
         
-        // compute pressure for the next half time step
-        m_curr_P = m_thermo_all->getPressure();
-        // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
-        // rare circumstances, usually at the start of the simulation before things are initialize)
-        if (isnan(m_curr_P))
-            m_curr_P = m_pressure->getValue(timestep);
-        }
+    // compute pressure for the next half time step
+    m_curr_P = m_thermo_all->getPressure();
+    // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
+    // rare circumstances, usually at the start of the simulation before things are initialize)
+    if (isnan(m_curr_P))
+        m_curr_P = m_pressure->getValue(timestep);
+    
 
-        // update barostat
-        {
-        ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
-        const BoxDim& box = m_pdata->getBox();
-        Scalar3 L = box.getL();
+    // update barostat
+    const BoxDim& box = m_pdata->getBox();
+    Scalar3 L = box.getL();
         
-        Scalar vol;   // volume
-        if (dimension == 2) 
-            vol = L.x * L.y;
-        else 
-            vol = L.x * L.y * L.z;
+    Scalar vol;   // volume
+    if (dimension == 2) 
+        vol = L.x * L.y;
+    else 
+        vol = L.x * L.y * L.z;
 
-        Scalar p_target = m_pressure->getValue(timestep);
+    Scalar p_target = m_pressure->getValue(timestep);
         
-        f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
-        f_epsilon /= w;
-        Scalar tmp = exp(-1.0 * dt_half * eta_dot_b_handle.data[0]);
-        epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
-        }
-                
-        // update barostat variables a half step
-        {
-        
-        ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
-        
-        Scalar kt = boltz * m_temperature->getValue(timestep);
-        w = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
-
-        tmp = -1.0 * dt_half * eta_dot_b_handle.data[0];
-        scale = exp(tmp);
-        epsilon_dot += dt_half * f_epsilon;
-        epsilon_dot *= scale;
-        epsilon += m_deltaT * epsilon_dot;
-        dilation = exp(m_deltaT * epsilon_dot);
-        }
+    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
+    f_epsilon /= W;
+    Scalar tmp = exp(-1.0 * dt_half * eta_dot_b[0]);
+    epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
+    
+    // update barostat variables a half step
+    tmp = -1.0 * dt_half * eta_dot_b[0];
+    scale = exp(tmp);
+    epsilon_dot += dt_half * f_epsilon;
+    epsilon_dot *= scale;
+    epsilon += m_deltaT * epsilon_dot;
+    dilation = exp(m_deltaT * epsilon_dot);
     
     // update thermostat coupled to barostat
 
@@ -266,8 +254,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
 
-    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> new_box_handle(m_new_box, access_location::device, access_mode::readwrite);
@@ -277,8 +263,8 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     d_npt_rdata.nf_t = nf_t;
     d_npt_rdata.nf_r = nf_r;
     d_npt_rdata.dimension = dimension;
-    d_npt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
-    d_npt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
+    d_npt_rdata.eta_dot_t0 = eta_dot_t[0];
+    d_npt_rdata.eta_dot_r0 = eta_dot_r[0];
     d_npt_rdata.epsilon_dot = epsilon_dot;
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
@@ -333,7 +319,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
         m_prof->pop(exec_conf);
     }
     
-    
     {
     ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
@@ -342,7 +327,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     akin_r = Ksum_r_handle.data[0];
     update_nhcp(akin_t, akin_r, timestep);
     }
-
     
     // done profiling
     if (m_prof)
@@ -421,8 +405,6 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
     
-    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
@@ -431,8 +413,8 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_npt_rdata.nf_t = nf_t;
     d_npt_rdata.nf_r = nf_r;
     d_npt_rdata.dimension = dimension;
-    d_npt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
-    d_npt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
+    d_npt_rdata.eta_dot_t0 = eta_dot_t[0];
+    d_npt_rdata.eta_dot_r0 = eta_dot_r[0];
     d_npt_rdata.epsilon_dot = epsilon_dot;
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;

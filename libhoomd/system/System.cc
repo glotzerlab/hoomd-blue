@@ -67,6 +67,10 @@ using namespace boost::python;
 
 #include <stdexcept>
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 using namespace std;
 
 /*! \param sysdef SystemDefinition for the system to be simulated
@@ -365,6 +369,14 @@ boost::shared_ptr<Integrator> System::getIntegrator()
     return m_integrator;
     }
 
+#ifdef ENABLE_MPI
+// -------------- Methods for communication
+void System::setCommunicator(boost::shared_ptr<Communicator> comm)
+    {
+    m_comm = comm;
+    }
+#endif
+
 // -------------- Methods for running the simulation
 
 /*! \param nsteps Number of simulation steps to run
@@ -395,13 +407,37 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     int64_t initial_time = m_clk.getTime();
     m_last_status_time = initial_time;
     setupProfiling();
-    
-    resetStats();
 
     // preset the flags before the run loop so that any analyzers/updaters run on step 0 have the info they need
     // but set the flags before prepRun, as prepRun may remove some flags that it cannot generate on the first step
     m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep));
-    
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        //! Set communicator in all Updaters
+        vector<updater_item>::iterator updater;
+        for (updater =  m_updaters.begin(); updater != m_updaters.end(); ++updater)
+            updater->m_updater->setCommunicator(m_comm);
+
+        // Set communicator in all Computes
+        map< string, boost::shared_ptr<Compute> >::iterator compute;
+        for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
+            compute->second->setCommunicator(m_comm);
+
+        // Set communicator in all Analyzers
+        vector<analyzer_item>::iterator analyzer;
+        for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+            analyzer->m_analyzer->setCommunicator(m_comm);
+
+        // Set communicator in Integrator
+        if (m_integrator)
+            m_integrator->setCommunicator(m_comm);
+        }
+#endif
+
+    resetStats();
+
     // Prepare the run
     if (!m_integrator)
         m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
@@ -417,11 +453,24 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         // check if the time limit has exceeded
         if (limit_hours != 0.0f)
             {
-            int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
-            if (int64_t(cur_time) - initial_time > time_limit && (m_cur_tstep % limit_multiple) == 0)
+            if (m_cur_tstep % limit_multiple == 0)
                 {
-                m_exec_conf->msg->notice(2) << "Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
-                break;
+                unsigned int end_run = 0;
+                int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
+                if (int64_t(cur_time) - initial_time > time_limit)
+                    end_run = 1;
+
+#ifdef ENABLE_MPI
+                // if any processor wants to end the run, end it on all processors
+                if (m_comm)
+                    MPI_Allreduce(MPI_IN_PLACE, &end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+#endif
+
+                if (end_run)
+                    {
+                    m_exec_conf->msg->notice(2) << "Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
+                    break;
+                    }
                 }
             }
         // execute python callback, if present and needed
@@ -477,7 +526,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             return;
             }
         }
-        
+
     // generate a final status line
     if (!m_quiet_run)
         generateStatusLine();
@@ -551,6 +600,7 @@ void System::setupProfiling()
     if (m_integrator)
         m_integrator->setProfiler(m_profiler);
     m_sysdef->getParticleData()->setProfiler(m_profiler);
+    m_sysdef->getBondData()->setProfiler(m_profiler);
     
     // analyzers
     vector<analyzer_item>::iterator analyzer;
@@ -566,6 +616,12 @@ void System::setupProfiling()
     map< string, boost::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->setProfiler(m_profiler);
+
+#ifdef ENABLE_MPI
+    // communicator
+    if (m_comm)
+        m_comm->setProfiler(m_profiler);
+#endif
     }
 
 void System::printStats()
@@ -694,6 +750,10 @@ void export_System()
     
     .def("getLastTPS", &System::getLastTPS)
     .def("getCurrentTimeStep", &System::getCurrentTimeStep)
+#ifdef ENABLE_MPI
+    .def("setCommunicator", &System::setCommunicator)
+    .def("getCommunicator", &System::getCommunicator)
+#endif
     ;
     }
 

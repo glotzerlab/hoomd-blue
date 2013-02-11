@@ -51,7 +51,7 @@ class integrate_npt_tests (unittest.TestCase):
         npt.set_params(tauP=0.6);
         npt.set_params(partial_scale=True);
         run(100);
-    
+
     # test w/ empty group
     def test_empty(self):
         empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)

@@ -250,13 +250,13 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(Scalar4* rdata_com
     Scalar dt_half = Scalar(0.5) * deltaT;
     Scalar onednft, onednfr, tmp, scale_t, scale_r, scale_v, akin_t, akin_r;
 
-    onednft = Scalar(1.0) + (Scalar) (npt_rdata_dimension) / (Scalar) (npt_rdata_nf_t);
-    onednfr = (Scalar) (npt_rdata_dimension) / (Scalar) (npt_rdata_nf_r);
+    onednft = Scalar(1.0) + Scalar(npt_rdata_dimension) / Scalar(npt_rdata_nf_t+npt_rdata_nf_r);
+    onednfr = Scalar(npt_rdata_dimension) / Scalar(npt_rdata_nf_t+npt_rdata_nf_r);
 
-    tmp = -Scalar(1.0) * dt_half * (npt_rdata_eta_dot_t0 + onednft * npt_rdata_epsilon_dot);
-    scale_t = exp(tmp);
-    tmp = -Scalar(1.0) * dt_half * (npt_rdata_eta_dot_r0 + onednfr * npt_rdata_epsilon_dot);
-    scale_r = exp(tmp);
+    tmp = Scalar(-1.0) * dt_half * (npt_rdata_eta_dot_t0 + onednft * npt_rdata_epsilon_dot);
+    scale_t = EXP(tmp);
+    tmp = Scalar(-1.0) * dt_half * (npt_rdata_eta_dot_r0 + onednfr * npt_rdata_epsilon_dot);
+    scale_r = EXP(tmp);
     tmp = dt_half * npt_rdata_epsilon_dot;
     scale_v = deltaT * EXP(tmp) * maclaurin_series(tmp);
 
@@ -472,12 +472,12 @@ extern "C" __global__ void gpu_npt_rigid_step_two_body_kernel(Scalar4* rdata_vel
     Scalar dt_half = Scalar(0.5) * deltaT;
     Scalar   onednft, onednfr, tmp, scale_t, scale_r, akin_t, akin_r;
     
-    onednft = Scalar(1.0) + (Scalar) (npt_rdata_dimension) / (Scalar) (npt_rdata_nf_t);
-    onednfr = (Scalar) (npt_rdata_dimension) / (Scalar) (npt_rdata_nf_r);
+    onednft = Scalar(1.0) + Scalar(npt_rdata_dimension) / Scalar(npt_rdata_nf_t+npt_rdata_nf_r);
+    onednfr = Scalar(npt_rdata_dimension) / Scalar(npt_rdata_nf_t+npt_rdata_nf_r);
 
-    tmp = -Scalar(1.0) * dt_half * (npt_rdata_eta_dot_t0 + onednft * npt_rdata_epsilon_dot);
+    tmp = Scalar(-1.0) * dt_half * (npt_rdata_eta_dot_t0 + onednft * npt_rdata_epsilon_dot);
     scale_t = exp(tmp);
-    tmp = -Scalar(1.0) * dt_half * (npt_rdata_eta_dot_r0 + onednfr * npt_rdata_epsilon_dot);
+    tmp = Scalar(-1.0) * dt_half * (npt_rdata_eta_dot_r0 + onednfr * npt_rdata_epsilon_dot);
     scale_r = exp(tmp);
     
     unsigned int idx_body = d_rigid_group[group_idx];

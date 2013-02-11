@@ -86,7 +86,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \sa export_PotentialPairGPU()
 */
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params) >
+                                                const typename evaluator::param_type *d_params)>
 class PotentialPairGPU : public PotentialPair<evaluator>
     {
     public:
@@ -95,7 +95,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
                          boost::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialPairGPU() { };
+        virtual ~PotentialPairGPU() {}
         
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
@@ -111,10 +111,11 @@ class PotentialPairGPU : public PotentialPair<evaluator>
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
+
     };
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params) >
+                                                const typename evaluator::param_type *d_params)>
 PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
@@ -129,7 +130,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
-                                                const typename evaluator::param_type *d_params) >
+                                                const typename evaluator::param_type *d_params)>
 void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
@@ -164,17 +165,17 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
     
-    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
     
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
-
 
     gpu_cgpf(pair_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
                          this->m_pdata->getN(),
+                         this->m_pdata->getNGhosts(),
                          d_pos.data,
                          d_diameter.data,
                          d_charge.data,
@@ -192,7 +193,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+   
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 

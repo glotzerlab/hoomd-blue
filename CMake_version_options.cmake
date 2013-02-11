@@ -4,7 +4,7 @@
 ## Version information
 set(HOOMD_VERSION_MAJOR "0")
 set(HOOMD_VERSION_MINOR "11")
-set(HOOMD_VERSION_PATCH "0")
+set(HOOMD_VERSION_PATCH "2")
 set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
 
 # users may not have git installed, or this may be a tarball build - set a dummy version if that is the case

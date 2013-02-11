@@ -103,9 +103,11 @@ Table of contents:
  - Helpers
    - \ref sec_index_group
    - \ref sec_index_variant
+
  - Miscellaneous
   - \ref sec_index_tuning
   - \ref sec_index_benchmark
+  - \ref sec_index_communicate
 
 \section sec_index_run Run
  - \link hoomd_script.run() run\endlink - <i>Runs the simulation for a given number of time steps</i>
@@ -143,6 +145,7 @@ Table of contents:
    - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>NVT integration via Brownian dynamics </i> 
    - \link hoomd_script.integrate.bdnvt_rigid integrate.bdnvt_rigid\endlink - <i>NVT integration of rigid bodies via Brownian Dynamics</i>
    - \link hoomd_script.integrate.nph integrate.nph\endlink - <i>NPH integration via the Andersen / modified Parrinello-Rahman barostat </i>
+   - \link hoomd_script.integrate.nph_rigid integrate.nph_rigid\endlink - <i>NPH Integration of rigid bodies</i>
    - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>NPT Integration with various box-shape symmetries</i>
    - \link hoomd_script.integrate.npt_rigid integrate.npt_rigid\endlink - <i>NPT Integration of rigid bodies</i>
    - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>NVE Integration via Velocity-Verlet </i>
@@ -253,6 +256,11 @@ Table of contents:
 
 \section sec_index_benchmark Benchmark
  - \link hoomd_script.benchmark.series() benchmark.series\endlink - <i>Perform a series of short runs to benchmark overall simulation performance</i>
+
+\section sec_index_communicate Communication helpers
+ - \link hoomd_script.comm.get_num_ranks() comm.get_num_ranks\endlink - <i>Get the total number of ranks in a a parallel execution</i>
+ - \link hoomd_script.comm.is_root() comm.is_root\endlink - <i>Check if the current process is the root rank</i>
+ 
 
 */
 

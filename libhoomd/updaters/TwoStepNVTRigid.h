@@ -59,8 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "TwoStepNVERigid.h"
-#include "Variant.h"
-#include "ComputeThermo.h"
 
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -104,58 +102,10 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         //! Second step of velocit Verlet integration
         virtual void integrateStepTwo(unsigned int timestep);
         
-        //! Update the temperature
-        /*! \param T New temperature to set
-        */
-        virtual void setT(boost::shared_ptr<Variant> T)
-            {
-            m_temperature = T;
-            }
-            
-        /*! Set tau
-            \param tau New time constant to set
-        */
-        virtual void setTau(Scalar tau)
-            {
-            if (tau <= 0.0)
-                m_exec_conf->msg->warning() << "integrate.nvt_rigid: tau set less than or equal to 0.0" << endl;
-            t_freq = 1.0 / tau;
-            }
-            
     protected:
         //! Integrator variables
         virtual void setRestartIntegratorVariables();
         
-        //! Update thermostats
-        void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);
-    
-        //! Maclaurin expansion
-        inline Scalar maclaurin_series(Scalar x);
-        
-        boost::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
-        
-        boost::shared_ptr<Variant> m_temperature;   //!< External temperature
-        Scalar boltz;                               //!< Boltzmann constant
-        Scalar t_freq;                              //!< Coupling frequency
-        Scalar nf_t;                                //!< Translational degrees of freedom        
-        Scalar nf_r;                                //!< Rotational degrees of freedom 
-        unsigned int chain;                         //!< Number of thermostat chains
-        unsigned int iter;                          //!< Number of iterations
-        unsigned int order;                         //!< Number of thermostat per chain
-        
-        GPUArray<Scalar>    q_t;                    //!< Thermostat translational mass
-        GPUArray<Scalar>    q_r;                    //!< Thermostat rotational mass
-        GPUArray<Scalar>    eta_t;                  //!< Thermostat translational position
-        GPUArray<Scalar>    eta_r;                  //!< Thermostat rotational position
-        GPUArray<Scalar>    eta_dot_t;              //!< Thermostat translational velocity
-        GPUArray<Scalar>    eta_dot_r;              //!< Thermostat rotational velocity
-        GPUArray<Scalar>    f_eta_t;                //!< Thermostat translational force
-        GPUArray<Scalar>    f_eta_r;                //!< Thermostat rotational force
-        
-        GPUArray<Scalar>    w;                      //!< Thermostat chain coefficients
-        GPUArray<Scalar>    wdti1;                  //!< Thermostat chain coefficients
-        GPUArray<Scalar>    wdti2;                  //!< Thermostat chain coefficients
-        GPUArray<Scalar>    wdti4;                  //!< Thermostat chain coefficients
     };
 
 //! Exports the TwoStepNVTRigid class to python

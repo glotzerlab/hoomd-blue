@@ -634,6 +634,7 @@ class nlist:
         
         return self.cpp_nlist.getSmallestRebuild()-1;
 
+
 ## \internal
 # \brief Creates the global neighbor list
 # \details

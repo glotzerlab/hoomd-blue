@@ -67,33 +67,45 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   Scalar4 *d_xyzf,
                                   Scalar4 *d_tdb,
-                                  unsigned int *d_conditions,
+                                  Scalar4 *d_cell_orientation,
+                                  unsigned int *d_cell_idx,
+                                  uint3 *d_conditions,
                                   const Scalar4 *d_pos,
+                                  const Scalar4 *d_orientation,
                                   const Scalar *d_charge,
                                   const Scalar *d_diameter,
                                   const unsigned int *d_body,
                                   const unsigned int N,
+                                  const unsigned int n_ghost,
                                   const unsigned int Nmax,
                                   const bool flag_charge,
+                                  const bool flag_type,
                                   const BoxDim& box,
                                   const Index3D& ci,
-                                  const Index2D& cli);
+                                  const Index2D& cli,
+                                  const Scalar3& ghost_width);
 
 //! Kernel driver for gpu_compute_cell_list_1x_kernel()
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      Scalar4 *d_xyzf,
                                      Scalar4 *d_tdb,
-                                     unsigned int *d_conditions,
+                                     Scalar4 *d_cell_orientation,
+                                     unsigned int *d_cell_idx,
+                                     uint3 *d_conditions,
                                      const Scalar4 *d_pos,
+                                     const Scalar4 *d_orientation,
                                      const Scalar *d_charge,
                                      const Scalar *d_diameter,
                                      const unsigned int *d_body,
                                      const unsigned int N,
+                                     const unsigned int n_ghost,
                                      const unsigned int Nmax,
                                      const bool flag_charge,
+                                     const bool flag_type,
                                      const BoxDim& box,
                                      const Index3D& ci,
-                                     const Index2D& cli);
+                                     const Index2D& cli,
+                                     const Scalar3& ghost_width);
 
 #endif
 
