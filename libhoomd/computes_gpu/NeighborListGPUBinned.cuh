@@ -114,4 +114,5 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
 cudaError_t gpu_setup_compute_nlist_binned();
 
 #endif
+#endif
 
