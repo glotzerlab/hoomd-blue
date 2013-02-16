@@ -68,10 +68,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "IntegratorTwoStep.h"
 
+#include "CellList.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
 #include "Initializers.h"
 #include "AllPairPotentials.h"
+
+#ifdef ENABLE_CUDA
+#include "NeighborListGPUBinned.h"
+#include "CellListGPU.h"
+#endif
 
 #include "saruprng.h"
 
@@ -103,9 +109,12 @@ typedef boost::function<shared_ptr<TwoStepNPTMTK> (shared_ptr<SystemDefinition> 
 //! Basic functionality test of a generic TwoStepNPTMTK
 void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    const unsigned int N = 1000;
-    Scalar P = 1.0;
-    Scalar T0 = 2.0;
+    // we use a tightly packed cubic LJ crystal for testing,
+    // because this one has a sufficient shear elasticity
+    // to avoid that the box gets too tilted during triclinic NPT
+    const unsigned int L = 20; // number of particles along one box edge
+    Scalar P = 142.5; // use a REALLY high value of pressure to keep the system in solid state
+    Scalar T0 = .9;
     Scalar deltaT = 0.001;
 
     const TwoStepNPTMTK::couplingMode coupling_modes[] = {TwoStepNPTMTK::couple_xyz,
@@ -124,9 +133,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
 
 
     // create two identical random particle systems to simulate
-    RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    rand_init.setSeed(12345);
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    SimpleCubicInitializer cubic_init(L, Scalar(0.89), "A");
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(cubic_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // enable the energy computation
@@ -140,10 +148,25 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
+    shared_ptr<NeighborList> nlist;
+    shared_ptr<PotentialPairLJ> fc;
+    shared_ptr<CellList> cl;
+    #ifdef ENABLE_CUDA
+    if (exec_conf->isCUDAEnabled())
+        {
+        cl = shared_ptr<CellList>( new CellListGPU(sysdef) );
+        nlist = shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        fc = shared_ptr<PotentialPairLJ>( new PotentialPairLJGPU(sysdef, nlist));
+        }
+    else
+    #endif
+        {
+        cl = shared_ptr<CellList>( new CellList(sysdef) );
+        nlist = shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        fc = shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
+        }
 
-    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
-    fc->setRcut(0, 0, Scalar(pow(Scalar(2.0),Scalar(1./6.))));
+    fc->setRcut(0, 0, Scalar(2.5));
 
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
@@ -159,11 +182,11 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     fc->setShiftMode(PotentialPairLJ::shift);
 
     shared_ptr<ComputeThermo> thermo_group(new ComputeThermo(sysdef, group_all, "name"));
-    thermo_group->setNDOF(3*N);
+    thermo_group->setNDOF(3*pdata->getN());
     shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
     npt_mtk->addForceCompute(fc);
 
-    // successively integrate the system using all methods
+    // successively integrate the system using different methods
     unsigned int offs=0;
     for (unsigned int i_mode = 0; i_mode < n_modes; i_mode++)
         {
@@ -363,9 +386,25 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8)));
+    shared_ptr<NeighborList> nlist;
+    shared_ptr<PotentialPairLJ> fc;
+    shared_ptr<CellList> cl;
+    #ifdef ENABLE_CUDA
+    if (exec_conf->isCUDAEnabled())
+        {
+        cl = shared_ptr<CellList>( new CellListGPU(sysdef) );
+        nlist = shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        fc = shared_ptr<PotentialPairLJ>( new PotentialPairLJGPU(sysdef, nlist));
+        }
+    else
+    #endif
+        {
+        cl = shared_ptr<CellList>( new CellList(sysdef) );
+        nlist = shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        fc = shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
+        }
 
-    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+ 
     fc->setRcut(0, 0, Scalar(pow(Scalar(2.0),Scalar(1./6.))));
 
     // setup some values for alpha and sigma
@@ -524,20 +563,6 @@ shared_ptr<TwoStepNPTMTK> gpu_nph_creator(shared_ptr<SystemDefinition> sysdef,
     }
 #endif
 
-//! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_tests )
-    {
-    twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1, _2,_3,_4,_5, _6, _7, _8,_9);
-    npt_mtk_updater_test(npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
-
-//! boost test case for NPH integration
-BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_cubic_NPH )
-    {
-    twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_nph_creator, _1, _2,_3,_4,_5, _6, _7, _8,_9);
-    nph_integration_test(npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
-    }
-
 #ifdef ENABLE_CUDA
 
 //! boost test case for GPU integration tests
@@ -554,6 +579,21 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTKGPU_cubic_NPH)
     }
 
 #endif
+
+//! boost test case for base class integration tests
+BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_tests )
+    {
+    twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1, _2,_3,_4,_5, _6, _7, _8,_9);
+    npt_mtk_updater_test(npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+
+//! boost test case for NPH integration
+BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_cubic_NPH )
+    {
+    twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_nph_creator, _1, _2,_3,_4,_5, _6, _7, _8,_9);
+    nph_integration_test(npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+
 
 #ifdef WIN32
 #pragma warning( pop )
