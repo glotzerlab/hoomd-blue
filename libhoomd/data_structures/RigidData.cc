@@ -190,7 +190,6 @@ void RigidData::initializeData()
 
     ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     // determine the number of rigid bodies
     unsigned int maxbody = 0;
@@ -339,13 +338,16 @@ void RigidData::initializeData()
         unsigned int body = h_body.data[j];
         Scalar mass_one = h_vel.data[j].w;
         body_mass_handle.data[body] += mass_one;
-        Scalar unwrappedx = h_pos.data[j].x + L.x * (h_image.data[j].x - nominal_body_image[body].x);
-        Scalar unwrappedy = h_pos.data[j].y + L.y * (h_image.data[j].y - nominal_body_image[body].y);
-        Scalar unwrappedz = h_pos.data[j].z + L.z * (h_image.data[j].z - nominal_body_image[body].z);
-            
-        com_handle.data[body].x += mass_one * unwrappedx;
-        com_handle.data[body].y += mass_one * unwrappedy;
-        com_handle.data[body].z += mass_one * unwrappedz;
+        // unwrap all particles in a body to the same image
+        int3 shift = make_int3(h_image.data[j].x - nominal_body_image[body].x,
+                               h_image.data[j].y - nominal_body_image[body].y,
+                               h_image.data[j].z - nominal_body_image[body].z);
+        Scalar3 wrapped = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+        Scalar3 unwrapped = box.shift(wrapped, shift);
+        
+        com_handle.data[body].x += mass_one * unwrapped.x;
+        com_handle.data[body].y += mass_one * unwrapped.y;
+        com_handle.data[body].z += mass_one * unwrapped.z;
         }
 
     // complete the COM calculation by dividing by the mass of the body
@@ -379,13 +381,16 @@ void RigidData::initializeData()
         Scalar mass_one = h_vel.data[j].w;
         unsigned int tag = h_tag.data[j];
         
-        Scalar unwrappedx = h_pos.data[j].x + L.x*(h_image.data[j].x - nominal_body_image[body].x);
-        Scalar unwrappedy = h_pos.data[j].y + L.y*(h_image.data[j].y - nominal_body_image[body].y);
-        Scalar unwrappedz = h_pos.data[j].z + L.z*(h_image.data[j].z - nominal_body_image[body].z);
+        // unwrap all particles in a body to the same image
+        int3 shift = make_int3(h_image.data[j].x - nominal_body_image[body].x,
+                               h_image.data[j].y - nominal_body_image[body].y,
+                               h_image.data[j].z - nominal_body_image[body].z);
+        Scalar3 wrapped = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+        Scalar3 unwrapped = box.shift(wrapped, shift);
         
-        Scalar dx = unwrappedx - com_handle.data[body].x;
-        Scalar dy = unwrappedy - com_handle.data[body].y;
-        Scalar dz = unwrappedz - com_handle.data[body].z;
+        Scalar dx = unwrapped.x - com_handle.data[body].x;
+        Scalar dy = unwrapped.y - com_handle.data[body].y;
+        Scalar dz = unwrapped.z - com_handle.data[body].z;
             
         inertia_handle.data[inertia_pitch * body + 0] += mass_one * (dy * dy + dz * dz);
         inertia_handle.data[inertia_pitch * body + 1] += mass_one * (dz * dz + dx * dx);
@@ -577,13 +582,16 @@ void RigidData::initializeData()
         
         // determine the particle position in the body frame
         // with ex_space, ey_space and ex_space vectors computed from the diagonalization
-        Scalar unwrappedx = h_pos.data[j].x + L.x * (h_image.data[j].x - nominal_body_image[body].x);
-        Scalar unwrappedy = h_pos.data[j].y + L.y * (h_image.data[j].y - nominal_body_image[body].y);
-        Scalar unwrappedz = h_pos.data[j].z + L.z * (h_image.data[j].z - nominal_body_image[body].z);
+        // unwrap all particles in a body to the same image
+        int3 shift = make_int3(h_image.data[j].x - nominal_body_image[body].x,
+                               h_image.data[j].y - nominal_body_image[body].y,
+                               h_image.data[j].z - nominal_body_image[body].z);
+        Scalar3 wrapped = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+        Scalar3 unwrapped = box.shift(wrapped, shift);
         
-        Scalar dx = unwrappedx - com_handle.data[body].x;
-        Scalar dy = unwrappedy - com_handle.data[body].y;
-        Scalar dz = unwrappedz - com_handle.data[body].z;
+        Scalar dx = unwrapped.x - com_handle.data[body].x;
+        Scalar dy = unwrapped.y - com_handle.data[body].y;
+        Scalar dz = unwrapped.z - com_handle.data[body].z;
                     
         unsigned int idx = body * particle_pos_pitch + current_localidx;
         particle_pos_handle.data[idx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
@@ -609,17 +617,7 @@ void RigidData::initializeData()
     // now that all computations using nominally unwrapped coordinates are done, put the COM into the simulation box
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
-        float dx = rintf(com_handle.data[body].x * Scalar(1.0)/L.x);
-        com_handle.data[body].x -= L.x * dx;
-        body_image_handle.data[body].x += (int)dx;
-
-        float dy= rintf(com_handle.data[body].y * Scalar(1.0)/L.y);
-        com_handle.data[body].y -= L.y * dy;
-        body_image_handle.data[body].y += (int)dy;
-
-        float dz = rintf(com_handle.data[body].z * Scalar(1.0)/L.z);
-        com_handle.data[body].z -= L.z * dz;
-        body_image_handle.data[body].z += (int)dz;
+        box.wrap(com_handle.data[body], body_image_handle.data[body]);
         }
     
     //initialize rigid_particle_indices
@@ -665,9 +663,6 @@ void RigidData::setRVCPU(bool set_x)
     {
     // get box
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
-    Scalar3 hi = box.getHi();
-    Scalar3 lo = box.getLo();
 
     // access to the force
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();

@@ -483,9 +483,11 @@ class BoxDim
 
             \note This method only works on boxes for which hi=-lo in all directions 
          */
-        HOSTDEVICE void shift(Scalar3& v, int3& shift) const
+        HOSTDEVICE Scalar3 shift(const Scalar3& v, const int3& shift) const
             {
-            v += makeCoordinates(make_scalar3(0.5,0.5,0.5)+make_scalar3(shift.x,shift.y,shift.z));
+            Scalar3 r = v;
+            r += makeCoordinates(make_scalar3(0.5,0.5,0.5)+make_scalar3(shift.x,shift.y,shift.z));
+            return r;
             }
 
         //! Check if the displacement is out of bounds
@@ -493,7 +495,7 @@ class BoxDim
             \returns True if the displacement exceeds the box length in a direction where periodic
                      boundary conditions are not applied
          */
-        HOSTDEVICE bool checkOutOfBounds(Scalar3& dx) const
+        HOSTDEVICE bool checkOutOfBounds(const Scalar3& dx) const
             {
             Scalar3 del;
             del.x = dx.x - (m_xz - m_xy*m_yz) * dx.z - m_xy * dx.y;

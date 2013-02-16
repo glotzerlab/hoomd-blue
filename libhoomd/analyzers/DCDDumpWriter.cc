@@ -366,28 +366,40 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
   
     ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(),access_location::host,access_mode::read);
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     unsigned int nparticles = m_group->getNumMembers();
+
+    // Create a tmp copy of the particle data and unwrap particles
+    std::vector<Scalar3> tmp_pos(snapshot.pos);
+    for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
+        {
+        unsigned int i = m_group->getMemberTag(group_idx);
+        
+        if (m_unwrap_full)
+            {
+            tmp_pos[i] = box.shift(tmp_pos[i], snapshot.image[i]);
+            }
+        else if (m_unwrap_rigid && snapshot.body[i] != NO_BODY)
+            {
+            int body_ix = body_image_handle.data[snapshot.body[i]].x;
+            int body_iy = body_image_handle.data[snapshot.body[i]].y;
+            int body_iz = body_image_handle.data[snapshot.body[i]].z;
+            int3 particle_img = snapshot.image[i];
+            int3 img_diff = make_int3(particle_img.x - body_ix,
+                                      particle_img.y - body_iy,
+                                      particle_img.z - body_iz);
+            
+            tmp_pos[i] = box.shift(tmp_pos[i], img_diff);
+            }
+        }
 
     // prepare x coords for writing, looping in tag order
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
-        unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(snapshot.pos[i].x);
-
-        // handle the unwrap options
-        if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(snapshot.image[i].x) * L.x;
-        else if (m_unwrap_rigid)
-            {
-            if (snapshot.body[i] != NO_BODY)
-                {
-                int body_ix = body_image_handle.data[snapshot.body[i]].x;
-                m_staging_buffer[group_idx] += float(snapshot.image[i].x - body_ix) * L.x;
-                }
-            }
+        unsigned int i = m_group->getMemberTag(group_idx);        
+        m_staging_buffer[group_idx] = float(tmp_pos[i].x);
         }
+
     // write x coords
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
@@ -397,20 +409,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(snapshot.pos[i].y);
-        
-        // handle the unwrap options
-        if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(snapshot.image[i].y) * L.y;
-        else if (m_unwrap_rigid)
-            {
-            if (snapshot.body[i] != NO_BODY)
-                {
-                int body_iy = body_image_handle.data[snapshot.body[i]].y;
-                m_staging_buffer[group_idx] += float(snapshot.image[i].y - body_iy) * L.y;
-                }
-            }
+        m_staging_buffer[group_idx] = float(tmp_pos[i].y);
         }
+
     // write y coords
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
@@ -420,20 +421,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(snapshot.pos[i].z);
-        
-        // handle the unwrap options
-        if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(snapshot.image[i].z) * L.z;
-        else if (m_unwrap_rigid)
-            {
-            if (snapshot.body[i] != NO_BODY)
-                {
-                int body_iz = body_image_handle.data[snapshot.body[i]].z;
-                m_staging_buffer[group_idx] += float(snapshot.image[i].z - body_iz) * L.z;
-                }
-            }
-         }
+        m_staging_buffer[group_idx] = float(tmp_pos[i].z);
+        }
+    
     // write z coords
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));

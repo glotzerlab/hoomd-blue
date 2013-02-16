@@ -104,11 +104,6 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     cl->compute(0);
     
     // verify the dimensions
-    Scalar3 width = cl->getWidth();
-    MY_BOOST_CHECK_CLOSE(width.x, 1.0f, tol);
-    MY_BOOST_CHECK_CLOSE(width.y, 1.0f, tol);
-    MY_BOOST_CHECK_CLOSE(width.z, 1.0f, tol);
-    
     uint3 dim = cl->getDim();
     BOOST_CHECK_EQUAL_UINT(dim.x, 10);
     BOOST_CHECK_EQUAL_UINT(dim.y, 10);
@@ -132,11 +127,6 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     cl->compute(0);
     
     // verify the dimensions
-    width = cl->getWidth();
-    MY_BOOST_CHECK_CLOSE(width.x, 1.1f, tol);
-    MY_BOOST_CHECK_CLOSE(width.y, 1.1f, tol);
-    MY_BOOST_CHECK_CLOSE(width.z, 1.1f, tol);
-    
     dim = cl->getDim();
     BOOST_CHECK_EQUAL_UINT(dim.x, 5);
     BOOST_CHECK_EQUAL_UINT(dim.y, 5);
@@ -160,11 +150,6 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     cl->compute(0);
     
     // verify the dimensions
-    width = cl->getWidth();
-    MY_BOOST_CHECK_CLOSE(width.x, 0.5f, tol);
-    MY_BOOST_CHECK_CLOSE(width.y, 0.5f, tol);
-    MY_BOOST_CHECK_CLOSE(width.z, 0.5f, tol);
-    
     dim = cl->getDim();
     BOOST_CHECK_EQUAL_UINT(dim.x, 11);
     BOOST_CHECK_EQUAL_UINT(dim.y, 11);
@@ -189,11 +174,6 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     cl->compute(0);
     
     // verify the dimensions
-    width = cl->getWidth();
-    MY_BOOST_CHECK_CLOSE(width.x, 1.1f, tol);
-    MY_BOOST_CHECK_CLOSE(width.y, 1.0f, tol);
-    MY_BOOST_CHECK_CLOSE(width.z, 1.05f, tol);
-    
     dim = cl->getDim();
     BOOST_CHECK_EQUAL_UINT(dim.x, 5);
     BOOST_CHECK_EQUAL_UINT(dim.y, 3);

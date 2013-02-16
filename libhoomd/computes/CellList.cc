@@ -73,7 +73,6 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
     // allocation is deferred until the first compute() call - initialize values to dummy variables
-    m_width = make_scalar3(0.0, 0.0, 0.0);
     m_dim = make_uint3(0,0,0);
     m_Nmax = 0;
     m_params_changed = true;
@@ -274,14 +273,7 @@ void CellList::initializeWidth()
         m_num_ghost_cells = make_uint3(box.getPeriodic().x ? 0 : 2,
                                        box.getPeriodic().y ? 0 : 2,
                                        box.getPeriodic().z ? 0 : 2);
-
-
-    // calculate width of cells on cartestian lattice
-    Scalar3 L = box.getL();
-    m_width.x = (L.x + m_nominal_width*m_num_ghost_cells.x) / Scalar(m_dim.x);
-    m_width.y = (L.y + m_nominal_width*m_num_ghost_cells.y) / Scalar(m_dim.y);
-    m_width.z = (L.z + m_nominal_width*m_num_ghost_cells.z) / Scalar(m_dim.z);
-
+    
     if (m_prof)
         m_prof->pop();
 
@@ -561,7 +553,6 @@ void export_CellList()
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
-        .def("getWidth", &CellList::getWidth, return_internal_reference<>())
         .def("getDim", &CellList::getDim, return_internal_reference<>())
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark)
