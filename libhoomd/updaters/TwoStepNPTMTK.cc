@@ -110,7 +110,8 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified." 
                                     << endl;
 
-    m_V = m_pdata->getGlobalBox().getVolume();  // volume
+    bool twod = m_sysdef->getNDimensions()==2;
+    m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
 
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
@@ -282,16 +283,26 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 #endif
 
     // update box dimensions
+    bool twod = m_sysdef->getNDimensions()==2;
+
     global_box.setL(make_scalar3(a.x,b.y,c.z));
     Scalar xy = b.x/b.y;
-    Scalar xz = c.x/c.z;
-    Scalar yz = c.y/c.z;
+
+    Scalar xz(0.0);
+    Scalar yz(0.0);
+
+    if (!twod)
+        {
+        xz = c.x/c.z;
+        yz = c.y/c.z;
+        }
+
     global_box.setTiltFactors(xy, xz, yz);
   
     // set global box
     m_pdata->setGlobalBox(global_box);
 
-    m_V = global_box.getVolume();  // volume
+    m_V = global_box.getVolume(twod);  // volume
 
     // Get new (local) box 
     BoxDim box = m_pdata->getBox();

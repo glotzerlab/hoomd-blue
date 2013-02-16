@@ -529,10 +529,14 @@ class BoxDim
 
         //! Get the volume of the box
         /*! \returns the volume
+         *  \param twod If true, return the area instead of the volume
          */
-        HOSTDEVICE Scalar getVolume() const
+        HOSTDEVICE Scalar getVolume(bool twod=false) const
             {
-            return m_L.x*m_L.y*m_L.z;
+            if (twod)
+                return m_L.x*m_L.y;
+            else
+                return m_L.x*m_L.y*m_L.z;
             }
 
         /*! Get the lattice vector with index i
