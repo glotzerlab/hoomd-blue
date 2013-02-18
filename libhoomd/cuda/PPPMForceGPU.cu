@@ -75,6 +75,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! The developer has chosen not to document this variable
 __device__ __constant__ float GPU_rho_coeff[CONSTANT_SIZE];
 
+//! Coefficients of a power expansion of sin(x)/x
+const Scalar sinc_coeff[] = {Scalar(1.0), Scalar(-1.0/6.0), Scalar(1.0/120.0),
+                        Scalar(-1.0/5040.0),Scalar(1.0/362880.0),
+                        Scalar(-1.0/39916800.0)};
+
+//! Coefficients of a power expansion of sin(x)/x
+__device__ __constant__ float gpu_sinc_coeff[6];
+
 /*! \file PPPMForceGPU.cu
   \brief Defines GPU kernel code for calculating the Fourier space forces for the Coulomb interaction. Used by PPPMForceComputeGPU.
 */
@@ -84,6 +92,28 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 //! Texture for reading charge parameters
 texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
+
+//! GPU implementation of sinc(x)==sin(x)/x
+__device__ Scalar gpu_sinc(Scalar x)
+    {
+    Scalar sinc = 0;
+
+    if (x*x <= Scalar(1.0))
+        {
+        Scalar term = Scalar(1.0);
+        for (unsigned int i = 0; i < 6; ++i)
+           {
+           sinc += gpu_sinc_coeff[i] * term;
+           term *= x*x;
+           }
+        }
+    else
+        {
+        sinc = sinf(x)/x;
+        }
+
+    return sinc;
+    }
 
 //! Implements workaround atomic float addition on sm_1x hardware
 __device__ inline void atomicFloatAdd(float* address, float value)
@@ -844,7 +874,8 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         kvec_array[idx] = k;
 
         float sqk = dot(k,k);
-        if(sqk == 0.0f) {
+        // omit DC term
+        if(idx == 0) {
             vg[0+6*idx] = 0.0f;
             vg[1+6*idx] = 0.0f;
             vg[2+6*idx] = 0.0f;
@@ -903,19 +934,13 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                 qx = (j.x+(float)(Nx*ix));
                 kn1 = b1 * qx;
                 argx = Scalar(0.5)*qx*kH.x;
-                if (argx != 0.0f)
-                    wx = powf(sinf(argx)/argx,order);
-                else
-                    wx = Scalar(1.0);
+                wx = powf(gpu_sinc(argx),order);
 
                for (iy = -nby; iy <= nby; iy++) {
                     qy = (j.y+(float)(Ny*iy));
                     kn2 = b2 * qy;
                     argy = Scalar(0.5)*qy*kH.y;
-                    if (argy != 0.0f)
-                        wy = powf(sinf(argy)/argy,order);
-                    else
-                        wy = Scalar(1.0);
+                    wy = powf(gpu_sinc(argy),order);
 
                     for (iz = -nbz; iz <= nbz; iz++) {
                         qz = (j.z+(float)(Nz*iz));
@@ -924,10 +949,7 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                         kn = kn1+kn2+kn3;
 
                         argz = Scalar(0.5)*qz*kH.z;
-                        if (argz != 0.0f)
-                            wz = powf(sinf(argz)/argz,order);
-                        else
-                            wz = Scalar(1.0);
+                        wz = powf(gpu_sinc(argz),order);
 
                         dot1 = dot(kn,k);
                         dot2 = dot(kn,kn);
@@ -969,6 +991,8 @@ cudaError_t reset_kvec_green_hat(const BoxDim& box,
     Scalar3 b1 = Scalar(2.0*M_PI)*make_scalar3(a2.y*a3.z-a2.z*a3.y, a2.z*a3.x-a2.x*a3.z, a2.x*a3.y-a2.y*a3.x)/V_box;
     Scalar3 b2 = Scalar(2.0*M_PI)*make_scalar3(a3.y*a1.z-a3.z*a1.y, a3.z*a1.x-a3.x*a1.z, a3.x*a1.y-a3.y*a1.x)/V_box;
     Scalar3 b3 = Scalar(2.0*M_PI)*make_scalar3(a1.y*a2.z-a1.z*a2.y, a1.z*a2.x-a1.x*a2.z, a1.x*a2.y-a1.y*a2.x)/V_box;
+
+    cudaMemcpyToSymbol(gpu_sinc_coeff, &(sinc_coeff[0]), 6*sizeof(Scalar));
 
     dim3 grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
