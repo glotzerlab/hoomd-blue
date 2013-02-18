@@ -65,10 +65,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include <math.h>
 
-
 using namespace boost;
 using namespace boost::python;
 using namespace std;
+
+//! Coefficients of a power expansion of sin(x)/x
+const Scalar cpu_sinc_coeff[] = {Scalar(1.0), Scalar(-1.0/6.0), Scalar(1.0/120.0),
+                        Scalar(-1.0/5040.0),Scalar(1.0/362880.0),
+                        Scalar(-1.0/39916800.0)};
 
 
 /*! \file PPPMForceCompute.cc
@@ -254,7 +258,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         m_exec_conf->msg->error() << "charge.pppm: setParams must be called prior to computeForces()" << endl;
         throw std::runtime_error("Error computing forces in PPPMForceCompute");
         }
-    
+   
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
@@ -486,6 +490,28 @@ Scalar PPPMForceCompute::gf_denom(Scalar x, Scalar y, Scalar z)
     }
 
 
+//! GPU implementation of sinc(x)==sin(x)/x
+inline Scalar sinc(Scalar x)
+    {
+    Scalar sinc = 0;
+
+    if (x*x <= Scalar(1.0))
+        {
+        Scalar term = Scalar(1.0);
+        for (unsigned int i = 0; i < 6; ++i)
+           {
+           sinc += cpu_sinc_coeff[i] * term;
+           term *= x*x;
+           }
+        }
+    else
+        {
+        sinc = sin(x)/x;
+        }
+
+    return sinc;
+    }
+
 void PPPMForceCompute::reset_kvec_green_hat_cpu()
     {
     ArrayHandle<Scalar3> h_kvec(m_kvec, access_location::host, access_mode::readwrite);
@@ -613,21 +639,18 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                     for (ix = -nbx; ix <= nbx; ix++) {
                         qx = (kper+(Scalar)(m_Nx*ix));
                         kn1 = b1*qx;
-                        wx = 1.0;
                         argx = 0.5*qx*kH.x;
-                        if (argx != 0.0) wx = pow(sin(argx)/argx,m_order);
+                        wx = pow(sinc(argx),m_order);
                         for (iy = -nby; iy <= nby; iy++) {
                             qy = (lper+(Scalar)(m_Ny*iy));
                             kn2 = b2*qy;
-                            wy = 1.0;
                             argy = 0.5*qy*kH.y;
-                            if (argy != 0.0) wy = pow(sin(argy)/argy,m_order);
+                            wy = pow(sinc(argy),m_order);
                             for (iz = -nbz; iz <= nbz; iz++) {
                                 qz = (mper+(Scalar)(m_Nz*iz));
                                 kn3 = b3*qz;
-                                wz = 1.0;
                                 argz = 0.5*qz*kH.z;
-                                if (argz != 0.0) wz = pow(sin(argz)/argz,m_order);
+                                wz = pow(sinc(argz),m_order);
 
                                 kn = kn1 + kn2 + kn3;
                                 
