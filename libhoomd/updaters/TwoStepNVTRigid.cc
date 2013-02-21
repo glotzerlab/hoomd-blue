@@ -234,8 +234,8 @@ void TwoStepNVTRigid::setup()
     
     for (unsigned int i = 1; i < chain; i++)
         {
-        f_eta_t[i] = q_t[i-1] * eta_dot_t[i-1] * eta_dot_t[i-1] - kt;
-        f_eta_r[i] = q_r[i-1] * eta_dot_r[i-1] * eta_dot_r[i-1] - kt;
+        f_eta_t[i] = (q_t[i-1] * eta_dot_t[i-1] * eta_dot_t[i-1] - kt)/q_t[i];
+        f_eta_r[i] = (q_r[i-1] * eta_dot_r[i-1] * eta_dot_r[i-1] - kt)/q_r[i];
         }
 
     // update order/timestep-dependent coefficients
