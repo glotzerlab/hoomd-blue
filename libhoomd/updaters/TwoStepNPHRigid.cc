@@ -191,7 +191,7 @@ void TwoStepNPHRigid::setup()
     f_eta_b[0] = v.variable[2];
     
     m_thermo_all->compute(0);
-    Scalar temperature = 1.0; 
+    Scalar temperature = 1.0;
 
     Scalar p_target = m_pressure->getValue(0);
     m_curr_P = m_thermo_all->getPressure();
@@ -211,10 +211,10 @@ void TwoStepNPHRigid::setup()
         }
 
     // initialize barostat parameters
-    
+
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getL();
-    
+
     Scalar vol;   // volume
     if (dimension == 2) 
         vol = L.x * L.y;
