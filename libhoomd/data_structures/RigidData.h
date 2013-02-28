@@ -114,7 +114,7 @@ class RigidData
             }
         
         //! Set the body angular momentum for a rigid body
-        void setAngMom(unsigned int body, Scalar4 angmom);
+        void setAngMom(unsigned int body, Scalar3 angmom);
                     
         //! \name getter methods (static data)
         //@{

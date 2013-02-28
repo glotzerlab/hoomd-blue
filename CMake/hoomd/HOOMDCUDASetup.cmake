@@ -34,25 +34,18 @@ endif (SINGLE_PRECISION)
 # setup CUDA compile options
 if (ENABLE_CUDA)
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
-    if (CUDA_VERSION VERSION_GREATER 2.99) 
-        if (CUDA_VERSION VERSION_GREATER 4.1) 
-            set(CUDA_ARCH_LIST 12 13 20 30 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-        else()
-            set(CUDA_ARCH_LIST 12 13 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-        endif()
-    else (CUDA_VERSION VERSION_GREATER 2.99)
-        set(CUDA_ARCH_LIST 12 13 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    endif (CUDA_VERSION VERSION_GREATER 2.99)
+    if (CUDA_VERSION VERSION_GREATER 4.99) 
+        set(CUDA_ARCH_LIST 12 13 20 30 35 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+    elseif (CUDA_VERSION VERSION_GREATER 4.1) 
+        set(CUDA_ARCH_LIST 12 13 20 30 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+    else()
+        set(CUDA_ARCH_LIST 12 13 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+    endif()
     
     foreach(_cuda_arch ${CUDA_ARCH_LIST})
         list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${_cuda_arch},code=sm_${_cuda_arch}")
     endforeach (_cuda_arch)
 
-    if (CUDA_VERSION VERSION_EQUAL 3.1 OR CUDA_VERSION VERSION_EQUAL 3.2) 
-        message(STATUS "Enabling reg usage workaround for CUDA 3.1/3.2") 
-        list(APPEND CUDA_NVCC_FLAGS "-Xptxas;-abi=no")
-    endif (CUDA_VERSION VERSION_EQUAL 3.1 OR CUDA_VERSION VERSION_EQUAL 3.2) 
-    
     # need to know the minumum supported CUDA_ARCH
     set(_cuda_arch_list_sorted ${CUDA_ARCH_LIST})
     list(SORT _cuda_arch_list_sorted)

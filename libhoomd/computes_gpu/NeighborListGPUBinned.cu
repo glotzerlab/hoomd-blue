@@ -56,6 +56,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
 */
 
+//! Texture for reading d_cell_xyzf
+texture<float4, 1, cudaReadModeElementType> cell_xyzf_1d_tex;
+
 //! Kernel call for generating neighbor list on the GPU
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering. 
     \param d_nlist Neighbor list data structure to write
@@ -152,7 +155,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
             {
-            float4 cur_xyzf = d_cell_xyzf[cli(cur_offset, neigh_cell)];
+            float4 cur_xyzf = tex1Dfetch(cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
             float4 cur_tdb = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
             if (filter_diameter || filter_body)
                 cur_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
@@ -233,6 +236,14 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const Scalar3& ghost_width)
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
+
+    // bind the position texture
+    cell_xyzf_1d_tex.normalized = false;
+    cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
+    cudaError_t error = cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*(cli.getNumElements()));
+    if (error != cudaSuccess)
+        return error;
+
 
     if (!filter_diameter && !filter_body)
         {

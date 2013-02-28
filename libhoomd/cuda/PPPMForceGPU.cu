@@ -1134,8 +1134,8 @@ cudaError_t fix_exclusions(float4 *d_force,
 
 
 
-    // zero the force arrays for all particles
-    // zero_forces <<< grid, threads >>> (force_data, N);
+    // Update the force and virial with fixed exclusions. The memsets are merely commented and not removed
+    // to avoid merge conflicts.
 //    cudaMemset(d_force, 0, sizeof(float4)*N);
 //    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
 

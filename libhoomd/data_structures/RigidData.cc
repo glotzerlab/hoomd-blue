@@ -1025,7 +1025,7 @@ void RigidData::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey
     \param body Body index to set angular momentum
     \param angmom Angular momentum
 */
-void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
+void RigidData::setAngMom(unsigned int body, Scalar3 angmom)
     {
     if (body < 0 || body >= m_n_bodies) 
         {
@@ -1038,7 +1038,7 @@ void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
     angmom_handle.data[body].x = angmom.x;
     angmom_handle.data[body].y = angmom.y;
     angmom_handle.data[body].z = angmom.z;
-    angmom_handle.data[body].w = angmom.w;
+    angmom_handle.data[body].w = 0;
     }
 
 /*! computeVirialCorrectionStart() must be called at the start of any time step update when there are rigid bodies

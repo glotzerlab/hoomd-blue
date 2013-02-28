@@ -258,6 +258,12 @@ class pppm(force._force):
         if not self.params_set:
             globals.msg.error("Coefficients for PPPM are not set. Call set_coeff prior to run()\n");
             raise RuntimeError("Error initializing run");
+        
+        if globals.neighbor_list.cpp_nlist.getFilterDiameter():
+            globals.msg.warning("Neighbor diameter filtering is enabled, PPPM may not correct for all excluded interactions\n");
+
+        if globals.neighbor_list.cpp_nlist.getFilterBody():
+            globals.msg.warning("Neighbor body filtering is enabled, PPPM may not correct for all excluded interactions\n");
 
 def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
     lprx = rms(hx, xprd, N, order, kappa, q2)

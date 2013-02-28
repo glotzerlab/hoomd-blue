@@ -87,9 +87,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
      - The \c cell_size array lists the number of members in each cell.
      - The \c xyzf array contains Scalar4 elements each of which holds the x,y,z coordinates of the particle and a flag.
-       That flag can optionally be the particle index or its charge.
+       That flag can optionally be the particle index, its charge, or its type.
      - The \c tdb array contains Scalar4 elements each of which holds the type, diameter, and body of the particle.
        It is only computed is requested to reduce the computation time when it is not needed.
+     - The \c orientation array contains Scalar4 elements listing the orientation of each particle.
+       It is only computed is requested to reduce the computation time when it is not needed.
+     - The \c idx array contains unsigned int elements listing the index of each particle. It is useful when xyzf is 
+       set to hold type. It is only computed is requested to reduce the computation time when it is not needed.
      - The cell_adj array lists indices of adjacent cells. A specified radius (3,5,7,...) of cells is included in the
        list.
     
@@ -110,7 +114,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      - <code>cell_size[cidx]</code> is the number of particles in the cell with index \c cidx
      - \c xyzf is Ncells x Nmax and <code>xyzf[cell_list_indexer(offset,cidx)]</code> is the data stored for particle
        \c offset in cell \c cidx (\c offset can vary from 0 to <code>cell_size[cidx]-1</code>)
-     - \c tbd is structured identically to \c xyzf
+     - \c tbd, idx, and orientation is structured identically to \c xyzf
      - <code>cell_adj[cell_adj_indexer(offset,cidx)]</code> is the cell index for neighboring cell \c offset to \c cidx.
        \c offset can vary from 0 to (radius*2+1)^3-1 (typically 26 with radius 1)
      
@@ -118,6 +122,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      - \c width - minimum width of a cell in any x,y,z direction
      - \c radius - integer radius of cells to generate in \c cell_adj (1,2,3,4,...)
      - \c max_cells - maximum number of cells to allocate
+     - \c multiple - Round down to the nearest multiple number of cells in each direction (only applied to cells
+                     inside the domain, not the ghost cells).
      
     After a set call is made to adjust a parameter, changes do not take effect until the next call to compute().
 
@@ -171,11 +177,34 @@ class CellList : public Compute
             m_compute_tdb = compute_tdb;
             m_params_changed = true;
             }
+
+        //! Specify if the orientation cell list is to be computed
+        void setComputeOrientation(bool compute_orientation)
+            {
+            m_compute_orientation = compute_orientation;
+            m_params_changed = true;
+            }
+            
+        //! Specify if the index cell list is to be computed
+        void setComputeIdx(bool compute_idx)
+            {
+            m_compute_idx = compute_idx;
+            m_params_changed = true;
+            }
         
         //! Specify that the flag is to be filled with the particle charge
         void setFlagCharge()
             {
             m_flag_charge = true;
+            m_flag_type = false;
+            m_params_changed = true;
+            }
+
+        //! Specify that the flag is to be filled with the particle type
+        void setFlagType()
+            {
+            m_flag_charge = false;
+            m_flag_type = true;
             m_params_changed = true;
             }
         
@@ -183,6 +212,7 @@ class CellList : public Compute
         void setFlagIndex()
             {
             m_flag_charge = false;
+            m_flag_type = false;
             m_params_changed = true;
             }
         
@@ -197,10 +227,25 @@ class CellList : public Compute
             {
             m_box_changed = true;
             }
+        
+        //! Set the multiple value
+        void setMultiple(unsigned int multiple)
+            {
+            if (multiple != 0)
+                m_multiple = multiple;
+            else
+                m_multiple = 1;
+            }
 
         // @}
         //! \name Get properties
         // @{
+        
+        //! Get the nominal width of the cells
+        Scalar getNominalWidth() const
+            {
+            return m_nominal_width;
+            }
         
         //! Get the dimensions of the cell list
         const uint3& getDim() const
@@ -265,12 +310,28 @@ class CellList : public Compute
             {
             return m_tdb;
             }
+
+        //! Get the cell list containing orientation
+        const GPUArray<Scalar4>& getOrientationArray() const
+            {
+            return m_orientation;
+            }
+
+        //! Get the cell list containing index
+        const GPUArray<unsigned int>& getIndexArray() const
+            {
+            return m_idx;
+            }
             
+
         //! Compute the cell list given the current particle positions
         void compute(unsigned int timestep);
         
         //! Benchmark the computation
         double benchmark(unsigned int num_iters);
+
+        //! Print statistics on the cell list
+        virtual void printStats();
         
         // @}
 
@@ -280,13 +341,16 @@ class CellList : public Compute
         unsigned int m_radius;       //!< Radius of adjacency bins to list
         unsigned int m_max_cells;    //!< Maximum number of cells to allocate
         bool m_compute_tdb;          //!< true if the tdb list should be computed
-        bool m_flag_charge;          //!< true if the flag should be set to the charge, it will be index otherwise
+        bool m_compute_orientation;  //!< true if the orientation list should be computed
+        bool m_compute_idx;          //!< true if the idx list should be computed
+        bool m_flag_charge;          //!< true if the flag should be set to the charge, it will be index (or type) otherwise
+        bool m_flag_type;            //!< true if the flag should be set to type, it will be index otherwise
         bool m_params_changed;       //!< Set to true when parameters are changed
         bool m_particles_sorted;     //!< Set to true when the particles have been sorted
         bool m_box_changed;          //!< Set to ttrue when the box size has changed
+        unsigned int m_multiple;     //!< Round cell dimensions down to a multiple of this value
         
         // parameters determined by initialize
-        Scalar3 m_width;             //!< Actual width
         uint3 m_dim;                 //!< Current dimensions
         Index3D m_cell_indexer;      //!< Indexes cells from i,j,k
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
@@ -299,6 +363,8 @@ class CellList : public Compute
         GPUArray<unsigned int> m_cell_adj;   //!< Cell adjacency list
         GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
         GPUArray<Scalar4> m_tdb;             //!< Cell list with type,diameter,body
+        GPUArray<Scalar4> m_orientation;     //!< Cell list with orientation
+        GPUArray<unsigned int> m_idx;        //!< Cell list with index
         GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
         boost::signals::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
