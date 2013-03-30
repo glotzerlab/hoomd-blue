@@ -296,7 +296,13 @@ class NeighborList : public Compute
         
         //! Collect some statistics on exclusions.
         void countExclusions();
-        
+       
+        //! Get number of exclusions involving n particles
+        /*! \param n Size of the exclusion
+         * \returns Number of excluded particles
+         */
+        unsigned int getNumExclusions(unsigned int size);
+
         //! Add an exclusion for every bond in the ParticleData
         void addExclusionsFromBonds();
         
