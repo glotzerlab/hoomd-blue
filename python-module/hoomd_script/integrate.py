@@ -445,7 +445,7 @@ class nvt(_integration_method):
         if tau is not None:
             self.cpp_method.setTau(tau);
 
-## NPT Integration
+## NPT Integration via MTK barostat-thermostat with triclinic unit cell
 #
 # integrate.npt performs constant pressure, constant temperature simulations, allowing for a fully deformable
 # simulation box
@@ -660,19 +660,20 @@ class npt(_integration_method):
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
 
-## NPH Integration via Andersen barostat or Parrinello-Rahman barostat restricted to anisotropic length fluctuations
+## NPH Integration via MTK barostat-thermostat with triclinic unit cell
 #
 # integrate.nph performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
 # explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
 # cells and uses the same underying integrator as integrate.npt (with \b nph=True).
 #
-# The available options are identical to those of integrate.npt, Except that *T* is fixed at 1.0. For further
-# information, refer to its documentation.
+# The available options are identical to those of integrate.npt, except that *T* cannot be specified.
+# For further information, refer to the documentation of integrate.npt
 #
 # \note A time scale \b tau_p for the relaxation of the barostat is required. This is defined as the
-#       relaxation time the barostat would have at a temperature \f$ T_0 =1 \f$, and is related to the
-#       internally used Barostat mass \f$W\f$ via \f $W=d N T_0 \tau_p^2 \f $, where \f$ d \f$ is the
-#       dimensionsality.
+#       relaxation time the barostat would have at an average temperature \f$ T_0 =1 \f$, and it
+#       is related to the internally used (Andersen) Barostat mass \f$W\f$ via
+#       \f $W=d N T_0 \tau_p^2 \f $, where \f$ d \f$ is the dimensionsality and \f$ N \f$ the number
+#       of particles.
 #       
 # integrate.nph is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:

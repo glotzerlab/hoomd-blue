@@ -384,7 +384,6 @@ class imd(_analyzer):
 # - Integrators
 #   - **bdnvt_reservoir_energy**_groupname (integrate.bdnvt) - Energy reservoir for the BD thermostat (in energy units)
 #   - **nvt_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
-#   - **nph_barostat_energy**_groupname (integrate.nph) - Energy reservoir for the NPH barostat
 #   - **npt_mtk_thermostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT thermostat
 #   - **npt_mtk_barostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT barostat
 # 
