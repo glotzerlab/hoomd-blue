@@ -384,8 +384,8 @@ class imd(_analyzer):
 # - Integrators
 #   - **bdnvt_reservoir_energy**_groupname (integrate.bdnvt) - Energy reservoir for the BD thermostat (in energy units)
 #   - **nvt_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
-#   - **npt_mtk_thermostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT thermostat
-#   - **npt_mtk_barostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT barostat
+#   - **npt_thermostat_energy** (integrate.npt) - Energy of the NPT thermostat
+#   - **npt_barostat_energy** (integrate.npt & integrate.nph) - Energy of the NPT (or NPH) barostat
 # 
 # Additionally, the following commands can be provided user-defined names that are appended as suffixes to the 
 # logged quantitiy (e.g. with \c pair.lj(r_cut=2.5, \c name="alpha"), the logged quantity would be pair_lj_energy_alpha).
