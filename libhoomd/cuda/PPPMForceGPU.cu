@@ -75,14 +75,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! The developer has chosen not to document this variable
 __device__ __constant__ float GPU_rho_coeff[CONSTANT_SIZE];
 
-//! Coefficients of a power expansion of sin(x)/x
-const Scalar sinc_coeff[] = {Scalar(1.0), Scalar(-1.0/6.0), Scalar(1.0/120.0),
-                        Scalar(-1.0/5040.0),Scalar(1.0/362880.0),
-                        Scalar(-1.0/39916800.0)};
-
-//! Coefficients of a power expansion of sin(x)/x
-__device__ __constant__ float gpu_sinc_coeff[6];
-
 /*! \file PPPMForceGPU.cu
   \brief Defines GPU kernel code for calculating the Fourier space forces for the Coulomb interaction. Used by PPPMForceComputeGPU.
 */
@@ -98,12 +90,18 @@ __device__ Scalar gpu_sinc(Scalar x)
     {
     Scalar sinc = 0;
 
+    //! Coefficients of a power expansion of sin(x)/x
+    const Scalar sinc_coeff[] = {Scalar(1.0), Scalar(-1.0/6.0), Scalar(1.0/120.0),
+                            Scalar(-1.0/5040.0),Scalar(1.0/362880.0),
+                            Scalar(-1.0/39916800.0)};
+
+
     if (x*x <= Scalar(1.0))
         {
         Scalar term = Scalar(1.0);
         for (unsigned int i = 0; i < 6; ++i)
            {
-           sinc += gpu_sinc_coeff[i] * term;
+           sinc += sinc_coeff[i] * term;
            term *= x*x;
            }
         }
@@ -991,8 +989,6 @@ cudaError_t reset_kvec_green_hat(const BoxDim& box,
     Scalar3 b1 = Scalar(2.0*M_PI)*make_scalar3(a2.y*a3.z-a2.z*a3.y, a2.z*a3.x-a2.x*a3.z, a2.x*a3.y-a2.y*a3.x)/V_box;
     Scalar3 b2 = Scalar(2.0*M_PI)*make_scalar3(a3.y*a1.z-a3.z*a1.y, a3.z*a1.x-a3.x*a1.z, a3.x*a1.y-a3.y*a1.x)/V_box;
     Scalar3 b3 = Scalar(2.0*M_PI)*make_scalar3(a1.y*a2.z-a1.z*a2.y, a1.z*a2.x-a1.x*a2.z, a1.x*a2.y-a1.y*a2.x)/V_box;
-
-    cudaMemcpyToSymbol(gpu_sinc_coeff, &(sinc_coeff[0]), 6*sizeof(Scalar));
 
     dim3 grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
