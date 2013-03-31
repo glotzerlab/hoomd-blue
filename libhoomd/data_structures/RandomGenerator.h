@@ -61,6 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "BondData.h"
 
+#include "SnapshotSystemData.h"
+
 #include <string>
 #include <vector>
 #include <map>
@@ -253,7 +255,7 @@ class PolymerParticleGenerator : public ParticleGenerator
      -# Construct and add any number of ParticleGenerator instances to the RandomGenerator
      -# Call generate() to actually place the particles
 */
-class RandomGenerator : public ParticleDataInitializer
+class RandomGenerator
     {
     public:
         //! Set the parameters
@@ -261,24 +263,9 @@ class RandomGenerator : public ParticleDataInitializer
         //! Empty Destructor
         virtual ~RandomGenerator() { }
         
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumParticles() const;
-        
-        //! Returns the number of bonds to be initialized
-        virtual unsigned int getNumBonds() const;
-
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const;
-
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
+        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
 
-        //! Returns the number of bond types to be created
-        virtual unsigned int getNumBondTypes() const;
-        
-        //! Initialize the bond data
-        virtual void initBondDataSnapshot(SnapshotBondData& snapshot) const;
-        
         //! Sets the separation radius for a particle
         void setSeparationRadius(string type, Scalar radius);
         

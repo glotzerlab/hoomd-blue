@@ -390,6 +390,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_SystemDefinition();
     export_AngleData();
     export_DihedralData();
+    export_SnapshotSystemData();
     
     // initializers
     export_RandomInitializer();

@@ -58,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "SnapshotSystemData.h"
 #include "ParticleData.h"
 #include "BondData.h"
 #include "WallData.h"
@@ -128,9 +129,13 @@ class SystemDefinition
                          unsigned int n_improper_types=0,
                          boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()));
                          
-        //! Construct from an initializer (temporary measure until the initializer setup is rewritten)
-        SystemDefinition(const ParticleDataInitializer& init,
-                        boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()));
+        //! Construct from a snapshot
+        SystemDefinition(const SnapshotSystemData& snapshot,
+                        boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration())
+#ifdef ENABLE_MPI
+                        , boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>()
+#endif
+                        );
                         
         //! Set the dimensionality of the system
         void setNDimensions(unsigned int);

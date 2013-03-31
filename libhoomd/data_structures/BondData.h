@@ -115,16 +115,28 @@ struct Bond
 //! Handy structure for passing around and initializing the bond data
 struct SnapshotBondData
     {
+    //! Default constructor
+    SnapshotBondData()
+        { }
+
     //! Constructor
     /*! \param n_bonds Number of bonds contained in the snapshot
      */
     SnapshotBondData(unsigned int n_bonds)
         {
-        type_id.resize(n_bonds);
-        bonds.resize(n_bonds);
+        resize(n_bonds);
 
         // provide default type mapping
         type_mapping.push_back("polymer");
+        }
+
+    //! Resize the snapshot
+    /*! \param n_bonds Number of bonds in the snapshot
+     */
+    void resize(unsigned int n_bonds)
+        {
+        type_id.resize(n_bonds);
+        bonds.resize(n_bonds);
         }
 
     std::vector<unsigned int> type_id;             //!< Stores type for each bond
@@ -157,6 +169,9 @@ class BondData : boost::noncopyable
     public:
         //! Constructs an empty list with no bonds
         BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types);
+
+        //! Constructs a BondData from a snapshot
+        BondData(boost::shared_ptr<ParticleData> pdata, const SnapshotBondData& snapshot);
         
         //! Destructor
         ~BondData();
@@ -205,7 +220,7 @@ class BondData : boost::noncopyable
         */
         unsigned int getNBondTypes() const
             {
-            return m_n_bond_types;
+            return m_bond_type_mapping.size();
             }
             
         //! Set the type mapping
@@ -228,25 +243,6 @@ class BondData : boost::noncopyable
                                const GPUArray<bond_element>& buf,
                                const GPUArray<unsigned int>& remove_mask);
 
-        //! Requests bonds to be removed from the bond table
-        /*! \param num_bonds The number of empty bonds to be removed
-            \post The internal data structures are resized to reflect the new number of bonds.
-                  No memory is usually released. 
-            \warning It is the responsibility of the caller t
-            to the GPUArrays.
-         */
-        void shrinkBondTable(unsigned int num_bonds)
-            {
-            assert(m_bonds.size() == m_bond_type.size());
-            assert(m_bonds.size() == m_tags.size());
-
-            unsigned int new_size = m_bonds.size() + num_bonds;
-            m_bonds.resize(new_size);
-            m_bond_type.resize(new_size);
-            m_tags.resize(new_size);
-            }
-
-        
         //! Gets the bond table
         const GPUVector<uint2>& getBondTable()
             {
@@ -303,7 +299,6 @@ class BondData : boost::noncopyable
         void reallocate();
 
     private:
-        const unsigned int m_n_bond_types;              //!< Number of bond types
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
         boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
@@ -336,7 +331,6 @@ class BondData : boost::noncopyable
         unsigned int m_max_bond_num;            //!< Maximum bond number
         GPUFlags<unsigned int> m_condition;     //!< Condition variable for bond counting
 #endif
-        unsigned int m_num_bonds_global;        //!< Total number of bonds on all processors
 
 #ifdef ENABLE_CUDA
         GPUFlags<unsigned int> m_duplicate_recv_bonds; //!< Number of duplicate bonds received
@@ -344,6 +338,7 @@ class BondData : boost::noncopyable
         GPUVector<unsigned char> m_recv_bond_active;   //!< Per-bond flag for buffers (1= bond is retained, 0 = duplicate)
         bool m_buffers_initialized;             //!< True if internal buffers have been initialized
 #endif 
+        unsigned int m_num_bonds_global;        //!< Total number of bonds on all processors
 
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA

@@ -124,7 +124,6 @@ void SimpleCubicInitializer::initSnapshot(SnapshotParticleData &snapshot) const
             }
         }
 
-    snapshot.num_particle_types = 1;
     snapshot.type_mapping.push_back(m_type_name);
     }
 
@@ -253,7 +252,6 @@ void RandomInitializer::initSnapshot(SnapshotParticleData& snapshot) const
         snapshot.pos[i] = make_scalar3(x,y,z);
         }
 
-    snapshot.num_particle_types = 1;
     snapshot.type_mapping.push_back(m_type_name);
     }
 

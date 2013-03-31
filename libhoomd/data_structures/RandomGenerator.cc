@@ -353,62 +353,37 @@ RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(b
     {
     }
 
-unsigned int RandomGenerator::getNumParticles() const
+/*! initializes a snapshot with the internally stored copy of the particle and bond data */
+void RandomGenerator::initSnapshot(SnapshotSystemData& snapshot) const
     {
-    return (unsigned int)m_data.m_particles.size();
-    }
+    // initialize box dimensions
+    snapshot.setGlobalBox(m_box);
 
-unsigned int RandomGenerator::getNumBonds() const
-    {
-    return (unsigned int)m_data.m_bonds.size();
-    }
+    // initialize particle data
+    SnapshotParticleData& pdata_snap = snapshot.getParticleDataSnapshot();
 
-
-BoxDim RandomGenerator::getBox() const
-    {
-    return m_box;
-    }
-
-
-/*! initializes a snapshot with the internally stored copy of the particle data */
-void RandomGenerator::initSnapshot(SnapshotParticleData& snapshot) const
-    {
     unsigned int nparticles = m_data.m_particles.size();
-    assert(snapshot.size == nparticles);
+    pdata_snap.resize(nparticles);
 
     for (unsigned int i = 0; i < nparticles; i++)
         {
-        snapshot.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
-        snapshot.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
-        snapshot.type[i] = m_data.m_particles[i].type_id;
+        pdata_snap.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
+        pdata_snap.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
+        pdata_snap.type[i] = m_data.m_particles[i].type_id;
         }
 
-    snapshot.type_mapping = m_type_mapping;
-    snapshot.num_particle_types = m_type_mapping.size();
-    }
+    pdata_snap.type_mapping = m_type_mapping;
 
-/*! \return Number of bond types generated
-*/
-unsigned int RandomGenerator::getNumBondTypes() const
-    {
-    return m_bond_type_mapping.size();
-    }
-
-/*! \param snapshot The bond data snapshot to be initialized
-    Adds all generated bonds to the BondData
-*/
-void RandomGenerator::initBondDataSnapshot(SnapshotBondData& snapshot) const
-    {
-    assert(snapshot.bonds.size() == m_data.m_bonds.size());
-
-    // loop through all the bonds and add a bond for each
+    // initialize bonds
+    SnapshotBondData& bdata_snap = snapshot.getBondDataSnapshot();
+    bdata_snap.resize(m_data.m_bonds.size());
     for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)
         {
-        snapshot.bonds[i] = make_uint2(m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b);
-        snapshot.type_id[i] = m_data.m_bonds[i].type_id;
+        bdata_snap.bonds[i] = make_uint2(m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b);
+        bdata_snap.type_id[i] = m_data.m_bonds[i].type_id;
         }
         
-    snapshot.type_mapping = m_bond_type_mapping;
+    bdata_snap.type_mapping = m_bond_type_mapping;
     }
 
 /*! \param type Name of the particle type to set the radius for
@@ -672,11 +647,12 @@ void export_RandomGenerator()
     .def(vector_indexing_suite<std::vector<string> >())
     ;
     
-    class_< RandomGenerator, bases<ParticleDataInitializer> >("RandomGenerator", init<const BoxDim&, unsigned int>())
+    class_< RandomGenerator >("RandomGenerator", init<const BoxDim&, unsigned int>())
     // virtual methods from ParticleDataInitializer are inherited
     .def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
     .def("addGenerator", &RandomGenerator::addGenerator)
     .def("generate", &RandomGenerator::generate)
+    .def("initSnapshot", &RandomGenerator::initSnapshot)
     ;
     
     class_< ParticleGeneratorWrap, boost::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())

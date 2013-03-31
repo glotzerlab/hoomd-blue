@@ -161,7 +161,6 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         }        
 
     snapshot.type_mapping = m_type_mapping;
-    snapshot.num_particle_types = m_type_mapping.size();
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file

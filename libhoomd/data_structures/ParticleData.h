@@ -213,13 +213,18 @@ const unsigned int NOT_LOCAL = 0xffffffff;
 struct SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
-        : size(0), num_particle_types(0)
+        : size(0)
         { }
 
     //! constructor
     /*! \param N number of particles to allocate memory for
      */
     SnapshotParticleData(unsigned int N);
+
+    //! Resize the snapshot
+    /*! \param N number of particles in snapshot
+     */
+    void resize(unsigned int N);
 
     std::vector<Scalar3> pos;       //!< positions
     std::vector<Scalar3> vel;       //!< velocities
@@ -232,7 +237,6 @@ struct SnapshotParticleData {
     std::vector<unsigned int> body; //!< body ids
     std::vector<Scalar4> orientation; //!< orientations
     unsigned int size;              //!< number of particles in this snapshot
-    unsigned int num_particle_types;//!< Number of particle types defined
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
     };
 
@@ -482,7 +486,17 @@ class ParticleData : boost::noncopyable
         //! Construct from an initializer
         ParticleData(const ParticleDataInitializer& init,
                      boost::shared_ptr<ExecutionConfiguration> exec_conf);
-        
+       
+        //! Construct using a ParticleDataSnapshot
+        ParticleData(const SnapshotParticleData& snapshot,
+                     const BoxDim& global_box,
+                     boost::shared_ptr<ExecutionConfiguration> exec_conf
+#ifdef ENABLE_MPI
+                     , boost::shared_ptr<DomainDecomposition> decomposition
+                        = boost::shared_ptr<DomainDecomposition>()
+#endif
+                     );
+ 
         //! Destructor
         virtual ~ParticleData();
         
@@ -552,7 +566,7 @@ class ParticleData : boost::noncopyable
         */
         unsigned int getNTypes() const
             {
-            return m_ntypes;
+            return m_type_mapping.size();
             }
             
         //! Get the maximum diameter of the particle set
@@ -810,7 +824,6 @@ class ParticleData : boost::noncopyable
 #ifdef ENABLE_MPI
         boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition data
 #endif
-        unsigned int m_ntypes;                      //!< Number of particle types
         
         std::vector<std::string> m_type_mapping;    //!< Mapping between particle type indices and names
         

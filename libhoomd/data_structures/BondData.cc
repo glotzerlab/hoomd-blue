@@ -82,7 +82,7 @@ using namespace std;
     \param n_bond_types Number of bond types in the list
 */
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
-    : m_n_bond_types(n_bond_types), m_bonds_dirty(false),
+    : m_bonds_dirty(false),
       m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
       m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
 #ifdef ENABLE_CUDA
@@ -125,9 +125,48 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     m_num_bonds_global = 0;
     }
 
+/*! \param pdata ParticleData these bonds refer into
+ * \param snapshot SnapshotBondData that contains the bond information
+*/
+BondData::BondData(boost::shared_ptr<ParticleData> pdata, const SnapshotBondData& snapshot) 
+    : m_bonds_dirty(false),
+      m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
+      m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf),
+#ifdef ENABLE_CUDA
+      m_max_bond_num(0),
+      m_buffers_initialized(false),
+#endif
+      m_num_bonds_global(0) 
+    {
+    assert(pdata);
+    m_exec_conf = m_pdata->getExecConf();
+    m_exec_conf->msg->notice(5) << "Constructing BondData" << endl;
+
+    // attach to the signal for notifications of particle sorts
+    m_sort_connection = m_pdata->connectParticleSort(bind(&BondData::setDirty, this));
+
+    // attach to max particle num change connection
+    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&BondData::reallocate, this));
+
+    // attach to ghost particle number change connection
+    m_ghost_particle_num_change_connection = m_pdata->connectGhostParticleNumberChange(bind(&BondData::setDirty, this));
+
+    // allocate memory for the GPU bond table
+    allocateBondTable(1);
+
+    #ifdef ENABLE_CUDA
+    GPUFlags<unsigned int> condition(exec_conf);
+    m_condition.swap(condition);
+    #endif
+
+    // initialize bond data from snapshot
+    initializeFromSnapshot(snapshot);
+    }
+
+
 BondData::~BondData()
     {
-    m_exec_conf->msg->notice(5) << "Destroying AngleData" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying BondData" << endl;
     m_sort_connection.disconnect();
     m_max_particle_num_change_connection.disconnect();
     m_ghost_particle_num_change_connection.disconnect();
@@ -169,9 +208,9 @@ unsigned int BondData::addBond(const Bond& bond)
         }
         
     // check that the type is within bouds
-    if (bond.type+1 > m_n_bond_types)
+    if (bond.type+1 > m_bond_type_mapping.size())
         {
-        m_exec_conf->msg->error() << "Invalid bond type! " << bond.type << ", the number of types is " << m_n_bond_types << endl;
+        m_exec_conf->msg->error() << "Invalid bond type! " << bond.type << ", the number of types is " << m_bond_type_mapping.size() << endl;
         throw runtime_error("Error adding bond");
         }
 
@@ -326,7 +365,6 @@ void BondData::removeBond(unsigned int tag)
 */
 void BondData::setBondTypeMapping(const std::vector<std::string>& bond_type_mapping)
     {
-    assert(bond_type_mapping.size() == m_n_bond_types);
     m_bond_type_mapping = bond_type_mapping;
     }
 
@@ -356,7 +394,7 @@ unsigned int BondData::getTypeByName(const std::string &name)
 std::string BondData::getNameByType(unsigned int type)
     {
     // check for an invalid request
-    if (type >= m_n_bond_types)
+    if (type >= m_bond_type_mapping.size())
         {
         m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
@@ -368,11 +406,7 @@ std::string BondData::getNameByType(unsigned int type)
 
 
 /*! Updates the bond data on the GPU if needed and returns the data structure needed to access it.
- *
- * \warning The order of bonds in the GPU bond table differs whether it is constructed using
-         the GPU implementation of updateBondTableGPU() and the CPU implementation updateBondTable().
-         It is therefore unspecified (but in, in any case, deterministic).
-*/
+ */
 void BondData::checkUpdateBondList()
     {
     if (m_bonds_dirty)
@@ -580,15 +614,8 @@ void BondData::allocateBondTable(int height)
 */
 void BondData::takeSnapshot(SnapshotBondData& snapshot)
     {
-    // check for an invalid request
-    if (snapshot.bonds.size() != getNumBondsGlobal())
-        {
-        m_exec_conf->msg->error() << "BondData is being asked to initizalize a snapshot of the wrong size."
-             << endl;
-        throw runtime_error("Error taking snapshot.");
-        }
-
-    assert(snapshot.type_id.size() == getNumBondsGlobal());
+    // allocate memory in snapshot
+    snapshot.resize(getNumBondsGlobal());
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -677,14 +704,13 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
         m_deleted_tags.pop();
     m_bond_rtag.clear();
 
-    std::vector<std::string> type_mapping;
-
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         // first, broadcast bonds to all processors
         std::vector<uint2> all_bonds;
         std::vector<unsigned int> all_typeid;
+        std::vector<std::string> type_mapping;
 
         unsigned int root = 0;
         if (m_exec_conf->getRank() == root)
@@ -717,27 +743,30 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
         unsigned int nparticles = m_pdata->getN();
         unsigned int bond_idx = 0;
         for (unsigned int bond_tag = 0; bond_tag < m_num_bonds_global; ++bond_tag)
-            if ((h_rtag.data[all_bonds[bond_tag].x] < nparticles) || (h_rtag.data[all_bonds[bond_tag].y] < nparticles))
+            if ((h_rtag.data[all_bonds[bond_tag].x] < nparticles)
+                || (h_rtag.data[all_bonds[bond_tag].y] < nparticles))
                 {
                 m_bonds.push_back(all_bonds[bond_tag]);
                 m_bond_type.push_back(all_typeid[bond_tag]);
                 m_tags.push_back(bond_tag);
                 m_bond_rtag[bond_tag] = bond_idx++;
                 }
+    
+        setBondTypeMapping(type_mapping);
         }
     else
 #endif
         {
+        setBondTypeMapping(snapshot.type_mapping);
+
         for (unsigned int bond_idx = 0; bond_idx < snapshot.bonds.size(); bond_idx++)
             {
             Bond bond(snapshot.type_id[bond_idx], snapshot.bonds[bond_idx].x, snapshot.bonds[bond_idx].y);
             addBond(bond);
             }
-
-        type_mapping = snapshot.type_mapping;
         }
 
-    setBondTypeMapping(type_mapping);
+    m_bonds_dirty = true;
     }
 
 //! A combined iterator for filtering bonds

@@ -111,26 +111,33 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
-/*! Calls the initializer's members to determine the number of particles, box size and then
-    uses it to fill out the position and velocity data.
-    \param init Initializer to use
+/*! Evaluates the snapshot and initializes the respective *Data classes using
+   its contents (box dimensions and sub-snapshots) 
+    \param snapshot Snapshot to use
     \param exec_conf Execution configuration to run on
-
-    \b TEMPORARY!!!!! Initializers are planned to be rewritten
+    \param decomposition (optional) The domain decomposition layout
 */
-SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+SystemDefinition::SystemDefinition(const SnapshotSystemData& snapshot,
+                                   boost::shared_ptr<ExecutionConfiguration> exec_conf
+#ifdef ENABLE_MPI
+                                   , boost::shared_ptr<DomainDecomposition> decomposition
+#endif
+                                   )
     {
-    m_n_dimensions = init.getNumDimensions();
-    
-    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(init, exec_conf));
-    
-    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, init.getNumBondTypes()));
-    SnapshotBondData snapshot(init.getNumBonds());
-    init.initBondDataSnapshot(snapshot);
-    m_bond_data->initializeFromSnapshot(snapshot);
-    
+    m_n_dimensions = snapshot.dimensions;
+
+    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot.pdata,
+                 snapshot.global_box,
+                 exec_conf
+#ifdef ENABLE_MPI
+                 , decomposition
+#endif
+                 ));
+ 
+    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot.bdata));
+   
     m_wall_data = boost::shared_ptr<WallData>(new WallData());
-    init.initWallData(m_wall_data);
+//    init.initWallData(m_wall_data);
     
     m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
     
@@ -141,19 +148,19 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, boost::s
     
     // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta and body images; 
     // otherwise, nothing is done here.
-    init.initRigidData(m_rigid_data);
+//    init.initRigidData(m_rigid_data);
         
-    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, init.getNumAngleTypes()));
-    init.initAngleData(m_angle_data);
+//    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, init.getNumAngleTypes()));
+//   init.initAngleData(m_angle_data);
     
-    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumDihedralTypes()));
-    init.initDihedralData(m_dihedral_data);
+//    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumDihedralTypes()));
+//    init.initDihedralData(m_dihedral_data);
     
-    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumImproperTypes()));
-    init.initImproperData(m_improper_data);
+//    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumImproperTypes()));
+//    init.initImproperData(m_improper_data);
 
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
-    init.initIntegratorData(m_integrator_data);
+//    init.initIntegratorData(m_integrator_data);
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of 
@@ -176,7 +183,8 @@ void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
     .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<const SnapshotSystemData&, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<const SnapshotSystemData&, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def("setNDimensions", &SystemDefinition::setNDimensions)
     .def("getNDimensions", &SystemDefinition::getNDimensions)
     .def("getParticleData", &SystemDefinition::getParticleData)
