@@ -581,7 +581,7 @@ void HOOMDBinaryInitializer::initAngleData(boost::shared_ptr<AngleData> angle_da
     for (unsigned int i = 0; i < m_angles.size(); i++)
         angle_data->addAngle(m_angles[i]);
         
-    angle_data->setAngleTypeMapping(m_angle_type_mapping);
+//    angle_data->setAngleTypeMapping(m_angle_type_mapping);
     }
 
 /*! \param dihedral_data Shared pointer to the DihedralData to be initialized
@@ -593,7 +593,7 @@ void HOOMDBinaryInitializer::initDihedralData(boost::shared_ptr<DihedralData> di
     for (unsigned int i = 0; i < m_dihedrals.size(); i++)
         dihedral_data->addDihedral(m_dihedrals[i]);
         
-    dihedral_data->setDihedralTypeMapping(m_dihedral_type_mapping);
+//    dihedral_data->setDihedralTypeMapping(m_dihedral_type_mapping);
     }
 
 /*! \param improper_data Shared pointer to the ImproperData to be initialized
@@ -605,7 +605,7 @@ void HOOMDBinaryInitializer::initImproperData(boost::shared_ptr<DihedralData> im
     for (unsigned int i = 0; i < m_impropers.size(); i++)
         improper_data->addDihedral(m_impropers[i]);
         
-    improper_data->setDihedralTypeMapping(m_improper_type_mapping);
+//    improper_data->setDihedralTypeMapping(m_improper_type_mapping);
     }
 
 /*! \param rigid_data Shared pointer to the ImproperData to be initialized

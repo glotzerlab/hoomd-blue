@@ -357,10 +357,10 @@ RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(b
 void RandomGenerator::initSnapshot(SnapshotSystemData& snapshot) const
     {
     // initialize box dimensions
-    snapshot.setGlobalBox(m_box);
+    snapshot.global_box = m_box;
 
     // initialize particle data
-    SnapshotParticleData& pdata_snap = snapshot.getParticleDataSnapshot();
+    SnapshotParticleData& pdata_snap = snapshot.particle_data;
 
     unsigned int nparticles = m_data.m_particles.size();
     pdata_snap.resize(nparticles);
@@ -375,7 +375,7 @@ void RandomGenerator::initSnapshot(SnapshotSystemData& snapshot) const
     pdata_snap.type_mapping = m_type_mapping;
 
     // initialize bonds
-    SnapshotBondData& bdata_snap = snapshot.getBondDataSnapshot();
+    SnapshotBondData& bdata_snap = snapshot.bond_data;
     bdata_snap.resize(m_data.m_bonds.size());
     for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)
         {

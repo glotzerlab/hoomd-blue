@@ -126,7 +126,7 @@ SystemDefinition::SystemDefinition(const SnapshotSystemData& snapshot,
     {
     m_n_dimensions = snapshot.dimensions;
 
-    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot.pdata,
+    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot.particle_data,
                  snapshot.global_box,
                  exec_conf
 #ifdef ENABLE_MPI
@@ -134,7 +134,7 @@ SystemDefinition::SystemDefinition(const SnapshotSystemData& snapshot,
 #endif
                  ));
  
-    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot.bdata));
+    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot.bond_data));
    
     m_wall_data = boost::shared_ptr<WallData>(new WallData());
 //    init.initWallData(m_wall_data);
@@ -150,14 +150,11 @@ SystemDefinition::SystemDefinition(const SnapshotSystemData& snapshot,
     // otherwise, nothing is done here.
 //    init.initRigidData(m_rigid_data);
         
-//    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, init.getNumAngleTypes()));
-//   init.initAngleData(m_angle_data);
+    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, snapshot.angle_data));
     
-//    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumDihedralTypes()));
-//    init.initDihedralData(m_dihedral_data);
+    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot.dihedral_data));
     
-//    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumImproperTypes()));
-//    init.initImproperData(m_improper_data);
+    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot.improper_data));
 
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
 //    init.initIntegratorData(m_integrator_data);

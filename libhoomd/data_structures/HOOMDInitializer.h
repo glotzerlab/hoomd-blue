@@ -75,6 +75,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __HOOMD_INITIALIZER_H__
 #define __HOOMD_INITIALIZER_H__
 
+//! Forward declarations
+class SnapshotSystemData;
+
 //! Initializes particle data from a Hoomd input file
 /*! The input XML file format is identical to the output XML file format that HOOMDDumpWriter writes.
     For more information on the XML file format design see \ref page_dev_info. Although, HOOMD's
@@ -92,7 +95,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     \ingroup data_structs
 */
-class HOOMDInitializer : public ParticleDataInitializer
+class HOOMDInitializer 
     {
     public:
         //! Loads in the file and parses the data
@@ -117,34 +120,10 @@ class HOOMDInitializer : public ParticleDataInitializer
         virtual BoxDim getBox() const;
 
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
+        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
 
         //! Initialize the walls
         virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
-        
-        //! Returns the number of bond types to be created
-        virtual unsigned int getNumBondTypes() const;
-        
-        //! Returns the number of angle types to be created
-        virtual unsigned int getNumAngleTypes() const;
-        
-        //! Returns the number of dihedral types to be created
-        virtual unsigned int getNumDihedralTypes() const;
-        
-        //! Returns the number of improper types to be created
-        virtual unsigned int getNumImproperTypes() const;
-        
-        //! Initialize the bond data
-        virtual void initBondDataSnapshot(SnapshotBondData & snapshot) const;
-        
-        //! Initialize the angle data
-        virtual void initAngleData(boost::shared_ptr<AngleData> angle_data) const;
-        
-        //! Initialize the dihedral data
-        virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const;
-        
-        //! Initialize the improper data
-        virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const;
         
         //! Initialize the orientation data
         virtual void initOrientation(Scalar4 *orientation) const;

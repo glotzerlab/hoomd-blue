@@ -65,8 +65,11 @@ void export_SnapshotSystemData()
     .def(init<>())
     .def_readwrite("dimensions", &SnapshotSystemData::global_box)
     .def_readwrite("global_box", &SnapshotSystemData::global_box)
-    .def_readwrite("pdata", &SnapshotSystemData::pdata)
-    .def_readwrite("bdata", &SnapshotSystemData::bdata)
+    .def_readwrite("particle_data", &SnapshotSystemData::particle_data)
+    .def_readwrite("bond_data", &SnapshotSystemData::bond_data)
+    .def_readwrite("angle_data", &SnapshotSystemData::angle_data)
+    .def_readwrite("dihedral_data", &SnapshotSystemData::dihedral_data)
+    .def_readwrite("improper_data", &SnapshotSystemData::improper_data)
     ;
     }
 

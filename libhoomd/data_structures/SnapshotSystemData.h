@@ -64,6 +64,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BoxDim.h"
 #include "ParticleData.h"
 #include "BondData.h"
+#include "AngleData.h"
+#include "DihedralData.h"
 
 /*! \ingroup data_structs
 */
@@ -73,6 +75,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 1. for initializing the system
  * 2. during the simulation, e.g. to dump the system state or to analyze it
  *
+ * Snapshots are temporary data-structures, they are only used for passing around data.
+ *
  * A SnapshotSystemData is just a super-structure that holds snapshots of other data, such
  * as particles, bonds, rigid bodies, etc. It is used by the SystemDefinition class to initially
  * set up these data structures, and can also be obtained from an object of that class to
@@ -81,37 +85,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * \ingroup data_structs
  */
 struct SnapshotSystemData {
-    unsigned int dimensions;      //!< The dimensionality of the system
-    BoxDim global_box;            //!< The dimensions of the simulation box
-    SnapshotParticleData pdata;   //!< The particle data
-    SnapshotBondData bdata;       //!< The bond data
+    unsigned int dimensions;               //!< The dimensionality of the system
+    BoxDim global_box;                     //!< The dimensions of the simulation box
+    SnapshotParticleData particle_data;    //!< The particle data
+    SnapshotBondData bond_data;            //!< The bond data
+    SnapshotAngleData angle_data;          //!< The angle data
+    SnapshotDihedralData dihedral_data;    //!< The dihedral data
+    SnapshotDihedralData improper_data;    //!< The improper data
    
     //! Constructor
     SnapshotSystemData()
         {
         dimensions = 3;
         }
-
-    BoxDim& getGlobalBox()
-        {
-        return global_box;
-        }
-
-    void setGlobalBox(const BoxDim& box)
-        {
-        global_box = box;
-        }
-
-    SnapshotParticleData& getParticleDataSnapshot()
-        {
-        return pdata;
-        }
-
-    SnapshotBondData& getBondDataSnapshot()
-        {
-        return bdata;
-        }
- 
     };
 
 //! Export SnapshotParticleData to python

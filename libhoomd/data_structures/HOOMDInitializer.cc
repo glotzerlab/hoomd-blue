@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "HOOMDInitializer.h"
+#include "SnapshotSystemData.h"
 
 #include <iostream>
 #include <fstream>
@@ -131,13 +132,13 @@ unsigned int HOOMDInitializer::getNumBonds() const
     return (unsigned int)m_bonds.size();
     }
 
-
 /*! \returns Box dimensions parsed from the XML file
-*/
+ * -*/
 BoxDim HOOMDInitializer::getBox() const
     {
     return m_box;
     }
+
 
 /*! \returns Time step parsed from the XML file
 */
@@ -152,16 +153,26 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
     m_timestep = ts;
     }
 
-/*! initializes a snapshot with the internally stored copy of the particle data */
-void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
+/*! initializes a snapshot with the internally stored copy of the system data */
+void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     {
-    assert(m_pos_array.size() > 0);
-    assert(snapshot.size == m_pos_array.size());
+    // initialize box dimensions
+    snapshot.global_box = m_box;
 
+    /*
+     * Initialize particle data
+     */
+    assert(m_pos_array.size() > 0);
+
+    SnapshotParticleData& pdata = snapshot.particle_data; 
+
+    // allocate memory in snapshot
+    pdata.resize(m_pos_array.size());
+    
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < m_pos_array.size(); i++)
         {
-        snapshot.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
+        pdata.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
         }
 
     if (m_image_array.size() != 0)
@@ -169,7 +180,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_image_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.image[i] = make_int3(m_image_array[i].x, m_image_array[i].y, m_image_array[i].z);
+            pdata.image[i] = make_int3(m_image_array[i].x, m_image_array[i].y, m_image_array[i].z);
         }
         
     if (m_vel_array.size() != 0)
@@ -177,7 +188,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_vel_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.vel[i] = make_scalar3(m_vel_array[i].x, m_vel_array[i].y, m_vel_array[i].z);
+            pdata.vel[i] = make_scalar3(m_vel_array[i].x, m_vel_array[i].y, m_vel_array[i].z);
         }
         
     if (m_mass_array.size() != 0)
@@ -185,7 +196,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_mass_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.mass[i] = m_mass_array[i];
+            pdata.mass[i] = m_mass_array[i];
         }
         
     if (m_diameter_array.size() != 0)
@@ -193,7 +204,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_diameter_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.diameter[i] = m_diameter_array[i];
+            pdata.diameter[i] = m_diameter_array[i];
         }
         
     if (m_charge_array.size() != 0)
@@ -201,7 +212,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_charge_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.charge[i] = m_charge_array[i];
+            pdata.charge[i] = m_charge_array[i];
         }
         
     if (m_type_array.size() != 0)
@@ -209,7 +220,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_type_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.type[i] = m_type_array[i];
+            pdata.type[i] = m_type_array[i];
         }
     
     if (m_body_array.size() != 0)
@@ -217,10 +228,78 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_body_array.size() == m_pos_array.size());
 
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.body[i] = m_body_array[i];
+            pdata.body[i] = m_body_array[i];
         }
 
-    snapshot.type_mapping = m_type_mapping;
+    pdata.type_mapping = m_type_mapping;
+
+    /*
+     * Initialize bond data
+     */
+    SnapshotBondData& bdata = snapshot.bond_data;
+
+    // allocate memory in snapshot
+    bdata.resize(m_bonds.size());
+
+    // loop through all the bonds and add a bond for each
+    for (unsigned int i = 0; i < m_bonds.size(); i++)
+        {
+        bdata.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
+        bdata.type_id[i] = m_bonds[i].type;
+        }
+        
+    bdata.type_mapping = m_bond_type_mapping;
+
+    /*
+     * Initialize angle data
+     */
+    SnapshotAngleData& adata = snapshot.angle_data;
+
+    // allocate memory in snapshot
+    adata.resize(m_angles.size());
+
+    // loop through all the angles and add an angle for each
+    for (unsigned int i = 0; i < m_angles.size(); i++)
+        {
+        adata.angles[i] = make_uint3(m_angles[i].a,m_angles[i].b,m_angles[i].c);
+        adata.type_id[i] = m_angles[i].type;
+        }
+        
+    adata.type_mapping = m_angle_type_mapping;
+
+    /*
+     * Initialize dihedral data
+     */
+    SnapshotDihedralData& ddata = snapshot.dihedral_data;
+
+    // allocate memory
+    ddata.resize(m_dihedrals.size());
+
+    // loop through all the dihedrals and add an dihedral for each
+    for (unsigned int i = 0; i < m_dihedrals.size(); i++)
+        {
+        ddata.dihedrals[i] = make_uint4(m_dihedrals[i].a,m_dihedrals[i].b,m_dihedrals[i].c, m_dihedrals[i].d);
+        ddata.type_id[i] = m_dihedrals[i].type;
+        }
+        
+    ddata.type_mapping = m_dihedral_type_mapping;
+
+    /*
+     * Initialize improper data
+     */
+    SnapshotDihedralData& idata = snapshot.improper_data;
+
+    // allocate memory
+    idata.resize(m_dihedrals.size());
+
+    // loop through all the dihedrals and add an dihedral for each
+    for (unsigned int i = 0; i < m_impropers.size(); i++)
+        {
+        idata.dihedrals[i] = make_uint4(m_impropers[i].a,m_impropers[i].b,m_impropers[i].c, m_impropers[i].d);
+        idata.type_id[i] = m_impropers[i].type;
+        }
+        
+    idata.type_mapping = m_improper_type_mapping;
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -1069,87 +1148,6 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
     return (unsigned int)m_improper_type_mapping.size()-1;
     }
 
-/*! \return Number of bond types determined from the XML file
-*/
-unsigned int HOOMDInitializer::getNumBondTypes() const
-    {
-    return (unsigned int)m_bond_type_mapping.size();
-    }
-
-/*! \return Number of angle types determined from the XML file
-*/
-unsigned int HOOMDInitializer::getNumAngleTypes() const
-    {
-    return (unsigned int)m_angle_type_mapping.size();
-    }
-
-/*! \return Number of dihedral types determined from the XML file
-*/
-unsigned int HOOMDInitializer::getNumDihedralTypes() const
-    {
-    return (unsigned int)m_dihedral_type_mapping.size();
-    }
-
-/*! \return Number of improper types determined from the XML file
-*/
-unsigned int HOOMDInitializer::getNumImproperTypes() const
-    {
-    return (unsigned int)m_improper_type_mapping.size();
-    }
-
-/*! \param snapshot The snapshot to be initialized
-    Adds all bonds found in the XML file to the snapshot
-*/
-void HOOMDInitializer::initBondDataSnapshot(SnapshotBondData& snapshot) const
-    {
-    assert(snapshot.bonds.size() == m_bonds.size());
-
-    // loop through all the bonds and add a bond for each
-    for (unsigned int i = 0; i < m_bonds.size(); i++)
-        {
-        snapshot.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
-        snapshot.type_id[i] = m_bonds[i].type;
-        }
-        
-    snapshot.type_mapping = m_bond_type_mapping;
-    }
-
-/*! \param angle_data Shared pointer to the AngleData to be initialized
-    Adds all angles found in the XML file to the AngleData
-*/
-void HOOMDInitializer::initAngleData(boost::shared_ptr<AngleData> angle_data) const
-    {
-    // loop through all the angles and add an angle for each
-    for (unsigned int i = 0; i < m_angles.size(); i++)
-        angle_data->addAngle(m_angles[i]);
-        
-    angle_data->setAngleTypeMapping(m_angle_type_mapping);
-    }
-
-/*! \param dihedral_data Shared pointer to the DihedralData to be initialized
-    Adds all dihedrals found in the XML file to the DihedralData
-*/
-void HOOMDInitializer::initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const
-    {
-    // loop through all the dihedrals and add an dihedral for each
-    for (unsigned int i = 0; i < m_dihedrals.size(); i++)
-        dihedral_data->addDihedral(m_dihedrals[i]);
-        
-    dihedral_data->setDihedralTypeMapping(m_dihedral_type_mapping);
-    }
-
-/*! \param improper_data Shared pointer to the ImproperData to be initialized
-    Adds all impropers found in the XML file to the ImproperData
-*/
-void HOOMDInitializer::initImproperData(boost::shared_ptr<DihedralData> improper_data) const
-    {
-    // loop through all the impropers and add an improper for each
-    for (unsigned int i = 0; i < m_impropers.size(); i++)
-        improper_data->addDihedral(m_impropers[i]);
-        
-    improper_data->setDihedralTypeMapping(m_improper_type_mapping);
-    }
-
 void HOOMDInitializer::initOrientation(Scalar4 *orientation) const
     {
     for (unsigned int i = 0; i < m_orientation.size(); i++)
@@ -1164,10 +1162,11 @@ void HOOMDInitializer::initMomentInertia(InertiaTensor *moment_inertia) const
 
 void export_HOOMDInitializer()
     {
-    class_< HOOMDInitializer, bases<ParticleDataInitializer> >("HOOMDInitializer", init<const string&>())
+    class_< HOOMDInitializer >("HOOMDInitializer", init<const string&>())
     // virtual methods from ParticleDataInitializer are inherited
     .def("getTimeStep", &HOOMDInitializer::getTimeStep)
     .def("setTimeStep", &HOOMDInitializer::setTimeStep)
+    .def("initSnapshot", &HOOMDInitializer::initSnapshot)
     ;
     }
 

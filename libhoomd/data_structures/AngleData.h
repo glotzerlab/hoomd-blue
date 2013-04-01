@@ -114,10 +114,22 @@ struct Angle
 //! Handy structure for passing around and initializing the angle data
 struct SnapshotAngleData
     {
+    //! Constructs an empty snapshot
+    SnapshotAngleData()
+        { }
+
     //! Constructor
     /*! \param n_angles Number of angles contained in the snapshot
      */
     SnapshotAngleData(unsigned int n_angles)
+        {
+        resize(n_angles);
+        }
+
+    //! Resize the snapshot
+    /*! \param n_angles New number of angles
+     */
+    void resize(unsigned int n_angles)
         {
         type_id.resize(n_angles);
         angles.resize(n_angles);
@@ -147,6 +159,9 @@ class AngleData : boost::noncopyable
     public:
         //! Constructs an empty list with no angles
         AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle_types = 0);
+
+         //! Constructs an AngleData from a snapshot
+        AngleData(boost::shared_ptr<ParticleData> pdata, const SnapshotAngleData& snapshot);
         
         //! Destructor
         ~AngleData();
@@ -188,12 +203,9 @@ class AngleData : boost::noncopyable
         */
         unsigned int getNAngleTypes() const
             {
-            return m_n_angle_types;
+            return m_angle_type_mapping.size();
             }
             
-        //! Set the type mapping
-        void setAngleTypeMapping(const std::vector<std::string>& angle_type_mapping);
-        
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name);
         
@@ -240,7 +252,6 @@ class AngleData : boost::noncopyable
         void initializeFromSnapshot(const SnapshotAngleData& snapshot);
         
     private:
-        const unsigned int m_n_angle_types;             //!< Number of angle types
         bool m_angles_dirty;                            //!< True if the angle list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these angles belong to
         boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context

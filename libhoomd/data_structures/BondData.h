@@ -223,9 +223,6 @@ class BondData : boost::noncopyable
             return m_bond_type_mapping.size();
             }
             
-        //! Set the type mapping
-        void setBondTypeMapping(const std::vector<std::string>& bond_type_mapping);
-        
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name);
         

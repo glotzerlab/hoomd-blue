@@ -359,15 +359,6 @@ void BondData::removeBond(unsigned int tag)
     m_bonds_dirty = true;
     }
 
-/*! \param bond_type_mapping Mapping array to set
-    \c bond_type_mapping[type] should be set to the name of the bond type with index \c type.
-    The vector \b must have \c n_bond_types elements in it.
-*/
-void BondData::setBondTypeMapping(const std::vector<std::string>& bond_type_mapping)
-    {
-    m_bond_type_mapping = bond_type_mapping;
-    }
-
 
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
@@ -752,12 +743,12 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
                 m_bond_rtag[bond_tag] = bond_idx++;
                 }
     
-        setBondTypeMapping(type_mapping);
+        m_bond_type_mapping = type_mapping;
         }
     else
 #endif
         {
-        setBondTypeMapping(snapshot.type_mapping);
+        m_bond_type_mapping = snapshot.type_mapping;
 
         for (unsigned int bond_idx = 0; bond_idx < snapshot.bonds.size(); bond_idx++)
             {
