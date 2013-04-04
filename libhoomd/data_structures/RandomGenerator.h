@@ -259,12 +259,15 @@ class RandomGenerator
     {
     public:
         //! Set the parameters
-        RandomGenerator(const BoxDim& box, unsigned int seed);
+        RandomGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                        const BoxDim& box,
+                        unsigned int seed);
+
         //! Empty Destructor
         virtual ~RandomGenerator() { }
         
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
+        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
 
         //! Sets the separation radius for a particle
         void setSeparationRadius(string type, Scalar radius);
@@ -276,6 +279,7 @@ class RandomGenerator
         void generate();
         
     private:
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         BoxDim m_box;                                       //!< Precalculated box
         unsigned int m_seed;                                //!< Random seed to use
         GeneratedParticles m_data;                          //!< Actual particle data genreated

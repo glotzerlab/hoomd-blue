@@ -359,39 +359,34 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
         globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
-    # initialize a system data snapshot
-    snapshot = hoomd.SnapshotSystemData()
+    # abuse the polymer generator to generate single particles
+    
+    # calculat the box size
+    L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
+    box = hoomd.BoxDim(L);
+    
+    # create the generator
+    generator = hoomd.RandomGenerator(my_exec_conf, box, 12345);
+    
+    # build type list
+    type_vector = hoomd.std_vector_string();
+    type_vector.append(name);
+    
+    # empty bond lists for single particles
+    bond_ab = hoomd.std_vector_uint();
+    bond_type = hoomd.std_vector_string();
+        
+    # create the generator
+    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, bond_type, 100));
+    
+    # set the separation radius
+    generator.setSeparationRadius(name, min_dist/2.0);
+        
+    # generate the particles
+    generator.generate();
 
-    # only generate particles on root processor
-    if my_exec_conf.getRank() == 0:
-        # abuse the polymer generator to generate single particles
-        
-        # calculat the box size
-        L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
-        box = hoomd.BoxDim(L);
-        
-        # create the generator
-        generator = hoomd.RandomGenerator(box, 12345);
-        
-        # build type list
-        type_vector = hoomd.std_vector_string();
-        type_vector.append(name);
-        
-        # empty bond lists for single particles
-        bond_ab = hoomd.std_vector_uint();
-        bond_type = hoomd.std_vector_string();
-            
-        # create the generator
-        generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, bond_type, 100));
-        
-        # set the separation radius
-        generator.setSeparationRadius(name, min_dist/2.0);
-            
-        # generate the particles
-        generator.generate();
-
-        # initialize snapshot
-        generator.initSnapshot(snapshot)
+    # initialize snapshot
+    snapshot = generator.getSnapshot()
             
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
     if my_domain_decomposition is not None:
@@ -513,112 +508,107 @@ def create_random_polymers(box, polymers, separation, seed=1):
         globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error creating random polymers");
 
-    # initialize a system data snapshot
-    snapshot = hoomd.SnapshotSystemData()
-
-    # only generate particles on root processor
-    if my_exec_conf.getRank() == 0:
-        if type(polymers) != type([]) or len(polymers) == 0:
-            globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
+    if type(polymers) != type([]) or len(polymers) == 0:
+        globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
+        raise RuntimeError("Error creating random polymers");
+    
+    if type(separation) != type(dict()) or len(separation) == 0:
+        globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
+        raise RuntimeError("Error creating random polymers");
+    
+    # create the generator
+    generator = hoomd.RandomGenerator(my_exec_conf,box, seed);
+    
+    # make a list of types used for an eventual check vs the types in separation for completeness
+    types_used = [];
+    
+    # track the minimum bond length
+    min_bond_len = None;
+    
+    # build the polymer generators
+    for poly in polymers:
+        type_list = [];
+        # check that all fields are specified
+        if not 'bond_len' in poly:
+            globals.msg.error('Polymer specification missing bond_len\n');
             raise RuntimeError("Error creating random polymers");
         
-        if type(separation) != type(dict()) or len(separation) == 0:
-            globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
+        if min_bond_len is None:
+            min_bond_len = poly['bond_len'];
+        else:
+            min_bond_len = min(min_bond_len, poly['bond_len']);
+        
+        if not 'type' in poly:
+            globals.msg.error('Polymer specification missing type\n');
+            raise RuntimeError("Error creating random polymers");
+        if not 'count' in poly:
+            globals.msg.error('Polymer specification missing count\n');
+            raise RuntimeError("Error creating random polymers");
+        if not 'bond' in poly:
+            globals.msg.error('Polymer specification missing bond\n');
+            raise RuntimeError("Error creating random polymers");
+                
+        # build type list
+        type_vector = hoomd.std_vector_string();
+        for t in poly['type']:
+            type_vector.append(t);
+            if not t in types_used:
+                types_used.append(t);
+        
+        # build bond list
+        bond_a = hoomd.std_vector_uint();
+        bond_b = hoomd.std_vector_uint();
+        bond_name = hoomd.std_vector_string();
+        
+        # if the bond setting is 'linear' create a default set of bonds
+        if poly['bond'] == 'linear':
+            for i in range(0,len(poly['type'])-1):
+                bond_a.push_back(i);
+                bond_b.push_back(i+1);
+                bond_name.append('polymer')
+        #if it is a list, parse the user custom bonds
+        elif type(poly['bond']) == type([]):
+            for t in poly['bond']:
+                # a 2-tuple gets the default 'polymer' name for the bond
+                if len(t) == 2:
+                    a,b = t;
+                    name = 'polymer';
+                # and a 3-tuple specifies the name directly
+                elif len(t) == 3:
+                    a,b,name = t;
+                else:
+                    globals.msg.error('Custom bond ' + str(t) + ' must have either two or three elements\n');
+                    raise RuntimeError("Error creating random polymers");
+                                    
+                bond_a.push_back(a);
+                bond_b.push_back(b);
+                bond_name.append(name);
+        else:
+            globals.msg.error('Unexpected argument value for polymer bond\n');
             raise RuntimeError("Error creating random polymers");
         
         # create the generator
-        generator = hoomd.RandomGenerator(box, seed);
+        generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100));
         
-        # make a list of types used for an eventual check vs the types in separation for completeness
-        types_used = [];
         
-        # track the minimum bond length
-        min_bond_len = None;
+    # check that all used types are in the separation list
+    for t in types_used:
+        if not t in separation:
+            globals.msg.error("No separation radius specified for type " + str(t) + "\n");
+            raise RuntimeError("Error creating random polymers");
+            
+    # set the separation radii, checking that it is within the minimum bond length
+    for t,r in separation.items():
+        generator.setSeparationRadius(t, r);
+        if 2*r >= min_bond_len:
+            globals.msg.error("Separation radius " + str(r) + " is too big for the minimum bond length of " + str(min_bond_len) + " specified\n");
+            raise RuntimeError("Error creating random polymers");
         
-        # build the polymer generators
-        for poly in polymers:
-            type_list = [];
-            # check that all fields are specified
-            if not 'bond_len' in poly:
-                globals.msg.error('Polymer specification missing bond_len\n');
-                raise RuntimeError("Error creating random polymers");
-            
-            if min_bond_len is None:
-                min_bond_len = poly['bond_len'];
-            else:
-                min_bond_len = min(min_bond_len, poly['bond_len']);
-            
-            if not 'type' in poly:
-                globals.msg.error('Polymer specification missing type\n');
-                raise RuntimeError("Error creating random polymers");
-            if not 'count' in poly:
-                globals.msg.error('Polymer specification missing count\n');
-                raise RuntimeError("Error creating random polymers");
-            if not 'bond' in poly:
-                globals.msg.error('Polymer specification missing bond\n');
-                raise RuntimeError("Error creating random polymers");
-                    
-            # build type list
-            type_vector = hoomd.std_vector_string();
-            for t in poly['type']:
-                type_vector.append(t);
-                if not t in types_used:
-                    types_used.append(t);
-            
-            # build bond list
-            bond_a = hoomd.std_vector_uint();
-            bond_b = hoomd.std_vector_uint();
-            bond_name = hoomd.std_vector_string();
-            
-            # if the bond setting is 'linear' create a default set of bonds
-            if poly['bond'] == 'linear':
-                for i in range(0,len(poly['type'])-1):
-                    bond_a.push_back(i);
-                    bond_b.push_back(i+1);
-                    bond_name.append('polymer')
-            #if it is a list, parse the user custom bonds
-            elif type(poly['bond']) == type([]):
-                for t in poly['bond']:
-                    # a 2-tuple gets the default 'polymer' name for the bond
-                    if len(t) == 2:
-                        a,b = t;
-                        name = 'polymer';
-                    # and a 3-tuple specifies the name directly
-                    elif len(t) == 3:
-                        a,b,name = t;
-                    else:
-                        globals.msg.error('Custom bond ' + str(t) + ' must have either two or three elements\n');
-                        raise RuntimeError("Error creating random polymers");
-                                        
-                    bond_a.push_back(a);
-                    bond_b.push_back(b);
-                    bond_name.append(name);
-            else:
-                globals.msg.error('Unexpected argument value for polymer bond\n');
-                raise RuntimeError("Error creating random polymers");
-            
-            # create the generator
-            generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100));
-            
-            
-        # check that all used types are in the separation list
-        for t in types_used:
-            if not t in separation:
-                globals.msg.error("No separation radius specified for type " + str(t) + "\n");
-                raise RuntimeError("Error creating random polymers");
-                
-        # set the separation radii, checking that it is within the minimum bond length
-        for t,r in separation.items():
-            generator.setSeparationRadius(t, r);
-            if 2*r >= min_bond_len:
-                globals.msg.error("Separation radius " + str(r) + " is too big for the minimum bond length of " + str(min_bond_len) + " specified\n");
-                raise RuntimeError("Error creating random polymers");
-            
-        # generate the particles
-        generator.generate();
+    # generate the particles
+    generator.generate();
 
-        # copy over data to snapshot
-        generator.initSnapshot(snapshot)
+    # copy over data to snapshot
+    snapshot = generator.getSnapshot()
         
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
 

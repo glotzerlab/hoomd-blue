@@ -346,21 +346,33 @@ void GeneratedParticles::addBond(unsigned int a, unsigned int b, const std::stri
     m_bonds.push_back(bond(a,b, type));
     }
 
-/*! \param box Box dimensions to generate in
+/*! \param exec_conf Execution configuration
+    \param box Box dimensions to generate in
     \param seed Random number generator seed
 */
-RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(box), m_seed(seed)
+RandomGenerator::RandomGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                 const BoxDim& box,
+                                 unsigned int seed)
+    : m_exec_conf(exec_conf),
+      m_box(box),
+      m_seed(seed)
     {
     }
 
-/*! initializes a snapshot with the internally stored copy of the particle and bond data */
-void RandomGenerator::initSnapshot(SnapshotSystemData& snapshot) const
+/*! initializes a snapshot->with the internally stored copy of the particle and bond data */
+boost::shared_ptr<SnapshotSystemData> RandomGenerator::getSnapshot() const
     {
+    // create a snapshot
+    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+
+    // only execute on rank 0
+    if (m_exec_conf->getRank()) return snapshot;
+
     // initialize box dimensions
-    snapshot.global_box = m_box;
+    snapshot->global_box = m_box;
 
     // initialize particle data
-    SnapshotParticleData& pdata_snap = snapshot.particle_data;
+    SnapshotParticleData& pdata_snap = snapshot->particle_data;
 
     unsigned int nparticles = m_data.m_particles.size();
     pdata_snap.resize(nparticles);
@@ -375,7 +387,7 @@ void RandomGenerator::initSnapshot(SnapshotSystemData& snapshot) const
     pdata_snap.type_mapping = m_type_mapping;
 
     // initialize bonds
-    SnapshotBondData& bdata_snap = snapshot.bond_data;
+    SnapshotBondData& bdata_snap = snapshot->bond_data;
     bdata_snap.resize(m_data.m_bonds.size());
     for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)
         {
@@ -384,6 +396,8 @@ void RandomGenerator::initSnapshot(SnapshotSystemData& snapshot) const
         }
         
     bdata_snap.type_mapping = m_bond_type_mapping;
+
+    return snapshot;
     }
 
 /*! \param type Name of the particle type to set the radius for
@@ -408,6 +422,9 @@ void RandomGenerator::addGenerator(unsigned int repeat, boost::shared_ptr<Partic
 */
 void RandomGenerator::generate()
     {
+    // only execute on rank 0
+    if (m_exec_conf->getRank()) return;
+
     // sanity check
     assert(m_radii.size() > 0);
     assert(m_generators.size() > 0);
@@ -647,12 +664,12 @@ void export_RandomGenerator()
     .def(vector_indexing_suite<std::vector<string> >())
     ;
     
-    class_< RandomGenerator >("RandomGenerator", init<const BoxDim&, unsigned int>())
+    class_< RandomGenerator >("RandomGenerator", init<boost::shared_ptr<const ExecutionConfiguration>, const BoxDim&, unsigned int>())
     // virtual methods from ParticleDataInitializer are inherited
     .def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
     .def("addGenerator", &RandomGenerator::addGenerator)
     .def("generate", &RandomGenerator::generate)
-    .def("initSnapshot", &RandomGenerator::initSnapshot)
+    .def("getSnapshot", &RandomGenerator::getSnapshot)
     ;
     
     class_< ParticleGeneratorWrap, boost::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())
