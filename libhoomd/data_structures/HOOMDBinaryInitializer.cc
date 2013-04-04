@@ -231,6 +231,22 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
      */
     snapshot->integrator_data = m_integrator_variables;
 
+    /*
+     * Initalize rigid body data
+     */
+    SnapshotRigidData& rdata = snapshot->rigid_data;
+
+    unsigned int n_bodies = m_com.size();
+    rdata.resize(n_bodies);
+
+    for (unsigned int body = 0; body < n_bodies; body++)
+        {
+        rdata.com[body] = make_scalar3(m_com[body].x, m_com[body].y, m_com[body].z);
+        rdata.vel[body] = make_scalar3(m_vel[body].x, m_vel[body].y, m_vel[body].z);
+        rdata.angmom[body] = make_scalar3(m_angmom[body].x, m_angmom[body].y, m_angmom[body].z);
+        rdata.body_image[body] = m_body_image[body]; 
+        }
+
     return snapshot;
     }
 
@@ -579,41 +595,6 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     if (m_walls.size() > 0)
         cout << m_walls.size() << " walls" << endl;
     }
-
-/*! \param rigid_data Shared pointer to the ImproperData to be initialized
-    Adds all rigid bodies found in the XML file to the RigidData
-*/
-void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_data) const
-    {
-    ArrayHandle<Scalar4> r_com_handle(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_vel_handle(rigid_data->getVel(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_angmom_handle(rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int3> r_body_image_handle(rigid_data->getBodyImage(), access_location::host, access_mode::readwrite);
-    
-    // We don't need to restore force, torque and orientation because the setup will do the rest,
-    // and simulation still resumes smoothly.
-    unsigned int n_bodies = rigid_data->getNumBodies();
-    for (unsigned int body = 0; body < n_bodies; body++)
-        {
-        r_com_handle.data[body].x = m_com[body].x;
-        r_com_handle.data[body].y = m_com[body].y;
-        r_com_handle.data[body].z = m_com[body].z;
-        r_com_handle.data[body].w = m_com[body].w;
-        
-        r_vel_handle.data[body].x = m_vel[body].x;
-        r_vel_handle.data[body].y = m_vel[body].y;
-        r_vel_handle.data[body].z = m_vel[body].z;
-        r_vel_handle.data[body].w = m_vel[body].w;
-        
-        r_angmom_handle.data[body].x = m_angmom[body].x;
-        r_angmom_handle.data[body].y = m_angmom[body].y;
-        r_angmom_handle.data[body].z = m_angmom[body].z;
-        r_angmom_handle.data[body].w = m_angmom[body].w;
-        
-        r_body_image_handle.data[body] = m_body_image[body];
-        }
-    }
-
 
 void export_HOOMDBinaryInitializer()
     {

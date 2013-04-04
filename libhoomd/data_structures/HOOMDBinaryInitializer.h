@@ -113,9 +113,6 @@ class HOOMDBinaryInitializer
         //! initializes a snapshot with the particle data
         virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
 
-        //! Initialize the rigid data
-        virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const;
-
     private:
         //! Helper function to read the input file
         void readFile(const std::string &fname);        
