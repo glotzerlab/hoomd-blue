@@ -37,7 +37,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     unsigned int N = 20000;
     Scalar L = pow(M_PI/6.0/phi_p*Scalar(N),1.0/3.0);
     BoxDim box_g(L);
-    RandomGenerator rand_init(box_g, 12345);
+    RandomGenerator rand_init(exec_conf, box_g, 12345);
     std::vector<string> types;
     types.push_back("A");
     std::vector<uint> bonds;
@@ -47,10 +47,10 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
     rand_init.generate();
 
-    SnapshotSystemData snap;
-    rand_init.initSnapshot(snap);
+    boost::shared_ptr<SnapshotSystemData> snap;
+    snap = rand_init.getSnapshot();
 
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,snap.global_box.getL(), 0));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,snap->global_box.getL(), 0));
 
     shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf,decomposition));
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(snap, exec_conf));

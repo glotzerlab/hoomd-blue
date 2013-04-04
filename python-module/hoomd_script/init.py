@@ -297,16 +297,9 @@ def read_bin(filename):
         globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
-    # initialize a system data snapshot
-    snapshot = hoomd.SnapshotSystemData()
-
-    saved_time_step = 0
-    # only read in xml file on root processor
-    if my_exec_conf.getRank() == 0:
-        # read in the data
-        initializer = hoomd.HOOMDBinaryInitializer(filename);
-        initializer.initSnapshot(snapshot)
-        saved_time_step = initializer.getTimeStep()
+    # read in the data
+    initializer = hoomd.HOOMDBinaryInitializer(my_exec_conf,filename);
+    snapshot = initializer.getSnapshot()
 
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
 
@@ -317,7 +310,7 @@ def read_bin(filename):
 
     # initialize the system
     if time_step is None:
-        globals.system = hoomd.System(globals.system_definition, saved_time_step);
+        globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
     else:
         globals.system = hoomd.System(globals.system_definition, time_step);
  

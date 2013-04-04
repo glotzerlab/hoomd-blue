@@ -1184,9 +1184,9 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    SnapshotSystemData snap;
+    boost::shared_ptr<SnapshotSystemData> snap;
     rand_init.setSeed(12345);
-    rand_init.initSnapshot(snap);
+    snap = rand_init.getSnapshot();
 
     shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();

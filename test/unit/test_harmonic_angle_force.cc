@@ -373,9 +373,8 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    SnapshotSystemData snap;
-    rand_init.initSnapshot(snap);
-    snap.angle_data.type_mapping.push_back("A");
+    boost::shared_ptr<SnapshotSystemData> snap =  rand_init.getSnapshot();
+    snap->angle_data.type_mapping.push_back("A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     
     shared_ptr<HarmonicAngleForceCompute> fc1 = af_creator1(sysdef);

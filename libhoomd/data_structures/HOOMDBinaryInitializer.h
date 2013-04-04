@@ -101,7 +101,8 @@ class HOOMDBinaryInitializer
     {
     public:
         //! Loads in the file and parses the data
-        HOOMDBinaryInitializer(const std::string &fname);
+        HOOMDBinaryInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                               const std::string &fname);
 
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
@@ -110,7 +111,7 @@ class HOOMDBinaryInitializer
         virtual void setTimeStep(unsigned int ts);
 
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
+        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
 
         //! Initialize the rigid data
         virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const;
@@ -118,7 +119,9 @@ class HOOMDBinaryInitializer
     private:
         //! Helper function to read the input file
         void readFile(const std::string &fname);        
-                
+
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
+
         BoxDim m_box;   //!< Simulation box read from the file
         
         std::vector< unsigned int > m_tag_array;     //!< tags of all particles loaded

@@ -80,7 +80,7 @@ class SimpleCubicInitializer
         virtual ~SimpleCubicInitializer() { }
         
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
+        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
         
     private:
         unsigned int m_M;   //!< Number of particles wide to make the box
@@ -103,7 +103,7 @@ class RandomInitializer
         virtual ~RandomInitializer() { }
         
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
+        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
         
         //! Sets the random seed to use in the generation
         void setSeed(unsigned int seed);
@@ -130,7 +130,7 @@ class RandomInitializerWithWalls : public RandomInitializer
         virtual ~RandomInitializerWithWalls() ;
 
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
+        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
  
     protected:
         Scalar m_wall_buffer;   //!< Buffer distance between the wall and the edge of the box

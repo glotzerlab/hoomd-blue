@@ -81,13 +81,19 @@ using namespace boost::python;
 using namespace boost;
 using namespace boost::iostreams;
 
-/*! \param fname File name with the data to load
+/*! \param ExecutionConfiguration
+    \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
 */
-HOOMDBinaryInitializer::HOOMDBinaryInitializer(const std::string &fname)
+HOOMDBinaryInitializer::HOOMDBinaryInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                               const std::string &fname)
+    : m_exec_conf(exec_conf),
+      m_timestep(0)
     {
+    // execute only on rank zero
+    if (m_exec_conf->getRank()) return;
+
     // initialize member variables
-    m_timestep = 0;
     m_num_dimensions = 3;
     // read in the file
     readFile(fname);
@@ -110,16 +116,21 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
     }
 
 /*! initializes a snapshot with the internally stored copy of the particle data */
-void HOOMDBinaryInitializer::initSnapshot(SnapshotSystemData &snapshot) const
+boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() const
     {
+    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    
+    // execute only on rank zero
+    if (m_exec_conf->getRank()) return snapshot;
+
     // init dimensions
-    snapshot.dimensions = m_num_dimensions;
+    snapshot->dimensions = m_num_dimensions;
 
     // init box
-    snapshot.global_box = m_box;
+    snapshot->global_box = m_box;
 
     // init particle data snapshot
-    SnapshotParticleData& pdata = snapshot.particle_data; 
+    SnapshotParticleData& pdata = snapshot->particle_data; 
 
     // resize snapshot
     pdata.resize(m_x_array.size());
@@ -145,7 +156,7 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize bond data
      */
-    SnapshotBondData& bdata = snapshot.bond_data;
+    SnapshotBondData& bdata = snapshot->bond_data;
 
     // allocate memory in snapshot
     bdata.resize(m_bonds.size());
@@ -162,7 +173,7 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize angle data
      */
-    SnapshotAngleData& adata = snapshot.angle_data;
+    SnapshotAngleData& adata = snapshot->angle_data;
 
     // allocate memory in snapshot
     adata.resize(m_angles.size());
@@ -179,7 +190,7 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize dihedral data
      */
-    SnapshotDihedralData& ddata = snapshot.dihedral_data;
+    SnapshotDihedralData& ddata = snapshot->dihedral_data;
 
     // allocate memory
     ddata.resize(m_dihedrals.size());
@@ -196,7 +207,7 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize improper data
      */
-    SnapshotDihedralData& idata = snapshot.improper_data;
+    SnapshotDihedralData& idata = snapshot->improper_data;
 
     // allocate memory
     idata.resize(m_dihedrals.size());
@@ -213,12 +224,14 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize walls
      */
-    snapshot.wall_data = m_walls;
+    snapshot->wall_data = m_walls;
 
     /*
      * Initialize integrator data
      */
-    snapshot.integrator_data = m_integrator_variables;
+    snapshot->integrator_data = m_integrator_variables;
+
+    return snapshot;
     }
 
 //! Helper function to read a string from the file
@@ -604,11 +617,12 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
 
 void export_HOOMDBinaryInitializer()
     {
-    class_< HOOMDBinaryInitializer >("HOOMDBinaryInitializer", init<const string&>())
-    // virtual methods from ParticleDataInitializer are inherited
-    .def("getTimeStep", &HOOMDBinaryInitializer::getTimeStep)
-    .def("setTimeStep", &HOOMDBinaryInitializer::setTimeStep)
-    ;
+    class_< HOOMDBinaryInitializer >("HOOMDBinaryInitializer",
+        init<boost::shared_ptr<const ExecutionConfiguration>, const string&>())
+        // virtual methods from ParticleDataInitializer are inherited
+        .def("getTimeStep", &HOOMDBinaryInitializer::getTimeStep)
+        .def("setTimeStep", &HOOMDBinaryInitializer::setTimeStep)
+        ;
     }
 
 #ifdef WIN32

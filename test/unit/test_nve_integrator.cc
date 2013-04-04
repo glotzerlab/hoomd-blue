@@ -306,9 +306,8 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    SnapshotSystemData snap;
     rand_init.setSeed(12345);
-    rand_init.initSnapshot(snap);
+    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
     shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
     shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));

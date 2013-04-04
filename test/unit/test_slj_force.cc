@@ -363,8 +363,7 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.05), Scalar(1.3), "A");
-    SnapshotSystemData snap;
-    rand_init.initSnapshot(snap);
+    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));

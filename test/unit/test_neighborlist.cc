@@ -503,8 +503,7 @@ void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec
     {
     // construct the particle system
     RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
-    SnapshotSystemData snap;
-    init.initSnapshot(snap);
+    boost::shared_ptr<SnapshotSystemData> snap = init.getSnapshot();
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
@@ -569,8 +568,7 @@ void neighborlist_large_ex_tests(boost::shared_ptr<ExecutionConfiguration> exec_
     {
     // construct the particle system
     RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
-    SnapshotSystemData snap;
-    init.initSnapshot(snap);
+    boost::shared_ptr<SnapshotSystemData> snap = init.getSnapshot();
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     

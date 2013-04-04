@@ -89,12 +89,12 @@ SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, c
     }
 
 /*! initialize a snapshot with a cubic crystal */
-void SimpleCubicInitializer::initSnapshot(SnapshotSystemData &snapshot) const
+boost::shared_ptr<SnapshotSystemData> SimpleCubicInitializer::getSnapshot() const
     {
+    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    snapshot->global_box = box; 
 
-    snapshot.global_box = box; 
-
-    SnapshotParticleData& pdata = snapshot.particle_data;
+    SnapshotParticleData& pdata = snapshot->particle_data;
     unsigned int num_particles = m_M * m_M * m_M;
     pdata.resize(num_particles);
 
@@ -117,6 +117,7 @@ void SimpleCubicInitializer::initSnapshot(SnapshotSystemData &snapshot) const
         }
 
     pdata.type_mapping.push_back(m_type_name);
+    return snapshot;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -169,11 +170,12 @@ void RandomInitializer::setSeed(unsigned int seed)
     \note An exception is thrown if too many tries are made to find a spot where
         min_dist can be satisfied.
 */
-void RandomInitializer::initSnapshot(SnapshotSystemData& snapshot) const
+boost::shared_ptr<SnapshotSystemData> RandomInitializer::getSnapshot() const
     {
-    snapshot.global_box = m_box;
+    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    snapshot->global_box = m_box;
 
-    SnapshotParticleData& pdata = snapshot.particle_data;
+    SnapshotParticleData& pdata = snapshot->particle_data;
     pdata.resize(m_N);
 
     Scalar L = m_box.getL().x;
@@ -234,6 +236,7 @@ void RandomInitializer::initSnapshot(SnapshotSystemData& snapshot) const
         }
 
     pdata.type_mapping.push_back(m_type_name);
+    return snapshot;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -265,15 +268,15 @@ RandomInitializerWithWalls::~RandomInitializerWithWalls()
     {
     }
 
-void RandomInitializerWithWalls::initSnapshot(SnapshotSystemData& snapshot) const
+boost::shared_ptr<SnapshotSystemData> RandomInitializerWithWalls::getSnapshot() const
     {
-    RandomInitializer::initSnapshot(snapshot);
+    boost::shared_ptr<SnapshotSystemData> snapshot = RandomInitializer::getSnapshot();
 
     // the real box dimensions need to be increased by m_wall_buffer*2
     Scalar L = m_real_box.getL().x + m_wall_buffer*2;
     BoxDim box(L);
     
-    snapshot.global_box = box;
+    snapshot->global_box = box;
 
     /*
         Walls are created on all 6 sides of the box, spaced in from the edge by a distance of \a wall_buffer
@@ -284,17 +287,19 @@ void RandomInitializerWithWalls::initSnapshot(SnapshotSystemData& snapshot) cons
     Scalar3 hi = m_real_box.getHi();
     // add all walls
     // left
-    snapshot.wall_data.push_back(Wall(lo.x, 0.0, 0.0, 1.0, 0.0, 0.0));
+    snapshot->wall_data.push_back(Wall(lo.x, 0.0, 0.0, 1.0, 0.0, 0.0));
     // right
-    snapshot.wall_data.push_back(Wall(hi.x, 0.0, 0.0, -1.0, 0.0, 0.0));
+    snapshot->wall_data.push_back(Wall(hi.x, 0.0, 0.0, -1.0, 0.0, 0.0));
     // bottom
-    snapshot.wall_data.push_back(Wall(0.0, lo.y, 0.0, 0.0, 1.0, 0.0));
+    snapshot->wall_data.push_back(Wall(0.0, lo.y, 0.0, 0.0, 1.0, 0.0));
     // top
-    snapshot.wall_data.push_back(Wall(0.0, hi.y, 0.0, 0.0, -1.0, 0.0));
+    snapshot->wall_data.push_back(Wall(0.0, hi.y, 0.0, 0.0, -1.0, 0.0));
     // front
-    snapshot.wall_data.push_back(Wall(0.0, 0.0, lo.z, 0.0, 0.0, 1.0));
+    snapshot->wall_data.push_back(Wall(0.0, 0.0, lo.z, 0.0, 0.0, 1.0));
     // back
-    snapshot.wall_data.push_back(Wall(0.0, 0.0, hi.z, 0.0, 0.0, -1.0));
+    snapshot->wall_data.push_back(Wall(0.0, 0.0, hi.z, 0.0, 0.0, -1.0));
+
+    return snapshot;
     }
 
 
