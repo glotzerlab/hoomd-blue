@@ -176,7 +176,7 @@ def reset():
 # initialized by the neighbor list would be so large that the memory allocation would fail.
 #
 # \sa hoomd_script.data
-def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0, mpi_options=None):
+def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0):
     util.print_status_line();
     
     # check if initialization has already occurred
@@ -200,7 +200,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
     
-    _perform_common_init_tasks(mpi_options);
+    _perform_common_init_tasks();
     return data.system_data(globals.system_definition);
 
 ## Reads initial system state from an XML file
@@ -231,7 +231,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
 # later in the script. See hoomd_script.data for more information.
 #
 # \sa dump.xml
-def read_xml(filename, time_step = None, mpi_options=None):
+def read_xml(filename, time_step = None):
     util.print_status_line();
     
     # initialize GPU/CPU execution configuration and MPI early
@@ -293,7 +293,7 @@ def read_xml(filename, time_step = None, mpi_options=None):
 # later in the script. See hoomd_script.data for more information.
 #
 # \sa dump.bin
-def read_bin(filename, mpi_options=None):
+def read_bin(filename):
     util.print_status_line();
     
     # initialize GPU/CPU execution configuration and MPI early
@@ -355,7 +355,7 @@ def read_bin(filename, mpi_options=None):
 # The result of init.create_random can be saved in a variable and later used to read and/or change particle properties
 # later in the script. See hoomd_script.data for more information.
 #
-def create_random(N, phi_p, name="A", min_dist=0.7, mpi_options=None):
+def create_random(N, phi_p, name="A", min_dist=0.7):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
