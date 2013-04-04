@@ -125,7 +125,7 @@ def _parse_command_line():
     parser.add_option("--nx", dest="nx", help="(MPI only) Number of domains along the x-direction");
     parser.add_option("--ny", dest="ny", help="(MPI only) Number of domains along the y-direction");
     parser.add_option("--nz", dest="nz", help="(MPI only) Number of domains along the z-direction");
-    parser.add_option("--linear", dest="linear", action="store_true", default=False, help="(MPI only) Enable to use a slab (1D) decomposition");
+    parser.add_option("--linear", dest="linear", action="store_true", default=False, help="(MPI only) Force a slab (1D) decomposition along the z-direction");
     parser.add_option("--user", dest="user", help="User options");
 
     (cmd_options, args) = parser.parse_args();

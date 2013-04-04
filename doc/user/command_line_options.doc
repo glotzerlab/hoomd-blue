@@ -90,6 +90,22 @@ enable error checks after every GPU kernel call
 \par
 specifies the level of notice messages to print
 
+<b>--nx</b>
+\par
+*(MPI only)* Number of domains along the x-direction
+
+<b>--ny</b>
+\par
+*(MPI only)* Number of domains along the y-direction
+
+<b>--nz</b>
+\par
+*(MPI only)* Number of domains along the z-direction
+
+<b>--linear</b>
+\par
+*(MPI only)* Force a slab (1D) decomposition along the z-direction
+
 <b>--msg-file=filename</b>
 \par
 specifies a file to write messages (the file is overwritten)
@@ -194,6 +210,28 @@ hoomd some_script.py --notice-level=10
 All messages (notices, warnings, and errors) can be redirected to a file. The file is overwritten.
 \code
 hoomd some_script.py --msg-file=messages.out
+\endcode
+
+<hr>
+
+<h3>Control the MPI domain decomposition</h3>
+When no MPI options are specified, HOOMD uses a minimum surface area selection of the domain decomposition strategy.
+\code
+mpirun -n 8 hoomd some_script.py
+# 2x2x2 domain
+\endcode
+
+
+The linear option forces HOOMD-blue to use a 1D slab domain decomposition, which may be faster than a 3D decomposition when running jobs on a single node.
+\code
+mpirun -n 4 hoomd some_script.py --linear
+# 1x1x4 domain
+\endcode
+
+You can also override the automatic choices completely.
+\code
+mpirun -n 4 hoomd some_script.py --nx=1 --ny=2 --nz=2
+# 1x2x2 domain
 \endcode
 
 <hr>
