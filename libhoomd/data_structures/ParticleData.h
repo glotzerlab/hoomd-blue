@@ -198,7 +198,7 @@ const unsigned int NOT_LOCAL = 0xffffffff;
 
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
- * - Initializing the ParticleData from a ParticleDataInitializer
+ * - Initializing the ParticleData 
  * - inside an Analyzer to iterate over the current ParticleData
  *
  * Initializing the ParticleData is accomplished by first filling the particle data arrays with default values
@@ -240,129 +240,6 @@ struct SnapshotParticleData {
 
     unsigned int size;              //!< number of particles in this snapshot
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
-    };
-
-//! Abstract interface for initializing a ParticleData
-/*! A ParticleDataInitializer should only be used with the appropriate constructor
-    of ParticleData(). That constructure calls the methods of this class to determine
-    the number of particles, number of particle types, the simulation box, and then
-    initializes itself. Then initSnapshot() is called to fill out the ParticleDataSnapshot
-    to be used to initalize the particle data arrays
-
-    \note This class is an abstract interface with pure virtual functions. Derived
-    classes must implement these methods.
-    \ingroup data_structs
-    */
-class ParticleDataInitializer
-    {
-    public:
-        //! Empty constructor
-        ParticleDataInitializer() { }
-        //! Empty Destructor
-        virtual ~ParticleDataInitializer() { }
-        
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumParticles() const = 0;
-       
-        //! Returns the number of bonds to be initialized
-        virtual unsigned int getNumBonds() const 
-            {
-            return 0;
-            }
-
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const = 0;
-        
-        //! Initializes the snapshot of the particle data arrays
-        /*! \param snapshot snapshot to initialize
-        */
-        virtual void initSnapshot(SnapshotParticleData& snapshot) const = 0;
-        
-        //! Initialize the simulation walls
-        /*! \param wall_data Shared pointer to the WallData to initialize
-            This base class defines an empty method, as walls are optional
-        */
-        virtual void initWallData(boost::shared_ptr<WallData> wall_data) const {}
-
-        //! Initialize the integrator variables
-        /*! \param integrator_data Shared pointer to the IntegratorData to initialize
-            This base class defines an empty method, since initializing the 
-            integrator variables is optional
-        */
-        virtual void initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data) const {}
-        
-        //! Returns the number of dimensions
-        /*! The base class returns 3 */
-        virtual unsigned int getNumDimensions() const
-            {
-            return 3;
-            }
-        
-        //! Returns the number of bond types to be created
-        /*! Bonds are optional: the base class returns 1 */
-        virtual unsigned int getNumBondTypes() const
-            {
-            return 1;
-            }
-            
-        /*! Angles are optional: the base class returns 1 */
-        virtual unsigned int getNumAngleTypes() const
-            {
-            return 1;
-            }
-            
-        /*! Dihedrals are optional: the base class returns 1 */
-        virtual unsigned int getNumDihedralTypes() const
-            {
-            return 1;
-            }
-            
-        /*! Impropers are optional: the base class returns 1 */
-        virtual unsigned int getNumImproperTypes() const
-            {
-            return 1;
-            }
-            
-        //! Initialize the bond data snpashot
-        /*! \param snapshot Snapshot to be initialized
-            Bonds are optional: the base class does nothing
-        */
-        virtual void initBondDataSnapshot(SnapshotBondData& snapshot) const {}
-        
-        //! Initialize the angle data
-        /*! \param angle_data Shared pointer to the AngleData to be initialized
-            Angles are optional: the base class does nothing
-        */
-        virtual void initAngleData(boost::shared_ptr<AngleData> angle_data) const {}
-        
-        //! Initialize the dihedral data
-        /*! \param dihedral_data Shared pointer to the DihedralData to be initialized
-            Dihedrals are optional: the base class does nothing
-        */
-        virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const {}
-        
-        //! Initialize the improper data
-        /*! \param improper_data Shared pointer to the ImproperData to be initialized
-            Impropers are optional: the base class does nothing
-        */
-        virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const {}
-        
-        //! Initialize the rigid data
-        /*! \param rigid_data Shared pointer to the RigidData to be initialized
-            Rigid bodies are optional: the base class does nothing
-        */
-        virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const {}
-        
-        //! Initialize the orientation data
-        /*! \param orientation Pointer to one orientation per particle to be initialized
-        */
-        virtual void initOrientation(Scalar4 *orientation) const {}
-        
-        //! Initialize the inertia tensor data
-        /*! \param moment_inertia Pointer to one inertia tensor per particle to be initialize (in tag order!)
-        */
-        virtual void initMomentInertia(InertiaTensor *moment_inertia) const {}
-            
     };
 
 //! Manages all of the data arrays for the particles
@@ -485,10 +362,6 @@ class ParticleData : boost::noncopyable
                      unsigned int n_types,
                      boost::shared_ptr<ExecutionConfiguration> exec_conf);
         
-        //! Construct from an initializer
-        ParticleData(const ParticleDataInitializer& init,
-                     boost::shared_ptr<ExecutionConfiguration> exec_conf);
-       
         //! Construct using a ParticleDataSnapshot
         ParticleData(const SnapshotParticleData& snapshot,
                      const BoxDim& global_box,
@@ -876,8 +749,6 @@ class ParticleData : boost::noncopyable
 
 //! Exports the BoxDim class to python
 void export_BoxDim();
-//! Exports ParticleDataInitializer to python
-void export_ParticleDataInitializer();
 //! Exports ParticleData to python
 void export_ParticleData();
 //! Export SnapshotParticleData to python

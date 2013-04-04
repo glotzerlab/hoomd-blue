@@ -381,7 +381,6 @@ BOOST_PYTHON_MODULE(hoomd)
     
     // data structures
     export_BoxDim();
-    export_ParticleDataInitializer();
     export_ParticleData();
     export_SnapshotParticleData();
     export_RigidData();

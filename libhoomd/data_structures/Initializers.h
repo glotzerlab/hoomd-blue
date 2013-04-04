@@ -63,12 +63,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __INITIALIZERS_H__
 #define __INITIALIZERS_H__
 
+//! Forward declaration of SnapshotSystemData
+class SnapshotSystemData;
+
 //! Inits a ParticleData with a simple cubic array of particles
 /*! A number of particles along each axis are specified along with a spacing
     between particles. This initializer only generates a single particle type.
     \ingroup data_structs
 */
-class SimpleCubicInitializer : public ParticleDataInitializer
+class SimpleCubicInitializer 
     {
     public:
         //! Set the parameters
@@ -76,14 +79,8 @@ class SimpleCubicInitializer : public ParticleDataInitializer
         //! Empty Destructor
         virtual ~SimpleCubicInitializer() { }
         
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumParticles() const;
-
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const;
-        
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
+        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
         
     private:
         unsigned int m_M;   //!< Number of particles wide to make the box
@@ -97,7 +94,7 @@ class SimpleCubicInitializer : public ParticleDataInitializer
     placed too close together. This initializer only generates a single particle
     type.
 */
-class RandomInitializer : public ParticleDataInitializer
+class RandomInitializer 
     {
     public:
         //! Set the parameters
@@ -105,14 +102,8 @@ class RandomInitializer : public ParticleDataInitializer
         //! Empty Destructor
         virtual ~RandomInitializer() { }
         
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumParticles() const;
-        
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const;
-
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
+        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
         
         //! Sets the random seed to use in the generation
         void setSeed(unsigned int seed);
@@ -137,10 +128,10 @@ class RandomInitializerWithWalls : public RandomInitializer
         RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer, const std::string &type_name);
         //! Empty Destructor
         virtual ~RandomInitializerWithWalls() ;
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const;
-        //! Initialize the walls
-        virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
+
+        //! initializes a snapshot with the particle data
+        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
+ 
     protected:
         Scalar m_wall_buffer;   //!< Buffer distance between the wall and the edge of the box
         BoxDim m_real_box;      //!< Stores the actual dimensions of the box where the walls are defined

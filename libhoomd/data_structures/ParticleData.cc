@@ -174,86 +174,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
     m_global_box = box;
     }
 
-/*! Calls the initializer's members to determine the number of particles, box size and then
-    uses it to fill out the position and velocity data.
-    \param init Initializer to use
-    \param exec_conf Execution configuration to run on
-*/
-ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf)
-    : m_exec_conf(exec_conf),
-      m_nparticles(0),
-      m_nghosts(0),
-      m_max_nparticles(0),
-      m_nglobal(0),
-      m_resize_factor(9./8.)
-    {
-    m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
-
-    // allocate memory
-    allocate(init.getNumParticles());
-
-    // default: number of global particles = number of local particles
-    setNGlobal(getN());
-    
-        {
-        ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
-        
-        ArrayHandle< Scalar4 > h_vel(getVelocities(), access_location::host, access_mode::overwrite);
-        ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
-
-        // set default values
-        // all values not explicitly set here have been initialized to zero upon allocation
-        for (unsigned int i = 0; i < getN(); i++)
-            {
-            h_vel.data[i].w = 1.0; // mass
-
-            h_diameter.data[i] = 1.0;
-            
-            h_body.data[i] = NO_BODY;
-            h_tag.data[i] = i;
-            h_rtag.data[i] = i;
-            h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
-            }
-        }
-
-    // reset external virial
-    for (unsigned int i = 0; i < 6; i++)
-        m_external_virial[i] = Scalar(0.0);
-
-    // initialize box dimensions
-    setGlobalBox(init.getBox());
-
-    SnapshotParticleData snapshot(getN());
-
-    // initialize the snapshot with default values
-    takeSnapshot(snapshot);
-
-    // pass snapshot to initializer
-    init.initSnapshot(snapshot);
-
-    // initialize particle data with updated values
-    initializeFromSnapshot(snapshot);
-
-        {
-        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::overwrite);
-        init.initOrientation(h_orientation.data);
-        init.initMomentInertia(&m_inertia_tensor[0]);
-        }
-            
-    // it is an error for particles to be initialized outside of their box
-    if (!inBox())
-        {
-        m_exec_conf->msg->error() << "Not all particles were found inside the given box" << endl;
-        throw runtime_error("Error initializing ParticleData");
-        }
-        
-    // default constructed shared ptr is null as desired
-    m_prof = boost::shared_ptr<Profiler>();
-    }
-
 /*! Loads particle data from the snapshot into the internal arrays.
  * \param snapshot The particle data snapshot
  * \param box The dimensions of the global simulation box
@@ -1609,41 +1529,6 @@ void export_BoxDim()
     ;
     }
 
-//! Wrapper class needed for exposing virtual functions to python
-class ParticleDataInitializerWrap : public ParticleDataInitializer, public wrapper<ParticleDataInitializer>
-    {
-    public:
-        //! Calls the overidden ParticleDataInitializer::getNumParticles()
-        unsigned int getNumParticles() const
-            {
-            return this->get_override("getNumParticles")();
-            }
-
-        //! Calls the overidden ParticleDataInitializer::getBox()
-        BoxDim getBox() const
-            {
-            return this->get_override("getBox")();
-            }
-            
-        //! Calls the overidden ParticleDataInitializer::initSnapshot()
-        void initSnapshot(SnapshotParticleData& snapshot) const
-            {
-            this->get_override("initSnapshot")(snapshot);
-            }
-            
-    };
-
-
-void export_ParticleDataInitializer()
-    {
-    class_<ParticleDataInitializerWrap, boost::noncopyable>("ParticleDataInitializer")
-    .def("getNumParticles", pure_virtual(&ParticleDataInitializer::getNumParticles))
-    .def("getBox", pure_virtual(&ParticleDataInitializer::getBox))
-    .def("initSnapshot", pure_virtual(&ParticleDataInitializer::initSnapshot))
-    ;
-    }
-
-
 //! Helper for python __str__ for ParticleData
 /*! Gives a synopsis of a ParticleData in a string
     \param pdata Particle data to format parameters from
@@ -1659,7 +1544,7 @@ string print_ParticleData(ParticleData *pdata)
 void export_ParticleData()
     {
     class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<const SnapshotParticleData&, const BoxDim&, boost::shared_ptr<ExecutionConfiguration> >())
     .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)

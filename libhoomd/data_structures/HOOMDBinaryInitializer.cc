@@ -604,7 +604,7 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
 
 void export_HOOMDBinaryInitializer()
     {
-    class_< HOOMDBinaryInitializer, bases<ParticleDataInitializer> >("HOOMDBinaryInitializer", init<const string&>())
+    class_< HOOMDBinaryInitializer >("HOOMDBinaryInitializer", init<const string&>())
     // virtual methods from ParticleDataInitializer are inherited
     .def("getTimeStep", &HOOMDBinaryInitializer::getTimeStep)
     .def("setTimeStep", &HOOMDBinaryInitializer::setTimeStep)

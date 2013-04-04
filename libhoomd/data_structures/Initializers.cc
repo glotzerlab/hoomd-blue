@@ -67,6 +67,7 @@ using namespace boost::python;
 
 #include "Initializers.h"
 #include "WallData.h"
+#include "SnapshotSystemData.h"
 
 
 /*! \file Initializers.cc
@@ -87,25 +88,16 @@ SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, c
     {
     }
 
-/*! \return Number of particles that will be created
-*/
-unsigned int SimpleCubicInitializer::getNumParticles() const
-    {
-    return m_M * m_M * m_M;
-    }
-
-/*! \return Box dimensions that just fit the particles on their lattice
-*/
-BoxDim SimpleCubicInitializer::getBox() const
-    {
-    return box;
-    }
-
-
 /*! initialize a snapshot with a cubic crystal */
-void SimpleCubicInitializer::initSnapshot(SnapshotParticleData &snapshot) const
+void SimpleCubicInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     {
-    assert(snapshot.size == getNumParticles());
+
+    snapshot.global_box = box; 
+
+    SnapshotParticleData& pdata = snapshot.particle_data;
+    unsigned int num_particles = m_M * m_M * m_M;
+    pdata.resize(num_particles);
+
     Scalar3 lo = box.getLo();
     
     // just do a simple triple for loop to fill the space
@@ -116,15 +108,15 @@ void SimpleCubicInitializer::initSnapshot(SnapshotParticleData &snapshot) const
             {
             for (unsigned int i = 0; i < m_M; i++)
                 {
-                snapshot.pos[c].x = i * m_spacing + lo.x;
-                snapshot.pos[c].y = j * m_spacing + lo.y;
-                snapshot.pos[c].z = k * m_spacing + lo.z;
+                pdata.pos[c].x = i * m_spacing + lo.x;
+                pdata.pos[c].y = j * m_spacing + lo.y;
+                pdata.pos[c].z = k * m_spacing + lo.z;
                 c++;
                 }
             }
         }
 
-    snapshot.type_mapping.push_back(m_type_name);
+    pdata.type_mapping.push_back(m_type_name);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -160,20 +152,6 @@ RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_di
     m_box = BoxDim(L);
     }
 
-/*! \return Number of particles that will be initialized
-*/
-unsigned int RandomInitializer::getNumParticles() const
-    {
-    return m_N;
-    }
-
-/*! \return Box particles will be placed in
-*/
-BoxDim RandomInitializer::getBox() const
-    {
-    return m_box;
-    }
-
 /*! \param seed Random seed to set
     Two RandomInitializers with the same random seen should produce the same
     particle positions.
@@ -191,9 +169,12 @@ void RandomInitializer::setSeed(unsigned int seed)
     \note An exception is thrown if too many tries are made to find a spot where
         min_dist can be satisfied.
 */
-void RandomInitializer::initSnapshot(SnapshotParticleData& snapshot) const
+void RandomInitializer::initSnapshot(SnapshotSystemData& snapshot) const
     {
-    assert(snapshot.size == m_N);
+    snapshot.global_box = m_box;
+
+    SnapshotParticleData& pdata = snapshot.particle_data;
+    pdata.resize(m_N);
 
     Scalar L = m_box.getL().x;
     for (unsigned int i = 0; i < m_N; i++)
@@ -216,19 +197,19 @@ void RandomInitializer::initSnapshot(SnapshotParticleData& snapshot) const
                 {
                 for (unsigned int j = 0; j < i; j++)
                     {
-                    Scalar dx = snapshot.pos[j].x - x;
+                    Scalar dx = pdata.pos[j].x - x;
                     if (dx < -L/Scalar(2.0))
                         dx += L;
                     if (dx > L/Scalar(2.0))
                         dx -= L;
                         
-                    Scalar dy = snapshot.pos[j].y - y;
+                    Scalar dy = pdata.pos[j].y - y;
                     if (dy < -L/Scalar(2.0))
                         dy += L;
                     if (dy > L/Scalar(2.0))
                         dy -= L;
                         
-                    Scalar dz = snapshot.pos[j].z - z;
+                    Scalar dz = pdata.pos[j].z - z;
                     if (dz < -L/Scalar(2.0))
                         dz += L;
                     if (dz > L/Scalar(2.0))
@@ -249,10 +230,10 @@ void RandomInitializer::initSnapshot(SnapshotParticleData& snapshot) const
                 }
             }
 
-        snapshot.pos[i] = make_scalar3(x,y,z);
+        pdata.pos[i] = make_scalar3(x,y,z);
         }
 
-    snapshot.type_mapping.push_back(m_type_name);
+    pdata.type_mapping.push_back(m_type_name);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -284,57 +265,56 @@ RandomInitializerWithWalls::~RandomInitializerWithWalls()
     {
     }
 
-//! Returns the box the particles will sit in
-BoxDim RandomInitializerWithWalls::getBox() const
+void RandomInitializerWithWalls::initSnapshot(SnapshotSystemData& snapshot) const
     {
-    // the real box dimensions we need to return need to be increased by m_wall_buffer*2
-    Scalar L = m_real_box.getL().x + m_wall_buffer*2;
-    return BoxDim(L);
-    }
+    RandomInitializer::initSnapshot(snapshot);
 
-/*! \param wall_data Shared pointer to the WallData to initialize
-    Walls are created on all 6 sides of the box, spaced in from the edge by a distance of \a wall_buffer
-    specified in the constructor.
-*/
-void RandomInitializerWithWalls::initWallData(boost::shared_ptr<WallData> wall_data) const
-    {
+    // the real box dimensions need to be increased by m_wall_buffer*2
+    Scalar L = m_real_box.getL().x + m_wall_buffer*2;
+    BoxDim box(L);
+    
+    snapshot.global_box = box;
+
+    /*
+        Walls are created on all 6 sides of the box, spaced in from the edge by a distance of \a wall_buffer
+        specified in the constructor.
+    */
+
     Scalar3 lo = m_real_box.getLo();
     Scalar3 hi = m_real_box.getHi();
     // add all walls
     // left
-    wall_data->addWall(Wall(lo.x, 0.0, 0.0, 1.0, 0.0, 0.0));
+    snapshot.wall_data.push_back(Wall(lo.x, 0.0, 0.0, 1.0, 0.0, 0.0));
     // right
-    wall_data->addWall(Wall(hi.x, 0.0, 0.0, -1.0, 0.0, 0.0));
+    snapshot.wall_data.push_back(Wall(hi.x, 0.0, 0.0, -1.0, 0.0, 0.0));
     // bottom
-    wall_data->addWall(Wall(0.0, lo.y, 0.0, 0.0, 1.0, 0.0));
+    snapshot.wall_data.push_back(Wall(0.0, lo.y, 0.0, 0.0, 1.0, 0.0));
     // top
-    wall_data->addWall(Wall(0.0, hi.y, 0.0, 0.0, -1.0, 0.0));
+    snapshot.wall_data.push_back(Wall(0.0, hi.y, 0.0, 0.0, -1.0, 0.0));
     // front
-    wall_data->addWall(Wall(0.0, 0.0, lo.z, 0.0, 0.0, 1.0));
+    snapshot.wall_data.push_back(Wall(0.0, 0.0, lo.z, 0.0, 0.0, 1.0));
     // back
-    wall_data->addWall(Wall(0.0, 0.0, hi.z, 0.0, 0.0, -1.0));
+    snapshot.wall_data.push_back(Wall(0.0, 0.0, hi.z, 0.0, 0.0, -1.0));
     }
 
 
 void export_SimpleCubicInitializer()
     {
-    class_< SimpleCubicInitializer, bases<ParticleDataInitializer> >
+    class_< SimpleCubicInitializer >
         ("SimpleCubicInitializer", init<unsigned int, Scalar, string>())
     ;
-    // no need to .def methods, they are all inherited
     }
 
 void export_RandomInitializer()
     {
-    class_< RandomInitializer, bases<ParticleDataInitializer> >
+    class_< RandomInitializer >
         ("RandomInitializer", init<unsigned int, Scalar, Scalar, string>())
     ;
-    // no need to .def methods, they are all inherited
     }
 
 void export_RandomInitializerWithWalls()
     {
-    class_< RandomInitializerWithWalls, bases<ParticleDataInitializer> >
+    class_< RandomInitializerWithWalls >
         ("RandomInitializerWithWalls", init<unsigned int, Scalar, Scalar, Scalar, string>())
     ;
     // no need to .def methods, they are all inherited

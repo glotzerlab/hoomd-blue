@@ -357,48 +357,60 @@ def read_bin(filename, mpi_options=None):
 #
 def create_random(N, phi_p, name="A", min_dist=0.7, mpi_options=None):
     util.print_status_line();
-    
-    # check if initialization has already occurred
-    if is_initialized():
-        globals.msg.error("Cannot initialize more than once\n");
-        raise RuntimeError('Error initializing');
 
+    # initialize GPU/CPU execution configuration and MPI early
     my_exec_conf = _create_exec_conf();
 
-    # abuse the polymer generator to generate single particles
-    
-    # calculat the box size
-    L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
-    box = hoomd.BoxDim(L);
-    
-    # create the generator
-    generator = hoomd.RandomGenerator(box, 12345);
-    
-    # build type list
-    type_vector = hoomd.std_vector_string();
-    type_vector.append(name);
-    
-    # empty bond lists for single particles
-    bond_ab = hoomd.std_vector_uint();
-    bond_type = hoomd.std_vector_string();
+    # check if initialization has already occured
+    if is_initialized():
+        globals.msg.error("Cannot initialize more than once\n");
+        raise RuntimeError("Error initializing");
+
+    # initialize a system data snapshot
+    snapshot = hoomd.SnapshotSystemData()
+
+    # only generate particles on root processor
+    if my_exec_conf.getRank() == 0:
+        # abuse the polymer generator to generate single particles
         
-    # create the generator
-    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, bond_type, 100));
-    
-    # set the separation radius
-    generator.setSeparationRadius(name, min_dist/2.0);
+        # calculat the box size
+        L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
+        box = hoomd.BoxDim(L);
         
-    # generate the particles
-    generator.generate();
-    
-    globals.system_definition = hoomd.SystemDefinition(generator, my_exec_conf);
-    
+        # create the generator
+        generator = hoomd.RandomGenerator(box, 12345);
+        
+        # build type list
+        type_vector = hoomd.std_vector_string();
+        type_vector.append(name);
+        
+        # empty bond lists for single particles
+        bond_ab = hoomd.std_vector_uint();
+        bond_type = hoomd.std_vector_string();
+            
+        # create the generator
+        generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, bond_type, 100));
+        
+        # set the separation radius
+        generator.setSeparationRadius(name, min_dist/2.0);
+            
+        # generate the particles
+        generator.generate();
+
+        # initialize snapshot
+        generator.initSnapshot(snapshot)
+            
+    my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
+    if my_domain_decomposition is not None:
+        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
+    else:
+        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
+
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
     
-    _perform_common_init_tasks(mpi_options);
+    _perform_common_init_tasks();
     return data.system_data(globals.system_definition);
-
 
 ## Generates any number of randomly positioned polymers of configurable types
 #
