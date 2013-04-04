@@ -206,7 +206,7 @@ void MSDAnalyzer::addColumn(boost::shared_ptr<ParticleGroup> group, const std::s
 void MSDAnalyzer::setR0(const std::string& xml_fname)
     {
     // read in the xml file
-    HOOMDInitializer xml(xml_fname);
+    HOOMDInitializer xml(m_exec_conf,xml_fname);
     
     // verify that the input matches the current system size
     unsigned int nparticles = m_pdata->getN();

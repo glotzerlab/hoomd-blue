@@ -130,8 +130,8 @@ class SystemDefinition
                          boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()));
                          
         //! Construct from a snapshot
-        SystemDefinition(const SnapshotSystemData& snapshot,
-                        boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration())
+        SystemDefinition(boost::shared_ptr<const SnapshotSystemData> snapshot,
+                         boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration())
 #ifdef ENABLE_MPI
                         , boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>()
 #endif

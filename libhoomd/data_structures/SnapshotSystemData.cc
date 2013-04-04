@@ -61,7 +61,7 @@ using namespace boost::python;
 
 void export_SnapshotSystemData()
     {
-    class_<SnapshotSystemData>("SnapshotSystemData")
+    class_<SnapshotSystemData, boost::shared_ptr<SnapshotSystemData> >("SnapshotSystemData")
     .def(init<>())
     .def_readwrite("dimensions", &SnapshotSystemData::global_box)
     .def_readwrite("global_box", &SnapshotSystemData::global_box)
@@ -71,5 +71,7 @@ void export_SnapshotSystemData()
     .def_readwrite("dihedral_data", &SnapshotSystemData::dihedral_data)
     .def_readwrite("improper_data", &SnapshotSystemData::improper_data)
     ;
+
+    implicitly_convertible<boost::shared_ptr<SnapshotSystemData>, boost::shared_ptr<const SnapshotSystemData> >();
     }
 

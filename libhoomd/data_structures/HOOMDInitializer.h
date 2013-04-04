@@ -76,6 +76,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __HOOMD_INITIALIZER_H__
 
 //! Forward declarations
+class ExecutionConfiguation;
 class SnapshotSystemData;
 
 //! Initializes particle data from a Hoomd input file
@@ -99,7 +100,8 @@ class HOOMDInitializer
     {
     public:
         //! Loads in the file and parses the data
-        HOOMDInitializer(const std::string &fname);
+        HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                         const std::string &fname);
 
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
@@ -108,7 +110,7 @@ class HOOMDInitializer
         virtual void setTimeStep(unsigned int ts);
 
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotSystemData &snapshot) const;
+        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
 
         //! simple vec for storing particle data
         struct vec
@@ -232,7 +234,8 @@ class HOOMDInitializer
         
         std::vector<Scalar4> m_orientation;             //!< Orientation of each particle
         std::vector<InertiaTensor> m_moment_inertia;    //!< Inertia tensor for each particle
-        
+
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     };
 
 //! Exports HOOMDInitializer to python

@@ -117,26 +117,26 @@ SystemDefinition::SystemDefinition(unsigned int N,
     \param exec_conf Execution configuration to run on
     \param decomposition (optional) The domain decomposition layout
 */
-SystemDefinition::SystemDefinition(const SnapshotSystemData& snapshot,
+SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> snapshot,
                                    boost::shared_ptr<ExecutionConfiguration> exec_conf
 #ifdef ENABLE_MPI
                                    , boost::shared_ptr<DomainDecomposition> decomposition
 #endif
                                    )
     {
-    m_n_dimensions = snapshot.dimensions;
+    m_n_dimensions = snapshot->dimensions;
 
-    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot.particle_data,
-                 snapshot.global_box,
+    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
+                 snapshot->global_box,
                  exec_conf
 #ifdef ENABLE_MPI
                  , decomposition
 #endif
                  ));
  
-    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot.bond_data));
+    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot->bond_data));
    
-    m_wall_data = boost::shared_ptr<WallData>(new WallData(snapshot.wall_data));
+    m_wall_data = boost::shared_ptr<WallData>(new WallData(snapshot->wall_data));
     
     m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
     
@@ -149,13 +149,13 @@ SystemDefinition::SystemDefinition(const SnapshotSystemData& snapshot,
     // otherwise, nothing is done here.
 //    init.initRigidData(m_rigid_data);
         
-    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, snapshot.angle_data));
+    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, snapshot->angle_data));
     
-    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot.dihedral_data));
+    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->dihedral_data));
     
-    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot.improper_data));
+    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->improper_data));
 
-    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData(snapshot.integrator_data));
+    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of 
@@ -178,8 +178,8 @@ void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
     .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<const SnapshotSystemData&, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<const SnapshotSystemData&, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
+    .def(init<boost::shared_ptr<const SnapshotSystemData>, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<boost::shared_ptr<const SnapshotSystemData>, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def("setNDimensions", &SystemDefinition::setNDimensions)
     .def("getNDimensions", &SystemDefinition::getNDimensions)
     .def("getParticleData", &SystemDefinition::getParticleData)

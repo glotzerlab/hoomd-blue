@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDInitializer.h"
 #include "SnapshotSystemData.h"
+#include "ExecutionConfiguration.h"
 
 #include <iostream>
 #include <fstream>
@@ -71,6 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 #include <boost/python.hpp>
+
 using namespace boost::python;
 
 using namespace boost;
@@ -78,10 +80,15 @@ using namespace boost;
 /*! \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
 */
-HOOMDInitializer::HOOMDInitializer(const std::string &fname)
+HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+    const std::string &fname)
+    : m_timestep(0),
+      m_exec_conf(exec_conf)
     {
+    // we only execute on rank 0
+    if (m_exec_conf->getRank()) return;
+
     // initialize member variables
-    m_timestep = 0;
     m_box_read = false;
     m_num_dimensions = 3;
     
@@ -124,20 +131,25 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
     }
 
 /*! initializes a snapshot with the internally stored copy of the system data */
-void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
+boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     {
+    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+
+    // we only execute on rank 0
+    if (m_exec_conf->getRank()) return snapshot;
+
     // initialize dimensions
-    snapshot.dimensions = m_num_dimensions;
+    snapshot->dimensions = m_num_dimensions;
 
     // initialize box dimensions
-    snapshot.global_box = m_box;
+    snapshot->global_box = m_box;
 
     /*
      * Initialize particle data
      */
     assert(m_pos_array.size() > 0);
 
-    SnapshotParticleData& pdata = snapshot.particle_data; 
+    SnapshotParticleData& pdata = snapshot->particle_data; 
 
     // allocate memory in snapshot
     pdata.resize(m_pos_array.size());
@@ -215,7 +227,7 @@ void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize bond data
      */
-    SnapshotBondData& bdata = snapshot.bond_data;
+    SnapshotBondData& bdata = snapshot->bond_data;
 
     // allocate memory in snapshot
     bdata.resize(m_bonds.size());
@@ -232,7 +244,7 @@ void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize angle data
      */
-    SnapshotAngleData& adata = snapshot.angle_data;
+    SnapshotAngleData& adata = snapshot->angle_data;
 
     // allocate memory in snapshot
     adata.resize(m_angles.size());
@@ -249,7 +261,7 @@ void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize dihedral data
      */
-    SnapshotDihedralData& ddata = snapshot.dihedral_data;
+    SnapshotDihedralData& ddata = snapshot->dihedral_data;
 
     // allocate memory
     ddata.resize(m_dihedrals.size());
@@ -266,7 +278,7 @@ void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize improper data
      */
-    SnapshotDihedralData& idata = snapshot.improper_data;
+    SnapshotDihedralData& idata = snapshot->improper_data;
 
     // allocate memory
     idata.resize(m_dihedrals.size());
@@ -283,7 +295,9 @@ void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     /*
      * Initialize walls
      */
-    snapshot.wall_data = m_walls;
+    snapshot->wall_data = m_walls;
+
+    return snapshot;
     }
 
 /*! \param fname File name of the hoomd_xml file to read in
@@ -1125,11 +1139,11 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
 
 void export_HOOMDInitializer()
     {
-    class_< HOOMDInitializer >("HOOMDInitializer", init<const string&>())
+    class_< HOOMDInitializer >("HOOMDInitializer", init<boost::shared_ptr<const ExecutionConfiguration>, const string&>())
     // virtual methods from ParticleDataInitializer are inherited
     .def("getTimeStep", &HOOMDInitializer::getTimeStep)
     .def("setTimeStep", &HOOMDInitializer::setTimeStep)
-    .def("initSnapshot", &HOOMDInitializer::initSnapshot)
+    .def("getSnapshot", &HOOMDInitializer::getSnapshot)
     ;
     }
 
