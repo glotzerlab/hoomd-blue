@@ -80,8 +80,6 @@ import sys;
 
 from math import sqrt
 
-pppm_used = False;
-
 ## Long-range electrostatics computed with the PPPM method
 #
 # Reference \cite LeBard2012 describes the PPPM implementation details in HOOMD-blue. Cite it
@@ -118,14 +116,7 @@ class pppm(force._force):
     # pppm = charge.pppm(group=charged)
     # \endcode
     def __init__(self, group):
-        global pppm_used;
-        
         util.print_status_line();
-       
-        if pppm_used:
-            globals.msg.error("cannot have more than one pppm in a single job\n");
-            raise RuntimeError("Error initializing PPPM");
-        pppm_used = True;
        
         # initialize the base class
         force._force.__init__(self);
