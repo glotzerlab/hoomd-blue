@@ -112,7 +112,9 @@ def clear():
     global system_definition, system, forces, constraint_forces, external_forces, integration_methods, integrator, neighbor_list, loggers, thermos;
     global group_all, exec_conf;
     
-    exec_conf = None;
+    # do NOT reset exec_conf, this variable is cached
+    # to prevent re-initialization of MPI when init.reset/init.* is 
+    # called from within the same script
     system_definition = None;
     system = None;
     forces = [];
