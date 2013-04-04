@@ -804,75 +804,39 @@ void TwoStepNVERigid::update_nhcb(unsigned int timestep)
 */
 void TwoStepNVERigid::remap()
 {
-    Scalar oldlo, oldhi, ctr;
-    Scalar invLx, invLy, invLz;
-    
-    BoxDim box = m_pdata->getBox();
-    
+    BoxDim curBox = m_pdata->getGlobalBox();
+    Scalar3 curL = curBox.getL();
+    Scalar3 L = curL;
+
+    L.x = curL.x * dilation;
+    L.y = curL.y * dilation;
+    if (dimension == 3)
+        L.z = curL.z * dilation;
+
+    // copy and setL
+    BoxDim newBox = curBox;
+    newBox.setL(L);
+
+    // set the new box
+    m_pdata->setGlobalBox(newBox);
+
     // convert rigid body COMs to lamda coords
 
+    const BoxDim& box = m_pdata->getBox();
+
     ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-    
-    Scalar3 lo = box.getLo();
-    Scalar3 hi = box.getHi();
-    Scalar3 L = box.getL();
-    invLx = 1.0 / L.x;
-    invLy = 1.0 / L.y;
-    invLz = 1.0 / L.z;
-    
-    Scalar4 delta;
+
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-        delta.x = com_handle.data[body].x - lo.x;
-        delta.y = com_handle.data[body].y - lo.y;
-        delta.z = com_handle.data[body].z - lo.z;
 
-        com_handle.data[body].x = invLx * delta.x;
-        com_handle.data[body].y = invLy * delta.y;
-        com_handle.data[body].z = invLz * delta.z;
-        }
-
-    // reset box to new size/shape
-    oldlo = lo.x;
-    oldhi = hi.x;
-    ctr = 0.5 * (oldlo + oldhi);
-    lo.x = (oldlo - ctr) * dilation + ctr;
-    hi.x = (oldhi - ctr) * dilation + ctr;
-    L.x = hi.x - lo.x;
-    
-    oldlo = lo.y;
-    oldhi = hi.y;
-    ctr = 0.5 * (oldlo + oldhi);
-    lo.y = (oldlo - ctr) * dilation + ctr;
-    hi.y = (oldhi - ctr) * dilation + ctr;
-    L.y = hi.y - lo.y;
-    
-    if (dimension == 3)
-        {
-        oldlo = lo.z;
-        oldhi = hi.z;
-        ctr = 0.5 * (oldlo + oldhi);
-        lo.z = (oldlo - ctr) * dilation + ctr;
-        hi.z = (oldhi - ctr) * dilation + ctr;
-        L.z = hi.z - lo.z;
-        }
-    
-    m_pdata->setGlobalBoxL(L);
-    
-    // convert rigid body COMs back to box coords
-    Scalar4 newboxlo;
-    newboxlo.x = -L.x/2.0;
-    newboxlo.y = -L.y/2.0;
-    newboxlo.z = -L.z/2.0;
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-        {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-        com_handle.data[body].x = L.x * com_handle.data[body].x + newboxlo.x;
-        com_handle.data[body].y = L.y * com_handle.data[body].y + newboxlo.y;
-        com_handle.data[body].z = L.z * com_handle.data[body].z + newboxlo.z;
+        Scalar3 f = curBox.makeFraction(make_scalar3(com_handle.data[body].x,
+                                                     com_handle.data[body].y,
+                                                     com_handle.data[body].z));
+        Scalar3 scaled_cm = newBox.makeCoordinates(f);
+        com_handle.data[body].x = scaled_cm.x;
+        com_handle.data[body].y = scaled_cm.y;
+        com_handle.data[body].z = scaled_cm.z;
         }
     
     }

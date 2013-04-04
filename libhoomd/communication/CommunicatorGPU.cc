@@ -68,37 +68,13 @@ using namespace boost::python;
 //#define MPI3 // define if the MPI implementation supports MPI3 one-sided communications
 
 //! This is a lookup from corner to plan
-unsigned int corner_plan_lookup[] = { send_east | send_north | send_up,
-                                      send_east | send_north | send_down,
-                                      send_east | send_south | send_up,
-                                      send_east | send_south | send_down,
-                                      send_west | send_north | send_up,
-                                      send_west | send_north | send_down,
-                                      send_west | send_south | send_up,
-                                      send_west | send_south | send_down};
+unsigned int corner_plan_lookup[8];
 
 //! Lookup from edge to plan
-unsigned int edge_plan_lookup[] = { send_east | send_north,
-                                    send_east | send_south,
-                                    send_east | send_up,
-                                    send_east | send_down,
-                                    send_west | send_north,
-                                    send_west | send_south,
-                                    send_west | send_up,
-                                    send_west | send_down,
-                                    send_north | send_up,
-                                    send_north | send_down,
-                                    send_south | send_up,
-                                    send_south | send_down };
+unsigned int edge_plan_lookup[12];
 
 //! Lookup from face to plan
-unsigned int face_plan_lookup[] = { send_east,
-                                    send_west,
-                                    send_north,
-                                    send_south,
-                                    send_up,
-                                    send_down };
-
+unsigned int face_plan_lookup[6];
 
 
 //! Constructor
@@ -123,6 +99,35 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     unsigned int is_communicating[6];
     for (unsigned int face=0; face<6; ++face)
         is_communicating[face] = isCommunicating(face) ? 1 : 0;
+
+    corner_plan_lookup[corner_east_north_up] = send_east | send_north | send_up;
+    corner_plan_lookup[corner_east_north_down] = send_east | send_north | send_down;
+    corner_plan_lookup[corner_east_south_up] = send_east | send_south | send_up;
+    corner_plan_lookup[corner_east_south_down] = send_east | send_south | send_down;
+    corner_plan_lookup[corner_west_north_up] = send_west | send_north | send_up;
+    corner_plan_lookup[corner_west_north_down] = send_west | send_north | send_down;
+    corner_plan_lookup[corner_west_south_up] = send_west | send_south | send_up;
+    corner_plan_lookup[corner_west_south_down] = send_west | send_south | send_down;
+
+    edge_plan_lookup[edge_east_north] = send_east | send_north;
+    edge_plan_lookup[edge_east_south] = send_east | send_south;
+    edge_plan_lookup[edge_east_up] = send_east | send_up;
+    edge_plan_lookup[edge_east_down] = send_east | send_down;
+    edge_plan_lookup[edge_west_north] = send_west | send_north;
+    edge_plan_lookup[edge_west_south] = send_west | send_south;
+    edge_plan_lookup[edge_west_up] = send_west | send_up;
+    edge_plan_lookup[edge_west_down] = send_west | send_down;
+    edge_plan_lookup[edge_north_up] = send_north | send_up;
+    edge_plan_lookup[edge_north_down] = send_north | send_down;
+    edge_plan_lookup[edge_south_up] = send_south | send_up;
+    edge_plan_lookup[edge_south_down] = send_south | send_down;
+
+    face_plan_lookup[face_east]  = send_east;
+    face_plan_lookup[face_west] = send_west;
+    face_plan_lookup[face_north] = send_north;
+    face_plan_lookup[face_south]  = send_south;
+    face_plan_lookup[face_up] = send_up;
+    face_plan_lookup[face_down] = send_down;
 
     gpu_allocate_tmp_storage(is_communicating,m_is_at_boundary);
 
@@ -230,56 +235,56 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
     unsigned int n_tot_recv_ghosts_local = 0;
 
-    #ifdef ENABLE_MPI_CUDA
-    ArrayHandle<char> corner_update_buf_handle(m_corner_update_buf, access_location::device, access_mode::read);
-    ArrayHandle<char> edge_update_buf_handle(m_edge_update_buf, access_location::device, access_mode::readwrite);
-    ArrayHandle<char> face_update_buf_handle(m_face_update_buf, access_location::device, access_mode::readwrite);
-    ArrayHandle<char> update_recv_buf_handle(m_update_recv_buf, access_location::device, access_mode::overwrite);
-    #else
-    ArrayHandle<char> corner_update_buf_handle(m_corner_update_buf, access_location::host, access_mode::read);
-    ArrayHandle<char> edge_update_buf_handle(m_edge_update_buf, access_location::host, access_mode::readwrite);
-    ArrayHandle<char> face_update_buf_handle(m_face_update_buf, access_location::host, access_mode::readwrite);
-    ArrayHandle<char> update_recv_buf_handle(m_update_recv_buf, access_location::host, access_mode::overwrite);
-    #endif
-
-
-    for (unsigned int face = 0; face < 6; ++face)
         {
-        if (! isCommunicating(face)) continue;
+        #ifdef ENABLE_MPI_CUDA
+        ArrayHandle<char> corner_update_buf_handle(m_corner_update_buf, access_location::device, access_mode::read);
+        ArrayHandle<char> edge_update_buf_handle(m_edge_update_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> face_update_buf_handle(m_face_update_buf, access_location::device, access_mode::readwrite);
+        ArrayHandle<char> update_recv_buf_handle(m_update_recv_buf, access_location::device, access_mode::overwrite);
+        #else
+        ArrayHandle<char> corner_update_buf_handle(m_corner_update_buf, access_location::host, access_mode::read);
+        ArrayHandle<char> edge_update_buf_handle(m_edge_update_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> face_update_buf_handle(m_face_update_buf, access_location::host, access_mode::readwrite);
+        ArrayHandle<char> update_recv_buf_handle(m_update_recv_buf, access_location::host, access_mode::overwrite);
+        #endif
 
-        ArrayHandle<unsigned int> h_n_recv_ghosts_face(m_n_recv_ghosts_face, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_recv_ghosts_edge(m_n_recv_ghosts_edge, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_recv_ghosts_local(m_n_recv_ghosts_local, access_location::host, access_mode::read);
 
-        communicateStepTwo(face,
-                           corner_update_buf_handle.data,
-                           edge_update_buf_handle.data,
-                           face_update_buf_handle.data,
-                           m_corner_update_buf.getPitch(),
-                           m_edge_update_buf.getPitch(),
-                           m_face_update_buf.getPitch(),
-                           update_recv_buf_handle.data,
-                           n_copy_ghosts_corner,
-                           n_copy_ghosts_edge,
-                           n_copy_ghosts_face,
-                           m_update_recv_buf.getNumElements(),
-                           n_tot_recv_ghosts_local,
-                           gpu_update_element_size(),
-                           false);
-        // update send buffer sizes
-        for (unsigned int i = 0; i < 12; ++i)
-            n_copy_ghosts_edge[i] += h_n_recv_ghosts_edge.data[face*12+i];
-        for (unsigned int i = 0; i < 6; ++i)
-            n_copy_ghosts_face[i] += h_n_recv_ghosts_face.data[face*6+i];
+        for (unsigned int face = 0; face < 6; ++face)
+            {
+            if (! isCommunicating(face)) continue;
 
-        n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[face];
-        } // end communication loop
+            ArrayHandle<unsigned int> h_n_recv_ghosts_face(m_n_recv_ghosts_face, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_n_recv_ghosts_edge(m_n_recv_ghosts_edge, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_n_recv_ghosts_local(m_n_recv_ghosts_local, access_location::host, access_mode::read);
+
+            communicateStepTwo(face,
+                               corner_update_buf_handle.data,
+                               edge_update_buf_handle.data,
+                               face_update_buf_handle.data,
+                               m_corner_update_buf.getPitch(),
+                               m_edge_update_buf.getPitch(),
+                               m_face_update_buf.getPitch(),
+                               update_recv_buf_handle.data,
+                               n_copy_ghosts_corner,
+                               n_copy_ghosts_edge,
+                               n_copy_ghosts_face,
+                               m_update_recv_buf.getNumElements(),
+                               n_tot_recv_ghosts_local,
+                               gpu_update_element_size(),
+                               false);
+            // update send buffer sizes
+            for (unsigned int i = 0; i < 12; ++i)
+                n_copy_ghosts_edge[i] += h_n_recv_ghosts_edge.data[face*12+i];
+            for (unsigned int i = 0; i < 6; ++i)
+                n_copy_ghosts_face[i] += h_n_recv_ghosts_face.data[face*6+i];
+
+            n_tot_recv_ghosts_local += h_n_recv_ghosts_local.data[face];
+            } // end communication loop
+        }
 
         {
         // unpack ghost data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-
-        ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::read);
 
         ArrayHandle<unsigned int> d_n_local_ghosts_face(m_n_local_ghosts_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::read);
@@ -291,6 +296,10 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
         ArrayHandle<char> d_edge_update_buf(m_edge_update_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_face_update_buf(m_face_update_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_update_recv_buf(m_update_recv_buf, access_location::device, access_mode::read);
+
+        // get the updated shifted global box 
+        const BoxDim shifted_box = getShiftedBox();
+
         // unpack particles
         gpu_update_ghosts_unpack(m_pdata->getN(),
                                  m_n_tot_recv_ghosts,
@@ -306,8 +315,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                                  m_edge_update_buf.getPitch(),
                                  d_update_recv_buf.data,
                                  d_pos.data,
-                                 d_ghost_plan.data,
-                                 m_pdata->getGlobalBox());
+                                 shifted_box);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -322,7 +330,7 @@ void CommunicatorGPU::allocateBuffers()
      * initial size of particle send buffers = max of avg. number of ptls in skin layer in any direction
      */ 
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
 
     unsigned int maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.x);
     unsigned int maxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.y);
@@ -469,10 +477,6 @@ void CommunicatorGPU::allocateBuffers()
     
     GPUArray<unsigned int> ghost_idx_corner(m_max_copy_ghosts_corner, 8, m_exec_conf);
     m_ghost_idx_corner.swap(ghost_idx_corner);
-
-    // allocate ghost plan buffer
-    GPUArray<unsigned int> ghost_plan(m_max_copy_ghosts_face*6, m_exec_conf);
-    m_ghost_plan.swap(ghost_plan);
 
     GPUArray<unsigned int> n_local_ghosts_face(6, m_exec_conf);
     m_n_local_ghosts_face.swap(n_local_ghosts_face);
@@ -669,7 +673,6 @@ void CommunicatorGPU::migrateParticles()
                                    d_face_send_buf.data,
                                    m_face_send_buf.getPitch(),
                                    m_pdata->getBox(),
-                                   m_pdata->getGlobalBox(),
                                    m_condition.getDeviceFlags());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1039,6 +1042,8 @@ void CommunicatorGPU::migrateParticles()
 
         ArrayHandle<char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
 
+        const BoxDim shifted_box = getShiftedBox();
+
         gpu_migrate_fill_particle_arrays(old_nparticles,
                                n_tot_recv_ptls,
                                n_remove_ptls,
@@ -1053,7 +1058,8 @@ void CommunicatorGPU::migrateParticles()
                                d_body.data,
                                d_orientation.data,
                                d_tag.data,
-                               d_rtag.data);
+                               d_rtag.data,
+                               shifted_box);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1206,9 +1212,6 @@ void CommunicatorGPU::exchangeGhosts()
     if (m_prof) m_prof->push(m_exec_conf, "exchange_ghosts");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
-    assert(m_r_ghost < (m_pdata->getBox().getL().x));
-    assert(m_r_ghost < (m_pdata->getBox().getL().y));
-    assert(m_r_ghost < (m_pdata->getBox().getL().z));
 
         {
         // resize and reset plans
@@ -1249,6 +1252,9 @@ void CommunicatorGPU::exchangeGhosts()
     /*
      * Mark non-bonded atoms for sending
      */
+    // the ghost layer must be at_least m_r_ghost wide along every lattice direction
+    Scalar3 ghost_fraction = m_r_ghost/m_pdata->getBox().getNearestPlaneDistance();
+
         {
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
         ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::readwrite);
@@ -1257,7 +1263,7 @@ void CommunicatorGPU::exchangeGhosts()
                                          m_pdata->getN(),
                                          d_pos.data,
                                          m_pdata->getBox(),
-                                         m_r_ghost);
+                                         ghost_fraction);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1577,15 +1583,6 @@ void CommunicatorGPU::exchangeGhosts()
     for (unsigned int i = 0; i < 12; ++i)
         m_n_tot_recv_ghosts += m_n_forward_ghosts_edge[i];
 
-    // resize plan array if necessary
-    if (m_ghost_plan.getNumElements() < m_n_tot_recv_ghosts)
-        {
-        unsigned int new_size = m_ghost_plan.getNumElements();
-        while (new_size < m_n_tot_recv_ghosts)
-            new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-        m_ghost_plan.resize(new_size);
-        }
-
     // update number of ghost particles
     m_pdata->addGhostParticles(m_n_tot_recv_ghosts);
 
@@ -1595,8 +1592,6 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
-
-        ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
 
         ArrayHandle<unsigned int> d_n_local_ghosts_face(m_n_local_ghosts_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::read);
@@ -1609,6 +1604,9 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandle<char> d_edge_ghosts_buf(m_edge_ghosts_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_corner_ghosts_buf(m_corner_ghosts_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_ghosts_recv_buf(m_ghosts_recv_buf, access_location::device, access_mode::read);
+
+        // get the updated shifted global box 
+        const BoxDim shifted_box = getShiftedBox();
 
         gpu_exchange_ghosts_unpack(m_pdata->getN(),
                                      m_n_tot_recv_ghosts,
@@ -1628,8 +1626,7 @@ void CommunicatorGPU::exchangeGhosts()
                                      d_diameter.data,
                                      d_tag.data,
                                      d_rtag.data,
-                                     d_ghost_plan.data,
-                                     m_pdata->getGlobalBox());
+                                     shifted_box);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

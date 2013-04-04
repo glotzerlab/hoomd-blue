@@ -489,8 +489,15 @@ class ParticleData : boost::noncopyable
         //! Get the simulation box
         const BoxDim& getBox() const;
 
+        //! Set the global simulation box 
+        void setGlobalBox(const BoxDim &box);
+
         //! Set the global simulation box Lengths
-        void setGlobalBoxL(const Scalar3 &L);
+        void setGlobalBoxL(const Scalar3 &L)
+            {
+            BoxDim box(L);
+            setGlobalBox(box);
+            }
 
         //! Get the global simulation box
         const BoxDim& getGlobalBox() const;

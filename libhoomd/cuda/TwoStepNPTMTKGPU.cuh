@@ -68,9 +68,11 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              const Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             unsigned int ndof,
-                             Scalar xi,
-                             Scalar3 nu,
+                             Scalar exp_thermo_fac,
+                             Scalar *mat_exp_v,
+                             Scalar *mat_exp_v_int,
+                             Scalar *mat_exp_r,
+                             Scalar *mat_exp_r_int,
                              Scalar deltaT);
 
 //! Kernel driver for wrapping particles back in the box (part of first step)
@@ -84,9 +86,9 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             unsigned int ndof,
                              Scalar4 *d_net_force,
-                             Scalar3 nu,
+                             Scalar *mat_exp_v,
+                             Scalar *mat_exp_v_int,
                              Scalar deltaT);
 
 //! Kernel driver for reduction of temperature (part of second step)

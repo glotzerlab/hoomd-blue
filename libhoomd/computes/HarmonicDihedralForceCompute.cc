@@ -347,16 +347,13 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(0.125);  // the .125 term is (1/2)K * 1/4
 
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
-        // symmetrized version of virial tensor
+        // upper triangular version of virial tensor
         Scalar dihedral_virial[6];
         dihedral_virial[0] = (1./4.)*(dab.x*ffax + dcb.x*ffcx + (ddc.x+dcb.x)*ffdx);
-        dihedral_virial[1] = (1./8.)*(dab.x*ffay + dcb.x*ffcy + (ddc.x+dcb.x)*ffdy
-                                     +dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx);
-        dihedral_virial[2] = (1./8.)*(dab.x*ffaz + dcb.x*ffcz + (ddc.x+dcb.x)*ffdz
-                                     +dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx);
+        dihedral_virial[1] = (1./4.)*(dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx);
+        dihedral_virial[2] = (1./4.)*(dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx);
         dihedral_virial[3] = (1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
-        dihedral_virial[4] = (1./8.)*(dab.y*ffaz + dcb.y*ffcz + (ddc.y+dcb.y)*ffdz
-                                     +dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
+        dihedral_virial[4] = (1./4.)*(dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
         dihedral_virial[5] = (1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
        
         h_force.data[idx_a].x += ffax; 

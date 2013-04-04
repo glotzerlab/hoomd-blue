@@ -424,6 +424,11 @@ class RigidData
         //! Compute the axes from quaternion, used when reading from restart files
         void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space);
 
+        //! Functions used to diagonalize the inertia tensor for moment inertia and principle axes
+        int diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors);
+        void rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Scalar tau);
+        
+ 
     private:
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data with which this RigidData is associated
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
@@ -472,10 +477,6 @@ class RigidData
         
         //! Recalculate the cached indices from the stored tags after a particle sort
         void recalcIndices();
-        
-        //! Functions used to diagonalize the inertia tensor for moment inertia and principle axes
-        int diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors);
-        void rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Scalar tau);
         
         //! Compute quaternion from the axes
         void quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);

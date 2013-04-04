@@ -100,15 +100,19 @@ extern "C" __global__ void gpu_npt_rigid_zero_virial_rigid_kernel(float *d_viria
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total umber of rigid bodies
     \param box Box dimensions for periodic boundary condition handling
-    \param npt_rdata Thermostat/barostat data
+    \param npt_rdata_dilation Volume scaling factor
+    \param npt_rdata_dimension System dimensionality
+    \param npt_rdata_new box New box sizes
 */
 
-extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
-                                                        unsigned int *d_rigid_group,
-                                                        unsigned int n_group_bodies,
-                                                        unsigned int n_bodies, 
-                                                        BoxDim box,
-                                                        gpu_npt_rigid_data npt_rdata)
+extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4 *rdata_com,
+                                                      unsigned int *d_rigid_group,
+                                                      unsigned int n_group_bodies,
+                                                      unsigned int n_bodies, 
+                                                      BoxDim box,
+                                                      float npt_rdata_dilation,
+                                                      unsigned int npt_rdata_dimension,
+                                                      float4 *npt_rdata_new_box)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= n_group_bodies)
@@ -116,59 +120,29 @@ extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
 
     unsigned int idx_body = d_rigid_group[group_idx];
 
-    float oldlo, oldhi, ctr;
-    float3 pos, delta;
-    float dilation = npt_rdata.dilation;
-
-    Scalar3 lo = box.getLo();
-    Scalar3 hi = box.getHi();
-    Scalar3 L = box.getL();
-
-    float4 com = rdata_com[idx_body];
-
-    delta.x = com.x - lo.x;
-    delta.y = com.y - lo.y;
-    delta.z = com.z - lo.z;
-
-    pos.x = 1.0f / L.x * delta.x;
-    pos.y = 1.0f / L.y * delta.y;
-    pos.z = 1.0f / L.z * delta.z;
+    Scalar3 curL = box.getL();
+    float3 L;
 
     // reset box to new size/shape
-    oldlo = lo.x;
-    oldhi = hi.x;
-    ctr = 0.5f * (oldlo + oldhi);
-    lo.x = (oldlo - ctr) * dilation + ctr;
-    hi.x = (oldhi - ctr) * dilation + ctr;
-    L.x = hi.x - lo.x;
+    L.x = curL.x * npt_rdata_dilation;
+    L.y = curL.y * npt_rdata_dilation;
+    if (npt_rdata_dimension == 3)
+        L.z = curL.z * npt_rdata_dilation;
+    
+    // copy and setL 
+    BoxDim newBox = box;
+    newBox.setL(L);
 
-    oldlo = lo.y;
-    oldhi = hi.y;
-    ctr = 0.5f * (oldlo + oldhi);
-    lo.y = (oldlo - ctr) * dilation + ctr;
-    hi.y = (oldhi - ctr) * dilation + ctr;
-    L.y = hi.y - lo.y;
-
-    if (npt_rdata.dimension == 3)
-        {
-        oldlo = lo.z;
-        oldhi = hi.z;
-        ctr = 0.5f * (oldlo + oldhi);
-        lo.z = (oldlo - ctr) * dilation + ctr;
-        hi.z = (oldhi - ctr) * dilation + ctr;
-        L.z = hi.z - lo.z;
-        }
-
-    // convert rigid body COMs back to box coords
-    float3 newboxlo = -L/2.0f;
-    pos = L * pos + newboxlo;
+    float4 com = rdata_com[idx_body];
+    Scalar3 f = box.makeFraction(make_scalar3(com.x, com.y, com.z));
+    Scalar3 pos = newBox.makeCoordinates(f);
 
     // write out results
     rdata_com[idx_body] = make_float4(pos.x, pos.y, pos.z, 0.0f);
 
     if (idx_body == 0)
         {
-        *(npt_rdata.new_box) = make_float4(L.x, L.y, L.z, 0.0f);
+        *(npt_rdata_new_box) = make_float4(L.x, L.y, L.z, 0.0f);
         }
     }
 
@@ -392,11 +366,13 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                                                         deltaT);
        
     gpu_npt_rigid_remap_kernel<<< body_grid, body_threads >>>(rigid_data.com,
-                                                                rigid_data.body_indices,
-                                                                n_group_bodies,
-                                                                n_bodies,
-                                                                box, 
-                                                                npt_rdata);
+                                                              rigid_data.body_indices,
+                                                              n_group_bodies,
+                                                              n_bodies,
+                                                              box,
+                                                              npt_rdata.dilation,
+                                                              npt_rdata.dimension,
+                                                              npt_rdata.new_box);
 
                                                                     
     return cudaSuccess;

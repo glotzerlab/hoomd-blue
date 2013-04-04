@@ -80,8 +80,11 @@ using namespace std;
 BoxResizeUpdater::BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<Variant> Lx,
                                    boost::shared_ptr<Variant> Ly,
-                                   boost::shared_ptr<Variant> Lz)
-    : Updater(sysdef), m_Lx(Lx), m_Ly(Ly), m_Lz(Lz), m_scale_particles(true)
+                                   boost::shared_ptr<Variant> Lz,
+                                   boost::shared_ptr<Variant> xy,
+                                   boost::shared_ptr<Variant> xz,
+                                   boost::shared_ptr<Variant> yz)
+    : Updater(sysdef), m_Lx(Lx), m_Ly(Ly), m_Lz(Lz), m_xy(xy), m_xz(xz), m_yz(yz), m_scale_particles(true)
     {
     assert(m_pdata);
     assert(m_Lx);
@@ -113,44 +116,58 @@ void BoxResizeUpdater::update(unsigned int timestep)
 
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 
-    // first, compute what the current box size should be
+    // first, compute what the current box size and tilt factors should be
     Scalar Lx = m_Lx->getValue(timestep);
     Scalar Ly = m_Ly->getValue(timestep);
     Scalar Lz = m_Lz->getValue(timestep);
+    Scalar xy = m_xy->getValue(timestep);
+    Scalar xz = m_xz->getValue(timestep);
+    Scalar yz = m_yz->getValue(timestep);
     
     // check if the current box size is the same
-    BoxDim curBox = m_pdata->getBox();
+    BoxDim curBox = m_pdata->getGlobalBox();
     Scalar3 curL = curBox.getL();
+    Scalar curxy = curBox.getTiltFactorXY();
+    Scalar curxz = curBox.getTiltFactorXZ();
+    Scalar curyz = curBox.getTiltFactorYZ();
     
-    // copy and setL instead of creating a new box
+    // copy and setL + setTiltFactors instead of creating a new box
     BoxDim newBox = curBox;
     newBox.setL(make_scalar3(Lx, Ly, Lz));
+    newBox.setTiltFactors(xy,xz,yz);
 
     bool no_change = fabs((Lx - curL.x) / Lx) < 1e-5 &&
                      fabs((Ly - curL.y) / Ly) < 1e-5 &&
-                     fabs((Lz - curL.z) / Lz) < 1e-5;
-                     
-    // only change the box if there is a change in the box size
+                     fabs((Lz - curL.z) / Lz) < 1e-5 &&
+                     fabs(xy - curxy) < 1e-5 &&
+                     fabs(xz - curxz) < 1e-5 &&
+                     fabs(yz - curyz) < 1e-5;
+
+    // set the new box
+    m_pdata->setGlobalBox(newBox);
+
+                    
+    // only change the box if there is a change in the box dimensions
     if (!no_change)
         {
         // scale the particle positions (if we have been asked to)
         if (m_scale_particles)
             {
-            Scalar sx = Lx / curL.x;
-            Scalar sy = Ly / curL.y;
-            Scalar sz = Lz / curL.z;
-            
             // move the particles to be inside the new box
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
+                // obtain scaled coordinates in the old global box
+                Scalar3 f = curBox.makeFraction(make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z));
+
                 // intentionally scale both rigid body and free particles, this may waste a few cycles but it enables
                 // the debug inBox checks to be left as is (otherwise, setRV cannot fixup rigid body positions without
                 // failing the check)
-                h_pos.data[i].x *= sx;
-                h_pos.data[i].y *= sy;
-                h_pos.data[i].z *= sz;
+                Scalar3 scaled_pos = newBox.makeCoordinates(f);
+                h_pos.data[i].x = scaled_pos.x;
+                h_pos.data[i].y = scaled_pos.y;
+                h_pos.data[i].z = scaled_pos.z;
                 }
                 
             // also rescale rigid body COMs
@@ -161,20 +178,27 @@ void BoxResizeUpdater::update(unsigned int timestep)
                 
                 for (unsigned int body = 0; body < n_bodies; body++)
                     {
-                    com_handle.data[body].x *= sx;
-                    com_handle.data[body].y *= sy;
-                    com_handle.data[body].z *= sz;
+                    // obtain scaled coordinates in the old global box
+                    Scalar3 f = curBox.makeFraction(make_scalar3(com_handle.data[body].x,
+                                                                 com_handle.data[body].y,
+                                                                 com_handle.data[body].z));
+                    Scalar3 scaled_cm = newBox.makeCoordinates(f);
+                    com_handle.data[body].x = scaled_cm.x;
+                    com_handle.data[body].y = scaled_cm.y;
+                    com_handle.data[body].z = scaled_cm.z;
                     }
                 }
                 
             }
-        else if (Lx < curL.x || Ly < curL.y || Lz < curL.z)
+        else 
             {
-            // otherwise, we need to ensure that the particles are still in the box if it is smaller
+            // otherwise, we need to ensure that the particles are still in the (local) box
             // move the particles to be inside the new box
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-            
+          
+            const BoxDim& local_box = m_pdata->getBox();
+             
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 // intentionally scale both rigid body and free particles, this may waste a few cycles but it enables
@@ -182,7 +206,7 @@ void BoxResizeUpdater::update(unsigned int timestep)
                 // failing the check)
                 
                 // need to update the image if we move particles from one side of the box to the other
-                newBox.wrap(h_pos.data[i], h_image.data[i]);
+                local_box.wrap(h_pos.data[i], h_image.data[i]);
                 }
 
             // do the same for rigid body COMs
@@ -196,14 +220,11 @@ void BoxResizeUpdater::update(unsigned int timestep)
                     {
                     // need to update the image if we move particles from one side of the box to the other
                     Scalar3 pos = make_scalar3(h_body_com.data[body].x, h_body_com.data[body].y, h_body_com.data[body].z);
-                    newBox.wrap(h_body_com.data[body], h_body_image.data[body]);
+                    local_box.wrap(h_body_com.data[body], h_body_image.data[body]);
                     }
                 }
             }
         
-        // set the new box
-        m_pdata->setGlobalBoxL(newBox.getL());
-
         // update the body particle positions to reflect the new rigid body positions
         rigid_data->setRV(true);
         }
@@ -215,6 +236,9 @@ void export_BoxResizeUpdater()
     {
     class_<BoxResizeUpdater, boost::shared_ptr<BoxResizeUpdater>, bases<Updater>, boost::noncopyable>
     ("BoxResizeUpdater", init< boost::shared_ptr<SystemDefinition>,
+     boost::shared_ptr<Variant>,
+     boost::shared_ptr<Variant>,
+     boost::shared_ptr<Variant>,
      boost::shared_ptr<Variant>,
      boost::shared_ptr<Variant>,
      boost::shared_ptr<Variant> >())

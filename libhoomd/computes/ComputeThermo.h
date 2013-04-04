@@ -174,7 +174,7 @@ class ComputeThermo : public Compute
                 }
             }
 
-        //! Returns the symmetrized virial tensor last computed by compute()
+        //! Returns the upper triangular virial tensor last computed by compute()
         /*! \returns Instantaneous virial tensor, or virial tensor containing NaN entries if it is
             not available
         */

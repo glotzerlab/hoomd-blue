@@ -335,6 +335,12 @@ class imd(_analyzer):
 #
 # Quantities that can be logged at any time:
 # - \b volume - Volume of the simulation box (in volume units)
+# - \b lx - Box length in x direction (in length units)
+# - \b ly - Box length in y direction (in length units)
+# - \b lz - Box length in z direction (in length units)
+# - \b xy - Box tilt factor in xy plane (dimensionless)
+# - \b xz - Box tilt factor in xz plane (dimensionless)
+# - \b yz - Box tilt factor in yz plane (dimensionless)
 # - \b momentum - Magnitude of the average momentum of all particles (in momentum units)
 # - \b time - Wall-clock running time from the start of the log (in seconds)
 #
@@ -378,9 +384,8 @@ class imd(_analyzer):
 # - Integrators
 #   - **bdnvt_reservoir_energy**_groupname (integrate.bdnvt) - Energy reservoir for the BD thermostat (in energy units)
 #   - **nvt_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
-#   - **nph_barostat_energy**_groupname (integrate.nph) - Energy reservoir for the NPH barostat
-#   - **npt_mtk_thermostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT thermostat
-#   - **npt_mtk_barostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT barostat
+#   - **npt_thermostat_energy** (integrate.npt) - Energy of the NPT thermostat
+#   - **npt_barostat_energy** (integrate.npt & integrate.nph) - Energy of the NPT (or NPH) barostat
 # 
 # Additionally, the following commands can be provided user-defined names that are appended as suffixes to the 
 # logged quantitiy (e.g. with \c pair.lj(r_cut=2.5, \c name="alpha"), the logged quantity would be pair_lj_energy_alpha).

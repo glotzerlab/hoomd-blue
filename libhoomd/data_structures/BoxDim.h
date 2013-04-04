@@ -66,11 +66,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #define HOSTDEVICE inline
 #endif
+ 
+// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
+#ifdef NVCC
+#define RSQRT(x) rsqrtf( (x) )
+#else
+#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
+#endif
 
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
-    that box. Inside is defined as x >= m_lo.x && x < m_hi.x, and similarly for y and z.
-    
+    that box. For cubic boxes, inside is defined as x >= m_lo.x && x < m_hi.x, and similarly for y and z.
+   
+    For triclinic boxes, tilt factors xy, xz and yz are defined. In this case, m_lo and m_hi are the corners of the
+    corresponding cubic box, for which the tilt factors would be zero.
+
+    The conditions for a particle to be inside the triclinic box are
+
+                              -m_L.z/2 <= z <= m_L.z/2
+                       -m_L.y/2 + yz*z <= y <= m_L.y/2 + yz*z
+        -m_L.x/2 + (xz-xy*yz)*z + xy*y <= x <= m_L.x/2 + (xz-xy*yz)*z + xy*y
+
     Boxes constructed via length default to periodic in all 3 directions. Any direction may be made non-periodic with
     setPeriodic(). Boxes constructed via lo and hi must be explicity given periodic flags for each direction.
     The lo value \b must equal the negative for the high value for any direction that is set periodic. This is due to
@@ -100,6 +116,7 @@ class BoxDim
         HOSTDEVICE explicit BoxDim()
             {
             m_lo = m_hi = m_Linv = m_L = make_scalar3(0, 0, 0);
+            m_xz = m_xy = m_yz = Scalar(0.0);
             m_periodic = make_uchar3(1,1,1);
             }
 
@@ -112,6 +129,7 @@ class BoxDim
             {
             setL(make_scalar3(Len, Len, Len));
             m_periodic = make_uchar3(1,1,1);
+            m_xz = m_xy = m_yz = Scalar(0.0);
             }
 
         //! Constructs a box from -Len_x/2 to Len_x/2 for each dimension
@@ -124,6 +142,7 @@ class BoxDim
             {
             setL(make_scalar3(Len_x, Len_y, Len_z));
             m_periodic = make_uchar3(1,1,1);
+            m_xz = m_xy = m_yz = Scalar(0.0);
             }
 
         //! Constructs a box from -L/2 to L/2 for each dimension
@@ -133,6 +152,20 @@ class BoxDim
         HOSTDEVICE explicit BoxDim(Scalar3 L)
             {
             setL(L);
+            m_periodic = make_uchar3(1,1,1);
+            m_xz = m_xy = m_yz = Scalar(0.0);
+            }
+
+        //! Constructs a tilted box with edges of length len for each dimension
+        /*! \param Len Box length
+            \param xy Tilt factor of y-axis in xy plane
+            \param xz Tilt factor of z-axis in xz plane
+            \param yz Tilt factor of z-axis in yz plane
+         */
+        HOSTDEVICE explicit BoxDim(Scalar Len, Scalar xy, Scalar xz, Scalar yz)
+            {
+            setL(make_scalar3(Len,Len,Len));
+            setTiltFactors(xy, xz, yz);
             m_periodic = make_uchar3(1,1,1);
             }
 
@@ -145,6 +178,7 @@ class BoxDim
             {
             setLoHi(lo, hi);
             m_periodic = periodic;
+            m_xz = m_xy = m_yz = Scalar(0.0);
             }
 
         //! Get the periodic flags
@@ -212,6 +246,36 @@ class BoxDim
             m_L = m_hi - m_lo;
             }
 
+        //! Update the box tilt factors
+        /*! \param xy Tilt of y axis in x-y plane
+            \param xz Tilt of z axis in x-z plane
+            \param yz Tilt of z axis in x-y plane
+         */
+        HOSTDEVICE void setTiltFactors(const Scalar xy, const Scalar xz, const Scalar yz)
+            {
+            m_xy = xy;
+            m_xz = xz;
+            m_yz = yz;
+            }
+
+        //! Returns the xy tilt factor
+        HOSTDEVICE Scalar getTiltFactorXY() const
+            {
+            return m_xy;
+            }
+
+        //! Returns the xz tilt factor
+        HOSTDEVICE Scalar getTiltFactorXZ() const
+            {
+            return m_xz;
+            }
+
+        //! Returns the yz tilt factor
+        HOSTDEVICE Scalar getTiltFactorYZ() const
+            {
+            return m_yz;
+            }
+
         //! Compute fractional coordinates, allowing for a ghost layer
         /*! \param v Vector to scale
             \param ghost_width Width of extra ghost padding layer to take into account
@@ -221,9 +285,23 @@ class BoxDim
         */
         HOSTDEVICE Scalar3 makeFraction(const Scalar3& v, const Scalar3& ghost_width=make_scalar3(0.0,0.0,0.0)) const
             {
-            return (v - m_lo + ghost_width) / (m_L + Scalar(2.0)*ghost_width);
+            Scalar3 delta = v - m_lo;
+            delta.x -= (m_xz-m_yz*m_xy)*v.z+m_xy*v.y;
+            delta.y -= m_yz * v.z;
+            return (delta + ghost_width)/ (m_L + Scalar(2.0)*ghost_width);
             }
 
+        //! Convert fractional coordinates into real coordinates
+        /*! \param f Fractional coordinates between 0 and 1 to scale
+            \return A vector inside the box corresponding to f
+         */
+        HOSTDEVICE Scalar3 makeCoordinates(const Scalar3 &f) const
+            {
+            Scalar3 v = m_lo + f*m_L;
+            v.x += m_xy*v.y+m_xz*v.z;
+            v.y += m_yz*v.z;
+            return v;
+            }
 
         //! Compute minimum image
         /*! \param v Vector to compute
@@ -236,38 +314,74 @@ class BoxDim
             Scalar3 L = getL();
 
             #ifdef NVCC
-            if (m_periodic.x)
-                w.x -= L.x * rintf(w.x * m_Linv.x);
-            if (m_periodic.y)
-                w.y -= L.y * rintf(w.y * m_Linv.y);
             if (m_periodic.z)
-                w.z -= L.z * rintf(w.z * m_Linv.z);
+                {
+                Scalar img = rintf(w.z * m_Linv.z);
+                w.z -= L.z * img;
+                w.y -= L.z * m_yz * img;
+                w.x -= L.z * m_xz * img;
+                }
+
+            if (m_periodic.y)
+                {
+                Scalar img = rintf(w.y * m_Linv.y);
+                w.y -= L.y * img;
+                w.x -= L.y * m_xy * img;
+                }
+
+            if (m_periodic.x)
+                {
+                w.x -= L.x * rintf(w.x * m_Linv.x);
+                }
             #else
             // on the cpu, branches are faster than calling rintf
-            if (m_periodic.x)
-                {
-                if (w.x >= m_hi.x)
-                    w.x -= L.x;
-                else if (w.x < m_lo.x)
-                    w.x += L.x;
-                }
-
-            if (m_periodic.y)
-                {
-                if (w.y >= m_hi.y)
-                    w.y -= L.y;
-                else if (w.y < m_lo.y)
-                    w.y += L.y;
-                }
-
             if (m_periodic.z)
                 {
                 if (w.z >= m_hi.z)
+                    {
                     w.z -= L.z;
+                    w.y -= L.z * m_yz;
+                    w.x -= L.z * m_xz;
+                    }
                 else if (w.z < m_lo.z)
+                    {
                     w.z += L.z;
+                    w.y += L.z * m_yz;
+                    w.x += L.z * m_xz;
+                    }
                 }
-            #endif
+ 
+            if (m_periodic.y)
+                {
+                if (w.y >= m_hi.y)
+                    {
+                    int i = (w.y*m_Linv.y+Scalar(0.5));
+                    w.y -= (Scalar)i*L.y;
+                    w.x -= (Scalar)i*L.y * m_xy;
+                    }
+                if (w.y < m_lo.y)
+                    {
+                    int i = (-w.y*m_Linv.y+Scalar(0.5));
+                    w.y += (Scalar)i*L.y;
+                    w.x += (Scalar)i*L.y * m_xy;
+                    }
+                }
+
+            if (m_periodic.x)
+                {
+                if (w.x >= m_hi.x)
+                    {
+                    int i = (w.x*m_Linv.x+Scalar(0.5));
+                    w.x -= (Scalar)i*L.x;
+                    }
+                if (w.x < m_lo.x)
+                    {
+                    int i = (-w.x*m_Linv.x+Scalar(0.5));
+                    w.x += (Scalar)i*L.x;
+                    }
+                }
+            #endif 
+
             return w;
             }
 
@@ -283,12 +397,13 @@ class BoxDim
 
             if (m_periodic.x)
                 {
-                if (w.x >= m_hi.x)
+                Scalar tilt_x = (m_xz - m_xy*m_yz) * w.z + m_xy * w.y;
+                if (w.x >= m_hi.x + tilt_x)
                     {
                     w.x -= L.x;
                     img.x++;
                     }
-                else if (w.x < m_lo.x)
+                else if (w.x < m_lo.x + tilt_x)
                     {
                     w.x += L.x;
                     img.x--;
@@ -297,14 +412,17 @@ class BoxDim
 
             if (m_periodic.y)
                 {
-                if (w.y >= m_hi.y)
+                Scalar tilt_y = m_yz * w.z;
+                if (w.y >= m_hi.y + tilt_y)
                     {
                     w.y -= L.y;
+                    w.x -= L.y * m_xy;
                     img.y++;
                     }
-                else if (w.y < m_lo.y)
+                else if (w.y < m_lo.y + tilt_y)
                     {
                     w.y += L.y;
+                    w.x += L.y * m_xy;
                     img.y--;
                     }
                 }
@@ -314,15 +432,19 @@ class BoxDim
                 if (w.z >= m_hi.z)
                     {
                     w.z -= L.z;
+                    w.y -= L.z * m_yz;
+                    w.x -= L.z * m_xz;
                     img.z++;
                     }
                 else if (w.z < m_lo.z)
                     {
                     w.z += L.z;
+                    w.y += L.z * m_yz;
+                    w.x += L.z * m_xz;
                     img.z--;
                     }
                 }
-            }
+           }
 
         //! Wrap a vector back into the box
         /*! \param w Vector to wrap, updated to the minimum image obeying the periodic settings
@@ -340,18 +462,104 @@ class BoxDim
             w.z = v.z;
             }
 
-        //! Check if the displacement is out of bounds
-        /* \param dx The displacement vector
-           \returns True if the displacement exceeds the box length in a direction where periodic
-                    boundary conditions are not applied
+        //! Get the periodic image a vector belongs to
+        /*! \param v The vector to check
+            \returns the integer coordinates of the periodic image
          */
-        HOSTDEVICE bool checkOutOfBounds(Scalar3& dx) const
+        HOSTDEVICE int3 getImage(Scalar3 &v) const
             {
-            if (!m_periodic.x && dx.x*dx.x >= m_L.x*m_L.x) return true;
-            if (!m_periodic.y && dx.y*dx.y >= m_L.y*m_L.y) return true;
-            if (!m_periodic.z && dx.z*dx.z >= m_L.z*m_L.z) return true;
+            Scalar3 f = makeFraction(v) - make_scalar3(0.5,0.5,0.5);
+            int3 img;
+            img.x = (int)((f.x >= Scalar(0.0)) ? f.x + Scalar(0.5) : f.x - Scalar(0.5));
+            img.y = (int)((f.y >= Scalar(0.0)) ? f.y + Scalar(0.5) : f.y - Scalar(0.5));
+            img.z = (int)((f.z >= Scalar(0.0)) ? f.z + Scalar(0.5) : f.z - Scalar(0.5));
+            return img;
+            }
+
+
+        //! Shift a vector by a multiple of the lattice vectors
+        /*! \param v The vector to shift
+            \param shift The displacement in lattice coordinates
+
+            \note This method only works on boxes for which hi=-lo in all directions 
+         */
+        HOSTDEVICE Scalar3 shift(const Scalar3& v, const int3& shift) const
+            {
+            Scalar3 r = v;
+            r += makeCoordinates(make_scalar3(0.5,0.5,0.5)+make_scalar3(shift.x,shift.y,shift.z));
+            return r;
+            }
+
+        //! Check if the displacement is out of bounds
+        /*! \param dx The displacement vector
+            \returns True if the displacement exceeds the box length in a direction where periodic
+                     boundary conditions are not applied
+         */
+        HOSTDEVICE bool checkOutOfBounds(const Scalar3& dx) const
+            {
+            Scalar3 del;
+            del.x = dx.x - (m_xz - m_xy*m_yz) * dx.z - m_xy * dx.y;
+            del.y = dx.y -  m_yz * dx.z;
+            del.z = dx.z;
+
+            if (!m_periodic.x && del.x*del.x >= m_L.x*m_L.x) return true;
+            if (!m_periodic.y && del.y*del.y >= m_L.y*m_L.y) return true;
+            if (!m_periodic.z && del.z*del.z >= m_L.z*m_L.z) return true;
 
             return false;
+            }
+
+        //! Get the shortest distance between opposite boundary planes of the box
+        /*! The distance between two planes of the lattice is 2 Pi/|b_i|, where
+         *   b_1 is the reciprocal lattice vector of the Bravais lattice normal to
+         *   the lattice vectors a_2 and a_3 etc.
+         *
+         * \return A Scalar3 containing the distance between the a_2-a_3, a_3-a_1 and
+         *         a_1-a_2 planes for the triclinic lattice         
+         */
+        HOSTDEVICE Scalar3 getNearestPlaneDistance() const
+            {
+            Scalar3 dist;
+            dist.x = m_L.x*RSQRT(Scalar(1.0) + m_xy*m_xy + (m_xy*m_yz - m_xz)*(m_xy*m_yz - m_xz));
+            dist.y = m_L.y*RSQRT(Scalar(1.0) + m_yz*m_yz);
+            dist.z = m_L.z;
+
+            return dist;
+            }
+
+        //! Get the volume of the box
+        /*! \returns the volume
+         *  \param twod If true, return the area instead of the volume
+         */
+        HOSTDEVICE Scalar getVolume(bool twod=false) const
+            {
+            if (twod)
+                return m_L.x*m_L.y;
+            else
+                return m_L.x*m_L.y*m_L.z;
+            }
+
+        /*! Get the lattice vector with index i
+         
+            \param i Index (0<=i<=2) of the lattice vector
+            \returns the lattice vector with index i, or (0,0,0) if i is invalid
+         */
+        HOSTDEVICE Scalar3 getLatticeVector(unsigned int i) const
+            {
+            if (i == 0)
+                {
+                return make_scalar3(m_L.x,0.0,0.0);
+                }
+            else if (i == 1)
+                {
+                return make_scalar3(m_L.y*m_xy, m_L.y, 0.0);
+                }
+            else if (i == 2)
+                {
+                return make_scalar3(m_L.z*m_xz, m_L.z*m_yz, m_L.z);
+                }
+
+            return make_scalar3(0.0,0.0,0.0);
             }
 
     private:
@@ -359,11 +567,14 @@ class BoxDim
         Scalar3 m_hi;      //!< Maximum coords in the box
         Scalar3 m_L;       //!< L precomputed (used to avoid subtractions in boundary conditions)
         Scalar3 m_Linv;    //!< 1/L precomputed (used to avoid divisions in boundary conditions)
+        Scalar m_xy;       //!< xy tilt factor
+        Scalar m_xz;       //!< xz tilt factor
+        Scalar m_yz;       //!< yz tilt factor
         uchar3 m_periodic; //!< 0/1 in each direction to tell if the box is periodic in that direction
     };
 
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE
-
+#undef RSQRT
 #endif // __BOXDIM_H__

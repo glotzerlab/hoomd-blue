@@ -108,9 +108,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVE.h"
 #include "TwoStepNVT.h"
 #include "TwoStepBDNVT.h"
-#include "TwoStepNPT.h"
 #include "TwoStepNPTMTK.h"
-#include "TwoStepNPH.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepNVERigid.h" 
 #include "TwoStepNVTRigid.h"
@@ -141,9 +139,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
-#include "TwoStepNPTGPU.h"
 #include "TwoStepNPTMTKGPU.h"
-#include "TwoStepNPHGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepNVERigidGPU.h" 
 #include "TwoStepNVTRigidGPU.h" 
@@ -494,9 +490,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVE();
     export_TwoStepNVT();
     export_TwoStepBDNVT();
-    export_TwoStepNPT();
     export_TwoStepNPTMTK();
-    export_TwoStepNPH();
     export_Berendsen();
     export_TwoStepNVERigid();
     export_TwoStepNVTRigid();
@@ -510,9 +504,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
     export_TwoStepBDNVTGPU();
-    export_TwoStepNPTGPU();
     export_TwoStepNPTMTKGPU();
-    export_TwoStepNPHGPU();
     export_BerendsenGPU();
     export_TwoStepNVERigidGPU();
     export_TwoStepNVTRigidGPU();

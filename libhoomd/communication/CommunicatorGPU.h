@@ -139,6 +139,34 @@ class CommunicatorGPU : public Communicator
         void checkValid(unsigned int timestep);
  
     private:
+        enum edgeEnum
+            {
+            edge_east_north = 0 ,
+            edge_east_south,
+            edge_east_up,
+            edge_east_down,
+            edge_west_north,
+            edge_west_south,
+            edge_west_up,
+            edge_west_down,
+            edge_north_up,
+            edge_north_down,
+            edge_south_up,
+            edge_south_down
+            };
+        
+        enum cornerEnum
+            {
+            corner_east_north_up = 0,
+            corner_east_north_down,
+            corner_east_south_up,
+            corner_east_south_down,
+            corner_west_north_up,
+            corner_west_north_down,
+            corner_west_south_up,
+            corner_west_south_down
+            };
+         
         GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
         GPUArray<unsigned int> m_ptl_plan;          //!< Particle sending plans
 
@@ -174,7 +202,6 @@ class CommunicatorGPU : public Communicator
         GPUArray<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
         GPUArray<char> m_face_ghosts_buf;           //!< Copy buffer for ghosts lying near a face
         GPUArray<char> m_ghosts_recv_buf;           //!< Receive buffer for particle data
-        GPUArray<unsigned int> m_ghost_plan;         //!< Routing plans for received ghost particles
 
         GPUArray<unsigned int> m_ghost_idx_corner;  //!< Indices of particles copied as ghosts via corner
         GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge

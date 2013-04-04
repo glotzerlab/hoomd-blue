@@ -62,8 +62,6 @@ using namespace boost;
 
 #include "TwoStepNPTRigidGPU.h"
 #include "TwoStepNPTRigidGPU.cuh"
-#include "TwoStepNPTGPU.cuh"
-#include "TwoStepNVTGPU.cuh"
 
 /*! \file TwoStepNPTRigidGPU.cc
     \brief Contains code for the TwoStepNPTRigidGPU class
