@@ -174,6 +174,28 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
     m_n_dimensions = n_dimensions;
     }
 
+boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot()
+    {
+    boost::shared_ptr<SnapshotSystemData> snap(new SnapshotSystemData);
+
+    snap->dimensions = m_n_dimensions;
+    snap->global_box = m_particle_data->getGlobalBox();
+
+    m_particle_data->takeSnapshot(snap->particle_data);
+    m_bond_data->takeSnapshot(snap->bond_data);
+    m_angle_data->takeSnapshot(snap->angle_data);
+    m_dihedral_data->takeSnapshot(snap->dihedral_data);
+    m_improper_data->takeSnapshot(snap->improper_data);
+
+    for (unsigned int i = 0; i < m_wall_data->getNumWalls(); ++i)
+        snap->wall_data.push_back(m_wall_data->getWall(i));
+
+    for (unsigned int i = 0; i < m_integrator_data->getNumIntegrators(); ++i)
+        snap->integrator_data.push_back(m_integrator_data->getIntegratorVariables(i));
+
+    return snap;
+    }
+
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
@@ -191,6 +213,7 @@ void export_SystemDefinition()
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)
     .def("getPDataRefs", &SystemDefinition::getPDataRefs)
+    .def("takeSnapshot", &SystemDefinition::takeSnapshot)
     ;
     }
 

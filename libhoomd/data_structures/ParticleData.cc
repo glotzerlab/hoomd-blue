@@ -799,12 +799,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 */
 void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     {
-    // construct global snapshot
-    if (snapshot.size != getNGlobal())
-        {
-        cerr << endl << "***Error! Number of particles in snapshot must be equal to global number of particles." << endl << endl;
-        throw std::runtime_error("Error taking ParticleDataSnapshot");
-        }
+    snapshot.resize(getNGlobal());
 
     ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);

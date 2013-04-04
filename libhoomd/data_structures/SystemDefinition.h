@@ -192,7 +192,10 @@ class SystemDefinition
             {
             return m_particle_data.use_count();
             }
-            
+           
+        //! Return a snapshot of the current system data
+        boost::shared_ptr<SnapshotSystemData> takeSnapshot();
+
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
         boost::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system

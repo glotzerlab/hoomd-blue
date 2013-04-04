@@ -545,6 +545,9 @@ void DihedralData::allocateDihedralTable(int height)
 */
 void DihedralData::takeSnapshot(SnapshotDihedralData& snapshot)
     {
+    // allocate memory
+    snapshot.resize(getNumDihedrals());
+
     // check for an invalid request
     if (snapshot.dihedrals.size() != getNumDihedrals())
         {

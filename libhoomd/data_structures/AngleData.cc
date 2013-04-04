@@ -503,16 +503,8 @@ void AngleData::allocateAngleTable(int height)
 */
 void AngleData::takeSnapshot(SnapshotAngleData& snapshot)
     {
-    // check for an invalid request
-    if (snapshot.angles.size() != getNumAngles())
-        {
-        m_exec_conf->msg->error() << "AngleData is being asked to initizalize a snapshot of the wrong size."
-             << endl;
-        throw runtime_error("Error taking snapshot.");
-        }
-
-    assert(snapshot.type_id.size() == getNumAngles());
-    assert(snapshot.type_mapping.size() == 0);
+    // allocate memory
+    snapshot.resize(getNumAngles());
 
     for (unsigned int angle_idx = 0; angle_idx < getNumAngles(); angle_idx++)
         {
