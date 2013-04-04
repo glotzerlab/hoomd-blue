@@ -606,6 +606,7 @@ void export_DihedralData()
     .def("getDihedralTag", &DihedralData::getDihedralTag)
     .def("takeSnapshot", &DihedralData::takeSnapshot)
     .def("initializeFromSnapshot", &DihedralData::initializeFromSnapshot)
+    .def("addDihedralType", &DihedralData::addDihedralType)
     ;
     
     class_<Dihedral>("Dihedral", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())

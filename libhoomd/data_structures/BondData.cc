@@ -1001,6 +1001,7 @@ void export_BondData()
     .def("getBondTag", &BondData::getBondTag)
     .def("takeSnapshot", &BondData::takeSnapshot)
     .def("initializeFromSnapshot", &BondData::initializeFromSnapshot)
+    .def("addBondType", &BondData::addBondType)
     ;
     
     class_<SnapshotBondData, boost::shared_ptr<SnapshotBondData>,

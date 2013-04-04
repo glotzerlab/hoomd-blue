@@ -179,6 +179,15 @@ class BondData : boost::noncopyable
         //! Add a bond to the list
         unsigned int addBond(const Bond& bond);
 
+        //! Add a new bond type
+        /*! \returns the id of the newly added type
+         */
+        unsigned int addBondType(const std::string& name)
+            {
+            m_bond_type_mapping.push_back(name);
+            return m_bond_type_mapping.size()-1;
+            }
+
         //! Remove a bond identified by its unique tag from the list
         void removeBond(unsigned int tag);
 

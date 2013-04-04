@@ -169,6 +169,15 @@ class AngleData : boost::noncopyable
         //! Add an angle to the list
         unsigned int addAngle(const Angle& angle);
 
+        //! Add a new angle type
+        /*! \returns the id of the newly added type
+         */
+        unsigned int addAngleType(const std::string& name)
+            {
+            m_angle_type_mapping.push_back(name);
+            return m_angle_type_mapping.size()-1;
+            }
+
         //! Remove an angle identified by its unique tag from the list
         void removeAngle(unsigned int tag);
         

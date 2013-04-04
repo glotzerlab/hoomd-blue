@@ -561,6 +561,7 @@ void export_AngleData()
     .def("getAngleTag", &AngleData::getAngleTag)
     .def("takeSnapshot", &AngleData::takeSnapshot)
     .def("initializeFromSnapshot", &AngleData::initializeFromSnapshot)
+    .def("addAngleType", &AngleData::addAngleType)
     ;
     
     class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())

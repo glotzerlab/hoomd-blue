@@ -171,6 +171,15 @@ class DihedralData : boost::noncopyable
         //! Add a dihedral to the list
         unsigned int addDihedral(const Dihedral& dihedral);
 
+        //! Add a new dihedral type
+        /*! \returns the id of the newly added type
+         */
+        unsigned int addDihedralType(const std::string& name)
+            {
+            m_dihedral_type_mapping.push_back(name);
+            return m_dihedral_type_mapping.size()-1;
+            }
+
         //! Remove a dihedral identified by its unique tag from the list
         void removeDihedral(unsigned int tag);
         
