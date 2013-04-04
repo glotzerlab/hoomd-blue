@@ -1004,8 +1004,8 @@ void export_BondData()
     .def("addBondType", &BondData::addBondType)
     ;
     
-    class_<SnapshotBondData, boost::shared_ptr<SnapshotBondData>,
-        boost::noncopyable>("SnapshotBondData", init<unsigned int>())
+    class_<SnapshotBondData, boost::shared_ptr<SnapshotBondData> >
+    ("SnapshotBondData", init<unsigned int>())
     .def_readwrite("bonds", &SnapshotBondData::bonds)
     .def_readwrite("type_id", &SnapshotBondData::type_id)
     .def_readwrite("type_mapping", &SnapshotBondData::type_mapping)

@@ -68,6 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DihedralData.h"
 #include "IntegratorData.h"
 #include "WallData.h"
+#include "RigidData.h"
 
 /*! \ingroup data_structs
 */
@@ -94,6 +95,7 @@ struct SnapshotSystemData {
     SnapshotAngleData angle_data;          //!< The angle data
     SnapshotDihedralData dihedral_data;    //!< The dihedral data
     SnapshotDihedralData improper_data;    //!< The improper data
+    SnapshotRigidData rigid_data;          //!< The rigid body data
     std::vector<Wall> wall_data;           //!< The wall data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
    

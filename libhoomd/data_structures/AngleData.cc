@@ -562,6 +562,13 @@ void export_AngleData()
     .def_readwrite("c", &Angle::c)
     .def_readwrite("type", &Angle::type)
     ;
+
+    class_<SnapshotAngleData, boost::shared_ptr<SnapshotAngleData> >
+        ("SnapshotAngleData", init<unsigned int>())
+        .def_readwrite("angles", &SnapshotAngleData::angles)
+        .def_readwrite("type_id", &SnapshotAngleData::type_id)
+        .def_readwrite("type_mapping", &SnapshotAngleData::type_mapping)
+        ;
     }
 
 #ifdef WIN32

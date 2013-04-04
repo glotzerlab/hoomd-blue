@@ -58,7 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "SnapshotSystemData.h"
 #include "ParticleData.h"
 #include "BondData.h"
 #include "WallData.h"
@@ -76,6 +75,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Forward declaration of Communicator
 class Communicator;
 #endif
+
+//! Forward declaration of SnapshotSytemData
+class SnapshotSystemData;
 
 //! Container class for all data needed to define the MD system
 /*! SystemDefinition is a big bucket where all of the data defining the MD system goes.

@@ -619,6 +619,13 @@ void export_DihedralData()
     .def_readwrite("d", &Dihedral::d)
     .def_readwrite("type", &Dihedral::type)
     ;
+
+    class_<SnapshotDihedralData, boost::shared_ptr<SnapshotDihedralData> >
+        ("SnapshotDihedralData", init<unsigned int>())
+        .def_readwrite("angles", &SnapshotDihedralData::dihedrals)
+        .def_readwrite("type_id", &SnapshotDihedralData::type_id)
+        .def_readwrite("type_mapping", &SnapshotDihedralData::type_mapping)
+        ;
     }
 
 #ifdef WIN32

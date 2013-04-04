@@ -799,6 +799,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 */
 void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     {
+    // allocate memory in snapshot
     snapshot.resize(getNGlobal());
 
     ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
@@ -1611,7 +1612,7 @@ void SnapshotParticleData::resize(unsigned int N)
  
 void export_SnapshotParticleData()
     {
-    class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData>, boost::noncopyable>("SnapshotParticleData", init<unsigned int>())
+    class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData> >("SnapshotParticleData", init<unsigned int>())
     .def_readwrite("pos", &SnapshotParticleData::pos)
     .def_readwrite("vel", &SnapshotParticleData::vel)
     .def_readwrite("accel", &SnapshotParticleData::accel)
@@ -1622,6 +1623,7 @@ void export_SnapshotParticleData()
     .def_readwrite("image", &SnapshotParticleData::image)
     .def_readwrite("body", &SnapshotParticleData::body)
     .def_readwrite("type_mapping", &SnapshotParticleData::type_mapping)
+    .def_readwrite("size", &SnapshotParticleData::size)
     ;
     }
 

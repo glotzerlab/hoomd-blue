@@ -61,6 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "SystemDefinition.h"
 
+#include "SnapshotSystemData.h"
+
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
@@ -147,7 +149,7 @@ SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> s
     
     // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta and body images; 
     // otherwise, nothing is done here.
-//    init.initRigidData(m_rigid_data);
+    if (snapshot->rigid_data.size) m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
         
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, snapshot->angle_data));
     
@@ -186,6 +188,7 @@ boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot()
     m_angle_data->takeSnapshot(snap->angle_data);
     m_dihedral_data->takeSnapshot(snap->dihedral_data);
     m_improper_data->takeSnapshot(snap->improper_data);
+    m_rigid_data->takeSnapshot(snap->rigid_data);
 
     for (unsigned int i = 0; i < m_wall_data->getNumWalls(); ++i)
         snap->wall_data.push_back(m_wall_data->getWall(i));

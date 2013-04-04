@@ -384,6 +384,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ParticleData();
     export_SnapshotParticleData();
     export_RigidData();
+    export_SnapshotRigidData();
     export_ExecutionConfiguration();
     export_BondData();
     export_SystemDefinition();
