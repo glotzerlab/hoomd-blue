@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "HOOMDBinaryInitializer.h"
+#include "SnapshotSystemData.h"
 
 #include <iostream>
 #include <fstream>
@@ -95,36 +96,6 @@ HOOMDBinaryInitializer::HOOMDBinaryInitializer(const std::string &fname)
 /* XXX: shouldn't the following methods be put into
  * the header so that they get inlined? */
 
-/*! \returns Number of dimensions parsed from the binary file
-*/
-unsigned int HOOMDBinaryInitializer::getNumDimensions() const
-    {
-    return m_num_dimensions;
-    }
-
-/*! \returns Number of particles parsed from the binary file
-*/
-unsigned int HOOMDBinaryInitializer::getNumParticles() const
-    {
-    assert(m_x_array.size() > 0);
-    return (unsigned int)m_x_array.size();
-    }
-
-/*! \returns Number of bonds parsed from the binary file
-*/
-unsigned int HOOMDBinaryInitializer::getNumBonds() const
-    {
-    return (unsigned int)m_bonds.size();
-    }
-
-
-/*! \returns Box dimensions parsed from the binary file
-*/
-BoxDim HOOMDBinaryInitializer::getBox() const
-    {
-    return m_box;
-    }
-
 /*! \returns Time step parsed from the binary file
 */
 unsigned int HOOMDBinaryInitializer::getTimeStep() const
@@ -139,28 +110,110 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
     }
 
 /*! initializes a snapshot with the internally stored copy of the particle data */
-void HOOMDBinaryInitializer::initSnapshot(SnapshotParticleData &snapshot) const
+void HOOMDBinaryInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     {
-    assert(snapshot.size > 0);
-    assert(snapshot.size == m_x_array.size());
+    // init dimensions
+    snapshot.dimensions = m_num_dimensions;
+
+    // init box
+    snapshot.global_box = m_box;
+
+    // init particle data snapshot
+    SnapshotParticleData& pdata = snapshot.particle_data; 
+
+    // resize snapshot
+    pdata.resize(m_x_array.size());
 
     // loop through all the particles and set them up
-    for (unsigned int i = 0; i < snapshot.size; i++)
+    for (unsigned int i = 0; i < pdata.size; i++)
         {
         unsigned int rtag = m_rtag_array[i];
 
-        snapshot.pos[i] = make_scalar3(m_x_array[rtag], m_y_array[rtag], m_z_array[rtag]);
-        snapshot.image[i] = make_int3(m_ix_array[rtag], m_iy_array[rtag], m_iz_array[rtag]);
-        snapshot.vel[i] = make_scalar3(m_vx_array[rtag], m_vy_array[rtag], m_vz_array[rtag]);
-        snapshot.accel[i] = make_scalar3(m_ax_array[rtag], m_ay_array[rtag], m_az_array[rtag]);
-        snapshot.mass[i] = m_mass_array[rtag];
-        snapshot.type[i] = m_type_array[rtag];
-        snapshot.diameter[i] = m_diameter_array[rtag];
-        snapshot.charge[i] = m_charge_array[rtag];
-        snapshot.body[i] = m_body_array[rtag];
+        pdata.pos[i] = make_scalar3(m_x_array[rtag], m_y_array[rtag], m_z_array[rtag]);
+        pdata.image[i] = make_int3(m_ix_array[rtag], m_iy_array[rtag], m_iz_array[rtag]);
+        pdata.vel[i] = make_scalar3(m_vx_array[rtag], m_vy_array[rtag], m_vz_array[rtag]);
+        pdata.accel[i] = make_scalar3(m_ax_array[rtag], m_ay_array[rtag], m_az_array[rtag]);
+        pdata.mass[i] = m_mass_array[rtag];
+        pdata.type[i] = m_type_array[rtag];
+        pdata.diameter[i] = m_diameter_array[rtag];
+        pdata.charge[i] = m_charge_array[rtag];
+        pdata.body[i] = m_body_array[rtag];
         }        
 
-    snapshot.type_mapping = m_type_mapping;
+    pdata.type_mapping = m_type_mapping;
+
+    /*
+     * Initialize bond data
+     */
+    SnapshotBondData& bdata = snapshot.bond_data;
+
+    // allocate memory in snapshot
+    bdata.resize(m_bonds.size());
+
+    // loop through all the bonds and add a bond for each
+    for (unsigned int i = 0; i < m_bonds.size(); i++)
+        {
+        bdata.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
+        bdata.type_id[i] = m_bonds[i].type;
+        }
+        
+    bdata.type_mapping = m_bond_type_mapping;
+
+    /*
+     * Initialize angle data
+     */
+    SnapshotAngleData& adata = snapshot.angle_data;
+
+    // allocate memory in snapshot
+    adata.resize(m_angles.size());
+
+    // loop through all the angles and add an angle for each
+    for (unsigned int i = 0; i < m_angles.size(); i++)
+        {
+        adata.angles[i] = make_uint3(m_angles[i].a,m_angles[i].b,m_angles[i].c);
+        adata.type_id[i] = m_angles[i].type;
+        }
+        
+    adata.type_mapping = m_angle_type_mapping;
+
+    /*
+     * Initialize dihedral data
+     */
+    SnapshotDihedralData& ddata = snapshot.dihedral_data;
+
+    // allocate memory
+    ddata.resize(m_dihedrals.size());
+
+    // loop through all the dihedrals and add an dihedral for each
+    for (unsigned int i = 0; i < m_dihedrals.size(); i++)
+        {
+        ddata.dihedrals[i] = make_uint4(m_dihedrals[i].a,m_dihedrals[i].b,m_dihedrals[i].c, m_dihedrals[i].d);
+        ddata.type_id[i] = m_dihedrals[i].type;
+        }
+
+    ddata.type_mapping = m_dihedral_type_mapping;
+
+    /*
+     * Initialize improper data
+     */
+    SnapshotDihedralData& idata = snapshot.improper_data;
+
+    // allocate memory
+    idata.resize(m_dihedrals.size());
+
+    // loop through all the dihedrals and add an dihedral for each
+    for (unsigned int i = 0; i < m_impropers.size(); i++)
+        {
+        idata.dihedrals[i] = make_uint4(m_impropers[i].a,m_impropers[i].b,m_impropers[i].c, m_impropers[i].d);
+        idata.type_id[i] = m_impropers[i].type;
+        }
+        
+    idata.type_mapping = m_improper_type_mapping;
+  
+    /*
+     * Initialize integrator data
+     */
+    snapshot.integrator_data = m_integrator_variables;
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -170,15 +223,6 @@ void HOOMDBinaryInitializer::initWallData(boost::shared_ptr<WallData> wall_data)
     // copy the walls over from our internal list
     for (unsigned int i = 0; i < m_walls.size(); i++)
         wall_data->addWall(m_walls[i]);
-    }
-
-void HOOMDBinaryInitializer::initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data ) const
-    {
-    integrator_data->load(m_integrator_variables.size());
-    for (unsigned int i=0; i<m_integrator_variables.size(); i++)
-        {
-        integrator_data->setIntegratorVariables(i, m_integrator_variables[i]);
-        }
     }
 
 //! Helper function to read a string from the file
@@ -501,7 +545,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         
     // notify the user of what we have accomplished
     cout << "--- hoomd_binary file read summary" << endl;
-    cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
+    cout << m_x_array.size() << " positions at timestep " << m_timestep << endl;
     if (m_ix_array.size() > 0)
         cout << m_ix_array.size() << " images" << endl;
     if (m_vx_array.size() > 0)
@@ -525,87 +569,6 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         cout << m_impropers.size() << " impropers" << endl;
     if (m_walls.size() > 0)
         cout << m_walls.size() << " walls" << endl;
-    }
-
-/*! \return Number of bond types determined from the XML file
-*/
-unsigned int HOOMDBinaryInitializer::getNumBondTypes() const
-    {
-    return (unsigned int)m_bond_type_mapping.size();
-    }
-
-/*! \return Number of angle types determined from the XML file
-*/
-unsigned int HOOMDBinaryInitializer::getNumAngleTypes() const
-    {
-    return (unsigned int)m_angle_type_mapping.size();
-    }
-
-/*! \return Number of dihedral types determined from the XML file
-*/
-unsigned int HOOMDBinaryInitializer::getNumDihedralTypes() const
-    {
-    return (unsigned int)m_dihedral_type_mapping.size();
-    }
-
-/*! \return Number of improper types determined from the XML file
-*/
-unsigned int HOOMDBinaryInitializer::getNumImproperTypes() const
-    {
-    return (unsigned int)m_improper_type_mapping.size();
-    }
-
-/*! \param snapshot The bond data snapshot to be initialized
-    Adds all bonds found in the XML file to the BondData
-*/
-void HOOMDBinaryInitializer::initBondDataSnapshot(SnapshotBondData& snapshot) const
-    {
-    assert(snapshot.bonds.size() == m_bonds.size());
-
-    // loop through all the bonds and add a bond for each
-    for (unsigned int i = 0; i < m_bonds.size(); i++)
-        {
-        snapshot.bonds[i] = make_uint2(m_bonds[i].a, m_bonds[i].b);
-        snapshot.type_id[i] = m_bonds[i].type;
-        } 
-    
-    snapshot.type_mapping = m_bond_type_mapping;
-    }
-
-/*! \param angle_data Shared pointer to the AngleData to be initialized
-    Adds all angles found in the XML file to the AngleData
-*/
-void HOOMDBinaryInitializer::initAngleData(boost::shared_ptr<AngleData> angle_data) const
-    {
-    // loop through all the angles and add an angle for each
-    for (unsigned int i = 0; i < m_angles.size(); i++)
-        angle_data->addAngle(m_angles[i]);
-        
-//    angle_data->setAngleTypeMapping(m_angle_type_mapping);
-    }
-
-/*! \param dihedral_data Shared pointer to the DihedralData to be initialized
-    Adds all dihedrals found in the XML file to the DihedralData
-*/
-void HOOMDBinaryInitializer::initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const
-    {
-    // loop through all the dihedrals and add an dihedral for each
-    for (unsigned int i = 0; i < m_dihedrals.size(); i++)
-        dihedral_data->addDihedral(m_dihedrals[i]);
-        
-//    dihedral_data->setDihedralTypeMapping(m_dihedral_type_mapping);
-    }
-
-/*! \param improper_data Shared pointer to the ImproperData to be initialized
-    Adds all impropers found in the XML file to the ImproperData
-*/
-void HOOMDBinaryInitializer::initImproperData(boost::shared_ptr<DihedralData> improper_data) const
-    {
-    // loop through all the impropers and add an improper for each
-    for (unsigned int i = 0; i < m_impropers.size(); i++)
-        improper_data->addDihedral(m_impropers[i]);
-        
-//    improper_data->setDihedralTypeMapping(m_improper_type_mapping);
     }
 
 /*! \param rigid_data Shared pointer to the ImproperData to be initialized

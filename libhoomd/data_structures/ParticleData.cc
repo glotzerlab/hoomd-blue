@@ -650,7 +650,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
         std::vector< std::vector<Scalar4> > orientation_proc;      // Orientations of every processor
         std::vector< std::vector<unsigned int > > tag_proc;         // Global tags of every processor
+        //std::vector< std::vector<InertiaTensor> > inertia_proc;  
         std::vector< unsigned int > N_proc;                        // Number of particles on every processor
+
  
         // resize to number of ranks in communicator
         const MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
@@ -859,6 +861,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_rtag.data[tag] = tag;
             h_body.data[tag] = snapshot.body[tag];
             h_orientation.data[tag] = snapshot.orientation[tag];
+            m_inertia_tensor[tag] = snapshot.inertia_tensor[tag];
             }
 
         // initialize type mapping
@@ -1722,6 +1725,7 @@ void SnapshotParticleData::resize(unsigned int N)
     image.resize(N,make_int3(0,0,0));
     body.resize(N,NO_BODY);
     orientation.resize(N,make_scalar4(1.0,0.0,0.0,0.0));
+    inertia_tensor.resize(N);
     size = N;
     }
  

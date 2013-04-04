@@ -296,21 +296,39 @@ def read_xml(filename, time_step = None, mpi_options=None):
 def read_bin(filename, mpi_options=None):
     util.print_status_line();
     
+    # initialize GPU/CPU execution configuration and MPI early
+    my_exec_conf = _create_exec_conf();
+
     # check if initialization has already occurred
     if is_initialized():
         globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
 
-    my_exec_conf = _create_exec_conf();
+    # initialize a system data snapshot
+    snapshot = hoomd.SnapshotSystemData()
 
-    # read in the data
-    initializer = hoomd.HOOMDBinaryInitializer(filename);
-    globals.system_definition = hoomd.SystemDefinition(initializer, my_exec_conf);
-    
+    saved_time_step = 0
+    # only read in xml file on root processor
+    if my_exec_conf.getRank() == 0:
+        # read in the data
+        initializer = hoomd.HOOMDBinaryInitializer(filename);
+        initializer.initSnapshot(snapshot)
+        saved_time_step = initializer.getTimeStep()
+
+    my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
+
+    if my_domain_decomposition is not None:
+        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
+    else:
+        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
+
     # initialize the system
-    globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
-    
-    _perform_common_init_tasks(mpi_options);
+    if time_step is None:
+        globals.system = hoomd.System(globals.system_definition, saved_time_step);
+    else:
+        globals.system = hoomd.System(globals.system_definition, time_step);
+ 
+    _perform_common_init_tasks();
     return data.system_data(globals.system_definition);
 
 ## Generates N randomly positioned particles of the same type

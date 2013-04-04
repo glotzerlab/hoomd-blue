@@ -101,36 +101,18 @@ class HOOMDInitializer
         //! Loads in the file and parses the data
         HOOMDInitializer(const std::string &fname);
 
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumDimensions() const;
-        
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumParticles() const;
-        
-        //! Returns the number of bonds to be initialized
-        virtual unsigned int getNumBonds() const;
-
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
         
         //! Sets the timestep of the simulation
         virtual void setTimeStep(unsigned int ts);
 
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const;
-
         //! initializes a snapshot with the particle data
         virtual void initSnapshot(SnapshotSystemData &snapshot) const;
 
         //! Initialize the walls
         virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
-        
-        //! Initialize the orientation data
-        virtual void initOrientation(Scalar4 *orientation) const;
 
-        //! Initialize the inertia tensor data
-        virtual void initMomentInertia(InertiaTensor *moment_inertia) const;
-        
         //! simple vec for storing particle data
         struct vec
             {

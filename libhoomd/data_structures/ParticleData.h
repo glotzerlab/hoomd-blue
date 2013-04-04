@@ -236,6 +236,8 @@ struct SnapshotParticleData {
     std::vector<int3> image;        //!< images
     std::vector<unsigned int> body; //!< body ids
     std::vector<Scalar4> orientation; //!< orientations
+    std::vector<InertiaTensor> inertia_tensor; //!< Moments of inertia
+
     unsigned int size;              //!< number of particles in this snapshot
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
     };

@@ -178,7 +178,9 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_REQUIRE(exists("test.0000000000.bin"));
 
     HOOMDBinaryInitializer init("test.0000000000.bin");
-    shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(init, exec_conf));
+    SnapshotSystemData snapshot;
+    init.initSnapshot(snapshot);
+    shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snapshot, exec_conf));
     shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
     
     BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)0);
@@ -254,7 +256,9 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_REQUIRE(exists("test.0000000010.bin"));
 
     HOOMDBinaryInitializer init3("test.0000000010.bin");
-    shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(init3, exec_conf));
+    SnapshotSystemData snapshot2;
+    init3.initSnapshot(snapshot2);
+    shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(snapshot2, exec_conf));
     shared_ptr<ParticleData> pdata3 = sysdef3->getParticleData();
     
     BOOST_CHECK_EQUAL(init3.getTimeStep(), (unsigned int)10);

@@ -97,7 +97,13 @@ class IntegratorData
     public:
         //! Constructs an empty list with no integrator variables
         IntegratorData() : m_num_registered(0) {}
-        
+       
+        //! Constructs an IntegratorData from a given set of IntegratorVariables
+        IntegratorData(const std::vector<IntegratorVariables>& variables)
+            {
+            m_integrator_variables = variables;
+            }
+
         //! Destructor
         ~IntegratorData() {}
         

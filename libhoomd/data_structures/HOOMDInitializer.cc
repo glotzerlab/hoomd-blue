@@ -110,36 +110,6 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 /* XXX: shouldn't the following methods be put into
  * the header so that they get inlined? */
 
-/*! \returns Number of dimensions parsed from the XML file
-*/
-unsigned int HOOMDInitializer::getNumDimensions() const
-    {
-    return (unsigned int)m_num_dimensions;
-    }
-
-/*! \returns Number of particles parsed from the XML file
-*/
-unsigned int HOOMDInitializer::getNumParticles() const
-    {
-    assert(m_pos_array.size() > 0);
-    return (unsigned int)m_pos_array.size();
-    }
-
-/*! \returns Number of bonds parsed from the XML file
-*/
-unsigned int HOOMDInitializer::getNumBonds() const
-    {
-    return (unsigned int)m_bonds.size();
-    }
-
-/*! \returns Box dimensions parsed from the XML file
- * -*/
-BoxDim HOOMDInitializer::getBox() const
-    {
-    return m_box;
-    }
-
-
 /*! \returns Time step parsed from the XML file
 */
 unsigned int HOOMDInitializer::getTimeStep() const
@@ -156,6 +126,9 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
 /*! initializes a snapshot with the internally stored copy of the system data */
 void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
     {
+    // initialize dimensions
+    snapshot.dimensions = m_num_dimensions;
+
     // initialize box dimensions
     snapshot.global_box = m_box;
 
@@ -233,6 +206,12 @@ void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
 
     pdata.type_mapping = m_type_mapping;
 
+    // Initialize moments of inertia
+    pdata.inertia_tensor = m_moment_inertia;
+
+    // Initialize orientations
+    pdata.orientation = m_orientation;
+
     /*
      * Initialize bond data
      */
@@ -300,6 +279,7 @@ void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
         }
         
     idata.type_mapping = m_improper_type_mapping;
+
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -503,7 +483,7 @@ void HOOMDInitializer::readFile(const string &fname)
 
     // notify the user of what we have accomplished
     cout << "--- hoomd_xml file read summary" << endl;
-    cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
+    cout << m_pos_array.size() << " positions at timestep " << m_timestep << endl;
     if (m_image_array.size() > 0)
         cout << m_image_array.size() << " images" << endl;
     if (m_vel_array.size() > 0)
@@ -1146,18 +1126,6 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
     // add a new one if it is not found
     m_improper_type_mapping.push_back(name);
     return (unsigned int)m_improper_type_mapping.size()-1;
-    }
-
-void HOOMDInitializer::initOrientation(Scalar4 *orientation) const
-    {
-    for (unsigned int i = 0; i < m_orientation.size(); i++)
-        orientation[i] = m_orientation[i];
-    }
-
-void HOOMDInitializer::initMomentInertia(InertiaTensor *moment_inertia) const
-    {
-    for (unsigned int i = 0; i < m_moment_inertia.size(); i++)
-        moment_inertia[i] = m_moment_inertia[i];
     }
 
 void export_HOOMDInitializer()

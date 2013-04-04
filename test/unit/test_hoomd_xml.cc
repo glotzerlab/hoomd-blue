@@ -1173,7 +1173,9 @@ im_b 5 4 3 2\n\
     
     // now that we have created a test file, load it up into a pdata
     HOOMDInitializer init("test_input.xml");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(init));
+    SnapshotSystemData snapshot;
+    init.initSnapshot(snapshot);
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
     // verify all parameters

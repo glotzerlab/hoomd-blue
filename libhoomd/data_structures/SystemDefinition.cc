@@ -156,8 +156,7 @@ SystemDefinition::SystemDefinition(const SnapshotSystemData& snapshot,
     
     m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot.improper_data));
 
-    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
-//    init.initIntegratorData(m_integrator_data);
+    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData(snapshot.integrator_data));
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of 
