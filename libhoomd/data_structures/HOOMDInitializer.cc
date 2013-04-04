@@ -280,15 +280,10 @@ void HOOMDInitializer::initSnapshot(SnapshotSystemData &snapshot) const
         
     idata.type_mapping = m_improper_type_mapping;
 
-    }
-
-/*! \param wall_data WallData to initialize with the data read from the file
-*/
-void HOOMDInitializer::initWallData(boost::shared_ptr<WallData> wall_data) const
-    {
-    // copy the walls over from our internal list
-    for (unsigned int i = 0; i < m_walls.size(); i++)
-        wall_data->addWall(m_walls[i]);
+    /*
+     * Initialize walls
+     */
+    snapshot.wall_data = m_walls;
     }
 
 /*! \param fname File name of the hoomd_xml file to read in

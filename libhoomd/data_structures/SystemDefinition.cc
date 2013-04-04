@@ -136,8 +136,7 @@ SystemDefinition::SystemDefinition(const SnapshotSystemData& snapshot,
  
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot.bond_data));
    
-    m_wall_data = boost::shared_ptr<WallData>(new WallData());
-//    init.initWallData(m_wall_data);
+    m_wall_data = boost::shared_ptr<WallData>(new WallData(snapshot.wall_data));
     
     m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
     

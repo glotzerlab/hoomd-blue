@@ -209,20 +209,16 @@ void HOOMDBinaryInitializer::initSnapshot(SnapshotSystemData &snapshot) const
         }
         
     idata.type_mapping = m_improper_type_mapping;
-  
+
+    /*
+     * Initialize walls
+     */
+    snapshot.wall_data = m_walls;
+
     /*
      * Initialize integrator data
      */
     snapshot.integrator_data = m_integrator_variables;
-    }
-
-/*! \param wall_data WallData to initialize with the data read from the file
-*/
-void HOOMDBinaryInitializer::initWallData(boost::shared_ptr<WallData> wall_data) const
-    {
-    // copy the walls over from our internal list
-    for (unsigned int i = 0; i < m_walls.size(); i++)
-        wall_data->addWall(m_walls[i]);
     }
 
 //! Helper function to read a string from the file

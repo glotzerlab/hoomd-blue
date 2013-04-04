@@ -115,9 +115,6 @@ class HOOMDBinaryInitializer
         //! Initialize the rigid data
         virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const;
 
-        //! Initialize the walls
-        virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
-        
     private:
         //! Helper function to read the input file
         void readFile(const std::string &fname);        

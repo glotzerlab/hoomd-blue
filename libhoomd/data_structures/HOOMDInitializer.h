@@ -110,9 +110,6 @@ class HOOMDInitializer
         //! initializes a snapshot with the particle data
         virtual void initSnapshot(SnapshotSystemData &snapshot) const;
 
-        //! Initialize the walls
-        virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
-
         //! simple vec for storing particle data
         struct vec
             {
