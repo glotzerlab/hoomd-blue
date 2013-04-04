@@ -100,6 +100,7 @@ class IntegratorData
        
         //! Constructs an IntegratorData from a given set of IntegratorVariables
         IntegratorData(const std::vector<IntegratorVariables>& variables)
+            : m_num_registered(0)
             {
             m_integrator_variables = variables;
             }

@@ -365,7 +365,10 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    SnapshotSystemData snap;
+    rand_init.initSnapshot(snap);
+    snap.bond_data.type_mapping.push_back("A");
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
     

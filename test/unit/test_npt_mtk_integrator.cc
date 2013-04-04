@@ -134,7 +134,9 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
 
     // create two identical random particle systems to simulate
     SimpleCubicInitializer cubic_init(L, Scalar(0.89), "A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(cubic_init, exec_conf));
+    SnapshotSystemData snap;
+    cubic_init.initSnapshot(snap);
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // enable the energy computation
@@ -225,8 +227,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
         BoxDim box = pdata->getBox();
         Scalar volume = box.getVolume();
         Scalar enthalpy =  thermo_group->getKineticEnergy() + thermo_group->getPotentialEnergy() + P * volume;
-        Scalar barostat_energy = npt_mtk->getLogValue("npt_mtk_barostat_energy", 0);
-        Scalar thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", 0);
+        Scalar barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", 0);
+        Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", 0);
         Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
         std::cout << "Measuring up to 50,000 steps... " << std::endl;
@@ -262,8 +264,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
         box = pdata->getBox();
         volume = box.getVolume();
         enthalpy =  thermo_group->getKineticEnergy() + thermo_group->getPotentialEnergy() + P * volume;
-        barostat_energy = npt_mtk->getLogValue("npt_mtk_barostat_energy", count+1);
-        thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", count+1);
+        barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", count+1);
+        thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", count+1);
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
@@ -328,8 +330,10 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
 
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
+    SnapshotSystemData snap;
+    rand_init.initSnapshot(snap);
     rand_init.setSeed(12345);
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // give the particles velocities according to a Maxwell-Boltzmann distribution
@@ -458,7 +462,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     Scalar3 L = box.getL();
     Scalar volume = L.x*L.y*L.z;
     Scalar enthalpy =  compute_thermo->getKineticEnergy() + compute_thermo->getPotentialEnergy() + P * volume;
-    Scalar barostat_energy = nph->getLogValue("npt_mtk_barostat_energy", 0);
+    Scalar barostat_energy = nph->getLogValue("npt_barostat_energy", 0);
     Scalar H_ref = enthalpy + barostat_energy; // the conserved quantity
 
     for (int i = 10001; i < 50000; i++)
@@ -481,7 +485,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     L = box.getL();
     volume = L.x*L.y*L.z;
     enthalpy =  compute_thermo->getKineticEnergy() + compute_thermo->getPotentialEnergy() + P * volume;
-    barostat_energy = nph->getLogValue("npt_mtk_barostat_energy", count+1);
+    barostat_energy = nph->getLogValue("npt_barostat_energy", count+1);
     Scalar H_final = enthalpy + barostat_energy;
     // check conserved quantity
     Scalar tol = 0.01;
