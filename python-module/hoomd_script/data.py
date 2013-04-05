@@ -52,6 +52,7 @@
 
 import hoomd
 from hoomd_script import globals
+from hoomd_script import util
 
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
@@ -66,6 +67,12 @@ from hoomd_script import globals
 # too often. As a general guideline, consider writing a high performance C++ / GPU  plugin (\ref sec_build_plugin)
 # if particle %data needs to accessed more often than once every few thousand time steps.
 #
+# If modifications need to be done on more than just a few particles or other objects, e.g.
+# analyzing the whole particle data at once or setting new positions for all particles,
+# bonds etc., snapshots can be used. A snapshot stores the entire system state in a compact format,
+# and its data members can be accessed for analysis, or it can be used to re-initialize the system,
+# using %init.create_from_snapshot.
+# 
 # <h2>Documentation by example</h2>
 #
 # For most of the cases below, it is assumed that the result of the initialization command was saved at the beginning
@@ -163,6 +170,8 @@ from hoomd_script import globals
 # Performance is decent, but not great. The for loop above that sets all velocities to 0 takes 0.86 seconds to execute
 # on a 2.93 GHz core2 iMac. The interface has been designed to be flexible and easy to use for the widest variety of
 # initialization tasks, not efficiency.
+# For doing modifications that operate on the whole system data efficiently, snapshots have been
+# designed. Their usage is described below.
 #
 # There is a second way to access the particle data. Any defined group can be used in exactly the same way as
 # \c system.particles above, only the particles accessed will be those just belonging to the group. For a specific
@@ -323,6 +332,17 @@ from hoomd_script import globals
 # If you need to store some particle properties at one time in the simulation and access them again later, you will need
 # to make copies of the actual property values themselves and not of the proxy references.
 #
+# <hr>
+# <h3>Snapshots</h3>
+# A snaphot of the current system state is obtained using %take_snapshot(). It contains information
+# about the simulation box, particles, bonds, angles, dihedrals, impropers, walls and rigid bodies.
+# Once taken, it is not updated anymore (as opposed to the particle data proxies, which always
+# return the current state). Instead, it can be modified and used to restart the simulation.
+# 
+# Example for taking a snapshot:
+# \code
+# snapshot = system.take_snapshot()
+# \endcode
 
 ## \internal
 # \brief Access system data
@@ -344,6 +364,11 @@ class system_data:
         self.dihedrals = dihedral_data(sysdef.getDihedralData());
         self.impropers = dihedral_data(sysdef.getImproperData());
         self.bodies = body_data(sysdef.getRigidData());
+
+    ## Take a snapshot of the current system data
+    def take_snapshot(self):
+        util.print_status_line();
+        return self.sysdef.takeSnapshot()
 
     ## \var sysdef
     # \internal

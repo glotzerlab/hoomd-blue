@@ -616,6 +616,61 @@ def create_random_polymers(box, polymers, separation, seed=1):
     _perform_common_init_tasks();
     return data.system_data(globals.system_definition);
 
+## Initializes the system from a snapshot
+# 
+# \param snapshot The snapshot to initialize the system from
+# \param time_step The time step at which the simulation should continue
+#
+# Snapshots temporarily store system data. Snapshots contain the complete simulation state in a
+# compact. They can be used to restart a simulation.
+#
+# Use cases in which a simulation is restarted from a snapshot include Monte-Carlo
+# schemes, where the system state is stored after a move has been accepted (according to
+# some criterium), and where the system is re-initialized from that same state in the case
+# when a move is not accepted.
+#
+# Other use cases include modification of certain properties of the system, such as modifying
+# molecule topology (changing bonds) etc.
+#
+# Example for the procedure of taking a snapshot, modifying it and re-intializing:
+# \code
+# system = init.read_xml("some_file.xml")
+#
+# ... run a simulation ...
+#
+# snapshot = system.take_snapshot()
+# # update bond 0
+# snapshot.bond_data.bonds[0].x = 1
+# snapshot.bond_data.bonds[1].y = 0
+# init.reset()
+# init.create_from_snapshot(snapshot)
+# \endcode
+#
+# \sa hoomd_script.data 
+def create_from_snapshot(snapshot,time_step=0):
+    util.print_status_line();
+    
+    # initialize GPU/CPU execution configuration and MPI early
+    my_exec_conf = _create_exec_conf();
+
+    # check if initialization has already occured
+    if is_initialized():
+        globals.msg.error("Cannot initialize more than once\n");
+        raise RuntimeError("Error creating random polymers");
+
+    my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
+
+    if my_domain_decomposition is not None:
+        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
+    else:
+        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
+
+    # initialize the system
+    globals.system = hoomd.System(globals.system_definition, time_step);
+    
+    _perform_common_init_tasks();
+    return data.system_data(globals.system_definition);
+ 
 ## Performs common initialization tasks
 #
 # \internal
