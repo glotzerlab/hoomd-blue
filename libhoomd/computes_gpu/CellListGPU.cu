@@ -526,7 +526,7 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
             Scalar diameter = 0;
             Scalar body = 0;
             Scalar type = 0;
-            Scalar4 orientation = make_float4(0,0,0,0);
+            Scalar4 orientation = make_scalar4(0,0,0,0);
             if (d_tdb != NULL)
                 {
                 diameter = d_diameter[write_id];
@@ -562,15 +562,15 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     }
 
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
-                                     float4 *d_xyzf,
-                                     float4 *d_tdb,
-                                     float4 *d_cell_orientation,
+                                     Scalar4 *d_xyzf,
+                                     Scalar4 *d_tdb,
+                                     Scalar4 *d_cell_orientation,
                                      unsigned int *d_cell_idx,
                                      uint3 *d_conditions,
-                                     const float4 *d_pos,
-                                     const float4 *d_orientation,
-                                     const float *d_charge,
-                                     const float *d_diameter,
+                                     const Scalar4 *d_pos,
+                                     const Scalar4 *d_orientation,
+                                     const Scalar *d_charge,
+                                     const Scalar *d_diameter,
                                      const unsigned int *d_body,
                                      const unsigned int N,
                                      const unsigned int n_ghost,
@@ -583,7 +583,7 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const Scalar3& ghost_width)
     {
     const unsigned int block_size = 64;
-    int n_blocks = (int)ceil(float(N+n_ghost)/(float)block_size);
+    int n_blocks = (int)ceil(double(N+n_ghost)/(double)block_size);
     
     cudaError_t err;
     err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());
