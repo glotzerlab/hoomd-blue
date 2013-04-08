@@ -96,20 +96,20 @@ TwoStepNPHRigidGPU::TwoStepNPHRigidGPU(boost::shared_ptr<SystemDefinition> sysde
         }
     
     // allocate the total sum variables
-    GPUArray<float> sum2K(1, m_pdata->getExecConf());
+    GPUArray<Scalar> sum2K(1, m_pdata->getExecConf());
     m_sum2K.swap(sum2K);
-    GPUArray<float> sumW(1, m_pdata->getExecConf());
+    GPUArray<Scalar> sumW(1, m_pdata->getExecConf());
     m_sumW.swap(sumW);
-    GPUArray<float> sum_virial_rigid(1, m_pdata->getExecConf());
+    GPUArray<Scalar> sum_virial_rigid(1, m_pdata->getExecConf());
     m_sum_virial_rigid.swap(sum_virial_rigid);
     
     // initialize the partial sum2K array
     m_block_size = 128;
     m_group_num_blocks = m_group->getNumMembers() / m_block_size + 1;
     m_full_num_blocks = m_pdata->getN() / m_block_size + 1;
-    GPUArray<float> partial_sum2K(m_full_num_blocks, m_pdata->getExecConf());
+    GPUArray<Scalar> partial_sum2K(m_full_num_blocks, m_pdata->getExecConf());
     m_partial_sum2K.swap(partial_sum2K);
-    GPUArray<float> partial_sumW(m_full_num_blocks, m_pdata->getExecConf());
+    GPUArray<Scalar> partial_sumW(m_full_num_blocks, m_pdata->getExecConf());
     m_partial_sumW.swap(partial_sumW);
     }
 

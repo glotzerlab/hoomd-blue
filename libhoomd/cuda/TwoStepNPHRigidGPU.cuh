@@ -63,20 +63,20 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_nph_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
-                                   float4 *d_net_force,
+                                   Scalar4 *d_net_force,
                                    const BoxDim& box, 
                                    const gpu_npt_rigid_data &npt_rdata,
-                                   float deltaT);
+                                   Scalar deltaT);
 
 //! Kernel driver for the second part of the NPH update called by TwoStepNPHRigidGPU
 cudaError_t gpu_nph_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
-                                   float4 *d_net_force,
-                                   float *d_net_virial,
+                                   Scalar4 *d_net_force,
+                                   Scalar *d_net_virial,
                                    const BoxDim& box, 
                                    const gpu_npt_rigid_data &npt_rdata,
-                                   float deltaT);
+                                   Scalar deltaT);
 
 //! Kernel driver for the Ksum reduction final pass called by TwoStepNPHRigidGPU
 cudaError_t gpu_nph_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);

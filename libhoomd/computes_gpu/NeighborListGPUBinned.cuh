@@ -110,9 +110,10 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         bool filter_diameter,
                                         const Scalar3& ghost_width);
 
+#endif
+
 //! Sets up parameters for the gpu_compute_nlist_binned_kernel() call
 cudaError_t gpu_setup_compute_nlist_binned();
 
-#endif
 #endif
 
