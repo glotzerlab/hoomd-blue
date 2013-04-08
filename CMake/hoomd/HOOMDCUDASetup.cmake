@@ -42,7 +42,7 @@ if (ENABLE_CUDA)
     
     # if double precision is on, remove incompatible arches
     if (NOT SINGLE_PRECISION)
-        list(REMOVE_ITEM CUDA_ARCH_LIST 12 11 10)
+        list(REMOVE_ITEM CUDA_ARCH_LIST 13 12 11 10)
     endif()
     
     foreach(_cuda_arch ${CUDA_ARCH_LIST})
