@@ -67,11 +67,10 @@ from hoomd_script import util
 # too often. As a general guideline, consider writing a high performance C++ / GPU  plugin (\ref sec_build_plugin)
 # if particle %data needs to accessed more often than once every few thousand time steps.
 #
-# If modifications need to be done on more than just a few particles or other objects, e.g.
-# analyzing the whole particle data at once or setting new positions for all particles,
-# bonds etc., snapshots can be used. A snapshot stores the entire system state in a compact format,
-# and its data members can be accessed for analysis, or it can be used to re-initialize the system,
-# using %init.create_from_snapshot.
+# If modifications need to be done on more than just a few particles, e.g.
+# setting new positions for all particles, or updating the velocities, etc., \b snapshots can be used.
+# A \ref data_snapshot stores the entire system state in a single (currently opaque) object and can
+# be used to re-initialize the system using init.restore_from_snapshot.
 # 
 # <h2>Documentation by example</h2>
 #
@@ -332,13 +331,17 @@ from hoomd_script import util
 # If you need to store some particle properties at one time in the simulation and access them again later, you will need
 # to make copies of the actual property values themselves and not of the proxy references.
 #
+# \section data_snapshot snapshot
 # <hr>
 # <h3>Snapshots</h3>
-# A snaphot of the current system state is obtained using %take_snapshot(). It contains information
-# about the simulation box, particles, bonds, angles, dihedrals, impropers, walls and rigid bodies.
-# Once taken, it is not updated anymore (as opposed to the particle data proxies, which always
-# return the current state). Instead, it can be modified and used to restart the simulation.
 # 
+# A snaphot of the current system state is obtained using take_snapshot(). It contains information
+# about the simulation box, particles, bonds, angles, dihedrals, impropers, walls and rigid bodies.
+# Once taken, it is not updated anymore (as opposed to the particle %data proxies, which always
+# return the current state). Instead, it can be used to restart the simulation.
+#
+# In future releases it will be possible to modify or %analyze the contents of a snapshot.
+#
 # Example for taking a snapshot:
 # \code
 # snapshot = system.take_snapshot()

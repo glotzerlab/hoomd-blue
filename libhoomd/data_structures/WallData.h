@@ -141,7 +141,13 @@ class WallData : boost::noncopyable
             
         //! Adds a wall to the data structure
         void addWall(const Wall& wall);
-        
+    
+        //! Removes all walls
+        void removeAllWalls()
+            {
+            m_walls.clear();
+            }
+
     private:
         //! Storage for the walls
         std::vector<Wall> m_walls;

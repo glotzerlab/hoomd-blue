@@ -199,6 +199,38 @@ boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot()
     return snap;
     }
 
+//! Re-initialize the system from a snapshot
+void SystemDefinition::initializeFromSnapshot(boost::shared_ptr<SnapshotSystemData> snapshot)
+    {
+    m_n_dimensions = snapshot->dimensions;
+
+    m_particle_data->setGlobalBox(snapshot->global_box);
+    m_particle_data->initializeFromSnapshot(snapshot->particle_data);
+    m_bond_data->initializeFromSnapshot(snapshot->bond_data);
+    m_angle_data->initializeFromSnapshot(snapshot->angle_data);
+    m_dihedral_data->initializeFromSnapshot(snapshot->dihedral_data);
+    m_improper_data->initializeFromSnapshot(snapshot->improper_data);
+    m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
+
+    m_wall_data->removeAllWalls();
+    for (unsigned int i = 0; i < snapshot->wall_data.size(); ++i)
+        m_wall_data->addWall(snapshot->wall_data[i]);
+
+    // it is an error to load variables for more integrators than are
+    // currently registered
+    unsigned int n_integrators = m_integrator_data->getNumIntegrators();
+    if (n_integrators != snapshot->integrator_data.size())
+        {
+        m_particle_data->getExecConf()->msg->error() << "init.restart_from_snapshot: Snapshot contains data for "
+                                  << snapshot->integrator_data.size() << " integrators," << std::endl
+                                  << "but " << n_integrators << " are currently registered."
+                                  << std::endl << std::endl;
+        }
+
+    for (unsigned int i = 0; i < n_integrators; ++i)
+        m_integrator_data->setIntegratorVariables(i, snapshot->integrator_data[i]);
+    }
+
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
@@ -217,6 +249,7 @@ void export_SystemDefinition()
     .def("getRigidData", &SystemDefinition::getRigidData)
     .def("getPDataRefs", &SystemDefinition::getPDataRefs)
     .def("takeSnapshot", &SystemDefinition::takeSnapshot)
+    .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot)
     ;
     }
 

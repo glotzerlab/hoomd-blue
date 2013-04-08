@@ -198,6 +198,9 @@ class SystemDefinition
         //! Return a snapshot of the current system data
         boost::shared_ptr<SnapshotSystemData> takeSnapshot();
 
+        //! Re-initialize the system from a snapshot
+        void initializeFromSnapshot(boost::shared_ptr<SnapshotSystemData> snapshot);
+
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
         boost::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system

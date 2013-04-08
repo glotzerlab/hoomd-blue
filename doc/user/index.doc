@@ -130,6 +130,7 @@ Table of contents:
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>Generates any number of randomly positioned polymers of configurable types </i>
  - \link hoomd_script.init.read_bin() init.read_bin\endlink - <i>Reads initial system state from a binary file </i>
  - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>Reads initial system state from an XML file</i>
+ - \link hoomd_script.init.restore_from_snapshot() init.restore_from_snapshot\endlink - <i>Re-initializes the system from a snapshot</i>
 
  - \link hoomd_script.init.reset() init.reset\endlink - <i>Resets all hoomd_script variables </i>
  - \link hoomd_script.init.is_initialized() init.is_initialized\endlink - <i>Tests if the system has been initialized </i>
