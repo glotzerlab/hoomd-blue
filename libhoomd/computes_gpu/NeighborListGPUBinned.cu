@@ -155,8 +155,13 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
             {
+            #ifdef SINGLE_PRECISION
             Scalar4 cur_xyzf = tex1Dfetch(cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
-            Scalar4 cur_tdb = make_float4(0, 0, 0, 0);
+            #else
+            Scalar4 cur_xyzf = d_cell_xyzf[cli(cur_offset, neigh_cell)];
+            #endif
+            
+            Scalar4 cur_tdb = make_scalar4(0, 0, 0, 0);
             if (filter_diameter || filter_body)
                 cur_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
             unsigned int neigh_body = __scalar_as_int(cur_tdb.z);
@@ -237,13 +242,14 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
 
+    #ifdef SINGLE_PRECISION
     // bind the position texture
     cell_xyzf_1d_tex.normalized = false;
     cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*(cli.getNumElements()));
     if (error != cudaSuccess)
         return error;
-
+    #endif
 
     if (!filter_diameter && !filter_body)
         {
