@@ -188,19 +188,35 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     __syncthreads();
 
     // read in the position of our particle. (MEM TRANSFER: 16 bytes)
+    #ifdef SINGLE_PRECISION
     Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
+    #else
+    Scalar4 postype = d_pos[idx];
+    #endif
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // read in the diameter of our particle if needed
     Scalar diam(0);
     if (evaluator::needsDiameter())
+        {
+        #ifdef SINGLE_PRECISION
         diam = tex1Dfetch(pdata_diam_tex, idx);
+        #else
+        diam = d_diameter[idx];
+        #endif
+        }
     else
         diam += 0; // shutup compiler warning
 
     Scalar q(0);
     if (evaluator::needsCharge())
+        {
+        #ifdef SINGLE_PRECISION
         q = tex1Dfetch(pdata_charge_tex, idx);
+        #else
+        q = d_charge[idx];
+        #endif
+        }
     else
         q += 0; // shutup compiler warning
 
@@ -222,8 +238,12 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         int cur_bond_type = cur_bond.y;
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
+        #ifdef SINGLE_PRECISION
         Scalar4 neigh_postypej = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
-        Scalar3 neigh_pos= make_float3(neigh_postypej.x, neigh_postypej.y, neigh_postypej.z);
+        #else
+        Scalar4 neigh_postypej = d_pos[cur_bond_idx];
+        #endif
+        Scalar3 neigh_pos= make_scalar3(neigh_postypej.x, neigh_postypej.y, neigh_postypej.z);
 
         // calculate dr (FLOPS: 3)
         Scalar3 dx = pos - neigh_pos;
@@ -245,12 +265,20 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         // get the bonded particle's diameter if needed
         if (evaluator::needsDiameter())
             {
+            #ifdef SINGLE_PRECISION
             Scalar neigh_diam = tex1Dfetch(pdata_diam_tex, cur_bond_idx);
+            #else
+            Scalar neigh_diam = d_diameter[cur_bond_idx];
+            #endif
             eval.setDiameter(diam, neigh_diam);
             }
         if (evaluator::needsCharge())
             {
+            #ifdef SINGLE_PRECISION
             Scalar neigh_q = tex1Dfetch(pdata_charge_tex, cur_bond_idx);
+            #else
+            Scalar neigh_q = d_charge[cur_bond_idx];
+            #endif
             eval.setCharge(q, neigh_q);
             }
 
