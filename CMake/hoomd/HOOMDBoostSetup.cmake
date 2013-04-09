@@ -8,10 +8,6 @@ if(ENABLE_STATIC)
     set(Boost_USE_STATIC_LIBS "ON")
     add_definitions(-DBOOST_PYTHON_STATIC_LIB)
 else(ENABLE_STATIC)
-    if(WIN32)
-        message(FATAL_ERROR "Dynamically linking boost to HOOMD on windows is a hopeless cause. If 
-            you really want this feature, make it work yourself")
-    endif(WIN32)
     set(Boost_USE_STATIC_LIBS "OFF")
 endif(ENABLE_STATIC)
 
@@ -23,16 +19,27 @@ if ((BOOST_ROOT OR NOT $ENV{BOOST_ROOT} STREQUAL "") OR NOT $ENV{BOOSTROOT} STRE
     set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
+# try python-X.Y lib naming (gentoo style) first
+set(BOOST_PYTHON_COMPONENT "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+
 set(REQUIRED_BOOST_COMPONENTS thread filesystem ${BOOST_PYTHON_COMPONENT} signals program_options unit_test_framework iostreams serialization)
 
+message(STATUS "First attempt to find boost, it's OK if it fails")
 # first, see if we can get any supported version of Boost
 find_package(Boost 1.32.0 COMPONENTS ${REQUIRED_BOOST_COMPONENTS})
 
-# if python is not found, try python-X.Y (gentoo style)
-if (NOT Boost_PYTHON_FOUND AND NOT Boost_PYTHON3_FOUND)
-message(STATUS "Python ${BOOST_PYTHON_COMPONENT} not found, trying python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+# if python is not found, try looking for python or python3
+string(TOUPPER ${BOOST_PYTHON_COMPONENT} UPPER_BOOST_PYTHON_COMPONENT )
+if (NOT Boost_${UPPER_BOOST_PYTHON_COMPONENT}_FOUND)
+message(STATUS "Python ${BOOST_PYTHON_COMPONENT} not found, trying python or python3")
 list(REMOVE_ITEM REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
-set(BOOST_PYTHON_COMPONENT "python-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+
+if (PYTHON_VERSION VERSION_GREATER 3)
+     SET(BOOST_PYTHON_COMPONENT "python3")
+else()
+     SET(BOOST_PYTHON_COMPONENT "python")
+endif()
+
 list(APPEND REQUIRED_BOOST_COMPONENTS ${BOOST_PYTHON_COMPONENT})
 endif()
 
@@ -41,26 +48,11 @@ if (Boost_MINOR_VERSION GREATER 34)
 list(APPEND REQUIRED_BOOST_COMPONENTS "system")
 endif ()
 
-find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
+find_package(Boost 1.35.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 
 # add include directories
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
-if (WIN32)
-# link directories are needed on windows
-link_directories(${Boost_LIBRARY_DIRS})
-
-# the user needs to see if the boost auto-linking is working on windows
-# Disabled because it is getting annoying. Renable if you need to debug
-# add_definitions(-DBOOST_LIB_DIAGNOSTIC)
-
-# also enable stdcall boost::bind support on windows for CUDA runtime API calls
-# but it isn't needed in 64 bit
-if (NOT CMAKE_CL_64)
-    add_definitions(-DBOOST_BIND_ENABLE_STDCALL)
-endif (NOT CMAKE_CL_64)
-
-# hide the diagnostic lib definitions variable
+# hide variables the user doesn't need to see
 mark_as_advanced(Boost_LIB_DIAGNOSTIC_DEFINITIONS)
-
-endif (WIN32)
+mark_as_advanced(Boost_DIR)
