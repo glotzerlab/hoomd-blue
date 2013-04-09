@@ -71,7 +71,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
-using namespace boost::filesystem;
+using boost::filesystem::exists;
 using namespace boost::python;
 using namespace std;
 
