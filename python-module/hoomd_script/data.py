@@ -386,6 +386,8 @@ class system_data:
     # \param integrators If true, integrator data is included the snapshot
     # \param all If true, the entire system state is saved in the snapshot
     #
+    # Specific options (such as \b particles=True) take precedence over \b all=True.
+    #
     # \returns the snapshot object.
     #
     # \code
@@ -397,33 +399,41 @@ class system_data:
     def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None ):
         util.print_status_line();
 
-        if particles is None:
+        if all is True:
+            if particles is None:
+                particles=True
+            if bonds is None:
+                bonds=True
+            if angles is None:
+                angles=True
+            if dihedrals is None:
+                dihedrals=True
+            if impropers is None:
+                impropers=True
+            if rigid_bodies is None:
+                rigid_bodies=True
+            if walls is None:
+                walls=True
+            if integrators is None:
+                integrators=True
+      
+        if particles is None and not all:
             particles = False
-        if bonds is None:
+        if bonds is None and not all:
             bonds = False
-        if angles is None:
+        if angles is None and not all:
             angles = False
-        if dihedrals is None:
+        if dihedrals is None and not all:
             dihedrals = False
-        if impropers is None:
+        if impropers is None and not all:
             impropers = False
-        if rigid_bodies is None:
+        if rigid_bodies is None and not all:
             rigid_bodies = False
-        if walls is None:
+        if walls is None and not all:
             walls = False
-        if integrators is None:
+        if integrators is None and not all:
             integrators = False
 
-        if all is True:
-            particles=True
-            bonds=True
-            angles=True
-            dihedrals=True
-            impropers=True
-            rigid_bodies=True
-            walls=True
-            integrators=True
-      
         if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or walls or integrators):
             globals.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
             return None
