@@ -176,25 +176,94 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
     m_n_dimensions = n_dimensions;
     }
 
-boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot()
+/*! \param particles True if particle data should be saved
+ *  \param bonds True if bond data should be saved
+ *  \param angles True if angle data should be saved
+ *  \param dihedrals True if dihedral data should be saved
+ *  \param impropers True if improper data should be saved
+ *  \param rigid True if rigid data should be saved
+ *  \param wall True if wall data should be saved
+ *  \param integrator True if integrator data should be saved
+ */
+boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot(bool particles,
+                                                   bool bonds,
+                                                   bool angles,
+                                                   bool dihedrals,
+                                                   bool impropers,
+                                                   bool rigid,
+                                                   bool walls,
+                                                   bool integrators)
     {
     boost::shared_ptr<SnapshotSystemData> snap(new SnapshotSystemData);
 
+    // always save dimensions and global box
     snap->dimensions = m_n_dimensions;
     snap->global_box = m_particle_data->getGlobalBox();
 
-    m_particle_data->takeSnapshot(snap->particle_data);
-    m_bond_data->takeSnapshot(snap->bond_data);
-    m_angle_data->takeSnapshot(snap->angle_data);
-    m_dihedral_data->takeSnapshot(snap->dihedral_data);
-    m_improper_data->takeSnapshot(snap->improper_data);
-    m_rigid_data->takeSnapshot(snap->rigid_data);
+    if (particles)
+        {
+        m_particle_data->takeSnapshot(snap->particle_data);
+        snap->has_particle_data = true;
+        }
+    else
+        snap->has_particle_data = false;
 
-    for (unsigned int i = 0; i < m_wall_data->getNumWalls(); ++i)
-        snap->wall_data.push_back(m_wall_data->getWall(i));
+    if (bonds)
+        {
+        m_bond_data->takeSnapshot(snap->bond_data);
+        snap->has_bond_data = true;
+        }
+    else
+        snap->has_bond_data = false;
 
-    for (unsigned int i = 0; i < m_integrator_data->getNumIntegrators(); ++i)
-        snap->integrator_data.push_back(m_integrator_data->getIntegratorVariables(i));
+    if (angles)
+        {
+        m_angle_data->takeSnapshot(snap->angle_data);
+        snap->has_angle_data = true;
+        }
+    else
+        snap->has_angle_data = false;
+
+    if (dihedrals)
+        {
+        m_dihedral_data->takeSnapshot(snap->dihedral_data);
+        snap->has_dihedral_data = true;
+        }
+    else
+        snap->has_dihedral_data = false;
+
+    if (impropers)
+        {
+        m_improper_data->takeSnapshot(snap->improper_data);
+        snap->has_improper_data = true;
+        }
+    else
+        snap->has_improper_data = false;
+
+    if (rigid)
+        {
+        m_rigid_data->takeSnapshot(snap->rigid_data);
+        snap->has_rigid_data = true;
+        }
+    else
+        snap->has_rigid_data = false;
+
+    if (walls)
+        {
+        for (unsigned int i = 0; i < m_wall_data->getNumWalls(); ++i)
+            snap->wall_data.push_back(m_wall_data->getWall(i));
+        snap->has_wall_data = true;
+        }
+    else
+        snap->has_wall_data = false;
+
+    if (integrators)
+        {
+        for (unsigned int i = 0; i < m_integrator_data->getNumIntegrators(); ++i)
+            snap->integrator_data.push_back(m_integrator_data->getIntegratorVariables(i));
+        }
+    else
+        snap->has_integrator_data = false;
 
     return snap;
     }
@@ -204,31 +273,50 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr<SnapshotSystemDa
     {
     m_n_dimensions = snapshot->dimensions;
 
-    m_particle_data->setGlobalBox(snapshot->global_box);
-    m_particle_data->initializeFromSnapshot(snapshot->particle_data);
-    m_bond_data->initializeFromSnapshot(snapshot->bond_data);
-    m_angle_data->initializeFromSnapshot(snapshot->angle_data);
-    m_dihedral_data->initializeFromSnapshot(snapshot->dihedral_data);
-    m_improper_data->initializeFromSnapshot(snapshot->improper_data);
-    m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
+    if (snapshot->has_particle_data)
+        {
+        m_particle_data->setGlobalBox(snapshot->global_box);
+        m_particle_data->initializeFromSnapshot(snapshot->particle_data);
+        }
+   
+    if (snapshot->has_bond_data)
+        m_bond_data->initializeFromSnapshot(snapshot->bond_data);
 
-    m_wall_data->removeAllWalls();
-    for (unsigned int i = 0; i < snapshot->wall_data.size(); ++i)
-        m_wall_data->addWall(snapshot->wall_data[i]);
+    if (snapshot->has_angle_data)
+        m_angle_data->initializeFromSnapshot(snapshot->angle_data);
+
+    if (snapshot->has_dihedral_data)
+        m_dihedral_data->initializeFromSnapshot(snapshot->dihedral_data);
+
+    if (snapshot->has_improper_data)
+        m_improper_data->initializeFromSnapshot(snapshot->improper_data);
+
+    if (snapshot->has_rigid_data)
+        m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
+
+    if (snapshot->has_wall_data)
+        {
+        m_wall_data->removeAllWalls();
+        for (unsigned int i = 0; i < snapshot->wall_data.size(); ++i)
+            m_wall_data->addWall(snapshot->wall_data[i]);
+        }
 
     // it is an error to load variables for more integrators than are
     // currently registered
-    unsigned int n_integrators = m_integrator_data->getNumIntegrators();
-    if (n_integrators != snapshot->integrator_data.size())
+    if (snapshot->has_integrator_data)
         {
-        m_particle_data->getExecConf()->msg->error() << "init.restart_from_snapshot: Snapshot contains data for "
-                                  << snapshot->integrator_data.size() << " integrators," << std::endl
-                                  << "but " << n_integrators << " are currently registered."
-                                  << std::endl << std::endl;
-        }
+        unsigned int n_integrators = m_integrator_data->getNumIntegrators();
+        if (n_integrators != snapshot->integrator_data.size())
+            {
+            m_particle_data->getExecConf()->msg->error() << "init.restart_from_snapshot: Snapshot contains data for "
+                                      << snapshot->integrator_data.size() << " integrators," << std::endl
+                                      << "but " << n_integrators << " are currently registered."
+                                      << std::endl << std::endl;
+            }
 
-    for (unsigned int i = 0; i < n_integrators; ++i)
-        m_integrator_data->setIntegratorVariables(i, snapshot->integrator_data[i]);
+        for (unsigned int i = 0; i < n_integrators; ++i)
+            m_integrator_data->setIntegratorVariables(i, snapshot->integrator_data[i]);
+        }
     }
 
 void export_SystemDefinition()

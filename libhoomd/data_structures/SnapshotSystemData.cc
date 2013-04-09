@@ -71,6 +71,14 @@ void export_SnapshotSystemData()
     .def_readwrite("dihedral_data", &SnapshotSystemData::dihedral_data)
     .def_readwrite("improper_data", &SnapshotSystemData::improper_data)
     .def_readwrite("rigid_data", &SnapshotSystemData::rigid_data)
+    .def_readwrite("has_particle_data", &SnapshotSystemData::has_particle_data)
+    .def_readwrite("has_bond_data", &SnapshotSystemData::has_bond_data)
+    .def_readwrite("has_angle_data", &SnapshotSystemData::has_angle_data)
+    .def_readwrite("has_dihedral_data", &SnapshotSystemData::has_dihedral_data)
+    .def_readwrite("has_improper_data", &SnapshotSystemData::has_improper_data)
+    .def_readwrite("has_rigid_data", &SnapshotSystemData::has_rigid_data)
+    .def_readwrite("has_wall_data", &SnapshotSystemData::has_wall_data)
+    .def_readwrite("has_integrator_data", &SnapshotSystemData::has_integrator_data)
     ;
 
     implicitly_convertible<boost::shared_ptr<SnapshotSystemData>, boost::shared_ptr<const SnapshotSystemData> >();

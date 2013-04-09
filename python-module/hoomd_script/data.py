@@ -69,7 +69,7 @@ from hoomd_script import util
 #
 # If modifications need to be done on more than just a few particles, e.g.
 # setting new positions for all particles, or updating the velocities, etc., \b snapshots can be used.
-# A \ref data_snapshot stores the entire system state in a single (currently opaque) object and can
+# \ref data_snapshot store the entire system state in a single (currently opaque) object and can
 # be used to re-initialize the system using init.restore_from_snapshot.
 # 
 # <h2>Documentation by example</h2>
@@ -331,23 +331,24 @@ from hoomd_script import util
 # If you need to store some particle properties at one time in the simulation and access them again later, you will need
 # to make copies of the actual property values themselves and not of the proxy references.
 #
-# \section data_snapshot snapshot
+# \section data_snapshot Snapshots
 # <hr>
 # <h3>Snapshots</h3>
 # 
-# A snaphot of the current system state is obtained using take_snapshot(). It contains information
+# A snaphot of the current system state is obtained using system_data.take_snapshot(). It contains information
 # about the simulation box, particles, bonds, angles, dihedrals, impropers, walls and rigid bodies.
 # Once taken, it is not updated anymore (as opposed to the particle %data proxies, which always
-# return the current state). Instead, it can be used to restart the simulation.
+# return the current state). Instead, it can be used to restart the simulation
+# using init.restore_from_snapshot().
 #
 # In future releases it will be possible to modify or %analyze the contents of a snapshot.
 #
 # Example for taking a snapshot:
 # \code
-# snapshot = system.take_snapshot()
+# snapshot = system.take_snapshot(all=True)
 # \endcode
 
-## \internal
+##
 # \brief Access system data
 #
 # system_data provides access to the different data structures that define the current state of the simulation.
@@ -369,9 +370,68 @@ class system_data:
         self.bodies = body_data(sysdef.getRigidData());
 
     ## Take a snapshot of the current system data
-    def take_snapshot(self):
+    # 
+    # This functions returns a snapshot object. It contains the current
+    # partial or complete simulation state. With appropriate options
+    # it is possible to select which data properties should be included
+    # in the snapshot.
+    # 
+    # \param particles If true, particle data is included in the snapshot
+    # \param bonds If true, bond data is included in the snapshot
+    # \param angles If true, angle data is included in the snapshot
+    # \param dihedrals If true, dihedral data is included in the snapshot
+    # \param impropers If true, dihedral data is included in the snapshot
+    # \param rigid_bodies If true, rigid body data is included in the snapshot
+    # \param walls If true, wall data is included in the snapshot
+    # \param integrators If true, integrator data is included the snapshot
+    # \param all If true, the entire system state is saved in the snapshot
+    #
+    # \returns the snapshot object.
+    #
+    # \code
+    # snapshot = system.take_snapshot()
+    # snapshot = system.take_snapshot(particles=true) 
+    # snapshot = system.take_snapshot(bonds=true)
+    # \endcode
+    #
+    def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None ):
         util.print_status_line();
-        return self.sysdef.takeSnapshot()
+
+        if particles is None:
+            particles = False
+        if bonds is None:
+            bonds = False
+        if angles is None:
+            angles = False
+        if dihedrals is None:
+            dihedrals = False
+        if impropers is None:
+            impropers = False
+        if rigid_bodies is None:
+            rigid_bodies = False
+        if walls is None:
+            walls = False
+        if integrators is None:
+            integrators = False
+
+        if all is True:
+            particles=True
+            bonds=True
+            angles=True
+            dihedrals=True
+            impropers=True
+            rigid_bodies=True
+            walls=True
+            integrators=True
+      
+        if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or walls or integrators):
+            globals.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
+            return None
+
+        # take the snapshot
+        cpp_snapshot = self.sysdef.takeSnapshot(particles,bonds,angles,dihedrals,impropers,rigid_bodies,walls,integrators)
+
+        return cpp_snapshot
 
     ## \var sysdef
     # \internal

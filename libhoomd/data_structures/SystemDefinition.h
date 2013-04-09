@@ -196,7 +196,14 @@ class SystemDefinition
             }
            
         //! Return a snapshot of the current system data
-        boost::shared_ptr<SnapshotSystemData> takeSnapshot();
+        boost::shared_ptr<SnapshotSystemData> takeSnapshot(bool particles,
+                                                           bool bonds,
+                                                           bool angles,
+                                                           bool dihedrals,
+                                                           bool impropers,
+                                                           bool rigid,
+                                                           bool walls,
+                                                           bool integrators);
 
         //! Re-initialize the system from a snapshot
         void initializeFromSnapshot(boost::shared_ptr<SnapshotSystemData> snapshot);
