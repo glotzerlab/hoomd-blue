@@ -748,7 +748,6 @@ bool NeighborList::distanceCheck()
     
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
 
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
     

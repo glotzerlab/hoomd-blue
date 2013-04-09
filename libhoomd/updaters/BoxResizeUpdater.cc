@@ -219,7 +219,6 @@ void BoxResizeUpdater::update(unsigned int timestep)
                 for (unsigned int body = 0; body < n_bodies; body++)
                     {
                     // need to update the image if we move particles from one side of the box to the other
-                    Scalar3 pos = make_scalar3(h_body_com.data[body].x, h_body_com.data[body].y, h_body_com.data[body].z);
                     local_box.wrap(h_body_com.data[body], h_body_image.data[body]);
                     }
                 }

@@ -675,7 +675,6 @@ void PPPMForceCompute::assign_charges_to_grid()
     {
 
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
@@ -798,7 +797,6 @@ void PPPMForceCompute::combined_green_e()
 void PPPMForceCompute::calculate_forces()
     {
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);

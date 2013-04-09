@@ -341,7 +341,6 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     
     // get box
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     Scalar tmp, akin_t, akin_r, scale, scale_t, scale_r, scale_v;
     Scalar4 mbody, tbody, fquat;
