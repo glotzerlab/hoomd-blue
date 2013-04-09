@@ -246,6 +246,7 @@ __global__ void gpu_compute_table_forces_kernel(float4* d_force,
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array
     \param N number of particles
+    \param n_ghost number of ghost particles
     \param d_pos particle positions on the device
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
@@ -263,6 +264,7 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
                                      float* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
+                                     const unsigned int n_ghost,
                                      const Scalar4 *d_pos,
                                      const BoxDim& box,
                                      const unsigned int *d_n_neigh,
@@ -289,7 +291,7 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
     // bind the pdata position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4) * N);
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4) * (N+n_ghost));
     if (error != cudaSuccess)
         return error;
 
