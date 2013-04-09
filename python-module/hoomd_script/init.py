@@ -634,7 +634,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
 #
 # ... run a simulation ...
 #
-# snapshot = system.take_snapshot()
+# snapshot = system.take_snapshot(all=True)
 # init.restore_from_snapshot(snapshot)
 # \endcode
 #
