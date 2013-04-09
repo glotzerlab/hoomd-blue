@@ -117,7 +117,8 @@ class EvaluatorExternalPeriodic
         */
         DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
             {
-            Scalar3 a2, a3;
+            Scalar3 a2 = make_scalar3(0,0,0);
+            Scalar3 a3 = make_scalar3(0,0,0);
 
             F.x = Scalar(0.0);
             F.y = Scalar(0.0);
