@@ -225,8 +225,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
         BoxDim box = pdata->getBox();
         Scalar volume = box.getVolume();
         Scalar enthalpy =  thermo_group->getKineticEnergy() + thermo_group->getPotentialEnergy() + P * volume;
-        Scalar barostat_energy = npt_mtk->getLogValue("npt_mtk_barostat_energy", 0);
-        Scalar thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", 0);
+        Scalar barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", 0);
+        Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", 0);
         Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
         std::cout << "Measuring up to 50,000 steps... " << std::endl;
@@ -262,8 +262,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
         box = pdata->getBox();
         volume = box.getVolume();
         enthalpy =  thermo_group->getKineticEnergy() + thermo_group->getPotentialEnergy() + P * volume;
-        barostat_energy = npt_mtk->getLogValue("npt_mtk_barostat_energy", count+1);
-        thermostat_energy = npt_mtk->getLogValue("npt_mtk_thermostat_energy", count+1);
+        barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", count+1);
+        thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", count+1);
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
@@ -458,7 +458,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     Scalar3 L = box.getL();
     Scalar volume = L.x*L.y*L.z;
     Scalar enthalpy =  compute_thermo->getKineticEnergy() + compute_thermo->getPotentialEnergy() + P * volume;
-    Scalar barostat_energy = nph->getLogValue("npt_mtk_barostat_energy", 0);
+    Scalar barostat_energy = nph->getLogValue("npt_barostat_energy", 0);
     Scalar H_ref = enthalpy + barostat_energy; // the conserved quantity
 
     for (int i = 10001; i < 50000; i++)
@@ -481,7 +481,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     L = box.getL();
     volume = L.x*L.y*L.z;
     enthalpy =  compute_thermo->getKineticEnergy() + compute_thermo->getPotentialEnergy() + P * volume;
-    barostat_energy = nph->getLogValue("npt_mtk_barostat_energy", count+1);
+    barostat_energy = nph->getLogValue("npt_barostat_energy", count+1);
     Scalar H_final = enthalpy + barostat_energy;
     // check conserved quantity
     Scalar tol = 0.01;
