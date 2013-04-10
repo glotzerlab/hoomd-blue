@@ -126,20 +126,26 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     unsigned int my_body = d_body[my_pidx];
     float my_diameter = d_diameter[my_pidx];
 
-    // find the bin each particle belongs in
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
+
+    // find the bin each particle belongs in
     int ib = (int)(f.x * ci.getW());
     int jb = (int)(f.y * ci.getH());
     int kb = (int)(f.z * ci.getD());
 
+    uchar3 periodic = box.getPeriodic();
+
     // need to handle the case where the particle is exactly at the box hi
-    if (ib == ci.getW())
+    if (ib == ci.getW() && periodic.x)
         ib = 0;
-    if (jb == ci.getH())
+    if (jb == ci.getH() && periodic.y)
         jb = 0;
-    if (kb == ci.getD())
+    if (kb == ci.getD() && periodic.z)
         kb = 0;
 
+    if (ib < 0 || ib >= ci.getW() || jb < 0 || jb >= ci.getH() || kb < 0 || kb >= ci.getD() )
+	return;
+ 
     int my_cell = ci(ib,jb,kb);
 
     // each thread will determine the neighborlist of a single particle

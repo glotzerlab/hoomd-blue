@@ -85,6 +85,7 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     resetConditions();
 
     m_num_ghost_cells = make_uint3(0,0,0);
+    m_ghost_width = make_scalar3(0.0,0.0,0.0);
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
@@ -286,7 +287,13 @@ void CellList::initializeWidth()
         m_num_ghost_cells = make_uint3(box.getPeriodic().x ? 0 : 2,
                                        box.getPeriodic().y ? 0 : 2,
                                        box.getPeriodic().z ? 0 : 2);
-    
+
+    // compute ghost layer width
+    Scalar3 L = box.getNearestPlaneDistance();
+    m_ghost_width = make_scalar3(L.x/(Scalar)(m_dim.x-m_num_ghost_cells.x)*(Scalar)(m_num_ghost_cells.x/2),
+                             L.y/(Scalar)(m_dim.y-m_num_ghost_cells.y)*(Scalar)(m_num_ghost_cells.y/2),
+                             L.z/(Scalar)(m_dim.z-m_num_ghost_cells.z)*(Scalar)(m_num_ghost_cells.z/2));
+
     if (m_prof)
         m_prof->pop();
 
