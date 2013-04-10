@@ -95,6 +95,8 @@ void CellListGPU::computeCellList()
     ArrayHandle<unsigned int> d_cell_idx(m_idx, access_location::device, access_mode::overwrite);
 
 
+    Scalar3 ghost_width = m_nominal_width/Scalar(2.0)*make_scalar3((Scalar)m_num_ghost_cells.x, (Scalar)m_num_ghost_cells.y, (Scalar)m_num_ghost_cells.z);
+
     // take optimized code paths for different GPU generations
     if (exec_conf->getComputeCapability() >= 200)
         {
@@ -117,7 +119,7 @@ void CellListGPU::computeCellList()
                               box,
                               m_cell_indexer,
                               m_cell_list_indexer,
-                              getGhostWidth());
+                              ghost_width);
         }
     else
         {
@@ -140,7 +142,7 @@ void CellListGPU::computeCellList()
                                  box,
                                  m_cell_indexer,
                                  m_cell_list_indexer,
-                                 getGhostWidth());
+                                 ghost_width);
         }
     
     if (exec_conf->isCUDAErrorCheckingEnabled())

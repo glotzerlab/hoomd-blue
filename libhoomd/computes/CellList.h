@@ -283,12 +283,6 @@ class CellList : public Compute
             return m_num_ghost_cells;
             }
 
-        //! Get width of ghost cells
-        const Scalar3 getGhostWidth() const
-            {
-            return m_ghost_width;
-            }
-
         // @}
         //! \name Get data
         // @{
@@ -363,7 +357,6 @@ class CellList : public Compute
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
         unsigned int m_Nmax;         //!< Numer of spaces reserved for particles in each cell
         uint3 m_num_ghost_cells;     //!< Number of ghost cells in every direction 
-        Scalar3 m_ghost_width;       //!< Width of ghost cells
         
         // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
