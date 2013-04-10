@@ -48,7 +48,7 @@ if (Boost_MINOR_VERSION GREATER 34)
 list(APPEND REQUIRED_BOOST_COMPONENTS "system")
 endif ()
 
-find_package(Boost 1.35.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
+find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 
 # add include directories
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
