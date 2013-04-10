@@ -152,6 +152,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     Index2D cli = m_cl->getCellListIndexer();
     Index2D cadji = m_cl->getCellAdjIndexer();
 
+    // get periodic flags
+    uchar3 periodic = box.getPeriodic();
+
     // for each local particle
     unsigned int nparticles = m_pdata->getN();
 #pragma omp parallel for schedule(dynamic, 100)
@@ -170,11 +173,11 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         int kb = (unsigned int)(f.z * dim.z);
 
         // need to handle the case where the particle is exactly at the box hi
-        if (ib == (int)dim.x)
+        if (ib == (int)dim.x && periodic.x)
             ib = 0;
-        if (jb == (int)dim.y)
+        if (jb == (int)dim.y && periodic.y)
             jb = 0;
-        if (kb == (int)dim.z)
+        if (kb == (int)dim.z && periodic.z)
             kb = 0;
             
         // identify the bin

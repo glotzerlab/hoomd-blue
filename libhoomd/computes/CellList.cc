@@ -465,10 +465,13 @@ void CellList::computeCellList()
     // clear the bin sizes to 0
     memset(h_cell_size.data, 0, sizeof(unsigned int) * m_cell_indexer.getNumElements());
     
+    Scalar3 ghost_width = getGhostWidth();
+
+    // get periodic flags
+    uchar3 periodic = box.getPeriodic();
+
     // for each particle
     unsigned n_tot_particles = m_pdata->getN() + m_pdata->getNGhosts();
-
-    Scalar3 ghost_width = m_nominal_width/Scalar(2.0)*make_scalar3((Scalar)m_num_ghost_cells.x, (Scalar)m_num_ghost_cells.y, (Scalar)m_num_ghost_cells.z);
 
     for (unsigned int n = 0; n < n_tot_particles; n++)
         {
@@ -479,18 +482,30 @@ void CellList::computeCellList()
             continue;
             }
             
+
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(p,ghost_width);
         int ib = (int)(f.x * m_dim.x);
         int jb = (int)(f.y * m_dim.y);
         int kb = (int)(f.z * m_dim.z);
         
+        // check if the particle is inside the dimensions
+        if (f.x < Scalar(0.0) || f.x >= Scalar(1.0) ||
+            f.y < Scalar(0.0) || f.y >= Scalar(1.0) ||
+            f.z < Scalar(0.0) || f.z >= Scalar(1.0))
+            { 
+            // if a ghost particle is out of bounds, silently ignore it
+            if (n < m_pdata->getN())
+                conditions.z = n+1;
+            return;
+            }
+
         // need to handle the case where the particle is exactly at the box hi
-        if (ib == (int)m_dim.x)
+        if (ib == (int)m_dim.x && periodic.x)
             ib = 0;
-        if (jb == (int)m_dim.y)
+        if (jb == (int)m_dim.y && periodic.y)
             jb = 0;
-        if (kb == (int)m_dim.z)
+        if (kb == (int)m_dim.z && periodic.z)
             kb = 0;
 
         // sanity check
@@ -498,14 +513,6 @@ void CellList::computeCellList()
         
         // record its bin
         unsigned int bin = ci(ib, jb, kb);
-        // check if the particle is inside the dimensions
-        if (bin >= ci.getNumElements())
-            {
-            // if a ghost particle is out of bounds, silently ignore it
-            if (n < m_pdata->getN())
-                conditions.z = n+1;
-            continue;
-            }
 
         // setup the flag value to store
         Scalar flag;
