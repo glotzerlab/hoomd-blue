@@ -145,7 +145,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     // check if the particle is inside the dimensions
     if (f.x < Scalar(0.0) || f.x >= Scalar(1.0) ||
         f.y < Scalar(0.0) || f.y >= Scalar(1.0) ||
-    	f.z < Scalar(0.0) || f.z >= Scalar(1.0))
+	f.z < Scalar(0.0) || f.z >= Scalar(1.0))
         {
         // if a ghost particle is out of bounds, silently ignore it
         if (idx < N)
@@ -433,40 +433,32 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
 
     // find the bin each particle belongs in
     Scalar3 f = box.makeFraction(pos,ghost_width);
-    
     unsigned int ib = (unsigned int)(f.x * ci.getW());
     unsigned int jb = (unsigned int)(f.y * ci.getH());
     unsigned int kb = (unsigned int)(f.z * ci.getD());
-    
-    uchar3 periodic = box.getPeriodic();
 
     // need to handle the case where the particle is exactly at the box hi
-    if (ib == ci.getW() && periodic.x)
+    if (ib == ci.getW())
         ib = 0;
-    if (jb == ci.getH() && periodic.y)
+    if (jb == ci.getH())
         jb = 0;
-    if (kb == ci.getD() && periodic.z)
+    if (kb == ci.getD())
         kb = 0;
         
     unsigned int bin = ci(ib, jb, kb);
 
     // check if the particle is inside the dimensions
-    if (f.x < Scalar(0.0) || f.x >= Scalar(1.0) ||
-        f.y < Scalar(0.0) || f.y >= Scalar(1.0) ||
-    	f.z < Scalar(0.0) || f.z >= Scalar(1.0))
+    if (bin >= ci.getNumElements())
         {
-        // silently ignore ghost particles that are outside the dimensions
-        if (idx < N) (*d_conditions).z = idx+1;
+        (*d_conditions).z = idx+1;
         bin = INVALID_BIN;
         }
-
     // check for nan pos
     if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
         {
         (*d_conditions).y = idx+1;
         bin = INVALID_BIN;
         }
-
     // if we are past the end of the array, mark the bin as invalid
     if (idx >= N + n_ghost)
         bin = INVALID_BIN;
