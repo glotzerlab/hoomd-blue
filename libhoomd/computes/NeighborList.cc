@@ -802,7 +802,7 @@ bool NeighborList::distanceCheck()
         {
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         unsigned int tag = h_tag.data[out_of_bounds_idx];
-        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has moved more than one box length"
+        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one box length"
                                   << std::endl << "between neighbor list builds."
                                   << std::endl << std::endl;
         throw std::runtime_error("Error checking particle displacements");
