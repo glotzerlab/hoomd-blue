@@ -101,6 +101,18 @@ struct SnapshotRigidData
         body_image.resize(n_bodies);
         size = n_bodies;
         }
+
+    //! Validate the snapshot
+    /* \returns true if number of elements in snapshot is consistent
+     */
+    bool validate() const
+        {
+        if (! com.size() == size) return false;
+        if (! vel.size() == size) return false;
+        if (! angmom.size() == size) return false;
+        if (! body_image.size() == size) return false;
+        return true;
+        }
     };
 
 //! Stores all per rigid body values

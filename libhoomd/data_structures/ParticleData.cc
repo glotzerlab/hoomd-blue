@@ -552,6 +552,14 @@ bool ParticleData::inBox()
  */
 void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
+    // check that all fields in the snapshot have correct length
+    if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
+        {
+        m_exec_conf->msg->error() << "init.*: inconsistent size of particle data snapshot."
+                                << std::endl << std::endl;
+        throw std::runtime_error("Error initializing particle data.");
+        }
+
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
@@ -1609,7 +1617,22 @@ void SnapshotParticleData::resize(unsigned int N)
     inertia_tensor.resize(N);
     size = N;
     }
- 
+
+bool SnapshotParticleData::validate() const
+    {
+    // Check that a type mapping exists
+    if (type_mapping.size() == 0) return false;
+
+    // Check if all other fields are of equal length==size 
+    if (pos.size() != size || vel.size() != size || accel.size() != size || type.size() != size ||
+        mass.size() != size || charge.size() != size || diameter.size() != size ||
+        image.size() != size || body.size() != size || orientation.size() != size ||
+        inertia_tensor.size() != size)
+        return false;
+
+    return true;
+    }
+
 void export_SnapshotParticleData()
     {
     class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData> >("SnapshotParticleData", init<unsigned int>())

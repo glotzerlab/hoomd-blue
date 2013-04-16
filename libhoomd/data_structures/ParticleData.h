@@ -214,7 +214,10 @@ struct SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
         : size(0)
-        { }
+        {
+        // offer default type mapping
+        type_mapping.push_back("A");
+        }
 
     //! constructor
     /*! \param N number of particles to allocate memory for
@@ -225,6 +228,11 @@ struct SnapshotParticleData {
     /*! \param N number of particles in snapshot
      */
     void resize(unsigned int N);
+
+    //! Validate the snapshot
+    /*! \returns true if the number of elements is consistent
+     */
+    bool validate() const;
 
     std::vector<Scalar3> pos;       //!< positions
     std::vector<Scalar3> vel;       //!< velocities

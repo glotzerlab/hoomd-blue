@@ -273,9 +273,12 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr<SnapshotSystemDa
     {
     m_n_dimensions = snapshot->dimensions;
 
+    boost::shared_ptr<const ExecutionConfiguration> exec_conf = m_particle_data->getExecConf();
+
     if (snapshot->has_particle_data)
         {
         m_particle_data->setGlobalBox(snapshot->global_box);
+    
         m_particle_data->initializeFromSnapshot(snapshot->particle_data);
         }
    
@@ -308,10 +311,11 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr<SnapshotSystemDa
         unsigned int n_integrators = m_integrator_data->getNumIntegrators();
         if (n_integrators != snapshot->integrator_data.size())
             {
-            m_particle_data->getExecConf()->msg->error() << "init.restart_from_snapshot: Snapshot contains data for "
-                                      << snapshot->integrator_data.size() << " integrators," << std::endl
-                                      << "but " << n_integrators << " are currently registered."
-                                      << std::endl << std::endl;
+            exec_conf->msg->error() << "init.restart_from_snapshot: Snapshot contains data for "
+                                    << snapshot->integrator_data.size() << " integrators," << std::endl
+                                    << "but " << n_integrators << " are currently registered."
+                                    << std::endl << std::endl;
+            throw std::runtime_error("Error initializing from snapshot");
             }
 
         for (unsigned int i = 0; i < n_integrators; ++i)

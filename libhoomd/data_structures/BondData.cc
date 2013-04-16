@@ -688,6 +688,14 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
  */
 void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
     {
+    // check that all fields in the snapshot have correct length
+    if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
+        {
+        m_exec_conf->msg->error() << "init.*: inconsistent size of bond data snapshot."
+                                << std::endl << std::endl;
+        throw std::runtime_error("Error initializing bond data.");
+        }
+
     m_bonds.clear();
     m_bond_type.clear();
     m_tags.clear();

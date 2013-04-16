@@ -1180,6 +1180,14 @@ void RigidData::computeVirialCorrectionEndGPU(Scalar deltaT)
  */
 void RigidData::initializeFromSnapshot(const SnapshotRigidData& snapshot)
     {
+    // check that all fields in the snapshot have correct length
+    if (m_exec_conf->getRank() == 0 && !snapshot.validate())
+        {
+        m_exec_conf->msg->error() << "init.*: inconsistent size of rigid body snapshot."
+                                << std::endl << std::endl;
+        throw std::runtime_error("Error initializing rigid bodies.");
+        }
+
     ArrayHandle<Scalar4> h_com(getCOM(), access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_vel(getVel(), access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_angmom(getAngMom(), access_location::host, access_mode::overwrite);

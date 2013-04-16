@@ -139,6 +139,15 @@ struct SnapshotBondData
         bonds.resize(n_bonds);
         }
 
+    //! Validate the snapshot
+    /* \returns true if number of elements in snapshot is consistent
+     */
+    bool validate() const
+        {
+        if (! bonds.size() == type_id.size()) return false;
+        return true;
+        }
+
     std::vector<unsigned int> type_id;             //!< Stores type for each bond
     std::vector<uint2> bonds;                      //!< .x and .y are tags of the two particles in the bond
     std::vector<std::string> type_mapping;         //!< Names of bond types

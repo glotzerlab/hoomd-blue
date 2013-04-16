@@ -216,13 +216,13 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
             pdata.body[i] = m_body_array[i];
         }
 
-    pdata.type_mapping = m_type_mapping;
+    if (m_type_mapping.size()) pdata.type_mapping = m_type_mapping;
 
     // Initialize moments of inertia
-    pdata.inertia_tensor = m_moment_inertia;
+    if (m_moment_inertia.size()) pdata.inertia_tensor = m_moment_inertia;
 
     // Initialize orientations
-    pdata.orientation = m_orientation;
+    if (m_orientation.size()) pdata.orientation = m_orientation;
 
     /*
      * Initialize bond data

@@ -135,6 +135,15 @@ struct SnapshotAngleData
         angles.resize(n_angles);
         }
 
+    //! Validate the snapshot
+    /* \returns true if number of elements in snapshot is consistent
+     */
+    bool validate() const
+        {
+        if (! angles.size() == type_id.size()) return false;
+        return true;
+        }
+
     std::vector<unsigned int> type_id;              //!< Stores type for each bo
     std::vector<uint3> angles;                      //!< .x and .y are tags of t
     std::vector<std::string> type_mapping;          //!< Names of angle types

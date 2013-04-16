@@ -115,6 +115,15 @@ struct SnapshotDihedralData
         dihedrals.resize(n_dihedrals);
         }
 
+    //! Validate the snapshot
+    /* \returns true if number of elements in snapshot is consistent
+     */
+    bool validate() const
+        {
+        if (! dihedrals.size() == type_id.size()) return false;
+        return true;
+        }
+
     std::vector<unsigned int> type_id;                 //!< Stores type for each bo
     std::vector<uint4> dihedrals;                      //!< .x and .y are tags of t
     std::vector<std::string> type_mapping;             //!< Names of dihedral types
