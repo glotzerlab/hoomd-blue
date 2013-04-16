@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstForceCompute.h"
 
 #include "Initializers.h"
+#include "SnapshotSystemData.h"
 
 using namespace std;
 using namespace boost;

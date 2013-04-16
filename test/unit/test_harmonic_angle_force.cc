@@ -67,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "Initializers.h"
+#include "SnapshotSystemData.h"
 
 using namespace std;
 using namespace boost;

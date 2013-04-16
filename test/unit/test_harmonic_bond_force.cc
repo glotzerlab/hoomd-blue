@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllBondPotentials.h"
 #include "ConstForceCompute.h"
+#include "SnapshotSystemData.h"
 
 #include "Initializers.h"
 

@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborListBinned.h"
 #include "Initializers.h"
+#include "SnapshotSystemData.h"
 
 #include <math.h>
 
