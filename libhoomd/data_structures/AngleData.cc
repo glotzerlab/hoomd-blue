@@ -153,7 +153,7 @@ unsigned int AngleData::addAngle(const Angle& angle)
     // error out in multi-GPU
     if (m_pdata->getDomainDecomposition())
         {
-        m_exec_conf->msg->error() << "Angles are not currently supported in multi-processor simulations." << std::endl;
+        m_exec_conf->msg->error() << "Angles are not currently supported in multi-GPU mode." << std::endl;
         throw std::runtime_error("Error adding angle");
         }
     #endif

@@ -165,7 +165,7 @@ unsigned int DihedralData::addDihedral(const Dihedral& dihedral)
     // error out in multi-GPU
     if (m_pdata->getDomainDecomposition())
         {
-        m_exec_conf->msg->error() << "Dihedrals/Improper are not currently supported in multi-processor simulations." << std::endl;
+        m_exec_conf->msg->error() << "Dihedrals/impropers are not currently supported in multi-GPU mode." << std::endl;
         throw std::runtime_error("Error adding dihedral/improper");
         }
     #endif
