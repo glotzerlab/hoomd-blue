@@ -142,10 +142,10 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     uchar3 periodic = box.getPeriodic();
     Scalar3 f = box.makeFraction(pos,ghost_width);
 
-    // check if the particle is inside the dimensions
-    if (f.x < Scalar(0.0) || f.x >= Scalar(1.0) ||
-        f.y < Scalar(0.0) || f.y >= Scalar(1.0) ||
-	f.z < Scalar(0.0) || f.z >= Scalar(1.0))
+    // check if the particle is inside the unit cell + ghost layer
+    if ((!periodic.x && (f.x < Scalar(0.0) || f.x >= Scalar(1.0))) ||
+        (!periodic.y && (f.y < Scalar(0.0) || f.y >= Scalar(1.0))) ||
+        (!periodic.z && (f.z < Scalar(0.0) || f.z >= Scalar(1.0))) )
         {
         // if a ghost particle is out of bounds, silently ignore it
         if (idx < N)
