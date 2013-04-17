@@ -627,9 +627,7 @@ void TwoStepNVERigid::validateGroup()
 void TwoStepNVERigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep)
     {
     Scalar kt, gfkt_t, gfkt_r, tmp, ms, s, s2;
-    Scalar dtv;
     
-    dtv = m_deltaT;
     kt = boltz * m_temperature->getValue(timestep);
     gfkt_t = nf_t * kt;
     gfkt_r = nf_r * kt;
@@ -821,8 +819,6 @@ void TwoStepNVERigid::remap()
     m_pdata->setGlobalBox(newBox);
 
     // convert rigid body COMs to lamda coords
-
-    const BoxDim& box = m_pdata->getBox();
 
     ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
 
