@@ -184,13 +184,6 @@ void TwoStepNPHRigid::setup()
     {
     TwoStepNVERigid::setup();
     
-    ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    
     // retrieve integrator variables from restart files
     IntegratorVariables v = getIntegratorVariables();
     eta_b[0] = v.variable[0];
@@ -198,35 +191,72 @@ void TwoStepNPHRigid::setup()
     f_eta_b[0] = v.variable[2];
     
     m_thermo_all->compute(0);
-    Scalar temperature = m_thermo_all->getTemperature();       
-    if (fabs(temperature) < EPSILON) temperature = 1.0;
+    Scalar temperature = 1.0;
 
-    Scalar kt = boltz * temperature;
+    Scalar p_target = m_pressure->getValue(0);
+    m_curr_P = m_thermo_all->getPressure();
+    // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
+    // rare circumstances, usually at the start of the simulation before things are initialize)
+    if (isnan(m_curr_P))
+        m_curr_P = m_pressure->getValue(0);
 
     // initialize thermostat chain positions, velocites, forces
-
+    Scalar kt = boltz * temperature;
     Scalar p_mass = kt / (p_freq * p_freq);
     q_b[0] = dimension * dimension * p_mass;
     for (unsigned int i = 1; i < chain; i++)
         {
         q_b[i] = p_mass;
-        f_eta_b[i] = q_b[i] * eta_dot_b[i-1] * eta_dot_b[i-1] - kt;
+        f_eta_b[i] = (q_b[i] * eta_dot_b[i-1] * eta_dot_b[i-1] - kt)/q_b[i];
         }
 
     // initialize barostat parameters
-    
+
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getL();
-    
+
     Scalar vol;   // volume
     if (dimension == 2) 
         vol = L.x * L.y;
     else 
         vol = L.x * L.y * L.z;
 
-    W = (g_f + dimension) * kt / (p_freq * p_freq);
+    // calculate group current temperature
+
+    Scalar akin_t = 0.0f, akin_r = 0.0f;
+    ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
+
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+        
+        akin_t += body_mass_handle.data[body] * (vel_handle.data[body].x * vel_handle.data[body].x +
+                                                 vel_handle.data[body].y * vel_handle.data[body].y +  
+                                                 vel_handle.data[body].z * vel_handle.data[body].z); 
+        akin_r += angmom_handle.data[body].x * angvel_handle.data[body].x
+                  + angmom_handle.data[body].y * angvel_handle.data[body].y
+                  + angmom_handle.data[body].z * angvel_handle.data[body].z;
+        }
+
+
+    m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
+    W = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
     epsilon = log(vol) / dimension;
-    epsilon_dot = f_epsilon = 0.0;
+
+    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
+    f_epsilon /= W;
+
+    // update order/timestep-dependent coefficients
+
+    for (unsigned int i = 0; i < order; i++)
+        {
+        wdti1[i] = w[i] * m_deltaT / iter;
+        wdti2[i] = wdti1[i] / 2.0;
+        wdti4[i] = wdti1[i] / 4.0;
+        }        
 
     // computes the total number of degrees of freedom used for system temperature compute
     ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
@@ -261,38 +291,12 @@ void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
     
     // get box
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     Scalar tmp, akin_t, akin_r, scale, scale_t, scale_r, scale_v;
     Scalar4 mbody, tbody, fquat;
     Scalar dtfm, dt_half;
     
     dt_half = 0.5 * m_deltaT;
-    
-    // update barostat
-    
-    Scalar vol;   // volume
-    if (dimension == 2) 
-        vol = L.x * L.y;
-    else 
-        vol = L.x * L.y * L.z;
-
-    // compute the current thermodynamic properties
-    // m_thermo_group->compute(timestep);
-    m_thermo_all->compute(timestep);
-        
-    // compute pressure for the next half time step
-    m_curr_P = m_thermo_all->getPressure();
-    // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
-    // rare circumstances, usually at the start of the simulation before things are initialize)
-    if (isnan(m_curr_P))
-        m_curr_P = m_pressure->getValue(timestep);
-        
-    Scalar p_target = m_pressure->getValue(timestep);
-    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
-    f_epsilon /= W;
-    tmp = exp(-1.0 * dt_half * eta_dot_b[0]);
-    epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
     
     akin_t = akin_r = 0.0;
 
@@ -356,11 +360,6 @@ void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
         tmp = vel_handle.data[body].x * vel_handle.data[body].x + vel_handle.data[body].y * vel_handle.data[body].y +
               vel_handle.data[body].z * vel_handle.data[body].z;
         akin_t += body_mass_handle.data[body] * tmp;    
-        }
-
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-        {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
             
         // step 1.2 - update xcm by full step
         com_handle.data[body].x += scale_v * vel_handle.data[body].x;
@@ -368,11 +367,6 @@ void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
         com_handle.data[body].z += scale_v * vel_handle.data[body].z;
         
         box.wrap(com_handle.data[body], body_image_handle.data[body]);
-        }
-
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-        {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
             
         // step 1.3 - apply torque (body coords) to quaternion momentum
 
@@ -440,7 +434,11 @@ void TwoStepNPHRigid::integrateStepTwo(unsigned int timestep)
     
     if (m_prof)
         m_prof->push("NPH rigid step 2");
-    
+
+    // get box
+    BoxDim box = m_pdata->getBox();
+    Scalar3 L = box.getL();
+
     Scalar tmp, scale_t, scale_r, akin_t, akin_r;
     Scalar4 mbody, tbody, fquat;
     Scalar dt_half;
@@ -513,12 +511,36 @@ void TwoStepNPHRigid::integrateStepTwo(unsigned int timestep)
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
         }
     }
-    
+
+    // update barostat    
+
+    Scalar vol;   // volume
+    if (dimension == 2) 
+        vol = L.x * L.y;
+    else 
+        vol = L.x * L.y * L.z;
+
+    // compute the current thermodynamic properties
+    // m_thermo_group->compute(timestep);
+    m_thermo_all->compute(timestep);
+        
+    // compute pressure for the next half time step
+    m_curr_P = m_thermo_all->getPressure();
+        
+    Scalar p_target = m_pressure->getValue(timestep);
+
+    // compute temperature for the next half time step; 
+    m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
+    Scalar kt = boltz * 1.0;
+    W = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
+    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
+    f_epsilon /= W;
+    tmp = exp(-1.0 * dt_half * eta_dot_b[0]);
+    epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
+
     if (m_prof)
         m_prof->pop();
 
-    // compute temperature for the next half time step; currently, I'm still using the internal temperature calculation
-    m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
     }
   
 void export_TwoStepNPHRigid()

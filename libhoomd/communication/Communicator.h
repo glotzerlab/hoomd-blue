@@ -223,15 +223,13 @@ class Communicator
         void setGhostLayerWidth(Scalar ghost_width)
             {
             assert(ghost_width > 0);
-            Scalar3 L= m_pdata->getBox().getL();
+            Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
             const Index3D& di = m_decomposition->getDomainIndexer();
             if ((ghost_width >= L.x/Scalar(2.0) && di.getW() > 1) ||
                 (ghost_width >= L.y/Scalar(2.0) && di.getH() > 1) ||
                 (ghost_width >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
-                m_exec_conf->msg->error() << "Simulation box too small for ghost layer." << std::endl
-                                          << "Try fewer processors or reduce pair potential cut-off."  << std::endl
-                                          << std::endl;
+                m_exec_conf->msg->error() << "Ghost layer width exceeds half the sub-domain length." << std::endl;
                 throw std::runtime_error("Error setting up Communicator");
                 }
             m_r_ghost = ghost_width;
@@ -310,11 +308,22 @@ class Communicator
             send_up = 16,
             send_down = 32
             };
+        
+        //! Enumeartion of the faces of the simulation box
+        enum faceEnum
+            {
+            face_east = 0,
+            face_west,
+            face_north,
+            face_south,
+            face_up,
+            face_down
+            };
 
         //! Returns true if we are communicating particles along a given direction
         /*! \param dir Direction to return dimensions for
          */
-        bool isCommunicating(unsigned int dir)
+        bool isCommunicating(unsigned int dir) const
             {
             assert(dir < 6);
             const Index3D& di = m_decomposition->getDomainIndexer();
@@ -330,6 +339,9 @@ class Communicator
 
             return res; 
             }
+
+        //! Helper function to update the shifted box for ghost particle PBC
+        const BoxDim getShiftedBox() const;
 
         boost::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
         boost::shared_ptr<ParticleData> m_pdata;                      //!< Particle data

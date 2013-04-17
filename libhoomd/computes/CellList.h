@@ -240,12 +240,6 @@ class CellList : public Compute
         // @}
         //! \name Get properties
         // @{
-
-        //! Get the actual width of the cells
-        const Scalar3& getWidth() const
-            {
-            return m_width;
-            }
         
         //! Get the nominal width of the cells
         Scalar getNominalWidth() const
@@ -357,7 +351,6 @@ class CellList : public Compute
         unsigned int m_multiple;     //!< Round cell dimensions down to a multiple of this value
         
         // parameters determined by initialize
-        Scalar3 m_width;             //!< Actual width
         uint3 m_dim;                 //!< Current dimensions
         Index3D m_cell_indexer;      //!< Indexes cells from i,j,k
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list

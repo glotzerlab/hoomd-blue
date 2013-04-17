@@ -60,11 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.cuh"
 
 #include <thrust/device_ptr.h>
-#include <thrust/iterator/permutation_iterator.h>
 #include <thrust/scatter.h>
-#include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/constant_iterator.h>
-#include <thrust/iterator/zip_iterator.h>
 
 using namespace thrust;
 
@@ -85,55 +82,6 @@ unsigned int gpu_update_element_size()
     {
     return sizeof(update_element_gpu);
     }
-
-//! Select local particles that within a boundary layer of the neighboring domain in a given direction
-struct make_nonbonded_plan : thrust::unary_function<thrust::tuple<float4, unsigned char>, unsigned char>
-    {
-    float3 lo; //!< Box lo
-    float3 hi; //!< Box hi
-    const float r_ghost; //!< Width of boundary layer
-
-    //! Constructor
-    /*! \param _box Local box dimensions
-     * \param _r_ghost Width of boundary layer
-     */
-    make_nonbonded_plan(const BoxDim _box, float _r_ghost)
-        : r_ghost(_r_ghost)
-        {
-        lo = _box.getLo();
-        hi = _box.getHi();
-        }
-
-    //! Make exchange plan
-    /*! \param t Tuple of Particle position to check and current plan
-        \returns The updated plan for this particle
-     */
-    __host__ __device__ unsigned char operator()(const thrust::tuple<float4, unsigned char>& t)
-        {
-        float4 pos = thrust::get<0>(t);
-
-        unsigned char plan = thrust::get<1>(t);
-        if (pos.x >= hi.x  - r_ghost)
-            plan |= send_east;
-
-        if (pos.x < lo.x + r_ghost)
-            plan |= send_west;
-
-        if (pos.y >= hi.y  - r_ghost)
-            plan |= send_north;
-
-        if (pos.y < lo.y + r_ghost)
-            plan |= send_south;
-
-        if (pos.z >= hi.z  - r_ghost)
-            plan |= send_up;
-
-        if (pos.z < lo.z + r_ghost)
-            plan |= send_down;
-
-        return plan;
-        }
-     };
 
 unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
 
@@ -166,83 +114,15 @@ void gpu_deallocate_tmp_storage()
     cudaFree(d_n_fetch_ptl);
     }
 
-//! GPU kernel to check for bonds that exceed a maxium length
-__global__ void gpu_check_bonds_kernel(const Scalar4 *d_postype,
-                                const unsigned int N,
-                                const unsigned int n_ghosts,
-                                const BoxDim box,
-                                const uint2 *blist,
-                                const unsigned int pitch,
-                                const unsigned int *n_bonds_list,
-                                unsigned int *d_condition)
-    {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >=N) return;
-
-    unsigned int n_bonds =n_bonds_list[idx];
-    
-    Scalar4 postype = d_postype[idx];
-    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-
-    Scalar3 L = box.getL();
-    Scalar3 L2 = L/Scalar(2.0);
-
-    // check every bond
-    for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
-        {
-        uint2 cur_bond = blist[pitch*bond_idx + idx];
-
-        unsigned int cur_bond_idx = cur_bond.x;
-
-        // signal if a bond is incomplete
-        if (cur_bond_idx >= N + n_ghosts)
-            atomicOr(d_condition,2);
-
-        Scalar4 neigh_postypej = d_postype[cur_bond_idx];
-
-        Scalar3 neigh_pos= make_scalar3(neigh_postypej.x, neigh_postypej.y, neigh_postypej.z);
-
-        Scalar3 dx = pos - neigh_pos;
-        dx = box.minImage(dx);
-
-        // if a bond is longer than half the box length in any direction, raise the flag
-        if (dx.x*dx.x >= L2.x*L2.x || dx.y*dx.y >= L2.y*L2.y || dx.z*dx.z >= L2.z*L2.z)
-            atomicOr(d_condition,1);
-        }
-    }
-
-//! Check for bonds that exceed a maximum length
-void gpu_check_bonds(const Scalar4 *d_postype,
-                     const unsigned int N,
-                     const unsigned int n_ghosts,
-                     const BoxDim box,
-                     const uint2 *d_blist,
-                     const unsigned int pitch,
-                     const unsigned int *d_n_bonds_list,
-                     unsigned int *d_condition)
-    {
-    unsigned int block_size = 512;
-
-    gpu_check_bonds_kernel<<<N/block_size+1, block_size>>>(d_postype,
-                                                           N,
-                                                           n_ghosts,
-                                                           box,
-                                                           d_blist,
-                                                           pitch,
-                                                           d_n_bonds_list,
-                                                           d_condition);
-    }
 
 //! GPU Kernel to find incomplete bonds
 __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btable,
                                                          unsigned char *plan,
-                                                         const float4 *pos,
+                                                         const Scalar4 *d_postype,
                                                          const unsigned int *d_rtag,
                                                          const unsigned int N,
                                                          const unsigned int n_bonds,
-                                                         const Scalar3 lo,
-                                                         const Scalar3 L2)
+                                                         const BoxDim box)
     {
     unsigned int bond_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -259,25 +139,29 @@ __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btabl
     if ((idx1 >= N) && (idx2 < N))
         {
         // send particle with index idx2 to neighboring domains
-        Scalar4 postype = pos[idx2];
+        const Scalar4& postype = d_postype[idx2];
+        Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
         // Multiple threads may update the plan simultaneously, but this should
         // be safe, since they store the same result
         unsigned char p = plan[idx2];
-        p |= (postype.x > lo.x + L2.x) ? send_east : send_west;
-        p |= (postype.y > lo.y + L2.y) ? send_north : send_south;
-        p |= (postype.z > lo.z + L2.z) ? send_up : send_down;
+        Scalar3 f = box.makeFraction(pos);
+        p |= (f.x > Scalar(0.5)) ? send_east : send_west;
+        p |= (f.y > Scalar(0.5)) ? send_north : send_south;
+        p |= (f.z > Scalar(0.5)) ? send_up : send_down;
         plan[idx2] = p;
         }
     else if ((idx1 < N) && (idx2 >= N))
         {
         // send particle with index idx1 to neighboring domains
-        Scalar4 postype = pos[idx1];
+        const Scalar4& postype = d_postype[idx1];
+        Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
         // Multiple threads may update the plan simultaneously, but this should
         // be safe, since they store the same result
         unsigned char p = plan[idx1];
-        p |= (postype.x > lo.x + L2.x) ? send_east : send_west;
-        p |= (postype.y > lo.y + L2.y) ? send_north : send_south;
-        p |= (postype.z > lo.z + L2.z) ? send_up : send_down;
+        Scalar3 f = box.makeFraction(pos);
+        p |= (f.x > Scalar(0.5)) ? send_east : send_west;
+        p |= (f.y > Scalar(0.5)) ? send_north : send_south;
+        p |= (f.z > Scalar(0.5)) ? send_up : send_down;
         plan[idx1] = p;
        }
     }
@@ -295,19 +179,16 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           const unsigned int *d_rtag,
                                           const unsigned int N,
                                           const unsigned int n_bonds,
-                                          const BoxDim box)
+                                          const BoxDim& box)
     {
     unsigned int block_size = 512;
-    Scalar3 lo = box.getLo();
-    Scalar3 L2 = box.getL()/2.0f;
     gpu_mark_particles_in_incomplete_bonds_kernel<<<n_bonds/block_size + 1, block_size>>>(d_btable,
                                                                                     d_plan,
                                                                                     d_pos,
                                                                                     d_rtag,
                                                                                     N,
                                                                                     n_bonds,
-                                                                                    lo,
-                                                                                    L2);
+                                                                                    box);
     }
 
 //! Helper kernel to reorder particle data, step one
@@ -336,48 +217,48 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
                                                  unsigned int max_send_ptls_face,
                                                  unsigned int *condition,
                                                  unsigned int N,
-                                                 const Scalar3 lo,
-                                                 const Scalar3 hi,
-                                                 const Scalar3 L)
+                                                 const BoxDim box)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
     if (idx >= N)
         return;
 
-    Scalar4 pos = d_pos[idx];
+    Scalar4 postype =  d_pos[idx];
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     unsigned int plan = 0;
     unsigned int count = 0;
 
-    if ((pos.x >= hi.x) && d_is_communicating[face_east])
+    Scalar3 f = box.makeFraction(pos);
+    if (f.x >= Scalar(1.0) && d_is_communicating[face_east])
         {
         plan |= send_east;
         count++;
         }
-    else if ((pos.x < lo.x) && d_is_communicating[face_west])
+    else if (f.x < Scalar(0.0) && d_is_communicating[face_west])
         {
         plan |= send_west;
         count++;
         }
 
-    if ((pos.y >= hi.y) && d_is_communicating[face_north])
+    if (f.y >= Scalar(1.0) && d_is_communicating[face_north])
         {
         plan |= send_north;
         count++;
         }
-    else if ((pos.y < lo.y) && d_is_communicating[face_south])
+    else if (f.y < Scalar(0.0) && d_is_communicating[face_south])
         {
         plan |= send_south;
         count++;
         }
 
-    if ((pos.z >= hi.z) && d_is_communicating[face_up])
+    if (f.z >= Scalar(1.0) && d_is_communicating[face_up])
         {
         plan |= send_up; 
         count++;
         }
-    else if ((pos.z < lo.z) && d_is_communicating[face_down])
+    else if (f.z < Scalar(0.0) && d_is_communicating[face_down])
         {
         plan |= send_down; 
         count++;
@@ -390,46 +271,12 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
         {
         const unsigned int pdata_size = sizeof(pdata_element_gpu);
 
-        int3 image = d_image[idx];
-
-        // apply global boundary conditions
-        if ((plan & send_east) && d_is_at_boundary[0])
-            {
-            pos.x -= L.x;
-            image.x++;
-            }
-        if ((plan & send_west) && d_is_at_boundary[1])
-            {
-            pos.x += L.x; 
-            image.x--;
-            }
-        if ((plan & send_north) && d_is_at_boundary[2])
-            {
-            pos.y -= L.y;
-            image.y++;
-            }
-        if ((plan & send_south) && d_is_at_boundary[3])
-            {
-            pos.y += L.y;
-            image.y--;
-            }
-        if ((plan & send_up) && d_is_at_boundary[4])
-            {
-            pos.z -= L.z;
-            image.z++;
-            }
-        if ((plan & send_down) && d_is_at_boundary[5])
-            {
-            pos.z += L.z; 
-            image.z--;
-            }
-
         // fill up buffer element
         pdata_element_gpu el;
-        el.pos = pos;
+        el.pos = make_scalar4(pos.x,pos.y,pos.z,postype.w);
         el.vel = d_vel[idx];
         el.accel = d_accel[idx];
-        el.image = image;
+        el.image = d_image[idx];
         el.charge = d_charge[idx];
         el.diameter = d_diameter[idx];
         el.body = d_body[idx];
@@ -480,7 +327,7 @@ __global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
             }
         else
             {
-            // invalid box
+            // invalid plan
             atomicOr(condition,8);
             }
         }
@@ -544,7 +391,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                   char *d_face_buf,
                                   unsigned int face_buf_pitch,
                                   const BoxDim& box,
-                                  const BoxDim& global_box,
                                   unsigned int *d_condition)
     {
     cudaMemsetAsync(d_n_send_ptls_corner, 0, sizeof(unsigned int)*8);
@@ -578,9 +424,7 @@ void gpu_migrate_select_particles(unsigned int N,
                                                                     n_max_send_ptls_face,
                                                                     d_condition,
                                                                     N,
-                                                                    box.getLo(), 
-                                                                    box.getHi(),
-                                                                    global_box.getL());
+                                                                    box);
     }
 
 //! Kernel to reset particle reverse-lookup tags for removed particles
@@ -873,7 +717,8 @@ __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_npartic
                                              unsigned int *d_body,
                                              float4 *d_orientation,
                                              unsigned int *d_tag,
-                                             unsigned int *d_rtag)
+                                             unsigned int *d_rtag,
+                                             const BoxDim global_box)
     {
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -896,10 +741,16 @@ __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_npartic
             // copy over receive buffer data
             pdata_element_gpu &el= ((pdata_element_gpu *) recv_buf)[n];
 
-            d_pos[idx] = el.pos;
+            // wrap particle into global box
+            int3 image = el.image;
+            Scalar4 postype = el.pos;
+            global_box.wrap(postype,image);
+
+            // store data into particle arrays
+            d_pos[idx] = postype;
             d_vel[idx] = el.vel;
             d_accel[idx] = el.accel;
-            d_image[idx] = el.image;
+            d_image[idx] = image;
             d_charge[idx] = el.charge;
             d_diameter[idx] = el.diameter;
             d_body[idx] = el.body;
@@ -953,6 +804,7 @@ __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_npartic
     \param d_orientation Array of particle orientations
     \param d_tag Array of particle tags
     \param d_rtag Lookup table particle tag->idx
+    \param global_box Dimensions of global simulation box
  */
 void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int n_recv_ptls,
@@ -968,7 +820,8 @@ void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int *d_body,
                         float4 *d_orientation,
                         unsigned int *d_tag,
-                        unsigned int *d_rtag)
+                        unsigned int *d_rtag,
+                        const BoxDim& global_box)
     {
     cudaMemset(d_n_fetch_ptl, 0, sizeof(unsigned int));
 
@@ -989,7 +842,8 @@ void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                                              d_body,
                                              d_orientation,
                                              d_tag,
-                                             d_rtag);
+                                             d_rtag,
+                                             global_box);
     }
 
  
@@ -1013,6 +867,41 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
     }
 
 
+//! Kernel to select ghost atoms due to non-bonded interactions
+__global__ void gpu_nonbonded_plan_kernel(unsigned char *plan,
+                               const unsigned int N,
+                               Scalar4 *d_postype,
+                               const BoxDim box,
+                               Scalar3 ghost_fraction)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N) return;
+
+    Scalar4 postype = d_postype[idx]; 
+    Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
+    Scalar3 f = box.makeFraction(pos);
+
+    unsigned char p = plan[idx];
+
+    // is particle inside ghost layer? set plan accordingly.
+    if (f.x >= Scalar(1.0) - ghost_fraction.x)
+        p |= send_east;
+    if (f.x < ghost_fraction.x)
+        p |= send_west;
+    if (f.y >= Scalar(1.0) - ghost_fraction.y)
+        p |= send_north;
+    if (f.y < ghost_fraction.y)
+        p |= send_south;
+    if (f.z >= Scalar(1.0) - ghost_fraction.z)
+        p |= send_up;
+    if (f.z < ghost_fraction.z)
+        p |= send_down;
+
+    // write out plan
+    plan[idx] = p;
+    }
+
 //! Construct plans for sending non-bonded ghost particles
 /*! \param d_plan Array of ghost particle plans
  * \param N number of particles to check
@@ -1024,20 +913,15 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       unsigned int N,
                                       float4 *d_pos,
                                       const BoxDim &box,
-                                      float r_ghost)
+                                      float3 ghost_fraction)
     {
-    thrust::device_ptr<float4> pos_ptr(d_pos);
-    thrust::device_ptr<unsigned char> plan_ptr(d_plan);
+    unsigned int block_size = 512;
 
-    thrust::transform(
-        thrust::make_zip_iterator(thrust::make_tuple(
-            pos_ptr,
-            plan_ptr)),
-        thrust::make_zip_iterator(thrust::make_tuple(
-            pos_ptr,
-            plan_ptr)) + N,
-        plan_ptr,
-        make_nonbonded_plan(box, r_ghost));
+    gpu_nonbonded_plan_kernel<<<N/block_size+1, block_size>>>(d_plan,
+                                                              N,
+                                                              d_pos,
+                                                              box,
+                                                              ghost_fraction);
     }
 
 //! Kernel to pack local particle data into ghost send buffers
@@ -1314,8 +1198,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                                                   Scalar *d_diameter,
                                                   unsigned int *d_tag,
                                                   unsigned int *d_rtag,
-                                                  unsigned int *d_ghost_plan,
-                                                  const Scalar3 L)
+                                                  const BoxDim shifted_global_box)
     {
     unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
 
@@ -1418,15 +1301,11 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
 
     // we have a pointer to the data element to be unpacked, now unpack
     Scalar4 postype;
-    unsigned int boundary_plan;
     if (update)
         {
         // only update position
         update_element_gpu &el = *(update_element_gpu *) el_ptr;
         postype = el.pos;
-
-        // fetch previously saved plan
-        boundary_plan = d_ghost_plan[ghost_idx];
         }
     else
         {
@@ -1439,29 +1318,11 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
         unsigned int tag = el.tag;
         d_tag[N+ghost_idx] = tag;
         d_rtag[tag] = N+ghost_idx;
-        
-        // save plan
-        boundary_plan = el.plan;
-        d_ghost_plan[ghost_idx] = boundary_plan;
         }
 
     // apply global boundary conditions for received particle
-
-    // if the plan indicates the particle has crossed a boundary prior to arriving here,
-    // apply appropriate boundary conditions
-
-    if ((boundary_plan & send_east) && (face_east <= recv_dir) && d_is_at_boundary[face_west])
-        postype.x -= L.x;
-    if ((boundary_plan & send_west) && (face_west <= recv_dir) && d_is_at_boundary[face_east])
-        postype.x += L.x;
-    if ((boundary_plan & send_north) && (face_north <= recv_dir) && d_is_at_boundary[face_south])
-        postype.y -= L.y;
-    if ((boundary_plan & send_south) && (face_south <= recv_dir) && d_is_at_boundary[face_north])
-        postype.y += L.y;
-    if ((boundary_plan & send_up) && (face_up <= recv_dir) && d_is_at_boundary[face_down])
-        postype.z -= L.z;
-    if ((boundary_plan & send_down) && (face_down <= recv_dir) && d_is_at_boundary[face_up])
-        postype.z += L.z;
+    int3 img = make_int3(0,0,0);
+    shifted_global_box.wrap(postype,img);
 
     d_pos[N+ghost_idx] = postype;
     }
@@ -1485,8 +1346,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
     \param d_diameter Array of particle diameters
     \param d_tag Array of particle tags
     \param d_rtag Lookup table particle tag->idx
-    \param d_ghost_plan Boundary crossing plans of ghost particles
-    \param global_box Global simulation box
+    \param shifted_global_box Global simulation box, shifted by one local box if local box has a global boundary
 */
 void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
@@ -1506,10 +1366,10 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 Scalar *d_diameter,
                                 unsigned int *d_tag,
                                 unsigned int *d_rtag,
-                                unsigned int *d_ghost_plan,
-                                const BoxDim& global_box)
+                                const BoxDim& shifted_global_box)
     {
     unsigned int block_size = 512;
+
     gpu_exchange_ghosts_unpack_kernel<ghost_element_gpu, false><<<n_tot_recv_ghosts/block_size+1, block_size>>>(N,
                                                                            n_tot_recv_ghosts,
                                                                            d_n_local_ghosts_face,
@@ -1528,8 +1388,7 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                                                            d_diameter,
                                                                            d_tag,
                                                                            d_rtag,
-                                                                           d_ghost_plan,
-                                                                           global_box.getL());
+                                                                           shifted_global_box);
     } 
 
 //! Kernel to pack local particle data into ghost send buffers
@@ -1704,7 +1563,6 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
     \param edge_pitch Offsets of different edges in edge ghost buffer
     \param d_recv_ghosts Buffer of ghosts received for the local box
     \param d_pos Array of particle positions
-    \param d_ghost_plan Boundary crossing plans of ghost particles
     \param global_box Global simulation box
 */
 void gpu_update_ghosts_unpack(unsigned int N,
@@ -1721,8 +1579,7 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const unsigned int edge_pitch,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
-                                unsigned int *d_ghost_plan,
-                                const BoxDim& global_box)
+                                const BoxDim& shifted_global_box)
     {
     unsigned int block_size = 512;
     gpu_exchange_ghosts_unpack_kernel<update_element_gpu, true><<<n_tot_recv_ghosts/block_size+1, block_size>>>
@@ -1744,8 +1601,7 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                                                            NULL,
                                                                            NULL,
                                                                            NULL,
-                                                                           d_ghost_plan,
-                                                                           global_box.getL());
+                                                                           shifted_global_box);
     } 
 
 #endif

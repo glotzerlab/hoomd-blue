@@ -493,6 +493,14 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 generateStatusLine();
             m_last_status_time = cur_time;
             m_last_status_tstep = m_cur_tstep;
+            
+            // check for any CUDA errors
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled())
+                {
+                CHECK_CUDA_ERROR();
+                }
+            #endif
             }
             
         // execute analyzers

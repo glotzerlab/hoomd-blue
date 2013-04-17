@@ -214,7 +214,10 @@ bool DomainDecomposition::isAtBoundary(unsigned int dir) const
 //! Get the dimensions of the local simulation box
 const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     {
-    // calculate the local box dimensions using domain decomposition information
+    // initialize local box with all properties of global box
+    BoxDim box = global_box; 
+
+    // calculate the local box dimensions by sub-dividing the cartesian lattice
     Scalar3 L = global_box.getL();
     Scalar3 L_local = L / make_scalar3(m_nx, m_ny, m_nz);
 
@@ -233,7 +236,9 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
                                   m_ny == 1 ? 1 : 0,
                                   m_nz == 1 ? 1 : 0);
 
-    return BoxDim(lo, hi, periodic);
+    box.setLoHi(lo,hi);
+    box.setPeriodic(periodic);
+    return box;
     }
 
 //! Export DomainDecomposition class to python

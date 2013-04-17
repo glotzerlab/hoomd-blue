@@ -62,8 +62,6 @@ using namespace boost;
 
 #include "TwoStepNPTRigidGPU.h"
 #include "TwoStepNPTRigidGPU.cuh"
-#include "TwoStepNPTGPU.cuh"
-#include "TwoStepNVTGPU.cuh"
 
 /*! \file TwoStepNPTRigidGPU.cc
     \brief Contains code for the TwoStepNPTRigidGPU class
@@ -150,39 +148,14 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     // sanity check
     if (m_n_bodies <= 0)
         return;
-    
-    Scalar akin_t, akin_r, scale;
-    Scalar dt_half;    
+
+    if (m_prof)
+        m_prof->push(exec_conf, "NPT rigid step 1");
+
+    Scalar tmp, akin_t, akin_r, scale;
+    Scalar dt_half;
+
     dt_half = 0.5 * m_deltaT;
-
-    // compute the current thermodynamic properties
-    // m_thermo_group->compute(timestep);
-    m_thermo_all->compute(timestep);
-        
-    // compute pressure for the next half time step
-    m_curr_P = m_thermo_all->getPressure();
-    // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
-    // rare circumstances, usually at the start of the simulation before things are initialize)
-    if (isnan(m_curr_P))
-        m_curr_P = m_pressure->getValue(timestep);
-    
-
-    // update barostat
-    const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
-        
-    Scalar vol;   // volume
-    if (dimension == 2) 
-        vol = L.x * L.y;
-    else 
-        vol = L.x * L.y * L.z;
-
-    Scalar p_target = m_pressure->getValue(timestep);
-        
-    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
-    f_epsilon /= W;
-    Scalar tmp = exp(-1.0 * dt_half * eta_dot_b[0]);
-    epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
     
     // update barostat variables a half step
     tmp = -1.0 * dt_half * eta_dot_b[0];
@@ -197,9 +170,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     update_nhcb(timestep);
     
     {
-    // profile this step
-    if (m_prof)
-        m_prof->push(exec_conf, "NPT rigid step 1");
     
     // access all the needed data
     BoxDim box = m_pdata->getBox();
@@ -342,7 +312,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
     
-    Scalar akin_t, akin_r;
+    Scalar tmp, akin_t, akin_r;
     Scalar dt_half;
     dt_half = 0.5 * m_deltaT;
     
@@ -477,8 +447,34 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     akin_t = Ksum_t_handle.data[0];
     akin_r = Ksum_r_handle.data[0];
         
-    // compute temperature for the next half time step; currently, I'm still using the internal temperature calculation
+    // update barostat    
+
+    BoxDim box = m_pdata->getBox();
+    Scalar3 L = box.getL();
+
+    Scalar vol;   // volume
+    if (dimension == 2) 
+        vol = L.x * L.y;
+    else 
+        vol = L.x * L.y * L.z;
+
+    // compute the current thermodynamic properties
+    // m_thermo_group->compute(timestep);
+    m_thermo_all->compute(timestep);
+        
+    // compute pressure for the next half time step
+    m_curr_P = m_thermo_all->getPressure();
+        
+    Scalar p_target = m_pressure->getValue(timestep);
+
+    // compute temperature for the next half time step; 
     m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
+    Scalar kt = boltz * m_temperature->getValue(timestep);
+    W = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
+    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
+    f_epsilon /= W;
+    tmp = exp(-1.0 * dt_half * eta_dot_b[0]);
+    epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
     }
     
     // done profiling

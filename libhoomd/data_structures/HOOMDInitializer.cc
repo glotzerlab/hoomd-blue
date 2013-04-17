@@ -286,6 +286,7 @@ void HOOMDInitializer::readFile(const string &fname)
     valid_versions.push_back("1.2");
     valid_versions.push_back("1.3");
     valid_versions.push_back("1.4");
+    valid_versions.push_back("1.5");
     bool valid = false;
     vector<string>::iterator i;
     for (i = valid_versions.begin(); i != valid_versions.end(); ++i)
@@ -466,6 +467,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
     
     // temporary values for extracting attributes as Scalars
     Scalar Lx,Ly,Lz;
+    Scalar xy(0.0), xz(0.0), yz(0.0);
     istringstream temp;
     
     // use string streams to extract Lx, Ly, Lz
@@ -496,9 +498,32 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
     temp.str(node.getAttribute("lz"));
     temp >> Lz;
     temp.clear();
-    
+ 
+    // If no tilt factors are provided, they default to zero
+    if (node.isAttributeSet("xy"))
+        {
+        temp.str(node.getAttribute("xy"));
+        temp >> xy;
+        temp.clear();
+        }
+
+    if (node.isAttributeSet("xz"))
+        {
+        temp.str(node.getAttribute("xz"));
+        temp >> xz;
+        temp.clear();
+        }
+
+    if (node.isAttributeSet("yz"))
+        {
+        temp.str(node.getAttribute("yz"));
+        temp >> yz;
+        temp.clear();
+        }
+
     // initialize the BoxDim and set the flag telling that we read the <box> node
     m_box = BoxDim(Lx,Ly,Lz);
+    m_box.setTiltFactors(xy,xz,yz);
     m_box_read = true;
     }
 

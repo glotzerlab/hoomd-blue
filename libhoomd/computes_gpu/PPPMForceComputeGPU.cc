@@ -73,7 +73,7 @@ using namespace std;
 PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                          boost::shared_ptr<NeighborList> nlist,
                                          boost::shared_ptr<ParticleGroup> group)
-    : PPPMForceCompute(sysdef, nlist, group), m_block_size(256)
+    : PPPMForceCompute(sysdef, nlist, group), m_block_size(256),m_first_run(true)
     {
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -187,7 +187,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         // access the group
         ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-        if(m_box_changed) 
+        if(m_box_changed || m_first_run) 
             {
             Scalar3 L = box.getL();
             Scalar temp = floor(((m_kappa*L.x/(M_PI*m_Nx)) *  pow(-log(EPS_HOC),0.25)));
@@ -199,7 +199,6 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 
             ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);;
             ArrayHandle<Scalar> d_gf_b(m_gf_b, access_location::device, access_mode::readwrite);
-
             reset_kvec_green_hat(box,
                                  m_Nx,
                                  m_Ny,
@@ -219,6 +218,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
             Scalar scale = 1.0f/((Scalar)(m_Nx * m_Ny * m_Nz));
             m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
             m_box_changed = false;
+            m_first_run = false;
             }
 
         // run the kernel in parallel on all GPUs

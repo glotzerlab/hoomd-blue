@@ -91,7 +91,7 @@ class GeneratedParticles
         struct particle
             {
             //! Default constructor
-            particle() : x(0.0), y(0.0), z(0.0), type("") {}
+            particle() : x(0.0), y(0.0), z(0.0), ix(0), iy(0), iz(0), type("") {}
             Scalar x;   //!< X-coordinate
             Scalar y;   //!< Y-coordinate
             Scalar z;   //!< Z-coordinate
@@ -136,9 +136,6 @@ class GeneratedParticles
         int m_Mx;       //!< Number of bins in the x direction
         int m_My;       //!< Number of bins in the y direction
         int m_Mz;       //!< Number of bins in the z direction
-        Scalar m_scalex;        //!< Scale factor to convert x to a bin coord
-        Scalar m_scaley;        //!< Scale factor to convert y to a bin coord
-        Scalar m_scalez;        //!< Scale factor to convert z to a bin coord
         std::map< std::string, Scalar > m_radii;    //!< Separation radii accessed by particle type
         
         //! Structure representing a single bond

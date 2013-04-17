@@ -87,6 +87,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(3.5), Scalar(5.5), Scalar(12.5));
+    
+    // set some tilt factors
+    box.setTiltFactors(Scalar(1.0),Scalar(0.5),Scalar(0.25));
     int n_types = 5;
     int n_bond_types = 2;
     int n_angle_types = 1;
@@ -247,7 +250,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.4\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.5\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -255,7 +258,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box lx=\"3.5\" ly=\"5.5\" lz=\"12.5\"/>");
+        BOOST_CHECK_EQUAL(line,  "<box lx=\"3.5\" ly=\"5.5\" lz=\"12.5\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -907,7 +910,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.4\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.5\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -915,7 +918,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box lx=\"100.5\" ly=\"120.5\" lz=\"130.5\"/>");
+        BOOST_CHECK_EQUAL(line,  "<box lx=\"100.5\" ly=\"120.5\" lz=\"130.5\" xy=\"0\" xz=\"0\" yz=\"0\"/>");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -1068,7 +1071,7 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 <hoomd_xml version=\"1.3\">\n\
 <configuration time_step=\"150000000\" dimensions=\"2\">\n\
-<box lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" />\n\
+<box lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" xy=\".12\" xz=\".23\" yz=\".34\"/>\n\
 <position >\n\
 1.4 2.567890 3.45\n\
 2.4 3.567890 4.45\n\
@@ -1178,9 +1181,12 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(sysdef->getNDimensions(), (unsigned int)2);
     BOOST_CHECK_EQUAL(pdata->getN(), (unsigned int)6);
     BOOST_CHECK_EQUAL(pdata->getNTypes(), (unsigned int)6);
-    MY_BOOST_CHECK_CLOSE(pdata->getBox().getL().x, 20.05, tol);
-    MY_BOOST_CHECK_CLOSE(pdata->getBox().getL().y, 32.12345, tol);
-    MY_BOOST_CHECK_CLOSE(pdata->getBox().getL().z, 45.098, tol);
+    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getL().x, 20.05, tol);
+    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getL().y, 32.12345, tol);
+    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getL().z, 45.098, tol);
+    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getTiltFactorXY(), 0.12, tol);
+    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getTiltFactorXZ(), 0.23, tol);
+    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getTiltFactorYZ(), 0.34, tol);
     
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);

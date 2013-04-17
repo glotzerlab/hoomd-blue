@@ -73,7 +73,6 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
     // allocation is deferred until the first compute() call - initialize values to dummy variables
-    m_width = make_scalar3(0.0, 0.0, 0.0);
     m_dim = make_uint3(0,0,0);
     m_Nmax = 0;
     m_params_changed = true;
@@ -119,7 +118,7 @@ uint3 CellList::computeDimensions()
     // calculate the bin dimensions
     const BoxDim& box = m_pdata->getBox();
 
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
     dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
     dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
 
@@ -287,13 +286,7 @@ void CellList::initializeWidth()
         m_num_ghost_cells = make_uint3(box.getPeriodic().x ? 0 : 2,
                                        box.getPeriodic().y ? 0 : 2,
                                        box.getPeriodic().z ? 0 : 2);
-
- 
-    Scalar3 L = box.getL();
-    m_width.x = (L.x + m_nominal_width*m_num_ghost_cells.x) / Scalar(m_dim.x);
-    m_width.y = (L.y + m_nominal_width*m_num_ghost_cells.y) / Scalar(m_dim.y);
-    m_width.z = (L.z + m_nominal_width*m_num_ghost_cells.z) / Scalar(m_dim.z);
-
+    
     if (m_prof)
         m_prof->pop();
 
@@ -494,7 +487,7 @@ void CellList::computeCellList()
             kb = 0;
 
         // sanity check
-        assert(ib < (int)(m_dim.x) && jb < (int)(m_dim.y) && kb < (int)(m_dim.z));
+        assert((ib < (int)(m_dim.x) && jb < (int)(m_dim.y) && kb < (int)(m_dim.z)) || n>=m_pdata->getN());
         
         // record its bin
         unsigned int bin = ci(ib, jb, kb);
@@ -590,11 +583,11 @@ bool CellList::checkConditions()
                                   <<"Particle " << h_tag.data[n] << " is no longer in the simulation box."
                                   << endl << endl;
 
-        m_exec_conf->msg->notice(2) << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
+        m_exec_conf->msg->error() << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
         Scalar3 lo = m_pdata->getBox().getLo();
         Scalar3 hi = m_pdata->getBox().getHi();
-        m_exec_conf->msg->notice(2) << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
-        m_exec_conf->msg->notice(2) << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+        m_exec_conf->msg->error() << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
+        m_exec_conf->msg->error() << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
         throw runtime_error("Error computing cell list");
         }
 
@@ -622,7 +615,6 @@ void CellList::printStats()
 
     m_exec_conf->msg->notice(1) << "-- Cell list stats:" << endl;
     m_exec_conf->msg->notice(1) << "Dimension: " << m_dim.x << ", " << m_dim.y << ", " << m_dim.z << "" << endl;
-    m_exec_conf->msg->notice(1) << "Width    : " << m_width.x << ", " << m_width.y << ", " << m_width.z << "" << endl;
 
     // access the number of cell members to generate stats
     ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::read);
@@ -660,7 +652,6 @@ void export_CellList()
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
-        .def("getWidth", &CellList::getWidth, return_internal_reference<>())
         .def("getDim", &CellList::getDim, return_internal_reference<>())
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark)

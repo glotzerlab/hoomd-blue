@@ -68,12 +68,12 @@ struct thermo_index
         pressure,            //!< Index for the computed pressure in the GPUArray
         kinetic_energy,      //!< Index for the kinetic energy in the GPUArray
         potential_energy,    //!< Index for the potential energy in the GPUArray
-        pressure_xx,         //!< Index for the xx component of the symmetrized pressure tensor in the GPUArray
-        pressure_xy,         //!< Index for the xy component of the symmetrized pressure tensor in the GPUArray
-        pressure_xz,         //!< Index for the xz component of the symmetrized pressure tensor in the GPUArray
-        pressure_yy,         //!< Index for the yy component of the symmetrized pressure tensor in the GPUArray
-        pressure_yz,         //!< Index for the yz component of the symmetrized pressure tensor in the GPUArray
-        pressure_zz,         //!< Index for the zz component of the symmetrized pressure tensor in the GPUArray
+        pressure_xx,         //!< Index for the xx component of the pressure tensor in the GPUArray
+        pressure_xy,         //!< Index for the xy component of the pressure tensor in the GPUArray
+        pressure_xz,         //!< Index for the xz component of the pressure tensor in the GPUArray
+        pressure_yy,         //!< Index for the yy component of the pressure tensor in the GPUArray
+        pressure_yz,         //!< Index for the yz component of the pressure tensor in the GPUArray
+        pressure_zz,         //!< Index for the zz component of the pressure tensor in the GPUArray
         };
 
         const static unsigned int num_quantities = 10;
@@ -82,7 +82,7 @@ struct thermo_index
 //! structure for storing the components of the pressure tensor
 struct PressureTensor
     {
-    //! The six components of the symmetrized pressure tensor
+    //! The six components of the upper triangular pressure tensor
     Scalar xx; //!< xx component
     Scalar xy; //!< xy component
     Scalar xz; //!< xz component

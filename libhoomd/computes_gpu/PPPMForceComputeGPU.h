@@ -107,6 +107,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
     protected:
         int m_block_size;                    //!< Block size to run calculation on
         cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU                   
+        bool m_first_run;                    //!< True if this is the first run
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

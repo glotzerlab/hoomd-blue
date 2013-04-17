@@ -335,6 +335,9 @@ class bin(analyze._analyzer):
                 globals.msg.warning("Alternating file output set for dump.bin, but period is not set.\n");
                 globals.msg.warning("No output will be written.\n");
         
+        globals.msg.warning("dump.bin does not support triclinic boxes.\n");
+        globals.msg.warning("dump.bin is deprecated and will be replaced in v1.0.0\n");
+        
         if period is not None:
             self.setupAnalyzer(period);
             self.enabled = True;
