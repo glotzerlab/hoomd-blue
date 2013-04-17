@@ -137,6 +137,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
             {
             ArrayHandle<Scalar4> h_body_vel(rigid_data->getVel(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_body_angmom(rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_body_angvel(rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
             
             for (unsigned int body = 0; body < n_bodies; body++)
                 {
@@ -147,6 +148,10 @@ void TempRescaleUpdater::update(unsigned int timestep)
                 h_body_angmom.data[body].x *= fraction;
                 h_body_angmom.data[body].y *= fraction;
                 h_body_angmom.data[body].z *= fraction;
+
+                h_body_angvel.data[body].x *= fraction;
+                h_body_angvel.data[body].y *= fraction;
+                h_body_angvel.data[body].z *= fraction;
                 }
             }
         

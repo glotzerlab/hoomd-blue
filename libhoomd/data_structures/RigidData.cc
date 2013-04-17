@@ -1033,12 +1033,25 @@ void RigidData::setAngMom(unsigned int body, Scalar3 angmom)
         return;
         }
     
-    ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_angmom, access_location::host, access_mode::readwrite);
     
-    angmom_handle.data[body].x = angmom.x;
-    angmom_handle.data[body].y = angmom.y;
-    angmom_handle.data[body].z = angmom.z;
-    angmom_handle.data[body].w = 0;
+    h_angmom.data[body].x = angmom.x;
+    h_angmom.data[body].y = angmom.y;
+    h_angmom.data[body].z = angmom.z;
+    h_angmom.data[body].w = 0;
+
+    Scalar4 ex, ey, ez;
+    ArrayHandle<Scalar4> h_angvel(m_angvel, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_moment_inertia(m_moment_inertia, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_orientation, access_location::host, access_mode::read);
+    exyzFromQuaternion(h_orientation.data[body], ex, ey, ez);
+    
+    computeAngularVelocity(h_angmom.data[body],
+                           h_moment_inertia.data[body],
+                           ex,
+                           ey,
+                           ez,
+                           h_angvel.data[body]);
     }
 
 /*! computeVirialCorrectionStart() must be called at the start of any time step update when there are rigid bodies
