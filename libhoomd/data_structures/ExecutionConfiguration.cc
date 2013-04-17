@@ -214,6 +214,9 @@ ExecutionConfiguration::~ExecutionConfiguration()
     #endif
  
     #ifdef ENABLE_MPI
+    // enable Messenger to gracefully finish any MPI-IO
+    msg->unsetMPICommunicator();
+
     if (m_has_initialized_mpi) MPI_Finalize();
     #endif
 
