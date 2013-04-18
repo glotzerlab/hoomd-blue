@@ -105,7 +105,7 @@ class GeneratedParticles
             };
             
         //! Constructor
-        GeneratedParticles(unsigned int n_particles, const BoxDim& box, const std::map< std::string, Scalar >& radii);
+        GeneratedParticles(boost::shared_ptr<const ExecutionConfiguration> exec_conf, unsigned int n_particles, const BoxDim& box, const std::map< std::string, Scalar >& radii);
         //! Empty constructor
         /*! Included so that GeneratedParticles can be stored in a vector.
         */
@@ -131,7 +131,8 @@ class GeneratedParticles
         
     private:
         friend class RandomGenerator;
-        
+       
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         std::vector<particle> m_particles;                  //!< The generated particles
         BoxDim m_box;                                       //!< Box the particles are in
         std::vector< std::vector<unsigned int> > m_bins;    //!< Bins the particles are placed in for efficient distance checks
@@ -209,7 +210,7 @@ class PolymerParticleGenerator : public ParticleGenerator
     {
     public:
         //! Constructor
-        PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts);
+        PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf, Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts);
         
         //! Returns the number of particles in each polymer
         virtual unsigned int getNumToGenerate()
@@ -221,6 +222,7 @@ class PolymerParticleGenerator : public ParticleGenerator
         virtual void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx);
         
     private:
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration for messaging
         Scalar m_bond_len;                  //!< Bond length
         std::vector<std::string> m_types;   //!< Particle types for each polymer bead
         std::vector<unsigned int> m_bond_a; //!< First particle in the bond pair
@@ -277,7 +279,7 @@ class RandomGenerator
         
         //! Place the particles
         void generate();
-        
+       
     private:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         BoxDim m_box;                                       //!< Precalculated box

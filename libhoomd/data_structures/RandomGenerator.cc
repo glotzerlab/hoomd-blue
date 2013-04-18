@@ -74,16 +74,18 @@ using namespace std;
     \brief Contains definitions for RandomGenerator and related classes.
  */
 
-/*! \param n_particles Number of particles that will be generated
+/*! \param exec_conf The execution configuration used for messaging
+    \param n_particles Number of particles that will be generated
     \param box Box the particles are generated in
     \param radii Mapping of particle types to their minimum separation radius
 
     After construction, all data structure are set to defaults and particles are ready to be placed.
 */
-GeneratedParticles::GeneratedParticles(unsigned int n_particles,
+GeneratedParticles::GeneratedParticles(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                       unsigned int n_particles,
                                        const BoxDim& box,
                                        const std::map< std::string, Scalar >& radii) 
-    : m_particles(n_particles), m_box(box), m_radii(radii)
+    : m_exec_conf(exec_conf), m_particles(n_particles), m_box(box), m_radii(radii)
     {
     // sanity checks
     assert(n_particles > 0);
@@ -120,7 +122,7 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
 
     if (m_Mx > 100 || m_My > 100 || m_Mz > 100)
         {
-        cout << "***Warning! random generator is about to allocate a very large amount of memory and may crash." << endl << endl;
+        m_exec_conf->msg->warning() << "Random generator is about to allocate a very large amount of memory and may crash." << endl << endl;
         }
         
     // setup the memory arrays
@@ -138,7 +140,7 @@ bool GeneratedParticles::canPlace(const particle& p)
     // begin with an error check that p.type is actually in the radius map
     if (m_radii.count(p.type) == 0)
         {
-        cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
+        m_exec_conf->msg->error() << endl << "Radius not set for particle in RandomGenerator" << endl << endl;
         throw runtime_error("Error placing particle");
         }
         
@@ -238,7 +240,7 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
     // begin with an error check that p.type is actually in the radius map
     if (m_radii.count(p.type) == 0)
         {
-        cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
+        m_exec_conf->msg->error() << endl << "Radius not set for particle in RandomGenerator" << endl << endl;
         throw runtime_error("Error placing particle");
         }
         
@@ -436,7 +438,7 @@ void RandomGenerator::generate()
         n_particles += m_generator_repeat[i] * m_generators[i]->getNumToGenerate();
         
     // setup data structures
-    m_data = GeneratedParticles(n_particles, m_box, m_radii);
+    m_data = GeneratedParticles(m_exec_conf, n_particles, m_box, m_radii);
     
     // start the random number generator
     boost::mt19937 rnd;
@@ -511,7 +513,8 @@ static Scalar random01(boost::mt19937& rnd)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // PolymerParticleGenerator
-/*! \param bond_len Bond length to generate
+/*! \param exec_conf Execution configuration used for messaging
+    \param bond_len Bond length to generate
     \param types Vector of type names. One element per bead of the polymer.
     \param bond_a List of the first particle in each bond
     \param bond_b List of the 2nd particle in each bond
@@ -521,8 +524,8 @@ static Scalar random01(boost::mt19937& rnd)
     A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
     Hence, the sizes of \a bond_a and \a bond_b \b must be the same.
 */
-PolymerParticleGenerator::PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts)
-        : m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_bond_type(bond_type), m_max_attempts(max_attempts)
+PolymerParticleGenerator::PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf, Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts)
+        : m_exec_conf(exec_conf), m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_bond_type(bond_type), m_max_attempts(max_attempts)
     {
     assert(m_types.size() > 0);
     assert(m_max_attempts > 0);
@@ -572,11 +575,11 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
             
         // failure, rollback
         particles.undoPlace(start_idx);
-        cout << "Notice: Polymer generator is trying particle " << start_idx << " again" << endl;
+        m_exec_conf->msg->notice(2) << "Polymer generator is trying particle " << start_idx << " again" << endl;
         }
         
     // we've failed to place a polymer, this is an unrecoverable error
-    cerr << endl << "***Error! The polymer generator failed to place a polymer, the system is too dense or the separation radii are set too high" << endl << endl;
+    m_exec_conf->msg->error() << endl << "The polymer generator failed to place a polymer, the system is too dense or the separation radii are set too high" << endl << endl;
     throw runtime_error("Error generating polymer system");
     }
 
@@ -676,7 +679,7 @@ void export_RandomGenerator()
     // no methods exposed to python
     ;
     
-    class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int >())
+    class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< boost::shared_ptr<const ExecutionConfiguration>, Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int >())
     // all methods are internal C++ methods
     ;
     }
