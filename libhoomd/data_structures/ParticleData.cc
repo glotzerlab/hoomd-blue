@@ -928,7 +928,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                     }
                 if (! found)
                     {
-                    cerr << endl << "***Error! Could not find particle " << tag << " on any processor. " << endl << endl;
+                    m_exec_conf->msg->error()
+                        << endl << "Could not find particle " << tag << " on any processor. "
+                        << endl << endl;
                     throw std::runtime_error("Error gathering ParticleData");
                     }
 
@@ -1059,12 +1061,12 @@ unsigned int ParticleData::getOwnerRank(unsigned int tag) const
 
     if (n_found == 0)
         {
-        cerr << endl << "***Error! Could not find particle " << tag << " on any processor." << endl << endl;
+        m_exec_conf->msg->error() << endl << "Could not find particle " << tag << " on any processor." << endl << endl;
         throw std::runtime_error("Error accessing particle data.");
         }
     else if (n_found > 1)
        {
-        cerr << endl << "***Error! Found particle " << tag << " on multiple processors." << endl << endl;
+        m_exec_conf->msg->error() << endl << "Found particle " << tag << " on multiple processors." << endl << endl;
         throw std::runtime_error("Error accessing particle data.");
        }
 
