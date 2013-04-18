@@ -470,6 +470,10 @@ class box_resize(_updater):
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
+    #
+    # If \a period is set to None, then the given box lengths are applied immediately and periodic updates
+    # are not performed.
+    #
     def __init__(self, Lx=None, Ly = None, Lz = None, xy=None, xz=None, yz=None, period = 1):
         util.print_status_line();
     
@@ -507,7 +511,10 @@ class box_resize(_updater):
         # create the c++ mirror class
         self.cpp_updater = hoomd.BoxResizeUpdater(globals.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant,
                                                   xy.cpp_variant, xz.cpp_variant, yz.cpp_variant);
-        self.setupUpdater(period);
+        if period is None:
+            self.cpp_updater.update(globals.system.getCurrentTimeStep());
+        else:
+            self.setupUpdater(period);
         
     ## Change box_resize parameters
     #
