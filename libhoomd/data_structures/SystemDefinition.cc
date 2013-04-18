@@ -120,21 +120,15 @@ SystemDefinition::SystemDefinition(unsigned int N,
     \param decomposition (optional) The domain decomposition layout
 */
 SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> snapshot,
-                                   boost::shared_ptr<ExecutionConfiguration> exec_conf
-#ifdef ENABLE_MPI
-                                   , boost::shared_ptr<DomainDecomposition> decomposition
-#endif
-                                   )
+                                   boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                   boost::shared_ptr<DomainDecomposition> decomposition)
     {
     m_n_dimensions = snapshot->dimensions;
 
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
                  snapshot->global_box,
-                 exec_conf
-#ifdef ENABLE_MPI
-                 , decomposition
-#endif
-                 ));
+                 exec_conf,
+                 decomposition));
  
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot->bond_data));
    
@@ -327,9 +321,7 @@ void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
     .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    #ifdef ENABLE_MPI
     .def(init<boost::shared_ptr<const SnapshotSystemData>, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
-    #endif
     .def(init<boost::shared_ptr<const SnapshotSystemData>, boost::shared_ptr<ExecutionConfiguration> >())
     .def("setNDimensions", &SystemDefinition::setNDimensions)
     .def("getNDimensions", &SystemDefinition::getNDimensions)

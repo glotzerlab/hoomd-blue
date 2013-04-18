@@ -185,10 +185,8 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
  */
 ParticleData::ParticleData(const SnapshotParticleData& snapshot,
                            const BoxDim& global_box,
-                           boost::shared_ptr<ExecutionConfiguration> exec_conf
-#ifdef ENABLE_MPI
-                         , boost::shared_ptr<DomainDecomposition> decomposition
-#endif
+                           boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                           boost::shared_ptr<DomainDecomposition> decomposition
                           )
     : m_exec_conf(exec_conf),
       m_nparticles(0),

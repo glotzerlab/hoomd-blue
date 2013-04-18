@@ -133,11 +133,8 @@ class SystemDefinition
                          
         //! Construct from a snapshot
         SystemDefinition(boost::shared_ptr<const SnapshotSystemData> snapshot,
-                         boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration())
-#ifdef ENABLE_MPI
-                        , boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>()
-#endif
-                        );
+                         boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
+                         boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
                         
         //! Set the dimensionality of the system
         void setNDimensions(unsigned int);

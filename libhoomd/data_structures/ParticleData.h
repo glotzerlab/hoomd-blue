@@ -84,8 +84,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "Index1D.h"
-#include "DomainDecomposition.h"
 #endif
+
+#include "DomainDecomposition.h"
 
 #include <stdlib.h>
 #include <vector>
@@ -388,11 +389,9 @@ class ParticleData : boost::noncopyable
         //! Construct using a ParticleDataSnapshot
         ParticleData(const SnapshotParticleData& snapshot,
                      const BoxDim& global_box,
-                     boost::shared_ptr<ExecutionConfiguration> exec_conf
-#ifdef ENABLE_MPI
-                     , boost::shared_ptr<DomainDecomposition> decomposition
+                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                     boost::shared_ptr<DomainDecomposition> decomposition
                         = boost::shared_ptr<DomainDecomposition>()
-#endif
                      );
  
         //! Destructor
