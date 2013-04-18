@@ -16,7 +16,7 @@ class init_create_snapshot (unittest.TestCase):
         self.assertTrue(globals.system_definition);
         self.assertTrue(globals.system);
         snapshot = system.take_snapshot(all=True)
-        init.restore_from_snapshot(snapshot)
+        system.restore_snapshot(snapshot)
         del system
 
     # tests options to take_snapshot
@@ -25,7 +25,7 @@ class init_create_snapshot (unittest.TestCase):
         self.assertTrue(globals.system_definition);
         self.assertTrue(globals.system);
         snapshot = system.take_snapshot(particles=True)
-        init.restore_from_snapshot(snapshot)
+        system.restore_snapshot(snapshot)
         snapshot = system.take_snapshot(bonds=True)
         snapshot = system.take_snapshot(angles=True)
         snapshot = system.take_snapshot(dihedrals=True)

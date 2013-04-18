@@ -70,7 +70,7 @@ from hoomd_script import util
 # If modifications need to be done on more than just a few particles, e.g.
 # setting new positions for all particles, or updating the velocities, etc., \b snapshots can be used.
 # \ref data_snapshot store the entire system state in a single (currently opaque) object and can
-# be used to re-initialize the system using init.restore_from_snapshot.
+# be used to re-initialize the system system.restore_snapshot().
 # 
 # <h2>Documentation by example</h2>
 #
@@ -339,7 +339,7 @@ from hoomd_script import util
 # about the simulation box, particles, bonds, angles, dihedrals, impropers, walls and rigid bodies.
 # Once taken, it is not updated anymore (as opposed to the particle %data proxies, which always
 # return the current state). Instead, it can be used to restart the simulation
-# using init.restore_from_snapshot().
+# using system.restore_snapshot().
 #
 # In future releases it will be possible to modify or %analyze the contents of a snapshot.
 #
@@ -442,6 +442,35 @@ class system_data:
         cpp_snapshot = self.sysdef.takeSnapshot(particles,bonds,angles,dihedrals,impropers,rigid_bodies,walls,integrators)
 
         return cpp_snapshot
+
+    ## Re-initializes the system from a snapshot
+    # 
+    # \param snapshot The snapshot to initialize the system from
+    #
+    # Snapshots temporarily store system %data. Snapshots contain the complete simulation state in a
+    # single object. They can be used to restart a simulation.
+    #
+    # Example use cases in which a simulation may be restarted from a snapshot include python-script-level
+    # \b Monte-Carlo schemes, where the system state is stored after a move has been accepted (according to
+    # some criterium), and where the system is re-initialized from that same state in the case
+    # when a move is not accepted.
+    #
+    # Example for the procedure of taking a snapshot and re-initializing from it:
+    # \code
+    # system = init.read_xml("some_file.xml")
+    #
+    # ... run a simulation ...
+    #
+    # snapshot = system.take_snapshot(all=True)
+    # ...
+    # system.restore_snapshot(snapshot)
+    # \endcode
+    #
+    # \sa hoomd_script.data
+    def restore_snapshot(self, snapshot):
+        util.print_status_line();
+        
+        self.sysdef.initializeFromSnapshot(snapshot);
 
     ## \var sysdef
     # \internal
