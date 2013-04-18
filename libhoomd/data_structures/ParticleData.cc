@@ -172,6 +172,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 
     // initially, global box = local box
     m_global_box = box;
+    
+    // zero the origin
+    m_origin = make_scalar3(0,0,0);
     }
 
 /*! Loads particle data from the snapshot into the internal arrays.
@@ -224,6 +227,9 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
        
     // default constructed shared ptr is null as desired
     m_prof = boost::shared_ptr<Profiler>();
+
+    // zero the origin
+    m_origin = make_scalar3(0,0,0);
     }
 
 
@@ -798,6 +804,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
     notifyParticleSort();
 
+    // zero the origin
+    m_origin = make_scalar3(0,0,0);
     }
 
 //! take a particle data snapshot
@@ -839,7 +847,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
             {
-            pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
             vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             accel[idx] = h_accel.data[idx];
             type[idx] = __scalar_as_int(h_pos.data[idx].w);
@@ -950,7 +958,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             {
             unsigned int tag = h_tag.data[idx];
             assert(tag < m_nglobal);
-            snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
             snapshot.vel[tag] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             snapshot.accel[tag] = h_accel.data[idx];
             snapshot.type[tag] = __scalar_as_int(h_pos.data[idx].w);
@@ -960,6 +968,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.image[tag] = h_image.data[idx];
             snapshot.body[tag] = h_body.data[idx];
             snapshot.orientation[tag] = h_orientation.data[idx];
+            
+            // make sure the position stored in the snapshot is within the boundaries
+            m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
             }
         }
 

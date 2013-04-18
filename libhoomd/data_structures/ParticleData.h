@@ -310,7 +310,7 @@ struct SnapshotParticleData {
 
     \ingroup data_structs
     
-    <h1>Parallel simulations</h1>
+    ## Parallel simulations
 
     In a parallel (or domain decompositon) simulation, the ParticleData may either correspond to the global state of the
     simulation (e.g. before and after a simulation run), or to the local particles only (e.g. during a simulation run).
@@ -341,7 +341,7 @@ struct SnapshotParticleData {
     starting at getN()). It keeps track of those particles using the addGhostParticles() and removeAllGhostParticles() methods.
     The caller is responsible for updating the particle data arrays with the ghost particle information.
 
-    <h1> Anisotropic particles</h1>
+    ## Anisotropic particles
 
     Anisotropic particles are handled by storing an orientation quaternion for every particle in the simulation.
     Similarly, a net torque is computed and stored for each particle. The design decision made is to not
@@ -360,6 +360,21 @@ struct SnapshotParticleData {
     Access the orientation quaternion of each particle with the GPUArray gotten from getOrientationArray(), the net
     torque with getTorqueArray(). Individual inertia tensor values can be accessed with getInertiaTensor() and
     setInertiaTensor()
+    
+    ## Origin shifting
+    
+    Parallel MC simulations randomly translate all particles by a fixed vector at periodic intervals. This motion 
+    is not physical, it is merely the easiest way to shift the origin of the cell list / domain decomposition
+    boundaries. Analysis routines (i.e. MSD) and movies are complicated by the random motion of all particles.
+    
+    ParticleData can track this origin and subtract it from all particles. This subtraction is done when taking a
+    snapshot. Putting the subtraction there naturally puts the correction there for all analysis routines and file I/O
+    while leaving the shifted particles in place for computes, updaters, and integrators. On the restoration from
+    a snapshot, the origin needs to be cleared.
+    
+    Two routines support this: translateOrigin() and resetOrigin(). The position of the origin is tracked by
+    ParticleData internally. translateOrigin() moves it by a given vector. resetOrigin() zeroes it. TODO: This might
+    not be sufficient for simulations where the box size changes. We'll see in testing.
 */
 class ParticleData : boost::noncopyable
     {
@@ -699,6 +714,26 @@ class ParticleData : boost::noncopyable
             return m_decomposition;
             }
 #endif
+            
+        //! Translate the box origin
+        /*! \param a vector to apply in the translation
+        */
+        void translateOrigin(const Scalar3& a)
+            {
+            m_origin += a;
+            
+            // wrap the origin back into the box to prevent it from getting too large
+            int3 image = make_int3(0,0,0);
+            m_global_box.wrap(m_origin, image);
+            }
+        
+        //! Rest the box origin
+        /*! \post The origin is 0,0,0
+        */
+        void resetOrigin()
+            {
+            m_origin = make_scalar3(0,0,0);
+            }
 
     private:
         BoxDim m_box;                               //!< The simulation box
@@ -743,6 +778,7 @@ class ParticleData : boost::noncopyable
         const float m_resize_factor;                 //!< The numerical factor with which the particle data arrays are resized
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         
+        Scalar3 m_origin;                            //!< Tracks the position of the origin of the coordinate system
         
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
