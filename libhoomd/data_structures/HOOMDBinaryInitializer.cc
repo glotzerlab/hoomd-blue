@@ -286,14 +286,14 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     #ifndef ENABLE_ZLIB
     if (enable_decompression)
         {
-        cerr << endl << "***Error! HOOMDBinaryInitialzier is trying to read a compressed .gz file, but ZLIB was not" << endl;
-        cerr << "enabled in this build of hoomd" << endl << endl;
+        m_exec_conf->msg->error() << endl << "HOOMDBinaryInitialzier is trying to read a compressed .gz file, but ZLIB was not" << endl;
+            << "enabled in this build of hoomd" << endl << endl;
         throw runtime_error("Error reading binary file");
         }
     #endif
     
     // Open the file
-    cout<< "Reading " << fname << "..." << endl;
+    m_exec_conf->msg->notice(2) << "Reading " << fname << "..." << endl;
     // setup the file input for decompression
     filtering_istream f;
     #ifdef ENABLE_ZLIB
@@ -305,7 +305,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     // handle errors
     if (f.fail())
         {
-        cerr << endl << "***Error! Error opening " << fname << endl << endl;
+        m_exec_conf->msg->error() << endl << "Error opening " << fname << endl << endl;
         throw runtime_error("Error reading binary file");
         }
     
@@ -315,11 +315,11 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     f.read((char*)&file_magic, sizeof(int));
     if (magic != file_magic)
         {
-        cerr << endl << "***Error! " << fname << " does not appear to be a hoomd_bin file." << endl;
+        m_exec_conf->msg->error() << endl << fname << " does not appear to be a hoomd_bin file." << endl;
         if (enable_decompression)
-            cerr << "Is it perhaps an uncompressed file with an erroneous .gz extension?" << endl << endl;
+            m_exec_conf->msg->error() << "Is it perhaps an uncompressed file with an erroneous .gz extension?" << endl << endl;
         else
-            cerr << "Is it perhaps a compressed file without a .gz extension?" << endl << endl;
+            m_exec_conf->msg->error() << "Is it perhaps a compressed file without a .gz extension?" << endl << endl;
 
         throw runtime_error("Error reading binary file");
         }
@@ -331,8 +331,8 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     // right now, the version tag doesn't do anything: just warn if they don't match
     if (version != file_version)
         {
-        cout << endl
-             << "***Error! hoomd binary file does not match the current version,"
+        m_exec_conf->msg->error() << endl
+             << "hoomd binary file does not match the current version,"
              << endl << endl;
         throw runtime_error("Error reading binary file");
         }
@@ -564,36 +564,36 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     // check for required items in the file
     if (m_x_array.size() == 0)
         {
-        cerr << endl << "***Error! No particles found in binary file" << endl << endl;
+        m_exec_conf->msg->error() << endl << "No particles found in binary file" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
         
     // notify the user of what we have accomplished
-    cout << "--- hoomd_binary file read summary" << endl;
-    cout << m_x_array.size() << " positions at timestep " << m_timestep << endl;
+    m_exec_conf->msg->notice(2) << "--- hoomd_binary file read summary" << endl;
+    m_exec_conf->msg->notice(2) << m_x_array.size() << " positions at timestep " << m_timestep << endl;
     if (m_ix_array.size() > 0)
-        cout << m_ix_array.size() << " images" << endl;
+        m_exec_conf->msg->notice(2) << m_ix_array.size() << " images" << endl;
     if (m_vx_array.size() > 0)
-        cout << m_vx_array.size() << " velocities" << endl;
+        m_exec_conf->msg->notice(2) << m_vx_array.size() << " velocities" << endl;
     if (m_mass_array.size() > 0)
-        cout << m_mass_array.size() << " masses" << endl;
+        m_exec_conf->msg->notice(2) << m_mass_array.size() << " masses" << endl;
     if (m_diameter_array.size() > 0)
-        cout << m_diameter_array.size() << " diameters" << endl;
+        m_exec_conf->msg->notice(2) << m_diameter_array.size() << " diameters" << endl;
     if (m_charge_array.size() > 0)
-        cout << m_charge_array.size() << " charges" << endl;
-    cout << m_type_mapping.size() <<  " particle types" << endl;
+        m_exec_conf->msg->notice(2) << m_charge_array.size() << " charges" << endl;
+    m_exec_conf->msg->notice(2) << m_type_mapping.size() <<  " particle types" << endl;
     if (m_integrator_variables.size() > 0)
-        cout << m_integrator_variables.size() << " integrator states" << endl;
+        m_exec_conf->msg->notice(2) << m_integrator_variables.size() << " integrator states" << endl;
     if (m_bonds.size() > 0)
-        cout << m_bonds.size() << " bonds" << endl;
+        m_exec_conf->msg->notice(2) << m_bonds.size() << " bonds" << endl;
     if (m_angles.size() > 0)
-        cout << m_angles.size() << " angles" << endl;
+        m_exec_conf->msg->notice(2) << m_angles.size() << " angles" << endl;
     if (m_dihedrals.size() > 0)
-        cout << m_dihedrals.size() << " dihedrals" << endl;
+        m_exec_conf->msg->notice(2) << m_dihedrals.size() << " dihedrals" << endl;
     if (m_impropers.size() > 0)
-        cout << m_impropers.size() << " impropers" << endl;
+        m_exec_conf->msg->notice(2) << m_impropers.size() << " impropers" << endl;
     if (m_walls.size() > 0)
-        cout << m_walls.size() << " walls" << endl;
+        m_exec_conf->msg->notice(2) << m_walls.size() << " walls" << endl;
     }
 
 void export_HOOMDBinaryInitializer()
