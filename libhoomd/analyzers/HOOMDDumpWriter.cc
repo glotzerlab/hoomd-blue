@@ -513,25 +513,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the orientation flag is set, write out the orientation quaternion to the XML file
     if (m_output_orientation)
         {
-#ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            m_exec_conf->msg->error() << "dump.xml: Saving orientations in MPI simulations is currently not supported." << endl;
-            throw runtime_error("Error writing HOOMD dump file");
-            }
-#endif
-        f << "<orientation num=\"" << m_pdata->getN() << "\">" << "\n";
-        
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+        f << "<orientation num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
         
         for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= h_rtag.data[j];
-            
-            Scalar4 orientation = h_orientation.data[i];
+            Scalar4 orientation = snapshot.orientation[j];
             f << orientation.x << " " << orientation.y << " " << orientation.z << " " << orientation.w << "\n";
             if (!f.good())
                 {
@@ -545,20 +532,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the moment_inertia flag is set, write out the orientation quaternion to the XML file
     if (m_output_moment_inertia)
         {
-#ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            m_exec_conf->msg->error() << "dump.xml: Saving moments of inertia in MPI simulations is currently not supported." << endl;
-            throw runtime_error("Error writing HOOMD dump file");
-            }
-#endif
- 
-        f << "<moment_inertia num=\"" << m_pdata->getN() << "\">" << "\n";
+        f << "<moment_inertia num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
         
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
             {
             // inertia tensors are stored by tag
-            InertiaTensor I = m_pdata->getInertiaTensor(i);
+            InertiaTensor I = snapshot.inertia_tensor[i];
             for (unsigned int c = 0; c < 5; c++)
                 f << I.components[c] << " ";
             f << I.components[5] << "\n";
