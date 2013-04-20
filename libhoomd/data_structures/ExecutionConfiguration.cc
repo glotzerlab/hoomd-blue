@@ -669,7 +669,7 @@ int ExecutionConfiguration::getNumCapableGPUs()
 
 #endif
 
-unsigned int ExecutionConfiguration::guessRank()
+unsigned int ExecutionConfiguration::guessRank(boost::shared_ptr<Messenger> msg)
     {
     std::vector<std::string> env_vars;
 
@@ -689,6 +689,12 @@ unsigned int ExecutionConfiguration::guessRank()
         if ((env = getenv(it->c_str())) != NULL)
             return atoi(env);
 
+        }
+
+    if (msg)
+        {
+        msg->warning() << "Unable to guess rank from environment variables. Assuming 0."
+                       << std::endl << std::endl;
         }
 
     return 0;

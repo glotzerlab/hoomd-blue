@@ -136,7 +136,7 @@ struct ExecutionConfiguration : boost::noncopyable
     //! Guess rank of this processor
     /*! \returns Rank guessed from common environment variables, 0 is default
      */
-    static unsigned int guessRank();
+    static unsigned int guessRank(boost::shared_ptr<Messenger> msg=boost::shared_ptr<Messenger>());
 
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
