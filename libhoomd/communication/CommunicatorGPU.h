@@ -204,12 +204,6 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_n_recv_ghosts_edge; //!< Number of received ghosts for sending over an edge, per direction
         GPUArray<unsigned int> m_n_recv_ghosts_local;//!< Number of received ghosts that stay in the local box, per direction
 
-#ifndef ENABLE_MPI_CUDA
-        GPUBufferMapped<char> m_mesh_exchange_buf;   //!< Copy buffer for exchange of mesh cells
-#else
-        GPUArray<char> m_mesh_exchange_buf;          //!< Copy buffer for exchange of mesh cells
-#endif
-
         unsigned int m_n_tot_recv_ghosts;           //!< Total number of received ghots
         unsigned int m_n_tot_recv_ghosts_local;     //!< Total number of received ghosts for local box
         unsigned int m_n_forward_ghosts_face[6];    //!< Total number of received ghosts for the face send buffer
