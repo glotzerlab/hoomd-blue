@@ -59,6 +59,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 
+#if defined(ENABLE_MPI) && !defined(NVCC)
+#include "HOOMDMPI.h"
+#endif
+
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef NVCC
@@ -561,7 +565,23 @@ class BoxDim
 
             return make_scalar3(0.0,0.0,0.0);
             }
-
+        
+        #ifdef ENABLE_MPI
+        //! Serialization method
+        template<class Archive>
+        void serialize(Archive & ar, const unsigned int version)
+            {
+            ar & m_lo;
+            ar & m_hi;
+            ar & m_L;
+            ar & m_Linv;
+            ar & m_xy;
+            ar & m_xz;
+            ar & m_yz;
+            ar & m_periodic;
+            }
+        #endif
+ 
     private:
         Scalar3 m_lo;      //!< Minimum coords in the box
         Scalar3 m_hi;      //!< Maximum coords in the box
@@ -571,8 +591,8 @@ class BoxDim
         Scalar m_xz;       //!< xz tilt factor
         Scalar m_yz;       //!< yz tilt factor
         uchar3 m_periodic; //!< 0/1 in each direction to tell if the box is periodic in that direction
-    };
 
+    };
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE

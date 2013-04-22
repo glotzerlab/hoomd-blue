@@ -61,6 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "BondData.h"
 
+#include "SnapshotSystemData.h"
+
 #include <string>
 #include <vector>
 #include <map>
@@ -103,7 +105,7 @@ class GeneratedParticles
             };
             
         //! Constructor
-        GeneratedParticles(unsigned int n_particles, const BoxDim& box, const std::map< std::string, Scalar >& radii);
+        GeneratedParticles(boost::shared_ptr<const ExecutionConfiguration> exec_conf, unsigned int n_particles, const BoxDim& box, const std::map< std::string, Scalar >& radii);
         //! Empty constructor
         /*! Included so that GeneratedParticles can be stored in a vector.
         */
@@ -129,7 +131,8 @@ class GeneratedParticles
         
     private:
         friend class RandomGenerator;
-        
+       
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         std::vector<particle> m_particles;                  //!< The generated particles
         BoxDim m_box;                                       //!< Box the particles are in
         std::vector< std::vector<unsigned int> > m_bins;    //!< Bins the particles are placed in for efficient distance checks
@@ -207,7 +210,7 @@ class PolymerParticleGenerator : public ParticleGenerator
     {
     public:
         //! Constructor
-        PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts);
+        PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf, Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts);
         
         //! Returns the number of particles in each polymer
         virtual unsigned int getNumToGenerate()
@@ -219,6 +222,7 @@ class PolymerParticleGenerator : public ParticleGenerator
         virtual void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx);
         
     private:
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration for messaging
         Scalar m_bond_len;                  //!< Bond length
         std::vector<std::string> m_types;   //!< Particle types for each polymer bead
         std::vector<unsigned int> m_bond_a; //!< First particle in the bond pair
@@ -253,32 +257,20 @@ class PolymerParticleGenerator : public ParticleGenerator
      -# Construct and add any number of ParticleGenerator instances to the RandomGenerator
      -# Call generate() to actually place the particles
 */
-class RandomGenerator : public ParticleDataInitializer
+class RandomGenerator
     {
     public:
         //! Set the parameters
-        RandomGenerator(const BoxDim& box, unsigned int seed);
+        RandomGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                        const BoxDim& box,
+                        unsigned int seed);
+
         //! Empty Destructor
         virtual ~RandomGenerator() { }
         
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumParticles() const;
-        
-        //! Returns the number of bonds to be initialized
-        virtual unsigned int getNumBonds() const;
-
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const;
-
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
+        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
 
-        //! Returns the number of bond types to be created
-        virtual unsigned int getNumBondTypes() const;
-        
-        //! Initialize the bond data
-        virtual void initBondDataSnapshot(SnapshotBondData& snapshot) const;
-        
         //! Sets the separation radius for a particle
         void setSeparationRadius(string type, Scalar radius);
         
@@ -287,8 +279,9 @@ class RandomGenerator : public ParticleDataInitializer
         
         //! Place the particles
         void generate();
-        
+       
     private:
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         BoxDim m_box;                                       //!< Precalculated box
         unsigned int m_seed;                                //!< Random seed to use
         GeneratedParticles m_data;                          //!< Actual particle data genreated

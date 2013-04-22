@@ -139,30 +139,35 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         return;
         }
 
-    // find the bin each particle belongs in
+    uchar3 periodic = box.getPeriodic();
     Scalar3 f = box.makeFraction(pos,ghost_width);
-    int ib = (int)(f.x * ci.getW());
-    int jb = (int)(f.y * ci.getH());
-    int kb = (int)(f.z * ci.getD());
 
-    // need to handle the case where the particle is exactly at the box hi
-    if (ib == ci.getW())
-        ib = 0;
-    if (jb == ci.getH())
-        jb = 0;
-    if (kb == ci.getD())
-        kb = 0;
-
-    unsigned int bin = ci(ib, jb, kb);
-
-    // check if the particle is inside the dimensions
-    if (bin >= ci.getNumElements())
+    // check if the particle is inside the unit cell + ghost layer
+    if ((!periodic.x && (f.x < Scalar(0.0) || f.x >= Scalar(1.0))) ||
+        (!periodic.y && (f.y < Scalar(0.0) || f.y >= Scalar(1.0))) ||
+        (!periodic.z && (f.z < Scalar(0.0) || f.z >= Scalar(1.0))) )
         {
         // if a ghost particle is out of bounds, silently ignore it
         if (idx < N)
             (*d_conditions).z = idx+1;
         return;
         }
+
+    // find the bin each particle belongs in
+    int ib = (int)(f.x * ci.getW());
+    int jb = (int)(f.y * ci.getH());
+    int kb = (int)(f.z * ci.getD());
+
+    // need to handle the case where the particle is exactly at the box hi
+    if (ib == ci.getW() && periodic.x)
+        ib = 0;
+    if (jb == ci.getH() && periodic.y)
+        jb = 0;
+    if (kb == ci.getD() && periodic.z)
+        kb = 0;
+
+    unsigned int bin = ci(ib, jb, kb);
+
 
     unsigned int size = atomicInc(&d_cell_size[bin], 0xffffffff);
     if (size < Nmax)
@@ -428,32 +433,40 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
 
     // find the bin each particle belongs in
     Scalar3 f = box.makeFraction(pos,ghost_width);
+    
     unsigned int ib = (unsigned int)(f.x * ci.getW());
     unsigned int jb = (unsigned int)(f.y * ci.getH());
     unsigned int kb = (unsigned int)(f.z * ci.getD());
+    
+    uchar3 periodic = box.getPeriodic();
 
     // need to handle the case where the particle is exactly at the box hi
-    if (ib == ci.getW())
+    if (ib == ci.getW() && periodic.x)
         ib = 0;
-    if (jb == ci.getH())
+    if (jb == ci.getH() && periodic.y)
         jb = 0;
-    if (kb == ci.getD())
+    if (kb == ci.getD() && periodic.z)
         kb = 0;
         
     unsigned int bin = ci(ib, jb, kb);
 
-    // check if the particle is inside the dimensions
-    if (bin >= ci.getNumElements())
+    // check if the particle is inside the unit cell + ghost layer
+    if ((!periodic.x && (f.x < Scalar(0.0) || f.x >= Scalar(1.0))) ||
+        (!periodic.y && (f.y < Scalar(0.0) || f.y >= Scalar(1.0))) ||
+        (!periodic.z && (f.z < Scalar(0.0) || f.z >= Scalar(1.0))) )
         {
-        (*d_conditions).z = idx+1;
+        // silently ignore ghost particles that are outside the dimensions
+        if (idx < N) (*d_conditions).z = idx+1;
         bin = INVALID_BIN;
         }
+
     // check for nan pos
     if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
         {
         (*d_conditions).y = idx+1;
         bin = INVALID_BIN;
         }
+
     // if we are past the end of the array, mark the bin as invalid
     if (idx >= N + n_ghost)
         bin = INVALID_BIN;

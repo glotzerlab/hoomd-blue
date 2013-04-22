@@ -60,6 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "HOOMDInitializer.h"
+#include "SnapshotSystemData.h"
+#include "ExecutionConfiguration.h"
 
 #include <iostream>
 #include <fstream>
@@ -70,6 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 #include <boost/python.hpp>
+
 using namespace boost::python;
 
 using namespace boost;
@@ -77,10 +80,15 @@ using namespace boost;
 /*! \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
 */
-HOOMDInitializer::HOOMDInitializer(const std::string &fname)
+HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+    const std::string &fname)
+    : m_timestep(0),
+      m_exec_conf(exec_conf)
     {
+    // we only execute on rank 0
+    if (m_exec_conf->getRank()) return;
+
     // initialize member variables
-    m_timestep = 0;
     m_box_read = false;
     m_num_dimensions = 3;
     
@@ -109,36 +117,6 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 /* XXX: shouldn't the following methods be put into
  * the header so that they get inlined? */
 
-/*! \returns Number of dimensions parsed from the XML file
-*/
-unsigned int HOOMDInitializer::getNumDimensions() const
-    {
-    return (unsigned int)m_num_dimensions;
-    }
-
-/*! \returns Number of particles parsed from the XML file
-*/
-unsigned int HOOMDInitializer::getNumParticles() const
-    {
-    assert(m_pos_array.size() > 0);
-    return (unsigned int)m_pos_array.size();
-    }
-
-/*! \returns Number of bonds parsed from the XML file
-*/
-unsigned int HOOMDInitializer::getNumBonds() const
-    {
-    return (unsigned int)m_bonds.size();
-    }
-
-
-/*! \returns Box dimensions parsed from the XML file
-*/
-BoxDim HOOMDInitializer::getBox() const
-    {
-    return m_box;
-    }
-
 /*! \returns Time step parsed from the XML file
 */
 unsigned int HOOMDInitializer::getTimeStep() const
@@ -152,16 +130,34 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
     m_timestep = ts;
     }
 
-/*! initializes a snapshot with the internally stored copy of the particle data */
-void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
+/*! initializes a snapshot with the internally stored copy of the system data */
+boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     {
-    assert(m_pos_array.size() > 0);
-    assert(snapshot.size == m_pos_array.size());
+    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
 
+    // we only execute on rank 0
+    if (m_exec_conf->getRank()) return snapshot;
+
+    // initialize dimensions
+    snapshot->dimensions = m_num_dimensions;
+
+    // initialize box dimensions
+    snapshot->global_box = m_box;
+
+    /*
+     * Initialize particle data
+     */
+    assert(m_pos_array.size() > 0);
+
+    SnapshotParticleData& pdata = snapshot->particle_data; 
+
+    // allocate memory in snapshot
+    pdata.resize(m_pos_array.size());
+    
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < m_pos_array.size(); i++)
         {
-        snapshot.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
+        pdata.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
         }
 
     if (m_image_array.size() != 0)
@@ -169,7 +165,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_image_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.image[i] = make_int3(m_image_array[i].x, m_image_array[i].y, m_image_array[i].z);
+            pdata.image[i] = make_int3(m_image_array[i].x, m_image_array[i].y, m_image_array[i].z);
         }
         
     if (m_vel_array.size() != 0)
@@ -177,7 +173,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_vel_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.vel[i] = make_scalar3(m_vel_array[i].x, m_vel_array[i].y, m_vel_array[i].z);
+            pdata.vel[i] = make_scalar3(m_vel_array[i].x, m_vel_array[i].y, m_vel_array[i].z);
         }
         
     if (m_mass_array.size() != 0)
@@ -185,7 +181,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_mass_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.mass[i] = m_mass_array[i];
+            pdata.mass[i] = m_mass_array[i];
         }
         
     if (m_diameter_array.size() != 0)
@@ -193,7 +189,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_diameter_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.diameter[i] = m_diameter_array[i];
+            pdata.diameter[i] = m_diameter_array[i];
         }
         
     if (m_charge_array.size() != 0)
@@ -201,7 +197,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_charge_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.charge[i] = m_charge_array[i];
+            pdata.charge[i] = m_charge_array[i];
         }
         
     if (m_type_array.size() != 0)
@@ -209,7 +205,7 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_type_array.size() == m_pos_array.size());
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.type[i] = m_type_array[i];
+            pdata.type[i] = m_type_array[i];
         }
     
     if (m_body_array.size() != 0)
@@ -217,20 +213,91 @@ void HOOMDInitializer::initSnapshot(SnapshotParticleData &snapshot) const
         assert(m_body_array.size() == m_pos_array.size());
 
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            snapshot.body[i] = m_body_array[i];
+            pdata.body[i] = m_body_array[i];
         }
 
-    snapshot.type_mapping = m_type_mapping;
-    snapshot.num_particle_types = m_type_mapping.size();
-    }
+    if (m_type_mapping.size()) pdata.type_mapping = m_type_mapping;
 
-/*! \param wall_data WallData to initialize with the data read from the file
-*/
-void HOOMDInitializer::initWallData(boost::shared_ptr<WallData> wall_data) const
-    {
-    // copy the walls over from our internal list
-    for (unsigned int i = 0; i < m_walls.size(); i++)
-        wall_data->addWall(m_walls[i]);
+    // Initialize moments of inertia
+    if (m_moment_inertia.size()) pdata.inertia_tensor = m_moment_inertia;
+
+    // Initialize orientations
+    if (m_orientation.size()) pdata.orientation = m_orientation;
+
+    /*
+     * Initialize bond data
+     */
+    SnapshotBondData& bdata = snapshot->bond_data;
+
+    // allocate memory in snapshot
+    bdata.resize(m_bonds.size());
+
+    // loop through all the bonds and add a bond for each
+    for (unsigned int i = 0; i < m_bonds.size(); i++)
+        {
+        bdata.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
+        bdata.type_id[i] = m_bonds[i].type;
+        }
+        
+    bdata.type_mapping = m_bond_type_mapping;
+
+    /*
+     * Initialize angle data
+     */
+    SnapshotAngleData& adata = snapshot->angle_data;
+
+    // allocate memory in snapshot
+    adata.resize(m_angles.size());
+
+    // loop through all the angles and add an angle for each
+    for (unsigned int i = 0; i < m_angles.size(); i++)
+        {
+        adata.angles[i] = make_uint3(m_angles[i].a,m_angles[i].b,m_angles[i].c);
+        adata.type_id[i] = m_angles[i].type;
+        }
+        
+    adata.type_mapping = m_angle_type_mapping;
+
+    /*
+     * Initialize dihedral data
+     */
+    SnapshotDihedralData& ddata = snapshot->dihedral_data;
+
+    // allocate memory
+    ddata.resize(m_dihedrals.size());
+
+    // loop through all the dihedrals and add an dihedral for each
+    for (unsigned int i = 0; i < m_dihedrals.size(); i++)
+        {
+        ddata.dihedrals[i] = make_uint4(m_dihedrals[i].a,m_dihedrals[i].b,m_dihedrals[i].c, m_dihedrals[i].d);
+        ddata.type_id[i] = m_dihedrals[i].type;
+        }
+        
+    ddata.type_mapping = m_dihedral_type_mapping;
+
+    /*
+     * Initialize improper data
+     */
+    SnapshotDihedralData& idata = snapshot->improper_data;
+
+    // allocate memory
+    idata.resize(m_dihedrals.size());
+
+    // loop through all the dihedrals and add an dihedral for each
+    for (unsigned int i = 0; i < m_impropers.size(); i++)
+        {
+        idata.dihedrals[i] = make_uint4(m_impropers[i].a,m_impropers[i].b,m_impropers[i].c, m_impropers[i].d);
+        idata.type_id[i] = m_impropers[i].type;
+        }
+        
+    idata.type_mapping = m_improper_type_mapping;
+
+    /*
+     * Initialize walls
+     */
+    snapshot->wall_data = m_walls;
+
+    return snapshot;
     }
 
 /*! \param fname File name of the hoomd_xml file to read in
@@ -246,7 +313,7 @@ void HOOMDInitializer::readFile(const string &fname)
     XMLNode root_node;
     
     // Open the file and read the root element "hoomd_xml"
-    cout<< "Reading " << fname << "..." << endl;
+    m_exec_conf->msg->notice(2) << "Reading " << fname << "..." << endl;
     XMLResults results;
     root_node = XMLNode::parseFile(fname.c_str(),"hoomd_xml", &results);
     
@@ -256,7 +323,7 @@ void HOOMDInitializer::readFile(const string &fname)
         // create message
         if (results.error==eXMLErrorFirstTagNotFound)
             {
-            cerr << endl << "***Error! Root node of " << fname << " is not <hoomd_xml>" << endl << endl;
+            m_exec_conf->msg->error() << endl << "Root node of " << fname << " is not <hoomd_xml>" << endl << endl;
             throw runtime_error("Error reading xml file");
             }
             
@@ -264,7 +331,7 @@ void HOOMDInitializer::readFile(const string &fname)
         error_message << XMLNode::getError(results.error) << " in file "
         << fname << " at line " << results.nLine << " col "
         << results.nColumn;
-        cerr << endl << "***Error! " << error_message.str() << endl << endl;
+        m_exec_conf->msg->error() << endl << error_message.str() << endl << endl;
         throw runtime_error("Error reading xml file");
         }
         
@@ -275,7 +342,7 @@ void HOOMDInitializer::readFile(const string &fname)
         }
     else
         {
-        cout << "Notice: No version specified in hoomd_xml root node: assuming 1.0" << endl;
+        m_exec_conf->msg->notice(2) << "No version specified in hoomd_xml root node: assuming 1.0" << endl;
         xml_version = string("1.0");
         }
         
@@ -298,8 +365,8 @@ void HOOMDInitializer::readFile(const string &fname)
             }
         }
     if (!valid)
-        cout << endl
-             << "***Warning! hoomd_xml file with version not in the range 1.0-1.3  specified,"
+        m_exec_conf->msg->warning() << endl
+             << "hoomd_xml file with version not in the range 1.0-1.5  specified,"
              << " I don't know how to read this. Continuing anyways." << endl << endl;
              
     // the file was parsed successfully by the XML reader. Extract the information now
@@ -307,12 +374,12 @@ void HOOMDInitializer::readFile(const string &fname)
     int num_configurations = root_node.nChildNode("configuration");
     if (num_configurations == 0)
         {
-        cerr << endl << "***Error! No <configuration> specified in the XML file" << endl << endl;
+        m_exec_conf->msg->error() << endl << "No <configuration> specified in the XML file" << endl << endl;
         throw runtime_error("Error reading xml file");
         }
     if (num_configurations > 1)
         {
-        cerr << endl << "***Error! Sorry, the input XML file must have only one configuration" << endl << endl;
+        m_exec_conf->msg->error() << endl << "Sorry, the input XML file must have only one configuration" << endl << endl;
         throw runtime_error("Error reading xml file");
         }
         
@@ -345,114 +412,114 @@ void HOOMDInitializer::readFile(const string &fname)
         if (parser != m_parser_map.end())
             parser->second(node);
         else
-            cout << "Notice: Parser for node <" << name << "> not defined, ignoring" << endl;
+            m_exec_conf->msg->notice(2) << "Parser for node <" << name << "> not defined, ignoring" << endl;
         }
         
     // check for required items in the file
     if (!m_box_read)
         {
-        cerr << endl
-             << "***Error! A <box> node is required to define the dimensions of the simulation box"
+        m_exec_conf->msg->error() << endl
+             << "A <box> node is required to define the dimensions of the simulation box"
              << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_pos_array.size() == 0)
         {
-        cerr << endl << "***Error! No particles defined in <position> node" << endl << endl;
+        m_exec_conf->msg->error() << endl << "No particles defined in <position> node" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_type_array.size() == 0)
         {
-        cerr << endl << "***Error! No particles defined in <type> node" << endl << endl;
+        m_exec_conf->msg->error() << endl << "No particles defined in <type> node" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
         
     // check for potential user errors
     if (m_vel_array.size() != 0 && m_vel_array.size() != m_pos_array.size())
         {
-        cerr << endl << "***Error! " << m_vel_array.size() << " velocities != " << m_pos_array.size()
+        m_exec_conf->msg->error() << endl << m_vel_array.size() << " velocities != " << m_pos_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_mass_array.size() != 0 && m_mass_array.size() != m_pos_array.size())
         {
-        cerr << endl << "***Error! " << m_mass_array.size() << " masses != " << m_pos_array.size()
+        m_exec_conf->msg->error() << endl << m_mass_array.size() << " masses != " << m_pos_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_diameter_array.size() != 0 && m_diameter_array.size() != m_pos_array.size())
         {
-        cerr << endl << "***Error! " << m_diameter_array.size() << " diameters != " << m_pos_array.size()
+        m_exec_conf->msg->error() << endl << m_diameter_array.size() << " diameters != " << m_pos_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_image_array.size() != 0 && m_image_array.size() != m_pos_array.size())
         {
-        cerr << endl << "***Error! " << m_image_array.size() << " images != " << m_pos_array.size()
+        m_exec_conf->msg->error() << endl << m_image_array.size() << " images != " << m_pos_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_type_array.size() != m_pos_array.size())
         {
-        cerr << endl << "***Error! " << m_type_array.size() << " type values != " << m_pos_array.size()
+        m_exec_conf->msg->error() << endl << m_type_array.size() << " type values != " << m_pos_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_charge_array.size() != 0 && m_charge_array.size() != m_pos_array.size())
         {
-        cerr << endl << "***Error! " << m_charge_array.size() << " charge values != " << m_pos_array.size()
+        m_exec_conf->msg->error() << endl << m_charge_array.size() << " charge values != " << m_pos_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_body_array.size() != 0 && m_body_array.size() != m_pos_array.size())
         {
-        cerr << endl << "***Error! " << m_body_array.size() << " body values != " << m_pos_array.size()
+        m_exec_conf->msg->error() << endl << m_body_array.size() << " body values != " << m_pos_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_orientation.size() != 0 && m_orientation.size() != m_pos_array.size())
         {
-        cerr << endl << "***Error! " << m_orientation.size() << " orientation values != " << m_pos_array.size()
+        m_exec_conf->msg->error() << endl << m_orientation.size() << " orientation values != " << m_pos_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_moment_inertia.size() != 0 && m_moment_inertia.size() != m_pos_array.size())
         {
-        cerr << endl << "***Error! " << m_moment_inertia.size() << " moment_inertia values != " << m_pos_array.size()
+        m_exec_conf->msg->error() << endl << m_moment_inertia.size() << " moment_inertia values != " << m_pos_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
 
     // notify the user of what we have accomplished
-    cout << "--- hoomd_xml file read summary" << endl;
-    cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
+    m_exec_conf->msg->notice(2) << "--- hoomd_xml file read summary" << endl;
+    m_exec_conf->msg->notice(2) << m_pos_array.size() << " positions at timestep " << m_timestep << endl;
     if (m_image_array.size() > 0)
-        cout << m_image_array.size() << " images" << endl;
+        m_exec_conf->msg->notice(2) << m_image_array.size() << " images" << endl;
     if (m_vel_array.size() > 0)
-        cout << m_vel_array.size() << " velocities" << endl;
+        m_exec_conf->msg->notice(2) << m_vel_array.size() << " velocities" << endl;
     if (m_mass_array.size() > 0)
-        cout << m_mass_array.size() << " masses" << endl;
+        m_exec_conf->msg->notice(2) << m_mass_array.size() << " masses" << endl;
     if (m_diameter_array.size() > 0)
-        cout << m_diameter_array.size() << " diameters" << endl;
-    cout << m_type_mapping.size() <<  " particle types" << endl;
+        m_exec_conf->msg->notice(2) << m_diameter_array.size() << " diameters" << endl;
+    m_exec_conf->msg->notice(2) << m_type_mapping.size() <<  " particle types" << endl;
     if (m_body_array.size() > 0)
-        cout << m_body_array.size() << " particle body values" << endl;        
+        m_exec_conf->msg->notice(2) << m_body_array.size() << " particle body values" << endl;        
     if (m_bonds.size() > 0)
-        cout << m_bonds.size() << " bonds" << endl;
+        m_exec_conf->msg->notice(2) << m_bonds.size() << " bonds" << endl;
     if (m_angles.size() > 0)
-        cout << m_angles.size() << " angles" << endl;
+        m_exec_conf->msg->notice(2) << m_angles.size() << " angles" << endl;
     if (m_dihedrals.size() > 0)
-        cout << m_dihedrals.size() << " dihedrals" << endl;
+        m_exec_conf->msg->notice(2) << m_dihedrals.size() << " dihedrals" << endl;
     if (m_impropers.size() > 0)
-        cout << m_impropers.size() << " impropers" << endl;
+        m_exec_conf->msg->notice(2) << m_impropers.size() << " impropers" << endl;
     if (m_charge_array.size() > 0)
-        cout << m_charge_array.size() << " charges" << endl;
+        m_exec_conf->msg->notice(2) << m_charge_array.size() << " charges" << endl;
     if (m_walls.size() > 0)
-        cout << m_walls.size() << " walls" << endl;
+        m_exec_conf->msg->notice(2) << m_walls.size() << " walls" << endl;
     if (m_orientation.size() > 0)
-        cout << m_orientation.size() << " orientations" << endl;
+        m_exec_conf->msg->notice(2) << m_orientation.size() << " orientations" << endl;
     if (m_moment_inertia.size() > 0)
-        cout << m_moment_inertia.size() << " moments of inertia" << endl;
+        m_exec_conf->msg->notice(2) << m_moment_inertia.size() << " moments of inertia" << endl;
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
@@ -474,7 +541,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
     // throw exceptions if these attributes are not set
     if (!node.isAttributeSet("lx"))
         {
-        cerr << endl << "***Error! lx not set in <box> node" << endl << endl;
+        m_exec_conf->msg->error() << endl << "lx not set in <box> node" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     temp.str(node.getAttribute("lx"));
@@ -483,7 +550,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
     
     if (!node.isAttributeSet("ly"))
         {
-        cerr << endl << "***Error! ly not set in <box> node" << endl << endl;
+        m_exec_conf->msg->error() << endl << "ly not set in <box> node" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     temp.str(node.getAttribute("ly"));
@@ -492,7 +559,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
     
     if (!node.isAttributeSet("lz"))
         {
-        cerr << endl << "***Error! lz not set in <box> node" << endl << endl;
+        m_exec_conf->msg->error() << endl << "lz not set in <box> node" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     temp.str(node.getAttribute("lz"));
@@ -875,7 +942,7 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
         XMLNode child_node = node.getChildNode(cur_node);
         if (string(child_node.getName()) != string("coord"))
             {
-            cout << "Notice: Ignoring <" << child_node.getName() << "> node in <wall> node";
+            m_exec_conf->msg->notice(2) << "Ignoring <" << child_node.getName() << "> node in <wall> node";
             }
         else
             {
@@ -883,42 +950,42 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
             Scalar ox,oy,oz,nx,ny,nz;
             if (!child_node.isAttributeSet("ox"))
                 {
-                cerr << endl << "***Error! ox not set in <coord> node" << endl << endl;
+                m_exec_conf->msg->error() << endl << "ox not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             ox = (Scalar)atof(child_node.getAttribute("ox"));
             
             if (!child_node.isAttributeSet("oy"))
                 {
-                cerr << endl << "***Error! oy not set in <coord> node" << endl << endl;
+                m_exec_conf->msg->error() << endl << "oy not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             oy = (Scalar)atof(child_node.getAttribute("oy"));
             
             if (!child_node.isAttributeSet("oz"))
                 {
-                cerr << endl << "***Error! oz not set in <coord> node" << endl << endl;
+                m_exec_conf->msg->error() << endl << "oz not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             oz = (Scalar)atof(child_node.getAttribute("oz"));
             
             if (!child_node.isAttributeSet("nx"))
                 {
-                cerr << endl << "***Error! nx not set in <coord> node" << endl << endl;
+                m_exec_conf->msg->error() << endl << "nx not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             nx = (Scalar)atof(child_node.getAttribute("nx"));
             
             if (!child_node.isAttributeSet("ny"))
                 {
-                cerr << endl << "***Error! ny not set in <coord> node" << endl << endl;
+                m_exec_conf->msg->error() << endl << "ny not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             ny = (Scalar)atof(child_node.getAttribute("ny"));
             
             if (!child_node.isAttributeSet("nz"))
                 {
-                cerr << endl << "***Error! nz not set in <coord> node" << endl << endl;
+                m_exec_conf->msg->error() << endl << "nz not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             nz = (Scalar)atof(child_node.getAttribute("nz"));
@@ -1070,105 +1137,12 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
     return (unsigned int)m_improper_type_mapping.size()-1;
     }
 
-/*! \return Number of bond types determined from the XML file
-*/
-unsigned int HOOMDInitializer::getNumBondTypes() const
-    {
-    return (unsigned int)m_bond_type_mapping.size();
-    }
-
-/*! \return Number of angle types determined from the XML file
-*/
-unsigned int HOOMDInitializer::getNumAngleTypes() const
-    {
-    return (unsigned int)m_angle_type_mapping.size();
-    }
-
-/*! \return Number of dihedral types determined from the XML file
-*/
-unsigned int HOOMDInitializer::getNumDihedralTypes() const
-    {
-    return (unsigned int)m_dihedral_type_mapping.size();
-    }
-
-/*! \return Number of improper types determined from the XML file
-*/
-unsigned int HOOMDInitializer::getNumImproperTypes() const
-    {
-    return (unsigned int)m_improper_type_mapping.size();
-    }
-
-/*! \param snapshot The snapshot to be initialized
-    Adds all bonds found in the XML file to the snapshot
-*/
-void HOOMDInitializer::initBondDataSnapshot(SnapshotBondData& snapshot) const
-    {
-    assert(snapshot.bonds.size() == m_bonds.size());
-
-    // loop through all the bonds and add a bond for each
-    for (unsigned int i = 0; i < m_bonds.size(); i++)
-        {
-        snapshot.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
-        snapshot.type_id[i] = m_bonds[i].type;
-        }
-        
-    snapshot.type_mapping = m_bond_type_mapping;
-    }
-
-/*! \param angle_data Shared pointer to the AngleData to be initialized
-    Adds all angles found in the XML file to the AngleData
-*/
-void HOOMDInitializer::initAngleData(boost::shared_ptr<AngleData> angle_data) const
-    {
-    // loop through all the angles and add an angle for each
-    for (unsigned int i = 0; i < m_angles.size(); i++)
-        angle_data->addAngle(m_angles[i]);
-        
-    angle_data->setAngleTypeMapping(m_angle_type_mapping);
-    }
-
-/*! \param dihedral_data Shared pointer to the DihedralData to be initialized
-    Adds all dihedrals found in the XML file to the DihedralData
-*/
-void HOOMDInitializer::initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const
-    {
-    // loop through all the dihedrals and add an dihedral for each
-    for (unsigned int i = 0; i < m_dihedrals.size(); i++)
-        dihedral_data->addDihedral(m_dihedrals[i]);
-        
-    dihedral_data->setDihedralTypeMapping(m_dihedral_type_mapping);
-    }
-
-/*! \param improper_data Shared pointer to the ImproperData to be initialized
-    Adds all impropers found in the XML file to the ImproperData
-*/
-void HOOMDInitializer::initImproperData(boost::shared_ptr<DihedralData> improper_data) const
-    {
-    // loop through all the impropers and add an improper for each
-    for (unsigned int i = 0; i < m_impropers.size(); i++)
-        improper_data->addDihedral(m_impropers[i]);
-        
-    improper_data->setDihedralTypeMapping(m_improper_type_mapping);
-    }
-
-void HOOMDInitializer::initOrientation(Scalar4 *orientation) const
-    {
-    for (unsigned int i = 0; i < m_orientation.size(); i++)
-        orientation[i] = m_orientation[i];
-    }
-
-void HOOMDInitializer::initMomentInertia(InertiaTensor *moment_inertia) const
-    {
-    for (unsigned int i = 0; i < m_moment_inertia.size(); i++)
-        moment_inertia[i] = m_moment_inertia[i];
-    }
-
 void export_HOOMDInitializer()
     {
-    class_< HOOMDInitializer, bases<ParticleDataInitializer> >("HOOMDInitializer", init<const string&>())
-    // virtual methods from ParticleDataInitializer are inherited
+    class_< HOOMDInitializer >("HOOMDInitializer", init<boost::shared_ptr<const ExecutionConfiguration>, const string&>())
     .def("getTimeStep", &HOOMDInitializer::getTimeStep)
     .def("setTimeStep", &HOOMDInitializer::setTimeStep)
+    .def("getSnapshot", &HOOMDInitializer::getSnapshot)
     ;
     }
 

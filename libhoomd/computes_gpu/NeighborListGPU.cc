@@ -223,7 +223,7 @@ bool NeighborListGPU::distanceCheck()
         {
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         unsigned int tag = h_tag.data[flags.y];
-        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has moved more than one box length"
+        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one box length"
                                   << std::endl << "between neighbor list builds."
                                   << std::endl << std::endl;
 

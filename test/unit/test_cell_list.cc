@@ -578,7 +578,9 @@ void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     unsigned int N = 10000;
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    boost::shared_ptr<SnapshotSystemData> snap;
+    snap = rand_init.getSnapshot();
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // ********* initialize a cell list *********

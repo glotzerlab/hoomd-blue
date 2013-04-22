@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborListBinned.h"
 #include "Initializers.h"
+#include "SnapshotSystemData.h"
 
 #include <math.h>
 
@@ -292,7 +293,9 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    boost::shared_ptr<SnapshotSystemData> snap;
+    snap = rand_init.getSnapshot();
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));

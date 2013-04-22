@@ -134,7 +134,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
 
     // create two identical random particle systems to simulate
     SimpleCubicInitializer cubic_init(L, Scalar(0.89), "A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(cubic_init, exec_conf));
+    boost::shared_ptr<SnapshotSystemData> snap = cubic_init.getSnapshot();
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // enable the energy computation
@@ -329,7 +330,8 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     rand_init.setSeed(12345);
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // give the particles velocities according to a Maxwell-Boltzmann distribution

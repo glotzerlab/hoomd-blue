@@ -18,6 +18,7 @@ class improper_harmonic_tests (unittest.TestCase):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         
         improper_data = globals.system_definition.getImproperData();
+        improper_data.addDihedralType('dihedralA')
         improper_data.addDihedral(hoomd.Dihedral(0, 0, 1, 2, 3));
         import __main__;
         __main__.sorter.set_params(grid=8)

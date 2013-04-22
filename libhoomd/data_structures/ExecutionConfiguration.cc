@@ -799,4 +799,6 @@ void export_ExecutionConfiguration()
     .value("CPU", ExecutionConfiguration::CPU)
     ;
 
+    // allow classes to take shared_ptr<const ExecutionConfiguration> arguments
+    implicitly_convertible<boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<const ExecutionConfiguration> >();
     }

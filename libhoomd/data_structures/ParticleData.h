@@ -84,8 +84,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "Index1D.h"
-#include "DomainDecomposition.h"
 #endif
+
+#include "DomainDecomposition.h"
 
 #include <stdlib.h>
 #include <vector>
@@ -198,7 +199,7 @@ const unsigned int NOT_LOCAL = 0xffffffff;
 
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
- * - Initializing the ParticleData from a ParticleDataInitializer
+ * - Initializing the ParticleData 
  * - inside an Analyzer to iterate over the current ParticleData
  *
  * Initializing the ParticleData is accomplished by first filling the particle data arrays with default values
@@ -213,13 +214,26 @@ const unsigned int NOT_LOCAL = 0xffffffff;
 struct SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
-        : size(0), num_particle_types(0)
-        { }
+        : size(0)
+        {
+        // offer default type mapping
+        type_mapping.push_back("A");
+        }
 
     //! constructor
     /*! \param N number of particles to allocate memory for
      */
     SnapshotParticleData(unsigned int N);
+
+    //! Resize the snapshot
+    /*! \param N number of particles in snapshot
+     */
+    void resize(unsigned int N);
+
+    //! Validate the snapshot
+    /*! \returns true if the number of elements is consistent
+     */
+    bool validate() const;
 
     std::vector<Scalar3> pos;       //!< positions
     std::vector<Scalar3> vel;       //!< velocities
@@ -231,132 +245,10 @@ struct SnapshotParticleData {
     std::vector<int3> image;        //!< images
     std::vector<unsigned int> body; //!< body ids
     std::vector<Scalar4> orientation; //!< orientations
+    std::vector<InertiaTensor> inertia_tensor; //!< Moments of inertia
+
     unsigned int size;              //!< number of particles in this snapshot
-    unsigned int num_particle_types;//!< Number of particle types defined
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
-    };
-
-//! Abstract interface for initializing a ParticleData
-/*! A ParticleDataInitializer should only be used with the appropriate constructor
-    of ParticleData(). That constructure calls the methods of this class to determine
-    the number of particles, number of particle types, the simulation box, and then
-    initializes itself. Then initSnapshot() is called to fill out the ParticleDataSnapshot
-    to be used to initalize the particle data arrays
-
-    \note This class is an abstract interface with pure virtual functions. Derived
-    classes must implement these methods.
-    \ingroup data_structs
-    */
-class ParticleDataInitializer
-    {
-    public:
-        //! Empty constructor
-        ParticleDataInitializer() { }
-        //! Empty Destructor
-        virtual ~ParticleDataInitializer() { }
-        
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumParticles() const = 0;
-       
-        //! Returns the number of bonds to be initialized
-        virtual unsigned int getNumBonds() const 
-            {
-            return 0;
-            }
-
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const = 0;
-        
-        //! Initializes the snapshot of the particle data arrays
-        /*! \param snapshot snapshot to initialize
-        */
-        virtual void initSnapshot(SnapshotParticleData& snapshot) const = 0;
-        
-        //! Initialize the simulation walls
-        /*! \param wall_data Shared pointer to the WallData to initialize
-            This base class defines an empty method, as walls are optional
-        */
-        virtual void initWallData(boost::shared_ptr<WallData> wall_data) const {}
-
-        //! Initialize the integrator variables
-        /*! \param integrator_data Shared pointer to the IntegratorData to initialize
-            This base class defines an empty method, since initializing the 
-            integrator variables is optional
-        */
-        virtual void initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data) const {}
-        
-        //! Returns the number of dimensions
-        /*! The base class returns 3 */
-        virtual unsigned int getNumDimensions() const
-            {
-            return 3;
-            }
-        
-        //! Returns the number of bond types to be created
-        /*! Bonds are optional: the base class returns 1 */
-        virtual unsigned int getNumBondTypes() const
-            {
-            return 1;
-            }
-            
-        /*! Angles are optional: the base class returns 1 */
-        virtual unsigned int getNumAngleTypes() const
-            {
-            return 1;
-            }
-            
-        /*! Dihedrals are optional: the base class returns 1 */
-        virtual unsigned int getNumDihedralTypes() const
-            {
-            return 1;
-            }
-            
-        /*! Impropers are optional: the base class returns 1 */
-        virtual unsigned int getNumImproperTypes() const
-            {
-            return 1;
-            }
-            
-        //! Initialize the bond data snpashot
-        /*! \param snapshot Snapshot to be initialized
-            Bonds are optional: the base class does nothing
-        */
-        virtual void initBondDataSnapshot(SnapshotBondData& snapshot) const {}
-        
-        //! Initialize the angle data
-        /*! \param angle_data Shared pointer to the AngleData to be initialized
-            Angles are optional: the base class does nothing
-        */
-        virtual void initAngleData(boost::shared_ptr<AngleData> angle_data) const {}
-        
-        //! Initialize the dihedral data
-        /*! \param dihedral_data Shared pointer to the DihedralData to be initialized
-            Dihedrals are optional: the base class does nothing
-        */
-        virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const {}
-        
-        //! Initialize the improper data
-        /*! \param improper_data Shared pointer to the ImproperData to be initialized
-            Impropers are optional: the base class does nothing
-        */
-        virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const {}
-        
-        //! Initialize the rigid data
-        /*! \param rigid_data Shared pointer to the RigidData to be initialized
-            Rigid bodies are optional: the base class does nothing
-        */
-        virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const {}
-        
-        //! Initialize the orientation data
-        /*! \param orientation Pointer to one orientation per particle to be initialized
-        */
-        virtual void initOrientation(Scalar4 *orientation) const {}
-        
-        //! Initialize the inertia tensor data
-        /*! \param moment_inertia Pointer to one inertia tensor per particle to be initialize (in tag order!)
-        */
-        virtual void initMomentInertia(InertiaTensor *moment_inertia) const {}
-            
     };
 
 //! Manages all of the data arrays for the particles
@@ -419,7 +311,7 @@ class ParticleDataInitializer
 
     \ingroup data_structs
     
-    <h1>Parallel simulations</h1>
+    ## Parallel simulations
 
     In a parallel (or domain decompositon) simulation, the ParticleData may either correspond to the global state of the
     simulation (e.g. before and after a simulation run), or to the local particles only (e.g. during a simulation run).
@@ -450,7 +342,7 @@ class ParticleDataInitializer
     starting at getN()). It keeps track of those particles using the addGhostParticles() and removeAllGhostParticles() methods.
     The caller is responsible for updating the particle data arrays with the ghost particle information.
 
-    <h1> Anisotropic particles</h1>
+    ## Anisotropic particles
 
     Anisotropic particles are handled by storing an orientation quaternion for every particle in the simulation.
     Similarly, a net torque is computed and stored for each particle. The design decision made is to not
@@ -469,6 +361,21 @@ class ParticleDataInitializer
     Access the orientation quaternion of each particle with the GPUArray gotten from getOrientationArray(), the net
     torque with getTorqueArray(). Individual inertia tensor values can be accessed with getInertiaTensor() and
     setInertiaTensor()
+    
+    ## Origin shifting
+    
+    Parallel MC simulations randomly translate all particles by a fixed vector at periodic intervals. This motion 
+    is not physical, it is merely the easiest way to shift the origin of the cell list / domain decomposition
+    boundaries. Analysis routines (i.e. MSD) and movies are complicated by the random motion of all particles.
+    
+    ParticleData can track this origin and subtract it from all particles. This subtraction is done when taking a
+    snapshot. Putting the subtraction there naturally puts the correction there for all analysis routines and file I/O
+    while leaving the shifted particles in place for computes, updaters, and integrators. On the restoration from
+    a snapshot, the origin needs to be cleared.
+    
+    Two routines support this: translateOrigin() and resetOrigin(). The position of the origin is tracked by
+    ParticleData internally. translateOrigin() moves it by a given vector. resetOrigin() zeroes it. TODO: This might
+    not be sufficient for simulations where the box size changes. We'll see in testing.
 */
 class ParticleData : boost::noncopyable
     {
@@ -479,10 +386,14 @@ class ParticleData : boost::noncopyable
                      unsigned int n_types,
                      boost::shared_ptr<ExecutionConfiguration> exec_conf);
         
-        //! Construct from an initializer
-        ParticleData(const ParticleDataInitializer& init,
-                     boost::shared_ptr<ExecutionConfiguration> exec_conf);
-        
+        //! Construct using a ParticleDataSnapshot
+        ParticleData(const SnapshotParticleData& snapshot,
+                     const BoxDim& global_box,
+                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                     boost::shared_ptr<DomainDecomposition> decomposition
+                        = boost::shared_ptr<DomainDecomposition>()
+                     );
+ 
         //! Destructor
         virtual ~ParticleData();
         
@@ -552,7 +463,7 @@ class ParticleData : boost::noncopyable
         */
         unsigned int getNTypes() const
             {
-            return m_ntypes;
+            return m_type_mapping.size();
             }
             
         //! Get the maximum diameter of the particle set
@@ -802,6 +713,26 @@ class ParticleData : boost::noncopyable
             return m_decomposition;
             }
 #endif
+            
+        //! Translate the box origin
+        /*! \param a vector to apply in the translation
+        */
+        void translateOrigin(const Scalar3& a)
+            {
+            m_origin += a;
+            
+            // wrap the origin back into the box to prevent it from getting too large
+            int3 image = make_int3(0,0,0);
+            m_global_box.wrap(m_origin, image);
+            }
+        
+        //! Rest the box origin
+        /*! \post The origin is 0,0,0
+        */
+        void resetOrigin()
+            {
+            m_origin = make_scalar3(0,0,0);
+            }
 
     private:
         BoxDim m_box;                               //!< The simulation box
@@ -810,7 +741,6 @@ class ParticleData : boost::noncopyable
 #ifdef ENABLE_MPI
         boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition data
 #endif
-        unsigned int m_ntypes;                      //!< Number of particle types
         
         std::vector<std::string> m_type_mapping;    //!< Mapping between particle type indices and names
         
@@ -847,6 +777,7 @@ class ParticleData : boost::noncopyable
         const float m_resize_factor;                 //!< The numerical factor with which the particle data arrays are resized
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         
+        Scalar3 m_origin;                            //!< Tracks the position of the origin of the coordinate system
         
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
@@ -861,8 +792,6 @@ class ParticleData : boost::noncopyable
 
 //! Exports the BoxDim class to python
 void export_BoxDim();
-//! Exports ParticleDataInitializer to python
-void export_ParticleDataInitializer();
 //! Exports ParticleData to python
 void export_ParticleData();
 //! Export SnapshotParticleData to python

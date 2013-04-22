@@ -83,6 +83,10 @@ class options:
         self.msg_file = None;
         self.shared_msg_file = None;
         self.nrank = None;
+        self.nx = None;
+        self.ny = None;
+        self.nz = None;
+        self.linear = None;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -95,7 +99,11 @@ class options:
                    notice_level=self.notice_level,
                    msg_file=self.msg_file,
                    shared_msg_file=self.shared_msg_file,
-                   nrank=self.nrank)
+                   nrank=self.nrank,
+                   nx=self.nx,
+                   ny=self.ny,
+                   nz=self.nz,
+                   linear=self.linear)
         return str(tmp);
 
 ## Parses command line options
@@ -114,6 +122,10 @@ def _parse_command_line():
     parser.add_option("--msg-file", dest="msg_file", help="Name of file to write messages to");
     parser.add_option("--shared-msg-file", dest="shared_msg_file", help="(MPI only) Name of shared file to write message to (append partition #)");
     parser.add_option("--nrank", dest="nrank", help="(MPI only) Number of ranks to include in a partition");
+    parser.add_option("--nx", dest="nx", help="(MPI only) Number of domains along the x-direction");
+    parser.add_option("--ny", dest="ny", help="(MPI only) Number of domains along the y-direction");
+    parser.add_option("--nz", dest="nz", help="(MPI only) Number of domains along the z-direction");
+    parser.add_option("--linear", dest="linear", action="store_true", default=False, help="(MPI only) Force a slab (1D) decomposition along the z-direction");
     parser.add_option("--user", dest="user", help="User options");
 
     (cmd_options, args) = parser.parse_args();
@@ -159,6 +171,36 @@ def _parse_command_line():
         except ValueError:
             parser.error('--notice-level must be an integer')
 
+    # Convert nx to an integer
+    if cmd_options.nx is not None:
+        if not hoomd.is_MPI_available():
+            globals.msg.error("The --nx option is only avaible in MPI builds.\n");
+            raise RuntimeError('Error setting option');
+        try:
+            cmd_options.nx = int(cmd_options.nx);
+        except ValueError:
+            parser.error('--nx must be an integer')
+            
+    # Convert ny to an integer
+    if cmd_options.ny is not None:
+        if not hoomd.is_MPI_available():
+            globals.msg.error("The --ny option is only avaible in MPI builds.\n");
+            raise RuntimeError('Error setting option');
+        try:
+            cmd_options.ny = int(cmd_options.ny);
+        except ValueError:
+            parser.error('--ny must be an integer')
+
+    # Convert nz to an integer
+    if cmd_options.nz is not None:
+       if not hoomd.is_MPI_available():
+            globals.msg.error("The --nz option is only avaible in MPI builds.\n");
+            raise RuntimeError('Error setting option');
+       try:
+            cmd_options.nz = int(cmd_options.nz);
+       except ValueError:
+            parser.error('--nz must be an integer')
+
     # copy command line options over to global options
     globals.options.mode = cmd_options.mode;
     globals.options.gpu = cmd_options.gpu;
@@ -166,6 +208,11 @@ def _parse_command_line():
     globals.options.gpu_error_checking = cmd_options.gpu_error_checking;
     globals.options.min_cpu = cmd_options.min_cpu;
     globals.options.ignore_display = cmd_options.ignore_display;
+    
+    globals.options.nx = cmd_options.nx;
+    globals.options.ny = cmd_options.ny;
+    globals.options.nz = cmd_options.nz;
+    globals.options.linear = cmd_options.linear
 
     if cmd_options.notice_level is not None:
         globals.options.notice_level = cmd_options.notice_level;

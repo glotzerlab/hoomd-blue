@@ -67,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "Initializers.h"
+#include "SnapshotSystemData.h"
 
 using namespace std;
 using namespace boost;
@@ -355,7 +356,9 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the angle forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
+    snap->angle_data.type_mapping.push_back("A");
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     
     shared_ptr<CGCMMAngleForceCompute> fc1 = af_creator1(sysdef);
     shared_ptr<CGCMMAngleForceCompute> fc2 = af_creator2(sysdef);

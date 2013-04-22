@@ -1189,6 +1189,77 @@ void RigidData::computeVirialCorrectionEndGPU(Scalar deltaT)
     }
 #endif
 
+/*! \param snapshot SnapshotRigidData to initialize from
+ */
+void RigidData::initializeFromSnapshot(const SnapshotRigidData& snapshot)
+    {
+    // check that all fields in the snapshot have correct length
+    if (m_exec_conf->getRank() == 0 && !snapshot.validate())
+        {
+        m_exec_conf->msg->error() << "init.*: inconsistent size of rigid body snapshot."
+                                << std::endl << std::endl;
+        throw std::runtime_error("Error initializing rigid bodies.");
+        }
+
+    ArrayHandle<Scalar4> h_com(getCOM(), access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_vel(getVel(), access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_angmom(getAngMom(), access_location::host, access_mode::overwrite);
+    ArrayHandle<int3> h_body_image(getBodyImage(), access_location::host, access_mode::overwrite);
+  
+    // Error out if snapshot contains a different number of bodies
+    if (getNumBodies() != snapshot.size)
+        {
+        m_exec_conf->msg->error() << "SnapshotRigidData has mismatched size." << std::endl << std::endl;
+        throw std::runtime_error("Error initializing RigidData.");
+        }
+
+    // We don't need to restore force, torque and orientation because the setup will do the rest,
+    // and simulation still resumes smoothly.
+    // NOTE: this may not be true if re-initialized in the middle of the simulation
+    unsigned int n_bodies = snapshot.size;
+    for (unsigned int body = 0; body < n_bodies; body++)
+        {
+        h_com.data[body] = make_scalar4(snapshot.com[body].x, snapshot.com[body].y, snapshot.com[body].z,0.0);
+        h_vel.data[body] = make_scalar4(snapshot.vel[body].x, snapshot.vel[body].y, snapshot.vel[body].z,0.0);
+        h_angmom.data[body] = make_scalar4(snapshot.angmom[body].x, snapshot.angmom[body].y, snapshot.angmom[body].z, 0.0); 
+        h_body_image.data[body] = snapshot.body_image[body];
+        }
+ 
+    }
+
+/*! \param snapshot The snapshot to fill with the rigid body data
+ */
+void RigidData::takeSnapshot(SnapshotRigidData& snapshot) const
+    {
+    ArrayHandle<Scalar4> h_com(getCOM(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(getVel(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_angmom(getAngMom(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_body_image(getBodyImage(), access_location::host, access_mode::read);
+
+    // allocate memory in snapshot
+    unsigned int n_bodies = getNumBodies();
+    snapshot.resize(n_bodies);
+
+    for (unsigned int i = 0; i < n_bodies; ++i)
+        {
+        snapshot.com[i] = make_scalar3(h_com.data[i].x,h_com.data[i].y,h_com.data[i].z);
+        snapshot.vel[i] = make_scalar3(h_vel.data[i].x,h_vel.data[i].y,h_vel.data[i].z);
+        snapshot.angmom[i] = make_scalar3(h_angmom.data[i].x,h_angmom.data[i].y,h_angmom.data[i].z);
+        snapshot.body_image[i] = h_body_image.data[i];
+        }
+    }
+
+void export_SnapshotRigidData()
+    {
+    class_<SnapshotRigidData, boost::shared_ptr<SnapshotRigidData> >
+        ("SnapshotRigidData", init<>())
+        .def_readwrite("size", &SnapshotRigidData::size)
+        .def_readwrite("com", &SnapshotRigidData::com)
+        .def_readwrite("vel", &SnapshotRigidData::vel)
+        .def_readwrite("angmom", &SnapshotRigidData::angmom)
+        .def_readwrite("body_image", &SnapshotRigidData::body_image)
+        ;
+    }
 
 void export_RigidData()
     {

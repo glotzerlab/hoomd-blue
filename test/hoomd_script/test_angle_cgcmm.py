@@ -18,6 +18,7 @@ class angle_cgcmm_tests (unittest.TestCase):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         
         angle_data = globals.system_definition.getAngleData();
+        angle_data.addAngleType('angleA')
         angle_data.addAngle(hoomd.Angle(0, 0, 1, 2));
         import __main__;
         __main__.sorter.set_params(grid=8)

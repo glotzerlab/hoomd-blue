@@ -381,15 +381,16 @@ BOOST_PYTHON_MODULE(hoomd)
     
     // data structures
     export_BoxDim();
-    export_ParticleDataInitializer();
     export_ParticleData();
     export_SnapshotParticleData();
     export_RigidData();
+    export_SnapshotRigidData();
     export_ExecutionConfiguration();
     export_BondData();
     export_SystemDefinition();
     export_AngleData();
     export_DihedralData();
+    export_SnapshotSystemData();
     
     // initializers
     export_RandomInitializer();

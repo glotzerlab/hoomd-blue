@@ -77,6 +77,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __HOOMD_BINARY_INITIALIZER_H__
 #define __HOOMD_BINARY_INITIALIZER_H__
 
+//! Forward definition of SnapshotSystemData
+class SnapshotSystemData;
+
 //! Initializes particle data from a Hoomd input file
 /*! The input XML file format is identical to the output XML file format that HOOMDDumpWriter writes.
     For more information on the XML file format design see \ref page_dev_info. Although, HOOMD's
@@ -94,70 +97,28 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     \ingroup data_structs
 */
-class HOOMDBinaryInitializer : public ParticleDataInitializer
+class HOOMDBinaryInitializer
     {
     public:
         //! Loads in the file and parses the data
-        HOOMDBinaryInitializer(const std::string &fname);
+        HOOMDBinaryInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                               const std::string &fname);
 
-        //! Returns the number of dimensions
-        virtual unsigned int getNumDimensions() const;
-        
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumParticles() const;
-
-        //! Returns the number of bonds to be initialized
-        virtual unsigned int getNumBonds() const;
-        
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
         
         //! Sets the timestep of the simulation
         virtual void setTimeStep(unsigned int ts);
-        
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const;
-        
+
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
-        
-        //! Initialize the walls
-        virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
-        
-        //! Returns the number of bond types to be created
-        virtual unsigned int getNumBondTypes() const;
-        
-        //! Returns the number of angle types to be created
-        virtual unsigned int getNumAngleTypes() const;
-        
-        //! Returns the number of dihedral types to be created
-        virtual unsigned int getNumDihedralTypes() const;
-        
-        //! Returns the number of improper types to be created
-        virtual unsigned int getNumImproperTypes() const;
-        
-        //! Initialize the bond data snapshot
-        virtual void initBondDataSnapshot(SnapshotBondData& snapshot) const;
-        
-        //! Initialize the angle data
-        virtual void initAngleData(boost::shared_ptr<AngleData> angle_data) const;
-        
-        //! Initialize the dihedral data
-        virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const;
-        
-        //! Initialize the improper data
-        virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const;
-        
-        //! Initialize the rigid data
-        virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const;
-        
-        //! Initialize the integrator data
-        virtual void initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data ) const;
+        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
 
     private:
         //! Helper function to read the input file
         void readFile(const std::string &fname);        
-                
+
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
+
         BoxDim m_box;   //!< Simulation box read from the file
         
         std::vector< unsigned int > m_tag_array;     //!< tags of all particles loaded

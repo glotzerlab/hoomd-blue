@@ -84,9 +84,9 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         bool found_decomposition = findDecomposition(L, nx, ny, nz);
         if (! found_decomposition)
             {
-            m_exec_conf->msg->error() << "***Warning! Unable to find a decomposition "
-                 << endl << "with requested dimensions. Choosing default decomposition."
-                 << endl;
+            m_exec_conf->msg->warning() << "Unable to find a decomposition with"
+                 << endl << "requested dimensions. Choosing default decomposition."
+                 << endl << endl;
 
             nx = ny = nz = 0;
             findDecomposition(L, nx,ny,nz);
@@ -100,11 +100,6 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     // Print out information about the domain decomposition
     m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = " << nx << " n_y = " << ny << " n_z = " << nz << "." << std::endl;
  
-    // calculate physical box dimensions of every processor
-
-    // broadcast global box dimensions
-    bcast(L, 0, m_mpi_comm);
-
     // broadcast grid dimensions
     bcast( m_nx, 0, m_mpi_comm);
     bcast( m_ny, 0, m_mpi_comm);

@@ -88,6 +88,16 @@ System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_
     // sanity check
     assert(m_sysdef);
     m_exec_conf = m_sysdef->getParticleData()->getExecConf();
+
+    #ifdef ENABLE_MPI
+    // the initial time step is defined on the root processor
+    if (m_sysdef->getParticleData()->getDomainDecomposition())
+        {
+        bcast(m_start_tstep, 0, m_exec_conf->getMPICommunicator());
+        bcast(m_cur_tstep, 0, m_exec_conf->getMPICommunicator());
+        bcast(m_last_status_tstep, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
     }
 
 /*! \param analyzer Shared pointer to the Analyzer to add

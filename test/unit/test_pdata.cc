@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "Initializers.h"
+#include "SnapshotSystemData.h"
 
 using namespace std;
 using namespace boost;
@@ -646,7 +647,8 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     // make a simple one-particle box
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     SimpleCubicInitializer one(1, 2.0, "ABC");
-    ParticleData one_data(one, exec_conf);
+    boost::shared_ptr<SnapshotSystemData> snapshot = one.getSnapshot();
+    ParticleData one_data(snapshot->particle_data, snapshot->global_box, exec_conf);
 
     BOOST_CHECK(one_data.getN() == 1);
     {
@@ -662,7 +664,8 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     
     // now try an 8-particle one
     SimpleCubicInitializer eight(2, 2.0, "A");
-    ParticleData eight_data(eight, exec_conf);
+    boost::shared_ptr<SnapshotSystemData> snapshot_eight = eight.getSnapshot();
+    ParticleData eight_data(snapshot_eight->particle_data, snapshot_eight->global_box, exec_conf);
     
     BOOST_CHECK(eight_data.getN() == 8);
     {
@@ -702,7 +705,8 @@ BOOST_AUTO_TEST_CASE( Random_test )
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     Scalar min_dist = Scalar(0.8);
     RandomInitializer rand_init(500, Scalar(0.4), min_dist, "ABC");
-    ParticleData pdata(rand_init, exec_conf);
+    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
+    ParticleData pdata(snap->particle_data, snap->global_box, exec_conf);
     
     BOOST_CHECK_EQUAL(pdata.getNameByType(0), "ABC");
     BOOST_CHECK_EQUAL(pdata.getTypeByName("ABC"), (unsigned int)0);

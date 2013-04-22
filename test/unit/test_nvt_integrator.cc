@@ -1183,16 +1183,17 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     const unsigned int N = 1000;
     
     // create two identical random particle systems to simulate
-    RandomInitializer rand_init1(N, Scalar(0.2), Scalar(0.9), "A");
-    RandomInitializer rand_init2(N, Scalar(0.2), Scalar(0.9), "A");
-    rand_init1.setSeed(12345);
-    shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(rand_init1, exec_conf));
+    RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
+    boost::shared_ptr<SnapshotSystemData> snap;
+    rand_init.setSeed(12345);
+    snap = rand_init.getSnapshot();
+
+    shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
     shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
     shared_ptr<ParticleGroup> group_all1(new ParticleGroup(sysdef1, selector_all1));
 
-    rand_init2.setSeed(12345);
-    shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(rand_init2, exec_conf));
+    shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
     shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
     shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
