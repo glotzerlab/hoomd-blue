@@ -1498,6 +1498,13 @@ class body_data_proxy:
     # \param bdata RigidData to which this proxy belongs
     # \param tag tag of this body in \a bdata
     def __init__(self, bdata, tag):
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("Rigid bodies are not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error accessing body data.")
+ 
         self.bdata = bdata;
         self.tag = tag;
     

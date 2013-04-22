@@ -326,7 +326,13 @@ class rescale_temp(_updater):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, T, period=1):
         util.print_status_line();
-    
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("update.rescale_temp not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up updater.")
+ 
         # initialize base class
         _updater.__init__(self);
         
@@ -384,7 +390,13 @@ class zero_momentum(_updater):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, period=1):
         util.print_status_line();
-    
+ 
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("update.zero_momentum is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up updater.")
+                         
         # initialize base class
         _updater.__init__(self);
         
