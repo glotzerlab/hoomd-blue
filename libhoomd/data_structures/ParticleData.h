@@ -216,8 +216,6 @@ struct SnapshotParticleData {
     SnapshotParticleData()
         : size(0)
         {
-        // offer default type mapping
-        type_mapping.push_back("A");
         }
 
     //! constructor

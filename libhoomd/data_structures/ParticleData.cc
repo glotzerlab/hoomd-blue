@@ -1610,7 +1610,6 @@ SnapshotParticleData::SnapshotParticleData(unsigned int N)
        : size(N)
     {
     resize(N);
-    type_mapping.push_back("A");
     }
 
 void SnapshotParticleData::resize(unsigned int N)
