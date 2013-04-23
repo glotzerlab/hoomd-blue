@@ -636,7 +636,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
 # \endcode
 #
 # \sa hoomd_script.data
-def copy_snapshot(snapshot):
+def read_snapshot(snapshot):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
