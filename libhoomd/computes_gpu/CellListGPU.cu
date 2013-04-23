@@ -112,13 +112,12 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     float flag = 0.0f;
     float diameter = 0.0f;
     float body = 0;
-    float type = 0;
+    float type = postype.w;
     float4 orientation = make_float4(0,0,0,0);
     if (d_tdb != NULL)
         {
         diameter = d_diameter[idx];
         body = __int_as_float(d_body[idx]);
-        type = postype.w;
         }
     if (d_cell_orientation != NULL)
         {
@@ -538,13 +537,12 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
             float flag = 0.0f;
             float diameter = 0.0f;
             float body = 0;
-            float type = 0;
+            float type = write_pos.w;
             float4 orientation = make_float4(0,0,0,0);
             if (d_tdb != NULL)
                 {
                 diameter = d_diameter[write_id];
                 body = __int_as_float(d_body[write_id]);
-                type = write_pos.w;
                 }
             if (d_cell_orientation != NULL)
                 {
