@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     InertiaTensor I;
     
     // start by creating a single particle system: see it the correct file is written
-    BoxDim box(Scalar(3.5), Scalar(5.5), Scalar(12.5));
+    BoxDim box(Scalar(35), Scalar(55), Scalar(125));
     
     // set some tilt factors
     box.setTiltFactors(Scalar(1.0),Scalar(0.5),Scalar(0.25));
@@ -258,7 +258,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box lx=\"3.5\" ly=\"5.5\" lz=\"12.5\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
+        BOOST_CHECK_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
