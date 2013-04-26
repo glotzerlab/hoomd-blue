@@ -109,6 +109,7 @@ Table of contents:
   - \ref sec_index_communicate
 
 \section sec_index_run Run
+ - \link hoomd_script.get_step() get_step\endlink - <i>Gets the current time step</i>
  - \link hoomd_script.run() run\endlink - <i>Runs the simulation for a given number of time steps</i>
  - \link hoomd_script.run_upto() run_upto\endlink - <i>Runs the simulation up to a given time step number</i>
 

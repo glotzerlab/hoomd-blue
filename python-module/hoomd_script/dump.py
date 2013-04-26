@@ -77,7 +77,9 @@ class xml(analyze._analyzer):
     # \param filename (optional) Base of the file name
     # \param period (optional) Number of time steps between file dumps
     # \param params (optional) Any number of parameters that set_params() accepts
-    # 
+    # \param time_step (optional) Time step to write into the file (overrides the current simulation step). time_step
+    #                  is ignored for periodic updates
+    #
     # \b Examples:
     # \code
     # dump.xml(filename="atoms.dump", period=1000)
@@ -94,10 +96,10 @@ class xml(analyze._analyzer):
     # with set_params(), or by specifying the options in the dump.xml() command.
     #
     # If \a period is not specified, then no periodic updates will occur. Instead, the file
-    # \a filename is written immediately.
+    # \a filename is written immediately. \a time_step is passed on to write()
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, **params):
+    def __init__(self, filename="dump", period=None, time_step=None, **params):
         util.print_status_line();
     
         # initialize base class
@@ -115,7 +117,7 @@ class xml(analyze._analyzer):
             self.prev_period = 1;
         elif filename != "dump":
             util._disable_status_lines = True;
-            self.write(filename);
+            self.write(filename, time_step);
             util._disable_status_lines = False;
         else:
             self.enabled = False;
@@ -233,12 +235,16 @@ class xml(analyze._analyzer):
         if vizsigma is not None:
             self.cpp_analyzer.setVizSigma(vizsigma);
         
-   ## Write a file at the current time step
+    ## Write a file at the current time step
     #
     # \param filename File name to write to
+    # \param time_step (if set) Time step value to write out to the file
     #
     # The periodic file writes can be temporarily overridden and a file with any file name
     # written at the current time step.
+    #
+    # \note When \a time_step is None, the current system time step is written to the file. When specified,
+    #       \a time_step overrides this value.
     #
     # Executing write() requires that the %dump was saved in a variable when it was specified.
     # \code
@@ -248,12 +254,16 @@ class xml(analyze._analyzer):
     # \b Examples:
     # \code
     # xml.write(filename="start.xml")
+    # xml.write(filename="start.xml", time_step=0)
     # \endcode
-    def write(self, filename):
+    def write(self, filename, time_step = None):
         util.print_status_line();
         self.check_initialization();
         
-        self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
+        if time_step is None:
+            time_step = globals.system.getCurrentTimeStep()
+        
+        self.cpp_analyzer.writeFile(filename, time_step);
 
 ## Writes simulation snapshots in a binary format
 #
