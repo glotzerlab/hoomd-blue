@@ -281,7 +281,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     SnapshotDihedralData& idata = snapshot->improper_data;
 
     // allocate memory
-    idata.resize(m_dihedrals.size());
+    idata.resize(m_impropers.size());
 
     // loop through all the dihedrals and add an dihedral for each
     for (unsigned int i = 0; i < m_impropers.size(); i++)
