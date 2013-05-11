@@ -125,17 +125,6 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, const Snapshot
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&DihedralData::setDirty, this));
     
-    // offer a default type mapping
-    for (unsigned int i = 0; i < getNDihedralTypes(); i++)
-        {
-        char suffix[2];
-        suffix[0] = 'A' + i;
-        suffix[1] = '\0';
-        
-        string name = string("dihedral") + string(suffix);
-        m_dihedral_type_mapping.push_back(name);
-        }
-        
     // allocate memory for the GPU dihedral table
     allocateDihedralTable(1);
 
