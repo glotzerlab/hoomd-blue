@@ -120,7 +120,7 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
                              bool overwrite)
     : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group),
     m_rigid_data(sysdef->getRigidData()), m_num_frames_written(0), m_last_written_step(0), m_appending(false),
-      m_unwrap_full(false), m_unwrap_rigid(false),
+      m_unwrap_full(false), m_unwrap_rigid(false), m_angle(false),
       m_overwrite(overwrite), m_is_initialized(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing DCDDumpWriter: " << fname << " " << period << " " << overwrite << endl;
@@ -422,6 +422,17 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         {
         unsigned int i = m_group->getMemberTag(group_idx);
         m_staging_buffer[group_idx] = float(tmp_pos[i].z);
+        
+        // m_angle set to True turns on a hack where the particle orientation angle is written out to the z component
+        // this only works in 2D simulations, obviously
+        if (m_angle)
+            {
+            Scalar s = 1;
+            if (snapshot.orientation[i].w < 0)
+                s = -1;
+            
+            m_staging_buffer[group_idx] = acosf(snapshot.orientation[i].x) * 2 * s;
+            }
         }
     
     // write z coords
@@ -458,6 +469,7 @@ void export_DCDDumpWriter()
     ("DCDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, unsigned int, boost::shared_ptr<ParticleGroup>, bool>())
     .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
     .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)
+    .def("setAngleZ", &DCDDumpWriter::setAngleZ)
     ;
     }
 

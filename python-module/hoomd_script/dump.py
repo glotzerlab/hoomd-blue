@@ -486,6 +486,7 @@ class dcd(analyze._analyzer):
     #        breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
     #        unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
     #        some particles may be written just outside it. \a unwrap_rigid is ignored if \a unwrap_full is True.
+    # \param angle_z When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
     # 
     # \b Examples:
     # \code
@@ -500,7 +501,7 @@ class dcd(analyze._analyzer):
     #   consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False):
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False):
         util.print_status_line();
         
         # initialize base class
@@ -519,6 +520,7 @@ class dcd(analyze._analyzer):
         self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
+        self.cpp_analyzer.setAngleZ(angle_z);
         self.setupAnalyzer(period);
     
     def enable(self):
