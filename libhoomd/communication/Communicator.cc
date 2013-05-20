@@ -393,6 +393,7 @@ void Communicator::setupRoutingTable()
                     {
                     t.m_route_edge_face[cur_face][edge_i][face_j] = true;
                     sent = true;
+                    break;
                     }
 
             if (plan & face_plan_lookup[cur_face] && !sent)

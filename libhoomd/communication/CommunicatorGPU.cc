@@ -65,8 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
-//#define MPI3 // define if the MPI implementation supports MPI3 one-sided communications
-
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)

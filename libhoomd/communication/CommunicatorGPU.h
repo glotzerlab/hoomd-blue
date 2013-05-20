@@ -60,9 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #ifdef ENABLE_CUDA
 
+//#define MPI3 // define if the MPI implementation supports MPI3 one-sided communications
+
 #include "Communicator.h"
 
-#include "WorkQueue.h"
 #include "GPUFlags.h"
 #include "GPUArray.h"
 #include "GPUBufferMapped.h"
@@ -180,17 +181,11 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge
         GPUArray<unsigned int> m_ghost_idx_face;    //!< Indices of particles copied as ghosts via a face
 
-#ifndef ENABLE_MPI_CUDA
-        GPUBufferMapped<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions 
-        GPUBufferMapped<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions 
-        GPUBufferMapped<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions 
-        GPUBufferMapped<char> m_update_recv_buf;     //!< Receive buffer for ghost positions 
-#else
         GPUArray<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions 
         GPUArray<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions 
         GPUArray<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions 
         GPUArray<char> m_update_recv_buf;     //!< Receive buffer for ghost positions 
-#endif
+
         unsigned int m_max_copy_ghosts_face;        //!< Maximum number of ghosts 'face' particles
         unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
         unsigned int m_max_copy_ghosts_corner;      //!< Maximum number of ghosts 'corner' particles
