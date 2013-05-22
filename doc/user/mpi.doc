@@ -153,7 +153,7 @@ in situations involving 2d or 3d decompositions.
 
 
 Generally, Infiniband (or similar high-performance) interconnects
-are recommened over Ethernet.
+are recommended over Ethernet.
 
 HOOMD-blue uses shared libraries. This may cause problems on some supercomputers
 (notably Cray), which expect a static executable.
