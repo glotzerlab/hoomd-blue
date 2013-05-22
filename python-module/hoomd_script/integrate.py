@@ -318,6 +318,8 @@ class _integration_method:
 #
 # There can only be one integration mode active at a time. If there are more than one integrate.mode_* commands in
 # a hoomd script, only the most recent before a given run() will take effect.
+#
+# \MPI_SUPPORTED
 class mode_standard(_integrator):
     ## Specifies the standard integration mode
     # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt (in time units)
@@ -372,7 +374,7 @@ class mode_standard(_integrator):
 # integrate.nvt uses the proper number of degrees of freedom to compute the temperature of the system in both
 # 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.nvt command
 # is specified.
-#
+# \MPI_SUPPORTED
 class nvt(_integration_method):
     ## Specifies the NVT integration method
     # \param group Group of particles on which to apply this method.
@@ -506,6 +508,7 @@ class nvt(_integration_method):
 # \cite Tuckerman2006
 # \cite Yu2010
 # Glaser et. al (2013), to be published
+# \MPI_SUPPORTED
 class npt(_integration_method):
     ## Specifies the NPT integrator
     # \param group Group of particles on which to apply this method.
@@ -680,6 +683,7 @@ class npt(_integration_method):
 # - integrate.mode_standard
 #
 # \sa integrate.npt
+# \MPI_SUPPORTED
 class nph(npt):
     ## Specifies the NPH integrator
     # \param params Parameters used for the underlying integrate.npt (for documentation, see there)
@@ -719,6 +723,7 @@ class nph(npt):
 # integrate.nve is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_SUPPORTED
 class nve(_integration_method):
     ## Specifies the NVE integration method
     # \param group Group of particles on which to apply this method.
@@ -816,7 +821,7 @@ class nve(_integration_method):
 # integrate.bdnvt uses the proper number of degrees of freedom to compute the temperature of the system in both
 # 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.bdnvt command
 # is specified.
-#
+# \MPI_SUPPORTED
 class bdnvt(_integration_method):
     ## Specifies the BD NVT integrator
     # \param group Group of particles on which to apply this method.
@@ -952,6 +957,7 @@ class bdnvt(_integration_method):
 # integrate.nve_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
 class nve_rigid(_integration_method):
     ## Specifies the NVE integration method for rigid bodies 
     # \param group Group of particles on which to apply this method.
@@ -994,6 +1000,7 @@ class nve_rigid(_integration_method):
 # integrate.nvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
 class nvt_rigid(_integration_method):
     ## Specifies the NVT integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
@@ -1080,6 +1087,7 @@ class nvt_rigid(_integration_method):
 # integrate.bdnvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
 class bdnvt_rigid(_integration_method):
     ## Specifies the BD NVT integrator for rigid bodies
     # \param group Group of particles on which to apply this method.
@@ -1192,6 +1200,7 @@ class bdnvt_rigid(_integration_method):
 # integrate.npt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
 class npt_rigid(_integration_method):
     ## Specifies the NVT integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
@@ -1283,6 +1292,7 @@ class npt_rigid(_integration_method):
 # integrate.nph_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
 class nph_rigid(_integration_method):
     ## Specifies the NPH integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
@@ -1386,6 +1396,7 @@ class nph_rigid(_integration_method):
 # attempts can be set by the user. 
 #
 # \warning All other integration methods must be disabled before using the FIRE energy minimizer.
+# \MPI_NOT_SUPPORTED
 class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     # \param group Particle group to be applied FIRE 
@@ -1460,6 +1471,7 @@ class mode_minimize_fire(_integrator):
 #
 # For the time being, energy minimization will be handled separately for rigid and non-rigid bodies
 #
+# \MPI_NOT_SUPPORTED
 class mode_minimize_rigid_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     #
@@ -1529,6 +1541,7 @@ class mode_minimize_rigid_fire(_integrator):
 #     \frac{dT_\mathrm{cur}}{dt} = \frac{T - T_\mathrm{cur}}{\tau}
 # \f]
 #
+# \MPI_NOT_SUPPORTED
 class berendsen(_integration_method):
     ## Initialize the Berendsen thermostat.
     # \param group Group to which the Berendsen thermostat will be applied.

@@ -673,6 +673,7 @@ from hoomd_script import globals;
 #
 # \returns (optimal_r_buff, maximum check_period)
 #
+# \MPI_SUPPORTED
 def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
     # check if initialization has occurred
     if not init.is_initialized():

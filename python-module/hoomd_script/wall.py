@@ -97,6 +97,8 @@ from hoomd_script import util;
 # specifically the section \ref sec_xml_wall.
 #
 # The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when wall.lj is specified (see __init__())
+#
+# \MPI_NOT_SUPPORTED
 class lj(force._force):
     ## Specify the Lennard-Jones %wall %force
     #

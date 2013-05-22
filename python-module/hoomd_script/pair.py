@@ -855,6 +855,7 @@ class pair(force._force):
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
 #
+# \MPI_SUPPORTED
 class lj(pair):
     ## Specify the Lennard-Jones %pair %force
     #
@@ -948,6 +949,7 @@ class lj(pair):
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
 #
+# \MPI_SUPPORTED
 class gauss(pair):
     ## Specify the Gaussian %pair %force
     #
@@ -1048,6 +1050,7 @@ class gauss(pair):
 # nlist.reset_exclusions(['diameter', ...your other exclusions...])
 # See nlist.reset_exclusions() for more details.
 #
+# \MPI_SUPPORTED
 class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
     #
@@ -1180,6 +1183,7 @@ class slj(pair):
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
 #
+# \MPI_SUPPORTED
 class yukawa(pair):
     ## Specify the Yukawa %pair %force
     #
@@ -1264,6 +1268,7 @@ class yukawa(pair):
 # \note <b>DO NOT</b> use in conjunction with charge.pppm. charge.pppm automatically creates and configures a pair.ewald
 #       for you.
 #
+# \MPI_SUPPORTED
 class ewald(pair):
     ## Specify the Ewald %pair %force
     #
@@ -1358,6 +1363,7 @@ class ewald(pair):
 #
 # The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.cg is specified (see __init__())
 #
+# \MPI_NOT_SUPPORTED
 class cgcmm(force._force):
     ## Specify the CG-CMM Lennard-Jones %pair %force
     #
@@ -1516,7 +1522,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 #
 # \note %Pair coefficients for all type pairs in the simulation must be
 # set before it can be started with run().
-
+# \MPI_SUPPORTED
 class table(force._force):
     ## Specify the Tabulated %pair %force
     #
@@ -1724,6 +1730,7 @@ class table(force._force):
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
 #
+# \MPI_SUPPORTED
 class morse(pair):
     ## Specify the Morse %pair %force
     #
@@ -1834,6 +1841,7 @@ class morse(pair):
 #
 # pair.dpd does not implement and energy shift / smoothing modes due to the function of the force.
 #
+# \MPI_NOT_SUPPORTED
 class dpd(pair):
     ## Specify the DPD %pair %force and thermostat
     #
@@ -1962,6 +1970,7 @@ class dpd(pair):
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
 #
+# \MPI_SUPPORTED
 class dpd_conservative(pair):
     ## Specify the DPD conservative %pair %force
     #
@@ -2032,6 +2041,7 @@ class dpd_conservative(pair):
 # (commands eam/alloy and eam/fs) here: http://lammps.sandia.gov/doc/pair_eam.html
 # and are also described here: http://enpub.fulton.asu.edu/cms/potentials/submain/format.htm
 #
+# \MPI_NOT_SUPPORTED
 class eam(force._force):
     ## Specify the EAM %pair %force
     #
@@ -2162,6 +2172,7 @@ class eam(force._force):
 # pair.dpdlj is a standard %pair potential and supports an energy shif for the conservative LJ potential.
 # See hoomd_script.pair.pair for a full description of the various options. XPLOR smoothing is not available.
 #
+# \MPI_NOT_SUPPORTED
 class dpdlj(pair):
     ## Specify the DPD %pair %force and thermostat
     #
@@ -2314,6 +2325,7 @@ class dpdlj(pair):
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
 # %pair parameters among all %pair potentials.
 #
+# \MPI_SUPPORTED
 class force_shifted_lj(pair):
     ## Specify the force-shifted Lennard-Jones %pair %force
     #

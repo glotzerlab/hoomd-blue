@@ -295,6 +295,8 @@ class _external_force(force._force):
 #    (relative to the distance \f$2\pi/|\mathbf{b_i}|\f$ between planes in the \f$i\f$-direction).
 #    The modulation is one-dimensional. It extends along the lattice vector \f$\mathbf{a}_i\f$ of the
 #    simulation cell.
+#
+# \MPI_SUPPORTED
 class periodic(_external_force):
     ## Apply a force derived from a %periodic potential to all particles
     #

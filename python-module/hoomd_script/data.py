@@ -396,6 +396,7 @@ class system_data:
     # snapshot = system.take_snapshot(bonds=true)
     # \endcode
     #
+    # \MPI_SUPPORTED
     def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None ):
         util.print_status_line();
 
@@ -467,6 +468,7 @@ class system_data:
     # \endcode
     #
     # \sa hoomd_script.data
+    # \MPI_SUPPORTED
     def restore_snapshot(self, snapshot):
         util.print_status_line();
         
@@ -978,7 +980,7 @@ class bond_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
-#
+# \MPI_SUPPORTED
 class bond_data_proxy:
     ## \internal
     # \brief create a bond_data_proxy
@@ -1148,7 +1150,7 @@ class angle_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
-#
+# \MPI_NOT_SUPPORTED
 class angle_data_proxy:
     ## \internal
     # \brief create a angle_data_proxy
@@ -1327,7 +1329,7 @@ class dihedral_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
-#
+# \MPI_NOT_SUPPORTED
 class dihedral_data_proxy:
     ## \internal
     # \brief create a dihedral_data_proxy
@@ -1490,7 +1492,7 @@ class body_data:
 # - \c angular momentum : The angular momentum of the body in the space frame
 # - \c moment of inertia : the principle components of the moment of inertia
 # - \c particle displacements : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
-#
+# \MPI_NOT_SUPPORTED
 class body_data_proxy:
     ## \internal
     # \brief create a body_data_proxy

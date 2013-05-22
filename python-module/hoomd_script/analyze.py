@@ -290,6 +290,7 @@ _analyzer.cur_id = 0;
 # analyze.imd
 #
 # \note If a period larger than 1 is set, the actual rate at which time steps are transmitted is \a rate * \a period.
+# \MPI_SUPPORTED
 class imd(_analyzer):
     ## Initialize the IMD interface
     #
@@ -416,6 +417,7 @@ class imd(_analyzer):
 # \endcode
 #
 # \sa \ref page_units
+# \MPI_SUPPORTED
 class log(_analyzer):
     ## Initialize the log
     #
@@ -553,6 +555,8 @@ class log(_analyzer):
 # To generate a correct msd that does not reset to 0 at the start of each run, save the initial state of the system
 # in a hoomd_xml file, including position and image data at a minimum. In the continuation job, specify this file
 # in the \a r0_file argument to analyze.msd.
+#
+# \MPI_NOT_SUPPORTED
 class msd(_analyzer):
     ## Initialize the msd calculator
     #

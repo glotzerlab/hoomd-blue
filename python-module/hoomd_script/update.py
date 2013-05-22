@@ -307,6 +307,7 @@ class sort(_updater):
 # \f$\langle 1/2 m v^2 \rangle = k_B T \f$. 
 #
 # update.rescale_temp is best coupled with the \ref integrate.nve "NVE" integrator.
+# \MPI_NOT_SUPPORTED
 class rescale_temp(_updater):
     ## Initialize the rescaler
     #
@@ -376,6 +377,7 @@ class rescale_temp(_updater):
 # \a limit option specified, where Newton's third law is broken and systems could gain momentum.
 # Of course, it can be used in any script.
 #
+# \MPI_NOT_SUPPORTED
 class zero_momentum(_updater):
     ## Initialize the momentum zeroer
     #
@@ -415,6 +417,7 @@ class zero_momentum(_updater):
 # the neighbor list to only find 2D neighbors. Doing so requires that a small, but non-zero, value be set for the z
 # dimension of the simulation box.
 #
+# \MPI_SUPPORTED
 class enforce2d(_updater):
     ## Initialize the 2D enforcement
     #
@@ -443,6 +446,7 @@ class enforce2d(_updater):
 # the user (in a variant). As an option, the particles can either be left in place
 # as the box is changed or their positions can be scaled with the box.
 #
+# \MPI_SUPPORTED
 class box_resize(_updater):
     ## Initialize box size resizer
     #
