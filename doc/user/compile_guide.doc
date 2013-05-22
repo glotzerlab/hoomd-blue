@@ -122,6 +122,16 @@ generate. The makefile/IDE project is now updated with the newly selected option
  	- When set to \b ON, all calculations are performed in single precision.
  	- When set to \b OFF, all calculations are performed in double precision. 
  	- Must be set to \b ON to enable the \b ENABLE_CUDA option (HOOMD-blue has not yet been updated to perform double precision calculations)
+ - \b ENABLE_MPI - Enable multi-processor/GPU simulations using MPI
+    - Requires an MPI library to be installed
+    - When set to \b ON (default if any MPI library is found automatically by CMake), multi-GPU simulations are supported
+    - When set to \b OFF, HOOMD always runs in single-GPU mode
+ - \b ENABLE_MPI_CUDA - Enable CUDA-aware MPI library support
+    - Requires a MPI library w/CUDA support to be installed
+    - When set to \b ON (default if a CUDA-aware MPI library is detected), HOOMD-blue will make use of  the capability of the MPI library to accelerate CUDA-buffer transfers
+    - When set to \b OFF, standard MPI calls will be used
+    \b Warning: Manually setting this feature to ON when the MPI library does not support CUDA may
+       result in a crash of HOOMD-blue
 
 There are a few options for controlling the CUDA compilation.
  - \b CUDA_ARCH_LIST - A semicolon separated list of GPU architecture to compile in. Portions of HOOMD are optimized for specific

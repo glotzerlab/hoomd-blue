@@ -107,6 +107,7 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/stylesheet.css
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/header.html
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/footer.html
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.doc
                         )
 
 add_custom_command (OUTPUT ${DOXYGEN_USER_DOC_HTML_DIR}/index.html

@@ -432,11 +432,10 @@ If you choose to complile your own MPI, you can run it out of your home director
 MVAPICH 1.8 (and later) supports CUDA integration that enables fast intra-node GPU performance.
 
 \code
- $ tar -xvzf mvapich2-1.9a.tgz
- $ cd mvapich2-1.9a
+ $ tar -xvzf mvapich2-1.9.tgz
+ $ cd mvapich2-1.9
  $ ./configure --prefix=${HOME}/local --enable-cuda --with-cuda=${CUDA_ROOT} --enable-shared
- $ make
- $ # note: MVAPICH2 doesn't yet support parallel make (-j..) 
+ $ make -j10 # note: MVAPICH2 (<1.9) doesn't support parallel make (-j..) 
  $ make install
 \endcode
 
@@ -445,8 +444,7 @@ The following needs to be added to your environment variables in .bash_profile.
 export LD_LIBRARY_PATH=${HOME}/local/lib:${LD_LIBRARY_PATH}    # if not already there
 export MPI_HOME=${HOME}/local 
 
-# configure MPI CUDA settings
-export MV2_USE_CUDA=1
+# no need to set MV2_USE_CUDA, this is done automatically inside hoomd
 
 # if using nodes without IB adapters
 export MV2_USE_SHARED_MEM=1 
@@ -455,7 +453,7 @@ export MV2_SMP_SEND_BUF_SIZE=262144
 
 <b>Compile your own MPI: OpenMPI</b>
 
-OpenMPI also supports fast CUDA integration, starting with version 1.7 (soon to be officially released).
+OpenMPI also supports fast CUDA integration, starting with version 1.7.
 
 It can be obtained from the OpenMPI <a href=http://www.open-mpi.org/nightly/trunk/>website</a>.
 

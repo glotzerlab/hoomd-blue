@@ -59,6 +59,7 @@ Welcome to the \b user documentation for HOOMD-blue!
 -# \subpage page_command_list
 -# \subpage page_xml_file_format
 -# \subpage page_command_line_options
+-# \subpage page_mpi
 -# \subpage page_conversion_scripts
 -# \subpage page_compile_guide
 -# \subpage page_license
