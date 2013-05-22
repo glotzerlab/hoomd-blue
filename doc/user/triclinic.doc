@@ -58,14 +58,14 @@ Table of contents:
 <hr>
 
 \section sec_triclinic_intro Introduction
-HOOMD-blue fully supports a triclinic simulation box. A triclinic box has six
+HOOMD-blue fully supports triclinic simulation boxes. A triclinic box has six
 varibles: the lengths *L_x*, *L_y* and *L_z* of the edges of the box, and
 three tilt factors *xy*, *xz* and *yz*.
 
 If the cell parameter matrix \f$\mathbf{h}\f$ is defined in terms of the lattice vectors
 \f$ a_1 \f$, \f$ a_2 \f$ and
 \f$ a_3 \f$,i.e.
-\f[ \mathbf{h} \equiv \left \vec a_1, \vec a_2, \vec a_3 \right), \f]
+\f[ \mathbf{h} \equiv \left( \vec a_1, \vec a_2, \vec a_3 \right), \f]
 by convention, the first lattice vector
 \f$ a_1 \f$ is parallel to the unit vector \f $ \vec e_x = (1,0,0) \f $. The tilt factor
 *xy* indicates how the second lattice vector \f$a_2\f$ is tilted with respect to the first one,
@@ -75,18 +75,17 @@ with respect to the first and second lattice vector.
 
 <hr>
 \section sec_triclinic_definition Definitions and formulas for the cell parameter matrix
-The full cell parameter matrix is by convention
+The full cell parameter matrix is 
 \f{eqnarray*}{
-\mathbf{h}& =& \left(\vec a_1, \vec a_2, \vec a_3 \right)\\
-&=& \left(\begin{array}{ccc} L_x & xy*L_y & xz*L_z \\
-                             0   & L_y    & yz*L_z \\
-                             0   & 0      & L_z    \\
-          \end{array}\right)
+\mathbf{h}& =& \left(\begin{array}{ccc} L_x & xy L_y & xz L_z \\
+                                        0   & L_y    & yz L_z \\
+                                        0   & 0      & L_z    \\
+                     \end{array}\right)
 \f}
 
 Note, that *xy*, *xz* and *yz* are dimensionless.
 The relationship between the tilt factors and the box angles \f$ \alpha \f$,
-\f$ \beta \f$ and \f$ gamma \f$ is as follows:
+\f$ \beta \f$ and \f$ \gamma \f$ is as follows:
 \f{eqnarray*}{
 \cos\gamma \equiv \cos(\angle\vec a_1, \vec a_2) &=& \frac{xy}{\sqrt{1+xy^2}}\\
 \cos\beta \equiv \cos(\angle\vec a_1, \vec a_3) &=& \frac{xz}{\sqrt{1+xz^2+yz^2}}\\
@@ -98,7 +97,7 @@ The relationship between the tilt factors and the box angles \f$ \alpha \f$,
 The preferred way to specify a triclinic simulation box is to do this in an
 \link page_xml_file_format XML file\endlink.
 A second way to specify the simulation box is to pass
-a \b box argument to the constructor of
+a \b BoxDim argument to the constructor of
 \link hoomd_script.init.create_random_polymers init.create_random_polymers\endlink,
 as in
 \code
@@ -132,10 +131,10 @@ anisotropic stresses in the system. This is supported by
 - \link hoomd_script.integrate.npt integrate.npt\endlink 
 - \link hoomd_script.integrate.nph integrate.nph\endlink
 
-With rigid bodies, anisotropic constant-pressure integration modes are not yet available
-in the current version of HOOMD-blue, but the tilt factors can still be set to any arbitrary
-value and the box angles and ratios between lengths are preserved during the course of the NPT or NPH
-integration.  This concerns
+Anisotropic constant-pressure integration modes for <b>rigid bodies</b>
+are not yet available in HOOMD-blue, but the tilt factors and box lengths
+can still be set to any arbitrary value and are
+preserved during the course of the NPT or NPH integration.  This concerns
 
 - \link hoomd_script.integrate.npt_rigid integrate.npt_rigid\endlink
 - \link hoomd_script.integrate.nph_rigid integrate.nph_rigid\endlink
