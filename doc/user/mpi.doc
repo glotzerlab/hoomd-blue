@@ -50,7 +50,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \page page_mpi Running HOOMD-blue on multiple GPUs with MPI
 
-<h2>Overview</h2>
+Table of contents:
+ - \ref sec_mpi_overview
+ - \ref sec_mpi_compilation
+ - \ref sec_mpi_usage
+ - \ref sec_mpi_best_pratices
+ - \ref sec_mpi_troubleshooting
+ - \ref sec_mpi_features
+<hr>
+
+
+\section sec_mpi_overview Overview
 
 HOOMD-blue supports multi-GPU simulations using MPI. Internally, it uses
 a spatial domain decomposition approach similar to the one used by LAMMPS. This means,
@@ -62,18 +72,19 @@ simulations, there is a one-to-one mapping between host CPU cores (MPI ranks)
 and the GPUs.
 
 Currently, only a subset of features is available in MPI mode. The list 
-of available features can be found below (..). With the exception that some
+of available features can be found below. With the exception that some
 commands are not yet supported in multi-GPU mode, the same input script
 that runs in single-GPU mode can be used for MPI simulations.
 
-<h2>Compilation</h2>
-For detailed compilation instructions, see here (..).
+\section sec_mpi_compilation Compilation
+For detailed compilation instructions, see
+\link page_compile_guide_linux_generic here\endlink.
 
 Additional compilation flags pertinent to MPI simulations are
 - \b ENABLE_MPI (to enable multi-GPU simulations, must be set to \b ON)
 - \b ENABLE_MPI_CUDA (optional, to enable CUDA-aware MPI library support, see below)
 
-<h2>Usage</h2>
+\section sec_mpi_usage Usage
 Using HOOMD-blue on multiple GPUs is as simple as typing
 \code
 mpirun -n 8 hoomd my_script.py
@@ -108,14 +119,14 @@ are sufficient cores available), however, MPI domain decomposition
 usually performs better than OpenMP acceleration on CPUs.
 
 <hr>
-<h1>Tips & best practices</h1>
+\section sec_mpi_best_pratices Tips & best practices
 
 HOOMD-blue's multi-GPU performance depends on many factors, such as the model of the
 actual GPU used, the type of interconnect between nodes, whether the MPI library
 supports CUDA, etc. Below we list some recommendations for obtaining optimal
 performance.
 
-\section sec_mpi_few_nodes Running on multiple GPUs of a single workstation
+\subsection sec_mpi_few_nodes Running on multiple GPUs of a single workstation
 HOOMD-blue w/MPI already runs fine on a single computer.
 In this case, it is recommended to take advantage of direct 
 peer-to-peer transfer between GPUs on the same PCIe bus, when available.
@@ -126,7 +137,7 @@ only be available when the GPUs are physically connected to the same IO-Hub on t
 computer's main board.  P2P access is supported through support for special
 <b> CUDA-aware MPI libraries</b> and can increase communication bandwidth significantly.
 
-\section sec_mpi_cluster Running on a GPU cluster or supercomputer
+\subsection sec_mpi_cluster Running on a GPU cluster or supercomputer
 
 If running on large-scale installations with more than one node,
 support for CUDA-MPI libraries is neither required nor
@@ -147,7 +158,7 @@ are recommened over Ethernet.
 HOOMD-blue uses shared libraries. This may cause problems on some supercomputers
 (notably Cray), which expect a static executable.
 
-\section sec_mpi_cuda CUDA-aware MPI libraries (ENABLE_MPI_CUDA compilation flag)
+\subsection sec_mpi_cuda CUDA-aware MPI libraries (ENABLE_MPI_CUDA compilation flag)
 The main benefit of using a CUDA-enabled MPI library is that it enables intra-node
 peer-to-peer (P2P) acccess between several GPUs on the same PCIe bus, which increases
 bandwidth. Secondarily, it may offer some additional optimization
@@ -155,21 +166,23 @@ for direct data transfer between the GPU and a network adapter.
 To use these features with an MPI library that supports it,
 set \b ENABLE_MPI_CUDA to \b ON for compilation.
 
-\section sec_mpi_linear Slab decomposition (--linear command-line option)
+\subsection sec_mpi_linear Slab decomposition (--linear command-line option)
 For small numbers of GPUs per job (typically <= 8) that are non-prime,
 the performance may be increased by using a slab decomposition.
 A one-dimensional decomposition is enforced if the \b linear
 \link page_command_line_options command-line option\endlink is given.
 
-\section sec_mpi_rbuff Buffering length (r_buff)
-The optimum value of the \b r_buff value of the neighbor list (\b nlist.set_params() )
+\subsection sec_mpi_rbuff Buffering length (r_buff)
+The optimum value of the \b r_buff value of the neighbor list
+(\link hoomd_script.pair.nlist.set_params() nlist.set_params()\endlink)
 may be different between single- and multi-GPU runs. This is because in multi-GPU
 runs, the buffering length also determines the width of the ghost layer in multi-GPU
 runs, which controls the size of messages exchanged betweeen the processors.
-To determine the optimum value, it is highly recommended to use the \b tune.r_buff (..)
+To determine the optimum value, it is highly recommended to use the
+\link hoomd_script.tune.r_buff() tune.r_buff()\endlink 
 command with the actual number of MPI ranks that will be used for the simulation.
 
-\section sec_mpi_partition Running with multiple partitions (--nrank command-line option)
+\subsection sec_mpi_partition Running with multiple partitions (--nrank command-line option)
 HOOMD-blue supports simulation of multiple independent replicas, with the same
 number of GPUs per replica. To enable multi-replica mode, and to partition
 the total number of ranks \b N into <b> p = N/n</b> replicas, where \b n is the
@@ -177,12 +190,13 @@ number of GPUs per replica, invoke HOOMD-blue with the <b>--nrank=n</b>
 \link page_command_line_options command-line option</endlink>.
 
 Inside the command script, the current partition can be queried using
-\b comm.get_partition().
+\b \link hoomd_script.comm.get_partition() comm.get_partition() \endlink.
 
 <hr> 
-<h1> Troubleshooting</h1>
+\section sec_mpi_troubleshooting Troubleshooting
 
--  <b> My simulation does not run much faster on two GPUs compared to one GPU.</b><br>
+-  <b> My simulation does not run significantly faster on two GPUs compared to
+   one GPU.</b><br>
    This is expected.  HOOMD uses internal optimizations for single-GPU runs, which
    means that there is no overhead due to MPI calls. The communication overhead can be
    20-25\% of the total performance, and is only incurred when running on more
@@ -195,7 +209,7 @@ Inside the command script, the current partition can be queried using
    processors, or with a larger box size.
 
 <hr>
-<h1>Features in MPI mode</h1>
+\section sec_mpi_features MPI features
 
 These features are currently supported in MPI mode.
 
