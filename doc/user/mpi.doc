@@ -54,7 +54,7 @@ Table of contents:
  - \ref sec_mpi_overview
  - \ref sec_mpi_compilation
  - \ref sec_mpi_usage
- - \ref sec_mpi_best_pratices
+ - \ref sec_mpi_best_practices
  - \ref sec_mpi_troubleshooting
  - \ref sec_mpi_features
 <hr>
@@ -119,7 +119,7 @@ are sufficient cores available), however, MPI domain decomposition
 usually performs better than OpenMP acceleration on CPUs.
 
 <hr>
-\section sec_mpi_best_pratices Tips & best practices
+\section sec_mpi_best_practices Tips & best practices
 
 HOOMD-blue's multi-GPU performance depends on many factors, such as the model of the
 actual GPU used, the type of interconnect between nodes, whether the MPI library
