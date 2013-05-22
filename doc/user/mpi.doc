@@ -78,7 +78,7 @@ that runs in single-GPU mode can be used for MPI simulations.
 
 \section sec_mpi_compilation Compilation
 For detailed compilation instructions, see
-\link page_compile_guide_linux_generic here\endlink.
+\link page_compile_guide_linux_generic here.\endlink
 
 Additional compilation flags pertinent to MPI simulations are
 - \b ENABLE_MPI (to enable multi-GPU simulations, must be set to \b ON)
@@ -141,7 +141,7 @@ computer's main board.  P2P access is supported through support for special
 
 If running on large-scale installations with more than one node,
 support for CUDA-MPI libraries is neither required nor
-recommended (see \link sec_mpi_cuda below\endlink).
+recommended (see \ref sec_mpi_cuda).
 Since HOOMD-blue uses pinned memory, it can automatically take advantage of
 GPUdirect where it is supported by the OS kernel and network adapter, even if
 there is no special support throguh the MPI library.
@@ -187,7 +187,7 @@ HOOMD-blue supports simulation of multiple independent replicas, with the same
 number of GPUs per replica. To enable multi-replica mode, and to partition
 the total number of ranks \b N into <b> p = N/n</b> replicas, where \b n is the
 number of GPUs per replica, invoke HOOMD-blue with the <b>--nrank=n</b>
-\link page_command_line_options command-line option</endlink>.
+\link page_command_line_options command-line option\endlink
 
 Inside the command script, the current partition can be queried using
 \b \link hoomd_script.comm.get_partition() comm.get_partition() \endlink.

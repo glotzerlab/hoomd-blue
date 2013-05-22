@@ -1,0 +1,151 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*! \page page_triclinic Triclinic unit cell
+
+Table of contents:
+ - \ref sec_triclinic_intro
+ - \ref sec_triclinic_definition
+ - \ref sec_triclinic_specify
+ - \ref sec_triclinic_update
+<hr>
+
+\section sec_triclinic_intro Introduction
+HOOMD-blue fully supports a triclinic simulation box. A triclinic box has six
+varibles: the lengths *L_x*, *L_y* and *L_z* of the edges of the box, and
+three tilt factors *xy*, *xz* and *yz*.
+
+If the cell parameter matrix \f$\mathbf{h}\f$ is defined in terms of the lattice vectors
+\f$ a_1 \f$, \f$ a_2 \f$ and
+\f$ a_3 \f$,i.e.
+\f[ \mathbf{h} \equiv \left \vec a_1, \vec a_2, \vec a_3 \right), \f]
+by convention, the first lattice vector
+\f$ a_1 \f$ is parallel to the unit vector \f $ \vec e_x = (1,0,0) \f $. The tilt factor
+*xy* indicates how the second lattice vector \f$a_2\f$ is tilted with respect to the first one,
+i.e. many units along the x-direction correspond to one unit of the second lattice
+vector. Similarly, *xz* and *yz* indicate the tilt of the third lattice vector \f$ a_3 \f$
+with respect to the first and second lattice vector.
+
+<hr>
+\section sec_triclinic_definition Definitions and formulas for the cell parameter matrix
+The full cell parameter matrix is by convention
+\f{eqnarray*}{
+\mathbf{h}& =& \left(\vec a_1, \vec a_2, \vec a_3 \right)\\
+&=& \left(\begin{array}{ccc} L_x & xy*L_y & xz*L_z \\
+                             0   & L_y    & yz*L_z \\
+                             0   & 0      & L_z    \\
+          \end{array}\right)
+\f}
+
+Note, that *xy*, *xz* and *yz* are dimensionless.
+The relationship between the tilt factors and the box angles \f$ \alpha \f$,
+\f$ \beta \f$ and \f$ gamma \f$ is as follows:
+\f{eqnarray*}{
+\cos\gamma \equiv \cos(\angle\vec a_1, \vec a_2) &=& \frac{xy}{\sqrt{1+xy^2}}\\
+\cos\beta \equiv \cos(\angle\vec a_1, \vec a_3) &=& \frac{xz}{\sqrt{1+xz^2+yz^2}}\\
+\cos\alpha \equiv \cos(\angle\vec a_2, \vec a_3) &=& \frac{xy*xz + yz}{\sqrt{1+xy^2} \sqrt{1+xz^2+yz^2}} \\
+\f}
+
+<hr>
+\section sec_triclinic_specify Specifying a triclinic simulation box
+The preferred way to specify a triclinic simulation box is to do this in an
+\link page_xml_file_format XML file\endlink.
+A second way to specify the simulation box is to pass
+a \b box argument to the constructor of
+\link hoomd_script.init.create_random_polymers init.create_random_polymers\endlink,
+as in
+\code
+init.create_random_polymers(box=hoomd.BoxDim(18, 0.1, 0.2, 0.3),
+                            polymeres=[polymer2],
+                            separation=dict(A=0.35, B=0.35));
+\endcode
+This creates a triclinic box with edges of length 18, and tilt factors
+*xy*=0.1, *xz*=0.2 and *yz*=0.3.
+
+<hr>
+\section sec_triclinic_update Updating the simulation box during the simulation
+The triclinic unit cell can be updated in various ways. 
+
+\subsection triclinic_resize Resizing the box
+The simplest way is to use \link hoomd_script.update.box_resize update.box_resize \endlink.
+
+To update the tilt factors continously during the simulation (shearing
+the simulation box with \b Lees-Edwards boundary conditions), use:
+\code
+update.box_resize(xy = variant.linear_interp([(0,0), (1e6, 1)]))
+\endcode
+This command applies shear in the *xy*-plane so that the angle between the *x*-
+and *y*-directions changes continously from 0 to 45\f$^\circ\f$ during 10^6 time steps.
+
+\subsection triclinic_npt NPT or NPH integration
+By integrating in a constant pressure ensemble,
+the box is updated every time step, according to the
+anisotropic stresses in the system. This is supported by
+
+- \link hoomd_script.integrate.npt integrate.npt\endlink 
+- \link hoomd_script.integrate.nph integrate.nph\endlink
+
+With rigid bodies, anisotropic constant-pressure integration modes are not yet available
+in the current version of HOOMD-blue, but the tilt factors can still be set to any arbitrary
+value and the box angles and ratios between lengths are preserved during the course of the NPT or NPH
+integration.  This concerns
+
+- \link hoomd_script.integrate.npt_rigid integrate.npt_rigid\endlink
+- \link hoomd_script.integrate.nph_rigid integrate.nph_rigid\endlink
+
+\subsection triclinic_other Other features
+All other features of HOOMD-blue generally work with triclinic symmetry, including
+\link page_mpi MPI\endlink simulations.
+
+As for every rule, there is an exception.
+- \link hoomd_script.dump.bin dump.bin\endlink (deprecated) has not been updated to work with triclinic
+  boxes.
+*/
+

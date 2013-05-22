@@ -648,6 +648,7 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.do
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/citing.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/triclinic.doc" \
                          "${HOOMD_SOURCE_DIR}/python-module/hoomd_script" 
 
 # This tag can be used to specify the character encoding of the source files
