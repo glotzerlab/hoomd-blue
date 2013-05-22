@@ -67,7 +67,7 @@ If the cell parameter matrix \f$\mathbf{h}\f$ is defined in terms of the lattice
 \f$ a_3 \f$,i.e.
 \f[ \mathbf{h} \equiv \left( \vec a_1, \vec a_2, \vec a_3 \right), \f]
 by convention, the first lattice vector
-\f$ a_1 \f$ is parallel to the unit vector \f $ \vec e_x = (1,0,0) \f $. The tilt factor
+\f$ a_1 \f$ is parallel to the unit vector \f$ \vec e_x = (1,0,0) \f$. The tilt factor
 *xy* indicates how the second lattice vector \f$a_2\f$ is tilted with respect to the first one,
 i.e. many units along the x-direction correspond to one unit of the second lattice
 vector. Similarly, *xz* and *yz* indicate the tilt of the third lattice vector \f$ a_3 \f$
