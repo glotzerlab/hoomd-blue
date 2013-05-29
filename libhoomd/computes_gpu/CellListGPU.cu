@@ -143,6 +143,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     Scalar3 f = box.makeFraction(pos,ghost_width);
 
     // check if the particle is inside the unit cell + ghost layer
+    // for non-periodic directions
     if ((!periodic.x && (f.x < Scalar(0.0) || f.x >= Scalar(1.0))) ||
         (!periodic.y && (f.y < Scalar(0.0) || f.y >= Scalar(1.0))) ||
         (!periodic.z && (f.z < Scalar(0.0) || f.z >= Scalar(1.0))) )
@@ -168,6 +169,12 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
 
     unsigned int bin = ci(ib, jb, kb);
 
+    // local particles should be in a valid cell
+    if (idx < N && bin >= ci.getNumElements())
+        {
+        (*d_conditions).z = idx+1;
+        return;
+        }
 
     unsigned int size = atomicInc(&d_cell_size[bin], 0xffffffff);
     if (size < Nmax)
@@ -451,12 +458,20 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     unsigned int bin = ci(ib, jb, kb);
 
     // check if the particle is inside the unit cell + ghost layer
+    // for non-periodic directions
     if ((!periodic.x && (f.x < Scalar(0.0) || f.x >= Scalar(1.0))) ||
         (!periodic.y && (f.y < Scalar(0.0) || f.y >= Scalar(1.0))) ||
         (!periodic.z && (f.z < Scalar(0.0) || f.z >= Scalar(1.0))) )
         {
         // silently ignore ghost particles that are outside the dimensions
         if (idx < N) (*d_conditions).z = idx+1;
+        bin = INVALID_BIN;
+        }
+
+    // local particles should be in a valid cell
+    if (idx < N && bin >= ci.getNumElements())
+        {
+        (*d_conditions).z = idx+1;
         bin = INVALID_BIN;
         }
 
