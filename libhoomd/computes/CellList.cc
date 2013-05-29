@@ -490,6 +490,7 @@ void CellList::computeCellList()
         int kb = (int)(f.z * m_dim.z);
         
         // check if the particle is inside the unit cell + ghost layer
+        // for non-periodic directions
         if ((!periodic.x && (f.x < Scalar(0.0) || f.x >= Scalar(1.0))) ||
             (!periodic.y && (f.y < Scalar(0.0) || f.y >= Scalar(1.0))) ||
             (!periodic.z && (f.z < Scalar(0.0) || f.z >= Scalar(1.0))) )
@@ -513,6 +514,13 @@ void CellList::computeCellList()
         
         // record its bin
         unsigned int bin = ci(ib, jb, kb);
+
+        // local particles should be in a valid cell
+        if (n < m_pdata->getN() && bin >= ci.getNumElements())
+            {
+            conditions.z = n+1;
+            continue;
+            }
 
         // setup the flag value to store
         Scalar flag;
