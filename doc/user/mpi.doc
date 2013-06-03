@@ -208,6 +208,16 @@ Inside the command script, the current partition can be queried using
    an error is thrown. The problem can be fixed by running HOOMD on fewer
    processors, or with a larger box size.
 
+- <b> Simulations with large numbers of nodes are slow. </b><br>
+   In simulations involving many nodes, collective MPI calls can take a significant portion
+   of the run time. To find out if these are limiting you, run the simulation with
+   the <b>prof=True</b> option to the \link hoomd_script.run() run\endlink command.
+   One reason for slow performance can be the distance check criterium, which, by default,
+   is applied every step to check if the neighbor list needs to be rebuild. It requires
+   synchronization between all MPI ranks and is therefore slow.
+   See \link hoomd_script.pair.nlist nlist \endlink on how to increase
+   the interval (\b check_period) between distance checks, to improve performance.
+
 <hr>
 \section sec_mpi_features MPI features
 
