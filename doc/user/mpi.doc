@@ -223,6 +223,7 @@ These features are currently supported in MPI mode.
 - XML file dumps 
 - IMD visualization
 - Box resize updater
+- Zero momentum updater
 
 Unsupported features will be made available in later releases.
 */

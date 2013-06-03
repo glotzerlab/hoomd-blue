@@ -377,7 +377,7 @@ class rescale_temp(_updater):
 # \a limit option specified, where Newton's third law is broken and systems could gain momentum.
 # Of course, it can be used in any script.
 #
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class zero_momentum(_updater):
     ## Initialize the momentum zeroer
     #
@@ -393,12 +393,6 @@ class zero_momentum(_updater):
     def __init__(self, period=1):
         util.print_status_line();
  
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("update.zero_momentum is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up updater.")
-                         
         # initialize base class
         _updater.__init__(self);
         
