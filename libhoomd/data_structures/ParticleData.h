@@ -380,9 +380,12 @@ class ParticleData : boost::noncopyable
     public:
         //! Construct with N particles in the given box
         ParticleData(unsigned int N,
-                     const BoxDim &box,
+                     const BoxDim &global_box,
                      unsigned int n_types,
-                     boost::shared_ptr<ExecutionConfiguration> exec_conf);
+                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                     boost::shared_ptr<DomainDecomposition> decomposition
+                        = boost::shared_ptr<DomainDecomposition>()
+                     );
         
         //! Construct using a ParticleDataSnapshot
         ParticleData(const SnapshotParticleData& snapshot,

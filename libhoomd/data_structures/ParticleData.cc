@@ -90,8 +90,9 @@ using namespace boost;
 
 /*! \param N Number of particles to allocate memory for
     \param n_types Number of particle types that will exist in the data arrays
-    \param box Box the particles live in
+    \param global_box Box the particles live in
     \param exec_conf ExecutionConfiguration to use when executing code on the GPU
+    \param decomposition (optional) Domain decomposition layout
 
     \post \c pos,\c vel,\c accel are allocated and initialized to 0.0
     \post \c charge is allocated and initialized to a value of 0.0
@@ -106,9 +107,8 @@ using namespace boost;
 
     Type mappings assign particle types "A", "B", "C", ....
 */
-ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf)
-        : m_box(box),
-          m_exec_conf(exec_conf),
+ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf, boost::shared_ptr<DomainDecomposition> decomposition)
+        : m_exec_conf(exec_conf),
           m_nparticles(0),
           m_nghosts(0),
           m_max_nparticles(0),
@@ -123,63 +123,46 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
         throw std::runtime_error("Error initializing ParticleData");
         }
-        
-    // allocate memory
-    // we are allocating for the number of global particles equal to the number of local particles,
-    // since this constructor is only called for initializing a single-processor simulation
-    allocate(N);
+       
+    // initialize snapshot with default values
+    SnapshotParticleData snap(N);
 
-    // default: number of global particles = number of local particles
-    setNGlobal(getN());
+    snap.type_mapping.clear();
 
-    ArrayHandle< Scalar4 > h_vel(getVelocities(), access_location::host, access_mode::overwrite);
-    ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
-    ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
-    
-    // set default values
-    // all values not explicitly set here have been initialized to zero upon allocation
-    for (unsigned int i = 0; i < N; i++)
-        {
-        h_vel.data[i].w = 1.0; // mass
-
-        h_diameter.data[i] = 1.0;
-        
-        h_body.data[i] = NO_BODY;
-        h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
-
-        h_tag.data[i] = i;
-        h_rtag.data[i] = i;
-        }
-
-    // default constructed shared ptr is null as desired
-    m_prof = boost::shared_ptr<Profiler>();
-    
     // setup the type mappings
     for (unsigned int i = 0; i < n_types; i++)
         {
         char name[2];
         name[0] = 'A' + i;
         name[1] = '\0';
-        m_type_mapping.push_back(string(name));
+        snap.type_mapping.push_back(string(name));
         }
-   
+ 
+    #ifdef ENABLE_MPI
+    // Set up domain decomposition information
+    if (decomposition) setDomainDecomposition(decomposition);
+    #endif
+
+    // initialize box dimensions on all procesors
+    setGlobalBox(global_box);
+
+    // initialize all processors
+    initializeFromSnapshot(snap);
+
+    // default constructed shared ptr is null as desired
+    m_prof = boost::shared_ptr<Profiler>();
+    
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
         m_external_virial[i] = Scalar(0.0);
 
-    // initially, global box = local box
-    m_global_box = box;
-    
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     }
 
 /*! Loads particle data from the snapshot into the internal arrays.
  * \param snapshot The particle data snapshot
- * \param box The dimensions of the global simulation box
+ * \param global_box The dimensions of the global simulation box
  * \param exec_conf The execution configuration
  * \param decomposition (optional) Domain decomposition layout
  */
@@ -205,7 +188,6 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     if (decomposition) setDomainDecomposition(decomposition);
     #endif
 
-   
     // initialize box dimensions on all procesors
     setGlobalBox(global_box);
 
@@ -392,9 +374,6 @@ void ParticleData::allocate(unsigned int N)
         throw runtime_error("Error allocating ParticleData");
         }
 
-    // set particle number
-    m_nparticles = N;
-
     // maximum number is the current particle number
     m_max_nparticles = N;
 
@@ -461,7 +440,6 @@ void ParticleData::setNGlobal(unsigned int nglobal)
             {
             // resize array of global reverse lookup tags
             m_rtag.resize(nglobal);
-
             }
         }
     else
@@ -559,7 +537,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
         {
-        m_exec_conf->msg->error() << "init.*: inconsistent size of particle data snapshot."
+        m_exec_conf->msg->error() << "init.*: invalid particle data snapshot."
                                 << std::endl << std::endl;
         throw std::runtime_error("Error initializing particle data.");
         }
@@ -714,6 +692,11 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         // allocate particle data such that we can accomodate the particles (only if necessary)
         if (m_max_nparticles < m_nparticles)
             allocate(m_nparticles);
+
+        // we have to allocate even if the number of particles on a processor
+        // is zero, so that the arrays can be resized later
+        if (m_nparticles == 0 && m_max_nparticles == 0)
+            allocate(1);
 
         // Load particle data
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
@@ -1559,7 +1542,9 @@ string print_ParticleData(ParticleData *pdata)
 void export_ParticleData()
     {
     class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def(init<const SnapshotParticleData&, const BoxDim&, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<const SnapshotParticleData&, const BoxDim&, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)

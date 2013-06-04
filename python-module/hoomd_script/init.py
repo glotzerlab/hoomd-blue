@@ -188,6 +188,8 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
 
     # create the empty system
     boxdim = hoomd.BoxDim(float(box[0]), float(box[1]), float(box[2]));
+
+    my_domain_decomposition = _create_domain_decomposition(boxdim);
     globals.system_definition = hoomd.SystemDefinition(N,
                                                        boxdim,
                                                        n_particle_types,
@@ -195,7 +197,8 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
                                                        n_angle_types,
                                                        n_dihedral_types,
                                                        n_improper_types,
-                                                       my_exec_conf);
+                                                       my_exec_conf,
+                                                       my_domain_decomposition);
     
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
@@ -247,11 +250,7 @@ def read_xml(filename, time_step = None):
     snapshot = initializer.getSnapshot()
 
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
-
-    if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
-    else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
+    globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
 
     # initialize the system
     if time_step is None:
@@ -303,10 +302,7 @@ def read_bin(filename):
 
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
 
-    if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
-    else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
+    globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
 
     # initialize the system
     if time_step is None:
@@ -382,10 +378,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
     snapshot = generator.getSnapshot()
             
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
-    if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
-    else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
+    globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
 
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
@@ -605,10 +598,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
         
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
 
-    if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
-    else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
+    globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
 
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
@@ -649,10 +639,7 @@ def read_snapshot(snapshot):
 
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
 
-    if my_domain_decomposition is not None:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
-    else:
-        globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
+    globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
 
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, time_step);
