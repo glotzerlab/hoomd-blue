@@ -97,10 +97,11 @@ SystemDefinition::SystemDefinition(unsigned int N,
                                    unsigned int n_angle_types,
                                    unsigned int n_dihedral_types,
                                    unsigned int n_improper_types,
-                                   boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                   boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                   boost::shared_ptr<DomainDecomposition> decomposition)
     {
     m_n_dimensions = 3;
-    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf));
+    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf, decomposition));
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
     m_wall_data = boost::shared_ptr<WallData>(new WallData());
     
@@ -177,7 +178,7 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
  *  \param impropers True if improper data should be saved
  *  \param rigid True if rigid data should be saved
  *  \param wall True if wall data should be saved
- *  \param integrator True if integrator data should be saved
+ *  \param integrators True if integrator data should be saved
  */
 boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot(bool particles,
                                                    bool bonds,
@@ -321,6 +322,7 @@ void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
     .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def(init<boost::shared_ptr<const SnapshotSystemData>, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def(init<boost::shared_ptr<const SnapshotSystemData>, boost::shared_ptr<ExecutionConfiguration> >())
     .def("setNDimensions", &SystemDefinition::setNDimensions)

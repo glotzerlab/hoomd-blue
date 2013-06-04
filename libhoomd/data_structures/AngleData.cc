@@ -525,7 +525,7 @@ void AngleData::initializeFromSnapshot(const SnapshotAngleData& snapshot)
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
         {
-        m_exec_conf->msg->error() << "init.*: inconsistent size of angle data snapshot."
+        m_exec_conf->msg->error() << "init.*: invalid angle data snapshot."
                                 << std::endl << std::endl;
         throw std::runtime_error("Error initializing angle data.");
         }

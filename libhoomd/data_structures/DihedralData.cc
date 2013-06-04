@@ -567,7 +567,7 @@ void DihedralData::initializeFromSnapshot(const SnapshotDihedralData& snapshot)
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && !snapshot.validate())
         {
-        m_exec_conf->msg->error() << "init.*: inconsistent size of dihedral/improper data snapshot."
+        m_exec_conf->msg->error() << "init.*: invalid dihedral/improper data snapshot."
                                 << std::endl << std::endl;
         throw std::runtime_error("Error initializing dihedral/improper data.");
         }
