@@ -193,8 +193,8 @@ TAB_SIZE               = 4
 # will result in a user-defined paragraph with heading "Side Effects:".
 # You can put \n's in the value part of an alias to insert newlines.
 
-ALIASES                += MPI_SUPPORTED="\n\note This feature is <b>supported</b> in MPI mode.\n"
-ALIASES                += MPI_NOT_SUPPORTED="\n\note This feature is <b>not supported</b> in MPI mode.\n"
+ALIASES                += MPI_SUPPORTED="\par MPI Support\nThis command works in MPI parallel jobs.\n"
+ALIASES                += MPI_NOT_SUPPORTED="\par MPI Support\nThis command is **not yet** supported in MPI parallel jobs. An error will be thrown when it used in parallel execution.\n"
 
 # Set the OPTIMIZE_OUTPUT_FOR_C tag to YES if your project consists of C
 # sources only. Doxygen will then generate output that is more tailored for C.
