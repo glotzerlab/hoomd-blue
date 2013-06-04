@@ -59,8 +59,8 @@ Table of contents:
 
 \section sec_triclinic_intro Introduction
 HOOMD-blue fully supports triclinic simulation boxes. A triclinic box has six
-varibles: the lengths *L_x*, *L_y* and *L_z* of the edges of the box, and
-three tilt factors *xy*, *xz* and *yz*.
+varibles: the lengths \f$L_x\f$, \f$L_y\f$ and \f$L_z\f$ of the edges of the box, and
+three tilt factors \f$xy\f$, \f$xz\f$ and \f$yz\f$.
 
 If the cell parameter matrix \f$\mathbf{h}\f$ is defined in terms of the lattice vectors
 \f$ a_1 \f$, \f$ a_2 \f$ and
