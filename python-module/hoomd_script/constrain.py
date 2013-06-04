@@ -240,7 +240,13 @@ class sphere(_constraint_force):
     # \endcode
     def __init__(self, group, P, r):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("constrain.sphere is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error initializing constraint force.")
+
         # initialize the base class
         _constraint_force.__init__(self);
         

@@ -65,18 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
-//#define MPI3 // define if the MPI implementation supports MPI3 one-sided communications
-
-//! This is a lookup from corner to plan
-unsigned int corner_plan_lookup[8];
-
-//! Lookup from edge to plan
-unsigned int edge_plan_lookup[12];
-
-//! Lookup from face to plan
-unsigned int face_plan_lookup[6];
-
-
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
@@ -93,43 +81,34 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_max_recv_ghosts(0),
       m_buffers_allocated(false)
     { 
-    m_exec_conf->msg->notice(5) << "Constructing CommunicatorGPU" << std::endl;
+    // find out if this is a 1D decomposition
+    unsigned int d = 0;
+    if (decomposition->getDomainIndexer().getW() > 1) d++;
+    if (decomposition->getDomainIndexer().getH() > 1) d++;
+    if (decomposition->getDomainIndexer().getD() > 1) d++;
+
+    assert(d>=1);
+    #ifdef ENABLE_MPI_CUDA
+    // print a warning if we are using a higher than linear dimensionality for the processor grid
+    // and CUDA-MPI interop is enabled (the latency of a send/recv call is lower if not using CUDA-MPI)
+    if (d > 1)
+        {
+        m_exec_conf->msg->notice(2) << "The processor grid has dimensionality " << d << " > 1 and CUDA-MPI support" << std::endl;
+        m_exec_conf->msg->notice(2) << "is enabled. For optimal performance, disable CUDA-MPI support" << std::endl;
+        m_exec_conf->msg->notice(2) << "(-D ENABLE_MPI_CUDA=0)." << std::endl;
+        }
+    #endif
 
     // allocate temporary GPU buffers and set some global properties
     unsigned int is_communicating[6];
     for (unsigned int face=0; face<6; ++face)
         is_communicating[face] = isCommunicating(face) ? 1 : 0;
 
-    corner_plan_lookup[corner_east_north_up] = send_east | send_north | send_up;
-    corner_plan_lookup[corner_east_north_down] = send_east | send_north | send_down;
-    corner_plan_lookup[corner_east_south_up] = send_east | send_south | send_up;
-    corner_plan_lookup[corner_east_south_down] = send_east | send_south | send_down;
-    corner_plan_lookup[corner_west_north_up] = send_west | send_north | send_up;
-    corner_plan_lookup[corner_west_north_down] = send_west | send_north | send_down;
-    corner_plan_lookup[corner_west_south_up] = send_west | send_south | send_up;
-    corner_plan_lookup[corner_west_south_down] = send_west | send_south | send_down;
-
-    edge_plan_lookup[edge_east_north] = send_east | send_north;
-    edge_plan_lookup[edge_east_south] = send_east | send_south;
-    edge_plan_lookup[edge_east_up] = send_east | send_up;
-    edge_plan_lookup[edge_east_down] = send_east | send_down;
-    edge_plan_lookup[edge_west_north] = send_west | send_north;
-    edge_plan_lookup[edge_west_south] = send_west | send_south;
-    edge_plan_lookup[edge_west_up] = send_west | send_up;
-    edge_plan_lookup[edge_west_down] = send_west | send_down;
-    edge_plan_lookup[edge_north_up] = send_north | send_up;
-    edge_plan_lookup[edge_north_down] = send_north | send_down;
-    edge_plan_lookup[edge_south_up] = send_south | send_up;
-    edge_plan_lookup[edge_south_down] = send_south | send_down;
-
-    face_plan_lookup[face_east]  = send_east;
-    face_plan_lookup[face_west] = send_west;
-    face_plan_lookup[face_north] = send_north;
-    face_plan_lookup[face_south]  = send_south;
-    face_plan_lookup[face_up] = send_up;
-    face_plan_lookup[face_down] = send_down;
-
-    gpu_allocate_tmp_storage(is_communicating,m_is_at_boundary);
+    gpu_allocate_tmp_storage(is_communicating,
+                             m_is_at_boundary,
+                             corner_plan_lookup,
+                             edge_plan_lookup,
+                             face_plan_lookup);
 
     GPUFlags<unsigned int> condition(m_exec_conf);
     m_condition.swap(condition);
@@ -891,6 +870,13 @@ void CommunicatorGPU::migrateParticles()
      * Communicate particles
      */
 
+    for (unsigned int i = 0; i < NFACE*NCORNER; ++i)
+        m_remote_send_corner[i] = 0;
+    for (unsigned int i = 0; i < NFACE*NEDGE; ++i)
+        m_remote_send_edge[i] = 0;
+    for (unsigned int i = 0; i < NFACE; ++i)
+        m_remote_send_face[i] = 0;
+
     // total up number of sent particles
     unsigned int n_remove_ptls = 0;
     for (unsigned int i = 0; i < 6; ++i)
@@ -1073,6 +1059,13 @@ void CommunicatorGPU::migrateParticles()
 
     if (bdata->getNumBondsGlobal())
         {
+        for (unsigned int i = 0; i < NFACE*NCORNER; ++i)
+            m_remote_send_corner[i] = 0;
+        for (unsigned int i = 0; i < NFACE*NEDGE; ++i)
+            m_remote_send_edge[i] = 0;
+        for (unsigned int i = 0; i < NFACE; ++i)
+            m_remote_send_face[i] = 0;
+
         unsigned int n_tot_recv_bonds = 0;
 
         for (unsigned int dir=0; dir < 6; dir++)
@@ -1428,6 +1421,13 @@ void CommunicatorGPU::exchangeGhosts()
     // Number of ghosts we received that are not forwarded to other boxes
     m_n_tot_recv_ghosts_local = 0;
 
+    for (unsigned int i = 0; i < NFACE*NCORNER; ++i)
+        m_remote_send_corner[i] = 0;
+    for (unsigned int i = 0; i < NFACE*NEDGE; ++i)
+        m_remote_send_edge[i] = 0;
+    for (unsigned int i = 0; i < NFACE; ++i)
+        m_remote_send_face[i] = 0;
+
         {
         ArrayHandle<unsigned int> h_n_recv_ghosts_face(m_n_recv_ghosts_face, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_n_recv_ghosts_edge(m_n_recv_ghosts_edge, access_location::host, access_mode::overwrite);
@@ -1673,133 +1673,119 @@ void CommunicatorGPU::communicateStepOne(unsigned int cur_face,
 
     unsigned int nptl;
 
-#ifndef MPI3
+    #ifndef MPI3
     MPI_Request send_req, recv_req;
     MPI_Status send_status, recv_status;
 
     unsigned int tag = 0;
-#endif
- 
+    #endif
+
+    #ifndef MPI3
+    MPI_Isend(&n_send_ptls_corner[0], NCORNER, MPI_INT, send_neighbor, tag, m_mpi_comm, &send_req);
+    MPI_Irecv(&m_remote_send_corner[NCORNER*cur_face], NCORNER, MPI_INT, recv_neighbor, tag, m_mpi_comm, &recv_req);
+    MPI_Wait(&send_req,&send_status);
+    MPI_Wait(&recv_req,&recv_status);
+    tag++;
+    #endif
+
     // calculate total message sizes
     for (unsigned int corner_i = 0; corner_i < 8; ++corner_i)
         {
-        bool sent = false;
-        unsigned int plan = corner_plan_lookup[corner_i];
-
         // only send corner particle through face if face touches corner
-        if (!((face_plan_lookup[cur_face] & plan) == face_plan_lookup[cur_face])) continue;
-
         nptl = n_send_ptls_corner[corner_i];
-
-#ifndef MPI3
-        MPI_Isend(&nptl, 1, MPI_INT, send_neighbor, tag, m_mpi_comm, &send_req);
-        MPI_Irecv(&m_remote_send_corner[8*cur_face+corner_i], 1, MPI_INT, recv_neighbor, tag, m_mpi_comm, &recv_req);
-        MPI_Wait(&send_req,&send_status);
-        MPI_Wait(&recv_req,&recv_status);
-        tag++;
-#endif
-
+        
         for (unsigned int edge_j = 0; edge_j < 12; ++edge_j)
-            if ((edge_plan_lookup[edge_j] & plan) == edge_plan_lookup[edge_j])
-                {
-                // if this edge buffer is or has already been emptied in this or previous communication steps, don't add to it
-                bool active = true;
-                for (unsigned int face_k = 0; face_k < 6; ++face_k)
-                    if (face_k <= cur_face && (edge_plan_lookup[edge_j] & face_plan_lookup[face_k])) active = false;
-                if (! active) continue;
-
-                // send a corner particle to an edge send buffer in the neighboring box
+            if (getRoutingTable().m_route_corner_edge[cur_face][corner_i][edge_j])
                 n_remote_recv_ptls_edge[edge_j] += nptl;
+           
+        // In particle migration, a particle gets sent to exactly one box
+        if (unique_destination) continue;
 
-                sent = true;
-                break;
-                }
-            
-        // If we are only sending to one destination box, corner ptls can only be sent by the neighboring box as an edge particle
-        if (unique_destination || sent)
-            continue;
-
-        // do not place particle in a buffer where it would be sent back to ourselves
-        unsigned int next_face = cur_face + ((cur_face % 2) ? 1 : 2);
-
-        for (unsigned int face_j = next_face; face_j < 6; ++face_j)
-            if ((face_plan_lookup[face_j] & plan) == face_plan_lookup[face_j])
-                {
-                // send a corner particle to a face send buffer in the neighboring box
+        for (unsigned int face_j = 0; face_j < 6; ++face_j)
+            if (getRoutingTable().m_route_corner_face[cur_face][corner_i][face_j])
                 n_remote_recv_ptls_face[face_j] += nptl;
-                sent = true;
-                break;
-                }
 
-        if (sent) continue;
-
-        if (plan & face_plan_lookup[cur_face])
+        if (getRoutingTable().m_route_corner_local[cur_face][corner_i])
             n_remote_recv_ptls_local += nptl;
         }
-            
+
+    #ifndef MPI3
+    MPI_Isend(&n_send_ptls_edge[0], NEDGE, MPI_INT, send_neighbor, tag, m_mpi_comm, &send_req);
+    MPI_Irecv(&m_remote_send_edge[NEDGE*cur_face], NEDGE, MPI_INT, recv_neighbor, tag, m_mpi_comm, &recv_req);
+    MPI_Wait(&send_req,&send_status);
+    MPI_Wait(&recv_req,&recv_status);
+    tag++;
+    #endif
+
     for (unsigned int edge_i = 0; edge_i < 12; ++edge_i)
         {
-        bool sent = false;
-        unsigned int plan = edge_plan_lookup[edge_i];
-
-        // only send edge particle through face if face touches edge
-        if (! ((face_plan_lookup[cur_face] & plan) == face_plan_lookup[cur_face])) continue;
-
         nptl = n_send_ptls_edge[edge_i];
 
-#ifndef MPI3
-        MPI_Isend(&nptl, 1, MPI_INT, send_neighbor, tag, m_mpi_comm, &send_req);
-        MPI_Irecv(&m_remote_send_edge[12*cur_face+edge_i], 1, MPI_INT, recv_neighbor, tag, m_mpi_comm, &recv_req);
-        MPI_Wait(&send_req,&send_status);
-        MPI_Wait(&recv_req,&recv_status);
-        tag++;
-#endif
-
-        // do not place particle in a buffer where it would be sent back to ourselves
-        unsigned int next_face = cur_face + ((cur_face % 2) ? 1 : 2);
-
-        for (unsigned int face_j = next_face; face_j < 6; ++face_j)
-            if ((face_plan_lookup[face_j] & plan) == face_plan_lookup[face_j])
-                {
-                // send an edge particle to a face send buffer in the neighboring box
+        for (unsigned int face_j = 0; face_j < 6; ++face_j)
+            if (getRoutingTable().m_route_edge_face[cur_face][edge_i][face_j])
                 n_remote_recv_ptls_face[face_j] += nptl;
 
-                sent = true;
-                break;
-                }
+        if (unique_destination) continue;
 
-        if (unique_destination || sent) continue;
-
-        if (plan & face_plan_lookup[cur_face])
+        if (getRoutingTable().m_route_edge_local[cur_face][edge_i])
             n_remote_recv_ptls_local += nptl;
         } 
 
-    for (unsigned int face_i = 0; face_i < 6; ++face_i)
-        {
-        unsigned int plan = face_plan_lookup[face_i];
+    #ifndef MPI3
+    MPI_Isend(&n_send_ptls_face[cur_face], 1, MPI_INT, send_neighbor, tag, m_mpi_comm, &send_req);
+    MPI_Irecv(&m_remote_send_face[cur_face], 1, MPI_INT, recv_neighbor, tag, m_mpi_comm, &recv_req);
+    MPI_Wait(&send_req,&send_status);
+    MPI_Wait(&recv_req,&recv_status);
+    tag++;
+    #endif
 
-        // only send through face if this is the current sending direction
-        if (! ((face_plan_lookup[cur_face] & plan) == face_plan_lookup[cur_face])) continue;
+    nptl = n_send_ptls_face[cur_face];
+    if (getRoutingTable().m_route_face_local[cur_face]) n_remote_recv_ptls_local += nptl;
 
-        nptl = n_send_ptls_face[face_i];
+    // exchange message sizes
+    MPI_Isend(n_remote_recv_ptls_edge,
+              sizeof(unsigned int)*12,
+              MPI_BYTE,
+              send_neighbor,
+              tag,
+              m_mpi_comm,
+              & reqs[0]);
+    MPI_Isend(n_remote_recv_ptls_face,
+              sizeof(unsigned int)*6,
+              MPI_BYTE,
+              send_neighbor,
+              tag+1,
+              m_mpi_comm,
+              &reqs[1]);
+    MPI_Isend(&n_remote_recv_ptls_local,
+              sizeof(unsigned int),
+              MPI_BYTE,
+              send_neighbor,
+              tag+2,
+              m_mpi_comm,
+              &reqs[2]);
 
-#ifndef MPI3
-        MPI_Isend(&nptl, 1, MPI_INT, send_neighbor, tag, m_mpi_comm, &send_req);
-        MPI_Irecv(&m_remote_send_face[6*cur_face+face_i], 1, MPI_INT, recv_neighbor, tag, m_mpi_comm, &recv_req);
-        MPI_Wait(&send_req,&send_status);
-        MPI_Wait(&recv_req,&recv_status);
-        tag++;
-#endif
-        n_remote_recv_ptls_local += nptl;
-        }
-
-    MPI_Isend(n_remote_recv_ptls_edge, sizeof(unsigned int)*12, MPI_BYTE, send_neighbor, tag, m_mpi_comm, & reqs[0]);
-    MPI_Isend(n_remote_recv_ptls_face, sizeof(unsigned int)*6, MPI_BYTE, send_neighbor, tag+1, m_mpi_comm, &reqs[1]);
-    MPI_Isend(&n_remote_recv_ptls_local, sizeof(unsigned int), MPI_BYTE, send_neighbor, tag+2, m_mpi_comm, &reqs[2]);
-
-    MPI_Irecv(n_recv_ptls_edge, 12*sizeof(unsigned int), MPI_BYTE, recv_neighbor, tag+0, m_mpi_comm, &reqs[3]);
-    MPI_Irecv(n_recv_ptls_face, 6*sizeof(unsigned int), MPI_BYTE, recv_neighbor, tag+1, m_mpi_comm, & reqs[4]);
-    MPI_Irecv(n_recv_ptls_local, sizeof(unsigned int), MPI_BYTE, recv_neighbor, tag+2, m_mpi_comm, & reqs[5]);
+    MPI_Irecv(n_recv_ptls_edge,
+              12*sizeof(unsigned int),
+              MPI_BYTE,
+              recv_neighbor,
+              tag+0,
+              m_mpi_comm,
+              &reqs[3]);
+    MPI_Irecv(n_recv_ptls_face,
+              6*sizeof(unsigned int),
+              MPI_BYTE,
+              recv_neighbor,
+              tag+1,
+              m_mpi_comm,
+              & reqs[4]);
+    MPI_Irecv(n_recv_ptls_local,
+              sizeof(unsigned int),
+              MPI_BYTE,
+              recv_neighbor,
+              tag+2,
+              m_mpi_comm,
+              & reqs[5]);
 
     MPI_Waitall(6, reqs, status);
     }
@@ -1827,7 +1813,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
     else
         recv_neighbor = m_decomposition->getNeighborRank(cur_face-1);
 
-#ifdef MPI3
+    #ifdef MPI3
     // create groups for sending and receiving data
     MPI_Group send_group, recv_group;
     MPI_Group_incl(m_comm_group, 1, &send_neighbor, &send_group);
@@ -1888,7 +1874,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
     for (unsigned int i = 0; i < 12; ++i)
         MPI_Win_start(send_group, 0, m_win_edge[i]);
     MPI_Win_start(send_group, 0, m_win_local);
-#else
+    #else
     // There are (up to) 26 neighborings domains. In one communication step, we are sending to
     // buffers for at most half the domains = 13 buffers max
     MPI_Request send_req[13], recv_req[13];
@@ -1897,12 +1883,12 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
     unsigned int recv_nptl;
     unsigned int offset;
     unsigned int tag = 0;
-#endif
+    #endif
 
     unsigned int nptl;
     void *data;
 
-#ifdef MPI3
+    #ifdef MPI3
     unsigned int foffset[6];
     unsigned int eoffset[12];
     unsigned int loffset;
@@ -1912,7 +1898,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
     for (unsigned int i = 0; i < 6; ++i)
         foffset[i] = 0;
     loffset = 0;
-#else
+    #else
     unsigned int recv_eoffset[12];
     unsigned int recv_foffset[6];
     unsigned int recv_loffset;
@@ -1922,35 +1908,22 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
     for (unsigned int i = 0; i < 6; ++i)
         recv_foffset[i] = 0;
     recv_loffset = 0;
-#endif
+    #endif
 
     for (unsigned int corner_i = 0; corner_i < 8; ++corner_i)
         {
-        // indicates whether buffer has been sent to current neighbor
-        bool sent = false;
-        unsigned int plan = corner_plan_lookup[corner_i];
-
-        // only send corner particle through face if face touches corner
-        if (! ((face_plan_lookup[cur_face] & plan) == face_plan_lookup[cur_face])) continue;
-
         nptl = n_send_ptls_corner[corner_i];
         data = corner_send_buf+corner_i*cpitch;
 
-#ifndef MPI3
+        #ifndef MPI3
         recv_nptl = m_remote_send_corner[cur_face*8+corner_i];
-#endif
+        #endif
 
         for (unsigned int edge_j = 0; edge_j < 12; ++edge_j)
-            if ((edge_plan_lookup[edge_j] & plan) == edge_plan_lookup[edge_j])
+            if (getRoutingTable().m_route_corner_edge[cur_face][corner_i][edge_j])
                 {
-                // if this edge buffer is or has already been emptied in this or previous communication steps, don't add to it
-                bool active = true;
-                for (unsigned int face_k = 0; face_k < 6; ++face_k)
-                    if (face_k <= cur_face && (edge_plan_lookup[edge_j] & face_plan_lookup[face_k])) active = false;
-                if (! active) continue;
-
-#ifdef MPI3
                 // send a corner particle to an edge send buffer in the neighboring box
+                #ifdef MPI3
                 MPI_Put(data,
                         nptl*element_size,
                         MPI_BYTE,
@@ -1960,7 +1933,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                         MPI_BYTE,
                         m_win_edge[edge_j]);
                 eoffset[edge_j] += nptl;
-#else
+                #else
                 offset = (n_send_ptls_edge[edge_j] + recv_eoffset[edge_j])*element_size;
                 bool send = (nptl > 0);
                 bool recv = (recv_nptl > 0);
@@ -1982,24 +1955,18 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                           &recv_req[recv_req_count++]);
                 tag++;
                 recv_eoffset[edge_j] += recv_nptl;
-#endif
-                sent = true;
-                break;
+                #endif
                 }
-            
-        // If we are only sending to one destination box, corner ptls can only be sent by the neighboring box as an edge particle
-        if (unique_destination || sent)
-            continue;
+           
+        // If we are only sending to a single destination box, do not replicate particles
+        if (unique_destination) continue;
 
-        // do not place particle in a buffer where it would be sent back to ourselves
-        unsigned int next_face = cur_face + ((cur_face % 2) ? 1 : 2);
-
-        for (unsigned int face_j = next_face; face_j < 6; ++face_j)
-            if ((face_plan_lookup[face_j] & plan) == face_plan_lookup[face_j])
+        for (unsigned int face_j = 0; face_j < 6; ++face_j)
+            if (getRoutingTable().m_route_corner_face[cur_face][corner_i][face_j])
                 {
                 // send a corner particle to a face send buffer in the neighboring box
 
-#ifdef MPI3
+                #ifdef MPI3
                 MPI_Put(data,
                         nptl*element_size,
                         MPI_BYTE,
@@ -2009,7 +1976,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                         MPI_BYTE,
                         m_win_face[face_j]);
                 foffset[face_j] += nptl;
-#else
+                #else
                 offset = (n_send_ptls_face[face_j] + recv_foffset[face_j])*element_size;
                 bool send = (nptl > 0);
                 bool recv = (recv_nptl > 0);
@@ -2031,17 +1998,13 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                           &recv_req[recv_req_count++]);
                 tag++;
                 recv_foffset[face_j] += recv_nptl;
-#endif
-                sent = true;
-                break;
+                #endif
                 }
 
-        if (sent) continue;
-
-        if (plan & face_plan_lookup[cur_face])
+        if (getRoutingTable().m_route_corner_local[cur_face][corner_i])
             {
             // send a corner particle directly to the neighboring bo
-#ifdef MPI3
+            #ifdef MPI3
             MPI_Put(data,
                     nptl*element_size,
                     MPI_BYTE,
@@ -2051,7 +2014,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                     MPI_BYTE,
                     m_win_local);
             loffset += nptl;
-#else
+            #else
             offset = (n_tot_recv_ptls_local + recv_loffset)*element_size;
             bool send = (nptl > 0);
             bool recv = (recv_nptl > 0);
@@ -2073,33 +2036,24 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                       &recv_req[recv_req_count++]);
             tag++;
             recv_loffset += recv_nptl;
-#endif
+            #endif
             }
         }
             
     for (unsigned int edge_i = 0; edge_i < 12; ++edge_i)
         {
-        bool sent = false;
-        unsigned int plan = edge_plan_lookup[edge_i];
-
-        // only send edge particle through face if face touches edge
-        if (! ((face_plan_lookup[cur_face] & plan) == face_plan_lookup[cur_face])) continue;
-
         nptl = n_send_ptls_edge[edge_i];
         data = edge_send_buf+edge_i*epitch;
 
-#ifndef MPI3
+        #ifndef MPI3
         recv_nptl = m_remote_send_edge[cur_face*12+edge_i];
-#endif
+        #endif
 
-        // do not place particle in a buffer where it would be sent back to ourselves
-        unsigned int next_face = cur_face + ((cur_face % 2) ? 1 : 2);
-
-        for (unsigned int face_j = next_face; face_j < 6; ++face_j)
-            if ((face_plan_lookup[face_j] & plan) == face_plan_lookup[face_j])
+        for (unsigned int face_j = 0; face_j < 6; ++face_j)
+            if (getRoutingTable().m_route_edge_face[cur_face][edge_i][face_j])
                 {
                 // send an edge particle to a face send buffer in the neighboring box
-#ifdef MPI3
+                #ifdef MPI3
                 MPI_Put(data,
                         nptl*element_size,
                         MPI_BYTE,
@@ -2109,7 +2063,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                         MPI_BYTE,
                         m_win_face[face_j]);
                 foffset[face_j] += nptl;
-#else
+                #else
                 offset = (n_send_ptls_face[face_j] + recv_foffset[face_j])*element_size;
                 bool send = (nptl > 0);
                 bool recv = (recv_nptl > 0);
@@ -2131,17 +2085,15 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                           &recv_req[recv_req_count++]);
                 tag++;
                 recv_foffset[face_j] += recv_nptl;
-#endif
-                sent = true;
-                break;
+                #endif
                 }
 
-        if (unique_destination || sent) continue;
+        if (unique_destination) continue;
 
-        if (plan & face_plan_lookup[cur_face])
+        if (getRoutingTable().m_route_edge_local[cur_face][edge_i])
             {
             // send directly to neighboring box
-#ifdef MPI3
+            #ifdef MPI3
             MPI_Put(data,
                     nptl*element_size,
                     MPI_BYTE,
@@ -2151,7 +2103,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                     MPI_BYTE,
                     m_win_local);
             loffset += nptl;
-#else
+            #else
             offset = (n_tot_recv_ptls_local + recv_loffset)*element_size;
             bool send = (nptl > 0);
             bool recv = (recv_nptl > 0);
@@ -2173,25 +2125,20 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                       &recv_req[recv_req_count++]);
             tag++;
             recv_loffset += recv_nptl;
-#endif
+            #endif
             }
         } 
 
-    for (unsigned int face_i = 0; face_i < 6; ++face_i)
+    if (getRoutingTable().m_route_face_local[cur_face])
         {
-        unsigned int plan = face_plan_lookup[face_i];
+        nptl = n_send_ptls_face[cur_face];
+        data = face_send_buf+cur_face*fpitch;
 
-        // only send through face if this is the current sending direction
-        if (! ((face_plan_lookup[cur_face] & plan) == face_plan_lookup[cur_face])) continue;
+        #ifndef MPI3
+        recv_nptl = m_remote_send_face[cur_face];
+        #endif
 
-        nptl = n_send_ptls_face[face_i];
-        data = face_send_buf+face_i*fpitch;
-
-#ifndef MPI3
-        recv_nptl = m_remote_send_face[cur_face*6+face_i];
-#endif
-
-#ifdef MPI3
+        #ifdef MPI3
         MPI_Put(data,
                 nptl*element_size,
                 MPI_BYTE,
@@ -2201,7 +2148,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                 MPI_BYTE,
                 m_win_local);
         loffset += nptl;
-#else
+        #else
         offset = (n_tot_recv_ptls_local + recv_loffset)*element_size;
         bool send = (nptl > 0);
         bool recv = (recv_nptl > 0);
@@ -2223,10 +2170,10 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                   &recv_req[recv_req_count++]);
         tag++;
         recv_loffset += recv_nptl;
-#endif
+        #endif
         }
 
-#ifdef MPI3
+    #ifdef MPI3
     // synchronize
     for (unsigned int i = 0; i < 12; ++i)
         MPI_Win_complete(m_win_edge[i]);
@@ -2248,15 +2195,14 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
         MPIX_Win_detach(m_win_face[i], face_send_buf+i*fpitch+n_send_ptls_face[i]*element_size);
 
     MPIX_Win_detach(m_win_local, local_recv_buf+n_tot_recv_ptls_local*element_size);
-#else
+    #else
     MPI_Status send_status[13], recv_status[13];
 
     MPI_Waitall(send_req_count, send_req, send_status);
     MPI_Waitall(recv_req_count, recv_req, recv_status);
-#endif
-
+    #endif
     }
-
+    
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU()
     {

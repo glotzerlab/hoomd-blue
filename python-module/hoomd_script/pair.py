@@ -1373,7 +1373,13 @@ class cgcmm(force._force):
     # set before it can be started with run()
     def __init__(self, r_cut):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("pair.cgcmm is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up pair potential.")
+                      
         # initialize the base class
         force._force.__init__(self);
         
@@ -1848,7 +1854,13 @@ class dpd(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("pair.dpd is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up pair potential.")
+               
         # tell the base class how we operate
         
         # initialize the base class
@@ -2031,6 +2043,12 @@ class eam(force._force):
     # \endcode
     def __init__(self, file, type):
         util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("pair.eam is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up pair potential.")
         
         # initialize the base class
         force._force.__init__(self);
@@ -2164,7 +2182,13 @@ class dpdlj(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("pair.dpdlj not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up pair potential.")
+ 
         # tell the base class how we operate
         
         # initialize the base class

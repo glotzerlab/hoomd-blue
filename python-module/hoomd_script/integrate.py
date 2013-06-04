@@ -963,7 +963,13 @@ class nve_rigid(_integration_method):
     # \endcode
     def __init__(self, group):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.nve_rigid not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
+ 
         # initialize base class
         _integration_method.__init__(self);
         
@@ -1004,6 +1010,12 @@ class nvt_rigid(_integration_method):
     # \endcode
     def __init__(self, group, T, tau):
         util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.nvt_rigid not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
         
         # initialize base class
         _integration_method.__init__(self);
@@ -1088,6 +1100,12 @@ class bdnvt_rigid(_integration_method):
     # \endcode
     def __init__(self, group, T, seed=0, gamma_diam=False):
         util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.bdnvt_rigid not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
         
         # initialize base class
         _integration_method.__init__(self);
@@ -1192,6 +1210,12 @@ class npt_rigid(_integration_method):
     # \endcode
     def __init__(self, group, T, tau, P, tauP):
         util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.npt_rigid not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
         
         # initialize base class
         _integration_method.__init__(self);
@@ -1275,6 +1299,12 @@ class nph_rigid(_integration_method):
     # \endcode
     def __init__(self, group, P, tauP):
         util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.nph_rigid is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
         
         # initialize base class
         _integration_method.__init__(self);
@@ -1379,7 +1409,13 @@ class mode_minimize_fire(_integrator):
     #   - <i>optional</i>: defaults to 10
     def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, falpha=None, ftol = None, Etol= None, min_steps=None):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("mode_minimize_fire is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration mode.")
+ 
         # initialize base class
         _integrator.__init__(self);
         
@@ -1502,6 +1538,12 @@ class berendsen(_integration_method):
     def __init__(self, group, T, tau):
         util.print_status_line();
 
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
+ 
         # initialize base class
         _integration_method.__init__(self);
 

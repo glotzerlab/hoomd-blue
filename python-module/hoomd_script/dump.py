@@ -326,7 +326,13 @@ class bin(analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True):
         util.print_status_line();
-    
+  
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("dump.bin is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error writing restart data.")
+
         # initialize base class
         analyze._analyzer.__init__(self);
         
@@ -346,7 +352,7 @@ class bin(analyze._analyzer):
                 globals.msg.warning("No output will be written.\n");
         
         globals.msg.warning("dump.bin does not support triclinic boxes.\n");
-        globals.msg.warning("dump.bin is deprecated and will be replaced in v1.0.0\n");
+        globals.msg.warning("dump.bin is deprecated and will be replaced in v1.1.0\n");
         
         if period is not None:
             self.setupAnalyzer(period);

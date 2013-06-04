@@ -97,13 +97,13 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         m_nz = nz;
        }
 
-    // Print out information about the domain decomposition
-    m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = " << nx << " n_y = " << ny << " n_z = " << nz << "." << std::endl;
- 
     // broadcast grid dimensions
     bcast( m_nx, 0, m_mpi_comm);
     bcast( m_ny, 0, m_mpi_comm);
     bcast( m_nz, 0, m_mpi_comm);
+
+    // Print out information about the domain decomposition
+    m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = " << m_nx << " n_y = " << m_ny << " n_z = " << m_nz << "." << std::endl;
 
     // Initialize domain indexer
     m_index = Index3D(m_nx,m_ny,m_nz);

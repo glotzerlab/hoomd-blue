@@ -70,11 +70,34 @@ def get_num_ranks():
     else:
         return 1;
 
-## Test if we are a root rank
-# \returns True if this rank is the root rank of a partition
-# \note Always returns True in non-mpi builds
-def is_root():
+## Return the current rank
+# If HOOMD is already initialized, it returns the actual MPI rank.
+# If HOOMD is not yet initialized, it guesses the rank from environment
+# variables.
+# \note Always returns 0 in non-mpi builds
+def get_rank():
     if hoomd.is_MPI_available():
-        return globals.exec_conf.getRank() == 0;
+        if init.is_initialized():
+            return globals.exec_conf.getRank()
+        else:
+            return hoomd.ExecutionConfiguration.guessRank(globals.msg)
     else:
-        return True;
+        return 0;
+
+## Return the current partition
+# If HOOMD is already initialized, it returns the actual partition.
+# If HOOMD is not yet initialized, it guesses the partition id from environment
+# variables.
+# \note Always returns 0 in non-mpi builds
+def get_partition():
+    if hoomd.is_MPI_available():
+        if init.is_initialized():
+            return globals.exec_conf.getPartition()
+        else:
+            if globals.options.nrank is not None:
+                return int(hoomd.ExecutionConfiguration.guessRank(globals.msg)/globals.options.nrank)
+            else:
+                return 0
+    else:
+        return 0;
+

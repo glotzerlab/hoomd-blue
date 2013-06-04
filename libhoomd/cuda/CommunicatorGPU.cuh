@@ -150,7 +150,10 @@ unsigned int gpu_update_element_size();
 
 //! Allocate temporary device memory for reordering particles
 void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
-                              const unsigned int *is_at_boundary);
+                              const unsigned int *is_at_boundary,
+                              const unsigned int *corner_plan_lookup,
+                              const unsigned int *edge_plan_lookup,
+                              const unsigned int *face_plan_lookup);
 
 //! Dellocate temporary memory
 void gpu_deallocate_tmp_storage();

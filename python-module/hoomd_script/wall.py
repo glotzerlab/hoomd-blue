@@ -110,7 +110,13 @@ class lj(force._force):
     # \note Coefficients must be set with set_coeff() before the simulation can be run().
     def __init__(self, r_cut):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("wall.lj is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up wall potential.")
+ 
         # initialize the base class
         force._force.__init__(self);
         

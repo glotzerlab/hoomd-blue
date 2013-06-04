@@ -254,7 +254,8 @@ Table of contents:
 
 \section sec_index_communicate Communication helpers
  - \link hoomd_script.comm.get_num_ranks() comm.get_num_ranks\endlink - <i>Get the total number of ranks in a a parallel execution</i>
- - \link hoomd_script.comm.is_root() comm.is_root\endlink - <i>Check if the current process is the root rank</i>
+ - \link hoomd_script.comm.get_rank() comm.get_rank\endlink - <i>Return the rank of the current process</i>
+ - \link hoomd_script.comm.get_partition() comm.get_partition\endlink - <i>Return the partition of the current process</i>
  
 
 */
