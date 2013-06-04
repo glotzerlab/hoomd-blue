@@ -132,8 +132,8 @@ In this case, it is recommended to take advantage of direct
 peer-to-peer transfer between GPUs on the same PCIe bus, when available.
 This is accomplished using a CUDA-aware MPI library.
 To find out if your GPUs support P2P, run the \b simpleP2P test from the
-NVIDIA CUDA SDK.  Peer-to-Peer is only supported on professional class GPUs and may
-only be available when the GPUs are physically connected to the same IO-Hub on the
+NVIDIA CUDA SDK.  Peer-to-Peer is supported on both GeForce and Tesla GPUs and is only
+available between GPUs are connected to the same IO-Hub on the
 computer's main board.  P2P access is supported through support for special
 <b> CUDA-aware MPI libraries</b> and can increase communication bandwidth significantly.
 
