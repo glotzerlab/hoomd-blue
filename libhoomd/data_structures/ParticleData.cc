@@ -378,46 +378,46 @@ void ParticleData::allocate(unsigned int N)
     m_max_nparticles = N;
 
     // positions
-    GPUArray< Scalar4 > pos(getN(), m_exec_conf);
+    GPUArray< Scalar4 > pos(N, m_exec_conf);
     m_pos.swap(pos);
 
     // velocities
-    GPUArray< Scalar4 > vel(getN(), m_exec_conf);
+    GPUArray< Scalar4 > vel(N, m_exec_conf);
     m_vel.swap(vel);
 
     // accelerations
-    GPUArray< Scalar3 > accel(getN(), m_exec_conf);
+    GPUArray< Scalar3 > accel(N, m_exec_conf);
     m_accel.swap(accel);
 
     // charge
-    GPUArray< Scalar > charge(getN(), m_exec_conf);
+    GPUArray< Scalar > charge(N, m_exec_conf);
     m_charge.swap(charge);
 
     // diameter
-    GPUArray< Scalar > diameter(getN(), m_exec_conf);
+    GPUArray< Scalar > diameter(N, m_exec_conf);
     m_diameter.swap(diameter);
 
     // image
-    GPUArray< int3 > image(getN(), m_exec_conf);
+    GPUArray< int3 > image(N, m_exec_conf);
     m_image.swap(image);
 
     // global tag
-    GPUArray< unsigned int> tag(getN(), m_exec_conf);
+    GPUArray< unsigned int> tag(N, m_exec_conf);
     m_tag.swap(tag);
 
     // body ID
-    GPUArray< unsigned int > body(getN(), m_exec_conf);
+    GPUArray< unsigned int > body(N, m_exec_conf);
     m_body.swap(body);
 
-    GPUArray< Scalar4 > net_force(getN(), m_exec_conf);
+    GPUArray< Scalar4 > net_force(N, m_exec_conf);
     m_net_force.swap(net_force);
-    GPUArray< Scalar > net_virial(getN(),6, m_exec_conf);
+    GPUArray< Scalar > net_virial(N,6, m_exec_conf);
     m_net_virial.swap(net_virial);
-    GPUArray< Scalar4 > net_torque(getN(), m_exec_conf);
+    GPUArray< Scalar4 > net_torque(N, m_exec_conf);
     m_net_torque.swap(net_torque);
-    GPUArray< Scalar4 > orientation(getN(), m_exec_conf);
+    GPUArray< Scalar4 > orientation(N, m_exec_conf);
     m_orientation.swap(orientation);
-    m_inertia_tensor.resize(getN());
+    m_inertia_tensor.resize(N);
 
     // notify observers
     m_max_particle_num_signal();
