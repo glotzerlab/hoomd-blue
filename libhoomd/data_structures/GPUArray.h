@@ -672,7 +672,7 @@ template<class T> void GPUArray<T>::allocate()
         void *ptr = NULL;
 
 #ifdef ENABLE_MPI
-	// we need to use the hooks provided by the MPI library
+        // we need to use the hooks provided by the MPI library
         int retval = posix_memalign(&ptr, getpagesize(), m_num_elements*sizeof(T));
         if (retval != 0)
             {
@@ -681,7 +681,7 @@ template<class T> void GPUArray<T>::allocate()
             }
         cudaHostRegister(ptr,m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
 #else
-	cudaHostAlloc(&ptr, m_num_elements*sizeof(T), m_mapped ? cudaHostAllocMapped : cudaHostAllocDefault);
+        cudaHostAlloc(&ptr, m_num_elements*sizeof(T), m_mapped ? cudaHostAllocMapped : cudaHostAllocDefault);
 #endif
         h_data = (T *) ptr;
 
@@ -728,8 +728,8 @@ template<class T> void GPUArray<T>::deallocate()
         CHECK_CUDA_ERROR();
         free(h_data);
 #else
-	cudaFreeHost(h_data);
-	CHECK_CUDA_ERROR();
+        cudaFreeHost(h_data);
+        CHECK_CUDA_ERROR();
 #endif
         if (! m_mapped)
             {
@@ -1017,7 +1017,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
         void *ptr = NULL;
 
 #ifdef ENABLE_MPI
-	// we need to use the hooks provided by the MPI library
+        // we need to use the hooks provided by the MPI library
         int retval = posix_memalign(&ptr, getpagesize(), num_elements*sizeof(T));
         if (retval != 0)
             {
@@ -1026,7 +1026,7 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
             }
         cudaHostRegister(ptr, num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
 #else
-	cudaHostAlloc(&ptr, num_elements*sizeof(T), m_mapped ? cudaHostAllocMapped : cudaHostAllocDefault);
+        cudaHostAlloc(&ptr, num_elements*sizeof(T), m_mapped ? cudaHostAllocMapped : cudaHostAllocDefault);
 #endif
 
         h_tmp = (T *) ptr;
@@ -1055,8 +1055,8 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
         CHECK_CUDA_ERROR();
         free(h_data);
 #else
-	cudaFreeHost(h_data);
-	CHECK_CUDA_ERROR();
+        cudaFreeHost(h_data);
+        CHECK_CUDA_ERROR();
 #endif
         }
     else
@@ -1093,7 +1093,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
         unsigned int size = new_pitch*new_height*sizeof(T);
         void *ptr = NULL;
 #ifdef ENABLE_MPI
-	// we need to use the hooks provided by the MPI library
+        // we need to use the hooks provided by the MPI library
         int retval = posix_memalign(&ptr, getpagesize(), size);
         if (retval != 0)
             {
@@ -1103,7 +1103,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
             
         cudaHostRegister(ptr, size, cudaHostRegisterDefault);
 #else
-	cudaHostAlloc(&ptr, size, m_mapped ? cudaHostAllocMapped : cudaHostAllocDefault);
+        cudaHostAlloc(&ptr, size, m_mapped ? cudaHostAllocMapped : cudaHostAllocDefault);
 #endif
         h_tmp = (T *) ptr;
         }
@@ -1134,8 +1134,8 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
         CHECK_CUDA_ERROR();
         free(h_data);
 #else
-	cudaFreeHost(h_data);
-	CHECK_CUDA_ERROR();
+        cudaFreeHost(h_data);
+        CHECK_CUDA_ERROR();
 #endif
         }
     else
