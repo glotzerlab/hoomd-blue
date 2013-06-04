@@ -558,9 +558,17 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         
     // calculate averate TPS
     Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
-    if (!m_quiet_run)
-        m_exec_conf->msg->notice(1) << "Average TPS: " << TPS << endl;
+
     m_last_TPS = TPS;
+
+    #ifdef ENABLE_MPI
+    // make sure all ranks return the same TPS
+    if (m_comm)
+        bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
+    #endif
+
+    if (!m_quiet_run)
+        m_exec_conf->msg->notice(1) << "Average TPS: " << m_last_TPS << endl;
     
     // write out the profile data
     if (m_profiler)
