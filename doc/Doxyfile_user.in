@@ -193,7 +193,8 @@ TAB_SIZE               = 4
 # will result in a user-defined paragraph with heading "Side Effects:".
 # You can put \n's in the value part of an alias to insert newlines.
 
-ALIASES                =
+ALIASES                += MPI_SUPPORTED="\par MPI Support\nThis command works in MPI parallel jobs.\n"
+ALIASES                += MPI_NOT_SUPPORTED="\par MPI Support\nThis command is **not yet** supported in MPI parallel jobs. An error will be thrown when it used in parallel execution.\n"
 
 # Set the OPTIMIZE_OUTPUT_FOR_C tag to YES if your project consists of C
 # sources only. Doxygen will then generate output that is more tailored for C.
@@ -646,7 +647,9 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.do
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/citing.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc" \
-                         "${HOOMD_SOURCE_DIR}/python-module/hoomd_script"
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/triclinic.doc" \
+                         "${HOOMD_SOURCE_DIR}/python-module/hoomd_script" 
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is

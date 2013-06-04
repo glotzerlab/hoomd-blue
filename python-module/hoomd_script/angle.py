@@ -86,6 +86,7 @@ import sys;
 # set_coeff().
 #
 # \note Specifying the angle.harmonic command when no angles are defined in the simulation results in an error.
+# \MPI_NOT_SUPPORTED
 class harmonic(force._force):
     ## Specify the %harmonic %angle %force
     #
@@ -196,6 +197,7 @@ class harmonic(force._force):
 # set_coeff().
 #
 # \note Specifying the angle.cgcmm command when no angles are defined in the simulation results in an error.
+# \MPI_NOT_SUPPORTED
 class cgcmm(force._force):
     ## Specify the %cgcmm %angle %force
     #

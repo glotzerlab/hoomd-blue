@@ -448,9 +448,15 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 #                             polymers=[polymer1], 
 #                             separation=dict(A=0.35, B=0.35), seed=52);
 # 
+# # create polymers in an orthorhombic box
 # init.create_random_polymers(box=hoomd.BoxDim(18,10,25), 
 #                             polymers=[polymer2], 
 #                             separation=dict(A=0.35, B=0.35), seed=12345);
+#
+# # create a triclinic box with tilt factors xy=0.1 xz=0.2 yz=0.3
+# init.create_random_polymers(box=hoomd.BoxDim(18, 0.1, 0.2, 0.3),
+#                             polymeres=[polymer2],
+#                             separation=dict(A=0.35, B=0.35));
 # \endcode
 #
 # With all other parameters the same, create_random_polymers will always create the

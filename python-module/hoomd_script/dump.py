@@ -71,6 +71,7 @@ from hoomd_script import group as hs_group;
 # All values are written in native HOOMD-blue units, see \ref page_units for more information.
 #
 # \sa \ref page_xml_file_format
+# \MPI_SUPPORTED
 class xml(analyze._analyzer):
     ## Initialize the hoomd_xml writer
     #
@@ -271,7 +272,7 @@ class xml(analyze._analyzer):
 # particles at that time step is written to the file in a binary format.
 #
 # \sa init.read_bin
-#
+# \MPI_NOT_SUPPORTED
 class bin(analyze._analyzer):
     ## Initialize the hoomd_bin writer
     #
@@ -397,6 +398,7 @@ class bin(analyze._analyzer):
 # The intended usage is to use write() to generate a single structure file that 
 # can be used by VMD for reading in particle names and %bond topology Use in 
 # conjunction with dump.dcd for reading the full simulation trajectory into VMD.
+# \MPI_NOT_SUPPORTED
 class mol2(analyze._analyzer):
     ## Initialize the mol2 writer
     #
@@ -421,7 +423,13 @@ class mol2(analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None):
         util.print_status_line();
-    
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("dump.mol2 is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error writing MOL2 file.")
+
         # initialize base class
         analyze._analyzer.__init__(self);
         
@@ -478,6 +486,8 @@ class mol2(analyze._analyzer):
 # a file via disable(), you cannot continue writing to the same file,
 # nor can you change the period of the %dump at any time. Either of these tasks 
 # can be performed by creating a new %dump file with the needed settings.
+#
+# \MPI_SUPPORTED
 class dcd(analyze._analyzer):
     ## Initialize the dcd writer
     #
@@ -549,7 +559,7 @@ class dcd(analyze._analyzer):
 # particles at that time step is written to the file in the PDB format.
 #
 # Particle positions are written directly in distance units, see \ref page_units for more information.
-#
+# \MPI_NOT_SUPPORTED
 class pdb(analyze._analyzer):
     ## Initialize the pdb writer
     #
@@ -577,7 +587,14 @@ class pdb(analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None):
         util.print_status_line();
-    
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("dump.pdb is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error writing PDB file.")
+
+
         # initialize base class
         analyze._analyzer.__init__(self);
         

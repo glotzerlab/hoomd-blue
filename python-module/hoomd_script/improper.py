@@ -88,6 +88,8 @@ import sys;
 # set_coeff().
 #
 # \note Specifying the improper.harmonic command when no impropers are defined in the simulation results in an error.
+#
+# \MPI_NOT_SUPPORTED
 class harmonic(force._force):
     ## Specify the %harmonic %improper %force
     #

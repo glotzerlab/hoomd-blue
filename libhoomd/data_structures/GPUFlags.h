@@ -261,7 +261,7 @@ template<class T> void GPUFlags<T>::allocate()
             {
             #ifdef ENABLE_MPI
             void *ptr = NULL;
-	    // need to use hooks provided by MPI library
+            // need to use hooks provided by MPI library
             int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
             if (retval != 0)
                 {
@@ -328,7 +328,7 @@ template<class T> void GPUFlags<T>::deallocate()
         CHECK_CUDA_ERROR();
         #endif
         if (!m_mapped)
-	    {
+            {
             cudaFree(d_data);
             CHECK_CUDA_ERROR();
             }

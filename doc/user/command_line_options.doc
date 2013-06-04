@@ -110,6 +110,15 @@ specifies the level of notice messages to print
 \par
 specifies a file to write messages (the file is overwritten)
 
+<b>--nrank</b>
+\par
+*(MPI only)* Number of ranks per partition
+
+<b>--shared-msg-file=prefix</b>
+\par
+*(MPI only)* specifies the prefix of files to write per-partition output to
+(filename: <b> prefix.\<partition_id\> </b>)
+
 <b>--user</b>
 \par
 user options
@@ -212,6 +221,12 @@ All messages (notices, warnings, and errors) can be redirected to a file. The fi
 hoomd some_script.py --msg-file=messages.out
 \endcode
 
+In MPI simulations, messages can be aggregated per partition. To write output for
+partition 0,1,.. in files \b messages.0, \b messages.1, etc., use
+\code
+mpirun hoomd some_script.py --shared-msg-file=messages
+\endcode
+
 <hr>
 
 <h3>Control the MPI domain decomposition</h3>
@@ -233,6 +248,13 @@ You can also override the automatic choices completely.
 mpirun -n 4 hoomd some_script.py --nx=1 --ny=2 --nz=2
 # 1x2x2 domain
 \endcode
+
+You can group multiple MPI ranks into partitions, to simulate independent replicas.
+\code
+mpirun -n 12 hoomd some_script.py --nrank=3
+\endcode
+This sub-divides the total of 12 MPI ranks into four independent partitions, with
+to which 3 GPUs each are assigned.
 
 <hr>
 

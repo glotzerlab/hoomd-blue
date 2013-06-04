@@ -74,6 +74,7 @@ except ImportError:
 # calls run(steps), \a repeat times and returns a list containing the average TPS for each of those runs.
 #
 # If numpy is available, a brief summary of the benchmark results will be printed to the screen 
+# \MPI_SUPPORTED
 def series(warmup=100000, repeat=20, steps=10000):
     # check if initialization has occurred
     if not init.is_initialized():

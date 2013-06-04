@@ -235,7 +235,7 @@ compute
 x0 = x + ix * Lx + xy * iy * Ly + xz * iz * Lz
 y0 = x + iy * Ly + yz * iz * Lz
 z0 = z + iz * Lz
-\endcode where \c x, \c y, \cz are the wrapped particle coordinates, \c x0, \c y0, \c z0 are the unwrapped
+\endcode where \c x, \c y, \c z are the wrapped particle coordinates, \c x0, \c y0, \c z0 are the unwrapped
 particle coordinates, \c ix, \c iy \c iz are the periodic image flags, \c Lx, \c Ly \c Lz are the
 box lengths, and \c xy, \c xz, \c yz are the tilt factors.
 

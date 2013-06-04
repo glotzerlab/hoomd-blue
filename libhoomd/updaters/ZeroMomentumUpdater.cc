@@ -134,7 +134,17 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
             n++;
             }
         }
-    
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &n, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &sum_px, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &sum_py, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &sum_pz, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
     // calculate the average
     Scalar avg_px = sum_px / Scalar(n);
     Scalar avg_py = sum_py / Scalar(n);

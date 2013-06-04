@@ -226,7 +226,7 @@ _constraint_force.cur_id = 0;
 #
 # The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
 # them to a sphere.
-#
+# \MPI_NOT_SUPPORTED
 class sphere(_constraint_force):
     ## Specify the %sphere constraint %force
     #
