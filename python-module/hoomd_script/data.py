@@ -195,9 +195,9 @@ from hoomd_script import util
 # velocity         : (0.0, 0.0, 0.0)
 # orientation      : (0.9244732856750488, -0.3788720965385437, -0.029276784509420395, 0.0307924821972847)
 # angular_momentum (space frame) : (0.0, 0.0, 0.0)
-# moment of inertia: (10.000000953674316, 10.0, 0.0)
-# particle tags    : [0, 1, 2, 3, 4]
-# particle disp    : [[-3.725290298461914e-09, -4.172325134277344e-07, 2.0], [-2.421438694000244e-08, -2.086162567138672e-07, 0.9999998211860657], [-2.6206091519043184e-08, -2.073889504572435e-09, -3.361484459674102e-07], [-5.029141902923584e-08, 2.682209014892578e-07, -1.0000004768371582], [-3.3527612686157227e-08, -2.980232238769531e-07, -2.0]]
+# moment_inertia: (10.000000953674316, 10.0, 0.0)
+# particle_tags    : [0, 1, 2, 3, 4]
+# particle_disp    : [[-3.725290298461914e-09, -4.172325134277344e-07, 2.0], [-2.421438694000244e-08, -2.086162567138672e-07, 0.9999998211860657], [-2.6206091519043184e-08, -2.073889504572435e-09, -3.361484459674102e-07], [-5.029141902923584e-08, 2.682209014892578e-07, -1.0000004768371582], [-3.3527612686157227e-08, -2.980232238769531e-07, -2.0]]
 # >>> print b.COM
 # (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
 # >>> b.particle_disp = [[0,0,0], [0,0,0], [0,0,0.0], [0,0,0], [0,0,0]]
@@ -1489,9 +1489,9 @@ class body_data:
 # - \c COM           : The Center of Mass position of the body
 # - \c velocity      : The velocity vector of the center of mass of the body
 # - \c orientation   : The orientation of the body (quaternion)
-# - \c angular momentum : The angular momentum of the body in the space frame
-# - \c moment of inertia : the principle components of the moment of inertia
-# - \c particle displacements : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
+# - \c angular_momentum : The angular momentum of the body in the space frame
+# - \c moment_inertia : the principle components of the moment of inertia
+# - \c particle_disp : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
 # \MPI_NOT_SUPPORTED
 class body_data_proxy:
     ## \internal
@@ -1520,11 +1520,11 @@ class body_data_proxy:
         result += "velocity         : " + str(self.velocity) + "\n"
         result += "orientation      : " + str(self.orientation) + "\n"
         result += "angular_momentum (space frame) : " + str(self.angular_momentum) + "\n"
-        result += "moment of inertia: " + str(self.moment_inertia) + "\n"
-        result += "particle tags    : " + str(self.particle_tags) + "\n"
-        result += "particle disp    : " + str(self.particle_disp) + "\n"
-        result += "net force        : " + str(self.net_force) + "\n"
-        result += "net torque       : " + str(self.net_torque) + "\n"
+        result += "moment_inertia: " + str(self.moment_inertia) + "\n"
+        result += "particle_tags    : " + str(self.particle_tags) + "\n"
+        result += "particle_disp    : " + str(self.particle_disp) + "\n"
+        result += "net_force        : " + str(self.net_force) + "\n"
+        result += "net_torque       : " + str(self.net_torque) + "\n"
                  
         return result;
     
@@ -1608,7 +1608,7 @@ class body_data_proxy:
             p.z = float(value[2]);
             self.bdata.setAngMom(self.tag, p);
             return;                    
-        if name == "momentum_inertia":
+        if name == "moment_inertia":
             p = hoomd.Scalar3();
             p.x = float(value[0]);
             p.y = float(value[1]);
