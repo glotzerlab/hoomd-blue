@@ -525,8 +525,10 @@ class dcd(analyze._analyzer):
         
         # create the c++ mirror class
         reported_period = period;
-        if type(period) != type(1):
-            reported_period = 1000;
+        try:
+            reported_period = int(period);
+        except TypeError:
+            reported_period = 1;
             
         if group is None:
             util._disable_status_lines = True;
