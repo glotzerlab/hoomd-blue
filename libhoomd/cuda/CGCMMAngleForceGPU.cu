@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: dnlebard
 
 #include "CGCMMAngleForceGPU.cuh"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -65,27 +66,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the CGCMM angle forces. Used by CGCMMAngleForceComputeGPU.
 */
 
-#ifdef SINGLE_PRECISION
 //! Texture for reading angle parameters
-texture<Scalar2, 1, cudaReadModeElementType> angle_params_tex;
+scalar2_tex_t angle_params_tex;
 
 //! Texture for reading angle CGCMM S-R parameters
-texture<Scalar2, 1, cudaReadModeElementType> angle_CGCMMsr_tex; // MISSING EPSILON!!! sigma=.x, rcut=.y
+scalar2_tex_t angle_CGCMMsr_tex; // MISSING EPSILON!!! sigma=.x, rcut=.y
 
 //! Texture for reading angle CGCMM Epsilon-pow/pref parameters
-texture<Scalar4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
-
-#else
-//! Texture for reading angle parameters
-texture<int4, 1, cudaReadModeElementType> angle_params_tex;
-
-//! Texture for reading angle CGCMM S-R parameters
-texture<int4, 1, cudaReadModeElementType> angle_CGCMMsr_tex; // MISSING EPSILON!!! sigma=.x, rcut=.y
-
-//! Texture for reading angle CGCMM Epsilon-pow/pref parameters
-texture<int4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
-
-#endif
+scalar4_tex_t angle_CGCMMepow_tex; // now with EPSILON=.x, pow1=.y, pow2=.z, pref=.w
 
 //! Kernel for caculating CGCMM angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -106,7 +94,10 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
                                                                  BoxDim box,
                                                                  const uint4 *alist,
                                                                  const unsigned int pitch,
-                                                                 const unsigned int *n_angles_list)
+                                                                 const unsigned int *n_angles_list,
+                                                                 Scalar2 *d_params,
+                                                                 Scalar2 *d_CGCMMsr,
+                                                                 Scalar4 *d_CGCMMepow)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;    
@@ -182,7 +173,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
-        Scalar2 params = fetchScalar2Tex(angle_params_tex, cur_angle_type);
+        Scalar2 params = texFetchScalar2(d_params, angle_params_tex, cur_angle_type);
         Scalar K = params.x;
         Scalar t_0 = params.y;
 
@@ -212,14 +203,14 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
             vac[i] = Scalar(0.0);
 
         // get the angle E-S-R parameters (MEM TRANSFER: 12 bytes)
-        const Scalar2 cgSR = fetchScalar2Tex(angle_CGCMMsr_tex, cur_angle_type);
+        const Scalar2 cgSR = texFetchScalar2(d_CGCMMsr, angle_CGCMMsr_tex, cur_angle_type);
 
         Scalar cgsigma = cgSR.x;
         Scalar cgrcut = cgSR.y;
 
         if (rac < cgrcut)
             {
-            const Scalar4 cgEPOW = fetchScalar4Tex(angle_CGCMMepow_tex, cur_angle_type);
+            const Scalar4 cgEPOW = texFetchScalar4(d_CGCMMepow, angle_CGCMMepow_tex, cur_angle_type);
 
             // get the angle pow/pref parameters (MEM TRANSFER: 12 bytes)
             Scalar cgeps = cgEPOW.x;
@@ -366,7 +357,18 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
         return error;
 
     // run the kernel
-    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, box, atable, pitch, n_angles_list);
+    gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force,
+                                                              d_virial,
+                                                              virial_pitch,
+                                                              N,
+                                                              d_pos,
+                                                              box,
+                                                              atable,
+                                                              pitch,
+                                                              n_angles_list,
+                                                              d_params,
+                                                              d_CGCMMsr,
+                                                              d_CGCMMepow);
 
     return cudaSuccess;
     }

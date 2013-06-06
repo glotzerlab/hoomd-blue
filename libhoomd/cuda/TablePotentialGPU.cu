@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TablePotentialGPU.cuh"
+#include "TextureTools.h"
 
 #include "Index1D.h"
 
@@ -64,19 +65,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.
 */
 
-#ifdef SINGLE_PRECISION
 //! Texture for reading particle positions
-texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
+scalar4_tex_t pdata_pos_tex;
 
 //! Texture for reading table values
-texture<Scalar2, 1, cudaReadModeElementType> tables_tex;
-#else
-//! Texture for reading particle positions
-texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
-
-//! Texture for reading table values
-texture<int4, 1, cudaReadModeElementType> tables_tex;
-#endif
+scalar2_tex_t tables_tex;
 
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
@@ -108,6 +101,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
                                                 const unsigned int *d_n_neigh,
                                                 const unsigned int *d_nlist,
                                                 const Index2D nli,
+                                                const Scalar2 *d_tables,
                                                 const Scalar4 *d_params,
                                                 const unsigned int ntypes,
                                                 const unsigned int table_width)
@@ -135,7 +129,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     unsigned int n_neigh = d_n_neigh[idx];
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
-    Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
+    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     unsigned int typei = __scalar_as_int(postype.w);
 
@@ -172,7 +166,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
             next_neigh = d_nlist[nli(idx, (neigh_idx+1))];
 
             // get the neighbor's position
-            Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
+            Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
             Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
             // calculate dr (with periodic boundary conditions)
@@ -200,8 +194,8 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
 
                 // compute index into the table and read in values
                 unsigned int value_i = floor(value_f);
-                Scalar2 VF0 = fetchScalar2Tex(tables_tex, table_value(value_i, cur_table_index));
-                Scalar2 VF1 = fetchScalar2Tex(tables_tex, table_value(value_i+1, cur_table_index));
+                Scalar2 VF0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_table_index));
+                Scalar2 VF1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i+1, cur_table_index));
 
                 // unpack the data
                 Scalar V0 = VF0.x;
@@ -310,7 +304,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
         return error;
 
     gpu_compute_table_forces_kernel<<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>
-            (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_params, ntypes, table_width);
+            (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_tables, d_params, ntypes, table_width);
 
     return cudaSuccess;
     }

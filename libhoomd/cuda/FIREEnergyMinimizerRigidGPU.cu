@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: ndtrung
 
 #include "FIREEnergyMinimizerRigidGPU.cuh"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -67,33 +68,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! The texture for reading the rigid data body indices array
 texture<unsigned int, 1, cudaReadModeElementType> rigid_data_body_indices_tex;
-#ifdef SINGLE_PRECISION
+
 //! The texture for reading the rigid data vel array
-texture<Scalar4, 1, cudaReadModeElementType> rigid_data_vel_tex;
+scalar4_tex_t rigid_data_vel_tex;
 //! The texture for reading the rigid data angvel array
-texture<Scalar4, 1, cudaReadModeElementType> rigid_data_angvel_tex;
+scalar4_tex_t rigid_data_angvel_tex;
 //! The texture for reading the rigid data angmom array
-texture<Scalar4, 1, cudaReadModeElementType> rigid_data_angmom_tex;
+scalar4_tex_t rigid_data_angmom_tex;
 //! The texture for reading the rigid data force array
-texture<Scalar4, 1, cudaReadModeElementType> rigid_data_force_tex;
+scalar4_tex_t rigid_data_force_tex;
 //! The texture for reading the rigid data torque array
-texture<Scalar4, 1, cudaReadModeElementType> rigid_data_torque_tex;
+scalar4_tex_t rigid_data_torque_tex;
 //! The texture for reading the net force array
-texture<Scalar4, 1, cudaReadModeElementType> net_force_tex;
-#elif defined ENABLE_TEXTURES
-//! The texture for reading the rigid data vel array
-texture<int4, 1, cudaReadModeElementType> rigid_data_vel_tex;
-//! The texture for reading the rigid data angvel array
-texture<int4, 1, cudaReadModeElementType> rigid_data_angvel_tex;
-//! The texture for reading the rigid data angmom array
-texture<int4, 1, cudaReadModeElementType> rigid_data_angmom_tex;
-//! The texture for reading the rigid data force array
-texture<int4, 1, cudaReadModeElementType> rigid_data_force_tex;
-//! The texture for reading the rigid data torque array
-texture<int4, 1, cudaReadModeElementType> rigid_data_torque_tex;
-//! The texture for reading the net force array
-texture<int4, 1, cudaReadModeElementType> net_force_tex;
-#endif
+scalar4_tex_t net_force_tex;
 
 //! Shared memory used in reducing sums
 extern __shared__ Scalar fire_sdata[];
@@ -192,13 +179,8 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
             
             if (idx_body < n_bodies)
                 {
-                #ifdef ENABLE_TEXTURES
-                force = fetchScalar4Tex(rigid_data_force_tex, idx_body);
-                vel = fetchScalar4Tex(rigid_data_vel_tex, idx_body);
-                #else
-                force = rdata_force[idx_body];
-                vel = rdata_vel[idx_body];
-                #endif
+                force = texFetchScalar4(rdata_force, rigid_data_force_tex, idx_body);
+                vel = texFetchScalar4(rdata_vel, rigid_data_vel_tex, idx_body);
                 Ptrans = force.x * vel.x + force.y * vel.y + force.z * vel.z;
                 v2 = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z;
                 f2 = force.x * force.x + force.y * force.y + force.z * force.z;
@@ -284,13 +266,8 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr,
             
             if (idx_body < n_bodies)
                 {
-                #ifdef ENABLE_TEXTURES
-                torque = fetchScalar4Tex(rigid_data_torque_tex, idx_body);
-                angvel = fetchScalar4Tex(rigid_data_angvel_tex, idx_body);
-                #else
-                torque = rdata_torque[idx_body];
-                angvel = rdata_angvel[idx_body];
-                #endif
+                torque = texFetchScalar4(rdata_torque, rigid_data_torque_tex, idx_body);
+                angvel = texFetchScalar4(rdata_angvel, rigid_data_angvel_tex, idx_body);
                 Prot = torque.x * angvel.x + torque.y * angvel.y + torque.z * angvel.z;
                 w2 = angvel.x * angvel.x + angvel.y * angvel.y + angvel.z * angvel.z;
                 t2 = torque.x * torque.x + torque.y * torque.y + torque.z * torque.z;
@@ -423,17 +400,10 @@ extern "C" __global__ void gpu_fire_rigid_update_v_kernel(Scalar4* rdata_vel,
         if (idx_body < n_bodies)
             {        
             // read the body data (MEM TRANSFER: 32 bytes)
-            #ifdef ENABLE_TEXTURES
-            Scalar4 vel = fetchScalar4Tex(rigid_data_vel_tex, idx_body);
-            Scalar4 angmom = fetchScalar4Tex(rigid_data_angmom_tex, idx_body);
-            Scalar4 force = fetchScalar4Tex(rigid_data_force_tex, idx_body);
-            Scalar4 torque = fetchScalar4Tex(rigid_data_torque_tex, idx_body);
-            #else
-            Scalar4 vel = rdata_vel[idx_body];
-            Scalar4 angmom = rdata_angmom[idx_body];
-            Scalar4 force = rdata_force[idx_body];
-            Scalar4 torque = rdata_torque[idx_body];
-            #endif
+            Scalar4 vel = texFetchScalar4(rdata_vel, rigid_data_vel_tex, idx_body);
+            Scalar4 angmom = texFetchScalar4(rdata_angmom, rigid_data_angmom_tex, idx_body);
+            Scalar4 force = texFetchScalar4(rdata_force, rigid_data_force_tex, idx_body);
+            Scalar4 torque = texFetchScalar4(rdata_torque, rigid_data_torque_tex, idx_body);
             
             Scalar4 vel2;
             vel2.x = vel.x * (Scalar(1.0) - alpha) + force.x * factor_t;

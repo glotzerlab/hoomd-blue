@@ -57,6 +57,7 @@ Moscow group.
 */
 
 #include "EAMForceGPU.cuh"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -68,9 +69,10 @@ Moscow group.
     \brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
 */
 
-#ifdef SINGLE_PRECISION
 //!< Texture for reading particle positions
-texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
+scalar4_tex_t pdata_pos_tex;
+
+#ifdef SINGLE_PRECISION
 //! Texture for reading electron density
 texture<Scalar, 1, cudaReadModeElementType> electronDensity_tex;
 //! Texture for reading EAM pair potential
@@ -85,8 +87,6 @@ texture<Scalar, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
 texture<Scalar, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
 
 #elif defined ENABLE_TEXTURES
-//!< Texture for reading particle positions
-texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Texture for reading electron density
 texture<int2, 1, cudaReadModeElementType> electronDensity_tex;
 //! Texture for reading EAM pair potential
@@ -129,11 +129,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    #ifdef ENABLE_TEXTURES
-    Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
-    #else
-    Scalar4 postype = d_pos[idx];
-    #endif
+    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
@@ -156,11 +152,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        #ifdef ENABLE_TEXTURES
-        Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
-        #else
-        Scalar4 neigh_postype = d_pos[cur_neigh];
-        #endif
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)
@@ -215,11 +207,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 
     // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    #ifdef ENABLE_TEXTURES
-    Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
-    #else
-    Scalar4 postype = d_pos[idx];
-    #endif
+    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     int typei = __scalar_as_int(postype.w);
     // prefetch neighbor index
@@ -248,11 +236,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        #ifdef ENABLE_TEXTURES
-        Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex,cur_neigh);
-        #else
-        Scalar4 neigh_postype = d_pos[cur_neigh];
-        #endif
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex,cur_neigh);
         Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)

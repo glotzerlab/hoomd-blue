@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "BondTablePotentialGPU.cuh"
+#include "TextureTools.h"
 
 
 #ifdef WIN32
@@ -64,13 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef SINGLE_PRECISION
 //! Texture for reading table values
-texture<float2, 1, cudaReadModeElementType> tables_tex;
-#elif defined ENABLE_TEXTURES
-//! Texture for reading particle positions
-texture<int4, 1, cudaReadModeElementType> tables_tex;
-#endif
+scalar2_tex_t tables_tex;
 
 /*!  This kernel is called to calculate the table pair forces on all N particles
 
@@ -104,6 +100,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
                                      const unsigned int pitch,
                                      const unsigned int *n_bonds_list,
                                      const unsigned int n_bond_type,
+                                     const Scalar2 *d_tables,
                                      const Scalar4 *d_params,
                                      const Index2D table_value,
                                      unsigned int *d_flags)
@@ -177,8 +174,8 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
             // compute index into the table and read in values
             unsigned int value_i = floor(value_f);
             
-            Scalar2 VF0 = fetchScalar2Tex(tables_tex, table_value(value_i, cur_bond_type));
-            Scalar2 VF1 = fetchScalar2Tex(tables_tex, table_value(value_i+1, cur_bond_type));
+            Scalar2 VF0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_bond_type));
+            Scalar2 VF1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i+1, cur_bond_type));
             // unpack the data
             Scalar V0 = VF0.x;
             Scalar V1 = VF1.x;
@@ -292,6 +289,7 @@ cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
              pitch,
              n_bonds_list,
              n_bond_type,
+             d_tables,
              d_params,
              table_value,
              d_flags);

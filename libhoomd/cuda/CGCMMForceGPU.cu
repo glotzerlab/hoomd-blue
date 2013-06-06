@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: akohlmey
 
 #include "CGCMMForceGPU.cuh"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -62,13 +63,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.
 */
 
-#ifdef SINGLE_PRECISION
 //! Texture for reading particle positions
-texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
-#else
-//! Texture for reading particle positions
-texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
-#endif
+scalar4_tex_t pdata_pos_tex;
 
 //! Kernel for calculating CG-CMM Lennard-Jones forces
 /*! This kernel is called to calculate the Lennard-Jones forces on all N particles for the CG-CMM model potential.
@@ -130,7 +126,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    Scalar4 postype = fetchScalar4Tex(pdata_pos_tex, idx);
+    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
@@ -163,7 +159,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
             next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            Scalar4 neigh_postype = fetchScalar4Tex(pdata_pos_tex, cur_neigh);
+            Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
             Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
             // calculate dr (with periodic boundary conditions)

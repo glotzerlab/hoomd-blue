@@ -40,6 +40,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "HOOMDMath.h"
+#include "TextureTools.h"
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
@@ -100,15 +101,8 @@ struct tersoff_args_t
 
 
 #ifdef NVCC
-#ifdef SINGLE_PRECISION
 //! Texture for reading particle positions
-texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
-
-#elif defined ENABLE_TEXTURES
-//! Texture for reading particle positions
-texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
-
-#endif
+scalar4_tex_t pdata_pos_tex;
 
 #ifndef SINGLE_PRECISION
 //! atomicAdd function for double-precision floating point numbers
@@ -205,12 +199,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     unsigned int n_neigh = d_n_neigh[idx];
 
     // read in the position of the particle
-    // in single precision we will do a texture read, in double a global memory read
-    #ifdef ENABLE_TEXTURES
-    Scalar4 postypei = fetchScalar4Tex(pdata_pos_tex, idx);
-    #else
-    Scalar4 postypei = d_pos[idx];
-    #endif
+    Scalar4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     // initialize the force to 0
@@ -240,11 +229,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx + 1)];
 
             // read the position of j (MEM TRANSFER: 16 bytes)
-            #ifdef ENABLE_TEXTURES
-            Scalar4 postypej = fetchScalar4Tex(pdata_pos_tex, cur_j);
-            #else
-            Scalar4 postypej = d_pos[cur_j];
-            #endif
+            Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             // initialize the force on j
@@ -291,11 +276,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         next_k = d_nlist[nli(idx, neigh_idy+1)];
 
                         // get the position of neighbor k
-                        #ifdef ENABLE_TEXTURES
-                        Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
-                        #else
-                        Scalar4 postypek = d_pos[cur_k];
-                        #endif
+                        Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
                         Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                         // get the type pair parameters for i and k
@@ -377,11 +358,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         next_k = d_nlist[nli(idx, neigh_idy+1)];
 
                         // get the position of neighbor k
-                        #ifdef ENABLE_TEXTURES
-                        Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
-                        #else
-                        Scalar4 postypek = d_pos[cur_k];
-                        #endif
+                        Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
                         Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                         // get the type pair parameters for i and k
@@ -488,11 +465,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         if (cur_k != idx)
                             {
                             // get the position of neighbor k
-                            #ifdef ENABLE_TEXTURES
-                            Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
-                            #else
-                            Scalar4 postypek = d_pos[cur_k];
-                            #endif
+                            Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
                             Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                             // compute rjk
@@ -543,11 +516,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                         if (cur_k != idx)
                             {
                             // get the position of k
-                            #ifdef ENABLE_TEXTURES
-                            Scalar4 postypek = fetchScalar4Tex(pdata_pos_tex, cur_k);
-                            #else
-                            Scalar4 postypek = d_pos[cur_k];
-                            #endif
+                            Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
                             Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
 
                             // compute rjk

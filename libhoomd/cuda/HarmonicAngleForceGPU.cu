@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: dnlebard
 
 #include "HarmonicAngleForceGPU.cuh"
+#include "TextureTools.h"
 #include "AngleData.cuh" // SERIOUSLY, DO I NEED THIS HERE??
 
 #ifdef WIN32
@@ -66,13 +67,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the harmonic angle forces. Used by HarmonicAngleForceComputeGPU.
 */
 
-#ifdef SINGLE_PRECISION
 //! Texture for reading angle parameters
-texture<Scalar2, 1, cudaReadModeElementType> angle_params_tex;
-#elif defined ENABLE_TEXTURES
-//! Texture for reading angle parameters
-texture<int4, 1, cudaReadModeElementType> angle_params_tex;
-#endif
+scalar2_tex_t angle_params_tex;
 
 //! Kernel for caculating harmonic angle forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -168,11 +164,7 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
         dac = box.minImage(dac);
 
         // get the angle parameters (MEM TRANSFER: 8 bytes)
-        #ifdef ENABLE_TEXTURES
-        Scalar2 params = fetchScalar2Tex(angle_params_tex, cur_angle_type);
-        #else
-        Scalar2 params = d_params[cur_angle_type];
-        #endif
+        Scalar2 params = texFetchScalar2(d_params, angle_params_tex, cur_angle_type);
         Scalar K = params.x;
         Scalar t_0 = params.y;
 

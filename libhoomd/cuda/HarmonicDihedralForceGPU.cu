@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: dnlebard
 
 #include "HarmonicDihedralForceGPU.cuh"
+#include "TextureTools.h"
 #include "DihedralData.cuh" // SERIOUSLY, DO I NEED THIS HERE??
 
 #ifdef WIN32
@@ -73,11 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Texture for reading dihedral parameters
-#ifdef SINGLE_PRECISION
-texture<Scalar4, 1, cudaReadModeElementType> dihedral_params_tex;
-#elif defined ENABLE_TEXTURES
-texture<int4, 1, cudaReadModeElementType> dihedral_params_tex;
-#endif
+scalar4_tex_t dihedral_params_tex;
 
 //! Kernel for caculating harmonic dihedral forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -191,11 +188,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
         dcbm = box.minImage(dcbm);
 
         // get the dihedral parameters (MEM TRANSFER: 12 bytes)
-        #ifdef ENABLE_TEXTURES
-        Scalar4 params = fetchScalar4Tex(dihedral_params_tex, cur_dihedral_type);
-        #else
-        Scalar4 params = d_params[cur_dihedral_type];
-        #endif
+        Scalar4 params = texFetchScalar4(d_params, dihedral_params_tex, cur_dihedral_type);
         Scalar K = params.x;
         Scalar sign = params.y;
         Scalar multi = params.z;

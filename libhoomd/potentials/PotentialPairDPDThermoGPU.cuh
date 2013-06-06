@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_CUH__
 #define __POTENTIAL_PAIR_DPDTHERMO_CUH__
 
+#include "TextureTools.h"
 #include "ParticleData.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "Index1D.h"
@@ -132,21 +133,11 @@ struct dpd_pair_args_t
     };
 
 #ifdef NVCC
-#ifdef SINGLE_PRECISION
 //! Texture for reading particle positions
-texture<Scalar4, 1, cudaReadModeElementType> pdata_dpd_pos_tex;
+scalar4_tex_t pdata_dpd_pos_tex;
 
 //! Texture for reading particle velocities
-texture<Scalar4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
-
-#elif defined ENABLE_TEXTURES
-//! Texture for reading particle positions
-texture<int4, 1, cudaReadModeElementType> pdata_dpd_pos_tex;
-
-//! Texture for reading particle velocities
-texture<int4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
-#endif
-
+scalar4_tex_t pdata_dpd_vel_tex;
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -240,20 +231,12 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    #ifdef ENABLE_TEXTURES
-    Scalar4 postypei = fetchScalar4Tex(pdata_dpd_pos_tex, idx);
-    #else
-    Scalar4 postypei = d_pos[idx];
-    #endif
+    Scalar4 postypei = texFetchScalar4(d_pos, pdata_dpd_pos_tex, idx);
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     // read in the velocity of our particle.
     // (MEM TRANSFER: 16 bytes)
-    #ifdef ENABLE_TEXTURES
-    Scalar4 velmassi = fetchScalar4Tex(pdata_dpd_vel_tex, idx);
-    #else
-    Scalar4 velmassi = d_vel[idx];
-    #endif
+    Scalar4 velmassi = texFetchScalar4(d_vel, pdata_dpd_vel_tex, idx);
     Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 
     // initialize the force to 0
@@ -286,20 +269,12 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            #ifdef ENABLE_TEXTURES
-            Scalar4 postypej = fetchScalar4Tex(pdata_dpd_pos_tex, cur_j);
-            #else
-            Scalar4 postypej = d_pos[cur_j];
-            #endif
+            Scalar4 postypej = texFetchScalar4(d_pos, pdata_dpd_pos_tex, cur_j);
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            #ifdef ENABLE_TEXTURES
-            Scalar4 velmassj = fetchScalar4Tex(pdata_dpd_vel_tex, cur_j);
-            #else
-            Scalar4 velmassj = d_vel[cur_j];
-            #endif
-            Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);;
+            Scalar4 velmassj = texFetchScalar4(d_vel, pdata_dpd_vel_tex, cur_j);
+            Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
 
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
             Scalar3 dx = posi - posj;

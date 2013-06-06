@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "HOOMDMath.h"
+#include "TextureTools.h"
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
@@ -131,27 +132,14 @@ struct pair_args_t
     };
 
 #ifdef NVCC
-#ifdef SINGLE_PRECISION
 //! Texture for reading particle positions
-texture<Scalar4, 1, cudaReadModeElementType> pdata_pos_tex;
+scalar4_tex_t pdata_pos_tex;
 
 //! Texture for reading particle diameters
-texture<Scalar, 1, cudaReadModeElementType> pdata_diam_tex;
+scalar_tex_t pdata_diam_tex;
 
 //! Texture for reading particle charges
-texture<Scalar, 1, cudaReadModeElementType> pdata_charge_tex;
-
-#elif defined ENABLE_TEXTURES
-//! Texture for reading particle positions
-texture<int4, 1, cudaReadModeElementType> pdata_pos_tex;
-
-//! Texture for reading particle diameters
-texture<int2, 1, cudaReadModeElementType> pdata_diam_tex;
-
-//! Texture for reading particle charges
-texture<int2, 1, cudaReadModeElementType> pdata_charge_tex;
-
-#endif
+scalar_tex_t pdata_charge_tex;
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
@@ -240,29 +228,17 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    #ifdef ENABLE_TEXTURES
-    Scalar4 postypei = fetchScalar4Tex(pdata_pos_tex, idx);
-    #else
-    Scalar4 postypei = d_pos[idx];
-    #endif
+    Scalar4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
     Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     Scalar di;
     if (evaluator::needsDiameter())
-        #ifdef ENABLE_TEXTURES
-        di = fetchScalarTex(pdata_diam_tex, idx);
-        #else
-        di = d_diameter[idx];
-        #endif
+        di = texFetchScalar(d_diameter, pdata_diam_tex, idx);
     else
         di += Scalar(1.0); // shutup compiler warning
     Scalar qi;
     if (evaluator::needsCharge())
-        #ifdef ENABLE_TEXTURES
-        qi = fetchScalarTex(pdata_charge_tex, idx);
-        #else
-        qi = d_charge[idx];
-        #endif
+        qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
     else
         qi += Scalar(1.0); // shutup compiler warning
 
@@ -300,30 +276,18 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            #ifdef ENABLE_TEXTURES
-            Scalar4 postypej = fetchScalar4Tex(pdata_pos_tex, cur_j);
-            #else
-            Scalar4 postypej = d_pos[cur_j];
-            #endif
+            Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
             Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             Scalar dj = Scalar(0.0);
             if (evaluator::needsDiameter())
-                #ifdef ENABLE_TEXTURES
-                dj = fetchScalarTex(pdata_diam_tex, cur_j);
-                #else
-                dj = d_diameter[cur_j];
-                #endif
+                dj = texFetchScalar(d_diameter, pdata_diam_tex, cur_j);
             else
                 dj += Scalar(1.0); // shutup compiler warning
 
             Scalar qj = Scalar(0.0);
             if (evaluator::needsCharge())
-                #ifdef ENABLE_TEXTURES
-                qj = fetchScalarTex(pdata_charge_tex, cur_j);
-                #else
-                qj = d_charge[cur_j];
-                #endif
+                qj = texFetchScalar(d_charge, pdata_charge_tex, cur_j);
             else
                 qj += Scalar(1.0); // shutup compiler warning
 

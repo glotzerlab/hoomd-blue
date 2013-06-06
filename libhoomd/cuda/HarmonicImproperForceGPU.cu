@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: dnlebard
 
 #include "HarmonicImproperForceGPU.cuh"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -66,11 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Texture for reading improper parameters
-#ifdef SINGLE_PRECISION
-texture<Scalar2, 1, cudaReadModeElementType> improper_params_tex;
-#elif defined ENABLE_TEXTURES
-texture<int4, 1, cudaReadModeElementType> improper_params_tex;
-#endif
+scalar2_tex_t improper_params_tex;
 
 //! Kernel for caculating harmonic improper forces on the GPU
 /*! \param d_force Device memory to write computed forces
@@ -182,11 +179,7 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
         ddc = box.minImage(ddc);
 
         // get the improper parameters (MEM TRANSFER: 12 bytes)
-        #ifdef ENABLE_TEXTURES
-        Scalar2 params = fetchScalar2Tex(improper_params_tex, cur_improper_type);
-        #else
-        Scalar2 params = d_params[cur_improper_type];
-        #endif
+        Scalar2 params = texFetchScalar2(d_params, improper_params_tex, cur_improper_type);
         Scalar K = params.x;
         Scalar chi = params.y;
 

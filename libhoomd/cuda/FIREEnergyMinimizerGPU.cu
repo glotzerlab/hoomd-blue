@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: askeys
 
 #include "FIREEnergyMinimizerGPU.cuh"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -64,9 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for one performing one FIRE energy 
     minimization iteration on the GPU. Used by FIREEnergyMinimizerGPU.
 */
-
-//! The texture for reading the pdata force array
-texture<Scalar4, 1, cudaReadModeElementType> net_force_tex;
 
 //! Shared memory used in reducing sums
 extern __shared__ Scalar fire_sdata[];
