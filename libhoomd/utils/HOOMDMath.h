@@ -380,24 +380,56 @@ const Scalar EPSILON=1.0e-6;
 namespace fast
 {
 
-//! Compute the reciprocal square root x
+//! Compute the reciprocal square root of x
 inline HOSTDEVICE float rsqrt(float x)
     {
-    #ifdef NVCC
+    #ifdef __CUDA_ARCH__
     return ::rsqrtf(x);
     #else
     return 1.0f / ::sqrtf(x);
     #endif
     }
 
-//! Compute the reciprocal square root x
+//! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-    #ifdef NVCC
+    #ifdef __CUDA_ARCH__
     return ::rsqrt(x);
     #else
     return 1.0 / ::sqrt(x);
     #endif
+    }
+
+//! Compute the sin of x
+inline HOSTDEVICE float sin(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return __sinf(x);
+    #else
+    return ::sinf(x);
+    #endif
+    }
+
+//! Compute the sin of x
+inline HOSTDEVICE double sin(double x)
+    {
+    return sin(x);
+    }
+
+//! Compute the cos of x
+inline HOSTDEVICE float cos(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return __cosf(x);
+    #else
+    return ::cosf(x);
+    #endif
+    }
+
+//! Compute the cos of x
+inline HOSTDEVICE double cos(double x)
+    {
+    return cos(x);
     }
 
 }

@@ -79,14 +79,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __scalar2int_rd __float2int_rd
 #define EXP expf
 #define POW powf
-#define SIN sinf
 #define CUFFTCOMPLEX cufftComplex
 #define CUFFTEXEC cufftExecC2C
 #else
 #define __scalar2int_rd __double2int_rd
 #define EXP exp
 #define POW pow
-#define SIN sin
 #define CUFFTCOMPLEX cufftDoubleComplex
 #define CUFFTEXEC cufftExecZ2Z
 #endif
@@ -965,15 +963,15 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         Scalar numerator, denominator;
 
         mper = zn - Nz*(2*zn/Nz);
-        snz = SIN(Scalar(0.5)*unitkz*mper*L.z/Nz);
+        snz = fast::sin(Scalar(0.5)*unitkz*mper*L.z/Nz);
         snz2 = snz*snz;
 
         lper = yn - Ny*(2*yn/Ny);
-        sny = SIN(Scalar(0.5)*unitky*lper*L.y/Ny);
+        sny = fast::sin(Scalar(0.5)*unitky*lper*L.y/Ny);
         sny2 = sny*sny;
 
         kper = xn - Nx*(2*xn/Nx);
-        snx = SIN(Scalar(0.5)*unitkx*kper*L.x/Nx);
+        snx = fast::sin(Scalar(0.5)*unitkx*kper*L.x/Nx);
         snx2 = snx*snx;
         sqk = unitkx*kper*unitkx*kper + unitky*lper*unitky*lper + unitkz*mper*unitkz*mper;
 
@@ -997,19 +995,19 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                 sx = EXP(Scalar(-.25)*qx*qx/kappa2);
                 wx = Scalar(1.0);
                 argx = Scalar(0.5)*qx*L.x/(Scalar)Nx;
-                if (argx != Scalar(0.0)) wx = POW(SIN(argx)/argx,order);
+                if (argx != Scalar(0.0)) wx = POW(fast::sin(argx)/argx,order);
                 for (iy = -nby; iy <= nby; iy++) {
                     qy = unitky*(lper+(Scalar)(Ny*iy));
                     sy = EXP(Scalar(-.25)*qy*qy/kappa2);
                     wy = Scalar(1.0);
                     argy = Scalar(0.5)*qy*L.y/(Scalar)Ny;
-                    if (argy != Scalar(0.0)) wy = POW(SIN(argy)/argy,order);
+                    if (argy != Scalar(0.0)) wy = POW(fast::sin(argy)/argy,order);
                     for (iz = -nbz; iz <= nbz; iz++) {
                         qz = unitkz*(mper+(Scalar)(Nz*iz));
                         sz = EXP(Scalar(-.25)*qz*qz/kappa2);
                         wz = Scalar(1.0);
                         argz = Scalar(0.5)*qz*L.z/(Scalar)Nz;
-                        if (argz != Scalar(0.0)) wz = POW(SIN(argz)/argz,order);
+                        if (argz != Scalar(0.0)) wz = POW(fast::sin(argz)/argz,order);
 
                         dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
                         dot2 = qx*qx+qy*qy+qz*qz;

@@ -40,16 +40,6 @@
 #define POW pow
 #endif
 
-// COS is cosf when included in nvcc and cos when included in the host compiler
-// SIN is sinf when included in nvcc and sin when included in the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define COS cosf
-#define SIN sinf
-#else
-#define COS cos
-#define SIN sin
-#endif
-
 //! Parameter type for this potential
 struct tersoff_params
     {
@@ -183,7 +173,7 @@ class EvaluatorTersoff
 //                    Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
 //                        / cutoff_shell_thickness;
 //
-//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
+//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
                     }
 
                 // compute the h function
@@ -230,9 +220,9 @@ class EvaluatorTersoff
 //                Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
 //                    / cutoff_shell_thickness;
 //
-//                fcut_ij = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
+//                fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
 //                dfcut_ij = Scalar(-M_PI / 2.0) / cutoff_shell_thickness
-//                    * COS(cutoff_x);
+//                    * fast::cos(cutoff_x);
                 }
 
             // compute the derivative of the base repulsive and attractive terms
@@ -287,7 +277,7 @@ class EvaluatorTersoff
 //                    Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
 //                        / cutoff_shell_thickness;
 //
-//                    fcut_ij = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
+//                    fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
                     }
 
                 // compute the ik cutoff function and its derivative
@@ -308,9 +298,9 @@ class EvaluatorTersoff
 //                    Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
 //                        / cutoff_shell_thickness;
 //
-//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * SIN(cutoff_x);
+//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
 //                    dfcut_ik = Scalar(-M_PI) / (Scalar(2.0) * cutoff_shell_thickness)
-//                        * COS(cutoff_x);
+//                        * fast::cos(cutoff_x);
                     }
 
                 // h function and its derivatives
