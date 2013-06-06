@@ -372,14 +372,35 @@ void export_hoomd_math_functions();
 //! Small epsilon value
 const Scalar EPSILON=1.0e-6;
 
-// optimized math functions that are different on host and device
-#if defined NVCC && defined SINGLE_PRECISION
-#define RSQRT(x) rsqrtf( (x) )
-#elif defined NVCC && not defined SINGLE_PRECISION
-#define RSQRT(x) rsqrt( (x) )
-#elif not defined NVCC
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
+//! Fastmath routines
+/*! Routines in the fast namespace map to fast math routines on the CPU and GPU. Where possible, these use the
+    less accurate intrinsics on the GPU (i.e. __sinf). The routines are provide overloads for both single and double
+    so that macro tricks aren't needed to handle single and double precision code.
+*/
+namespace fast
+{
+
+//! Compute the reciprocal square root x
+inline HOSTDEVICE float rsqrt(float x)
+    {
+    #ifdef NVCC
+    return ::rsqrtf(x);
+    #else
+    return 1.0f / ::sqrtf(x);
+    #endif
+    }
+
+//! Compute the reciprocal square root x
+inline HOSTDEVICE double rsqrt(double x)
+    {
+    #ifdef NVCC
+    return ::rsqrt(x);
+    #else
+    return 1.0 / ::sqrt(x);
+    #endif
+    }
+
+}
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE

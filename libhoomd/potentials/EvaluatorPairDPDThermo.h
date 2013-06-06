@@ -210,9 +210,9 @@ class EvaluatorPairDPDThermo
             if (rsq < rcutsq)
                 {
                
-                Scalar rinv = RSQRT(rsq);
+                Scalar rinv = fast::rsqrt(rsq);
                 Scalar r = Scalar(1.0) / rinv;
-                Scalar rcutinv = RSQRT(rcutsq);
+                Scalar rcutinv = fast::rsqrt(rcutsq);
                 Scalar rcut = Scalar(1.0) / rcutinv;
 
                 // force is easy to calculate
@@ -243,9 +243,9 @@ class EvaluatorPairDPDThermo
             // compute the force divided by r in force_divr
             if (rsq < rcutsq)
                 {
-                Scalar rinv = RSQRT(rsq);
+                Scalar rinv = fast::rsqrt(rsq);
                 Scalar r = Scalar(1.0) / rinv;
-                Scalar rcutinv = RSQRT(rcutsq);
+                Scalar rcutinv = fast::rsqrt(rcutsq);
                 Scalar rcut = Scalar(1.0) / rcutinv;
 
                 // force calculation
@@ -280,7 +280,7 @@ class EvaluatorPairDPDThermo
                 force_divr -=  gamma*m_dot*(rinv - rcutinv)*(rinv - rcutinv);
 
                 //  Random Force 
-                force_divr += RSQRT(m_deltaT/(m_T*gamma*Scalar(6.0)))*(rinv - rcutinv)*alpha;
+                force_divr += fast::rsqrt(m_deltaT/(m_T*gamma*Scalar(6.0)))*(rinv - rcutinv)*alpha;
                 
                 //conservative energy only
                 pair_eng = a * (rcut - r) - Scalar(1.0/2.0) * a * rcutinv * (rcutsq - rsq);  

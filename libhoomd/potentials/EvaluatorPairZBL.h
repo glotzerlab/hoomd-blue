@@ -134,7 +134,7 @@ class EvaluatorPairZBL
             if (rsq < rcutsq && Zsq != 0 && aF != 0)
             {
                 Scalar r2inv = Scalar(1.0) / rsq;
-                Scalar rinv = RSQRT(rsq);
+                Scalar rinv = fast::rsqrt(rsq);
 
                 // precalculate the exponential terms
                 Scalar exp1 = Scalar(0.1818) * EXP( Scalar(-3.2) / aF / rinv );

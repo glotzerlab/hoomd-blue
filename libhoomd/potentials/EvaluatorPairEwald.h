@@ -79,9 +79,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EXP exp
 #endif
 
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-
 #if defined NVCC && defined SINGLE_PRECISION
 // ERFC is the complimentary error function
 #define ERFC erfc
@@ -151,13 +148,13 @@ class EvaluatorPairEwald
             {
             if (rsq < rcutsq && qiqj != 0)
                 {
-                Scalar rinv = RSQRT(rsq);
+                Scalar rinv = fast::rsqrt(rsq);
                 Scalar r = Scalar(1.0) / rinv;
                 Scalar r2inv = Scalar(1.0) / rsq;
                 
                 Scalar erfc_by_r_val = ERFC(kappa * r) * rinv;
                         
-                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*RSQRT(M_PI) * EXP(-kappa*kappa* rsq));
+                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*fast::rsqrt(M_PI) * EXP(-kappa*kappa* rsq));
                 pair_eng = qiqj * erfc_by_r_val ;
 
                 return true;

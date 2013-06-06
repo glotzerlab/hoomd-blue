@@ -142,9 +142,9 @@ class EvaluatorPairSLJ
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // precompute some quantities
-            Scalar rinv = RSQRT(rsq);
+            Scalar rinv = fast::rsqrt(rsq);
             Scalar r = Scalar(1.0) / rinv;
-            Scalar rcutinv = RSQRT(rcutsq);
+            Scalar rcutinv = fast::rsqrt(rcutsq);
             Scalar rcut = Scalar(1.0) / rcutinv;
             
             // compute the force divided by r in force_divr

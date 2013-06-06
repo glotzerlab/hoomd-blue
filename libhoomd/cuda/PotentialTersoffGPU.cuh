@@ -320,7 +320,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
                             if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxik) * RSQRT(rij_sq * rik_sq);
+                                cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
                             else cos_th += Scalar(1.0); // shuts up the compiler warning
 
                             // set up the evaluator
@@ -408,7 +408,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
                             if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxik) * RSQRT(rij_sq * rik_sq);
+                                cos_th = dot(dxij, dxik) * fast::rsqrt(rij_sq * rik_sq);
                             else cos_th += Scalar(1.0); // shuts up the compiler warning
 
                             // set up the evaluator
@@ -507,7 +507,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
                             if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxjk) * RSQRT(rij_sq * rjk_sq);
+                                cos_th = dot(dxij, dxjk) * fast::rsqrt(rij_sq * rjk_sq);
                             else cos_th += Scalar(1.0); // shuts up the compiler warning
 
                             // set up the evaluator
@@ -562,7 +562,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
                             if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxjk) * RSQRT(rij_sq * rjk_sq);
+                                cos_th = dot(dxij, dxjk) * fast::rsqrt(rij_sq * rjk_sq);
                             else cos_th += Scalar(1.0); // shuts up the compiler warning
 
                             // set up the evaluator

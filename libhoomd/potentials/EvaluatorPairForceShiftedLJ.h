@@ -148,7 +148,7 @@ class EvaluatorPairForceShiftedLJ
                     pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
 
                 // shift force and add linear term to potential
-                Scalar rcut_r_inv = RSQRT(rsq*rcutsq);
+                Scalar rcut_r_inv = fast::rsqrt(rsq*rcutsq);
                 Scalar force_rcut_at_rcut = rcut6inv * (Scalar(12.0)*lj1*rcut6inv - Scalar(6.0)*lj2);
                 force_divr -= rcut_r_inv * force_rcut_at_rcut;
                 pair_eng += (rsq*rcut_r_inv-Scalar(1.0))*force_rcut_at_rcut;

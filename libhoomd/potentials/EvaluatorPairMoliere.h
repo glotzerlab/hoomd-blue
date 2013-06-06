@@ -137,7 +137,7 @@ class EvaluatorPairMoliere
             if (rsq < rcutsq && Zsq != 0 && aF != 0)
             {
                 Scalar r2inv = Scalar(1.0) / rsq;
-                Scalar rinv = RSQRT(rsq);
+                Scalar rinv = fast::rsqrt(rsq);
 
                 // precalculate the exponential terms
                 Scalar exp1 = Scalar(0.35) * EXP( Scalar(-0.3) / aF / rinv );
@@ -153,7 +153,7 @@ class EvaluatorPairMoliere
                 pair_eng = Zsq * rinv * ( exp1 + exp2 + exp3 );
                 if (energy_shift)
                 {
-                    Scalar rcutinv = RSQRT(rcutsq);
+                    Scalar rcutinv = fast::rsqrt(rcutsq);
 
                     Scalar expcut1 = Scalar(0.35) * EXP( Scalar(-0.3) / aF / rcutinv );
                     Scalar expcut2 = Scalar(0.55) * EXP( Scalar(-1.2) / aF / rcutinv );

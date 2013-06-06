@@ -99,7 +99,7 @@ class EvaluatorConstraintSphere
             V.z = U.z - P.z;
             
             // compute 1/magnitude of V
-            Scalar magVinv = RSQRT(V.x*V.x + V.y*V.y + V.z*V.z);
+            Scalar magVinv = fast::rsqrt(V.x*V.x + V.y*V.y + V.z*V.z);
             
             // compute Vhat, the unit vector pointing in the direction of V
             Scalar3 Vhat;

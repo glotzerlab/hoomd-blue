@@ -89,7 +89,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 DEVICE inline void normalize(Scalar4 &q)
     {
-    Scalar norm = RSQRT(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+    Scalar norm = fast::rsqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
     q.x *= norm;
     q.y *= norm;
     q.z *= norm;

@@ -143,7 +143,7 @@ class EvaluatorPairYukawa
             // compute the force divided by r in force_divr
             if (rsq < rcutsq && epsilon != 0)
                 {
-                Scalar rinv = RSQRT(rsq);
+                Scalar rinv = fast::rsqrt(rsq);
                 Scalar r = Scalar(1.0) / rinv;
                 Scalar r2inv = Scalar(1.0) / rsq;
                 
@@ -154,7 +154,7 @@ class EvaluatorPairYukawa
 
                 if (energy_shift)
                     {
-                    Scalar rcutinv = RSQRT(rcutsq);
+                    Scalar rcutinv = fast::rsqrt(rcutsq);
                     Scalar rcut = Scalar(1.0) / rcutinv;
                     pair_eng -= epsilon * EXP(-kappa * rcut) * rcutinv;
                     }
