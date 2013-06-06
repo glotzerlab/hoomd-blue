@@ -71,14 +71,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-// SQRT is sqrtf when included in nvcc and sqrt when included into the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define SQRT sqrtf
-#else
-#define SQRT sqrt
-#endif
-
 //! Class for evaluating the Morse pair potential
 /*! <b>General Overview</b>
 
@@ -141,7 +133,7 @@ class EvaluatorPairMorse
             // compute the force divided by r in force_divr
             if (rsq < rcutsq)
                 {
-                Scalar r = SQRT(rsq);
+                Scalar r = fast::sqrt(rsq);
                 Scalar Exp_factor = fast::exp(-alpha*(r-r0));
                 
                 pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
@@ -149,7 +141,7 @@ class EvaluatorPairMorse
                 
                 if (energy_shift)
                     {
-                    Scalar rcut = SQRT(rcutsq);
+                    Scalar rcut = fast::sqrt(rcutsq);
                     Scalar Exp_factor_cut = fast::exp(-alpha*(rcut-r0));
                     pair_eng -= D0 * Exp_factor_cut * (Exp_factor_cut - Scalar(2.0));
                     }

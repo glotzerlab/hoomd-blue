@@ -63,14 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-// SQRT is sqrtf when included in nvcc and sqrt when included in the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define SQRT sqrtf
-#else
-#define SQRT sqrt
-#endif
-
 //! Class for evaluating the Moliere pair potential.
 /*! EvaluatorPairMoliere evaluates the function
     \f[ V_{\mathrm{Moliere}}(r) = \frac{Z_i Z_j e^2}{4 \pi \varepsilon_0 r_{ij}} \left[ 0.35 \exp \left(-0.3 \frac{r_{ij}}{a_F} \right) +

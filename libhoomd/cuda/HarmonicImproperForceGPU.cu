@@ -72,13 +72,6 @@ texture<Scalar2, 1, cudaReadModeElementType> improper_params_tex;
 texture<int4, 1, cudaReadModeElementType> improper_params_tex;
 #endif
 
-// ACOS is acosf when running in single precision and acos otherwise
-#ifdef SINGLE_PRECISION
-#define ACOS acosf
-#else
-#define ACOS acos
-#endif
-
 //! Kernel for caculating harmonic improper forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -227,7 +220,7 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
         Scalar s = sqrtf(Scalar(1.0) - c*c);
         if (s < SMALL) s = SMALL;
 
-        Scalar domega = ACOS(c) - chi;
+        Scalar domega = fast::acos(c) - chi;
         Scalar a = K * domega;
 
         // calculate the energy, 1/4th for each atom

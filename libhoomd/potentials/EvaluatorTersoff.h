@@ -19,13 +19,6 @@
 #define HOSTDEVICE
 #endif
 
-// SQRT is sqrtf when included in nvcc and sqrt when included in the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define SQRT sqrtf
-#else
-#define SQRT sqrt
-#endif
-
 //! Parameter type for this potential
 struct tersoff_params
     {
@@ -120,7 +113,7 @@ class EvaluatorTersoff
             if (rij_sq < rcutsq && (tersoff_A > Scalar(0.0) || tersoff_B > Scalar(0.0)))
                 {
                 // compute rij
-                Scalar rij = SQRT(rij_sq);
+                Scalar rij = fast::sqrt(rij_sq);
 
                 // compute the repulsive potential
                 fR = tersoff_A * fast::exp( lambda_R * (dimer_separation - rij) );
@@ -139,9 +132,9 @@ class EvaluatorTersoff
             if (rik_sq < rcutsq && gamman != 0)
                 {
                 // compute rij, rik, rcut, and r_shell_inner
-                Scalar rij = SQRT(rij_sq);
-                Scalar rik = SQRT(rik_sq);
-                Scalar rcut = SQRT(rcutsq);
+                Scalar rij = fast::sqrt(rij_sq);
+                Scalar rik = fast::sqrt(rik_sq);
+                Scalar rcut = fast::sqrt(rcutsq);
                 Scalar r_shell_inner = rcut - cutoff_shell_thickness;
 
                 // compute the rik cutoff function
@@ -185,8 +178,8 @@ class EvaluatorTersoff
                                 Scalar& potential_eng)
             {
             // compute rij, rcut, and r_shell_inner
-            Scalar rij = SQRT(rij_sq);
-            Scalar rcut = SQRT(rcutsq);
+            Scalar rij = fast::sqrt(rij_sq);
+            Scalar rcut = fast::sqrt(rcutsq);
             Scalar r_shell_inner = rcut - cutoff_shell_thickness;
 
             // compute the ij cutoff function and its derivative
@@ -241,9 +234,9 @@ class EvaluatorTersoff
             if (rik_sq < rcutsq && chi != Scalar(0.0))
                 {
                 // compute rij, rik, rcut, and r_shell_inner
-                Scalar rij = SQRT(rij_sq);
-                Scalar rik = SQRT(rik_sq);
-                Scalar rcut = SQRT(rcutsq);
+                Scalar rij = fast::sqrt(rij_sq);
+                Scalar rik = fast::sqrt(rik_sq);
+                Scalar rcut = fast::sqrt(rcutsq);
                 Scalar r_shell_inner = rcut - cutoff_shell_thickness;
                 // compute the dot product of rij and rik
 //                Scalar rdot = cos_th * rij * rik;

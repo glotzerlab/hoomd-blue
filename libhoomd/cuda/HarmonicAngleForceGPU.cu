@@ -66,13 +66,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the harmonic angle forces. Used by HarmonicAngleForceComputeGPU.
 */
 
-// ACOS is acosf when running in single precision and acos otherwise
-#ifdef SINGLE_PRECISION
-#define ACOS acosf
-#else
-#define ACOS acos
-#endif
-
 #ifdef SINGLE_PRECISION
 //! Texture for reading angle parameters
 texture<Scalar2, 1, cudaReadModeElementType> angle_params_tex;
@@ -199,7 +192,7 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
         s_abbc = Scalar(1.0)/s_abbc;
 
         // actually calculate the force
-        Scalar dth = ACOS(c_abbc) - t_0;
+        Scalar dth = fast::acos(c_abbc) - t_0;
         Scalar tk = K*dth;
 
         Scalar a = -Scalar(1.0) * tk * s_abbc;

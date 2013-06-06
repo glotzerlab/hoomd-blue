@@ -59,14 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-// SQRT is sqrtf when included in nvcc and sqrt when included in the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define SQRT sqrtf
-#else
-#define SQRT sqrt
-#endif
-
 //! Class for evaluating the ZBL pair potential.
 /*! EvaluatorPairZBL evaluates the function
     \f{eqnarray*}
