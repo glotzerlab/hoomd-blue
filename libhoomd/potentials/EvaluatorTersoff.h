@@ -33,13 +33,6 @@
 #define EXP exp
 #endif
 
-// POW is powf when included in nvcc and pow when included in the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define POW powf
-#else
-#define POW pow
-#endif
-
 //! Parameter type for this potential
 struct tersoff_params
     {
@@ -230,11 +223,11 @@ class EvaluatorTersoff
             Scalar dfA = Scalar(-1.0) * lambda_A * fA;
 
             // compute chi^n and (1 + gamma^n * chi^n)
-            Scalar chin = POW(chi, tersoff_n);
+            Scalar chin = fast::pow(chi, tersoff_n);
             Scalar sum_gamma_chi = Scalar(1.0) + gamman * chin;
 
             // compute bij
-            bij = POW( sum_gamma_chi, Scalar(-0.5) / tersoff_n );
+            bij = fast::pow( sum_gamma_chi, Scalar(-0.5) / tersoff_n );
 
             // compute the ij force
             force_divr = Scalar(-0.5)
@@ -334,10 +327,10 @@ class EvaluatorTersoff
                 Scalar dchi_ik_k = -dfcut_ik * g * h + fcut_ik * dg_ik_k * h - fcut_ik * g * dhk;
 
                 // derivative of bij
-                Scalar chin = POW( chi, tersoff_n );
+                Scalar chin = fast::pow( chi, tersoff_n );
                 Scalar sum_gamma_chi = Scalar(1.0) + gamman * chin;
-                Scalar dbij = Scalar(-0.5) * POW( chi, tersoff_n - Scalar(1.0) )
-                    * gamman * POW( sum_gamma_chi, Scalar(-0.5) / tersoff_n - Scalar(1.0) );
+                Scalar dbij = Scalar(-0.5) * fast::pow( chi, tersoff_n - Scalar(1.0) )
+                    * gamman * fast::pow( sum_gamma_chi, Scalar(-0.5) / tersoff_n - Scalar(1.0) );
 
                 // compute the forces and energy
                 Scalar F = Scalar(0.5) * fcut_ij * dbij * fA;

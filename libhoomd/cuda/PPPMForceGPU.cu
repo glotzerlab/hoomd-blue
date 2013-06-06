@@ -78,13 +78,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef SINGLE_PRECISION
 #define __scalar2int_rd __float2int_rd
 #define EXP expf
-#define POW powf
 #define CUFFTCOMPLEX cufftComplex
 #define CUFFTEXEC cufftExecC2C
 #else
 #define __scalar2int_rd __double2int_rd
 #define EXP exp
-#define POW pow
 #define CUFFTCOMPLEX cufftDoubleComplex
 #define CUFFTEXEC cufftExecZ2Z
 #endif
@@ -995,19 +993,19 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                 sx = EXP(Scalar(-.25)*qx*qx/kappa2);
                 wx = Scalar(1.0);
                 argx = Scalar(0.5)*qx*L.x/(Scalar)Nx;
-                if (argx != Scalar(0.0)) wx = POW(fast::sin(argx)/argx,order);
+                if (argx != Scalar(0.0)) wx = fast::pow(fast::sin(argx)/argx,order);
                 for (iy = -nby; iy <= nby; iy++) {
                     qy = unitky*(lper+(Scalar)(Ny*iy));
                     sy = EXP(Scalar(-.25)*qy*qy/kappa2);
                     wy = Scalar(1.0);
                     argy = Scalar(0.5)*qy*L.y/(Scalar)Ny;
-                    if (argy != Scalar(0.0)) wy = POW(fast::sin(argy)/argy,order);
+                    if (argy != Scalar(0.0)) wy = fast::pow(fast::sin(argy)/argy,order);
                     for (iz = -nbz; iz <= nbz; iz++) {
                         qz = unitkz*(mper+(Scalar)(Nz*iz));
                         sz = EXP(Scalar(-.25)*qz*qz/kappa2);
                         wz = Scalar(1.0);
                         argz = Scalar(0.5)*qz*L.z/(Scalar)Nz;
-                        if (argz != Scalar(0.0)) wz = POW(fast::sin(argz)/argz,order);
+                        if (argz != Scalar(0.0)) wz = fast::pow(fast::sin(argz)/argz,order);
 
                         dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
                         dot2 = qx*qx+qy*qy+qz*qz;

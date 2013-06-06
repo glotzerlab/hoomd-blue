@@ -68,10 +68,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // POW is __powf when running in single precision and pow otherwise
 // ACOS is acosf when running in single precision and acos otherwise
 #ifdef SINGLE_PRECISION
-#define POW __powf
 #define ACOS acosf
 #else
-#define POW pow
 #define ACOS acos
 #endif
 
@@ -241,8 +239,8 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
             // INTERESTING NOTE: POW has weird behavior depending
             // on the inputted parameters.  Try sigma=2.05, versus sigma=0.05
             // in cgcmm_angle_force_test.cc 4 particle test
-            fac = cgpref*cgeps / rsqac * (cgpow1*POW(cgratio,cgpow1) - cgpow2*POW(cgratio,cgpow2));
-            eac = cgeps + cgpref*cgeps * (POW(cgratio,cgpow1) - POW(cgratio,cgpow2));
+            fac = cgpref*cgeps / rsqac * (cgpow1*fast::pow(cgratio,cgpow1) - cgpow2*fast::pow(cgratio,cgpow2));
+            eac = cgeps + cgpref*cgeps * (fast::pow(cgratio,cgpow1) - fast::pow(cgratio,cgpow2));
 
             vac[0] = fac * dac.x*dac.x;
             vac[1] = fac * dac.x*dac.y;

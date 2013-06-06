@@ -432,6 +432,22 @@ inline HOSTDEVICE double cos(double x)
     return cos(x);
     }
 
+//! Compute the pow of x,y
+inline HOSTDEVICE float pow(float x, float y)
+    {
+    #ifdef __CUDA_ARCH__
+    return __powf(x, y);
+    #else
+    return ::powf(x, y);
+    #endif
+    }
+
+//! Compute the sin of x
+inline HOSTDEVICE double pow(double x, double y)
+    {
+    return pow(x, y);
+    }
+
 }
 
 // undefine HOSTDEVICE so we don't interfere with other headers
