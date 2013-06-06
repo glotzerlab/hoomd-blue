@@ -71,14 +71,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized exp functions on the host / device
-// EXP is expf when included in nvcc and exp when included into the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define EXP expf
-#else
-#define EXP exp
-#endif
-
 //! Class for evaluating the Yukawa pair potential
 /*! <b>General Overview</b>
 
@@ -147,7 +139,7 @@ class EvaluatorPairYukawa
                 Scalar r = Scalar(1.0) / rinv;
                 Scalar r2inv = Scalar(1.0) / rsq;
                 
-                Scalar exp_val = EXP(-kappa * r);
+                Scalar exp_val = fast::exp(-kappa * r);
                 
                 force_divr = epsilon * exp_val * r2inv * (rinv + kappa);
                 pair_eng = epsilon * exp_val * rinv;
@@ -156,7 +148,7 @@ class EvaluatorPairYukawa
                     {
                     Scalar rcutinv = fast::rsqrt(rcutsq);
                     Scalar rcut = Scalar(1.0) / rcutinv;
-                    pair_eng -= epsilon * EXP(-kappa * rcut) * rcutinv;
+                    pair_eng -= epsilon * fast::exp(-kappa * rcut) * rcutinv;
                     }
                 return true;
                 }

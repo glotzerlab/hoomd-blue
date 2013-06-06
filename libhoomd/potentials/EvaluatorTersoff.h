@@ -26,13 +26,6 @@
 #define SQRT sqrt
 #endif
 
-// EXP is expf when included in nvcc and exp when included in the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define EXP expf
-#else
-#define EXP exp
-#endif
-
 //! Parameter type for this potential
 struct tersoff_params
     {
@@ -130,10 +123,10 @@ class EvaluatorTersoff
                 Scalar rij = SQRT(rij_sq);
 
                 // compute the repulsive potential
-                fR = tersoff_A * EXP( lambda_R * (dimer_separation - rij) );
+                fR = tersoff_A * fast::exp( lambda_R * (dimer_separation - rij) );
 
                 // compute the attractive potential
-                fA = tersoff_B * EXP( lambda_A * (dimer_separation - rij) );
+                fA = tersoff_B * fast::exp( lambda_A * (dimer_separation - rij) );
 
                 return true;
                 }
@@ -160,7 +153,7 @@ class EvaluatorTersoff
                     Scalar cutoff_x3 = cutoff_x2 * cutoff_x;
                     Scalar inv_denom = Scalar(1.0) / (cutoff_x3 - Scalar(1.0));
 
-                    fcut_ik = EXP( cutoff_alpha * cutoff_x3 * inv_denom);
+                    fcut_ik = fast::exp( cutoff_alpha * cutoff_x3 * inv_denom);
 
 //                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
 //                    Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
@@ -172,7 +165,7 @@ class EvaluatorTersoff
                 // compute the h function
                 Scalar delta_r = rij - rik;
                 Scalar delta_r3 = delta_r * delta_r * delta_r;
-                Scalar h = EXP( lambda_h3 * delta_r3 );
+                Scalar h = fast::exp( lambda_h3 * delta_r3 );
 
                 // compute the g function
                 Scalar ang_difference = tersoff_m - cos_th;
@@ -206,7 +199,7 @@ class EvaluatorTersoff
                 Scalar cutoff_x3 = cutoff_x2 * cutoff_x;
                 Scalar inv_denom = Scalar(1.0) / (cutoff_x3 - Scalar(1.0));
 
-                fcut_ij = EXP( cutoff_alpha * cutoff_x3 * inv_denom );
+                fcut_ij = fast::exp( cutoff_alpha * cutoff_x3 * inv_denom );
                 dfcut_ij = Scalar(-3.0) * cutoff_alpha * cutoff_x2 * inv_denom * inv_denom
                     / cutoff_shell_thickness * fcut_ij;
 
@@ -264,7 +257,7 @@ class EvaluatorTersoff
                     Scalar cutoff_x3 = cutoff_x2 * cutoff_x;
                     Scalar inv_denom = Scalar(1.0) / (cutoff_x3 - Scalar(1.0));
 
-                    fcut_ij = EXP( cutoff_alpha * cutoff_x3 * inv_denom );
+                    fcut_ij = fast::exp( cutoff_alpha * cutoff_x3 * inv_denom );
 
 //                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
 //                    Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
@@ -283,7 +276,7 @@ class EvaluatorTersoff
                     Scalar cutoff_x3 = cutoff_x2 * cutoff_x;
                     Scalar inv_denom = Scalar(1.0) / (cutoff_x3 - Scalar(1.0));
 
-                    fcut_ik = EXP( cutoff_alpha * cutoff_x3 * inv_denom );
+                    fcut_ik = fast::exp( cutoff_alpha * cutoff_x3 * inv_denom );
                     dfcut_ik = Scalar(-3.0) * cutoff_alpha * cutoff_x2 * inv_denom * inv_denom
                         / cutoff_shell_thickness * fcut_ik;
 
@@ -300,7 +293,7 @@ class EvaluatorTersoff
                 Scalar delta_r = rij - rik;
                 Scalar delta_r2 = delta_r * delta_r;
                 Scalar delta_r3 = delta_r2 * delta_r;
-                Scalar h = EXP( lambda_h3 * delta_r3 );
+                Scalar h = fast::exp( lambda_h3 * delta_r3 );
                 Scalar dhj = Scalar(3.0) * lambda_h3 * delta_r2 * h;
                 Scalar dhk = -dhj;
 

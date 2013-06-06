@@ -71,14 +71,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized exp functions on the host / device
-// EXP is expf when compiled for single precision on the GPU and exp otherwise
-#if defined NVCC && defined SINGLE_PRECISION
-#define EXP expf
-#else
-#define EXP exp
-#endif
-
 //! Class for evaluating the Gaussian pair potential
 /*! <b>General Overview</b>
 
@@ -145,14 +137,14 @@ class EvaluatorPairGauss
                 {
                 Scalar sigma_sq = sigma*sigma;
                 Scalar r_over_sigma_sq = rsq / sigma_sq;
-                Scalar exp_val = EXP(-Scalar(1.0)/Scalar(2.0) * r_over_sigma_sq);
+                Scalar exp_val = fast::exp(-Scalar(1.0)/Scalar(2.0) * r_over_sigma_sq);
                 
                 force_divr = epsilon / sigma_sq * exp_val;
                 pair_eng = epsilon * exp_val;
 
                 if (energy_shift)
                     {
-                    pair_eng -= epsilon * EXP(-Scalar(1.0)/Scalar(2.0) * rcutsq / sigma_sq);
+                    pair_eng -= epsilon * fast::exp(-Scalar(1.0)/Scalar(2.0) * rcutsq / sigma_sq);
                     }
                 return true;
                 }

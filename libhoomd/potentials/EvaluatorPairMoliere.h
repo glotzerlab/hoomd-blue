@@ -63,14 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized exp functions on the host / device
-// EXP is expf when included in nvcc and exp when included in the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define EXP expf
-#else
-#define EXP exp
-#endif
-
 // call different optimized sqrt functions on the host / device
 // SQRT is sqrtf when included in nvcc and sqrt when included in the host compiler
 #if defined NVCC && defined SINGLE_PRECISION
@@ -140,9 +132,9 @@ class EvaluatorPairMoliere
                 Scalar rinv = fast::rsqrt(rsq);
 
                 // precalculate the exponential terms
-                Scalar exp1 = Scalar(0.35) * EXP( Scalar(-0.3) / aF / rinv );
-                Scalar exp2 = Scalar(0.55) * EXP( Scalar(-1.2) / aF / rinv );
-                Scalar exp3 = Scalar(0.1) * EXP( Scalar(-6.0) / aF / rinv );
+                Scalar exp1 = Scalar(0.35) * fast::exp( Scalar(-0.3) / aF / rinv );
+                Scalar exp2 = Scalar(0.55) * fast::exp( Scalar(-1.2) / aF / rinv );
+                Scalar exp3 = Scalar(0.1) * fast::exp( Scalar(-6.0) / aF / rinv );
 
                 // evaluate the force
                 force_divr = rinv * ( exp1 + exp2 + exp3 );
@@ -155,9 +147,9 @@ class EvaluatorPairMoliere
                 {
                     Scalar rcutinv = fast::rsqrt(rcutsq);
 
-                    Scalar expcut1 = Scalar(0.35) * EXP( Scalar(-0.3) / aF / rcutinv );
-                    Scalar expcut2 = Scalar(0.55) * EXP( Scalar(-1.2) / aF / rcutinv );
-                    Scalar expcut3 = Scalar(0.1) * EXP( Scalar(-6.0) / aF / rcutinv);
+                    Scalar expcut1 = Scalar(0.35) * fast::exp( Scalar(-0.3) / aF / rcutinv );
+                    Scalar expcut2 = Scalar(0.55) * fast::exp( Scalar(-1.2) / aF / rcutinv );
+                    Scalar expcut3 = Scalar(0.1) * fast::exp( Scalar(-6.0) / aF / rcutinv);
 
                     pair_eng -= Zsq * rcutinv * ( expcut1 + expcut2 + expcut3 );
                 }

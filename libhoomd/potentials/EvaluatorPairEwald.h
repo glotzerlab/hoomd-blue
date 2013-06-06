@@ -71,14 +71,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized exp functions on the host / device
-// EXP is expf when included in nvcc and exp when included into the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define EXP expf
-#else
-#define EXP exp
-#endif
-
 #if defined NVCC && defined SINGLE_PRECISION
 // ERFC is the complimentary error function
 #define ERFC erfc
@@ -154,7 +146,7 @@ class EvaluatorPairEwald
                 
                 Scalar erfc_by_r_val = ERFC(kappa * r) * rinv;
                         
-                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*fast::rsqrt(M_PI) * EXP(-kappa*kappa* rsq));
+                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*fast::rsqrt(M_PI) * fast::exp(-kappa*kappa* rsq));
                 pair_eng = qiqj * erfc_by_r_val ;
 
                 return true;

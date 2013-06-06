@@ -70,19 +70,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // There are several functions here that are dependent on precision:
 // __scalar2int_rd is __float2int_rd in single, __double2int_rd in double
-// EXP is expf in single, exp in double
-// POW is powf in single, pow in double
-// SIN is sinf in single, sin in double
 // CUFFTCOMPLEX is cufftComplex in single, cufftDoubleComplex in double
 // CUFFTEXEC is cufftExecC2C in single, cufftExecZ2Z in double
 #ifdef SINGLE_PRECISION
 #define __scalar2int_rd __float2int_rd
-#define EXP expf
 #define CUFFTCOMPLEX cufftComplex
 #define CUFFTEXEC cufftExecC2C
 #else
 #define __scalar2int_rd __double2int_rd
-#define EXP exp
 #define CUFFTCOMPLEX cufftDoubleComplex
 #define CUFFTEXEC cufftExecZ2Z
 #endif
@@ -990,19 +985,19 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
             sum1 = Scalar(0.0);
             for (ix = -nbx; ix <= nbx; ix++) {
                 qx = unitkx*(kper+(Scalar)(Nx*ix));
-                sx = EXP(Scalar(-.25)*qx*qx/kappa2);
+                sx = fast::exp(Scalar(-.25)*qx*qx/kappa2);
                 wx = Scalar(1.0);
                 argx = Scalar(0.5)*qx*L.x/(Scalar)Nx;
                 if (argx != Scalar(0.0)) wx = fast::pow(fast::sin(argx)/argx,order);
                 for (iy = -nby; iy <= nby; iy++) {
                     qy = unitky*(lper+(Scalar)(Ny*iy));
-                    sy = EXP(Scalar(-.25)*qy*qy/kappa2);
+                    sy = fast::exp(Scalar(-.25)*qy*qy/kappa2);
                     wy = Scalar(1.0);
                     argy = Scalar(0.5)*qy*L.y/(Scalar)Ny;
                     if (argy != Scalar(0.0)) wy = fast::pow(fast::sin(argy)/argy,order);
                     for (iz = -nbz; iz <= nbz; iz++) {
                         qz = unitkz*(mper+(Scalar)(Nz*iz));
-                        sz = EXP(Scalar(-.25)*qz*qz/kappa2);
+                        sz = fast::exp(Scalar(-.25)*qz*qz/kappa2);
                         wz = Scalar(1.0);
                         argz = Scalar(0.5)*qz*L.z/(Scalar)Nz;
                         if (argz != Scalar(0.0)) wz = fast::pow(fast::sin(argz)/argz,order);

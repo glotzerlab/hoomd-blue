@@ -448,6 +448,22 @@ inline HOSTDEVICE double pow(double x, double y)
     return pow(x, y);
     }
 
+//! Compute the exp of x
+inline HOSTDEVICE float exp(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return __expf(x);
+    #else
+    return ::expf(x);
+    #endif
+    }
+
+//! Compute the exp of x
+inline HOSTDEVICE double exp(double x)
+    {
+    return exp(x);
+    }
+
 }
 
 // undefine HOSTDEVICE so we don't interfere with other headers

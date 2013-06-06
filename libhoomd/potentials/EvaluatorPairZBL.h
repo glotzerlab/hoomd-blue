@@ -59,14 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized exp functions on the host / device
-// EXP is expf when included in nvcc and exp when included in the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define EXP expf
-#else
-#define EXP exp
-#endif
-
 // call different optimized sqrt functions on the host / device
 // SQRT is sqrtf when included in nvcc and sqrt when included in the host compiler
 #if defined NVCC && defined SINGLE_PRECISION
@@ -137,10 +129,10 @@ class EvaluatorPairZBL
                 Scalar rinv = fast::rsqrt(rsq);
 
                 // precalculate the exponential terms
-                Scalar exp1 = Scalar(0.1818) * EXP( Scalar(-3.2) / aF / rinv );
-                Scalar exp2 = Scalar(0.5099) * EXP( Scalar(-0.9423) / aF / rinv );
-                Scalar exp3 = Scalar(0.2802) * EXP( Scalar(-0.4029) / aF / rinv );
-                Scalar exp4 = Scalar(0.02817) * EXP( Scalar(-0.2016) / aF / rinv );
+                Scalar exp1 = Scalar(0.1818) * fast::exp( Scalar(-3.2) / aF / rinv );
+                Scalar exp2 = Scalar(0.5099) * fast::exp( Scalar(-0.9423) / aF / rinv );
+                Scalar exp3 = Scalar(0.2802) * fast::exp( Scalar(-0.4029) / aF / rinv );
+                Scalar exp4 = Scalar(0.02817) * fast::exp( Scalar(-0.2016) / aF / rinv );
 
                 // evaluate the force
                 force_divr = rinv * ( exp1 + exp2 + exp3 + exp3 );

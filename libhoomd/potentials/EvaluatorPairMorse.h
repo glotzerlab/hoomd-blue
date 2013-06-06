@@ -79,16 +79,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SQRT sqrt
 #endif
 
-// call different optimized exp functions on the host / device
-// EXP is expf when included in nvcc and exp when included into the host compiler
-#if defined NVCC && defined SINGLE_PRECISION
-#define EXP expf
-#else
-#define EXP exp
-#endif
-
-
-
 //! Class for evaluating the Morse pair potential
 /*! <b>General Overview</b>
 
@@ -152,7 +142,7 @@ class EvaluatorPairMorse
             if (rsq < rcutsq)
                 {
                 Scalar r = SQRT(rsq);
-                Scalar Exp_factor = EXP(-alpha*(r-r0));
+                Scalar Exp_factor = fast::exp(-alpha*(r-r0));
                 
                 pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
                 force_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) / r;
@@ -160,7 +150,7 @@ class EvaluatorPairMorse
                 if (energy_shift)
                     {
                     Scalar rcut = SQRT(rcutsq);
-                    Scalar Exp_factor_cut = EXP(-alpha*(rcut-r0));
+                    Scalar Exp_factor_cut = fast::exp(-alpha*(rcut-r0));
                     pair_eng -= D0 * Exp_factor_cut * (Exp_factor_cut - Scalar(2.0));
                     }
                 return true;

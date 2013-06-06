@@ -63,13 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NPT integration on the GPU. Used by TwoStepNPTRigidGPU.
 */
 
-// EXP is __expf when running in single precision and exp otherwise
-#ifdef SINGLE_PRECISION
-#define EXP __expf
-#else
-#define EXP exp
-#endif
-
 // Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
 #define INVALID_INDEX 0xffffffff
 
@@ -254,11 +247,11 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(Scalar4* rdata_com
     onednfr = Scalar(npt_rdata_dimension) / Scalar(npt_rdata_nf_t+npt_rdata_nf_r);
 
     tmp = Scalar(-1.0) * dt_half * (npt_rdata_eta_dot_t0 + onednft * npt_rdata_epsilon_dot);
-    scale_t = EXP(tmp);
+    scale_t = fast::exp(tmp);
     tmp = Scalar(-1.0) * dt_half * (npt_rdata_eta_dot_r0 + onednfr * npt_rdata_epsilon_dot);
-    scale_r = EXP(tmp);
+    scale_r = fast::exp(tmp);
     tmp = dt_half * npt_rdata_epsilon_dot;
-    scale_v = deltaT * EXP(tmp) * maclaurin_series(tmp);
+    scale_v = deltaT * fast::exp(tmp) * maclaurin_series(tmp);
 
     unsigned int idx_body = d_rigid_group[group_idx];
     body_mass = d_rigid_mass[idx_body];

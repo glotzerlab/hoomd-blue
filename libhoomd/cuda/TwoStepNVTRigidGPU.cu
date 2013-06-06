@@ -64,13 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTRigidGPU.
 */
 
-// EXP is __expf when running in single precision and exp otherwise
-#ifdef SINGLE_PRECISION
-#define EXP __expf
-#else
-#define EXP exp
-#endif
-
 // Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
 #define INVALID_INDEX 0xffffffff
 
@@ -150,9 +143,9 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(Scalar4* rdata_com
     Scalar dt_half = Scalar(0.5) * deltaT;
     Scalar   tmp, scale_t, scale_r, akin_t, akin_r;
     tmp = -Scalar(1.0) * dt_half * nvt_rdata_eta_dot_t0;
-    scale_t = EXP(tmp);
+    scale_t = fast::exp(tmp);
     tmp = -Scalar(1.0) * dt_half * nvt_rdata_eta_dot_r0;
-    scale_r = EXP(tmp);
+    scale_r = fast::exp(tmp);
 
     unsigned int idx_body = d_rigid_group[group_idx];
     body_mass = d_rigid_mass[idx_body];
@@ -352,9 +345,9 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(Scalar4* rdata_vel
     Scalar dt_half = Scalar(0.5) * deltaT;
     Scalar   tmp, scale_t, scale_r, akin_t, akin_r;
     tmp = -Scalar(1.0) * dt_half * nvt_rdata_eta_dot_t0;
-    scale_t = EXP(tmp);
+    scale_t = fast::exp(tmp);
     tmp = -Scalar(1.0) * dt_half * nvt_rdata_eta_dot_r0;
-    scale_r = EXP(tmp);
+    scale_r = fast::exp(tmp);
 
     unsigned int idx_body = d_rigid_group[group_idx];
 
