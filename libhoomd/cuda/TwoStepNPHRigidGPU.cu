@@ -142,7 +142,7 @@ extern "C" __global__ void gpu_nph_rigid_remap_kernel(Scalar4 *rdata_com,
 
     if (idx_body == 0)
         {
-        *(nph_rdata_new_box) = make_Scalar4(L.x, L.y, L.z, 0.0f);
+        *(nph_rdata_new_box) = make_scalar4(L.x, L.y, L.z, 0.0f);
         }
     }
 

@@ -199,7 +199,7 @@ void assign_charges_to_grid_kernel(const unsigned int N,
         Scalar qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
 
         if(fabs(qi) > Scalar(0.0)) {
-            float4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+            Scalar4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
             Scalar3 posi = make_scalar3(postypei.x,postypei.y,postypei.z);
             //calculate dx, dy, dz for the charge density grid:
             Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
@@ -380,7 +380,7 @@ void calculate_forces_kernel(Scalar4 *d_force,
             Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
         
             //normalize position to gridsize:
-            Scalar3 pos_frac = box.makeFraction(posi);
+            Scalar3 pos_frac = box.makeFraction(make_scalar3(posi.x, posi.y, posi.z));
             pos_frac.x *= (Scalar)Nx;
             pos_frac.y *= (Scalar)Ny;
             pos_frac.z *= (Scalar)Nz;
