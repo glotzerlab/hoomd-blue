@@ -122,7 +122,7 @@ __device__ Scalar gpu_sinc(Scalar x)
         }
     else
         {
-        sinc = sinf(x)/x;
+        sinc = fast::sin(x)/x;
         }
 
     return sinc;
@@ -990,7 +990,7 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                         dot1 = dot(kn,k);
                         dot2 = dot(kn,kn);
                         arg_gauss = Scalar(0.25)*dot2/kappa2;
-                        gauss = expf(-arg_gauss);
+                        gauss = fast::exp(-arg_gauss);
  
                         W = wx*wy*wz;
                         sum1 += (dot1/dot2) * gauss * W*W;

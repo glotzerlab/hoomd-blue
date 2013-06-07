@@ -217,11 +217,11 @@ extern "C" __global__ void gpu_nph_rigid_step_one_body_kernel(Scalar4* rdata_com
     onednfr = (Scalar) (npt_rdata_dimension) / (Scalar) (npt_rdata_nf_t+npt_rdata_nf_r);
 
     tmp = Scalar(-1.0) * dt_half * onednft * npt_rdata_epsilon_dot;
-    scale_t = __expf(tmp);
+    scale_t = fast::exp(tmp);
     tmp = Scalar(-1.0) * dt_half * onednfr * npt_rdata_epsilon_dot;
-    scale_r = __expf(tmp);
+    scale_r = fast::exp(tmp);
     tmp = dt_half * npt_rdata_epsilon_dot;
-    scale_v = deltaT * __expf(tmp) * nph_maclaurin_series(tmp);
+    scale_v = deltaT * fast::exp(tmp) * nph_maclaurin_series(tmp);
 
     unsigned int idx_body = d_rigid_group[group_idx];
     body_mass = d_rigid_mass[idx_body];
