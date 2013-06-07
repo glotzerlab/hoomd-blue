@@ -611,7 +611,6 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
     
     return cudaSuccess;
     }
-#endif
 
 /*! Call this method once at initialization. It specifies that gpu_compute_nlist_binned_new_kernel() utilize the 48k
     L1 cache on Fermi.
