@@ -210,7 +210,7 @@ void assign_charges_to_grid_kernel(const unsigned int N,
             pos_frac.y *= (Scalar)Ny;
             pos_frac.z *= (Scalar)Nz;
 
-            float shift, shiftone, x0, y0, z0, dx, dy, dz;
+            Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
             int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
     
             nlower = -(order-1)/2;
@@ -385,7 +385,7 @@ void calculate_forces_kernel(Scalar4 *d_force,
             pos_frac.y *= (Scalar)Ny;
             pos_frac.z *= (Scalar)Nz;
 
-            float shift, shiftone, x0, y0, z0, dx, dy, dz;
+            Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
             int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
     
             nlower = -(order-1)/2;
@@ -403,13 +403,13 @@ void calculate_forces_kernel(Scalar4 *d_force,
                 shiftone = Scalar(0.5);
                 }
             
-            nxi = __float2int_rd(pos_frac.x + shift);
-            nyi = __float2int_rd(pos_frac.y + shift);
-            nzi = __float2int_rd(pos_frac.z + shift);
+            nxi = __scalar2int_rd(pos_frac.x + shift);
+            nyi = __scalar2int_rd(pos_frac.y + shift);
+            nzi = __scalar2int_rd(pos_frac.z + shift);
     
-            dx = shiftone+(float)nxi-pos_frac.x;
-            dy = shiftone+(float)nyi-pos_frac.y;
-            dz = shiftone+(float)nzi-pos_frac.z;
+            dx = shiftone+(Scalar)nxi-pos_frac.x;
+            dy = shiftone+(Scalar)nyi-pos_frac.y;
+            dz = shiftone+(Scalar)nzi-pos_frac.z;
  
             int n,m,l,k;
             Scalar result;
@@ -962,7 +962,7 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         Scalar3 kn, kn1, kn2, kn3;
         Scalar arg_gauss, gauss;
 
-        float W;
+        Scalar W;
         if (sqk != 0.0f) {
             numerator = Scalar(12.5663706)/sqk;
             sum1 = 0;
@@ -973,7 +973,7 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                 wx = fast::pow(gpu_sinc(argx),order);
 
                for (iy = -nby; iy <= nby; iy++) {
-                    qy = (j.y+(float)(Ny*iy));
+                    qy = (j.y+(Scalar)(Ny*iy));
                     kn2 = b2 * qy;
                     argy = Scalar(0.5)*qy*kH.y;
                     wy = fast::pow(gpu_sinc(argy),order);
@@ -1165,11 +1165,6 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
     error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
     if (error != cudaSuccess)
         return error;
-
-    // Update the force and virial with fixed exclusions. The memsets are merely commented and not removed
-    // to avoid merge conflicts.
-//    cudaMemset(d_force, 0, sizeof(float4)*N);
-//    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
 
     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,
