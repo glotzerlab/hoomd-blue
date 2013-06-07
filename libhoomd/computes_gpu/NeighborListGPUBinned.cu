@@ -51,13 +51,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "NeighborListGPUBinned.cuh"
+#include "TextureTools.h"
 
 /*! \file NeighborListGPUBinned.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
 */
 
 //! Texture for reading d_cell_xyzf
-texture<float4, 1, cudaReadModeElementType> cell_xyzf_1d_tex;
+scalar4_tex_t cell_xyzf_1d_tex;
 
 //! Kernel call for generating neighbor list on the GPU
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering. 
@@ -155,11 +156,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
             {
-            #ifdef SINGLE_PRECISION
-            Scalar4 cur_xyzf = tex1Dfetch(cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
-            #else
-            Scalar4 cur_xyzf = d_cell_xyzf[cli(cur_offset, neigh_cell)];
-            #endif
+            Scalar4 cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
             
             Scalar4 cur_tdb = make_scalar4(0, 0, 0, 0);
             if (filter_diameter || filter_body)
@@ -242,14 +239,12 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
 
-    #ifdef SINGLE_PRECISION
     // bind the position texture
     cell_xyzf_1d_tex.normalized = false;
     cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*(cli.getNumElements()));
     if (error != cudaSuccess)
         return error;
-    #endif
 
     if (!filter_diameter && !filter_body)
         {
@@ -348,6 +343,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
     return cudaSuccess;
     }
 
+
+// don't compile the 1x nlist kernel in double precision builds
+#ifdef SINGLE_PRECISION
 //! Texture for reading d_cell_adj
 texture<unsigned int, 2, cudaReadModeElementType> cell_adj_tex;
 //! Texture for reading d_cell_size
@@ -357,7 +355,6 @@ texture<Scalar4, 2, cudaReadModeElementType> cell_xyzf_tex;
 //! Texture for reading d_cell_tdb
 texture<Scalar4, 2, cudaReadModeElementType> cell_tdb_tex;
 
-#ifdef SINGLE_PRECISION
 //! Kernel call for generating neighbor list on the GPU
 /*! \tparam filter_flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \param d_nlist Neighbor list data structure to write
@@ -499,6 +496,7 @@ __global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
     if (n_neigh_needed > 0)
         atomicMax(&d_conditions[0], n_neigh_needed);
     }
+#endif  // #ifdef SINGLE_PRECISION
 
 cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         unsigned int *d_n_neigh,
@@ -521,6 +519,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         bool filter_diameter,
                                         const Scalar3& ghost_width)
     {
+    // don't compile the 1x nlist kernel in double precision builds
+    #ifdef SINGLE_PRECISION
     int n_blocks = (int)ceil(double(N)/double(block_size));
     
     cudaError_t err = cudaBindTextureToArray(cell_adj_tex, dca_cell_adj);
@@ -607,6 +607,8 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         sqrtf(r_maxsq),
                                                                         ghost_width );
         }
+    #endif // #ifdef SINGLE_PRECISION
+    
     return cudaSuccess;
     }
 #endif

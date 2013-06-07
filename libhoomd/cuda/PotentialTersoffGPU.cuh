@@ -606,13 +606,11 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     dim3 threads(pair_args.block_size, 1, 1);
 
     // bind the position texture
-    #ifdef ENABLE_TEXTURES
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
     if (error != cudaSuccess)
         return error;
-    #endif
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))

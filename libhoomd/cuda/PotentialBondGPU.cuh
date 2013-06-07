@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
 #include "Index1D.h"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -120,13 +121,13 @@ struct bond_args_t
 
 #ifdef NVCC
 //! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+scalar4_tex_t pdata_pos_tex;
 
 //! Texture for reading particle diameters
-texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
+scalar_tex_t pdata_diam_tex;
 
 //! Texture for reading particle charges
-texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
+scalar_tex_t pdata_charge_tex;
 
 //! Kernel for calculating bond forces
 /*! This kernel is called to calculate the bond forces on all N particles. Actual evaluation of the potentials and
@@ -188,22 +189,14 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     __syncthreads();
 
     // read in the position of our particle. (MEM TRANSFER: 16 bytes)
-    #ifdef SINGLE_PRECISION
-    Scalar4 postype = tex1Dfetch(pdata_pos_tex, idx);
-    #else
-    Scalar4 postype = d_pos[idx];
-    #endif
+    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // read in the diameter of our particle if needed
     Scalar diam(0);
     if (evaluator::needsDiameter())
         {
-        #ifdef SINGLE_PRECISION
-        diam = tex1Dfetch(pdata_diam_tex, idx);
-        #else
-        diam = d_diameter[idx];
-        #endif
+        diam = texFetchScalar(d_diameter, pdata_diam_tex, idx);
         }
     else
         diam += 0; // shutup compiler warning
@@ -211,11 +204,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     Scalar q(0);
     if (evaluator::needsCharge())
         {
-        #ifdef SINGLE_PRECISION
-        q = tex1Dfetch(pdata_charge_tex, idx);
-        #else
-        q = d_charge[idx];
-        #endif
+        q = texFetchScalar(d_charge, pdata_charge_tex, idx);
         }
     else
         q += 0; // shutup compiler warning
@@ -238,11 +227,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         int cur_bond_type = cur_bond.y;
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
-        #ifdef SINGLE_PRECISION
-        Scalar4 neigh_postypej = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
-        #else
-        Scalar4 neigh_postypej = d_pos[cur_bond_idx];
-        #endif
+        Scalar4 neigh_postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_bond_idx);
         Scalar3 neigh_pos= make_scalar3(neigh_postypej.x, neigh_postypej.y, neigh_postypej.z);
 
         // calculate dr (FLOPS: 3)
@@ -265,20 +250,12 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         // get the bonded particle's diameter if needed
         if (evaluator::needsDiameter())
             {
-            #ifdef SINGLE_PRECISION
-            Scalar neigh_diam = tex1Dfetch(pdata_diam_tex, cur_bond_idx);
-            #else
-            Scalar neigh_diam = d_diameter[cur_bond_idx];
-            #endif
+            Scalar neigh_diam = texFetchScalar(d_diameter, pdata_diam_tex, cur_bond_idx);
             eval.setDiameter(diam, neigh_diam);
             }
         if (evaluator::needsCharge())
             {
-            #ifdef SINGLE_PRECISION
-            Scalar neigh_q = tex1Dfetch(pdata_charge_tex, cur_bond_idx);
-            #else
-            Scalar neigh_q = d_charge[cur_bond_idx];
-            #endif
+            Scalar neigh_q = texFetchScalar(d_charge, pdata_charge_tex, cur_bond_idx);
             eval.setCharge(q, neigh_q);
             }
 

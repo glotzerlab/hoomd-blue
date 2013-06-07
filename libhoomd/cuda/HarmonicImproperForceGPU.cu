@@ -342,11 +342,9 @@ cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the texture
-    #ifdef ENABLE_TEXTURES
     cudaError_t error = cudaBindTexture(0, improper_params_tex, d_params, sizeof(Scalar2) * n_improper_types);
     if (error != cudaSuccess)
         return error;
-    #endif
 
     // run the kernel
     gpu_compute_harmonic_improper_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);

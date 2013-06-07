@@ -223,9 +223,13 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_diameter,
                                  ghost_width);
         }
-    #ifdef SINGLE_PRECISION
     else
         {
+        #ifndef SINGLE_PRECISION
+        m_exec_conf->msg->error() << "NeighborListGPUBinned doesn't work in double precision on compute 1.x" << endl;
+        throw runtime_error("Error computing neighbor list");
+        #endif
+        
         unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
 
         // upate the cuda array allocations (note, this is smart enough to not reallocate when there has been no change)
@@ -267,7 +271,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     m_filter_diameter,
                                     ghost_width);
         }
-    #endif
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         {

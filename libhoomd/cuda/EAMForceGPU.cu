@@ -86,7 +86,7 @@ texture<Scalar, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
 //! Texture for reading the derivative of the atom embedding function
 texture<Scalar, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
 
-#elif defined ENABLE_TEXTURES
+#else
 //! Texture for reading electron density
 texture<int2, 1, cudaReadModeElementType> electronDensity_tex;
 //! Texture for reading EAM pair potential

@@ -418,7 +418,6 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
     dim3 threads(pair_args.block_size, 1, 1);
 
-    #ifdef ENABLE_TEXTURES
     // bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
@@ -438,7 +437,6 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * (pair_args.N+pair_args.n_ghost));
     if (error != cudaSuccess)
         return error;
-    #endif
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) 

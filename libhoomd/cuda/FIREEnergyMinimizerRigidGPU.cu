@@ -334,7 +334,6 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
     if (error != cudaSuccess)
         return error;
         
-    #ifdef SINGLE_PRECISION
     error = cudaBindTexture(0, rigid_data_vel_tex, rdata.vel, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -350,7 +349,6 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
     error = cudaBindTexture(0, rigid_data_torque_tex, rdata.torque, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
-    #endif
 
     // setup the grid to run the kernel
     unsigned int block_size = 128;
@@ -443,7 +441,6 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
     dim3 grid(num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    #ifdef ENABLE_TEXTURES
     cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rdata.body_indices, sizeof(Scalar) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
@@ -462,8 +459,7 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
     
     error = cudaBindTexture(0, rigid_data_torque_tex, rdata.torque, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
-        return error;
-    #endif
+    return error;
         
     // run the kernel
     gpu_fire_rigid_update_v_kernel<<< grid, threads >>>(rdata.vel,
