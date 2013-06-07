@@ -88,6 +88,16 @@ System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_
     // sanity check
     assert(m_sysdef);
     m_exec_conf = m_sysdef->getParticleData()->getExecConf();
+
+    #ifdef ENABLE_MPI
+    // the initial time step is defined on the root processor
+    if (m_sysdef->getParticleData()->getDomainDecomposition())
+        {
+        bcast(m_start_tstep, 0, m_exec_conf->getMPICommunicator());
+        bcast(m_cur_tstep, 0, m_exec_conf->getMPICommunicator());
+        bcast(m_last_status_tstep, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
     }
 
 /*! \param analyzer Shared pointer to the Analyzer to add
@@ -493,6 +503,14 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 generateStatusLine();
             m_last_status_time = cur_time;
             m_last_status_tstep = m_cur_tstep;
+            
+            // check for any CUDA errors
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled())
+                {
+                CHECK_CUDA_ERROR();
+                }
+            #endif
             }
             
         // execute analyzers
@@ -540,9 +558,17 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         
     // calculate averate TPS
     Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
-    if (!m_quiet_run)
-        m_exec_conf->msg->notice(1) << "Average TPS: " << TPS << endl;
+
     m_last_TPS = TPS;
+
+    #ifdef ENABLE_MPI
+    // make sure all ranks return the same TPS
+    if (m_comm)
+        bcast(m_last_TPS, 0, m_exec_conf->getMPICommunicator());
+    #endif
+
+    if (!m_quiet_run)
+        m_exec_conf->msg->notice(1) << "Average TPS: " << m_last_TPS << endl;
     
     // write out the profile data
     if (m_profiler)

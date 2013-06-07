@@ -239,6 +239,15 @@ class Messenger
             if (m_shared_filename != "")
                 openSharedFile();
             }
+
+        //! Tear down messaging using MPI
+        void unsetMPICommunicator()
+            {
+            if (m_shared_filename != "")
+                openStd();
+
+            m_has_mpi_comm = false;
+            }
 #endif
 
         //! Get the notice level

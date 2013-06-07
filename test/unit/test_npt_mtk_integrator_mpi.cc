@@ -94,6 +94,7 @@ using namespace boost;
 // this has to be included after naming the test module
 #include "MPITestSetup.h"
 
+#if 0 // need to adapt to current version of NPT integrator
 //! Typedef'd NPTMTKUpdator class factory
 typedef boost::function<shared_ptr<TwoStepNPTMTK> (shared_ptr<SystemDefinition> sysdef,
                                                 shared_ptr<ParticleGroup> group,
@@ -320,4 +321,6 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTKGPU_tests )
 
 #ifdef WIN32
 #pragma warning( pop )
+#endif
+
 #endif

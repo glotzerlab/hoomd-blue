@@ -84,14 +84,12 @@ set(TEST_LIST
     test_constraint_sphere
     test_ewald_force
     test_pppm_force
-    test_nph_integrator
     test_npt_mtk_integrator
     )
 
     # put the longest tests last
     set(TEST_LIST ${TEST_LIST}
     test_bdnvt_integrator
-    test_npt_integrator
     test_dpd_integrator
     test_bd_rigid_updater)
 

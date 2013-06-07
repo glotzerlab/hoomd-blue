@@ -138,8 +138,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
 
     unsigned int typei = __scalar_as_int(posi.w);
     Scalar3 Xi = make_scalar3(posi.x, posi.y, posi.z);
-    Scalar3 L = box.getL();
-    evaluator eval(Xi, L.x, L.y, L.z, params[typei]);
+    evaluator eval(Xi, box, params[typei]);
 
     eval.evalForceEnergyAndVirial(force, energy, virial);
 

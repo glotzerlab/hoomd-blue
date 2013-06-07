@@ -90,8 +90,9 @@ using namespace boost;
 
 /*! \param N Number of particles to allocate memory for
     \param n_types Number of particle types that will exist in the data arrays
-    \param box Box the particles live in
+    \param global_box Box the particles live in
     \param exec_conf ExecutionConfiguration to use when executing code on the GPU
+    \param decomposition (optional) Domain decomposition layout
 
     \post \c pos,\c vel,\c accel are allocated and initialized to 0.0
     \post \c charge is allocated and initialized to a value of 0.0
@@ -106,141 +107,111 @@ using namespace boost;
 
     Type mappings assign particle types "A", "B", "C", ....
 */
-ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf)
-        : m_box(box), m_exec_conf(exec_conf), m_ntypes(n_types), m_nghosts(0), m_nglobal(0), m_resize_factor(9./8.)
+ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf, boost::shared_ptr<DomainDecomposition> decomposition)
+        : m_exec_conf(exec_conf),
+          m_nparticles(0),
+          m_nghosts(0),
+          m_max_nparticles(0),
+          m_nglobal(0),
+          m_resize_factor(9./8.)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
     // check the input for errors
-    if (m_ntypes == 0)
+    if (n_types == 0)
         {
         m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
         throw std::runtime_error("Error initializing ParticleData");
         }
-        
-    // allocate memory
-    // we are allocating for the number of global particles equal to the number of local particles,
-    // since this constructor is only called for initializing a single-processor simulation
-    allocate(N);
+       
+    // initialize snapshot with default values
+    SnapshotParticleData snap(N);
 
-    // default: number of global particles = number of local particles
-    setNGlobal(getN());
+    snap.type_mapping.clear();
 
-    ArrayHandle< Scalar4 > h_vel(getVelocities(), access_location::host, access_mode::overwrite);
-    ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
-    ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
-    ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
-    
-    // set default values
-    // all values not explicitly set here have been initialized to zero upon allocation
-    for (unsigned int i = 0; i < N; i++)
-        {
-        h_vel.data[i].w = 1.0; // mass
-
-        h_diameter.data[i] = 1.0;
-        
-        h_body.data[i] = NO_BODY;
-        h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
-
-        h_tag.data[i] = i;
-        h_rtag.data[i] = i;
-        }
-
-    // default constructed shared ptr is null as desired
-    m_prof = boost::shared_ptr<Profiler>();
-    
     // setup the type mappings
-    for (unsigned int i = 0; i < m_ntypes; i++)
+    for (unsigned int i = 0; i < n_types; i++)
         {
         char name[2];
         name[0] = 'A' + i;
         name[1] = '\0';
-        m_type_mapping.push_back(string(name));
+        snap.type_mapping.push_back(string(name));
         }
-   
+ 
+    #ifdef ENABLE_MPI
+    // Set up domain decomposition information
+    if (decomposition) setDomainDecomposition(decomposition);
+    #endif
+
+    // initialize box dimensions on all procesors
+    setGlobalBox(global_box);
+
+    // initialize all processors
+    initializeFromSnapshot(snap);
+
+    // default constructed shared ptr is null as desired
+    m_prof = boost::shared_ptr<Profiler>();
+    
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
         m_external_virial[i] = Scalar(0.0);
 
-    // initially, global box = local box
-    m_global_box = box;
+    // zero the origin
+    m_origin = make_scalar3(0,0,0);
     }
 
-/*! Calls the initializer's members to determine the number of particles, box size and then
-    uses it to fill out the position and velocity data.
-    \param init Initializer to use
-    \param exec_conf Execution configuration to run on
-*/
-ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_ntypes(0), m_nghosts(0), m_nglobal(0), m_resize_factor(9./8.)
+/*! Loads particle data from the snapshot into the internal arrays.
+ * \param snapshot The particle data snapshot
+ * \param global_box The dimensions of the global simulation box
+ * \param exec_conf The execution configuration
+ * \param decomposition (optional) Domain decomposition layout
+ */
+ParticleData::ParticleData(const SnapshotParticleData& snapshot,
+                           const BoxDim& global_box,
+                           boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                           boost::shared_ptr<DomainDecomposition> decomposition
+                          )
+    : m_exec_conf(exec_conf),
+      m_nparticles(0),
+      m_nghosts(0),
+      m_max_nparticles(0),
+      m_nglobal(0),
+      m_resize_factor(9./8.)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
-    // allocate memory
-    allocate(init.getNumParticles());
+    // initialize number of particles
+    setNGlobal(snapshot.size);
 
-    // default: number of global particles = number of local particles
-    setNGlobal(getN());
-    
-        {
-        ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::readwrite);
-        
-        ArrayHandle< Scalar4 > h_vel(getVelocities(), access_location::host, access_mode::overwrite);
-        ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_tag(getTags(), access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_rtag(getRTags(), access_location::host, access_mode::overwrite);
-        ArrayHandle< unsigned int > h_body(getBodies(), access_location::host, access_mode::overwrite);
+    #ifdef ENABLE_MPI
+    // Set up domain decomposition information
+    if (decomposition) setDomainDecomposition(decomposition);
+    #endif
 
-        // set default values
-        // all values not explicitly set here have been initialized to zero upon allocation
-        for (unsigned int i = 0; i < getN(); i++)
-            {
-            h_vel.data[i].w = 1.0; // mass
+    // initialize box dimensions on all procesors
+    setGlobalBox(global_box);
 
-            h_diameter.data[i] = 1.0;
-            
-            h_body.data[i] = NO_BODY;
-            h_tag.data[i] = i;
-            h_rtag.data[i] = i;
-            h_orientation.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
-            }
-        }
-
-    // reset external virial
-    for (unsigned int i = 0; i < 6; i++)
-        m_external_virial[i] = Scalar(0.0);
-
-    // initialize box dimensions
-    setGlobalBoxL(init.getBox().getL());
-
-    SnapshotParticleData snapshot(getN());
-
-    // initialize the snapshot with default values
-    takeSnapshot(snapshot);
-
-    // pass snapshot to initializer
-    init.initSnapshot(snapshot);
-
-    // initialize particle data with updated values
+    // initialize particle data with snapshot contents
     initializeFromSnapshot(snapshot);
 
-        {
-        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::overwrite);
-        init.initOrientation(h_orientation.data);
-        init.initMomentInertia(&m_inertia_tensor[0]);
-        }
-            
     // it is an error for particles to be initialized outside of their box
     if (!inBox())
         {
         m_exec_conf->msg->error() << "Not all particles were found inside the given box" << endl;
         throw runtime_error("Error initializing ParticleData");
         }
-        
+
+    // reset external virial
+    for (unsigned int i = 0; i < 6; i++)
+        m_external_virial[i] = Scalar(0.0);
+       
     // default constructed shared ptr is null as desired
     m_prof = boost::shared_ptr<Profiler>();
+
+    // zero the origin
+    m_origin = make_scalar3(0,0,0);
     }
+
 
 ParticleData::~ParticleData()
     {
@@ -254,23 +225,26 @@ const BoxDim & ParticleData::getBox() const
     return m_box;
     }
 
-/*! \param L New box lengths to set
+/*! \param box New box dimensions to set
     \note ParticleData does NOT enforce any boundary conditions. When a new box is set,
         it is the responsibility of the caller to ensure that all particles lie within
         the new box.
 */
-void ParticleData::setGlobalBoxL(const Scalar3 &L)
+void ParticleData::setGlobalBox(const BoxDim& box)
     {
-    m_global_box.setL(L);
+    m_global_box = box;
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
+        {
+        bcast(m_global_box, 0, m_exec_conf->getMPICommunicator());
         m_box = m_decomposition->calculateLocalBox(m_global_box);
+        }
     else
 #endif
         {
         // local box = global box
-        m_box.setL(L);
+        m_box = box;
         }
  
     m_boxchange_signal();
@@ -357,7 +331,6 @@ void ParticleData::notifyGhostParticleNumberChange()
 */
 unsigned int ParticleData::getTypeByName(const std::string &name) const
     {
-    assert(m_type_mapping.size() == m_ntypes);
     // search for the name
     for (unsigned int i = 0; i < m_type_mapping.size(); i++)
         {
@@ -376,9 +349,8 @@ unsigned int ParticleData::getTypeByName(const std::string &name) const
 */
 std::string ParticleData::getNameByType(unsigned int type) const
     {
-    assert(m_type_mapping.size() == m_ntypes);
     // check for an invalid request
-    if (type >= m_ntypes)
+    if (type >= getNTypes()) 
         {
         m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
@@ -402,53 +374,53 @@ void ParticleData::allocate(unsigned int N)
         throw runtime_error("Error allocating ParticleData");
         }
 
-    // set particle number
-    m_nparticles = N;
-
     // maximum number is the current particle number
     m_max_nparticles = N;
 
     // positions
-    GPUArray< Scalar4 > pos(getN(), m_exec_conf);
+    GPUArray< Scalar4 > pos(N, m_exec_conf);
     m_pos.swap(pos);
 
     // velocities
-    GPUArray< Scalar4 > vel(getN(), m_exec_conf);
+    GPUArray< Scalar4 > vel(N, m_exec_conf);
     m_vel.swap(vel);
 
     // accelerations
-    GPUArray< Scalar3 > accel(getN(), m_exec_conf);
+    GPUArray< Scalar3 > accel(N, m_exec_conf);
     m_accel.swap(accel);
 
     // charge
-    GPUArray< Scalar > charge(getN(), m_exec_conf);
+    GPUArray< Scalar > charge(N, m_exec_conf);
     m_charge.swap(charge);
 
     // diameter
-    GPUArray< Scalar > diameter(getN(), m_exec_conf);
+    GPUArray< Scalar > diameter(N, m_exec_conf);
     m_diameter.swap(diameter);
 
     // image
-    GPUArray< int3 > image(getN(), m_exec_conf);
+    GPUArray< int3 > image(N, m_exec_conf);
     m_image.swap(image);
 
     // global tag
-    GPUArray< unsigned int> tag(getN(), m_exec_conf);
+    GPUArray< unsigned int> tag(N, m_exec_conf);
     m_tag.swap(tag);
 
     // body ID
-    GPUArray< unsigned int > body(getN(), m_exec_conf);
+    GPUArray< unsigned int > body(N, m_exec_conf);
     m_body.swap(body);
 
-    GPUArray< Scalar4 > net_force(getN(), m_exec_conf);
+    GPUArray< Scalar4 > net_force(N, m_exec_conf);
     m_net_force.swap(net_force);
-    GPUArray< Scalar > net_virial(getN(),6, m_exec_conf);
+    GPUArray< Scalar > net_virial(N,6, m_exec_conf);
     m_net_virial.swap(net_virial);
-    GPUArray< Scalar4 > net_torque(getN(), m_exec_conf);
+    GPUArray< Scalar4 > net_torque(N, m_exec_conf);
     m_net_torque.swap(net_torque);
-    GPUArray< Scalar4 > orientation(getN(), m_exec_conf);
+    GPUArray< Scalar4 > orientation(N, m_exec_conf);
     m_orientation.swap(orientation);
-    m_inertia_tensor.resize(getN());
+    m_inertia_tensor.resize(N);
+
+    // notify observers
+    m_max_particle_num_signal();
     }
 
 //! Set global number of particles
@@ -458,8 +430,8 @@ void ParticleData::setNGlobal(unsigned int nglobal)
     {
     if (m_nparticles > nglobal)
         {
-        cerr << endl << "***Error! ParticleData is being asked to allocate memory for a global number of particles smaller"
-             << endl << "          than the local number of particles. This does not make any sense.";
+        m_exec_conf->msg->error() << "ParticleData is being asked to allocate memory for a global number"
+                                  << "   of particles smaller than the local number of particles." << std::endl;
         throw runtime_error("Error initializing ParticleData");
         }
     if (m_nglobal)
@@ -468,7 +440,6 @@ void ParticleData::setNGlobal(unsigned int nglobal)
             {
             // resize array of global reverse lookup tags
             m_rtag.resize(nglobal);
-
             }
         }
     else
@@ -522,28 +493,32 @@ bool ParticleData::inBox()
     Scalar3 lo = m_box.getLo();
     Scalar3 hi = m_box.getHi();
 
+    const Scalar tol = Scalar(1e-5);
+
     ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
     for (unsigned int i = 0; i < getN(); i++)
         {
-        if (h_pos.data[i].x < lo.x-Scalar(1e-5) || h_pos.data[i].x > hi.x+Scalar(1e-5))
+        Scalar3 pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+        Scalar3 f = m_box.makeFraction(pos);
+        if (f.x < -tol || f.x > Scalar(1.0)+tol)
             {
-            m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            m_exec_conf->msg->notice(1) << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
-            m_exec_conf->msg->notice(1) << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
+            m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
+            m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+            m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
-        if (h_pos.data[i].y < lo.y-Scalar(1e-5) || h_pos.data[i].y > hi.y+Scalar(1e-5))
+        if (f.y < -tol || f.y > Scalar(1.0)+tol)
             {
-            m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            m_exec_conf->msg->notice(1) << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
-            m_exec_conf->msg->notice(1) << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
+            m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
+            m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+            m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
-        if (h_pos.data[i].z < lo.z-Scalar(1e-5) || h_pos.data[i].z > hi.z+Scalar(1e-5))
+        if (f.z < -tol || f.z > Scalar(1.0)+tol)
             {
-            m_exec_conf->msg->notice(1) << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            m_exec_conf->msg->notice(1) << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
-            m_exec_conf->msg->notice(1) << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
+            m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
+            m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+            m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
             return false;
             }
         }
@@ -559,13 +534,14 @@ bool ParticleData::inBox()
  */
 void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
-    // check the input for errors
-    if (snapshot.type_mapping.size() == 0)
+    // check that all fields in the snapshot have correct length
+    if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
         {
-        m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
-        throw std::runtime_error("Error initializing ParticleData");
+        m_exec_conf->msg->error() << "init.*: invalid particle data snapshot."
+                                << std::endl << std::endl;
+        throw std::runtime_error("Error initializing particle data.");
         }
-        
+
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
@@ -584,7 +560,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
         std::vector< std::vector<Scalar4> > orientation_proc;      // Orientations of every processor
         std::vector< std::vector<unsigned int > > tag_proc;         // Global tags of every processor
+        //std::vector< std::vector<InertiaTensor> > inertia_proc;  
         std::vector< unsigned int > N_proc;                        // Number of particles on every processor
+
  
         // resize to number of ranks in communicator
         const MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
@@ -606,6 +584,13 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
         if (my_rank == 0)
             {
+            // check the input for errors
+            if (snapshot.type_mapping.size() == 0)
+                {
+                m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
+                throw std::runtime_error("Error initializing ParticleData");
+                }
+        
             Scalar3 scale = m_global_box.getL() / m_box.getL();
             const Index3D& di = m_decomposition->getDomainIndexer();
 
@@ -656,14 +641,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
             }
 
-        // get number of particle types
-        m_ntypes = snapshot.type_mapping.size();
-
         // get type mapping
         m_type_mapping = snapshot.type_mapping;
-
-        // broadcast number of particle types
-        bcast(m_ntypes, root, mpi_comm);
 
         // broadcast type mapping
         bcast(m_type_mapping, root, mpi_comm);
@@ -710,21 +689,14 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 h_rtag.data[tag] = NOT_LOCAL;
             }
 
-        // reallocate particle data such that we can accomodate the particles (only if necessary)
-        /* Note: this reallocates also if m_max_nparticles > m_nparticles, which means
-                 unnecessary overhead in a MPI simulation. But currently, the system
-                 is first initialized with the global number of particles
-                 and this number is reduced to the local number of particles, here, to
-                 reduce memory footprint. So until the initialization changes,
-                 we will reallocate with the current number of particles.
-        */
-        if (m_max_nparticles != m_nparticles)
-            {
-            if (m_nparticles > 0)
-                reallocate(m_nparticles);
-            else
-                reallocate(1);
-            }
+        // allocate particle data such that we can accomodate the particles (only if necessary)
+        if (m_max_nparticles < m_nparticles)
+            allocate(m_nparticles);
+
+        // we have to allocate even if the number of particles on a processor
+        // is zero, so that the arrays can be resized later
+        if (m_nparticles == 0 && m_max_nparticles == 0)
+            allocate(1);
 
         // Load particle data
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
@@ -761,12 +733,19 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     else
 #endif
         {
+        // check the input for errors
+        if (snapshot.type_mapping.size() == 0)
+            {
+            m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
+            throw std::runtime_error("Error initializing ParticleData");
+            }
+
         // Initialize number of particles
         setNGlobal(snapshot.size);
         m_nparticles = snapshot.size;
 
-        // reallocate particle data such that we can accomodate the particles
-        reallocate(snapshot.size);
+        // allocate particle data such that we can accomodate the particles
+        allocate(snapshot.size);
 
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::overwrite);
@@ -797,24 +776,17 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_rtag.data[tag] = tag;
             h_body.data[tag] = snapshot.body[tag];
             h_orientation.data[tag] = snapshot.orientation[tag];
-            }
-
-        // initialize number of particle types
-        m_ntypes = snapshot.num_particle_types;
-
-        if (m_ntypes == 0)
-            {
-            cerr << endl << "***Error! Number of particle types must be greater than 0." << endl << endl;
-            throw std::runtime_error("Error initializing ParticleData");
+            m_inertia_tensor[tag] = snapshot.inertia_tensor[tag];
             }
 
         // initialize type mapping
         m_type_mapping = snapshot.type_mapping;
-        assert(m_type_mapping.size() == m_ntypes);
         }
 
     notifyParticleSort();
 
+    // zero the origin
+    m_origin = make_scalar3(0,0,0);
     }
 
 //! take a particle data snapshot
@@ -824,12 +796,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 */
 void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     {
-    // construct global snapshot
-    if (snapshot.size != getNGlobal())
-        {
-        cerr << endl << "***Error! Number of particles in snapshot must be equal to global number of particles." << endl << endl;
-        throw std::runtime_error("Error taking ParticleDataSnapshot");
-        }
+    // allocate memory in snapshot
+    snapshot.resize(getNGlobal());
 
     ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::read);
@@ -860,7 +828,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
             {
-            pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
             vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             accel[idx] = h_accel.data[idx];
             type[idx] = __scalar_as_int(h_pos.data[idx].w);
@@ -941,7 +909,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                     }
                 if (! found)
                     {
-                    cerr << endl << "***Error! Could not find particle " << tag << " on any processor. " << endl << endl;
+                    m_exec_conf->msg->error()
+                        << endl << "Could not find particle " << tag << " on any processor. "
+                        << endl << endl;
                     throw std::runtime_error("Error gathering ParticleData");
                     }
 
@@ -971,7 +941,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             {
             unsigned int tag = h_tag.data[idx];
             assert(tag < m_nglobal);
-            snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
             snapshot.vel[tag] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             snapshot.accel[tag] = h_accel.data[idx];
             snapshot.type[tag] = __scalar_as_int(h_pos.data[idx].w);
@@ -981,10 +951,12 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.image[tag] = h_image.data[idx];
             snapshot.body[tag] = h_body.data[idx];
             snapshot.orientation[tag] = h_orientation.data[idx];
+            
+            // make sure the position stored in the snapshot is within the boundaries
+            m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
             }
         }
 
-    snapshot.num_particle_types = m_ntypes;
     snapshot.type_mapping = m_type_mapping;
     }
 
@@ -1070,12 +1042,12 @@ unsigned int ParticleData::getOwnerRank(unsigned int tag) const
 
     if (n_found == 0)
         {
-        cerr << endl << "***Error! Could not find particle " << tag << " on any processor." << endl << endl;
+        m_exec_conf->msg->error() << endl << "Could not find particle " << tag << " on any processor." << endl << endl;
         throw std::runtime_error("Error accessing particle data.");
         }
     else if (n_found > 1)
        {
-        cerr << endl << "***Error! Found particle " << tag << " on multiple processors." << endl << endl;
+        m_exec_conf->msg->error() << endl << "Found particle " << tag << " on multiple processors." << endl << endl;
         throw std::runtime_error("Error accessing particle data.");
        }
 
@@ -1501,7 +1473,7 @@ void ParticleData::setBody(unsigned int tag, int body)
 //! Set the current type of a particle
 void ParticleData::setType(unsigned int tag, unsigned int typ)
     {
-    assert(typ < m_ntypes);
+    assert(typ < getNTypes());
     unsigned int idx = getRTag(tag);
     bool found = (idx < getN());
 
@@ -1542,6 +1514,7 @@ void export_BoxDim()
     .def(init<Scalar, Scalar, Scalar>())
     .def(init<Scalar3>())
     .def(init<Scalar3, Scalar3, uchar3>())
+    .def(init<Scalar, Scalar, Scalar, Scalar>())
     .def("getPeriodic", &BoxDim::getPeriodic)
     .def("setPeriodic", &BoxDim::setPeriodic)
     .def("getL", &BoxDim::getL)
@@ -1553,41 +1526,6 @@ void export_BoxDim()
     .def("minImage", &BoxDim::minImage)
     ;
     }
-
-//! Wrapper class needed for exposing virtual functions to python
-class ParticleDataInitializerWrap : public ParticleDataInitializer, public wrapper<ParticleDataInitializer>
-    {
-    public:
-        //! Calls the overidden ParticleDataInitializer::getNumParticles()
-        unsigned int getNumParticles() const
-            {
-            return this->get_override("getNumParticles")();
-            }
-
-        //! Calls the overidden ParticleDataInitializer::getBox()
-        BoxDim getBox() const
-            {
-            return this->get_override("getBox")();
-            }
-            
-        //! Calls the overidden ParticleDataInitializer::initSnapshot()
-        void initSnapshot(SnapshotParticleData& snapshot) const
-            {
-            this->get_override("initSnapshot")(snapshot);
-            }
-            
-    };
-
-
-void export_ParticleDataInitializer()
-    {
-    class_<ParticleDataInitializerWrap, boost::noncopyable>("ParticleDataInitializer")
-    .def("getNumParticles", pure_virtual(&ParticleDataInitializer::getNumParticles))
-    .def("getBox", pure_virtual(&ParticleDataInitializer::getBox))
-    .def("initSnapshot", pure_virtual(&ParticleDataInitializer::initSnapshot))
-    ;
-    }
-
 
 //! Helper for python __str__ for ParticleData
 /*! Gives a synopsis of a ParticleData in a string
@@ -1604,10 +1542,13 @@ string print_ParticleData(ParticleData *pdata)
 void export_ParticleData()
     {
     class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
+    .def(init<const SnapshotParticleData&, const BoxDim&, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<const SnapshotParticleData&, const BoxDim&, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
+    .def("setGlobalBox", &ParticleData::setGlobalBox)
     .def("getN", &ParticleData::getN)
     .def("getNGlobal", &ParticleData::getNGlobal)
     .def("getNTypes", &ParticleData::getNTypes)
@@ -1644,48 +1585,52 @@ void export_ParticleData()
     .def("initializeFromSnapshot", &ParticleData::initializeFromSnapshot)
 #ifdef ENABLE_MPI
     .def("setDomainDecomposition", &ParticleData::setDomainDecomposition)
+    .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
 #endif
     ;
     }
 
 //! Constructor for SnapshotParticleData
 SnapshotParticleData::SnapshotParticleData(unsigned int N)
-       : size(N), num_particle_types(0)
+       : size(N)
     {
-    pos.resize(N);
-    vel.resize(N);
-    accel.resize(N);
-    type.resize(N);
-    mass.resize(N);
-    charge.resize(N);
-    diameter.resize(N);
-    image.resize(N);
-    body.resize(N);
-    orientation.resize(N);
-    size = N;
-
-    num_particle_types = 1;
-    type_mapping.push_back("A");
-    
-    // initialize with sensible default values
-    for (unsigned int i = 0; i < N; ++i)
-        { 
-        pos[i] = make_scalar3(0.0,0.0,0.0);
-        vel[i] = make_scalar3(0.0,0.0,0.0);
-        accel[i] = make_scalar3(0.0,0.0,0.0);
-        mass[i] = Scalar(1.0);
-        image[i] = make_int3(0,0,0);
-        type[i] = 0;
-        diameter[i] = Scalar(1.0);
-        charge[i] = Scalar(0.0);
-        body[i] = NO_BODY;
-        orientation[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
-        }
+    resize(N);
     }
- 
+
+void SnapshotParticleData::resize(unsigned int N)
+    {
+    pos.resize(N,make_scalar3(0.0,0.0,0.0));
+    vel.resize(N,make_scalar3(0.0,0.0,0.0));
+    accel.resize(N,make_scalar3(0.0,0.0,0.0));
+    type.resize(N,0);
+    mass.resize(N,Scalar(1.0));
+    charge.resize(N,Scalar(0.0));
+    diameter.resize(N,Scalar(1.0));
+    image.resize(N,make_int3(0,0,0));
+    body.resize(N,NO_BODY);
+    orientation.resize(N,make_scalar4(1.0,0.0,0.0,0.0));
+    inertia_tensor.resize(N);
+    size = N;
+    }
+
+bool SnapshotParticleData::validate() const
+    {
+    // Check that a type mapping exists
+    if (type_mapping.size() == 0) return false;
+
+    // Check if all other fields are of equal length==size 
+    if (pos.size() != size || vel.size() != size || accel.size() != size || type.size() != size ||
+        mass.size() != size || charge.size() != size || diameter.size() != size ||
+        image.size() != size || body.size() != size || orientation.size() != size ||
+        inertia_tensor.size() != size)
+        return false;
+
+    return true;
+    }
+
 void export_SnapshotParticleData()
     {
-    class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData>, boost::noncopyable>("SnapshotParticleData", init<unsigned int>())
+    class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData> >("SnapshotParticleData", init<unsigned int>())
     .def_readwrite("pos", &SnapshotParticleData::pos)
     .def_readwrite("vel", &SnapshotParticleData::vel)
     .def_readwrite("accel", &SnapshotParticleData::accel)
@@ -1695,8 +1640,8 @@ void export_SnapshotParticleData()
     .def_readwrite("diameter", &SnapshotParticleData::diameter)
     .def_readwrite("image", &SnapshotParticleData::image)
     .def_readwrite("body", &SnapshotParticleData::body)
-    .def_readwrite("num_particle_types", &SnapshotParticleData::num_particle_types)
     .def_readwrite("type_mapping", &SnapshotParticleData::type_mapping)
+    .def_readwrite("size", &SnapshotParticleData::size)
     ;
     }
 

@@ -80,8 +80,6 @@ import sys;
 
 from math import sqrt
 
-pppm_used = False;
-
 ## Long-range electrostatics computed with the PPPM method
 #
 # Reference \cite LeBard2012 describes the PPPM implementation details in HOOMD-blue. Cite it
@@ -106,6 +104,7 @@ pppm_used = False;
 #       (group.charged). However, note that this group is static and determined at the time charge.pppm() is specified.
 #       If you are going to add charged particles at a later point in the simulation with the data access API,
 #       ensure that this group includes those particles as well.
+# \MPI_NOT_SUPPORTED
 class pppm(force._force):
     ## Specify long-ranged electrostatic interactions between particles
     #
@@ -118,14 +117,13 @@ class pppm(force._force):
     # pppm = charge.pppm(group=charged)
     # \endcode
     def __init__(self, group):
-        global pppm_used;
-        
         util.print_status_line();
-       
-        if pppm_used:
-            globals.msg.error("cannot have more than one pppm in a single job\n");
-            raise RuntimeError("Error initializing PPPM");
-        pppm_used = True;
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("charge.pppm is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error initializing PPPM.")
        
         # initialize the base class
         force._force.__init__(self);

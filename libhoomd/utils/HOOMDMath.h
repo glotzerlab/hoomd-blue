@@ -223,6 +223,17 @@ HOSTDEVICE inline Scalar3 operator* (const Scalar3 &a, const Scalar3 &b)
                         a.y * b.y,
                         a.z * b.z);
     }
+
+//! Vector multiplication
+HOSTDEVICE inline Scalar3& operator*= (Scalar3 &a, const Scalar3 &b)
+    {
+    a.x *= b.x;
+    a.y *= b.y;
+    a.z *= b.z;
+    return a;
+    }
+
+
 //! Vector division (component-wise)
 HOSTDEVICE inline Scalar3 operator/ (const Scalar3 &a, const Scalar3 &b)
     {

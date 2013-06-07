@@ -378,7 +378,6 @@ Scalar3 ParticleGroup::getCenterOfMass() const
     
     // grab the box dimensions
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     // loop  through all indices in the group and compute the weighted average of the positions
     Scalar total_mass = 0.0;
@@ -388,9 +387,11 @@ Scalar3 ParticleGroup::getCenterOfMass() const
         unsigned int idx = getMemberIndex(i);
         Scalar mass = h_vel.data[idx].w;
         total_mass += mass;
-        center_of_mass.x += mass * (h_pos.data[idx].x + Scalar(h_image.data[idx].x) * L.x);
-        center_of_mass.y += mass * (h_pos.data[idx].y + Scalar(h_image.data[idx].y) * L.y);
-        center_of_mass.z += mass * (h_pos.data[idx].z + Scalar(h_image.data[idx].z) * L.z);
+        Scalar3 pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+        Scalar3 unwrapped = box.shift(pos, h_image.data[idx]);
+        center_of_mass.x += mass * unwrapped.x;
+        center_of_mass.y += mass * unwrapped.y;
+        center_of_mass.z += mass * unwrapped.z;
         }
     center_of_mass.x /= total_mass;
     center_of_mass.y /= total_mass;
@@ -547,6 +548,9 @@ void ParticleGroup::buildTagHash()
     \pre memory has been allocated for m_is_member and m_member_idx
     \post m_is_member is updated so that it reflects the current indices of the particles in the group
     \post m_member_idx is updated listing all particle indices belonging to the group, in index order
+
+    \note In MPI simulations, this function breaks strict O(N/P) computational scaling, as it
+          iterates over all *global* members of the group
 */
 void ParticleGroup::rebuildIndexList()
     {

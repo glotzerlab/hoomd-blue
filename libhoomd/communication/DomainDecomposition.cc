@@ -84,9 +84,9 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         bool found_decomposition = findDecomposition(L, nx, ny, nz);
         if (! found_decomposition)
             {
-            m_exec_conf->msg->error() << "***Warning! Unable to find a decomposition "
-                 << endl << "with requested dimensions. Choosing default decomposition."
-                 << endl;
+            m_exec_conf->msg->warning() << "Unable to find a decomposition with"
+                 << endl << "requested dimensions. Choosing default decomposition."
+                 << endl << endl;
 
             nx = ny = nz = 0;
             findDecomposition(L, nx,ny,nz);
@@ -97,18 +97,13 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         m_nz = nz;
        }
 
-    // Print out information about the domain decomposition
-    m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = " << nx << " n_y = " << ny << " n_z = " << nz << "." << std::endl;
- 
-    // calculate physical box dimensions of every processor
-
-    // broadcast global box dimensions
-    bcast(L, 0, m_mpi_comm);
-
     // broadcast grid dimensions
     bcast( m_nx, 0, m_mpi_comm);
     bcast( m_ny, 0, m_mpi_comm);
     bcast( m_nz, 0, m_mpi_comm);
+
+    // Print out information about the domain decomposition
+    m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = " << m_nx << " n_y = " << m_ny << " n_z = " << m_nz << "." << std::endl;
 
     // Initialize domain indexer
     m_index = Index3D(m_nx,m_ny,m_nz);
@@ -214,7 +209,10 @@ bool DomainDecomposition::isAtBoundary(unsigned int dir) const
 //! Get the dimensions of the local simulation box
 const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     {
-    // calculate the local box dimensions using domain decomposition information
+    // initialize local box with all properties of global box
+    BoxDim box = global_box; 
+
+    // calculate the local box dimensions by sub-dividing the cartesian lattice
     Scalar3 L = global_box.getL();
     Scalar3 L_local = L / make_scalar3(m_nx, m_ny, m_nz);
 
@@ -233,7 +231,9 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
                                   m_ny == 1 ? 1 : 0,
                                   m_nz == 1 ? 1 : 0);
 
-    return BoxDim(lo, hi, periodic);
+    box.setLoHi(lo,hi);
+    box.setPeriodic(periodic);
+    return box;
     }
 
 //! Export DomainDecomposition class to python

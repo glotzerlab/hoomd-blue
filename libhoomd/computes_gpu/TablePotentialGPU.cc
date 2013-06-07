@@ -139,6 +139,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
                              d_virial.data,
                              m_virial.getPitch(),
                              m_pdata->getN(),
+                             m_pdata->getNGhosts(),
                              d_pos.data,
                              box,
                              d_n_neigh.data,

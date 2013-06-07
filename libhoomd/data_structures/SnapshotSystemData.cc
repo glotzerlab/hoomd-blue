@@ -48,49 +48,39 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
-#include "TwoStepNPT.h"
+/*! \file SnapshotSystemData.cc
+    \brief Implements SnapshotSystemData related functions
+ */
 
-#ifndef __TWO_STEP_NPT_GPU_H__
-#define __TWO_STEP_NPT_GPU_H__
+#include "SnapshotSystemData.h"
+#include <boost/python.hpp>
 
-/*! \file TwoStepNPTGPU.h
-    \brief Declares the TwoStepNPTGPU class
-*/
+using namespace boost::python;
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
-
-//! Integrates part of the system forward in two steps in the NPT ensemble on the GPU
-/*! Implements Nose-Hoover/Anderson NPT integration through the IntegrationMethodTwoStep interface, runs on the GPU
-    
-    \ingroup updaters
-*/
-class TwoStepNPTGPU : public TwoStepNPT
+void export_SnapshotSystemData()
     {
-    public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<ParticleGroup> group,
-                      boost::shared_ptr<ComputeThermo> thermo_group,
-                      boost::shared_ptr<ComputeThermo> thermo_all,
-                      Scalar tau,
-                      Scalar tauP,
-                      boost::shared_ptr<Variant> T,
-                      boost::shared_ptr<Variant> P);
-        virtual ~TwoStepNPTGPU() {};
-        
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
-        
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
-    };
+    class_<SnapshotSystemData, boost::shared_ptr<SnapshotSystemData> >("SnapshotSystemData")
+    .def(init<>())
+    .def_readwrite("dimensions", &SnapshotSystemData::global_box)
+    .def_readwrite("global_box", &SnapshotSystemData::global_box)
+    .def_readwrite("particle_data", &SnapshotSystemData::particle_data)
+    .def_readwrite("bond_data", &SnapshotSystemData::bond_data)
+    .def_readwrite("angle_data", &SnapshotSystemData::angle_data)
+    .def_readwrite("dihedral_data", &SnapshotSystemData::dihedral_data)
+    .def_readwrite("improper_data", &SnapshotSystemData::improper_data)
+    .def_readwrite("rigid_data", &SnapshotSystemData::rigid_data)
+    .def_readwrite("has_particle_data", &SnapshotSystemData::has_particle_data)
+    .def_readwrite("has_bond_data", &SnapshotSystemData::has_bond_data)
+    .def_readwrite("has_angle_data", &SnapshotSystemData::has_angle_data)
+    .def_readwrite("has_dihedral_data", &SnapshotSystemData::has_dihedral_data)
+    .def_readwrite("has_improper_data", &SnapshotSystemData::has_improper_data)
+    .def_readwrite("has_rigid_data", &SnapshotSystemData::has_rigid_data)
+    .def_readwrite("has_wall_data", &SnapshotSystemData::has_wall_data)
+    .def_readwrite("has_integrator_data", &SnapshotSystemData::has_integrator_data)
+    ;
 
-//! Exports the TwoStepNPTGPU class to python
-void export_TwoStepNPTGPU();
-
-#endif // #ifndef __TWO_STEP_NPT_GPU_H__
+    implicitly_convertible<boost::shared_ptr<SnapshotSystemData>, boost::shared_ptr<const SnapshotSystemData> >();
+    }
 

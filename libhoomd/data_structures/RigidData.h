@@ -73,6 +73,48 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Flag for invalid particle index
 const unsigned int NO_INDEX = 0xffffffff;
 
+//! Handy structure for passing around rigid body data
+/*! \ingroup data_structs
+ */
+struct SnapshotRigidData
+    {
+    std::vector<Scalar3> com;       //!< Centers of masses
+    std::vector<Scalar3> vel;       //!< Rigid bodies velocities
+    std::vector<Scalar3> angmom;    //!< Angular momenta
+    std::vector<int3> body_image;   //!< The body images
+    unsigned int size;              //!< Number of bodies in this snapshot
+
+    //! Default constructor
+    SnapshotRigidData()
+        {
+        size = 0;
+        }
+
+    //! Resize the snapshot
+    /*! \param n_bodies number of rigid bodies to reserve memory for
+     */
+    void resize(unsigned int n_bodies)
+        {
+        com.resize(n_bodies);
+        vel.resize(n_bodies);
+        angmom.resize(n_bodies);
+        body_image.resize(n_bodies);
+        size = n_bodies;
+        }
+
+    //! Validate the snapshot
+    /* \returns true if number of elements in snapshot is consistent
+     */
+    bool validate() const
+        {
+        if (! com.size() == size) return false;
+        if (! vel.size() == size) return false;
+        if (! angmom.size() == size) return false;
+        if (! body_image.size() == size) return false;
+        return true;
+        }
+    };
+
 //! Stores all per rigid body values
 /*! All rigid body data (except for the per-particle body value) is stored in RigidData
     which can be accessed from SystemDefinition. On construction, RigidData will read the body
@@ -98,7 +140,7 @@ class RigidData
         ~RigidData();
         
         //! Get the number of bodies in the rigid data
-        unsigned int getNumBodies()
+        unsigned int getNumBodies() const
             {
             return m_n_bodies;
             }
@@ -178,37 +220,37 @@ class RigidData
         //! \name getter methods (integrated data)
         //@{
         //! Get m_com
-        const GPUArray<Scalar4>& getCOM()
+        const GPUArray<Scalar4>& getCOM() const
             {
             return m_com;
             }
         //! Get m_vel
-        const GPUArray<Scalar4>& getVel()
+        const GPUArray<Scalar4>& getVel() const
             {
             return m_vel;
             }
         //! Get m_orientation
-        const GPUArray<Scalar4>& getOrientation()
+        const GPUArray<Scalar4>& getOrientation() const
             {
             return m_orientation;
             }
         //! Get m_conjqm
-        const GPUArray<Scalar4>& getConjqm()
+        const GPUArray<Scalar4>& getConjqm() const
             {
             return m_conjqm;
             }
         //! Get m_angmom
-        const GPUArray<Scalar4>& getAngMom()
+        const GPUArray<Scalar4>& getAngMom() const
             {
             return m_angmom;
             }
         //! Get m_angvel
-        const GPUArray<Scalar4>& getAngVel()
+        const GPUArray<Scalar4>& getAngVel() const
             {
             return m_angvel;
             }
         //! Get m_body_image
-        const GPUArray<int3>& getBodyImage()
+        const GPUArray<int3>& getBodyImage() const
             {
             return m_body_image;
             }
@@ -424,6 +466,16 @@ class RigidData
         //! Compute the axes from quaternion, used when reading from restart files
         void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space);
 
+        //! Functions used to diagonalize the inertia tensor for moment inertia and principle axes
+        int diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors);
+        void rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Scalar tau);
+        
+        //! Initialize from a snapshot
+        void initializeFromSnapshot(const SnapshotRigidData& snapshot);
+
+        //! Take a snapshot of the current rigid body data
+        void takeSnapshot(SnapshotRigidData& snapshot) const;
+
     private:
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data with which this RigidData is associated
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
@@ -473,10 +525,6 @@ class RigidData
         //! Recalculate the cached indices from the stored tags after a particle sort
         void recalcIndices();
         
-        //! Functions used to diagonalize the inertia tensor for moment inertia and principle axes
-        int diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors);
-        void rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Scalar tau);
-        
         //! Compute quaternion from the axes
         void quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);
 
@@ -500,6 +548,9 @@ class RigidData
         void computeVirialCorrectionEndGPU(Scalar deltaT);
 #endif
     };
+
+//! Export the SnapshotRigidData class to python
+void export_SnapshotRigidData();
 
 //! Export the RigidData class to python
 void export_RigidData();

@@ -31,7 +31,19 @@ class update_box_resize_tests (unittest.TestCase):
                         Lz = variant.linear_interp([(0, 40), (1e6, 80)]),
                         period=10);
         run(100);
-    
+
+    # shear test
+    def test_shear(self):
+        update.box_resize(xy= variant.linear_interp([(0,0), (1e5, 1)]), period=10);
+        run(100);
+
+    # shear test with more shear planes
+    def test_shear_more_planes(self):
+        update.box_resize(xy= variant.linear_interp([(0,0), (1e5, 1)]),
+                          xz= variant.linear_interp([(0,0), (1e5, .5)]),
+                          yz= variant.linear_interp([(0,0), (1e5, .3)]), period=10);
+        run(100);
+
     # test set_params
     def test_set_params(self):
         upd = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))

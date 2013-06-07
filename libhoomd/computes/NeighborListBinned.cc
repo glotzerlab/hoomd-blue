@@ -114,10 +114,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         throw runtime_error("Error computing neighbor list");
         }
 
-    uint3 num_ghost_cells = m_cl->getNGhostCells();
-
-    Scalar nominal_width  = m_r_cut + m_r_buff + m_d_max - Scalar(1.0);
-    Scalar3 ghost_width = nominal_width*Scalar(1.0/2.0)*make_scalar3((Scalar)num_ghost_cells.x, (Scalar)num_ghost_cells.y, (Scalar)num_ghost_cells.z);
+    Scalar3 ghost_width = m_cl->getGhostWidth();
 
     if (m_prof)
         m_prof->push(exec_conf, "compute");
@@ -152,6 +149,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     Index2D cli = m_cl->getCellListIndexer();
     Index2D cadji = m_cl->getCellAdjIndexer();
 
+    // get periodic flags
+    uchar3 periodic = box.getPeriodic();
+
     // for each local particle
     unsigned int nparticles = m_pdata->getN();
 #pragma omp parallel for schedule(dynamic, 100)
@@ -170,11 +170,11 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         int kb = (unsigned int)(f.z * dim.z);
 
         // need to handle the case where the particle is exactly at the box hi
-        if (ib == (int)dim.x)
+        if (ib == (int)dim.x && periodic.x)
             ib = 0;
-        if (jb == (int)dim.y)
+        if (jb == (int)dim.y && periodic.y)
             jb = 0;
-        if (kb == (int)dim.z)
+        if (kb == (int)dim.z && periodic.z)
             kb = 0;
             
         // identify the bin

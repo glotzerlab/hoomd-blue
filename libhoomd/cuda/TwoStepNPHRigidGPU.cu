@@ -100,17 +100,19 @@ extern "C" __global__ void gpu_nph_rigid_zero_virial_rigid_kernel(Scalar *d_viri
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total umber of rigid bodies
     \param box Box dimensions for periodic boundary condition handling
-    \param npt_rdata Thermostat/barostat data
+    \param npt_rdata_dilation Volume scaling factor
+    \param npt_rdata_dimension System dimensionality
+    \param npt_rdata_new box New box sizes
 */
 
-extern "C" __global__ void gpu_nph_rigid_remap_kernel(Scalar4* rdata_com,
+extern "C" __global__ void gpu_nph_rigid_remap_kernel(Scalar4 *rdata_com,
                                                       unsigned int *d_rigid_group,
                                                       unsigned int n_group_bodies,
                                                       unsigned int n_bodies, 
                                                       BoxDim box,
-                                                      Scalar npt_rdata_dilation,
-                                                      unsigned int npt_rdata_dimension,
-                                                      Scalar4* npt_rdata_new_box)
+                                                      Scalar nph_rdata_dilation,
+                                                      unsigned int nph_rdata_dimension,
+                                                      Scalar4 *nph_rdata_new_box)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= n_group_bodies)
@@ -118,58 +120,29 @@ extern "C" __global__ void gpu_nph_rigid_remap_kernel(Scalar4* rdata_com,
 
     unsigned int idx_body = d_rigid_group[group_idx];
 
-    Scalar oldlo, oldhi, ctr;
-    Scalar3 pos, delta;
-
-    Scalar3 lo = box.getLo();
-    Scalar3 hi = box.getHi();
-    Scalar3 L = box.getL();
-
-    Scalar4 com = rdata_com[idx_body];
-
-    delta.x = com.x - lo.x;
-    delta.y = com.y - lo.y;
-    delta.z = com.z - lo.z;
-
-    pos.x = Scalar(1.0) / L.x * delta.x;
-    pos.y = Scalar(1.0) / L.y * delta.y;
-    pos.z = Scalar(1.0) / L.z * delta.z;
+    Scalar3 curL = box.getL();
+    Scalar3 L;
 
     // reset box to new size/shape
-    oldlo = lo.x;
-    oldhi = hi.x;
-    ctr = Scalar(0.5) * (oldlo + oldhi);
-    lo.x = (oldlo - ctr) * npt_rdata_dilation + ctr;
-    hi.x = (oldhi - ctr) * npt_rdata_dilation + ctr;
-    L.x = hi.x - lo.x;
+    L.x = curL.x * nph_rdata_dilation;
+    L.y = curL.y * nph_rdata_dilation;
+    if (nph_rdata_dimension == 3)
+        L.z = curL.z * nph_rdata_dilation;
+    
+    // copy and setL 
+    BoxDim newBox = box;
+    newBox.setL(L);
 
-    oldlo = lo.y;
-    oldhi = hi.y;
-    ctr = Scalar(0.5) * (oldlo + oldhi);
-    lo.y = (oldlo - ctr) * npt_rdata_dilation + ctr;
-    hi.y = (oldhi - ctr) * npt_rdata_dilation + ctr;
-    L.y = hi.y - lo.y;
-
-    if (npt_rdata_dimension == 3)
-        {
-        oldlo = lo.z;
-        oldhi = hi.z;
-        ctr = Scalar(0.5) * (oldlo + oldhi);
-        lo.z = (oldlo - ctr) * npt_rdata_dilation + ctr;
-        hi.z = (oldhi - ctr) * npt_rdata_dilation + ctr;
-        L.z = hi.z - lo.z;
-        }
-
-    // convert rigid body COMs back to box coords
-    Scalar3 newboxlo = -L/Scalar(2.0);
-    pos = L * pos + newboxlo;
+    Scalar4 com = rdata_com[idx_body];
+    Scalar3 f = box.makeFraction(make_scalar3(com.x, com.y, com.z));
+    Scalar3 pos = newBox.makeCoordinates(f);
 
     // write out results
     rdata_com[idx_body] = make_scalar4(pos.x, pos.y, pos.z, 0);
 
     if (idx_body == 0)
         {
-        *npt_rdata_new_box = make_scalar4(L.x, L.y, L.z, 0);
+        *(nph_rdata_new_box) = make_Scalar4(L.x, L.y, L.z, 0.0f);
         }
     }
 

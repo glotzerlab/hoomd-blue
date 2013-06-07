@@ -68,10 +68,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements the Martyna Tobias Klein (MTK) equations for rigorous integration in the NPT ensemble.
     The update equations are derived from a strictly measure-preserving and
-    time-reversal symmetric integration scheme, closely following the one proposed by Tuckerman,
-    Alejandre et al..
+    time-reversal symmetric integration scheme, closely following the one proposed by Tuckerman et al.
+
     Supports anisotropic (orthorhombic or tetragonal) integration modes, by implementing a special
-    version of the the fully flexible cell update equations proposed in Yu, Alejandre et al.
+    version of the the fully flexible cell update equations proposed in Yu et al.
+
+    Triclinic integration for an upper triangular cell parameter matrix is supported with
+    fully time-reversible and measure-preserving update equations (Glaser et al. 2013 to be published)
 
     \cite Martyna1994
     \cite Tuckerman2006
@@ -81,12 +84,26 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class TwoStepNPTMTK : public IntegrationMethodTwoStep
     {
     public:
-        //! Enum to specify possible integration modes
-        enum integrationMode
+        //! Specify possible couplings between the diagonal elements of the pressure tensor
+        enum couplingMode
             {
-            cubic = 0,
-            orthorhombic,
-            tetragonal
+            couple_none = 0,
+            couple_xy,
+            couple_xz,
+            couple_yz,
+            couple_xyz};
+
+        /*! Flags to indicate which degrees of freedom of the simulation box should be put under
+            barostat control
+         */
+        enum baroFlags
+            {
+            baro_x = 1,
+            baro_y = 2,
+            baro_z = 4,
+            baro_xy = 8,
+            baro_xz = 16,
+            baro_yz = 32
             };
 
         //! Constructs the integration method and associates it with the system
@@ -97,7 +114,9 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
                    boost::shared_ptr<Variant> P,
-                   integrationMode mode);
+                   couplingMode couple,
+                   unsigned int flags,
+                   const bool nph=false);
         virtual ~TwoStepNPTMTK();
 
         //! Update the temperature
@@ -137,7 +156,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         */
         void setPartialScale(bool partial_scale)
             {
-            m_exec_conf->msg->error() << "integrate.npt_mtk: partial_scale option not supported" << endl;
+            m_exec_conf->msg->error() << "integrate.npt: partial_scale option not supported with mtk=True" << endl;
             throw runtime_error("Error setting params in TwoStepNPTMTK");
             }
 
@@ -154,10 +173,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         virtual PDataFlags getRequestedPDataFlags()
             {
             PDataFlags flags;
-            if (m_mode == cubic)
-                flags[pdata_flag::isotropic_virial] = 1;
-            else if (m_mode == orthorhombic || m_mode == tetragonal)
-                flags[pdata_flag::pressure_tensor] = 1;
+            flags[pdata_flag::pressure_tensor] = 1;
             return flags;
             }
 
@@ -169,25 +185,33 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
 
     protected:
         boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group
+        unsigned int m_ndof;            //!< Number of degrees of freedom from ComputeThermo
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauP;                  //!< tauP value for the barostat
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         boost::shared_ptr<Variant> m_P; //!< Pressure set point
         Scalar m_curr_group_T;          //!< Current group temperature
-        Scalar m_curr_P;                //!< Current isotropic system pressure
-        Scalar3 m_curr_P_diag;          //!< Current pressure tensor (diagonal elements)
         Scalar m_V;                     //!< Current volume
-        Scalar3 m_L;                    //!< Box lengths
 
-        Scalar3 m_exp_v_fac;            //!< Factor multiplying velocity
-        Scalar3 m_sinhx_fac_v;          //!< Factor multiplying acceleration
-
-        integrationMode m_mode;         //!< Current integration mode
+        couplingMode m_couple;          //!< Coupling of diagonal elements
+        unsigned int m_flags;             //!< Coupling flags for barostat 
+        bool m_nph;                     //!< True if integrating without thermostat
+        Scalar m_mat_exp_v[6];          //!< Matrix exponential for velocity update (upper triangular)
+        Scalar m_mat_exp_r[6];          //!< Matrix exponential for position update (upper triangular)
+        Scalar m_mat_exp_v_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
+        Scalar m_mat_exp_r_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
 
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
 
-    };
+        //! Helper function to advance the barostat parameters
+        void advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Scalar &nuyy, Scalar &nuyz, Scalar &nuzz,
+                             PressureTensor& P, unsigned int timestep);
+        
+        //! Helper function to update the propagator elements
+        void updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);
+
+        };
 
 //! Exports the TwoStepNPTMTK class to python
 void export_TwoStepNPTMTK();

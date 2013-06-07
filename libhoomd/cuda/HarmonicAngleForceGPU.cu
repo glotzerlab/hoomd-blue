@@ -205,16 +205,13 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
 
         // do we really need a virial here for harmonic angles?
         // ... if not, this may be wrong...
-        // symmetrized version of virial tensor
+        // upper triangular version of virial tensor
         Scalar angle_virial[6];
         angle_virial[0] = Scalar(1./3.)*(dab.x*fab[0] + dcb.x*fcb[0]);
-        angle_virial[1] = Scalar(1./6.)*(dab.x*fab[1] + dcb.x*fcb[1]
-                                      + dab.y*fab[0] + dcb.y*fcb[0]);
-        angle_virial[2] = Scalar(1./6.)*(dab.x*fab[2] + dcb.x*fcb[2]
-                                      + dab.z*fab[0] + dcb.z*fcb[0]);
+        angle_virial[1] = Scalar(1./3.)*(dab.y*fab[0] + dcb.y*fcb[0]);
+        angle_virial[2] = Scalar(1./3.)*(dab.z*fab[0] + dcb.z*fcb[0]);
         angle_virial[3] = Scalar(1./3.)*(dab.y*fab[1] + dcb.y*fcb[1]);
-        angle_virial[4] = Scalar(1./6.)*(dab.y*fab[2] + dcb.y*fcb[2]
-                                      + dab.z*fab[1] + dcb.z*fcb[1]);
+        angle_virial[4] = Scalar(1./3.)*(dab.z*fab[1] + dcb.z*fcb[1]);
         angle_virial[5] = Scalar(1./3.)*(dab.z*fab[2] + dcb.z*fcb[2]);
 
 

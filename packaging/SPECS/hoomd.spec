@@ -3,8 +3,8 @@
 # The version number to tag the build with is %{version}.
 # Both should be specified, as we cannot determine the version until we have checked out the code
 #  - if they are not speicified, then the most recent tag is built
-%global version	%{?version}%{!?version:0.11.2}
-%global refspec	%{?refspec}%{!?refspec:v0.11.2}
+%global version	%{?version}%{!?version:0.11.3}
+%global refspec	%{?refspec}%{!?refspec:v0.11.3}
 %global release	%{?release}%{!?release:0}
 
 # the Red Hat convention is to put 64-bit libs in lib64
@@ -20,7 +20,7 @@ Name: 			hoomd
 Version: 		%{version}
 Release: 		%{release}
 # sources will be retrieved with subversion
-# Source: 		http://codeblue.umich.edu/hoomd-blue/downloads/0.10/hoomd-0.11.2.tar.bz2
+# Source: 		http://codeblue.umich.edu/hoomd-blue/downloads/0.11/hoomd-0.11.3.tar.bz2
 URL:			http://codeblue.umich.edu/hoomd-blue/
 Prefix:			/usr
 Group: 			Applications
@@ -33,8 +33,6 @@ HOOMD-blue stands for Highly Optimized Object-oriented Many-particle Dynamics --
 Object-oriented design patterns are used in HOOMD-blue so it versatile and expandable. Various types of potentials, integration methods and file formats are currently supported, and more are added with each release. The code is available and open source, so anyone can write a plugin or change the source to add additional functionality.
 
 Simulations are configured and run using simple python scripts, allowing complete control over the force field choice, integrator, all parameters, how many time steps are run, etc... . The scripting system is designed to be as simple as possible to the non-programmer.
-
-HOOMD-blue is a direct continuation of the project HOOMD, originally developed at Ames Lab and Iowa State University: http://www.ameslab.gov/hoomd. The HOOMD-blue lead development effort is at the University of Michigan, though the software has many contributors from around the world. The "blue" suffix is actually part of the acronym and stands for Blue Edition, a subtle hint to one of the University of Michigan school colors.
 
 %prep
 rm -rf $RPM_BUILD_DIR/%{name}-%{version}

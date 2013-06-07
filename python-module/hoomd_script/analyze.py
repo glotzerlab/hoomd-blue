@@ -290,6 +290,7 @@ _analyzer.cur_id = 0;
 # analyze.imd
 #
 # \note If a period larger than 1 is set, the actual rate at which time steps are transmitted is \a rate * \a period.
+# \MPI_SUPPORTED
 class imd(_analyzer):
     ## Initialize the IMD interface
     #
@@ -335,6 +336,12 @@ class imd(_analyzer):
 #
 # Quantities that can be logged at any time:
 # - \b volume - Volume of the simulation box (in volume units)
+# - \b lx - Box length in x direction (in length units)
+# - \b ly - Box length in y direction (in length units)
+# - \b lz - Box length in z direction (in length units)
+# - \b xy - Box tilt factor in xy plane (dimensionless)
+# - \b xz - Box tilt factor in xz plane (dimensionless)
+# - \b yz - Box tilt factor in yz plane (dimensionless)
 # - \b momentum - Magnitude of the average momentum of all particles (in momentum units)
 # - \b time - Wall-clock running time from the start of the log (in seconds)
 #
@@ -378,9 +385,8 @@ class imd(_analyzer):
 # - Integrators
 #   - **bdnvt_reservoir_energy**_groupname (integrate.bdnvt) - Energy reservoir for the BD thermostat (in energy units)
 #   - **nvt_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
-#   - **nph_barostat_energy**_groupname (integrate.nph) - Energy reservoir for the NPH barostat
-#   - **npt_mtk_thermostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT thermostat
-#   - **npt_mtk_barostat_energy** (integrate.npt with **mtk=True**) - Energy of the NPT barostat
+#   - **npt_thermostat_energy** (integrate.npt) - Energy of the NPT thermostat
+#   - **npt_barostat_energy** (integrate.npt & integrate.nph) - Energy of the NPT (or NPH) barostat
 # 
 # Additionally, the following commands can be provided user-defined names that are appended as suffixes to the 
 # logged quantitiy (e.g. with \c pair.lj(r_cut=2.5, \c name="alpha"), the logged quantity would be pair_lj_energy_alpha).
@@ -411,6 +417,7 @@ class imd(_analyzer):
 # \endcode
 #
 # \sa \ref page_units
+# \MPI_SUPPORTED
 class log(_analyzer):
     ## Initialize the log
     #
@@ -548,6 +555,8 @@ class log(_analyzer):
 # To generate a correct msd that does not reset to 0 at the start of each run, save the initial state of the system
 # in a hoomd_xml file, including position and image data at a minimum. In the continuation job, specify this file
 # in the \a r0_file argument to analyze.msd.
+#
+# \MPI_NOT_SUPPORTED
 class msd(_analyzer):
     ## Initialize the msd calculator
     #
@@ -588,7 +597,13 @@ class msd(_analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("analyze.msd is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error creating analyzer.")
+
         # initialize base class
         _analyzer.__init__(self);
         

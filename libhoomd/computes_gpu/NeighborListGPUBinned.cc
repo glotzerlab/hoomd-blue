@@ -193,13 +193,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
 
-    uint3 num_ghost_cells = m_cl->getNGhostCells();
-    Scalar nominal_width  = m_r_cut + m_r_buff + m_d_max - Scalar(1.0);
-    Scalar3 ghost_width = nominal_width*Scalar(1.0/2.0)*make_scalar3((Scalar)num_ghost_cells.x, (Scalar)num_ghost_cells.y, (Scalar)num_ghost_cells.z);
-
     if (exec_conf->getComputeCapability() >= 200)
         {
-
         gpu_compute_nlist_binned(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,
@@ -221,7 +216,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_block_size,
                                  m_filter_body,
                                  m_filter_diameter,
-                                 ghost_width);
+                                 m_cl->getGhostWidth());
         }
     else
         {
@@ -269,7 +264,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     m_block_size,
                                     m_filter_body,
                                     m_filter_diameter,
-                                    ghost_width);
+                                    m_cl->getGhostWidth());
         }
 
     if (exec_conf->isCUDAErrorCheckingEnabled())

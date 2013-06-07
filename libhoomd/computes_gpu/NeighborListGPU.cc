@@ -123,7 +123,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     // check that the simulation box is big enough
     const BoxDim& box = m_pdata->getBox();
 
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
 
     if (L.x <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
         L.y <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
@@ -223,7 +223,7 @@ bool NeighborListGPU::distanceCheck()
         {
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         unsigned int tag = h_tag.data[flags.y];
-        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has moved more than one box length"
+        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one box length"
                                   << std::endl << "between neighbor list builds."
                                   << std::endl << std::endl;
 

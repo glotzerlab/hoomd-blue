@@ -74,14 +74,15 @@ using namespace std;
 
 /*! \param pdata ParticleData these dihedrals refer into
     \param n_dihedral_types Number of dihedral types in the list
-
-    Taking in pdata as a pointer instead of a shared pointer is sloppy, but there really isn't an alternative
-    due to the way ParticleData is constructed. Things will be fixed in a later version with a reorganization
-    of the various data structures. For now, be careful not to destroy the ParticleData and keep the DihedralData
-    hanging around.
 */
 DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types) 
-    : m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()), m_dihedrals(exec_conf), m_dihedral_type(exec_conf), m_tags(exec_conf), m_dihedral_rtag(exec_conf)
+    :  m_dihedrals_dirty(false),
+       m_pdata(pdata),
+       exec_conf(m_pdata->getExecConf()),
+       m_dihedrals(exec_conf),
+       m_dihedral_type(exec_conf),
+       m_tags(exec_conf),
+       m_dihedral_rtag(exec_conf)
     {
     assert(pdata);
     m_exec_conf = m_pdata->getExecConf();
@@ -105,9 +106,36 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
     allocateDihedralTable(1);
     }
 
+/*! \param pdata ParticleData these dihedrals refer into
+    \param snapshot Snapshot to initialize DihedralData from
+*/
+DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, const SnapshotDihedralData& snapshot) 
+    :  m_dihedrals_dirty(false),
+       m_pdata(pdata),
+       exec_conf(m_pdata->getExecConf()),
+       m_dihedrals(exec_conf),
+       m_dihedral_type(exec_conf),
+       m_tags(exec_conf),
+       m_dihedral_rtag(exec_conf)
+    {
+    assert(pdata);
+    m_exec_conf = m_pdata->getExecConf();
+    m_exec_conf->msg->notice(5) << "Constructing DihedralData" << endl;
+
+    // attach to the signal for notifications of particle sorts
+    m_sort_connection = m_pdata->connectParticleSort(bind(&DihedralData::setDirty, this));
+    
+    // allocate memory for the GPU dihedral table
+    allocateDihedralTable(1);
+
+    // initialize from snapshot
+    initializeFromSnapshot(snapshot);
+    }
+
+
 DihedralData::~DihedralData()
     {
-    m_exec_conf->msg->notice(5) << "Destroying AngleData" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying DihedralData" << endl;
     m_sort_connection.disconnect();
     }
 
@@ -122,7 +150,15 @@ DihedralData::~DihedralData()
  */
 unsigned int DihedralData::addDihedral(const Dihedral& dihedral)
     {
-    
+    #ifdef ENABLE_MPI
+    // error out in multi-GPU
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_exec_conf->msg->error() << "Dihedrals/impropers are not currently supported in multi-GPU mode." << std::endl;
+        throw std::runtime_error("Error adding dihedral/improper");
+        }
+    #endif
+
     // check for some silly errors a user could make
     if (dihedral.a >= m_pdata->getN() || dihedral.b >= m_pdata->getN() || dihedral.c >= m_pdata->getN()  || dihedral.d >= m_pdata->getN())
         {
@@ -137,9 +173,9 @@ unsigned int DihedralData::addDihedral(const Dihedral& dihedral)
         }
         
     // check that the type is within bouds
-    if (dihedral.type+1 > m_n_dihedral_types)
+    if (dihedral.type+1 > getNDihedralTypes())
         {
-        m_exec_conf->msg->error() << "Invalid dihedral/improper type! " << dihedral.type << ", the number of types is " << m_n_dihedral_types << endl;
+        m_exec_conf->msg->error() << "Invalid dihedral/improper type! " << dihedral.type << ", the number of types is " << getNDihedralTypes() << endl;
         throw runtime_error("Error adding dihedral/improper");
         }
 
@@ -240,17 +276,6 @@ void DihedralData::removeDihedral(unsigned int tag)
     m_dihedrals_dirty = true;
     }
 
-/*! \param dihedral_type_mapping Mapping array to set
-    \c dihedral_type_mapping[type] should be set to the name of the dihedral type with index \c type.
-    The vector \b must have \c n_dihedral_types elements in it.
-*/
-void DihedralData::setDihedralTypeMapping(const std::vector<std::string>& dihedral_type_mapping)
-    {
-    assert(dihedral_type_mapping.size() == m_n_dihedral_types);
-    m_dihedral_type_mapping = dihedral_type_mapping;
-    }
-
-
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
     \note Throws an exception if the type name is not found
@@ -276,7 +301,7 @@ unsigned int DihedralData::getTypeByName(const std::string &name)
 std::string DihedralData::getNameByType(unsigned int type)
     {
     // check for an invalid request
-    if (type >= m_n_dihedral_types)
+    if (type >= getNDihedralTypes()) 
         {
         m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
@@ -509,6 +534,9 @@ void DihedralData::allocateDihedralTable(int height)
 */
 void DihedralData::takeSnapshot(SnapshotDihedralData& snapshot)
     {
+    // allocate memory
+    snapshot.resize(getNumDihedrals());
+
     // check for an invalid request
     if (snapshot.dihedrals.size() != getNumDihedrals())
         {
@@ -526,7 +554,7 @@ void DihedralData::takeSnapshot(SnapshotDihedralData& snapshot)
         snapshot.type_id[dihedral_idx] = m_dihedral_type[dihedral_idx];
         }
 
-    for (unsigned int i = 0; i < m_n_dihedral_types; i++)
+    for (unsigned int i = 0; i < getNDihedralTypes(); i++)
         snapshot.type_mapping.push_back(m_dihedral_type_mapping[i]);
     }
 
@@ -536,12 +564,22 @@ void DihedralData::takeSnapshot(SnapshotDihedralData& snapshot)
  */
 void DihedralData::initializeFromSnapshot(const SnapshotDihedralData& snapshot)
     {
+    // check that all fields in the snapshot have correct length
+    if (m_exec_conf->getRank() == 0 && !snapshot.validate())
+        {
+        m_exec_conf->msg->error() << "init.*: invalid dihedral/improper data snapshot."
+                                << std::endl << std::endl;
+        throw std::runtime_error("Error initializing dihedral/improper data.");
+        }
+
     m_dihedrals.clear();
     m_dihedral_type.clear();
     m_tags.clear();
     while (! m_deleted_tags.empty())
         m_deleted_tags.pop();
     m_dihedral_rtag.clear();
+
+    m_dihedral_type_mapping = snapshot.type_mapping;
 
     for (unsigned int dihedral_idx = 0; dihedral_idx < snapshot.dihedrals.size(); dihedral_idx++)
         {
@@ -552,8 +590,6 @@ void DihedralData::initializeFromSnapshot(const SnapshotDihedralData& snapshot)
                           snapshot.dihedrals[dihedral_idx].w);
         addDihedral(dihedral);
         }
-
-    setDihedralTypeMapping(snapshot.type_mapping);
     }
 
 void export_DihedralData()
@@ -570,6 +606,7 @@ void export_DihedralData()
     .def("getDihedralTag", &DihedralData::getDihedralTag)
     .def("takeSnapshot", &DihedralData::takeSnapshot)
     .def("initializeFromSnapshot", &DihedralData::initializeFromSnapshot)
+    .def("addDihedralType", &DihedralData::addDihedralType)
     ;
     
     class_<Dihedral>("Dihedral", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
@@ -579,6 +616,13 @@ void export_DihedralData()
     .def_readwrite("d", &Dihedral::d)
     .def_readwrite("type", &Dihedral::type)
     ;
+
+    class_<SnapshotDihedralData, boost::shared_ptr<SnapshotDihedralData> >
+        ("SnapshotDihedralData", init<unsigned int>())
+        .def_readwrite("angles", &SnapshotDihedralData::dihedrals)
+        .def_readwrite("type_id", &SnapshotDihedralData::type_id)
+        .def_readwrite("type_mapping", &SnapshotDihedralData::type_mapping)
+        ;
     }
 
 #ifdef WIN32

@@ -61,6 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "SystemDefinition.h"
 
+#include "SnapshotSystemData.h"
+
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
@@ -95,10 +97,11 @@ SystemDefinition::SystemDefinition(unsigned int N,
                                    unsigned int n_angle_types,
                                    unsigned int n_dihedral_types,
                                    unsigned int n_improper_types,
-                                   boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                   boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                   boost::shared_ptr<DomainDecomposition> decomposition)
     {
     m_n_dimensions = 3;
-    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf));
+    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf, decomposition));
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
     m_wall_data = boost::shared_ptr<WallData>(new WallData());
     
@@ -111,26 +114,26 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
-/*! Calls the initializer's members to determine the number of particles, box size and then
-    uses it to fill out the position and velocity data.
-    \param init Initializer to use
+/*! Evaluates the snapshot and initializes the respective *Data classes using
+   its contents (box dimensions and sub-snapshots) 
+    \param snapshot Snapshot to use
     \param exec_conf Execution configuration to run on
-
-    \b TEMPORARY!!!!! Initializers are planned to be rewritten
+    \param decomposition (optional) The domain decomposition layout
 */
-SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> snapshot,
+                                   boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                   boost::shared_ptr<DomainDecomposition> decomposition)
     {
-    m_n_dimensions = init.getNumDimensions();
-    
-    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(init, exec_conf));
-    
-    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, init.getNumBondTypes()));
-    SnapshotBondData snapshot(init.getNumBonds());
-    init.initBondDataSnapshot(snapshot);
-    m_bond_data->initializeFromSnapshot(snapshot);
-    
-    m_wall_data = boost::shared_ptr<WallData>(new WallData());
-    init.initWallData(m_wall_data);
+    m_n_dimensions = snapshot->dimensions;
+
+    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
+                 snapshot->global_box,
+                 exec_conf,
+                 decomposition));
+ 
+    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot->bond_data));
+   
+    m_wall_data = boost::shared_ptr<WallData>(new WallData(snapshot->wall_data));
     
     m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
     
@@ -141,19 +144,15 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, boost::s
     
     // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta and body images; 
     // otherwise, nothing is done here.
-    init.initRigidData(m_rigid_data);
+    if (snapshot->rigid_data.size) m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
         
-    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, init.getNumAngleTypes()));
-    init.initAngleData(m_angle_data);
+    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, snapshot->angle_data));
     
-    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumDihedralTypes()));
-    init.initDihedralData(m_dihedral_data);
+    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->dihedral_data));
     
-    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumImproperTypes()));
-    init.initImproperData(m_improper_data);
+    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->improper_data));
 
-    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
-    init.initIntegratorData(m_integrator_data);
+    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of 
@@ -172,11 +171,160 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
     m_n_dimensions = n_dimensions;
     }
 
+/*! \param particles True if particle data should be saved
+ *  \param bonds True if bond data should be saved
+ *  \param angles True if angle data should be saved
+ *  \param dihedrals True if dihedral data should be saved
+ *  \param impropers True if improper data should be saved
+ *  \param rigid True if rigid data should be saved
+ *  \param wall True if wall data should be saved
+ *  \param integrators True if integrator data should be saved
+ */
+boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot(bool particles,
+                                                   bool bonds,
+                                                   bool angles,
+                                                   bool dihedrals,
+                                                   bool impropers,
+                                                   bool rigid,
+                                                   bool walls,
+                                                   bool integrators)
+    {
+    boost::shared_ptr<SnapshotSystemData> snap(new SnapshotSystemData);
+
+    // always save dimensions and global box
+    snap->dimensions = m_n_dimensions;
+    snap->global_box = m_particle_data->getGlobalBox();
+
+    if (particles)
+        {
+        m_particle_data->takeSnapshot(snap->particle_data);
+        snap->has_particle_data = true;
+        }
+    else
+        snap->has_particle_data = false;
+
+    if (bonds)
+        {
+        m_bond_data->takeSnapshot(snap->bond_data);
+        snap->has_bond_data = true;
+        }
+    else
+        snap->has_bond_data = false;
+
+    if (angles)
+        {
+        m_angle_data->takeSnapshot(snap->angle_data);
+        snap->has_angle_data = true;
+        }
+    else
+        snap->has_angle_data = false;
+
+    if (dihedrals)
+        {
+        m_dihedral_data->takeSnapshot(snap->dihedral_data);
+        snap->has_dihedral_data = true;
+        }
+    else
+        snap->has_dihedral_data = false;
+
+    if (impropers)
+        {
+        m_improper_data->takeSnapshot(snap->improper_data);
+        snap->has_improper_data = true;
+        }
+    else
+        snap->has_improper_data = false;
+
+    if (rigid)
+        {
+        m_rigid_data->takeSnapshot(snap->rigid_data);
+        snap->has_rigid_data = true;
+        }
+    else
+        snap->has_rigid_data = false;
+
+    if (walls)
+        {
+        for (unsigned int i = 0; i < m_wall_data->getNumWalls(); ++i)
+            snap->wall_data.push_back(m_wall_data->getWall(i));
+        snap->has_wall_data = true;
+        }
+    else
+        snap->has_wall_data = false;
+
+    if (integrators)
+        {
+        for (unsigned int i = 0; i < m_integrator_data->getNumIntegrators(); ++i)
+            snap->integrator_data.push_back(m_integrator_data->getIntegratorVariables(i));
+        }
+    else
+        snap->has_integrator_data = false;
+
+    return snap;
+    }
+
+//! Re-initialize the system from a snapshot
+void SystemDefinition::initializeFromSnapshot(boost::shared_ptr<SnapshotSystemData> snapshot)
+    {
+    m_n_dimensions = snapshot->dimensions;
+
+    boost::shared_ptr<const ExecutionConfiguration> exec_conf = m_particle_data->getExecConf();
+
+    if (snapshot->has_particle_data)
+        {
+        m_particle_data->setGlobalBox(snapshot->global_box);
+    
+        m_particle_data->initializeFromSnapshot(snapshot->particle_data);
+        }
+   
+    if (snapshot->has_bond_data)
+        m_bond_data->initializeFromSnapshot(snapshot->bond_data);
+
+    if (snapshot->has_angle_data)
+        m_angle_data->initializeFromSnapshot(snapshot->angle_data);
+
+    if (snapshot->has_dihedral_data)
+        m_dihedral_data->initializeFromSnapshot(snapshot->dihedral_data);
+
+    if (snapshot->has_improper_data)
+        m_improper_data->initializeFromSnapshot(snapshot->improper_data);
+
+    if (snapshot->has_rigid_data)
+        m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
+
+    if (snapshot->has_wall_data)
+        {
+        m_wall_data->removeAllWalls();
+        for (unsigned int i = 0; i < snapshot->wall_data.size(); ++i)
+            m_wall_data->addWall(snapshot->wall_data[i]);
+        }
+
+    // it is an error to load variables for more integrators than are
+    // currently registered
+    if (snapshot->has_integrator_data)
+        {
+        unsigned int n_integrators = m_integrator_data->getNumIntegrators();
+        if (n_integrators != snapshot->integrator_data.size())
+            {
+            exec_conf->msg->error() << "init.restart_from_snapshot: Snapshot contains data for "
+                                    << snapshot->integrator_data.size() << " integrators," << std::endl
+                                    << "but " << n_integrators << " are currently registered."
+                                    << std::endl << std::endl;
+            throw std::runtime_error("Error initializing from snapshot");
+            }
+
+        for (unsigned int i = 0; i < n_integrators; ++i)
+            m_integrator_data->setIntegratorVariables(i, snapshot->integrator_data[i]);
+        }
+    }
+
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
     .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
+    .def(init<boost::shared_ptr<const SnapshotSystemData>, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
+    .def(init<boost::shared_ptr<const SnapshotSystemData>, boost::shared_ptr<ExecutionConfiguration> >())
     .def("setNDimensions", &SystemDefinition::setNDimensions)
     .def("getNDimensions", &SystemDefinition::getNDimensions)
     .def("getParticleData", &SystemDefinition::getParticleData)
@@ -188,6 +336,8 @@ void export_SystemDefinition()
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)
     .def("getPDataRefs", &SystemDefinition::getPDataRefs)
+    .def("takeSnapshot", &SystemDefinition::takeSnapshot)
+    .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot)
     ;
     }
 

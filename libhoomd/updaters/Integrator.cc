@@ -165,6 +165,8 @@ unsigned int Integrator::getNDOFRemoved()
 
     Integrator provides:
         - volume
+        - box lengths lx, ly, lz
+        - tilt factors xy, xz, yz
         - momentum
 
     See Logger for more information on what this is about.
@@ -173,6 +175,12 @@ std::vector< std::string > Integrator::getProvidedLogQuantities()
     {
     vector<string> result;
     result.push_back("volume");
+    result.push_back("lx");
+    result.push_back("ly");
+    result.push_back("lz");
+    result.push_back("xy");
+    result.push_back("xz");
+    result.push_back("yz");
     result.push_back("momentum");
     return result;
     }
@@ -200,8 +208,43 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
     if (quantity == "volume")
         {
         BoxDim box = m_pdata->getGlobalBox();
+        return box.getVolume(m_sysdef->getNDimensions()==2);
+        }
+    else if (quantity == "lx")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
         Scalar3 L = box.getL();
-        return L.x*L.y*L.z;
+        return L.x;
+        }
+    else if (quantity == "ly")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar3 L = box.getL();
+        return L.y;
+        }
+    else if (quantity == "lz")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar3 L = box.getL();
+        return L.z;
+        }
+    else if (quantity == "xy")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar xy = box.getTiltFactorXY();
+        return xy;
+        }
+    else if (quantity == "xz")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar xz = box.getTiltFactorXZ();
+        return xz;
+        }
+    else if (quantity == "yz")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar yz = box.getTiltFactorYZ();
+        return yz;
         }
     else if (quantity == "momentum")
         return computeTotalMomentum(timestep);

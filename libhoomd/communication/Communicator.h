@@ -59,6 +59,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __COMMUNICATOR_H__
 #define __COMMUNICATOR_H__
 
+#define NCORNER 8
+#define NEDGE 12
+#define NFACE 6
+
 #include "HOOMDMath.h"
 #include "GPUArray.h"
 #include "GPUVector.h"
@@ -87,6 +91,63 @@ class SystemDefinition;
 class Profiler;
 class BoxDim;
 class ParticleData;
+
+/* Routing tables
+
+   The routing tables determine the communication pattern. For every communication step indicated by
+   the value of the first index in the routing table, a boolean value indicates whether information
+   is routed from the source (second index) to the destination (third index, optional).
+
+   Possible types of sources are corner, edge and face buffers, possible types of destinations
+   are edge, face and local buffers.
+
+   During a communication step, the following steps occur:
+    - corner data, which is relevant to neighboring boxes along three axes, is sent in one
+     direction, and then stored as edge data.
+    - edge data, which is relevant to neigboring boxes along two axes, is sent and then
+      stored as face data
+    - face data is directly forwarded along one direction to a local receive buffer of the neighboring box.
+
+   If multiple source buffers are routed to the same destination buffer in a single or in subsequent
+   communication steps, they will occur in the destination buffer in the following order:
+
+   1) buffers originating from 'corner' regions
+   2) buffers originating from 'edge' regions
+   3) buffers originating from 'face' regions
+  
+   Received data in a buffer is always contiguously stored and appended to existing local data in the above order.
+
+   \note: These tables are currently not used by the base class
+ */
+struct RoutingTable
+    {
+    //! Routing from corner to edge for particle migration, for every send direction
+    bool m_route_corner_edge[NFACE][NCORNER][NEDGE];
+
+    //! Additional routing from corner to face for ghost replication
+    bool m_route_corner_face[NFACE][NCORNER][NFACE];
+
+    //! Additional routing from corner to local for ghost replication
+    bool m_route_corner_local[NFACE][NCORNER];
+
+    //! Routing from edge to face for particle migration
+    bool m_route_edge_face[NFACE][NEDGE][NFACE];
+
+    //! Additional routing from edge to local for ghost replication
+    bool m_route_edge_local[NFACE][NEDGE];
+
+    //! Routing from face to local
+    bool m_route_face_local[NFACE];
+    };
+
+//! This is a lookup from corner to plan
+extern unsigned int corner_plan_lookup[];
+
+//! Lookup from edge to plan
+extern unsigned int edge_plan_lookup[];
+
+//! Lookup from face to plan
+extern unsigned int face_plan_lookup[];
 
 //! Structure to store packed particle data
 struct pdata_element
@@ -197,6 +258,7 @@ class Communicator
                      boost::shared_ptr<DomainDecomposition> decomposition);
         virtual ~Communicator();
 
+
         //! \name accessor methods
         //@{
 
@@ -223,15 +285,13 @@ class Communicator
         void setGhostLayerWidth(Scalar ghost_width)
             {
             assert(ghost_width > 0);
-            Scalar3 L= m_pdata->getBox().getL();
+            Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
             const Index3D& di = m_decomposition->getDomainIndexer();
             if ((ghost_width >= L.x/Scalar(2.0) && di.getW() > 1) ||
                 (ghost_width >= L.y/Scalar(2.0) && di.getH() > 1) ||
                 (ghost_width >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
-                m_exec_conf->msg->error() << "Simulation box too small for ghost layer." << std::endl
-                                          << "Try fewer processors or reduce pair potential cut-off."  << std::endl
-                                          << std::endl;
+                m_exec_conf->msg->error() << "Ghost layer width exceeds half the sub-domain length." << std::endl;
                 throw std::runtime_error("Error setting up Communicator");
                 }
             m_r_ghost = ghost_width;
@@ -299,7 +359,30 @@ class Communicator
          */
         virtual void exchangeGhosts();
 
-    protected:
+        /*! Returns the routing table
+         */
+        inline const RoutingTable& getRoutingTable() const
+            {
+            return m_routing_table;
+            }
+
+        //! \name Enumerations
+        //@{
+        
+        //! Enumeration of the faces of the simulation box
+        /*! Their order determines the communication pattern, these must be three pairs
+            of opposite directions.
+         */
+        enum faceEnum
+            {
+            face_east = 0,
+            face_west,
+            face_north,
+            face_south,
+            face_up,
+            face_down
+            };
+
         //! The flags used for indicating the itinerary of a ghost particle
         enum Enum
             {
@@ -310,11 +393,43 @@ class Communicator
             send_up = 16,
             send_down = 32
             };
+        
+        enum edgeEnum
+            {
+            edge_east_north = 0 ,
+            edge_east_south,
+            edge_east_up,
+            edge_east_down,
+            edge_west_north,
+            edge_west_south,
+            edge_west_up,
+            edge_west_down,
+            edge_north_up,
+            edge_north_down,
+            edge_south_up,
+            edge_south_down
+            };
+        
+        enum cornerEnum
+            {
+            corner_east_north_up = 0,
+            corner_east_north_down,
+            corner_east_south_up,
+            corner_east_south_down,
+            corner_west_north_up,
+            corner_west_north_down,
+            corner_west_south_up,
+            corner_west_south_down
+            };
+ 
+        //@}
+        
+    protected:
 
         //! Returns true if we are communicating particles along a given direction
         /*! \param dir Direction to return dimensions for
          */
-        bool isCommunicating(unsigned int dir)
+        bool isCommunicating(unsigned int dir) const
             {
             assert(dir < 6);
             const Index3D& di = m_decomposition->getDomainIndexer();
@@ -330,6 +445,9 @@ class Communicator
 
             return res; 
             }
+
+        //! Helper function to update the shifted box for ghost particle PBC
+        const BoxDim getShiftedBox() const;
 
         boost::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
         boost::shared_ptr<ParticleData> m_pdata;                      //!< Particle data
@@ -369,6 +487,9 @@ class Communicator
         boost::signal<bool(unsigned int timestep), migrate_logical_or>
             m_migrate_requests; //!< List of functions that may request particle migration
 
+        RoutingTable m_routing_table;            //!< The routing table
+
+    private:
         std::vector<Scalar4> scal4_tmp;          //!< Temporary list used to apply the sort order to the particle data
         std::vector<Scalar3> scal3_tmp;          //!< Temporary list used to apply the sort order to the particle data
         std::vector<Scalar> scal_tmp;            //!< Temporary list used to apply the sort order to the particle data
@@ -376,7 +497,14 @@ class Communicator
         std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
 
         bool m_is_first_step;                    //!< True if no communication has yet occured
+
+        //! Helper function to initialize the lookup tables
+        void setupLookupTable();
+
+        //! Helper function to intialize the routing tables
+        void setupRoutingTable();
     };
+
 
 //! Declaration of python export function
 void export_Communicator();

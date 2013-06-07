@@ -59,6 +59,8 @@ Welcome to the \b user documentation for HOOMD-blue!
 -# \subpage page_command_list
 -# \subpage page_xml_file_format
 -# \subpage page_command_line_options
+-# \subpage page_mpi
+-# \subpage page_triclinic
 -# \subpage page_conversion_scripts
 -# \subpage page_compile_guide
 -# \subpage page_license
@@ -110,6 +112,7 @@ Table of contents:
   - \ref sec_index_communicate
 
 \section sec_index_run Run
+ - \link hoomd_script.get_step() get_step\endlink - <i>Gets the current time step</i>
  - \link hoomd_script.run() run\endlink - <i>Runs the simulation for a given number of time steps</i>
  - \link hoomd_script.run_upto() run_upto\endlink - <i>Runs the simulation up to a given time step number</i>
 
@@ -130,8 +133,8 @@ Table of contents:
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>Generates N randomly positioned particles of the same type </i>
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>Generates any number of randomly positioned polymers of configurable types </i>
  - \link hoomd_script.init.read_bin() init.read_bin\endlink - <i>Reads initial system state from a binary file </i>
+ - \link hoomd_script.init.read_snapshot() init.read_snapshot\endlink - <i>Initializes the system from a snapshot</i>
  - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>Reads initial system state from an XML file</i>
-
  - \link hoomd_script.init.reset() init.reset\endlink - <i>Resets all hoomd_script variables </i>
  - \link hoomd_script.init.is_initialized() init.is_initialized\endlink - <i>Tests if the system has been initialized </i>
 
@@ -259,7 +262,8 @@ Table of contents:
 
 \section sec_index_communicate Communication helpers
  - \link hoomd_script.comm.get_num_ranks() comm.get_num_ranks\endlink - <i>Get the total number of ranks in a a parallel execution</i>
- - \link hoomd_script.comm.is_root() comm.is_root\endlink - <i>Check if the current process is the root rank</i>
+ - \link hoomd_script.comm.get_rank() comm.get_rank\endlink - <i>Return the rank of the current process</i>
+ - \link hoomd_script.comm.get_partition() comm.get_partition\endlink - <i>Return the partition of the current process</i>
  
 
 */

@@ -284,7 +284,7 @@ void TablePotential::computeForces(unsigned int timestep)
             // access the index of this neighbor
             unsigned int k = h_nlist.data[nli(i, j)];
             // sanity check
-            assert(k < m_pdata->getN());
+            assert(k < m_pdata->getN() + m_pdata->getNGhosts());
             
             // calculate dr
             Scalar3 pk = make_scalar3(h_pos.data[k].x, h_pos.data[k].y, h_pos.data[k].z);
@@ -352,7 +352,8 @@ void TablePotential::computeForces(unsigned int timestep)
                 pei += pair_eng;
                 
                 // add the force to particle j if we are using the third law
-                if (third_law)
+                // only add force to local particles
+                if (third_law && k < m_pdata->getN())
                     {
                     unsigned int mem_idx = m_index_thread_partial(k,tid);
                     m_fdata_partial[mem_idx].x -= dx.x*forcemag_divr;

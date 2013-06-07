@@ -61,74 +61,6 @@ from hoomd_script import globals;
 
 import sys;
 
-## \internal 
-# Setup up domain decomposition
-def init_domain_decomposition(mpi_options):
-        if not init.is_initialized():
-            globals.msg.error("Possible internal error! Cannot create domain decomposition before initialization.\n")
-            raise RuntimeError('Error setting up domain decomposition');
-
-        if mpi_options is not None:
-            if type(mpi_options) != type(dict()):
-                globals.msg.error("MPI options parameters specified incorrectly. See documentation.\n")
-                raise RuntimeError('Error setting up domain decomposition');
-        else:
-            mpi_options = dict()
-
-        # default values for arguents
-        nx = ny = nz = 0
-        linear = False
-
-        if 'nx' in mpi_options:
-            nx = mpi_options['nx']
-        if 'ny' in mpi_options:
-            ny = mpi_options['ny']
-        if 'nz' in mpi_options:
-            nz = mpi_options['nz']
-        if 'linear' in mpi_options:
-            linear = mpi_options['linear']
-
-        if linear is True:
-            # set up linear decomposition
-            nz = globals.exec_conf.getNRanks()
-  
-        # exit early if we are only running on one processor
-        if globals.exec_conf.getNRanks() == 1:
-            return
-
-        # take a snapshot of the global system
-        pdata = globals.system_definition.getParticleData()
-        nglobal = pdata.getNGlobal();
-        snap = hoomd.SnapshotParticleData(nglobal)
-        pdata.takeSnapshot(snap)
-
-        bdata = globals.system_definition.getBondData()
-        n_bonds_global = bdata.getNumBondsGlobal();
-        if n_bonds_global:
-            snap_bdata = hoomd.SnapshotBondData(n_bonds_global)
-            bdata.takeSnapshot(snap_bdata)
-             
-        # initialize domain decomposition
-        cpp_decomposition = hoomd.DomainDecomposition(globals.exec_conf, pdata.getGlobalBox().getL(), nx, ny, nz);
-
-        # create the c++ mirror Communicator
-        if not globals.exec_conf.isCUDAEnabled():
-            cpp_communicator = hoomd.Communicator(globals.system_definition, cpp_decomposition)
-        else:
-            cpp_communicator = hoomd.CommunicatorGPU(globals.system_definition, cpp_decomposition)
-
-        # set Communicator in C++ System
-        globals.system.setCommunicator(cpp_communicator)
-
-        # set Communicator in SystemDefinition
-        pdata.setDomainDecomposition(cpp_decomposition)
-
-        # initialize domains from global snapshot
-        pdata.initializeFromSnapshot(snap)
-
-        if n_bonds_global:
-            bdata.initializeFromSnapshot(snap_bdata)
-
 ## Get the number of ranks
 # \returns the number of MPI ranks running in parallel
 # \note Returns 1 in non-mpi builds
@@ -138,11 +70,34 @@ def get_num_ranks():
     else:
         return 1;
 
-## Test if we are a root rank
-# \returns True if this rank is the root rank of a partition
-# \note Always returns True in non-mpi builds
-def is_root():
+## Return the current rank
+# If HOOMD is already initialized, it returns the actual MPI rank.
+# If HOOMD is not yet initialized, it guesses the rank from environment
+# variables.
+# \note Always returns 0 in non-mpi builds
+def get_rank():
     if hoomd.is_MPI_available():
-        return globals.exec_conf.getRank() == 0;
+        if init.is_initialized():
+            return globals.exec_conf.getRank()
+        else:
+            return hoomd.ExecutionConfiguration.guessRank(globals.msg)
     else:
-        return True;
+        return 0;
+
+## Return the current partition
+# If HOOMD is already initialized, it returns the actual partition.
+# If HOOMD is not yet initialized, it guesses the partition id from environment
+# variables.
+# \note Always returns 0 in non-mpi builds
+def get_partition():
+    if hoomd.is_MPI_available():
+        if init.is_initialized():
+            return globals.exec_conf.getPartition()
+        else:
+            if globals.options.nrank is not None:
+                return int(hoomd.ExecutionConfiguration.guessRank(globals.msg)/globals.options.nrank)
+            else:
+                return 0
+    else:
+        return 0;
+

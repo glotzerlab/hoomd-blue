@@ -60,9 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #ifdef ENABLE_CUDA
 
+//#define MPI3 // define if the MPI implementation supports MPI3 one-sided communications
+
 #include "Communicator.h"
 
-#include "WorkQueue.h"
 #include "GPUFlags.h"
 #include "GPUArray.h"
 #include "GPUBufferMapped.h"
@@ -137,8 +138,9 @@ class CommunicatorGPU : public Communicator
        
         //! Check that restrictions on bond lengths etc. are not violated
         void checkValid(unsigned int timestep);
- 
+
     private:
+        
         GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
         GPUArray<unsigned int> m_ptl_plan;          //!< Particle sending plans
 
@@ -168,29 +170,22 @@ class CommunicatorGPU : public Communicator
 
         unsigned int m_remote_send_corner[8*6];     //!< Remote corner particles, per direction
         unsigned int m_remote_send_edge[12*6];       //!< Remote edge particles, per direction
-        unsigned int m_remote_send_face[6*6];       //!< Remote face particles, per direction
+        unsigned int m_remote_send_face[6];         //!< Remote face particles, per direction
 
         GPUArray<char> m_corner_ghosts_buf;         //!< Copy buffer for ghosts lying at the edge
         GPUArray<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
         GPUArray<char> m_face_ghosts_buf;           //!< Copy buffer for ghosts lying near a face
         GPUArray<char> m_ghosts_recv_buf;           //!< Receive buffer for particle data
-        GPUArray<unsigned int> m_ghost_plan;         //!< Routing plans for received ghost particles
 
         GPUArray<unsigned int> m_ghost_idx_corner;  //!< Indices of particles copied as ghosts via corner
         GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge
         GPUArray<unsigned int> m_ghost_idx_face;    //!< Indices of particles copied as ghosts via a face
 
-#ifndef ENABLE_MPI_CUDA
-        GPUBufferMapped<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions 
-        GPUBufferMapped<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions 
-        GPUBufferMapped<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions 
-        GPUBufferMapped<char> m_update_recv_buf;     //!< Receive buffer for ghost positions 
-#else
         GPUArray<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions 
         GPUArray<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions 
         GPUArray<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions 
         GPUArray<char> m_update_recv_buf;     //!< Receive buffer for ghost positions 
-#endif
+
         unsigned int m_max_copy_ghosts_face;        //!< Maximum number of ghosts 'face' particles
         unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
         unsigned int m_max_copy_ghosts_corner;      //!< Maximum number of ghosts 'corner' particles
@@ -210,6 +205,14 @@ class CommunicatorGPU : public Communicator
         unsigned int m_n_forward_ghosts_edge[12];   //!< Total number of received ghosts for the edge send buffer
 
         bool m_buffers_allocated;                   //!< True if buffers have been allocated
+        bool m_mesh_buffers_allocated;              //!< True if buffers for ghost mesh exchange have been allocated
+
+        uint3 m_mesh_dim;                           //!< Dimensions of mesh for which we allocated buffers
+        uint3 m_inner_dim;                          //!< Number of non-ghost cells along every axis
+        unsigned int m_n_ghost_cells;               //!< Number of ghost cells of mesh along non-periodic axes
+        unsigned int m_n_corner_cells;              //!< Number of corner cells 
+        uint3 m_n_edge_cells;                       //!< Number of edge cells, for every four edges along every axis
+        uint3 m_n_face_cells;                       //!< Number of face cells for every axis
 
         GPUFlags<unsigned int> m_condition;         //!< Condition variable set to a value unequal zero if send buffers need to be resized
 
@@ -222,6 +225,9 @@ class CommunicatorGPU : public Communicator
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
+
+        //! Helper function to allocate buffers for ghost mesh exchange
+        void allocateMeshBuffers(const uint3 dim, const uint3 n_ghost_cells, size_t size_datatype);
     };
 
 //! Export CommunicatorGPU class to python

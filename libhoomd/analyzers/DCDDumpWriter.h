@@ -118,6 +118,12 @@ class DCDDumpWriter : public Analyzer
             {
             m_unwrap_rigid = enable;
             }
+        
+        //! Set whether the z-component should be overwritten by the orientation angle
+        void setAngleZ(bool enable)
+            {
+            m_angle = enable;
+            }
 
     private:
         std::string m_fname;                //!< The file name we are writing to
@@ -130,6 +136,7 @@ class DCDDumpWriter : public Analyzer
         bool m_appending;                   //!< True if this instance is appending to an existing DCD file
         bool m_unwrap_full;                 //!< True if coordinates should be written out fully unwrapped in the box
         bool m_unwrap_rigid;                //!< True if rigid bodies should be written out unwrapped
+        bool m_angle;                       //!< True if the z-component should be set to the orientation angle
 
         bool m_overwrite;                   //!< True if file should be overwritten
         bool m_is_initialized;              //!< True if file IO has been initialized

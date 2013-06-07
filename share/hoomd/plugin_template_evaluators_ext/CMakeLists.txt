@@ -31,5 +31,3 @@ if (NOT _first_run)
     endif (HOOMD_FOUND)
 endif (NOT _first_run)
 
-# install the __init__.py file
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py DESTINATION hoomd_plugins)

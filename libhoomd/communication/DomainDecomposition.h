@@ -57,7 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __DOMAIN_DECOMPOSITION_H__
 #define __DOMAIN_DECOMPOSITION_H__
 
-#ifdef ENABLE_MPI
 #include "HOOMDMath.h"
 #include "Index1D.h"
 #include "BoxDim.h"
@@ -80,6 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 class DomainDecomposition
     {
+#ifdef ENABLE_MPI
     public:
         //! Constructor
         /*! \param exec_conf The execution configuration
@@ -122,11 +122,12 @@ class DomainDecomposition
 
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         const MPI_Comm m_mpi_comm; //!< MPI communicator
- 
+#endif // ENABLE_MPI
    };
 
+#ifdef ENABLE_MPI
 //! Export the domain decomposition information
 void export_DomainDecomposition();
+#endif
 
 #endif // __DOMAIN_DECOMPOSITION_H
-#endif // ENABLE_MPI

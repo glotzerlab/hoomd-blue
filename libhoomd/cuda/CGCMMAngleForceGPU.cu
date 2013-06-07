@@ -256,13 +256,10 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
 
         Scalar angle_virial[6];
         angle_virial[0] = (1.f/3.f) * ( dab.x*fab[0] + dcb.x*fcb[0] );
-        angle_virial[1] = (1.f/6.f) * ( dab.x*fab[1] + dcb.x*fcb[1]
-                                      + dab.y*fab[0] + dcb.y*fcb[0] );
-        angle_virial[2] = (1.f/6.f) * ( dab.x*fab[2] + dcb.x*fcb[2]
-                                      + dab.z*fab[0] + dcb.z*fcb[0] );
+        angle_virial[1] = (1.f/3.f) * ( dab.y*fab[0] + dcb.y*fcb[0] );
+        angle_virial[2] = (1.f/3.f) * ( dab.z*fab[0] + dcb.z*fcb[0] );
         angle_virial[3] = (1.f/3.f) * ( dab.y*fab[1] + dcb.y*fcb[1] );
-        angle_virial[4] = (1.f/6.f) * ( dab.y*fab[2] + dcb.y*fcb[2]
-                                      + dab.z*fab[1] + dcb.z*fcb[1] );
+        angle_virial[4] = (1.f/3.f) * ( dab.z*fab[1] + dcb.z*fcb[1] );
         angle_virial[5] = (1.f/3.f) * ( dab.z*fab[2] + dcb.z*fcb[2] );
 
         for (int i = 0; i < 6; i++)

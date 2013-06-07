@@ -18,6 +18,7 @@ class dihedral_harmonic_tests (unittest.TestCase):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         
         dihedral_data = globals.system_definition.getDihedralData();
+        dihedral_data.addDihedralType('dihedralA')
         dihedral_data.addDihedral(hoomd.Dihedral(0, 0, 1, 2, 3));
         import __main__;
         __main__.sorter.set_params(grid=8)

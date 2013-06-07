@@ -58,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "BondData.cuh"
 
+#ifdef NVCC
 //! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
     {
@@ -109,6 +110,7 @@ enum gpu_corner_flags
     corner_west_south_up,
     corner_west_south_down
     };
+#endif
 
 //! Buffer element for sending particle data
 struct pdata_element_gpu
@@ -148,7 +150,10 @@ unsigned int gpu_update_element_size();
 
 //! Allocate temporary device memory for reordering particles
 void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
-                              const unsigned int *is_at_boundary);
+                              const unsigned int *is_at_boundary,
+                              const unsigned int *corner_plan_lookup,
+                              const unsigned int *edge_plan_lookup,
+                              const unsigned int *face_plan_lookup);
 
 //! Dellocate temporary memory
 void gpu_deallocate_tmp_storage();
@@ -160,7 +165,7 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           const unsigned int *d_rtag,
                                           const unsigned int N,
                                           const unsigned int n_bonds,
-                                          const BoxDim box);
+                                          const BoxDim& box);
 
 void gpu_send_bonds(const unsigned int n_bonds,
                     const unsigned int n_particles,
@@ -212,7 +217,6 @@ void gpu_migrate_select_particles(unsigned int N,
                                   char *d_face_buf,
                                   unsigned int face_buf_pitch,
                                   const BoxDim& box,
-                                  const BoxDim& global_box,
                                   unsigned int *d_condition);
  
 void gpu_reset_rtag_by_mask(const unsigned int N,
@@ -234,7 +238,8 @@ void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int *d_body,
                         float4 *d_orientation,
                         unsigned int *d_tag,
-                        unsigned int *d_rtag);
+                        unsigned int *d_rtag,
+                        const BoxDim& global_box);
  
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls,
@@ -247,7 +252,7 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       unsigned int N,
                                       float4 *d_pos,
                                       const BoxDim& box,
-                                      float r_ghost);
+                                      float3 ghost_fraction);
 
 //! Construct a list of particle tags to send as ghost particles
 void gpu_exchange_ghosts(const unsigned int N,
@@ -312,8 +317,7 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 Scalar *d_diameter,
                                 unsigned int *d_tag,
                                 unsigned int *d_rtag,
-                                unsigned int *d_ghost_plan,
-                                const BoxDim& global_box);
+                                const BoxDim& shifted_global_box);
 
 void gpu_update_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
@@ -329,8 +333,7 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const unsigned int edge_pitch,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
-                                unsigned int *d_ghost_plan,
-                                const BoxDim& global_box);
+                                const BoxDim& shifted_global_box);
 
 void gpu_check_bonds(const Scalar4 *d_postype,
                      const unsigned int N,

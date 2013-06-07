@@ -120,14 +120,14 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (ext == string(".gz"))
          gz_ext = true;
          
-    if (gz_ext && !m_enable_compression)
-        {
-        m_exec_conf->msg->warning() << "dump.bin: Writing compressed binary file without a .gz extension.";
-        m_exec_conf->msg->warning() << "init.read_bin will not recognize that this file is compressed" << endl;
-        }
     if (!gz_ext && m_enable_compression)
         {
-        m_exec_conf->msg->warning() << "dump.bin: Writing uncompressed binary file with a .gz extension.";
+        m_exec_conf->msg->warning() << "dump.bin: Writing compressed binary file without a .gz extension." << endl;
+        m_exec_conf->msg->warning() << "init.read_bin will not recognize that this file is compressed" << endl;
+        }
+    if (gz_ext && !m_enable_compression)
+        {
+        m_exec_conf->msg->warning() << "dump.bin: Writing uncompressed binary file with a .gz extension." << endl;
         m_exec_conf->msg->warning() << "init.read_bin will not recognize that this file is uncompressed" << endl;
         }
 

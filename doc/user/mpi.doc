@@ -1,0 +1,240 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*! \page page_mpi Running HOOMD-blue on multiple GPUs with MPI
+
+Table of contents:
+ - \ref sec_mpi_overview
+ - \ref sec_mpi_compilation
+ - \ref sec_mpi_usage
+ - \ref sec_mpi_best_practices
+ - \ref sec_mpi_troubleshooting
+ - \ref sec_mpi_features
+<hr>
+
+
+\section sec_mpi_overview Overview
+
+HOOMD-blue supports multi-GPU simulations using MPI. Internally, it uses
+a spatial domain decomposition approach similar to the one used by LAMMPS. This means,
+every GPU is assigned a sub-domain of the simulation box, the dimensions of which
+are calculated by dividing the lengths of the simulation box by the
+number of processors per dimension. The product of the number of processors along
+all dimensions must equal the number of processors in the MPI job. As in single-GPU
+simulations, there is a one-to-one mapping between host CPU cores (MPI ranks)
+and the GPUs.
+
+Currently, only a subset of features is available in MPI mode. The list 
+of available features can be found below. With the exception that some
+commands are not yet supported in multi-GPU mode, the same input script
+that runs in single-GPU mode can be used for MPI simulations.
+
+\section sec_mpi_compilation Compilation
+For detailed compilation instructions, see
+\link page_compile_guide_linux_generic here.\endlink
+
+Additional compilation flags pertinent to MPI simulations are
+- \b ENABLE_MPI (to enable multi-GPU simulations, must be set to \b ON)
+- \b ENABLE_MPI_CUDA (optional, to enable CUDA-aware MPI library support, see below)
+
+\section sec_mpi_usage Usage
+Using HOOMD-blue on multiple GPUs is as simple as typing
+\code
+mpirun -n 8 hoomd my_script.py
+\endcode
+which will execute HOOMD on 8 processors. You can include this line in your job 
+script.  HOOMD automatically detects which GPUs are available and assigns them to MPI
+ranks.  The syntax and name of the \b mpirun command may be different
+between different MPI libraries and system architectures. The input script must be
+available to all ranks - if running HOOMD on multiple nodes, it must reside on a network
+file system. HOOMD chooses the best spatial sub-division according to a
+minimum-area rule. The dimensions of the decomposition can, however, be manually
+specified, using the
+\b linear, \b nx, \b ny and \b nz \link page_command_line_options command line
+options\endlink. If your intention is to run HOOMD on a single GPU, you can 
+simply invoke HOOMD with
+\code
+hoomd my_script.py
+\endcode
+instead of giving the \b -n \b 1 argument to \b mpirun.
+
+HOOMD-blue can also be run on many \b CPUs in parallel. It currently supports
+three operation modes for this: OpenMP only (deprecated), MPI only (recommended)
+and OpenMP+MPI. To run HOOMD-blue on multiple CPUs using MPI,
+\code
+mpirun -n 16 hoomd my_script.py --ncpu=1
+\endcode
+
+The \b -n argument to \b mpirun specfies the number of MPI ranks used (16 in this case),
+and the \b ncpu argument tells hoomd the number of OpenMP cores to use
+per MPI rank.  Any combination of \b -n and \b --ncpu is possible (as long as there
+are sufficient cores available), however, MPI domain decomposition
+usually performs better than OpenMP acceleration on CPUs.
+
+<hr>
+\section sec_mpi_best_practices Tips & best practices
+
+HOOMD-blue's multi-GPU performance depends on many factors, such as the model of the
+actual GPU used, the type of interconnect between nodes, whether the MPI library
+supports CUDA, etc. Below we list some recommendations for obtaining optimal
+performance.
+
+\subsection sec_mpi_few_nodes Running on multiple GPUs of a single workstation
+HOOMD-blue w/MPI already runs fine on a single computer.
+In this case, it is recommended to take advantage of direct 
+peer-to-peer transfer between GPUs on the same PCIe bus, when available.
+This is accomplished using a CUDA-aware MPI library.
+To find out if your GPUs support P2P, run the \b simpleP2P test from the
+NVIDIA CUDA SDK.  Peer-to-Peer is supported on both GeForce and Tesla GPUs and is only
+available between GPUs are connected to the same IO-Hub on the
+computer's main board.  P2P access is supported through support for special
+<b> CUDA-aware MPI libraries</b> and can increase communication bandwidth significantly.
+
+\subsection sec_mpi_cluster Running on a GPU cluster or supercomputer
+
+If running on large-scale installations with more than one node,
+support for CUDA-MPI libraries is neither required nor
+recommended (see \ref sec_mpi_cuda).
+Since HOOMD-blue uses pinned memory, it can automatically take advantage of
+GPUdirect where it is supported by the OS kernel and network adapter, even if
+there is no special support throguh the MPI library.
+Hence, there is usally little extra benefit to enabling the CUDA-MPI option
+(\b ENABLE_MPI_CUDA) for large jobs. In fact, it may only help for jobs with a small
+number of ranks, which can be handled with a \b linear decomposition (see below).
+HOOMD-blue has been optimized to run better using \b standard MPI support
+in situations involving 2d or 3d decompositions.
+
+
+Generally, Infiniband (or similar high-performance) interconnects
+are recommended over Ethernet.
+
+HOOMD-blue uses shared libraries. This may cause problems on some supercomputers
+(notably Cray), which expect a static executable.
+
+\subsection sec_mpi_cuda CUDA-aware MPI libraries (ENABLE_MPI_CUDA compilation flag)
+The main benefit of using a CUDA-enabled MPI library is that it enables intra-node
+peer-to-peer (P2P) acccess between several GPUs on the same PCIe bus, which increases
+bandwidth. Secondarily, it may offer some additional optimization
+for direct data transfer between the GPU and a network adapter.
+To use these features with an MPI library that supports it,
+set \b ENABLE_MPI_CUDA to \b ON for compilation.
+
+\subsection sec_mpi_linear Slab decomposition (--linear command-line option)
+For small numbers of GPUs per job (typically <= 8) that are non-prime,
+the performance may be increased by using a slab decomposition.
+A one-dimensional decomposition is enforced if the \b linear
+\link page_command_line_options command-line option\endlink is given.
+
+\subsection sec_mpi_rbuff Neighbor list buffer length (r_buff)
+The optimum value of the \b r_buff value of the neighbor list
+(\link hoomd_script.pair.nlist.set_params() nlist.set_params()\endlink)
+may be different between single- and multi-GPU runs. This is because in multi-GPU
+runs, the buffering length also determines the width of the ghost layer in multi-GPU
+runs, which controls the size of messages exchanged betweeen the processors.
+To determine the optimum value, it is highly recommended to use the
+\link hoomd_script.tune.r_buff() tune.r_buff()\endlink 
+command with the actual number of MPI ranks that will be used for the simulation.
+
+\subsection sec_mpi_partition Running with multiple partitions (--nrank command-line option)
+HOOMD-blue supports simulation of multiple independent replicas, with the same
+number of GPUs per replica. To enable multi-replica mode, and to partition
+the total number of ranks \b N into <b> p = N/n</b> replicas, where \b n is the
+number of GPUs per replica, invoke HOOMD-blue with the <b>--nrank=n</b>
+\link page_command_line_options command-line option\endlink
+
+Inside the command script, the current partition can be queried using
+\link hoomd_script.comm.get_partition() comm.get_partition()\endlink .
+
+<hr> 
+\section sec_mpi_troubleshooting Troubleshooting
+
+-  <b> My simulation does not run significantly faster on two GPUs compared to
+   one GPU.</b><br>
+   This is expected.  HOOMD uses internal optimizations for single-GPU runs, which
+   means that there is no overhead due to MPI calls. The communication overhead can be
+   20-25\% of the total performance, and is only incurred when running on more
+   than one GPU.
+
+- <b> I get a message saying "Invalid bond" </b><br>
+   In multi-GPU simulations, there is a restriction on the maximal length of a single
+   bond. A bond cannot be longer than half the local domain size. If this happens,
+   an error is thrown. The problem can be fixed by running HOOMD on fewer
+   processors, or with a larger box size.
+
+- <b> Simulations with large numbers of nodes are slow. </b><br>
+   In simulations involving many nodes, collective MPI calls can take a significant portion
+   of the run time. To find out if these are limiting you, run the simulation with
+   the <b>profile=True</b> option to the \link hoomd_script.run() run\endlink command.
+   One reason for slow performance can be the distance check, which, by default,
+   is applied every step to check if the neighbor list needs to be rebuild. It requires
+   synchronization between all MPI ranks and is therefore slow.
+   See \link hoomd_script.pair.nlist nlist \endlink on how to increase
+   the interval (\b check_period) between distance checks, to improve performance.
+
+<hr>
+\section sec_mpi_features MPI features
+
+These features are currently supported in MPI mode.
+
+- integration in NVT, NPT, NVE, BDNVT ensembles in a triclinic box
+- pair forces (cut-off)
+- bond forces
+- external potentials
+- python data access
+- initialization via snapshots
+- DCD trajectory output
+- XML file dumps 
+- IMD visualization
+- Box resize updater
+- Zero momentum updater
+
+Unsupported features will be made available in later releases.
+*/
+

@@ -236,7 +236,9 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
     \param D Dimensionality of the system
     \param group_size Number of particles in the group
     \param num_partial_sums Number of partial sums in \a d_scratch
-    
+    \param external_virial External contribution to virial (1/3 trace)
+
+   
     Only one block is executed. In that block, the partial sums are read in and reduced to final values. From the final
     sums, the thermodynamic properties are computed and written to d_properties.
     
@@ -248,7 +250,9 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
                                               BoxDim box,
                                               unsigned int D,
                                               unsigned int group_size,
-                                              unsigned int num_partial_sums)
+                                              unsigned int num_partial_sums,
+                                              Scalar external_virial
+                                              )
     {
     Scalar3 final_sum = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
     
@@ -292,7 +296,7 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
         // compute final quantities
         Scalar ke_total = final_sum.x * Scalar(0.5);
         Scalar pe_total = final_sum.y;
-        Scalar W = final_sum.z;
+        Scalar W = final_sum.z + external_virial;
         
         // compute the temperature
         Scalar temperature = Scalar(2.0) * Scalar(ke_total) / Scalar(ndof);
@@ -448,7 +452,11 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
     dim3 grid(args.n_blocks, 1, 1);
     dim3 threads(args.block_size, 1, 1);
     unsigned int shared_bytes = sizeof(Scalar3)*args.block_size;
-    
+   
+    Scalar external_virial = Scalar(1.0/3.0)*(args.external_virial_xx
+                             + args.external_virial_yy
+                             + args.external_virial_zz);
+
     gpu_compute_thermo_partial_sums<<<grid,threads, shared_bytes>>>(args.d_scratch,
                                                                     args.d_net_force,
                                                                     args.d_net_virial,
@@ -486,7 +494,8 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                                                    box,
                                                                    args.D,
                                                                    group_size,
-                                                                   args.n_blocks);
+                                                                   args.n_blocks,
+                                                                   external_virial);
     
     if (compute_pressure_tensor)
         {

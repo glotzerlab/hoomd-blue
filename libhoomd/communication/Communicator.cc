@@ -66,11 +66,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::python;
 
+//! This is a lookup from corner to plan
+unsigned int corner_plan_lookup[NCORNER];
+
+//! Lookup from edge to plan
+unsigned int edge_plan_lookup[NEDGE];
+
+//! Lookup from face to plan
+unsigned int face_plan_lookup[NFACE];
+
 //! Select a particle for migration
 struct select_particle_migrate : public std::unary_function<const unsigned int, bool>
     {
-    Scalar3 lo;             //!< Lower local box boundary
-    Scalar3 hi;             //!< Upper local box boundary
+    const BoxDim& box;      //!< Local simulation box dimensions
     const unsigned int dir; //!< Direction to send particles to
     const Scalar4 *h_pos;   //!< Array of particle positions
 
@@ -81,11 +89,8 @@ struct select_particle_migrate : public std::unary_function<const unsigned int, 
     select_particle_migrate(const BoxDim & _box,
                             const unsigned int _dir,
                             const Scalar4 *_h_pos)
-        : dir(_dir), h_pos(_h_pos)
-        {
-        lo = _box.getLo();
-        hi = _box.getHi();
-        }
+        : box(_box), dir(_dir), h_pos(_h_pos)
+        { }
 
     //! Select a particle
     /*! t particle data to consider for sending
@@ -93,15 +98,18 @@ struct select_particle_migrate : public std::unary_function<const unsigned int, 
      */
     __host__ __device__ bool operator()(const unsigned int idx)
         {
-        const Scalar4& pos = h_pos[idx];
+        const Scalar4& postype = h_pos[idx];
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+        Scalar3 f = box.makeFraction(pos);
+
         // we return true if the particle stays in our box,
         // false otherwise
-        return !((dir == 0 && pos.x >= hi.x) ||  // send east
-                (dir == 1 && pos.x < lo.x)  ||  // send west
-                (dir == 2 && pos.y >= hi.y) ||  // send north
-                (dir == 3 && pos.y < lo.y)  ||  // send south
-                (dir == 4 && pos.z >= hi.z) ||  // send up
-                (dir == 5 && pos.z < lo.z ));   // send down
+        return !((dir == 0 && f.x >= Scalar(1.0)) ||  // send east
+                (dir == 1 && f.x < Scalar(0.0))  ||  // send west
+                (dir == 2 && f.y >= Scalar(1.0)) ||  // send north
+                (dir == 3 && f.y < Scalar(0.0))  ||  // send south
+                (dir == 4 && f.z >= Scalar(1.0)) ||  // send up
+                (dir == 5 && f.z < Scalar(0.0) ));   // send down
         }
 
      };
@@ -248,12 +256,160 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         GPUArray<bond_element> bond_send_buf(1, m_exec_conf);
         m_bond_send_buf.swap(bond_send_buf);
         }
+
+    setupLookupTable();
+
+    setupRoutingTable();
     }
 
 //! Destructor
 Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying Communicator";
+    }
+
+void Communicator::setupLookupTable()
+    {
+    corner_plan_lookup[corner_east_north_up] = send_east | send_north | send_up;
+    corner_plan_lookup[corner_east_north_down] = send_east | send_north | send_down;
+    corner_plan_lookup[corner_east_south_up] = send_east | send_south | send_up;
+    corner_plan_lookup[corner_east_south_down] = send_east | send_south | send_down;
+    corner_plan_lookup[corner_west_north_up] = send_west | send_north | send_up;
+    corner_plan_lookup[corner_west_north_down] = send_west | send_north | send_down;
+    corner_plan_lookup[corner_west_south_up] = send_west | send_south | send_up;
+    corner_plan_lookup[corner_west_south_down] = send_west | send_south | send_down;
+
+    edge_plan_lookup[edge_east_north] = send_east | send_north;
+    edge_plan_lookup[edge_east_south] = send_east | send_south;
+    edge_plan_lookup[edge_east_up] = send_east | send_up;
+    edge_plan_lookup[edge_east_down] = send_east | send_down;
+    edge_plan_lookup[edge_west_north] = send_west | send_north;
+    edge_plan_lookup[edge_west_south] = send_west | send_south;
+    edge_plan_lookup[edge_west_up] = send_west | send_up;
+    edge_plan_lookup[edge_west_down] = send_west | send_down;
+    edge_plan_lookup[edge_north_up] = send_north | send_up;
+    edge_plan_lookup[edge_north_down] = send_north | send_down;
+    edge_plan_lookup[edge_south_up] = send_south | send_up;
+    edge_plan_lookup[edge_south_down] = send_south | send_down;
+
+    face_plan_lookup[face_east]  = send_east;
+    face_plan_lookup[face_west] = send_west;
+    face_plan_lookup[face_north] = send_north;
+    face_plan_lookup[face_south]  = send_south;
+    face_plan_lookup[face_up] = send_up;
+    face_plan_lookup[face_down] = send_down;
+    }
+
+void Communicator::setupRoutingTable()
+    {
+    // clear routing table
+    RoutingTable& t = m_routing_table;
+
+    for (unsigned int cur_face = 0; cur_face < 6; ++ cur_face)
+        {
+        for (unsigned int corner_i = 0; corner_i < 8; ++corner_i)
+            {
+            for (unsigned int edge_j = 0; edge_j < 12; ++edge_j)
+                t.m_route_corner_edge[cur_face][corner_i][edge_j] = false;
+            for (unsigned int face_j = 0; face_j < 6; ++face_j)
+                t.m_route_corner_face[cur_face][corner_i][face_j] = false;
+            t.m_route_corner_local[cur_face][corner_i] = false;
+            }
+        for (unsigned int edge_i = 0; edge_i < 12; ++edge_i)
+            {
+            for (unsigned int face_j = 0; face_j < 6; ++face_j)
+                t.m_route_edge_face[cur_face][edge_i][face_j] = false;
+            t.m_route_edge_local[cur_face][edge_i] = false;
+            }
+
+        t.m_route_face_local[cur_face] = false;
+        }
+    
+    // fill routing table
+    for (unsigned int cur_face = 0; cur_face < 6; ++ cur_face)
+        {
+        if (!isCommunicating(cur_face)) continue;
+
+        for (unsigned int corner_i = 0; corner_i < 8; ++corner_i)
+            {
+            unsigned int plan = corner_plan_lookup[corner_i];
+
+            // indicates whether buffer has been routed in current direction
+            bool sent = false;
+
+            // only send corner buffer through faces touching the corner
+            if (! ((face_plan_lookup[cur_face] & plan) == face_plan_lookup[cur_face])) continue;
+
+            for (unsigned int edge_j = 0; edge_j < 12; ++edge_j)
+                if ((edge_plan_lookup[edge_j] & plan) == edge_plan_lookup[edge_j])
+                    {
+                    // if this edge buffer is or has already been sent in this
+                    // or previous communication steps, don't route through it
+                    bool active = true;
+                    for (unsigned int face_k = 0; face_k < 6; ++face_k)
+                        if (face_k <= cur_face && (edge_plan_lookup[edge_j] & face_plan_lookup[face_k]))
+                            active = false;
+                    if (! active) continue;
+
+                    t.m_route_corner_edge[cur_face][corner_i][edge_j] = true;
+                    sent = true;
+                    break;
+                    }
+
+            if (sent) continue;
+
+            // route to a buffer in neighboring box such that it is forwared
+            // in a subsequent direction, but not back to ourselves
+            unsigned int next_face = cur_face + ((cur_face % 2) ? 1 : 2);
+
+            for (unsigned int face_j = next_face; face_j < 6; ++face_j)
+                if ((face_plan_lookup[face_j] & plan) == face_plan_lookup[face_j])
+                    {
+                    t.m_route_corner_face[cur_face][corner_i][face_j] = true;
+                    sent = true;
+                    break;
+                    }
+
+            // route to neighboring box directly, if it wasn't already routed
+            if (plan & face_plan_lookup[cur_face] && !sent)
+                t.m_route_corner_local[cur_face][corner_i] = true;
+            }
+                
+        for (unsigned int edge_i = 0; edge_i < 12; ++edge_i)
+            {
+            unsigned int plan = edge_plan_lookup[edge_i];
+
+            bool sent = false;
+
+            // only route to edge buffers touching face
+            if (! ((face_plan_lookup[cur_face] & plan) == face_plan_lookup[cur_face])) continue;
+
+            // route to a buffer in neighboring box such that it is forwared
+            // in a subsequent direction, but not back to ourselves
+            unsigned int next_face = cur_face + ((cur_face % 2) ? 1 : 2);
+
+            for (unsigned int face_j = next_face; face_j < 6; ++face_j)
+                if ((face_plan_lookup[face_j] & plan) == face_plan_lookup[face_j])
+                    {
+                    t.m_route_edge_face[cur_face][edge_i][face_j] = true;
+                    sent = true;
+                    break;
+                    }
+
+            if (plan & face_plan_lookup[cur_face] && !sent)
+                t.m_route_edge_local[cur_face][edge_i] = true;
+            } 
+
+        for (unsigned int face_i = 0; face_i < 6; ++face_i)
+            {
+            unsigned int plan = face_plan_lookup[face_i];
+
+            // only send through face if this is the current sending direction
+            if (! ((face_plan_lookup[cur_face] & plan) == face_plan_lookup[cur_face])) continue;
+
+            t.m_route_face_local[cur_face] = true;
+            }
+        }
     }
 
 //! Interface to the communication methods.
@@ -565,10 +721,10 @@ void Communicator::migrateParticles()
         if (m_prof)
             m_prof->pop();
 
-        const BoxDim& global_box = m_pdata->getGlobalBox(); 
+        const BoxDim shifted_box = getShiftedBox();
+
             {
             // wrap received particles across a global boundary back into global box
-            Scalar3 L = global_box.getL();
             ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
             for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
                 {
@@ -576,37 +732,7 @@ void Communicator::migrateParticles()
                 Scalar4& postype = p.pos;
                 int3& image = p.image;
 
-                if (dir==0 && m_is_at_boundary[1])
-                    {
-                    postype.x -= L.x;
-                    image.x++;
-                    }
-                else if (dir==1 && m_is_at_boundary[0])
-                    {
-                    postype.x += L.x;
-                    image.x--;
-                    }
-                else if (dir==2 && m_is_at_boundary[3])
-                    {
-                    postype.y -= L.y;
-                    image.y++;
-                    }
-                else if (dir==3 && m_is_at_boundary[2])
-                    {
-                    postype.y += L.y;
-                    image.y--;
-                    }
-                else if (dir==4 && m_is_at_boundary[5])
-                    {
-                    postype.z -= L.z;
-                    image.z++;
-                    }
-                else if (dir==5 && m_is_at_boundary[4])
-                    {
-                    postype.z += L.z;
-                    image.z--;
-                    }
-     
+                shifted_box.wrap(postype, image); 
                 }
             }
 
@@ -752,8 +878,6 @@ void Communicator::exchangeGhosts()
 
         unsigned nbonds = bdata->getNumBonds();
         unsigned int N = m_pdata->getN();
-        Scalar3 lo = box.getLo();
-        Scalar3 L2 = box.getL()/Scalar(2.0);
         for (unsigned int bond_idx = 0; bond_idx < nbonds; bond_idx++)
             {
             uint2 bond = h_btable.data[bond_idx];
@@ -765,18 +889,22 @@ void Communicator::exchangeGhosts()
        
             if ((idx1 >= N) && (idx2 < N))
                 {
-                Scalar4 pos = h_pos.data[idx2];
-                h_plan.data[idx2] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
-                h_plan.data[idx2] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
-                h_plan.data[idx2] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
+                Scalar4 postype = h_pos.data[idx2];
+                Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+                Scalar3 f = box.makeFraction(pos);
+                h_plan.data[idx2] |= (f.x > Scalar(0.5)) ? send_east : send_west;
+                h_plan.data[idx2] |= (f.y > Scalar(0.5)) ? send_north : send_south;
+                h_plan.data[idx2] |= (f.z > Scalar(0.5)) ? send_up : send_down;
 
                 }
             else if ((idx1 < N) && (idx2 >= N))
                 {
-                Scalar4 pos = h_pos.data[idx1];
-                h_plan.data[idx1] |= (pos.x > lo.x + L2.x) ? send_east : send_west;
-                h_plan.data[idx1] |= (pos.y > lo.y + L2.y) ? send_north : send_south;
-                h_plan.data[idx1] |= (pos.z > lo.z + L2.z) ? send_up : send_down;
+                Scalar4 postype = h_pos.data[idx1];
+                Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+                Scalar3 f = box.makeFraction(pos);
+                h_plan.data[idx1] |= (f.x > Scalar(0.5)) ? send_east : send_west;
+                h_plan.data[idx1] |= (f.y > Scalar(0.5)) ? send_north : send_south;
+                h_plan.data[idx1] |= (f.z > Scalar(0.5)) ? send_up : send_down;
                 } 
             }
         }
@@ -785,9 +913,9 @@ void Communicator::exchangeGhosts()
     /*
      * Mark non-bonded atoms for sending
      */
-    Scalar3 lo = box.getLo();
-    Scalar3 hi = box.getHi();
 
+    // the ghost layer must be at_least m_r_ghost wide along every lattice direction
+    Scalar3 ghost_fraction = m_r_ghost/box.getNearestPlaneDistance();
         {
         // scan all local atom positions if they are within r_ghost from a neighbor
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -795,24 +923,26 @@ void Communicator::exchangeGhosts()
 
         for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
             {
-            Scalar4 pos = h_pos.data[idx];
-
-            if (pos.x >= hi.x  - m_r_ghost)
+            Scalar4 postype = h_pos.data[idx];
+            Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+            
+            Scalar3 f = box.makeFraction(pos);
+            if (f.x >= Scalar(1.0) - ghost_fraction.x)
                 h_plan.data[idx] |= send_east;
 
-            if (pos.x < lo.x + m_r_ghost)
+            if (f.x < ghost_fraction.x)
                 h_plan.data[idx] |= send_west;
 
-            if (pos.y >= hi.y - m_r_ghost)
+            if (f.y >= Scalar(1.0) - ghost_fraction.y)
                 h_plan.data[idx] |= send_north;
 
-            if (pos.y < lo.y + m_r_ghost)
+            if (f.y < ghost_fraction.y)
                 h_plan.data[idx] |= send_south;
 
-            if (pos.z >= hi.z - m_r_ghost)
+            if (f.z >= Scalar(1.0) - ghost_fraction.z)
                 h_plan.data[idx] |= send_up;
 
-            if (pos.z < lo.z + m_r_ghost)
+            if (f.z < ghost_fraction.z)
                 h_plan.data[idx] |= send_down;
             }
         }
@@ -944,8 +1074,7 @@ void Communicator::exchangeGhosts()
         if (m_prof)
             m_prof->pop();
 
-        Scalar3 L = m_pdata->getGlobalBox().getL();
-
+        const BoxDim shifted_box = getShiftedBox();
 
             {
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -956,20 +1085,8 @@ void Communicator::exchangeGhosts()
                 Scalar4& pos = h_pos.data[idx];
 
                 // wrap particles received across a global boundary 
-                // we are not actually folding back particles into the global box, but into the ghost layer
-                if (dir==0 && m_is_at_boundary[1])
-                    pos.x -= L.x;
-                else if (dir==1 && m_is_at_boundary[0])
-                    pos.x += L.x;
-                else if (dir==2 && m_is_at_boundary[3])
-                    pos.y -= L.y;
-                else if (dir==3 && m_is_at_boundary[2])
-                    pos.y += L.y;
-                else if (dir==4 && m_is_at_boundary[5])
-                    pos.z -= L.z;
-                else if (dir==5 && m_is_at_boundary[4])
-                    pos.z += L.z;
-
+                int3 img = make_int3(0,0,0);
+                shifted_box.wrap(pos,img);
 
                 // set reverse-lookup tag -> idx
                 assert(h_tag.data[idx] <= m_pdata->getNGlobal());
@@ -1059,7 +1176,7 @@ void Communicator::updateGhosts(unsigned int timestep)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
         }
 
-        Scalar3 L= m_pdata->getGlobalBox().getL();
+        const BoxDim shifted_box = getShiftedBox();
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -1069,19 +1186,8 @@ void Communicator::updateGhosts(unsigned int timestep)
                 Scalar4& pos = h_pos.data[idx];
 
                 // wrap particles received across a global boundary 
-                // we are not actually folding back particles into the global box, but into the ghost layer
-                if (dir==0 && m_is_at_boundary[1])
-                    pos.x -= L.x;
-                else if (dir==1 && m_is_at_boundary[0])
-                    pos.x += L.x;
-                else if (dir==2 && m_is_at_boundary[3])
-                    pos.y -= L.y;
-                else if (dir==3 && m_is_at_boundary[2])
-                    pos.y += L.y;
-                else if (dir==4 && m_is_at_boundary[5])
-                    pos.z -= L.z;
-                else if (dir==5 && m_is_at_boundary[4])
-                    pos.z += L.z;
+                int3 img = make_int3(0,0,0);
+                shifted_box.wrap(pos, img);
                 }
             }
 
@@ -1089,6 +1195,51 @@ void Communicator::updateGhosts(unsigned int timestep)
 
         if (m_prof)
             m_prof->pop();
+    }
+
+const BoxDim Communicator::getShiftedBox() const
+    {
+    // construct the shifted global box for applying global boundary conditions 
+    BoxDim shifted_box = m_pdata->getGlobalBox();
+    Scalar3 f= make_scalar3(0.5,0.5,0.5);
+
+    // The fractional shift corresponds to twice the ghost layer width
+    Scalar3 shift = m_r_ghost/shifted_box.getNearestPlaneDistance()*Scalar(2.0);
+    for (unsigned int dir = 0; dir < 6; dir ++)
+        {
+        if (m_decomposition->isAtBoundary(dir) &&  isCommunicating(dir))
+            {
+            if (dir == face_east)
+                f.x += shift.x;
+            else if (dir == face_west)
+                f.x -= shift.x;
+            else if (dir == face_north)
+                f.y += shift.y;
+            else if (dir == face_south)
+                f.y -= shift.y;
+            else if (dir == face_up)
+                f.z += shift.z;
+            else if (dir == face_down)
+                f.z -= shift.z;
+            }
+        }
+    Scalar3 dx = shifted_box.makeCoordinates(f);
+    Scalar3 lo = shifted_box.getLo();
+    Scalar3 hi = shifted_box.getHi();
+    lo += dx;
+    hi += dx;
+    shifted_box.setLoHi(lo, hi);
+
+    // only apply global boundary conditions along the communication directions
+    uchar3 periodic = make_uchar3(0,0,0);
+    
+    periodic.x = isCommunicating(face_east) ? 1 : 0;
+    periodic.y = isCommunicating(face_north) ? 1 : 0;
+    periodic.z = isCommunicating(face_up) ? 1 : 0;
+
+    shifted_box.setPeriodic(periodic);
+
+    return shifted_box;
     }
 
 //! Export Communicator class to python

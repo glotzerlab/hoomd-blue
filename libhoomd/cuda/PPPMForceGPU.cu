@@ -100,6 +100,34 @@ scalar4_tex_t pdata_pos_tex;
 //! Texture for reading charge parameters
 scalar_tex_t pdata_charge_tex;
 
+//! GPU implementation of sinc(x)==sin(x)/x
+__device__ Scalar gpu_sinc(Scalar x)
+    {
+    Scalar sinc = 0;
+
+    //! Coefficients of a power expansion of sin(x)/x
+    const Scalar sinc_coeff[] = {Scalar(1.0), Scalar(-1.0/6.0), Scalar(1.0/120.0),
+                            Scalar(-1.0/5040.0),Scalar(1.0/362880.0),
+                            Scalar(-1.0/39916800.0)};
+
+
+    if (x*x <= Scalar(1.0))
+        {
+        Scalar term = Scalar(1.0);
+        for (unsigned int i = 0; i < 6; ++i)
+           {
+           sinc += sinc_coeff[i] * term;
+           term *= x*x;
+           }
+        }
+    else
+        {
+        sinc = sinf(x)/x;
+        }
+
+    return sinc;
+    }
+
 #ifndef SINGLE_PRECISION
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
@@ -170,27 +198,19 @@ void assign_charges_to_grid_kernel(const unsigned int N,
         //get particle information
         Scalar qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
 
-        if(fabs(qi) > Scalar(0.0)) 
-            {
-            Scalar4 posi = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+        if(fabs(qi) > Scalar(0.0)) {
+            float4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+            Scalar3 posi = make_scalar3(postypei.x,postypei.y,postypei.z);
             //calculate dx, dy, dz for the charge density grid:
-            Scalar3 L = box.getL();
-            Scalar box_dx = L.x / ((Scalar)Nx);
-            Scalar box_dy = L.y / ((Scalar)Ny);
-            Scalar box_dz = L.z / ((Scalar)Nz);
-    
+            Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
         
             //normalize position to gridsize:
-            posi.x += L.x / Scalar(2.0);
-            posi.y += L.y / Scalar(2.0);
-            posi.z += L.z / Scalar(2.0);
-   
-            posi.x /= box_dx;
-            posi.y /= box_dy;
-            posi.z /= box_dz;
-    
-    
-            Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
+            Scalar3 pos_frac = box.makeFraction(posi);
+            pos_frac.x *= (Scalar)Nx;
+            pos_frac.y *= (Scalar)Ny;
+            pos_frac.z *= (Scalar)Nz;
+
+            float shift, shiftone, x0, y0, z0, dx, dy, dz;
             int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
     
             nlower = -(order-1)/2;
@@ -207,19 +227,19 @@ void assign_charges_to_grid_kernel(const unsigned int N,
                 shiftone = Scalar(0.5);
                 }
         
-            nxi = __scalar2int_rd(posi.x + shift);
-            nyi = __scalar2int_rd(posi.y + shift);
-            nzi = __scalar2int_rd(posi.z + shift);
+            nxi = __scalar2int_rd(pos_frac.x + shift);
+            nyi = __scalar2int_rd(pos_frac.y + shift);
+            nzi = __scalar2int_rd(pos_frac.z + shift);
     
-            dx = shiftone+(Scalar)nxi-posi.x;
-            dy = shiftone+(Scalar)nyi-posi.y;
-            dz = shiftone+(Scalar)nzi-posi.z;
+            dx = shiftone+(Scalar)nxi-pos_frac.x;
+            dy = shiftone+(Scalar)nyi-pos_frac.y;
+            dz = shiftone+(Scalar)nzi-pos_frac.z;
     
             int n,m,l,k;
             Scalar result;
             int mult_fact = 2*order+1;
 
-            x0 = qi / (box_dx*box_dy*box_dz);
+            x0 = qi / V_cell;
             for (n = nlower; n <= nupper; n++) {
                 mx = n+nxi;
                 if(mx >= Nx) mx -= Nx;
@@ -357,21 +377,15 @@ void calculate_forces_kernel(Scalar4 *d_force,
             Scalar4 posi = texFetchScalar4(d_pos, pdata_pos_tex, idx);
     
             //calculate dx, dy, dz for the charge density grid:
-            Scalar3 L = box.getL();
-            Scalar box_dx = L.x / ((Scalar)Nx);
-            Scalar box_dy = L.y / ((Scalar)Ny);
-            Scalar box_dz = L.z / ((Scalar)Nz);
-    
+            Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
+        
             //normalize position to gridsize:
-            posi.x += L.x * Scalar(0.5);
-            posi.y += L.y * Scalar(0.5);
-            posi.z += L.z * Scalar(0.5);
-   
-            posi.x /= box_dx;
-            posi.y /= box_dy;
-            posi.z /= box_dz;
-    
-            Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
+            Scalar3 pos_frac = box.makeFraction(posi);
+            pos_frac.x *= (Scalar)Nx;
+            pos_frac.y *= (Scalar)Ny;
+            pos_frac.z *= (Scalar)Nz;
+
+            float shift, shiftone, x0, y0, z0, dx, dy, dz;
             int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
     
             nlower = -(order-1)/2;
@@ -388,16 +402,15 @@ void calculate_forces_kernel(Scalar4 *d_force,
                 shift = Scalar(0.0);
                 shiftone = Scalar(0.5);
                 }
+            
+            nxi = __float2int_rd(pos_frac.x + shift);
+            nyi = __float2int_rd(pos_frac.y + shift);
+            nzi = __float2int_rd(pos_frac.z + shift);
     
-    
-            nxi = __scalar2int_rd(posi.x + shift);
-            nyi = __scalar2int_rd(posi.y + shift);
-            nzi = __scalar2int_rd(posi.z + shift);
-    
-            dx = shiftone+(Scalar)nxi-posi.x;
-            dy = shiftone+(Scalar)nyi-posi.y;
-            dz = shiftone+(Scalar)nzi-posi.z;
-
+            dx = shiftone+(float)nxi-pos_frac.x;
+            dy = shiftone+(float)nyi-pos_frac.y;
+            dz = shiftone+(float)nzi-pos_frac.z;
+ 
             int n,m,l,k;
             Scalar result;
             int mult_fact = 2*order+1;
@@ -861,6 +874,9 @@ Scalar Scalar_reduce(Scalar* i_data, Scalar* o_data, int n) {
 
 //! The developer has chosen not to document this function
 __global__ void reset_kvec_green_hat_kernel(BoxDim box, 
+                                            Scalar3 b1,
+                                            Scalar3 b2,
+                                            Scalar3 b3,
                                             int Nx, 
                                             int Ny, 
                                             int Nz, 
@@ -884,30 +900,24 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         int yn = (idx - xn*N2)/Nz;
         int zn = (idx - xn*N2 - yn*Nz);
 
-        Scalar3 L = box.getL();
-        Scalar invdet = Scalar(6.28318531)/(L.x*L.y*L.z);
-        Scalar3 inverse_lattice_vector, j;
+        Scalar3 j;
         Scalar kappa2 = kappa*kappa;
-
-        inverse_lattice_vector.x = invdet*L.y*L.z;
-        inverse_lattice_vector.y = invdet*L.x*L.z;
-        inverse_lattice_vector.z = invdet*L.x*L.y;
 
         j.x = xn > Nx/2 ? (Scalar)(xn - Nx) : (Scalar)xn;
         j.y = yn > Ny/2 ? (Scalar)(yn - Ny) : (Scalar)yn;
         j.z = zn > Nz/2 ? (Scalar)(zn - Nz) : (Scalar)zn;
-        kvec_array[idx].x = j.x*inverse_lattice_vector.x;
-        kvec_array[idx].y = j.y*inverse_lattice_vector.y;
-        kvec_array[idx].z = j.z*inverse_lattice_vector.z;
+        Scalar3 k = j.x * b1 +  j.y * b2 + j.z * b3;
+        kvec_array[idx] = k;
 
-        Scalar sqk =  kvec_array[idx].x*kvec_array[idx].x + kvec_array[idx].y*kvec_array[idx].y + kvec_array[idx].z*kvec_array[idx].z;
-        if(sqk == Scalar(0.0)) {
-            vg[0+6*idx] = Scalar(0.0);
-            vg[1+6*idx] = Scalar(0.0);
-            vg[2+6*idx] = Scalar(0.0);
-            vg[3+6*idx] = Scalar(0.0);
-            vg[4+6*idx] = Scalar(0.0);
-            vg[5+6*idx] = Scalar(0.0);
+        Scalar sqk = dot(k,k);
+        // omit DC term
+        if(idx == 0) {
+            vg[0+6*idx] = 0.0f;
+            vg[1+6*idx] = 0.0f;
+            vg[2+6*idx] = 0.0f;
+            vg[3+6*idx] = 0.0f;
+            vg[4+6*idx] = 0.0f;
+            vg[5+6*idx] = 0.0f;
             }
         else {
             Scalar vterm = (-Scalar(2.0)/sqk - Scalar(0.5)/kappa2);
@@ -919,27 +929,24 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
             vg[5+6*idx] = Scalar(1.0)+vterm*kvec_array[idx].z*kvec_array[idx].z;
             }
 
-        Scalar unitkx = (Scalar(6.28318531)/L.x);
-        Scalar unitky = (Scalar(6.28318531)/L.y);
-        Scalar unitkz = (Scalar(6.28318531)/L.z);
-        int ix, iy, iz, kper, lper, mper;
+        Scalar3 kH = Scalar(2.0*M_PI)*make_scalar3(Scalar(1.0)/(Scalar)Nx,
+                                                   Scalar(1.0)/(Scalar)Ny,
+                                                   Scalar(1.0)/(Scalar)Nz);
+
+        int ix, iy, iz;
         Scalar snx, sny, snz, snx2, sny2, snz2;
         Scalar argx, argy, argz, wx, wy, wz, sx, sy, sz, qx, qy, qz;
         Scalar sum1, dot1, dot2;
         Scalar numerator, denominator;
 
-        mper = zn - Nz*(2*zn/Nz);
-        snz = fast::sin(Scalar(0.5)*unitkz*mper*L.z/Nz);
+        snz = fast::sin(Scalar(0.5)*j.z*kH.z);
         snz2 = snz*snz;
 
-        lper = yn - Ny*(2*yn/Ny);
-        sny = fast::sin(Scalar(0.5)*unitky*lper*L.y/Ny);
+        sny = fast::sin(Scalar(0.5)*j.y*kH.y);
         sny2 = sny*sny;
 
-        kper = xn - Nx*(2*xn/Nx);
-        snx = fast::sin(Scalar(0.5)*unitkx*kper*L.x/Nx);
+        snx = fast::sin(Scalar(0.5)*j.x*kH.x);
         snx2 = snx*snx;
-        sqk = unitkx*kper*unitkx*kper + unitky*lper*unitky*lper + unitkz*mper*unitkz*mper;
 
 
         int l;
@@ -952,33 +959,41 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
         denominator = sx*sy*sz;
         denominator *= denominator;
 
-        Scalar W;
-        if (sqk != Scalar(0.0)) {
-            numerator = Scalar(12.5663706)/sqk;
-            sum1 = Scalar(0.0);
-            for (ix = -nbx; ix <= nbx; ix++) {
-                qx = unitkx*(kper+(Scalar)(Nx*ix));
-                sx = fast::exp(Scalar(-.25)*qx*qx/kappa2);
-                wx = Scalar(1.0);
-                argx = Scalar(0.5)*qx*L.x/(Scalar)Nx;
-                if (argx != Scalar(0.0)) wx = fast::pow(fast::sin(argx)/argx,order);
-                for (iy = -nby; iy <= nby; iy++) {
-                    qy = unitky*(lper+(Scalar)(Ny*iy));
-                    sy = fast::exp(Scalar(-.25)*qy*qy/kappa2);
-                    wy = Scalar(1.0);
-                    argy = Scalar(0.5)*qy*L.y/(Scalar)Ny;
-                    if (argy != Scalar(0.0)) wy = fast::pow(fast::sin(argy)/argy,order);
-                    for (iz = -nbz; iz <= nbz; iz++) {
-                        qz = unitkz*(mper+(Scalar)(Nz*iz));
-                        sz = fast::exp(Scalar(-.25)*qz*qz/kappa2);
-                        wz = Scalar(1.0);
-                        argz = Scalar(0.5)*qz*L.z/(Scalar)Nz;
-                        if (argz != Scalar(0.0)) wz = fast::pow(fast::sin(argz)/argz,order);
+        Scalar3 kn, kn1, kn2, kn3;
+        Scalar arg_gauss, gauss;
 
-                        dot1 = unitkx*kper*qx + unitky*lper*qy + unitkz*mper*qz;
-                        dot2 = qx*qx+qy*qy+qz*qz;
+        float W;
+        if (sqk != 0.0f) {
+            numerator = Scalar(12.5663706)/sqk;
+            sum1 = 0;
+            for (ix = -nbx; ix <= nbx; ix++) {
+                qx = (j.x+(Scalar)(Nx*ix));
+                kn1 = b1 * qx;
+                argx = Scalar(0.5)*qx*kH.x;
+                wx = fast::pow(gpu_sinc(argx),order);
+
+               for (iy = -nby; iy <= nby; iy++) {
+                    qy = (j.y+(float)(Ny*iy));
+                    kn2 = b2 * qy;
+                    argy = Scalar(0.5)*qy*kH.y;
+                    wy = fast::pow(gpu_sinc(argy),order);
+
+                    for (iz = -nbz; iz <= nbz; iz++) {
+                        qz = (j.z+(Scalar)(Nz*iz));
+                        kn3 = b3 * qz;
+                        wz = Scalar(1.0);
+                        kn = kn1+kn2+kn3;
+
+                        argz = Scalar(0.5)*qz*kH.z;
+                        wz = fast::pow(gpu_sinc(argz),order);
+
+                        dot1 = dot(kn,k);
+                        dot2 = dot(kn,kn);
+                        arg_gauss = Scalar(0.25)*dot2/kappa2;
+                        gauss = expf(-arg_gauss);
+ 
                         W = wx*wy*wz;
-                        sum1 += (dot1/dot2) * sx*sy*sz * W*W;
+                        sum1 += (dot1/dot2) * gauss * W*W;
                         }
                     }
                 }
@@ -1003,9 +1018,19 @@ cudaError_t reset_kvec_green_hat(const BoxDim& box,
                                  Scalar *gf_b,
                                  int block_size)
     {
+    // compute reciprocal lattice vectors
+    Scalar3 a1 = box.getLatticeVector(0);
+    Scalar3 a2 = box.getLatticeVector(1);
+    Scalar3 a3 = box.getLatticeVector(2);
+
+    Scalar V_box = box.getVolume();
+    Scalar3 b1 = Scalar(2.0*M_PI)*make_scalar3(a2.y*a3.z-a2.z*a3.y, a2.z*a3.x-a2.x*a3.z, a2.x*a3.y-a2.y*a3.x)/V_box;
+    Scalar3 b2 = Scalar(2.0*M_PI)*make_scalar3(a3.y*a1.z-a3.z*a1.y, a3.z*a1.x-a3.x*a1.z, a3.x*a1.y-a3.y*a1.x)/V_box;
+    Scalar3 b3 = Scalar(2.0*M_PI)*make_scalar3(a1.y*a2.z-a1.z*a2.y, a1.z*a2.x-a1.x*a2.z, a1.x*a2.y-a1.y*a2.x)/V_box;
+
     dim3 grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
-    reset_kvec_green_hat_kernel <<< grid, threads >>> (box, Nx, Ny, Nz, order, kappa, kvec, green_hat, vg, nbx, nby, nbz, gf_b);
+    reset_kvec_green_hat_kernel <<< grid, threads >>> (box, b1, b2, b3, Nx, Ny, Nz, order, kappa, kvec, green_hat, vg, nbx, nby, nbz, gf_b);
     return cudaSuccess;
     }
 

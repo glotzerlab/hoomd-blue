@@ -12,7 +12,7 @@ if (ENABLE_MPI)
             # find out if this is MVAPICH2
             get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
             find_program(MPICH2_VERSION
-                NAMES mpich2version
+                NAMES mpichversion mpich2version
                 HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
             )
             if (MPICH2_VERSION)

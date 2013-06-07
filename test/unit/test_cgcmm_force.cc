@@ -484,7 +484,9 @@ void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_c
     
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    boost::shared_ptr<SnapshotSystemData> snap;
+    snap = rand_init.getSnapshot();
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
     
     shared_ptr<CGCMMForceCompute> fc1 = cgcmm_creator1(sysdef, nlist, Scalar(3.0));

@@ -73,7 +73,6 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
     // allocation is deferred until the first compute() call - initialize values to dummy variables
-    m_width = make_scalar3(0.0, 0.0, 0.0);
     m_dim = make_uint3(0,0,0);
     m_Nmax = 0;
     m_params_changed = true;
@@ -86,6 +85,7 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     resetConditions();
 
     m_num_ghost_cells = make_uint3(0,0,0);
+    m_ghost_width = make_scalar3(0.0,0.0,0.0);
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
@@ -119,7 +119,7 @@ uint3 CellList::computeDimensions()
     // calculate the bin dimensions
     const BoxDim& box = m_pdata->getBox();
 
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
     dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
     dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
 
@@ -288,11 +288,11 @@ void CellList::initializeWidth()
                                        box.getPeriodic().y ? 0 : 2,
                                        box.getPeriodic().z ? 0 : 2);
 
- 
-    Scalar3 L = box.getL();
-    m_width.x = (L.x + m_nominal_width*m_num_ghost_cells.x) / Scalar(m_dim.x);
-    m_width.y = (L.y + m_nominal_width*m_num_ghost_cells.y) / Scalar(m_dim.y);
-    m_width.z = (L.z + m_nominal_width*m_num_ghost_cells.z) / Scalar(m_dim.z);
+    // compute ghost layer width
+    Scalar3 L = box.getNearestPlaneDistance();
+    m_ghost_width = make_scalar3(L.x/(Scalar)(m_dim.x-m_num_ghost_cells.x)*(Scalar)(m_num_ghost_cells.x/2),
+                             L.y/(Scalar)(m_dim.y-m_num_ghost_cells.y)*(Scalar)(m_num_ghost_cells.y/2),
+                             L.z/(Scalar)(m_dim.z-m_num_ghost_cells.z)*(Scalar)(m_num_ghost_cells.z/2));
 
     if (m_prof)
         m_prof->pop();
@@ -465,10 +465,13 @@ void CellList::computeCellList()
     // clear the bin sizes to 0
     memset(h_cell_size.data, 0, sizeof(unsigned int) * m_cell_indexer.getNumElements());
     
+    Scalar3 ghost_width = getGhostWidth();
+
+    // get periodic flags
+    uchar3 periodic = box.getPeriodic();
+
     // for each particle
     unsigned n_tot_particles = m_pdata->getN() + m_pdata->getNGhosts();
-
-    Scalar3 ghost_width = m_nominal_width/Scalar(2.0)*make_scalar3((Scalar)m_num_ghost_cells.x, (Scalar)m_num_ghost_cells.y, (Scalar)m_num_ghost_cells.z);
 
     for (unsigned int n = 0; n < n_tot_particles; n++)
         {
@@ -479,31 +482,43 @@ void CellList::computeCellList()
             continue;
             }
             
+
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(p,ghost_width);
         int ib = (int)(f.x * m_dim.x);
         int jb = (int)(f.y * m_dim.y);
         int kb = (int)(f.z * m_dim.z);
         
-        // need to handle the case where the particle is exactly at the box hi
-        if (ib == (int)m_dim.x)
-            ib = 0;
-        if (jb == (int)m_dim.y)
-            jb = 0;
-        if (kb == (int)m_dim.z)
-            kb = 0;
-
-        // sanity check
-        assert(ib < (int)(m_dim.x) && jb < (int)(m_dim.y) && kb < (int)(m_dim.z));
-        
-        // record its bin
-        unsigned int bin = ci(ib, jb, kb);
-        // check if the particle is inside the dimensions
-        if (bin >= ci.getNumElements())
-            {
+        // check if the particle is inside the unit cell + ghost layer
+        // for non-periodic directions
+        if ((!periodic.x && (f.x < Scalar(0.0) || f.x >= Scalar(1.0))) ||
+            (!periodic.y && (f.y < Scalar(0.0) || f.y >= Scalar(1.0))) ||
+            (!periodic.z && (f.z < Scalar(0.0) || f.z >= Scalar(1.0))) )
+            { 
             // if a ghost particle is out of bounds, silently ignore it
             if (n < m_pdata->getN())
                 conditions.z = n+1;
+            continue;
+            }
+
+        // need to handle the case where the particle is exactly at the box hi
+        if (ib == (int)m_dim.x && periodic.x)
+            ib = 0;
+        if (jb == (int)m_dim.y && periodic.y)
+            jb = 0;
+        if (kb == (int)m_dim.z && periodic.z)
+            kb = 0;
+
+        // sanity check
+        assert((ib < (int)(m_dim.x) && jb < (int)(m_dim.y) && kb < (int)(m_dim.z)) || n>=m_pdata->getN());
+        
+        // record its bin
+        unsigned int bin = ci(ib, jb, kb);
+
+        // local particles should be in a valid cell
+        if (n < m_pdata->getN() && bin >= ci.getNumElements())
+            {
+            conditions.z = n+1;
             continue;
             }
 
@@ -590,11 +605,11 @@ bool CellList::checkConditions()
                                   <<"Particle " << h_tag.data[n] << " is no longer in the simulation box."
                                   << endl << endl;
 
-        m_exec_conf->msg->notice(2) << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
+        m_exec_conf->msg->error() << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
         Scalar3 lo = m_pdata->getBox().getLo();
         Scalar3 hi = m_pdata->getBox().getHi();
-        m_exec_conf->msg->notice(2) << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
-        m_exec_conf->msg->notice(2) << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+        m_exec_conf->msg->error() << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
+        m_exec_conf->msg->error() << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
         throw runtime_error("Error computing cell list");
         }
 
@@ -622,7 +637,6 @@ void CellList::printStats()
 
     m_exec_conf->msg->notice(1) << "-- Cell list stats:" << endl;
     m_exec_conf->msg->notice(1) << "Dimension: " << m_dim.x << ", " << m_dim.y << ", " << m_dim.z << "" << endl;
-    m_exec_conf->msg->notice(1) << "Width    : " << m_width.x << ", " << m_width.y << ", " << m_width.z << "" << endl;
 
     // access the number of cell members to generate stats
     ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::read);
@@ -660,7 +674,6 @@ void export_CellList()
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
-        .def("getWidth", &CellList::getWidth, return_internal_reference<>())
         .def("getDim", &CellList::getDim, return_internal_reference<>())
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark)

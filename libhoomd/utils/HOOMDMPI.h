@@ -137,6 +137,15 @@ namespace boost
             ar & u.y;
             ar & u.z;
             }
+
+        //! serialization of uchar3
+        template<class Archive>
+        void serialize(Archive & ar, uchar3 & u, const unsigned int version)
+            {
+            ar & u.x;
+            ar & u.y;
+            ar & u.z;
+            }
         }
     }
 

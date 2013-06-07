@@ -86,6 +86,7 @@ __all__ = [ "analyze",
             "variant", 
             "run",
             "run_upto",
+            "get_step",
             "tune",
             "hoomd",
             "compute",
@@ -258,4 +259,13 @@ def run_upto(step, **keywords):
     run(n_steps, **keywords);
     util._disable_status_lines = False;
 
+## Get the current simulation time step
+#
+# \returns current simulation time step
+def get_step():
+    # check if initialization has occurred
+    if not init.is_initialized():
+        globals.msg.error("Cannot get step before initialization\n");
+        raise RuntimeError('Error getting step');
 
+    return globals.system.getCurrentTimeStep();

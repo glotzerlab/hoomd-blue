@@ -240,12 +240,6 @@ class CellList : public Compute
         // @}
         //! \name Get properties
         // @{
-
-        //! Get the actual width of the cells
-        const Scalar3& getWidth() const
-            {
-            return m_width;
-            }
         
         //! Get the nominal width of the cells
         Scalar getNominalWidth() const
@@ -287,6 +281,12 @@ class CellList : public Compute
         const uint3 getNGhostCells() const
             {
             return m_num_ghost_cells;
+            }
+
+        //! Get width of ghost cells
+        const Scalar3 getGhostWidth() const
+            {
+            return m_ghost_width;
             }
 
         // @}
@@ -357,13 +357,13 @@ class CellList : public Compute
         unsigned int m_multiple;     //!< Round cell dimensions down to a multiple of this value
         
         // parameters determined by initialize
-        Scalar3 m_width;             //!< Actual width
         uint3 m_dim;                 //!< Current dimensions
         Index3D m_cell_indexer;      //!< Indexes cells from i,j,k
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
         unsigned int m_Nmax;         //!< Numer of spaces reserved for particles in each cell
         uint3 m_num_ghost_cells;     //!< Number of ghost cells in every direction 
+        Scalar3 m_ghost_width;       //!< Width of ghost cells
         
         // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell

@@ -214,6 +214,9 @@ ExecutionConfiguration::~ExecutionConfiguration()
     #endif
  
     #ifdef ENABLE_MPI
+    // enable Messenger to gracefully finish any MPI-IO
+    msg->unsetMPICommunicator();
+
     if (m_has_initialized_mpi) MPI_Finalize();
     #endif
 
@@ -666,7 +669,7 @@ int ExecutionConfiguration::getNumCapableGPUs()
 
 #endif
 
-unsigned int ExecutionConfiguration::guessRank()
+unsigned int ExecutionConfiguration::guessRank(boost::shared_ptr<Messenger> msg)
     {
     std::vector<std::string> env_vars;
 
@@ -686,6 +689,12 @@ unsigned int ExecutionConfiguration::guessRank()
         if ((env = getenv(it->c_str())) != NULL)
             return atoi(env);
 
+        }
+
+    if (msg)
+        {
+        msg->warning() << "Unable to guess rank from environment variables. Assuming 0."
+                       << std::endl << std::endl;
         }
 
     return 0;
@@ -796,4 +805,6 @@ void export_ExecutionConfiguration()
     .value("CPU", ExecutionConfiguration::CPU)
     ;
 
+    // allow classes to take shared_ptr<const ExecutionConfiguration> arguments
+    implicitly_convertible<boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<const ExecutionConfiguration> >();
     }
