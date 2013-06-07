@@ -69,8 +69,32 @@ void output_version_info(bool verbose)
         return;
 
     // output the version info that comes from CMake
-    cout << "HOOMD-blue " << HOOMD_VERSION_LONG << endl;
-        
+    cout << "HOOMD-blue " << HOOMD_VERSION_LONG;
+    
+    #ifdef ENABLE_CUDA
+    cout << " CUDA";
+    #endif
+
+    #ifdef SINGLE_PRECISION
+    cout << " SINGLE";
+    #else
+    cout << " DOUBLE";
+    #endif
+    
+    #ifdef ENABLE_OPENMP
+    cout << " OPENMP";
+    #endif
+    
+    #ifdef ENABLE_MPI
+    cout << " MPI";
+    #endif
+
+    #ifdef ENABLE_MPI_CUDA
+    cout << " MPI_CUDA";
+    #endif
+    
+    cout << endl;
+    
     // output the compiled date and copyright information
     cout << "Compiled: " << COMPILE_DATE << endl;
     cout << "Copyright 2008-2011 Ames Laboratory Iowa State University and the Regents of the University of Michigan" 
