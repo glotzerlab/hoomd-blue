@@ -459,6 +459,36 @@
    fun:_Znwm
 }
 
+# some misc python leaks on Mac
+{
+   <misc_python_lead>
+   Memcheck:Addr8
+   fun:PyObject_Realloc
+   fun:_PyObject_GC_Resize
+   fun:PyFrame_New
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:PyObject_Realloc
+   fun:compiler_next_instr
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:PyObject_Realloc
+   fun:_PyString_Resize
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:PyObject_Realloc
+   fun:PyNode_AddChild
+}
+
 # python supressions
 #
 # This is a valgrind suppression file that should be used when using valgrind.
