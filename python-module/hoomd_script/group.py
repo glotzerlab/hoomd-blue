@@ -73,6 +73,7 @@ from hoomd_script import init;
 # - group.tags()
 # - group.tag_list()
 # - group.type()
+# - group.charged()
 #
 # The above methods assign a descriptive name based on the criteria chosen. That name can be easily changed if desired:
 # \code
@@ -299,7 +300,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     # return it in the wrapper class
     return group(name, cpp_group);
 
-## Groups particles that do not belong to rigid bodieis
+## Groups particles that do not belong to rigid bodies
 #
 # Creates a particle group from particles. \b All particles that <b>do not</b> belong to a rigid body will be added to
 # the group. The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles
@@ -333,7 +334,7 @@ def nonrigid():
     # return it in the wrapper class
     return group(name, cpp_group);
 
-## Groups particles that belong to rigid bodieis
+## Groups particles that belong to rigid bodies
 #
 # Creates a particle group from particles. \b All particles that belong to a rigid body will be added to the group.
 # The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles should
@@ -556,9 +557,10 @@ def charged(name='charged'):
 # \param a First group
 # \param b Second group
 #
-# The set difference of a set of particles \a a with respect to group \a b is defined to be the set of particles in \a b but not in \a a. 
-# A new group called \a name is created that contains the complement particles. This can be
-# useful for inverting the sense of a group (see below).
+# The set difference of *a* and *b* is defined to be the set of particles that are in *a* and not in *b*.
+# This can be useful for inverting the sense of a group (see below).
+#
+# A new group called *name* is created.
 #
 # \b Examples:
 # \code
@@ -578,8 +580,8 @@ def difference(name, a, b):
 # \param a First group
 # \param b Second group
 #
-# A new group is created that contains all particles of \a b that also belong to \a a, and is given rhe name
-# \a name.
+# A new group is created that contains all particles of *a* that are also in *b*, and is given the name
+# *name*.
 #
 # \b Examples:
 # \code
@@ -599,8 +601,8 @@ def intersection(name, a, b):
 # \param a First group
 # \param b Second group
 #
-# A new group is created that contains all particles present in the two groups \a a and \a b, and is given the 
-# name \a name.
+# A new group is created that contains all particles present in either group *a* or *b*, and is given the
+# name *name*.
 #
 # \b Examples:
 # \code
