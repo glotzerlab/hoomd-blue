@@ -112,7 +112,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     // we use a tightly packed cubic LJ crystal for testing,
     // because this one has a sufficient shear elasticity
     // to avoid that the box gets too tilted during triclinic NPT
-    const unsigned int L = 20; // number of particles along one box edge
+    const unsigned int L = 14; // number of particles along one box edge
     Scalar P = 142.5; // use a REALLY high value of pressure to keep the system in solid state
     Scalar T0 = .9;
     Scalar deltaT = 0.001;
@@ -182,7 +182,18 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     // energy shift
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    shared_ptr<ComputeThermo> thermo_group(new ComputeThermo(sysdef, group_all, "name"));
+    shared_ptr<ComputeThermo> thermo_group;
+    #ifdef ENABLE_CUDA
+    if (exec_conf->isCUDAEnabled())
+        {
+        thermo_group = boost::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name"));
+        }
+    else
+    #endif
+        {
+        thermo_group = boost::shared_ptr<ComputeThermo>((new ComputeThermo(sysdef, group_all, "name")));
+        }
+
     thermo_group->setNDOF(3*pdata->getN());
     shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
     npt_mtk->addForceCompute(fc);
@@ -199,7 +210,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
         npt_mtk->addIntegrationMethod(two_step_npt_mtk);
         npt_mtk->prepRun(0);
 
-        // step for a 10,000 timesteps to relax pessure and tempreratue
+        // step for a 10,000 timesteps to relax pessure and temperature
         // before computing averages
 
         std::cout << "Equilibrating 10,000 steps... " << std::endl;
@@ -230,8 +241,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
         Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", 0);
         Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
-        std::cout << "Measuring up to 50,000 steps... " << std::endl;
-        for (unsigned int i = 10000; i < 50000; i++)
+        std::cout << "Measuring up to 20,000 steps... " << std::endl;
+        for (unsigned int i = 10000; i < 20000; i++)
             {
             timestep = offs + i;
             if (i % 1000 == 0)
@@ -449,7 +460,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
         nph->update(i);
         }
 
-    // now do the averaging for next 100k steps
+    // now do the averaging for next 10k steps
     Scalar avrPxx = 0.0;
     Scalar avrPyy = 0.0;
     Scalar avrPzz = 0.0;
@@ -463,7 +474,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     Scalar barostat_energy = nph->getLogValue("npt_barostat_energy", 0);
     Scalar H_ref = enthalpy + barostat_energy; // the conserved quantity
 
-    for (int i = 10001; i < 50000; i++)
+    for (int i = 10001; i < 20000; i++)
         {
         if (i % 100 == 0)
             {
@@ -586,7 +597,12 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTKGPU_cubic_NPH)
 BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_tests )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1, _2,_3,_4,_5, _6, _7, _8,_9);
-    npt_mtk_updater_test(npt_mtk_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    #ifdef ENABLE_OPENMP
+    // speed up CPU test
+    omp_set_num_threads(omp_get_num_procs());
+    #endif
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    npt_mtk_updater_test(npt_mtk_creator, exec_conf);
     }
 
 //! boost test case for NPH integration

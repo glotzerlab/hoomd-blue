@@ -42,7 +42,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     types.push_back("A");
     std::vector<uint> bonds;
     std::vector<string> bond_types;
-    rand_init.addGenerator((int)N, boost::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(1.0, types, bonds, bonds, bond_types, 100)));
+    rand_init.addGenerator((int)N, boost::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100)));
     rand_init.setSeparationRadius("A", .4);
 
     rand_init.generate();
