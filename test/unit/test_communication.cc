@@ -1068,17 +1068,18 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
    //
 
    // set some new positions for the ghost particles
-   // the ghost particles could have moved anywhere even outside the ghost layers or boxes they were in originally
-   //(but usually they should not move further than half the skin length),
+   // the ghost particles could have moved anywhere
+   // even outside the ghost layers or boxes they were in originally
+   //(but they should not move further than half the skin length),
 
    pdata->setPosition(8, make_scalar3(-0.12,-1.05,-0.6));
    pdata->setPosition(9, make_scalar3(-0.03,-1.09,-0.3));
    pdata->setPosition(10, make_scalar3(-0.11,  0.01,-1.02));
-   pdata->setPosition(11, make_scalar3(-0.80, -0.92,-0.2));
+   pdata->setPosition(11, make_scalar3(-0.81, -0.92,-0.2));
    pdata->setPosition(12, make_scalar3(-1.02, -1.05,-1.100));
    pdata->setPosition(13, make_scalar3(-0.89,  0.005, -0.99));
-   pdata->setPosition(14, make_scalar3( 1.123, 1.321, 0.9));
-   pdata->setPosition(15, make_scalar3( 0.6, 1.001, 1.012));
+   pdata->setPosition(14, make_scalar3( 1.123, 1.121, 0.9));
+   pdata->setPosition(15, make_scalar3( 0.85, 1.001, 1.012));
 
    // update ghosts
    comm->updateGhosts(0);
@@ -1095,7 +1096,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
             case 0:
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -1.4, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -1.15, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.999, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.988, tol_small);
                 break;
@@ -1109,7 +1110,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,  1.20, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,  1.19, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.92, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.2, tol_small);
 
@@ -1128,7 +1129,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.6, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.85, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.999, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.988, tol_small);
                 break;
@@ -1154,7 +1155,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.80, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.81, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.08, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.2, tol_small);
 
@@ -1172,7 +1173,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -1.40, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -1.15, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 1.001, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.988, tol_small);
                break;
@@ -1186,7 +1187,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,  1.20, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,  1.19, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.08, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.2, tol_small);
 
@@ -1204,7 +1205,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.6, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.85, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 1.001, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.988, tol_small);
                 break;
@@ -1225,12 +1226,12 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-0.877, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.679, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.879, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z,  0.90, tol_small);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.40, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.15, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.999, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z, 1.012, tol_small);
                 break;
@@ -1245,12 +1246,12 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].x,1.123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.679, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.879, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.90, tol_small);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,0.6, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,0.85, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.999, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z,1.012, tol_small);
                 break;
@@ -1271,12 +1272,12 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-0.877, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,1.321, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,1.121, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.90, tol_small);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.40, tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.15, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].y,1.001, tol_small);
                 BOOST_CHECK_CLOSE(h_pos.data[rtag].z,1.012, tol_small);
                 break;
