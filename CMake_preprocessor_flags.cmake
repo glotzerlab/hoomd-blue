@@ -11,7 +11,9 @@ endif(ENABLE_STATIC)
 
 if (SINGLE_PRECISION)
     add_definitions (-DSINGLE_PRECISION)
-endif (SINGLE_PRECISION)
+else(SINGLE_PRECISION)
+   add_definitions (-Dkiss_fft_scalar=double)
+endif(SINGLE_PRECISION)
 
 if (ENABLE_CUDA)
     add_definitions (-DENABLE_CUDA)

@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "NeighborList.h"
 #include "ParticleGroup.h"
-#include "kiss_fftnd.h"
 
 #include <vector>
 
@@ -73,7 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // CUFFTCOMPLEX is cufftDoubleComplex when run in double precision with CUDA enabled, and cufftComplex otherwise
-#if defined ENABLE_CUDA && !defined SINGLE_PRECISION
+#ifndef SINGLE_PRECISION
 #define CUFFTCOMPLEX cufftDoubleComplex
 #else
 #define CUFFTCOMPLEX cufftComplex
@@ -81,6 +80,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef __PPPMFORCECOMPUTE_H__
 #define __PPPMFORCECOMPUTE_H__
+
+// slave KISS data type to HOOMD Scalar
+#ifndef kiss_fft_scalar
+#define kiss_fft_scalar Scalar
+#endif
+#include "HOOMDMath.h"
+#include "kiss_fftnd.h"
+
 
 // MAX gives the larger of two values
 #define MAX(a,b) ((a) > (b) ? (a) : (b))

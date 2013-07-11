@@ -54,6 +54,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the PPPMForceComputeGPU class
 */
 
+#ifdef SINGLE_PRECISION
+#define CUFFT_TRANSFORM_TYPE CUFFT_C2C
+#else
+#define CUFFT_TRANSFORM_TYPE CUFFT_Z2Z
+#endif
+
+
 #include "PotentialPair.h"
 #include "PPPMForceComputeGPU.h"
 
@@ -64,13 +71,6 @@ using namespace boost::python;
 using namespace boost;
 
 using namespace std;
-
-// CUFFTCOMPLEX is cufftComplex in single precision and cufftDoubleComplex in double precision
-#ifdef SINGLE_PRECISION
-#define CUFFTCOMPLEX cufftComplex
-#else
-#define CUFFTCOMPLEX cufftDoubleComplex
-#endif
 
 /*! \param sysdef System to compute bond forces on
     \param nlist Neighbor list
@@ -111,7 +111,7 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
 void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut)
     {
     PPPMForceCompute::setParams(Nx, Ny, Nz, order, kappa, rcut);
-    cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_C2C);
+    cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_TRANSFORM_TYPE);
 
     GPUArray<Scalar> n_energy_sum(Nx*Ny*Nz, exec_conf);
     m_energy_sum.swap(n_energy_sum);

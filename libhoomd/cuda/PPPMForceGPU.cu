@@ -75,11 +75,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // CUFFTEXEC is cufftExecC2C in single, cufftExecZ2Z in double
 #ifdef SINGLE_PRECISION
 #define __scalar2int_rd __float2int_rd
-#define CUFFTCOMPLEX cufftComplex
 #define CUFFTEXEC cufftExecC2C
 #else
 #define __scalar2int_rd __double2int_rd
-#define CUFFTCOMPLEX cufftDoubleComplex
 #define CUFFTEXEC cufftExecZ2Z
 #endif
 

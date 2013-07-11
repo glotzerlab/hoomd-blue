@@ -79,13 +79,6 @@ const Scalar cpu_sinc_coeff[] = {Scalar(1.0), Scalar(-1.0/6.0), Scalar(1.0/120.0
     \brief Contains code for the PPPMForceCompute class
 */
 
-// CUFFTCOMPLEX is cufftDoubleComplex when run in double precision with CUDA enabled, and cufftComplex otherwise
-#if defined ENABLE_CUDA && !defined SINGLE_PRECISION
-#define CUFFTCOMPLEX cufftDoubleComplex
-#else
-#define CUFFTCOMPLEX cufftComplex
-#endif
-
 /*! \param sysdef System to compute forces on
     \param nlist Neighbor list
     \param group Particle group
