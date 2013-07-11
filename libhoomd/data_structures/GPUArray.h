@@ -644,8 +644,9 @@ template<class T> void GPUArray<T>::allocate()
 
     if (m_num_elements > MAXALLOCBYTES/(unsigned int)sizeof(T))
         {
-        m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
-                                  << std::endl << std::endl;
+        if (m_exec_conf)
+            m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
+                                      << std::endl << std::endl;
         throw std::runtime_error("Error allocating GPUArray.");
         }
 
@@ -653,7 +654,8 @@ template<class T> void GPUArray<T>::allocate()
     // we require mapped pinned memory
     if (m_mapped && !m_exec_conf->dev_prop.canMapHostMemory) 
         {
-        m_exec_conf->msg->error() << "Device does not support mapped pinned memory." << std::endl << std::endl;
+        if (m_exec_conf)
+            m_exec_conf->msg->error() << "Device does not support mapped pinned memory." << std::endl << std::endl;
         throw std::runtime_error("Error allocating GPUArray.");
         }
 #endif
@@ -676,7 +678,8 @@ template<class T> void GPUArray<T>::allocate()
         int retval = posix_memalign(&ptr, getpagesize(), m_num_elements*sizeof(T));
         if (retval != 0)
             {
-            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+            if (m_exec_conf)
+                m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
             throw std::runtime_error("Error allocating GPUArray.");
             }
         cudaHostRegister(ptr,m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
@@ -793,7 +796,8 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
         return;
         }
 
-    m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host" <<  std::endl;
+    if (m_exec_conf)
+        m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB device->host" <<  std::endl;
     if (async)
         cudaMemcpyAsync(h_data, d_data, sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost);
     else
@@ -818,8 +822,8 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
         return;
         }
 
-       
-    m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB host->device" <<  std::endl;
+    if (m_exec_conf)
+        m_exec_conf->msg->notice(8) << "GPUArray: Copying " << float(m_num_elements*sizeof(T))/1024.0f/1024.0f << " MB host->device" <<  std::endl;
     if (async)
         cudaMemcpyAsync(d_data, h_data, sizeof(T)*m_num_elements, cudaMemcpyHostToDevice);
     else
@@ -875,7 +879,8 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
                 m_data_location = data_location::host;
             else
                 {
-                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
+                if (m_exec_conf)
+                    m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
                 throw std::runtime_error("Error acquiring data");
                 }
                 
@@ -906,7 +911,8 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
                 }
             else
                 {
-                m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
+                if (m_exec_conf)
+                    m_exec_conf->msg->error() << "Invalid access mode requested" << std::endl;
                 throw std::runtime_error("Error acquiring data");
                 }
                 
@@ -915,7 +921,8 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
 #endif
         else
             {
-            m_exec_conf->msg->error() << "Invalid data location state" << std::endl;
+            if (m_exec_conf)
+                m_exec_conf->msg->error() << "Invalid data location state" << std::endl;
             throw std::runtime_error("Error acquiring data");
             return NULL;
             }
@@ -924,7 +931,12 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
     else if (location == access_location::device)
         {
         // check that a GPU is actually specified
-        if (!m_exec_conf || !m_exec_conf->isCUDAEnabled())
+        if (!m_exec_conf)
+            {
+            std::cerr << "Reqesting device aquire, but we have no execution configuration" << std::endl;
+            throw std::runtime_error("Error acquiring data");
+            }
+        if (!m_exec_conf->isCUDAEnabled())
             {
             m_exec_conf->msg->error() << "Reqesting device aquire, but no GPU in the Execution Configuration" << std::endl;
             throw std::runtime_error("Error acquiring data");
@@ -993,7 +1005,8 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
 #endif
     else
         {
-        m_exec_conf->msg->error() << "Invalid location requested" << std::endl;
+        if (m_exec_conf)
+            m_exec_conf->msg->error() << "Invalid location requested" << std::endl;
         throw std::runtime_error("Error acquiring data");
         return NULL;
         }
@@ -1021,7 +1034,8 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
         int retval = posix_memalign(&ptr, getpagesize(), num_elements*sizeof(T));
         if (retval != 0)
             {
-            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+            if (m_exec_conf)
+                m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
             throw std::runtime_error("Error allocating GPUArray.");
             }
         cudaHostRegister(ptr, num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
@@ -1097,7 +1111,8 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
         int retval = posix_memalign(&ptr, getpagesize(), size);
         if (retval != 0)
             {
-            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+            if (m_exec_conf)
+                m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
             throw std::runtime_error("Error allocating GPUArray.");
             }
             
@@ -1256,12 +1271,14 @@ template<class T> void GPUArray<T>::resize(unsigned int num_elements)
 
     if (num_elements > MAXALLOCBYTES/(unsigned int)sizeof(T))
         {
-        m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
-                                  << std::endl << std::endl;
+        if (m_exec_conf)
+            m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
+                                      << std::endl << std::endl;
         throw std::runtime_error("Error allocating GPUArray.");
         }
 
-    m_exec_conf->msg->notice(7) << "GPUArray: Resizing to " << float(num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
+    if (m_exec_conf)
+        m_exec_conf->msg->notice(7) << "GPUArray: Resizing to " << float(num_elements*sizeof(T))/1024.0f/1024.0f << " MB" << std::endl;
 
     resizeHostArray(num_elements);
 #ifdef ENABLE_CUDA
@@ -1301,8 +1318,9 @@ template<class T> void GPUArray<T>::resize(unsigned int width, unsigned int heig
 
     if (num_elements > MAXALLOCBYTES/(unsigned int)sizeof(T))
         {
-        m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
-                                  << std::endl << std::endl;
+        if (m_exec_conf)
+            m_exec_conf->msg->error() << "Trying to allocate a very large (>4GB) amount of memory. Aborting."
+                                      << std::endl << std::endl;
         throw std::runtime_error("Error allocating GPUArray.");
         }
 

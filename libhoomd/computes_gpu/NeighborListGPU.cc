@@ -197,6 +197,31 @@ bool NeighborListGPU::distanceCheck()
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
     Scalar maxshiftsq = delta_max > 0  ? delta_max*delta_max : 0;
 
+    // the change of the global box size should not exceed the local box size 
+    Scalar3 del_L = L_g - m_last_L;
+    if ( fabs(del_L.x) >= m_last_L_local.x ||
+         fabs(del_L.y) >= m_last_L_local.y ||
+         fabs(del_L.z) >= m_last_L_local.z)
+        {
+        #ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            // particle migration will fail in MPI simulations, error out
+            m_exec_conf->msg->error() << "nlist: Too large change in box dimensions."
+                                      << std::endl << std::endl;
+            throw std::runtime_error("Error checking displacements");
+            }
+        else
+        #endif
+            {
+            // warn the user
+            m_exec_conf->msg->warning()
+                << "nlist: Extremely large change in box dimensions" << std::endl;
+            m_exec_conf->msg->warning()
+                << "Simulation may fail or run out of memory." << std::endl << std::endl;
+            }
+        }
+
     bool check_out_of_bounds = false;
 #ifdef ENABLE_MPI
     check_out_of_bounds = m_pdata->getDomainDecomposition();
@@ -223,10 +248,8 @@ bool NeighborListGPU::distanceCheck()
         {
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         unsigned int tag = h_tag.data[flags.y];
-        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one box length"
-                                  << std::endl << "between neighbor list builds."
+        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one sub-domain length."
                                   << std::endl << std::endl;
-
         throw std::runtime_error("Error checking particle displacements");
         }
 
