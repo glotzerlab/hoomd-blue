@@ -118,6 +118,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
  
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getL();
+    m_last_L_local = m_pdata->getBox().getL();
 
     // allocate conditions flags
     GPUFlags<unsigned int> conditions(exec_conf);
@@ -771,9 +772,35 @@ bool NeighborList::distanceCheck()
     bool boundary_check = false;
     bool out_of_bounds = false;
     unsigned int out_of_bounds_idx = 0;
-#ifdef ENABLE_MPI
+
+    #ifdef ENABLE_MPI
     boundary_check = m_pdata->getDomainDecomposition();
-#endif
+    #endif
+
+    // the change of the global box size should not exceed the local box size 
+    Scalar3 del_L = L_g - m_last_L;
+    if ( fabs(del_L.x) >= m_last_L_local.x ||
+         fabs(del_L.y) >= m_last_L_local.y ||
+         fabs(del_L.z) >= m_last_L_local.z)
+        {
+        #ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            // particle migration will fail in MPI simulations, error out
+            m_exec_conf->msg->error() << "nlist: Too large change in box dimensions."
+                                      << std::endl << std::endl;
+            throw std::runtime_error("Error checking displacements");
+            }
+        else
+        #endif
+            {
+            // warn the user
+            m_exec_conf->msg->warning()
+                << "nlist: Extremely large change in box dimensions" << std::endl;
+            m_exec_conf->msg->warning()
+                << "Simulation may fail or run out of memory." << std::endl << std::endl;
+            }
+        }
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -801,8 +828,7 @@ bool NeighborList::distanceCheck()
         {
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         unsigned int tag = h_tag.data[out_of_bounds_idx];
-        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one box length"
-                                  << std::endl << "between neighbor list builds."
+        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one sub-domain length."
                                   << std::endl << std::endl;
         throw std::runtime_error("Error checking particle displacements");
         }
@@ -845,6 +871,7 @@ void NeighborList::setLastUpdatedPos()
    
     // update last box length
     m_last_L = m_pdata->getGlobalBox().getL();
+    m_last_L_local = m_pdata->getBox().getL();
 
     if (m_prof) m_prof->pop();
     }

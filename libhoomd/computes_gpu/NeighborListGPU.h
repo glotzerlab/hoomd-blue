@@ -118,6 +118,7 @@ class NeighborListGPU : public NeighborList
         virtual void setLastUpdatedPos()
             {
             m_last_L = m_pdata->getGlobalBox().getL(); 
+            m_last_L_local = m_pdata->getBox().getL();
             }
         
         //! Filter the neighbor list of excluded particles
