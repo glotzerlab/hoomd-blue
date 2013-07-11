@@ -951,6 +951,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.image[tag] = h_image.data[idx];
             snapshot.body[tag] = h_body.data[idx];
             snapshot.orientation[tag] = h_orientation.data[idx];
+            snapshot.inertia_tensor[tag] = m_inertia_tensor[idx];
             
             // make sure the position stored in the snapshot is within the boundaries
             m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
