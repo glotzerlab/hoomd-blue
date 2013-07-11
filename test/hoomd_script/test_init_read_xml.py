@@ -32,14 +32,14 @@ A B C
         init.read_xml('test.xml');
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
-        self.assertEqual(globals.system_definition.getParticleData().getN(), 3);
+        self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
     
     # tests creation with a few more arugments specified
     def test_moreargs(self):
         init.read_xml('test.xml', time_step=100);
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
-        self.assertEqual(globals.system_definition.getParticleData().getN(), 3);
+        self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
         
     # checks for an error if initialized twice
     def test_inittwice(self):
@@ -47,7 +47,8 @@ A B C
         self.assertRaises(RuntimeError, init.read_xml, 'test.xml');
     
     def tearDown(self):
-        os.remove("test.xml");
+        if (comm.get_rank()==0):
+            os.remove("test.xml");
         init.reset();
 
 if __name__ == '__main__':
