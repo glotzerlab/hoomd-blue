@@ -174,8 +174,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
-    
+   
+#ifdef ENABLE_MPI
     m_rank = guessRank();
+#else
+    m_rank = 0;
+#endif
 
 #ifdef ENABLE_CUDA
     // scan the available GPUs
