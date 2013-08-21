@@ -466,6 +466,22 @@ class ParticleData : boost::noncopyable
             {
             return m_type_mapping.size();
             }
+
+        //! Get the origin for the particle system
+        /*! \return origin of the system
+        */
+        Scalar3 getOrigin()
+            {
+            return m_origin;
+            }
+
+        //! Get the origin image for the particle system
+        /*! \return image of the origin of the system
+        */
+        int3 getOImage()
+            {
+            return m_o_image;
+            }
             
         //! Get the maximum diameter of the particle set
         /*! \return Maximum Diameter Value
@@ -721,10 +737,8 @@ class ParticleData : boost::noncopyable
         void translateOrigin(const Scalar3& a)
             {
             m_origin += a;
-            
             // wrap the origin back into the box to prevent it from getting too large
-            int3 image = make_int3(0,0,0);
-            m_global_box.wrap(m_origin, image);
+            m_global_box.wrap(m_origin, m_o_image);
             }
         
         //! Rest the box origin
@@ -733,6 +747,7 @@ class ParticleData : boost::noncopyable
         void resetOrigin()
             {
             m_origin = make_scalar3(0,0,0);
+            m_o_image = make_int3(0,0,0);
             }
 
     private:
@@ -779,6 +794,7 @@ class ParticleData : boost::noncopyable
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
         
         Scalar3 m_origin;                            //!< Tracks the position of the origin of the coordinate system
+        int3 m_o_image;                              //!< Tracks the origin image
         
         //! Helper function to allocate particle data
         void allocate(unsigned int N);

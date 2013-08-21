@@ -158,6 +158,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     // zero the origin
     m_origin = make_scalar3(0,0,0);
+    m_o_image = make_int3(0,0,0);
     }
 
 /*! Loads particle data from the snapshot into the internal arrays.
@@ -210,6 +211,7 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
 
     // zero the origin
     m_origin = make_scalar3(0,0,0);
+    m_o_image = make_int3(0,0,0);
     }
 
 
@@ -787,6 +789,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
     // zero the origin
     m_origin = make_scalar3(0,0,0);
+    m_o_image = make_int3(0,0,0);
     }
 
 //! take a particle data snapshot

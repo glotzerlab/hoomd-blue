@@ -62,6 +62,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MSDAnalyzer.h"
 #include "HOOMDInitializer.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include <boost/python.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -89,6 +93,18 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing MSDAnalyzer: " << fname << " " << header_prefix << " " << overwrite << endl;
 
+    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+
+    m_pdata->takeSnapshot(snapshot);
+
+#ifdef ENABLE_MPI
+    // if we are not the root processor, do not perform file I/O
+    if (m_comm && !m_exec_conf->isRoot())
+        {
+        return;
+        }
+#endif
+
     // open the file
     if (exists(fname) && !overwrite)
         {
@@ -109,25 +125,18 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
         }
     
     // record the initial particle positions by tag
-    m_initial_x.resize(m_pdata->getN());
-    m_initial_y.resize(m_pdata->getN());
-    m_initial_z.resize(m_pdata->getN());
+    m_initial_x.resize(m_pdata->getNGlobal());
+    m_initial_y.resize(m_pdata->getNGlobal());
+    m_initial_z.resize(m_pdata->getNGlobal());
 
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
-
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
     
     // for each particle in the data
-    for (unsigned int tag = 0; tag < m_pdata->getN(); tag++)
+    for (unsigned int tag = 0; tag < snapshot.size; tag++)
         {
-        // identify the index of the current particle tag
-        unsigned int idx = h_rtag.data[tag];
-        
         // save its initial position
-        Scalar3 pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-        Scalar3 unwrapped = box.shift(pos, h_image.data[idx]);
+        Scalar3 pos = snapshot.pos[tag];
+        Scalar3 unwrapped = box.shift(pos, snapshot.image[tag]);
         m_initial_x[tag] = unwrapped.x;
         m_initial_y[tag] = unwrapped.y;
         m_initial_z[tag] = unwrapped.z;
@@ -149,6 +158,20 @@ void MSDAnalyzer::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Analyze MSD");
+
+    // take particle data snapshot
+    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+
+    m_pdata->takeSnapshot(snapshot);
+
+#ifdef ENABLE_MPI
+    // if we are not the root processor, do not perform file I/O
+    if (m_comm && !m_exec_conf->isRoot())
+        {
+        if (m_prof) m_prof->pop();
+        return;
+        }
+#endif
     
     // error check
     if (m_columns.size() == 0)
@@ -208,8 +231,21 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
     // read in the xml file
     HOOMDInitializer xml(m_exec_conf,xml_fname);
     
+    // take particle data snapshot
+    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+
+    m_pdata->takeSnapshot(snapshot);
+
+#ifdef ENABLE_MPI
+    // if we are not the root processor, do not perform file I/O
+    if (m_comm && !m_exec_conf->isRoot())
+        {
+        return;
+        }
+#endif
+
     // verify that the input matches the current system size
-    unsigned int nparticles = m_pdata->getN();
+    unsigned int nparticles = m_pdata->getNGlobal();
     if (nparticles != xml.getPos().size())
         {
         m_exec_conf->msg->error() << "analyze.msd: Found " << xml.getPos().size() << " particles in "
@@ -226,7 +262,7 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
         }
     
     // reset the initial positions
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
     
     // for each particle in the data
     for (unsigned int tag = 0; tag < nparticles; tag++)
@@ -283,13 +319,12 @@ void MSDAnalyzer::writeHeader()
     Loop through all particles in the given group and calculate the MSD over them.
     \returns The calculated MSD
 */
-Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
+Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData& snapshot)
     {
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
-
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
+    Scalar3 l_origin = m_pdata->getOrigin();
+    int3 image = m_pdata->getOImage();
+    Scalar3 origin = box.shift(l_origin, image);
     
     // initial sum for the average
     Scalar msd = Scalar(0.0);
@@ -306,13 +341,9 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
         {
         // get the tag for the current group member from the group
         unsigned int tag = group->getMemberTag(group_idx);
-        
-        // identify the index of the current particle tag
-        unsigned int idx = h_rtag.data[tag];
-        
-        // save its initial position
-        Scalar3 pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-        Scalar3 unwrapped = box.shift(pos, h_image.data[idx]);
+        Scalar3 pos = snapshot.pos[tag] + l_origin - origin;
+        int3 image = snapshot.image[tag];
+        Scalar3 unwrapped = box.shift(pos, image);
         Scalar dx = unwrapped.x - m_initial_x[tag];
         Scalar dy = unwrapped.y - m_initial_y[tag];
         Scalar dz = unwrapped.z - m_initial_z[tag];
@@ -334,6 +365,21 @@ void MSDAnalyzer::writeRow(unsigned int timestep)
     {
     if (m_prof) m_prof->push("MSD");
     
+    // take particle data snapshot
+    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+
+    m_pdata->takeSnapshot(snapshot);
+
+    // This will need to be changed based on calling function
+#ifdef ENABLE_MPI
+    // if we are not the root processor, do not perform file I/O
+    if (m_comm && !m_exec_conf->isRoot())
+        {
+        if (m_prof) m_prof->pop();
+        return;
+        }
+#endif
+
     // The timestep is always output
     m_file << setprecision(10) << timestep;
     
@@ -348,9 +394,9 @@ void MSDAnalyzer::writeRow(unsigned int timestep)
     
     // write all but the last of the columns separated by the delimiter
     for (unsigned int i = 0; i < m_columns.size()-1; i++)
-        m_file << setprecision(10) << calcMSD(m_columns[i].m_group) << m_delimiter;
+        m_file << setprecision(10) << calcMSD(m_columns[i].m_group, snapshot) << m_delimiter;
     // write the last one with no delimiter after it
-    m_file << setprecision(10) << calcMSD(m_columns[m_columns.size()-1].m_group) << endl;
+    m_file << setprecision(10) << calcMSD(m_columns[m_columns.size()-1].m_group, snapshot) << endl;
     m_file.flush();
     
     if (!m_file.good())
