@@ -93,9 +93,9 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing MSDAnalyzer: " << fname << " " << header_prefix << " " << overwrite << endl;
 
-    // SnapshotParticleData snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData snapshot(m_pdata->getNGlobal());
 
-    // m_pdata->takeSnapshot(snapshot);
+    m_pdata->takeSnapshot(snapshot);
 
     // open the file
     if (exists(fname) && !overwrite)
@@ -121,25 +121,14 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     m_initial_y.resize(m_pdata->getNGlobal());
     m_initial_z.resize(m_pdata->getNGlobal());
 
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
-
     BoxDim box = m_pdata->getGlobalBox();
 
     // for each particle in the data
-    for (unsigned int tag = 0; tag < m_pdata->getNGlobal(); tag++)
+    for (unsigned int tag = 0; tag < snapshot.size; tag++)
         {
-        // identify the index of the current particle tag
-        unsigned int idx = h_rtag.data[tag];
-
         // save its initial position
-        Scalar3 pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-        Scalar3 unwrapped = box.shift(pos, h_image.data[idx]);
-
-        // save its initial position
-        // Scalar3 pos = snapshot.pos[tag];
-        // Scalar3 unwrapped = box.shift(pos, snapshot.image[tag]);
+        Scalar3 pos = snapshot.pos[tag];
+        Scalar3 unwrapped = box.shift(pos, snapshot.image[tag]);
         m_initial_x[tag] = unwrapped.x;
         m_initial_y[tag] = unwrapped.y;
         m_initial_z[tag] = unwrapped.z;
