@@ -117,20 +117,20 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->notice(3) << "analyze.msd: Creating new msd in file \"" << fname << "\"" << endl;
         m_file.open(fname.c_str(), ios_base::out);
         }
-        
+
     if (!m_file.good())
         {
         m_exec_conf->msg->error() << "analyze.msd: Unable to open file " << fname << endl;
         throw runtime_error("Error initializing analyze.msd");
         }
-    
+
     // record the initial particle positions by tag
     m_initial_x.resize(m_pdata->getNGlobal());
     m_initial_y.resize(m_pdata->getNGlobal());
     m_initial_z.resize(m_pdata->getNGlobal());
 
     BoxDim box = m_pdata->getGlobalBox();
-    
+
     // for each particle in the data
     for (unsigned int tag = 0; tag < snapshot.size; tag++)
         {
@@ -172,28 +172,28 @@ void MSDAnalyzer::analyze(unsigned int timestep)
         return;
         }
 #endif
-    
+
     // error check
     if (m_columns.size() == 0)
         {
         m_exec_conf->msg->warning() << "analyze.msd: No columns specified in the MSD analysis" << endl;
         return;
         }
-    
+
     // ignore writing the header on the first call when appending the file
     if (m_columns_changed && m_appending)
         {
         m_appending = false;
         m_columns_changed = false;
         }
-    
+
     // write out the header only once if the columns change
     if (m_columns_changed)
         {
         writeHeader();
         m_columns_changed = false;
         }
-        
+
     // write out the row every time
     writeRow(timestep);
 
@@ -223,14 +223,14 @@ void MSDAnalyzer::addColumn(boost::shared_ptr<ParticleGroup> group, const std::s
     }
 
 /*! \param xml_fname Name of the XML file to read in to the r0 positions
-    
+
     \post \a xml_fname is read and all initial r0 positions are assigned from that file.
 */
 void MSDAnalyzer::setR0(const std::string& xml_fname)
     {
     // read in the xml file
     HOOMDInitializer xml(m_exec_conf,xml_fname);
-    
+
     // take particle data snapshot
     SnapshotParticleData snapshot(m_pdata->getNGlobal());
 
@@ -252,7 +252,7 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
              << xml_fname << ", but there are " << nparticles << " in the current simulation." << endl;
         throw runtime_error("Error setting r0 in analyze.msd");
         }
-    
+
     // determine if we have image data
     bool have_image = (xml.getImage().size() == nparticles);
     if (!have_image)
@@ -260,10 +260,10 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
         m_exec_conf->msg->warning() << "analyze.msd: Image data missing or corrupt in " << xml_fname
              << ". Computed msd values will not be correct." << endl;
         }
-    
+
     // reset the initial positions
     BoxDim box = m_pdata->getGlobalBox();
-    
+
     // for each particle in the data
     for (unsigned int tag = 0; tag < nparticles; tag++)
         {
@@ -272,7 +272,7 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
         m_initial_x[tag] = pos.x;
         m_initial_y[tag] = pos.y;
         m_initial_z[tag] = pos.z;
-        
+
         // adjust the positions by the image flags if we have them
         if (have_image)
             {
@@ -294,19 +294,19 @@ void MSDAnalyzer::writeHeader()
     {
     // write out the header prefix
     m_file << m_header_prefix;
-    
+
     // timestep is always output
     m_file << "timestep";
-    
+
     if (m_columns.size() == 0)
         {
         m_exec_conf->msg->warning() << "analyze.msd: No columns specified in the MSD analysis" << endl;
         return;
         }
-        
+
     // only print the delimiter after the timestep if there are more columns
     m_file << m_delimiter;
-    
+
     // write all but the last of the quantities separated by the delimiter
     for (unsigned int i = 0; i < m_columns.size()-1; i++)
         m_file << m_columns[i].m_name << m_delimiter;
@@ -325,14 +325,14 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
 
     // initial sum for the average
     Scalar msd = Scalar(0.0);
-    
+
     // handle the case where there are 0 members gracefully
     if (group->getNumMembers() == 0)
         {
         m_exec_conf->msg->warning() << "analyze.msd: Group has 0 members, reporting a calculated msd of 0.0" << endl;
         return Scalar(0.0);
         }
-        
+
     // for each particle in the group
     for (unsigned int group_idx = 0; group_idx < group->getNumMembers(); group_idx++)
         {
@@ -344,10 +344,10 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
         Scalar dx = unwrapped.x - m_initial_x[tag];
         Scalar dy = unwrapped.y - m_initial_y[tag];
         Scalar dz = unwrapped.z - m_initial_z[tag];
-        
+
         msd += dx*dx + dy*dy + dz*dz;
         }
-    
+
     // divide to complete the average
     msd /= Scalar(group->getNumMembers());
     return msd;
@@ -361,7 +361,7 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
 void MSDAnalyzer::writeRow(unsigned int timestep)
     {
     if (m_prof) m_prof->push("MSD");
-    
+
     // take particle data snapshot
     SnapshotParticleData snapshot(m_pdata->getNGlobal());
 
@@ -379,29 +379,29 @@ void MSDAnalyzer::writeRow(unsigned int timestep)
 
     // The timestep is always output
     m_file << setprecision(10) << timestep;
-    
+
     // quit now if there is nothing to log
     if (m_columns.size() == 0)
         {
         return;
         }
-        
+
     // only print the delimiter after the timestep if there are more columns
     m_file << m_delimiter;
-    
+
     // write all but the last of the columns separated by the delimiter
     for (unsigned int i = 0; i < m_columns.size()-1; i++)
         m_file << setprecision(10) << calcMSD(m_columns[i].m_group, snapshot) << m_delimiter;
     // write the last one with no delimiter after it
     m_file << setprecision(10) << calcMSD(m_columns[m_columns.size()-1].m_group, snapshot) << endl;
     m_file.flush();
-    
+
     if (!m_file.good())
         {
         m_exec_conf->msg->error() << "analyze.msd: I/O error while writing file" << endl;
         throw runtime_error("Error writting msd file");
         }
-        
+
     if (m_prof) m_prof->pop();
     }
 
