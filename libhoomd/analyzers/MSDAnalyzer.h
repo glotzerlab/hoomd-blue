@@ -144,7 +144,7 @@ class MSDAnalyzer : public Analyzer
         //! Helper function to calculate the MSD of a single group
         Scalar calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData& snapshot);
         //! Helper function to write one row of output
-        void writeRow(unsigned int timestep);
+        void writeRow(unsigned int timestep, const SnapshotParticleData& snapshot);
     };
 
 //! Exports the MSDAnalyzer class to python
