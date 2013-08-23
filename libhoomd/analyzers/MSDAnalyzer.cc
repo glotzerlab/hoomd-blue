@@ -97,14 +97,6 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_pdata->takeSnapshot(snapshot);
 
-#ifdef ENABLE_MPI
-    // if we are not the root processor, do not perform file I/O
-    if (m_comm && !m_exec_conf->isRoot())
-        {
-        return;
-        }
-#endif
-
     // open the file
     if (exists(fname) && !overwrite)
         {
