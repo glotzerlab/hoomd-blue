@@ -828,7 +828,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         std::vector<Scalar4> orientation(m_nparticles);
         std::vector<unsigned int> tag(m_nparticles);
         std::map<unsigned int, unsigned int> rtag_map;
-        Scalar3 abs_origin = global_box.shift(m_origin, m_o_image);
+        Scalar3 abs_origin = m_global_box.shift(m_origin, m_o_image);
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
             {
             // pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
@@ -941,7 +941,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     else
 #endif
         {
-        Scalar3 abs_origin = global_box.shift(m_origin, m_o_image);
+        Scalar3 abs_origin = m_global_box.shift(m_origin, m_o_image);
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
             {
             unsigned int tag = h_tag.data[idx];
