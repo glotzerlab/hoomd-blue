@@ -937,9 +937,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
                 // make sure the position stored in the snapshot is within the boundaries
                 m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
-                snapshot.image[tag].x -= m_o_image.x;
-                snapshot.image[tag].y -= m_o_image.y;
-                snapshot.image[tag].z -= m_o_image.z;
+                snapshot.image[tag].x += m_o_image.x;
+                snapshot.image[tag].y += m_o_image.y;
+                snapshot.image[tag].z += m_o_image.z;
                 }
             } 
         }
@@ -966,9 +966,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
             // make sure the position stored in the snapshot is within the boundaries
             m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
-            snapshot.image[tag].x -= m_o_image.x;
-            snapshot.image[tag].y -= m_o_image.y;
-            snapshot.image[tag].z -= m_o_image.z;
+            snapshot.image[tag].x += m_o_image.x;
+            snapshot.image[tag].y += m_o_image.y;
+            snapshot.image[tag].z += m_o_image.z;
             }
         }
 
