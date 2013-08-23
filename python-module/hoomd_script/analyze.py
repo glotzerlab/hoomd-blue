@@ -599,10 +599,10 @@ class msd(_analyzer):
         util.print_status_line();
 
         # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("analyze.msd is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error creating analyzer.")
+        # if (hoomd.is_MPI_available()):
+        #     if globals.system_definition.getParticleData().getDomainDecomposition():
+        #         globals.msg.error("analyze.msd is not supported in multi-processor simulations.\n\n")
+        #         raise RuntimeError("Error creating analyzer.")
 
         # initialize base class
         _analyzer.__init__(self);
