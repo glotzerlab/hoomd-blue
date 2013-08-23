@@ -838,9 +838,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             mass[idx] = h_vel.data[idx].w;
             charge[idx] = h_charge.data[idx];
             diameter[idx] = h_diameter.data[idx];
-            image[idx].x = h_image.data[idx].x - m_o_image[idx].x;
-            image[idx].y = h_image.data[idx].y - m_o_image[idx].y;
-            image[idx].z = h_image.data[idx].z - m_o_image[idx].z;
+            image[idx].x = h_image.data[idx].x - m_o_image.x;
+            image[idx].y = h_image.data[idx].y - m_o_image.y;
+            image[idx].z = h_image.data[idx].z - m_o_image.z;
             body[idx] = h_body.data[idx];
             orientation[idx] = h_orientation.data[idx];
 
