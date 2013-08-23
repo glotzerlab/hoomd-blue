@@ -831,7 +831,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         Scalar3 abs_origin = m_global_box.shift(m_origin, m_o_image);
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
             {
-            // pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
+            Scalar3 dummy_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
             pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - abs_origin;
             vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             accel[idx] = h_accel.data[idx];
@@ -934,7 +934,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                 snapshot.orientation[tag] = orientation_proc[rank][idx];
 
                 // make sure the position stored in the snapshot is within the boundaries
-                m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
+                m_global_box.wrap(dummy_pos, snapshot.image[tag]);
+                int3 dummy_img = make_int3(0, 0, 0);
+                m_global_box.wrap(snapshot.pos[tag], dummy_img);
                 }
             } 
         }
@@ -946,7 +948,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             {
             unsigned int tag = h_tag.data[idx];
             assert(tag < m_nglobal);
-            // snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
+            Scalar3 dummy_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
             snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - abs_origin;
             snapshot.vel[tag] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             snapshot.accel[tag] = h_accel.data[idx];
@@ -959,7 +961,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.orientation[tag] = h_orientation.data[idx];
 
             // make sure the position stored in the snapshot is within the boundaries
-            m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
+            m_global_box.wrap(dummy_pos, snapshot.image[tag]);
+            int3 dummy_img = make_int3(0, 0, 0);
+            m_global_box.wrap(snapshot.pos[tag], dummy_img);
             }
         }
 
