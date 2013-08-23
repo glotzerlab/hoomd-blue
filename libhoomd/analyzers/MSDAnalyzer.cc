@@ -97,6 +97,14 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_pdata->takeSnapshot(snapshot);
 
+#ifdef ENABLE_MPI
+    // if we are not the root processor, do not perform file I/O
+    if (m_comm && !m_exec_conf->isRoot())
+        {
+        return;
+        }
+#endif
+
     // open the file
     if (exists(fname) && !overwrite)
         {
@@ -187,7 +195,7 @@ void MSDAnalyzer::analyze(unsigned int timestep)
         }
 
     // write out the row every time
-    writeRow(timestep);
+    writeRow(timestep, snapshot);
 
     if (m_prof)
         m_prof->pop();
@@ -350,24 +358,24 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
     Performs all the steps needed in order to calculate the MSDs for all the groups in the columns and writes out an
     entire row to the file.
 */
-void MSDAnalyzer::writeRow(unsigned int timestep)
+void MSDAnalyzer::writeRow(unsigned int timestep, const SnapshotParticleData& snapshot)
     {
     if (m_prof) m_prof->push("MSD");
 
-    // take particle data snapshot
-    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+//     // take particle data snapshot
+//     SnapshotParticleData snapshot(m_pdata->getNGlobal());
 
-    m_pdata->takeSnapshot(snapshot);
+//     m_pdata->takeSnapshot(snapshot);
 
-    // This will need to be changed based on calling function
-#ifdef ENABLE_MPI
-    // if we are not the root processor, do not perform file I/O
-    if (m_comm && !m_exec_conf->isRoot())
-        {
-        if (m_prof) m_prof->pop();
-        return;
-        }
-#endif
+//     // This will need to be changed based on calling function
+// #ifdef ENABLE_MPI
+//     // if we are not the root processor, do not perform file I/O
+//     if (m_comm && !m_exec_conf->isRoot())
+//         {
+//         if (m_prof) m_prof->pop();
+//         return;
+//         }
+// #endif
 
     // The timestep is always output
     m_file << setprecision(10) << timestep;
