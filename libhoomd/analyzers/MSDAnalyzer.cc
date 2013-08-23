@@ -128,7 +128,7 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     BoxDim box = m_pdata->getGlobalBox();
 
     // for each particle in the data
-    for (unsigned int tag = 0; tag < getNGlobal(); tag++)
+    for (unsigned int tag = 0; tag < m_pdata->getNGlobal(); tag++)
         {
         // identify the index of the current particle tag
         unsigned int idx = h_rtag.data[tag];
