@@ -478,7 +478,7 @@ class ParticleData : boost::noncopyable
         //! Get the origin image for the particle system
         /*! \return image of the origin of the system
         */
-        int3 getOImage()
+        int3 getOriginImage()
             {
             return m_o_image;
             }

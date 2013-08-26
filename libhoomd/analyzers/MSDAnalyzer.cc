@@ -322,6 +322,9 @@ void MSDAnalyzer::writeHeader()
 Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData& snapshot)
     {
     BoxDim box = m_pdata->getGlobalBox();
+    Scalar3 l_origin = m_pdata->getOrigin();
+    int3 image = m_pdata->getOriginImage();
+    Scalar3 origin = box.shift(l_origin, image);
 
     // initial sum for the average
     Scalar msd = Scalar(0.0);
@@ -338,9 +341,10 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
         {
         // get the tag for the current group member from the group
         unsigned int tag = group->getMemberTag(group_idx);
-        Scalar3 pos = snapshot.pos[tag];
+        Scalar3 pos = snapshot.pos[tag]; + l_origin
         int3 image = snapshot.image[tag];
         Scalar3 unwrapped = box.shift(pos, image);
+        pos -= origin;
         Scalar dx = unwrapped.x - m_initial_x[tag];
         Scalar dy = unwrapped.y - m_initial_y[tag];
         Scalar dz = unwrapped.z - m_initial_z[tag];
