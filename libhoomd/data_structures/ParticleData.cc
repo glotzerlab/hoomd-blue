@@ -953,10 +953,10 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.mass[tag] = h_vel.data[idx].w;
             snapshot.charge[tag] = h_charge.data[idx];
             snapshot.diameter[tag] = h_diameter.data[idx];
-            snapshot.image[idx] = h_image.data[idx];
-            snapshot.image[idx].x -= m_o_image.x;
-            snapshot.image[idx].y -= m_o_image.y;
-            snapshot.image[idx].z -= m_o_image.z;
+            snapshot.image[tag] = h_image.data[idx];
+            snapshot.image[tag].x -= m_o_image.x;
+            snapshot.image[tag].y -= m_o_image.y;
+            snapshot.image[tag].z -= m_o_image.z;
             snapshot.body[tag] = h_body.data[idx];
             snapshot.orientation[tag] = h_orientation.data[idx];
 
