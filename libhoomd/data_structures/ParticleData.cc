@@ -831,8 +831,8 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         Scalar3 abs_origin = m_global_box.shift(m_origin, m_o_image);
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
             {
-            // pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
-            pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - abs_origin;
+            pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
+            // pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - abs_origin;
             vel[idx] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             accel[idx] = h_accel.data[idx];
             type[idx] = __scalar_as_int(h_pos.data[idx].w);
@@ -946,8 +946,8 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             {
             unsigned int tag = h_tag.data[idx];
             assert(tag < m_nglobal);
-            // snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
-            snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - abs_origin;
+            snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
+            // snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - abs_origin;
             snapshot.vel[tag] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
             snapshot.accel[tag] = h_accel.data[idx];
             snapshot.type[tag] = __scalar_as_int(h_pos.data[idx].w);
