@@ -341,7 +341,7 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
         {
         // get the tag for the current group member from the group
         unsigned int tag = group->getMemberTag(group_idx);
-        Scalar3 pos = snapshot.pos[tag]; + l_origin;
+        Scalar3 pos = snapshot.pos[tag] + l_origin;
         int3 image = snapshot.image[tag];
         Scalar3 unwrapped = box.shift(pos, image);
         pos -= origin;
