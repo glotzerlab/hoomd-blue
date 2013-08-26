@@ -330,14 +330,14 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
     Scalar msd = Scalar(0.0);
 
     // handle the case where there are 0 members gracefully
-    if (group->getNumMembers() == 0)
+    if (group->getNumMembersGlobal() == 0)
         {
         m_exec_conf->msg->warning() << "analyze.msd: Group has 0 members, reporting a calculated msd of 0.0" << endl;
         return Scalar(0.0);
         }
 
     // for each particle in the group
-    for (unsigned int group_idx = 0; group_idx < group->getNumMembers(); group_idx++)
+    for (unsigned int group_idx = 0; group_idx < group->getNumMembersGlobal(); group_idx++)
         {
         // get the tag for the current group member from the group
         unsigned int tag = group->getMemberTag(group_idx);
@@ -352,7 +352,7 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
         }
 
     // divide to complete the average
-    msd /= Scalar(group->getNumMembers());
+    msd /= Scalar(group->getNumMembersGlobal());
     return msd;
     }
 
