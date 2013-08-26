@@ -344,7 +344,6 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
         Scalar3 pos = snapshot.pos[tag] + l_origin - origin;
         int3 image = snapshot.image[tag];
         Scalar3 unwrapped = box.shift(pos, image);
-        // pos = pos - origin;
         Scalar dx = unwrapped.x - m_initial_x[tag];
         Scalar dy = unwrapped.y - m_initial_y[tag];
         Scalar dz = unwrapped.z - m_initial_z[tag];
