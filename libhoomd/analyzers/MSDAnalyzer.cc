@@ -322,9 +322,6 @@ void MSDAnalyzer::writeHeader()
 Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData& snapshot)
     {
     BoxDim box = m_pdata->getGlobalBox();
-    // Scalar3 l_origin = m_pdata->getOrigin();
-    // int3 image = m_pdata->getOriginImage();
-    // Scalar3 origin = box.shift(l_origin, image);
 
     // initial sum for the average
     Scalar msd = Scalar(0.0);
@@ -341,7 +338,7 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
         {
         // get the tag for the current group member from the group
         unsigned int tag = group->getMemberTag(group_idx);
-        Scalar3 pos = snapshot.pos[tag];// + l_origin - origin;
+        Scalar3 pos = snapshot.pos[tag];
         int3 image = snapshot.image[tag];
         Scalar3 unwrapped = box.shift(pos, image);
         Scalar dx = unwrapped.x - m_initial_x[tag];
@@ -364,21 +361,6 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
 void MSDAnalyzer::writeRow(unsigned int timestep, const SnapshotParticleData& snapshot)
     {
     if (m_prof) m_prof->push("MSD");
-
-//     // take particle data snapshot
-//     SnapshotParticleData snapshot(m_pdata->getNGlobal());
-
-//     m_pdata->takeSnapshot(snapshot);
-
-//     // This will need to be changed based on calling function
-// #ifdef ENABLE_MPI
-//     // if we are not the root processor, do not perform file I/O
-//     if (m_comm && !m_exec_conf->isRoot())
-//         {
-//         if (m_prof) m_prof->pop();
-//         return;
-//         }
-// #endif
 
     // The timestep is always output
     m_file << setprecision(10) << timestep;

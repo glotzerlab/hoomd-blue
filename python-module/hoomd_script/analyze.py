@@ -598,12 +598,6 @@ class msd(_analyzer):
     def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False):
         util.print_status_line();
 
-        # Error out in MPI simulations
-        # if (hoomd.is_MPI_available()):
-        #     if globals.system_definition.getParticleData().getDomainDecomposition():
-        #         globals.msg.error("analyze.msd is not supported in multi-processor simulations.\n\n")
-        #         raise RuntimeError("Error creating analyzer.")
-
         # initialize base class
         _analyzer.__init__(self);
         
