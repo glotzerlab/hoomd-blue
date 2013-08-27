@@ -54,6 +54,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares the MSDAnalyzer class
 */
 
+#ifndef __MSD_ANALYZER_H__
+#define __MSD_ANALYZER_H__
+
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
@@ -61,12 +64,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <fstream>
 #include <boost/shared_ptr.hpp>
-
 #include "Analyzer.h"
 #include "ParticleGroup.h"
-
-#ifndef __MSD_ANALYZER_H__
-#define __MSD_ANALYZER_H__
 
 //! Prints a log of the mean-squared displacement calculated over particles in the simulation
 /*! On construction, MSDAnalyzer opens the given file name for writing. The file will optionally be overwritten
@@ -97,19 +96,19 @@ class MSDAnalyzer : public Analyzer
 
         //! Destructor
         ~MSDAnalyzer();
-        
+
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
-        
+
         //! Sets the delimiter to use between fields
         void setDelimiter(const std::string& delimiter);
-        
+
         //! Adds a column to the analysis
         void addColumn(boost::shared_ptr<ParticleGroup> group, const std::string& name);
-        
+
         //! Sets r0 from an xml file
         void setR0(const std::string& xml_fname);
-        
+
     private:
         //! The delimiter to put between columns in the file
         std::string m_delimiter;
@@ -117,14 +116,14 @@ class MSDAnalyzer : public Analyzer
         std::string m_header_prefix;
         //! Flag indicating this file is being appended to
         bool m_appending;
-        
+
         bool m_columns_changed; //!< Set to true if the list of columns have changed
         std::ofstream m_file;   //!< The file we write out to
-        
+
         std::vector<Scalar> m_initial_x;    //!< initial value of the x-component listed by tag
         std::vector<Scalar> m_initial_y;    //!< initial value of the y-component listed by tag
         std::vector<Scalar> m_initial_z;    //!< initial value of the z-component listed by tag
-        
+
         //! struct for storing the particle group and name assocated with a column in the output
         struct column
             {
@@ -133,19 +132,19 @@ class MSDAnalyzer : public Analyzer
             //! constructs a column
             column(boost::shared_ptr<ParticleGroup const> group, const std::string& name) :
                     m_group(group), m_name(name) {}
-                    
+
             boost::shared_ptr<ParticleGroup const> m_group; //!< A shared pointer to the group definition
             std::string m_name;                             //!< The name to print across the file header
             };
-            
+
         std::vector<column> m_columns;  //!< List of groups to output
-        
+
         //! Helper function to write out the header
         void writeHeader();
         //! Helper function to calculate the MSD of a single group
-        Scalar calcMSD(boost::shared_ptr<ParticleGroup const> group);
+        Scalar calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData& snapshot);
         //! Helper function to write one row of output
-        void writeRow(unsigned int timestep);
+        void writeRow(unsigned int timestep, const SnapshotParticleData& snapshot);
     };
 
 //! Exports the MSDAnalyzer class to python

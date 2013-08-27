@@ -158,6 +158,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     // zero the origin
     m_origin = make_scalar3(0,0,0);
+    m_o_image = make_int3(0,0,0);
     }
 
 /*! Loads particle data from the snapshot into the internal arrays.
@@ -210,6 +211,7 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
 
     // zero the origin
     m_origin = make_scalar3(0,0,0);
+    m_o_image = make_int3(0,0,0);
     }
 
 
@@ -787,6 +789,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
     // zero the origin
     m_origin = make_scalar3(0,0,0);
+    m_o_image = make_int3(0,0,0);
     }
 
 //! take a particle data snapshot
@@ -825,7 +828,6 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         std::vector<Scalar4> orientation(m_nparticles);
         std::vector<unsigned int> tag(m_nparticles);
         std::map<unsigned int, unsigned int> rtag_map;
-
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
             {
             pos[idx] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
@@ -836,6 +838,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             charge[idx] = h_charge.data[idx];
             diameter[idx] = h_diameter.data[idx];
             image[idx] = h_image.data[idx];
+            image[idx].x -= m_o_image.x;
+            image[idx].y -= m_o_image.y;
+            image[idx].z -= m_o_image.z;
             body[idx] = h_body.data[idx];
             orientation[idx] = h_orientation.data[idx];
 
@@ -932,7 +937,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                 // make sure the position stored in the snapshot is within the boundaries
                 m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
                 }
-            } 
+            }
         }
     else
 #endif
@@ -949,9 +954,12 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.charge[tag] = h_charge.data[idx];
             snapshot.diameter[tag] = h_diameter.data[idx];
             snapshot.image[tag] = h_image.data[idx];
+            snapshot.image[tag].x -= m_o_image.x;
+            snapshot.image[tag].y -= m_o_image.y;
+            snapshot.image[tag].z -= m_o_image.z;
             snapshot.body[tag] = h_body.data[idx];
             snapshot.orientation[tag] = h_orientation.data[idx];
-            
+
             // make sure the position stored in the snapshot is within the boundaries
             m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
             }
