@@ -163,6 +163,23 @@ struct pdata_element
     unsigned int tag;  //!< global tag
     };
 
+//! Optional flags to enable communication of certain ParticleData fields for ghost particles
+struct comm_flag
+    {
+    //! The enum
+    enum Enum
+        {
+        position=0,  //! Bit id in CommFlags for particle positions
+        charge,      //! Bit id in CommFlags for particle charge
+        diameter,    //! Bit id in CommFlags for particle diameter
+        velocity,    //! Bit id in CommFlags for particle velocity
+        orientation  //! Bit id in CommFlags for particle orientation
+        };
+    };
+
+//! Bitset to determine required ghost communication fields
+typedef std::bitset<32> CommFlags;
+
 //! Perform a logical or operation on the return values of several signals
 struct migrate_logical_or
     {
@@ -306,7 +323,15 @@ class Communicator
 
             m_r_buff = r_buff;
             }
-            
+
+        //! Get the ghost communication flags
+        CommFlags getFlags() { return m_flags; }
+
+        //! Set the ghost communication flags
+        /*! \note Flags will be available after the next call to communicate().
+         */
+        void setFlags(const CommFlags& flags) { m_flags = flags; }
+        
         //@}
 
         //! \name communication methods
@@ -469,6 +494,8 @@ class Communicator
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
+        GPUVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
+        GPUVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
         GPUVector<unsigned char> m_plan_copybuf;  //!< Buffer for particle plans
         GPUVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
 
@@ -488,6 +515,8 @@ class Communicator
             m_migrate_requests; //!< List of functions that may request particle migration
 
         RoutingTable m_routing_table;            //!< The routing table
+
+        CommFlags m_flags;                       //!< The ghost communication flags
 
     private:
         std::vector<Scalar4> scal4_tmp;          //!< Temporary list used to apply the sort order to the particle data

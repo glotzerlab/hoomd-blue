@@ -578,6 +578,11 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     // we should have zero ghosts before the exchange
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),0);
 
+    // set ghost exchange flags for position
+    CommFlags flags(0);
+    flags[comm_flag::position] = 1;
+    comm->setFlags(flags);
+
     // exchange ghosts
     comm->exchangeGhosts();
 

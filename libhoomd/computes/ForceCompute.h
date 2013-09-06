@@ -65,6 +65,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #endif
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 /*! \file ForceCompute.h
     \brief Declares the ForceCompute class
 */
@@ -150,6 +154,17 @@ class ForceCompute : public Compute
             assert(dir<6);
             return m_external_virial[dir];
             }
+
+        #ifdef ENABLE_MPI
+        //! Get requested ghost communication flags
+        CommFlags getRequestedCommFlags(unsigned int timestep)
+            {
+            // by default, only request positions
+            CommFlags flags(0);
+            flags[comm_flag::position] = 1;
+            return flags;
+            } 
+        #endif
 
     protected:
         bool m_particles_sorted;    //!< Flag set to true when particles are resorted in memory

@@ -263,6 +263,9 @@ void Integrator::computeAccelerations(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
+        // preset flags for ghost communication
+        m_comm->setFlags(determineFlags(timestep));
+
         // Move particles between domains. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if additionally ghosts are updated every timestep
@@ -825,6 +828,30 @@ void Integrator::update(unsigned int timestep)
 void Integrator::prepRun(unsigned int timestep)
     {
     }
+
+#ifdef ENABLE_MPI
+/*! \param tstep Time step for which to determine the flags
+
+    The flags needed are determiend by peeking to \a tstep and then using bitwise or 
+    to combine the flags from all ForceComputes
+*/
+CommFlags Integrator::determineFlags(unsigned int timestep)
+    {
+    CommFlags flags(0);
+
+    // query all forces
+    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+        flags |= (*force_compute)->getRequestedCommFlags(timestep);
+
+    // query all constraints
+    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
+        flags |= (*force_constraint)->getRequestedCommFlags(timestep);
+ 
+    return flags;
+    }
+#endif
 
 void export_Integrator()
     {

@@ -174,6 +174,12 @@ class Integrator : public Updater
         //! helper function to compute net force/virial on the GPU
         void computeNetForceGPU(unsigned int timestep);
 #endif
+
+#ifdef ENABLE_MPI
+        //! helper function to determine the ghost communciation flags
+        CommFlags determineFlags(unsigned int timestep);
+#endif
+
     };
 
 //! Exports the NVEUpdater class to python
