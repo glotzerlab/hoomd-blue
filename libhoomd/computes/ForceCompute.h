@@ -157,7 +157,7 @@ class ForceCompute : public Compute
 
         #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
-        CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
             {
             // by default, only request positions
             CommFlags flags(0);
