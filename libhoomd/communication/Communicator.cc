@@ -1309,44 +1309,6 @@ void Communicator::updateGhosts(unsigned int timestep)
                 }
             }
 
-         if (flags[comm_flag::charge])
-            {
-            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-            // copy charge of ghost particles
-            for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
-                {
-                unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
-
-                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
-
-                // copy charge into send buffer
-                h_charge_copybuf.data[ghost_idx] = h_charge.data[idx];
-                }
-            }
-
-        if (flags[comm_flag::diameter])
-            {
-            ArrayHandle<Scalar> h_diameter(m_pdata->getCharges(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-            // copy diameter of ghost particles
-            for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
-                {
-                unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
-
-                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
-
-                // copy diameter into send buffer
-                h_diameter_copybuf.data[ghost_idx] = h_diameter.data[idx];
-                }
-            }
-
         if (flags[comm_flag::orientation])
             {
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
@@ -1385,7 +1347,8 @@ void Communicator::updateGhosts(unsigned int timestep)
         start_idx = m_pdata->getN() + num_tot_recv_ghosts;
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
-
+    
+        size_t sz = 0;
         // only non-permanent fields (position, velocity, orientation) need to be considered here
         // charge and diameter are not updated during a run
         if (flags[comm_flag::position])
@@ -1400,6 +1363,8 @@ void Communicator::updateGhosts(unsigned int timestep)
             MPI_Isend(h_pos_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[0]);
             MPI_Irecv(h_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[1]);
             MPI_Waitall(2, reqs, status);
+
+            sz += sizeof(Scalar4);
             }
 
         if (flags[comm_flag::velocity])
@@ -1407,13 +1372,15 @@ void Communicator::updateGhosts(unsigned int timestep)
             MPI_Request reqs[2];
             MPI_Status status[2];
 
-            ArrayHandle<Scalar4> h_vel(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_vel_copybuf(m_velocity_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            MPI_Isend(h_vel_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_vel.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[1]);
+            MPI_Isend(h_vel_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &reqs[0]);
+            MPI_Irecv(h_vel.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &reqs[1]);
             MPI_Waitall(2, reqs, status);
+
+            sz += sizeof(Scalar4);
             }
 
         if (flags[comm_flag::orientation])
@@ -1421,17 +1388,19 @@ void Communicator::updateGhosts(unsigned int timestep)
             MPI_Request reqs[2];
             MPI_Status status[2];
 
-            ArrayHandle<Scalar4> h_orientation(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            MPI_Isend(h_orientation_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_orientation.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[1]);
+            MPI_Isend(h_orientation_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 3, m_mpi_comm, &reqs[0]);
+            MPI_Irecv(h_orientation.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &reqs[1]);
             MPI_Waitall(2, reqs, status);
+
+            sz += sizeof(Scalar4);
             }
 
         if (m_prof)
-            m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sizeof(Scalar4));
+            m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sz);
       
 
         // wrap particle positions (only if copying positions)

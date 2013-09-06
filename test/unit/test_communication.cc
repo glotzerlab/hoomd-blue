@@ -2272,6 +2272,219 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         std::cout << "Finish random ghosts test" << std::endl;
     }
 
+//! Test ghost particle communication
+void test_communicator_ghost_fields(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    // this test needs to be run on eight processors
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    BOOST_REQUIRE_EQUAL(size,8);
+
+    // create a system with eight + 1 one ptls (1 ptl in ghost layer)
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(9,          // number of particles
+                                                             BoxDim(2.0), // box dimensions
+                                                             1,           // number of particle types
+                                                             0,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf));
+
+
+
+   boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+
+    // Set initial atom positions
+    // place one particle in the middle of every box (outside the ghost layer)
+    pdata->setPosition(0, make_scalar3(-0.5,-0.5,-0.5));
+    pdata->setPosition(1, make_scalar3( 0.5,-0.5,-0.5));
+    pdata->setPosition(2, make_scalar3(-0.5, 0.5,-0.5));
+    pdata->setPosition(3, make_scalar3( 0.5, 0.5,-0.5));
+    pdata->setPosition(4, make_scalar3(-0.5,-0.5, 0.5));
+    pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5));
+    pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5));
+    pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5));
+
+    // particle 8 in the ghost layer of its +x neighbor
+    pdata->setPosition(8, make_scalar3( -0.05, -0.5, -0.5));
+
+    // set other properties of ptl 8
+    pdata->setVelocity(8, make_scalar3(1.0,2.0,3.0));
+    pdata->setMass(8, 4.0);
+    pdata->setCharge(8, 5.0);
+    pdata->setDiameter(8, 6.0);
+    pdata->setOrientation(8,make_scalar4(97.0,98.0,99.0,100.0));
+
+    // distribute particle data on processors
+    SnapshotParticleData snap(9);
+    pdata->takeSnapshot(snap);
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+
+    pdata->setDomainDecomposition(decomposition);
+
+    pdata->initializeFromSnapshot(snap);
+    
+    // width of ghost layer
+    Scalar ghost_layer_width = Scalar(0.1);
+    comm->setGhostLayerWidth(ghost_layer_width);
+
+    // Check number of particles
+    switch (exec_conf->getRank())
+        {
+        case 0:
+            BOOST_CHECK_EQUAL(pdata->getN(), 2);
+            break;
+        case 1:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 2:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 3:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 4:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 5:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 6:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        case 7:
+            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            break;
+        }
+
+    // we should have zero ghosts before the exchange
+    BOOST_CHECK_EQUAL(pdata->getNGhosts(),0);
+
+    // set ghost exchange flags for position
+    CommFlags flags(0);
+    flags[comm_flag::position] = 1;
+    flags[comm_flag::velocity] = 1;
+    flags[comm_flag::orientation] = 1;
+    flags[comm_flag::charge] = 1;
+    flags[comm_flag::diameter] = 1;
+    comm->setFlags(flags);
+    
+    // reset numbers of ghosts
+    comm->migrateParticles();
+
+    // exchange ghosts
+    comm->exchangeGhosts();
+
+        {
+        // check ghost atom numbers, positions, velocities, etc.
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_global_rtag(pdata->getRTags(), access_location::host, access_mode::read);
+
+        unsigned int rtag;
+        switch (exec_conf->getRank())
+            {
+            case 0:
+                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 0);
+                break;
+
+            case 1:
+                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 1);
+
+                rtag = h_global_rtag.data[8];
+                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05,tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol_small);
+
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].x, 1.0,tol_small);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].y, 2.0,tol_small);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].z, 3.0,tol_small);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].w, 4.0,tol_small); // mass
+
+                BOOST_CHECK_CLOSE(h_charge.data[rtag], 5.0,tol_small);
+                BOOST_CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol_small);
+
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].x, 97.0,tol_small);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].y, 98.0,tol_small);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].z, 99.0,tol_small);
+                break;
+
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 0);
+                break;
+            }
+        }
+
+   // set some new fields for the ghost particles
+   pdata->setPosition(8, make_scalar3(-0.13,-0.5,-0.5));
+   pdata->setVelocity(8, make_scalar3(-3.0,-2.0,-1.0));
+   pdata->setMass(8, 0.1);
+   pdata->setOrientation(8,make_scalar4(22.0,23.0,24.0,25.0));
+
+
+   // update ghosts
+   comm->updateGhosts(0);
+
+        {
+        // check ghost atom numbers, positions, velocities, etc.
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(pdata->getCharges(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_global_rtag(pdata->getRTags(), access_location::host, access_mode::read);
+
+        unsigned int rtag;
+        switch (exec_conf->getRank())
+            {
+            case 1:
+                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 1);
+
+                rtag = h_global_rtag.data[8];
+                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.13,tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol_small);
+
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].x, -3.0,tol_small);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].y, -2.0,tol_small);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].z, -1.0,tol_small);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].w, 0.1,tol_small); // mass
+
+                // charge and diameter should be unchanged
+                BOOST_CHECK_CLOSE(h_charge.data[rtag], 5.0,tol_small);
+                BOOST_CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol_small);
+
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].x, 22.0,tol_small);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].y, 23.0,tol_small);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].z, 24.0,tol_small);
+                break;
+
+            case 0:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 0);
+                break;
+            }
+        }
+    }
+ 
 //! Communicator creator for unit tests
 shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                          shared_ptr<DomainDecomposition> decomposition)
@@ -2317,6 +2530,13 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
     test_communicator_bond_exchange(communicator_creator_base, exec_conf_cpu);
     }
 
+BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_communicator_ghost_fields(communicator_creator_base, exec_conf_cpu);
+    }
+
+
 #ifdef ENABLE_CUDA
 
 //! Tests particle distribution on GPU
@@ -2348,6 +2568,14 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_bond_exchange(communicator_creator_gpu, exec_conf_gpu);
     }
+
+#if 0
+BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test_GPU )
+    {
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
+    test_communicator_ghost_fields(communicator_creator_gpu, exec_conf_gpu);
+    }
+#endif
 
 #if 0
 BOOST_AUTO_TEST_CASE (communicator_compare_test )
