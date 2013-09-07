@@ -69,7 +69,6 @@ SET(EXCLUDE_FROM_MPI
     test_integrate_nvt_rigid
     test_integrate_nve_rigid
     test_pair_cgcmm
-    test_pair_dpd
     test_update_rescale_temp
     test_wall_lj
     test_angle_cgcmm

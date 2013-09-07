@@ -185,6 +185,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_pos(this->m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(this->m_pdata->getVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
 
     //force arrays
     ArrayHandle<Scalar4> h_force(this->m_force,access_location::host, access_mode::overwrite);
@@ -233,7 +234,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[nli(i, k)];
-            assert(j < this->m_pdata->getN());
+            assert(j < this->m_pdata->getN() + this->m_pdata->getNGhosts() );
 
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
@@ -275,7 +276,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 
             // Special Potential Pair DPD Requirements
             const Scalar currentTemp = m_T->getValue(timestep);
-            eval.set_seed_ij_timestep(m_seed,i,j,timestep);
+
+            // set seed using global tags
+            unsigned int tagi = h_tag.data[i];
+            unsigned int tagj = h_tag.data[j];
+            eval.set_seed_ij_timestep(m_seed,tagi,tagj,timestep);
             eval.setDeltaT(this->m_deltaT);
             eval.setRDotV(rdotv);
             eval.setT(currentTemp);

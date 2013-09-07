@@ -152,7 +152,7 @@ class EvaluatorPairDPDThermo
             {
             }
 
-        //! Set i and j, (particle indices, or should it be tags), and the timestep
+        //! Set i and j, (particle tags), and the timestep
         DEVICE void set_seed_ij_timestep(unsigned int seed, unsigned int i, unsigned int j, unsigned int timestep) 
             {
             m_seed = seed;

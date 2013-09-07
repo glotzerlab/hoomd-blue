@@ -71,8 +71,10 @@ struct dpd_pair_args_t
                     Scalar *_d_virial,
                     const unsigned int _virial_pitch,
                     const unsigned int _N,
+                    const unsigned int _n_ghosts,
                     const Scalar4 *_d_pos,
                     const Scalar4 *_d_vel,
+                    const unsigned int *_d_tag,
                     const BoxDim& _box,
                     const unsigned int *_d_n_neigh,
                     const unsigned int *_d_nlist,
@@ -91,8 +93,10 @@ struct dpd_pair_args_t
                         d_virial(_d_virial),
                         virial_pitch(_virial_pitch),
                         N(_N),
+                        n_ghosts(_n_ghosts),
                         d_pos(_d_pos),
                         d_vel(_d_vel),
+                        d_tag(_d_tag),
                         box(_box),
                         d_n_neigh(_d_n_neigh),
                         d_nlist(_d_nlist),
@@ -114,8 +118,10 @@ struct dpd_pair_args_t
     Scalar *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< Pitch of 2D virial array
     const unsigned int N;           //!< number of particles
+    const unsigned int n_ghosts;    //!< number of ghost particles
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar4 *d_vel;           //!< particle velocities
+    const unsigned int *d_tag;      //!< particle tags
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
@@ -139,6 +145,9 @@ scalar4_tex_t pdata_dpd_pos_tex;
 //! Texture for reading particle velocities
 scalar4_tex_t pdata_dpd_vel_tex;
 
+//! Texture for reading particle tags
+texture<unsigned int, 1, cudaReadModeElementType> pdata_dpd_tag_tex;
+
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
     forces for each pair is handled via the template class \a evaluator.
@@ -149,6 +158,7 @@ scalar4_tex_t pdata_dpd_vel_tex;
     \param N number of particles
     \param d_pos particle positions on the GPU
     \param d_vel particle velocities on the GPU
+    \param d_tag particle tags on the GPU
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -184,6 +194,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                                               const unsigned int N,
                                               const Scalar4 *d_pos,
                                               const Scalar4 *d_vel,
+                                              const unsigned int *d_tag,
                                               BoxDim box,
                                               const unsigned int *d_n_neigh,
                                               const unsigned int *d_nlist,
@@ -249,6 +260,9 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     unsigned int cur_j = 0;
     unsigned int next_j = d_nlist[nli(idx, 0)];
 
+    // this particle's tag
+    unsigned int tagi = d_tag[idx];
+
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
@@ -310,7 +324,9 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
             Scalar pair_eng = Scalar(0.0);
 
             // Special Potential Pair DPD Requirements
-            eval.set_seed_ij_timestep(d_seed,idx,cur_j,d_timestep);
+            // use particle i's and j's tags
+            unsigned int tagj = tex1Dfetch(pdata_dpd_tag_tex, cur_j);
+            eval.set_seed_ij_timestep(d_seed,tagi,tagj,d_timestep);
             eval.setDeltaT(d_deltaT);
             eval.setRDotV(rdotv);
             eval.setT(d_T);
@@ -379,14 +395,21 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     // bind the position texture
     pdata_dpd_pos_tex.normalized = false;
     pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_dpd_pos_tex, args.d_pos, sizeof(Scalar4)*args.N);
+    cudaError_t error = cudaBindTexture(0, pdata_dpd_pos_tex, args.d_pos, sizeof(Scalar4)*(args.N+args.n_ghosts));
     if (error != cudaSuccess)
         return error;
 
     // bind the velocity texture
     pdata_dpd_vel_tex.normalized = false;
     pdata_dpd_vel_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_dpd_vel_tex, args.d_vel,  sizeof(Scalar4)*args.N);
+    error = cudaBindTexture(0, pdata_dpd_vel_tex, args.d_vel,  sizeof(Scalar4)*(args.N+args.n_ghosts));
+    if (error != cudaSuccess)
+        return error;
+
+    // bind the tag texture
+    pdata_dpd_tag_tex.normalized = false;
+    pdata_dpd_tag_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, pdata_dpd_tag_tex, args.d_tag,  sizeof(unsigned int)*(args.N+args.n_ghosts));
     if (error != cudaSuccess)
         return error;
 
@@ -408,6 +431,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.N,
                                     args.d_pos,
                                     args.d_vel,
+                                    args.d_tag,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
@@ -430,6 +454,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.N,
                                     args.d_pos,
                                     args.d_vel,
+                                    args.d_tag,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
@@ -460,6 +485,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.N,
                                     args.d_pos,
                                     args.d_vel,
+                                    args.d_tag,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
@@ -482,6 +508,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.N,
                                     args.d_pos,
                                     args.d_vel,
+                                    args.d_tag,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,

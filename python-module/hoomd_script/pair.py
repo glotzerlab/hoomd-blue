@@ -1841,7 +1841,7 @@ class morse(pair):
 #
 # pair.dpd does not implement and energy shift / smoothing modes due to the function of the force.
 #
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class dpd(pair):
     ## Specify the DPD %pair %force and thermostat
     #
@@ -1863,12 +1863,6 @@ class dpd(pair):
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
 
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("pair.dpd is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up pair potential.")
-               
         # tell the base class how we operate
         
         # initialize the base class
@@ -2151,13 +2145,13 @@ class eam(force._force):
 #
 # \b Example:
 # \code
-# dpdlj = pair.dpdlj(r_cut=1.0, T=1.0)
+# dpdlj = pair.dpdlj(r_cut=2.5, T=1.0)
 # dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
 # dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
 # dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
 # dpdlj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon = 3.0,sigma=1.0, gamma = 1.2)
 # dpdlj.set_params(T = 1.0)
-# integrate.mode_standard(dt=0.02)
+# integrate.mode_standard(dt=0.005)
 # integrate.nve(group=group.all())
 # \endcode
 #
@@ -2172,7 +2166,7 @@ class eam(force._force):
 # pair.dpdlj is a standard %pair potential and supports an energy shif for the conservative LJ potential.
 # See hoomd_script.pair.pair for a full description of the various options. XPLOR smoothing is not available.
 #
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class dpdlj(pair):
     ## Specify the DPD %pair %force and thermostat
     #
@@ -2194,12 +2188,6 @@ class dpdlj(pair):
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
 
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("pair.dpdlj not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up pair potential.")
- 
         # tell the base class how we operate
         
         # initialize the base class
