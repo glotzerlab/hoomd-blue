@@ -7,10 +7,11 @@ macro(add_hoomd_script_test test_py)
 get_filename_component(_test_name ${test_py} NAME_WE)
 
 if (CMAKE_MINOR_VERSION GREATER 7)
+get_target_property(HOOMD_EXE hoomd LOCATION)
 # with CMake 2.8.x and newer, use the NAME COMMAND form of add test to run the built hoomd target
-add_test(NAME script-${_test_name}-cpu COMMAND hoomd ${test_py} "--mode=cpu" "--gpu_error_checking")
+add_test(NAME script-${_test_name}-cpu COMMAND ${HOOMD_EXE} ${test_py} "--mode=cpu" "--gpu_error_checking")
 if (ENABLE_CUDA)
-add_test(NAME script-${_test_name}-gpu COMMAND hoomd ${test_py} "--mode=gpu" "--gpu_error_checking")
+add_test(NAME script-${_test_name}-gpu COMMAND ${HOOMD_EXE} ${test_py} "--mode=gpu" "--gpu_error_checking")
 endif (ENABLE_CUDA)
 
 else (CMAKE_MINOR_VERSION GREATER 7)
@@ -32,12 +33,15 @@ endmacro(add_hoomd_script_test)
 macro(add_hoomd_script_test_mpi test_py nproc)
 # name the test
 get_filename_component(_test_name ${test_py} NAME_WE)
+get_target_property(HOOMD_EXE hoomd LOCATION)
 
 add_test(NAME script-${_test_name}-mpi-cpu
-         COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc} ${MPIEXEC_POSTFLAGS} hoomd ${test_py} "--mode=cpu" "--gpu_error_checking")
+         COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
+         ${MPIEXEC_POSTFLAGS} ${HOOMD_EXE} ${test_py} "--mode=cpu" "--gpu_error_checking")
 if (ENABLE_CUDA)
 add_test(NAME script-${_test_name}-mpi-gpu
-         COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc} ${MPIEXEC_POSTFLAGS} hoomd ${test_py} "--mode=gpu" "--gpu_error_checking")
+         COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
+         ${MPIEXEC_POSTFLAGS} ${HOOMD_EXE} ${test_py} "--mode=gpu" "--gpu_error_checking")
 endif (ENABLE_CUDA)
 endmacro(add_hoomd_script_test_mpi)
 ###############################
