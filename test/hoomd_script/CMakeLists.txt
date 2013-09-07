@@ -58,7 +58,6 @@ endforeach(test)
 
 # exclude some tests from MPI
 SET(EXCLUDE_FROM_MPI
-    test_analyze_msd
     test_bond_harmonic
     test_bond_fene
     test_charge_pppm
