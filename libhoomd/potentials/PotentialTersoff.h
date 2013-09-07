@@ -310,8 +310,6 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     Index2D nli = m_nlist->getNListIndexer();
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
 
     //force arrays

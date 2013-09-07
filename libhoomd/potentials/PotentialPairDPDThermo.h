@@ -114,6 +114,11 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
         //! Set the temperature
         virtual void setT(boost::shared_ptr<Variant> T);
 
+        #ifdef ENABLE_MPI
+        //! Get ghost particle fields requested by this pair potential
+        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        #endif
+
     protected:
 
         unsigned int m_seed;  //!< seed for PRNG for DPD thermostat
@@ -354,6 +359,24 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 
     if (this->m_prof) this->m_prof->pop();
     }
+
+#ifdef ENABLE_MPI
+/*! \param timestep Current time step
+ */
+template < class evaluator >
+CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned int timestep)
+    {
+    CommFlags flags = CommFlags(0);
+
+    // DPD needs ghost particle velocity
+    flags[comm_flag::velocity] = 1;
+
+    flags |= PotentialPair<evaluator>::getRequestedCommFlags(timestep);
+
+    return flags;
+    } 
+#endif
+
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module

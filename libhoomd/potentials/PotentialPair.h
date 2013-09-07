@@ -64,6 +64,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "NeighborList.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #ifdef ENABLE_OPENMP
 #include <omp.h>
 #endif
@@ -167,6 +171,12 @@ class PotentialPair : public ForceCompute
             {
             m_shift_mode = mode;
             }
+
+        #ifdef ENABLE_MPI
+        //! Get ghost particle fields requested by this pair potential
+        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        #endif
+
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
@@ -568,6 +578,26 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->pop();
     }
+
+#ifdef ENABLE_MPI
+/*! \param timestep Current time step
+ */
+template < class evaluator >
+CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timestep)
+    {
+    CommFlags flags = CommFlags(0);
+
+    if (evaluator::needsCharge())
+        flags[comm_flag::charge] = 1;
+
+    if (evaluator::needsDiameter())
+        flags[comm_flag::diameter] = 1;
+
+    flags |= ForceCompute::getRequestedCommFlags(timestep);
+
+    return flags;
+    } 
+#endif
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
