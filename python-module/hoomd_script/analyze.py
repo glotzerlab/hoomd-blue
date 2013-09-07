@@ -556,7 +556,7 @@ class log(_analyzer):
 # in a hoomd_xml file, including position and image data at a minimum. In the continuation job, specify this file
 # in the \a r0_file argument to analyze.msd.
 #
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class msd(_analyzer):
     ## Initialize the msd calculator
     #
