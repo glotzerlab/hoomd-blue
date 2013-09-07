@@ -136,17 +136,13 @@ void BoxResizeUpdater::update(unsigned int timestep)
     newBox.setL(make_scalar3(Lx, Ly, Lz));
     newBox.setTiltFactors(xy,xz,yz);
 
-    bool no_change = fabs((Lx - curL.x) / Lx) < 1e-5 &&
-                     fabs((Ly - curL.y) / Ly) < 1e-5 &&
-                     fabs((Lz - curL.z) / Lz) < 1e-5 &&
-                     fabs(xy - curxy) < 1e-5 &&
-                     fabs(xz - curxz) < 1e-5 &&
-                     fabs(yz - curyz) < 1e-5;
+    bool no_change = fabs((Lx - curL.x) / Lx) < 1e-7 &&
+                     fabs((Ly - curL.y) / Ly) < 1e-7 &&
+                     fabs((Lz - curL.z) / Lz) < 1e-7 &&
+                     fabs((xy - curxy) / xy) < 1e-7 &&
+                     fabs((xz - curxz) / xz) < 1e-7 &&
+                     fabs((yz - curyz) / yz) < 1e-7;
 
-    // set the new box
-    m_pdata->setGlobalBox(newBox);
-
-                    
     // only change the box if there is a change in the box dimensions
     if (!no_change)
         {
@@ -223,7 +219,10 @@ void BoxResizeUpdater::update(unsigned int timestep)
                     }
                 }
             }
-        
+
+        // set the new box
+        m_pdata->setGlobalBox(newBox);
+
         // update the body particle positions to reflect the new rigid body positions
         rigid_data->setRV(true);
         }

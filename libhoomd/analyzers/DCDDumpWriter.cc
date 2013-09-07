@@ -295,7 +295,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
     
     write_int(file, 164);
     write_int(file, 4);
-    unsigned int nparticles = m_group->getNumMembers();
+    unsigned int nparticles = m_group->getNumMembersGlobal();
     write_int(file, nparticles);
     write_int(file, 4);
     
@@ -314,7 +314,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
 void DCDDumpWriter::write_frame_header(std::fstream &file)
     {
     double unitcell[6];
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
     // set box dimensions
     Scalar a,b,c,alpha,beta,gamma;
     Scalar3 va = box.getLatticeVector(0);
@@ -365,9 +365,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
 #endif        
   
     ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(),access_location::host,access_mode::read);
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
     
-    unsigned int nparticles = m_group->getNumMembers();
+    unsigned int nparticles = m_group->getNumMembersGlobal();
 
     // Create a tmp copy of the particle data and unwrap particles
     std::vector<Scalar3> tmp_pos(snapshot.pos);
