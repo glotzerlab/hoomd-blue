@@ -2569,13 +2569,11 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     test_communicator_bond_exchange(communicator_creator_gpu, exec_conf_gpu);
     }
 
-#if 0
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_ghost_fields(communicator_creator_gpu, exec_conf_gpu);
     }
-#endif
 
 #if 0
 BOOST_AUTO_TEST_CASE (communicator_compare_test )

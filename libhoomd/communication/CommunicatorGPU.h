@@ -228,6 +228,13 @@ class CommunicatorGPU : public Communicator
 
         //! Helper function to allocate buffers for ghost mesh exchange
         void allocateMeshBuffers(const uint3 dim, const uint3 n_ghost_cells, size_t size_datatype);
+
+        //! Compute size of ghost exchange element
+        size_t ghost_exchange_element_size();
+
+        //! Compute size of ghost update element
+        size_t ghost_update_element_size();
+
     };
 
 //! Export CommunicatorGPU class to python
