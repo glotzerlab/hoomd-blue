@@ -167,6 +167,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialTersoffGPU.h"
+
+#include <cuda_profiler_api.h>
 #endif
 
 // include MPI classes
@@ -366,6 +368,24 @@ bool is_MPI_available()
 #endif
     }
 
+//! Start the CUDA profiler
+void cuda_profile_start()
+    {
+    #ifdef ENABLE_CUDA
+    cudaDeviceSynchronize();
+    cudaProfilerStart();
+    #endif
+    }
+
+//! Stop the CUDA profiler
+void cuda_profile_stop()
+    {
+    #ifdef ENABLE_CUDA
+    cudaDeviceSynchronize();
+    cudaProfilerStop();
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -386,6 +406,9 @@ BOOST_PYTHON_MODULE(hoomd)
     scope().attr("__compiler_version__") = get_compiler_version();
 
     def("is_MPI_available", &is_MPI_available);
+
+    def("cuda_profile_start", &cuda_profile_start);
+    def("cuda_profile_stop", &cuda_profile_stop);
 
     // data structures
     class_<std::vector<int> >("std_vector_int")

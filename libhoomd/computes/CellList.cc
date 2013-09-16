@@ -158,7 +158,15 @@ uint3 CellList::computeDimensions()
             dim.z = int(Scalar(dim.z)*scale_factor);
             }
         }
-    
+
+    // In extremely small boxes, the calculated dimensions could go to zero, but need at least one cell in each dimension
+    // for particles to be in a cell and to pass the checkCondition tests.
+    if (dim.x == 0)
+        dim.x = 1;
+    if (dim.y == 0)
+        dim.y = 1;
+    if (dim.z == 0)
+        dim.z = 1;
     return dim;
     }
 
@@ -605,7 +613,11 @@ bool CellList::checkConditions()
                                   <<"Particle " << h_tag.data[n] << " is no longer in the simulation box."
                                   << endl << endl;
 
+        m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
         m_exec_conf->msg->error() << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
+        m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
+        Scalar3 f = m_pdata->getBox().makeFraction(make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z));
+        m_exec_conf->msg->error() << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
         Scalar3 lo = m_pdata->getBox().getLo();
         Scalar3 hi = m_pdata->getBox().getHi();
         m_exec_conf->msg->error() << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
