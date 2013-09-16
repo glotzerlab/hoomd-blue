@@ -50,34 +50,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifndef __ALL_ANISO_PAIR_POTENTIALS__H__
-#define __ALL_ANISO_PAIR_POTENTIALS__H__
-
-#include "AnisoPotentialPair.h"
-
-#include "EvaluatorPairGB.h"
-
-#ifdef ENABLE_CUDA
-#include "AnisoPotentialPairGPU.h"
-#include "AnisoPotentialPairGPU.cuh"
 #include "AllDriverAnisoPotentialPairGPU.cuh"
-#else
-#include "AnisoPotentialPair.h"
-#endif
 
-/*! \file AllAnisoPairPotentials.h
-    \brief Handy list of typedefs for all of the templated pair potentials in hoomd
+/*! \file AllDriverAnisoPotentialPairGPU.cu
+    \brief Defines the driver functions for computing all types of anisotropic pair forces on the GPU
 */
 
-//! Pair potential force compute for Gay-Berne forces and torques
-typedef AnisoPotentialPair<EvaluatorPairGB> AnisoPotentialPairGB;
-
-#ifdef ENABLE_CUDA
-//! Pair potential force compute for Gay-Berne forces and torques on the GPU
-typedef AnisoPotentialPairGPU<EvaluatorPairGB,gpu_compute_pair_aniso_forces_gb> PotentialPairGBGPU;
-#endif
-
-// 
-
-#endif // __ALL_ANISO_PAIR_POTENTIALS_H__
-
+cudaError_t gpu_compute_pair_aniso_forces_gb(const a_pair_args_t& pair_args,
+            const EvaluatorPairGB::param_type* d_param)
+    {
+    return gpu_compute_pair_aniso_forces<EvaluatorPairGB>(pair_args, d_param);
+    }

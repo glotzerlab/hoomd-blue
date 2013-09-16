@@ -201,7 +201,7 @@ void AnisoPotentialPair< aniso_evaluator >::setParams(unsigned int typ1, unsigne
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        std::cerr << std::endl << "***Error! Trying to set pair params for a non existant type! "
+        m_exec_conf->msg->error() << "ai_pair." << aniso_evaluator::getName() << ": Trying to set pair params for a non existant type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
         }
@@ -222,7 +222,7 @@ void AnisoPotentialPair< aniso_evaluator >::setRcut(unsigned int typ1, unsigned 
     {
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        std::cerr << std::endl << "***Error! Trying to set rcut for a non existant type! "
+        m_exec_conf->msg->error() << "ai_pair." << aniso_evaluator::getName() << ": Trying to set rcut for a non existant type! "
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
         }
@@ -256,7 +256,7 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getLogValue(const std::string& qua
         }
     else
         {
-        std::cerr << std::endl << "***Error! " << quantity << " is not a valid log quantity for AnisoPotentialPair" 
+        m_exec_conf->msg->error() << "ai_pair." << aniso_evaluator::getName() << ": " << quantity << " is not a valid log quantity for AnisoPotentialPair" 
                   << std::endl << endl;
         throw std::runtime_error("Error getting log value");
         }

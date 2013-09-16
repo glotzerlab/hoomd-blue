@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <boost/python.hpp>
 #endif
-#include <hoomd/hoomd_config.h>
+
 #include "VectorMath.h"
 
 /*! \file EvaluatorPairGB.h
