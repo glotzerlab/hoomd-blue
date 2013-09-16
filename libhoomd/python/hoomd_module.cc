@@ -89,6 +89,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllTripletPotentials.h"
+#include "AllAnisoPairPotentials.h"
 #include "ComputeThermo.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
@@ -512,6 +513,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
     export_tersoff_params();
+    export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");

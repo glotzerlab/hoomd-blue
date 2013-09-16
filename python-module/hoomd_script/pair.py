@@ -278,7 +278,7 @@ class coeff:
                 for coeff_name in self.values[cur_pair].keys():
                     if not coeff_name in required_coeffs:
                         globals.msg.notice(2, "Notice: Possible typo? Pair coeff " + str(coeff_name) + " is specified for pair " + str((a,b)) + \
-                              ", but is not used by the pair force");
+                              ", but is not used by the pair force\n");
                     else:
                         count += 1;
 

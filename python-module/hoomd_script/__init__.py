@@ -103,7 +103,8 @@ __all__ = [ "analyze",
             "compute",
             "charge",
             "get_hoomd_script_version",
-            "comm"];
+            "comm",
+            "ai_pair"];
 
 ## \internal
 # \brief Major version of hoomd_script
