@@ -131,6 +131,12 @@ SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> s
                  exec_conf,
                  decomposition));
  
+    #ifdef ENABLE_MPI
+    // in MPI simulations, broadcast dimensionality from rank zero
+    if (m_particle_data->getDomainDecomposition())
+        bcast(m_n_dimensions, 0,exec_conf->getMPICommunicator());
+    #endif
+
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot->bond_data));
    
     m_wall_data = boost::shared_ptr<WallData>(new WallData(snapshot->wall_data));
@@ -266,9 +272,15 @@ boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot(bool partic
 //! Re-initialize the system from a snapshot
 void SystemDefinition::initializeFromSnapshot(boost::shared_ptr<SnapshotSystemData> snapshot)
     {
+    boost::shared_ptr<const ExecutionConfiguration> exec_conf = m_particle_data->getExecConf();
+
     m_n_dimensions = snapshot->dimensions;
 
-    boost::shared_ptr<const ExecutionConfiguration> exec_conf = m_particle_data->getExecConf();
+    #ifdef ENABLE_MPI
+    // in MPI simulations, broadcast dimensionality from rank zero
+    if (m_particle_data->getDomainDecomposition())
+        bcast(m_n_dimensions, 0,exec_conf->getMPICommunicator());
+    #endif
 
     if (snapshot->has_particle_data)
         {
