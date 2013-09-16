@@ -58,9 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 
-#include <hoomd/hoomd_config.h>
-#include <hoomd/hoomd.h>
-
 #ifdef ENABLE_OPENMP
 #include <omp.h>
 #endif
