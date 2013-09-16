@@ -58,6 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #endif
 
+#define MIN(i,j) ((i > j) ? j : i)
+#define MAX(i,j) ((i > j) ? i : j)
+
 #include "VectorMath.h"
 
 /*! \file EvaluatorPairGB.h
@@ -84,7 +87,7 @@ using namespace boost::python;
 class EvaluatorPairGB
     {
     public:
-        typedef Scalar4 param_type;
+        typedef Scalar3 param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centres of mass
@@ -99,7 +102,7 @@ class EvaluatorPairGB
                                Scalar _rcutsq,
                                param_type& _params)
             : dr(_dr),rcutsq(_rcutsq),qi(_qi),qj(_qj),
-              epsilon(_params.x), sigma_min(_params.y), lperpsq(_params.z), chi(_params.w)
+              epsilon(_params.x), lperp(_params.y), lpar(_params.z)
             {
             }  
         
@@ -154,6 +157,9 @@ class EvaluatorPairGB
             Scalar ca = dot(a3,unitr);
             Scalar cb = dot(b3,unitr);
             Scalar cab = dot(a3,b3);
+            Scalar lperpsq = lperp*lperp;
+            Scalar lparsq = lpar*lpar;
+            Scalar chi=(lparsq - lperpsq)/(lparsq+lperpsq);
             Scalar chic = chi*cab;
 
             Scalar chi_fact = chi/(Scalar(1.0)-chic*chic);
@@ -163,12 +169,17 @@ class EvaluatorPairGB
             Scalar phi = Scalar(1.0/2.0)*dot(dr, kappa)/rsq;
             Scalar sigma = fast::rsqrt(phi);
 
+            Scalar sigma_min = Scalar(2.0)*MIN(lperp,lpar);
+
             Scalar zeta = (r-sigma+sigma_min)/sigma_min;
             Scalar zetasq = zeta*zeta;
 
             Scalar rcut = fast::sqrt(rcutsq);
             Scalar dUdphi,dUdr;
-            Scalar zetacut = (rcut-sigma+sigma_min)/sigma_min;
+
+            // define r_cut to be along the long axis
+            Scalar sigma_max = Scalar(2.0)*MAX(lperp,lpar);
+            Scalar zetacut = (rcut-sigma_max+sigma_min)/sigma_min;
             Scalar zetacutsq = zetacut*zetacut;
 
             // compute the force divided by r in force_divr
@@ -181,7 +192,7 @@ class EvaluatorPairGB
                 dUdphi = dUdr*Scalar(1.0/2.0)*sigma*sigma*sigma;
 
                 pair_eng = Scalar(4.0)*epsilon*zeta6inv * (zeta6inv - Scalar(1.0));
-                
+
                 if (energy_shift)
                     {
                     Scalar zetacut2inv = Scalar(1.0)/zetacutsq;
@@ -205,7 +216,6 @@ class EvaluatorPairGB
 
             return true;
             }
-            
 
         #ifndef NVCC
         //! Get the name of the potential
@@ -224,11 +234,12 @@ class EvaluatorPairGB
         quat<Scalar> qi;   //!< Orientation quaternion for particle i
         quat<Scalar> qj;   //!< Orientation quaternion for particle j
         Scalar epsilon;    //!< Energy parameter
-        Scalar sigma_min;  //!< Minimum ellipsoid diameter
-        Scalar lperpsq;    //!< Short axis length squared
-        Scalar chi;        //!< chi-parameter, see Allen&Germano
+        Scalar lperp;      //!< Short axis length
+        Scalar lpar;       //!< Longt axis length
     };
 
 
+#undef MIN
+#undef MAX
 #endif // __EVALUATOR_PAIR_GB_H__
 

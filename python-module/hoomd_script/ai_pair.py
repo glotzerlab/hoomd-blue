@@ -124,7 +124,7 @@ class ai_pair(force._force):
     # 
     def set_params(self, mode=None):
         util.print_status_line();
-        
+
         if mode is not None:
             if mode == "no_shift":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.no_shift)
@@ -133,31 +133,31 @@ class ai_pair(force._force):
             else:
                 globals.msg.error("Invalid mode\n");
                 raise RuntimeError("Error changing parameters in pair force");
-     
+
     def process_coeff(self, coeff):
         globals.msg.error("Bug in hoomd_script, please report\n");
         raise RuntimeError("Error processing coefficients");
-    
+
     def update_coeffs(self):
         coeff_list = self.required_coeffs + ["r_cut"];
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(coeff_list):
             globals.msg.error("Not all pair coefficients are set\n");
             raise RuntimeError("Error updating pair coefficients");
-        
+
         # set all the params
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-        
+
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 # build a dict of the coeffs to pass to process_coeff
                 coeff_dict = {};
                 for name in coeff_list:
                     coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
-                
+
                 param = self.process_coeff(coeff_dict);
                 self.cpp_force.setParams(i, j, param);
                 self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
@@ -171,16 +171,16 @@ class ai_pair(force._force):
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-        
+
         # find the maximum r_cut
         max_rcut = 0.0;
-        
+
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 # get the r_cut value
                 r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
                 max_rcut = max(max_rcut, r_cut);
-        
+
         return max_rcut;
 
 
@@ -194,10 +194,10 @@ class ai_pair(force._force):
 # The interaction energy for this anisotropic pair potential is (\cite Allen2006):
 #
 # \f{eqnarray*}
-# V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)  = & 4 \varepsilon \left[ \left( \zeta^{-12} - 
+# V_{\mathrm{GB}}(\vec r, \vec e_i, \vec e_j)  = & 4 \varepsilon \left[ \left( \zeta^{-12} -
 #                       \left( \zeta{-6} \right] & \zeta < \zeta_{\mathrm{cut}} \\
 #                     = & 0 & \zeta \ge \zeta_{\mathrm{cut}} \\
-# \f}, 
+# \f},
 # where
 # \f{equation*}
 # \zeta = \left(\frac{r-\sigma+\sigma_{\mathrm{min}}{\sigma_{\mathrm{min}}}\right)
@@ -210,13 +210,22 @@ class ai_pair(force._force):
 # \f{equation*}
 # \vec H = 2 \ell_\perp^2 \vec 1+ (\ell_\par^2 - \ell_\perp^2) (\vec e_i \otimes e_i + \vec e_j \otimes e_j)
 # \f},
-# and  \f$ \sigma_min = \min(\ell_perp, \ell_par) \f$.
+# with \f$ \sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\par) \f$.
 #
-# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# The cut-off parameter \f$ r_{\mathrm{cut}} \f$ is defined for two particles oriented
+# parallel along the \b long axis, i.e.
+# \f$ \zeta_{\mathrm{cut}} = \left(\frac{r-\sigma_{\mathrm{max}} +
+# \sigma_{\mathrm{min}}{\sigma_{\mathrm{min}}}\right)\f$
+# where \f$ \sigma_{\mathrm{max}} = 2 \max(\ell_\perp, \ell_\par) \f$ .
+#
+# The quantities \f$ \ell_\par \f$ and \f$ \ell_\perp \f$ denote the semi-axis lengths parallel
+# and perpendicular to particle orientation.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
 # the \ref page_quick_start for information on how to set coefficients.
 # - \f$ \varepsilon \f$ - \c epsilon (in energy units)
-# - \f$ \ell_perp \f$ - \c lperp (perpendicular <b>semi</b>-axis length, in distance units)
-# - \f$ \ell_par \f$ - \c lpar (parallel <b>semi</b>-axis length, in distance units)
+# - \f$ \ell_perp \f$ - \c lperp (in distance units)
+# - \f$ \ell_par \f$ - \c lpar (in distance units)
 # - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
@@ -225,8 +234,8 @@ class ai_pair(force._force):
 #
 # \b Example:
 # \code
-# gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=1.0, lpar=1.5)
-# gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=1.0, lpar=1.5, r_cut=2**(1.0/6.0));
+# gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=0.45, lpar=0.5)
+# gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
 # \endcode
 #
 # For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
@@ -237,29 +246,29 @@ class gb(ai_pair):
     ## Specify the Gay-Berne %pair %force and torque
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param name Name of the force instance 
+    # \param name Name of the force instance
     #
     # \b Example:
     # \code
     # gb.ai_pair.gb(r_cut=2.5)
     # gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=1.0, lpar=1.5)
-    # gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=1.0, lpar=1.5, r_cut=2**(1.0/6.0));
+    # gb.pair_coeff.set('A', 'B', epsilon=2.0, lperp=0.45, lpar=0.5, r_cut=2**(1.0/6.0));
     # \endcode
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
     def __init__(self, r_cut, name=None):
         util.print_status_line();
-        
+
         # tell the base class how we operate
-        
+
         # initialize the base class
         ai_pair.__init__(self, r_cut, name);
-        
+
         # update the neighbor list
         neighbor_list = pair._update_global_nlist(r_cut);
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.AnisoPotentialPairGB(globals.system_definition, neighbor_list.cpp_nlist, self.name);
@@ -269,19 +278,15 @@ class gb(ai_pair):
             self.cpp_force = hoomd.AnisoPotentialPairGBGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.AnisoPotentialPairGBGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('ai_pair.gb'));
-            
+
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'lperp', 'lpar'];
-        
+
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         lperp = coeff['lperp'];
         lpar = coeff['lpar'];
 
-        sigma_min = 2.0*min(lperp,lpar)
-        chi = (lpar*lpar-lperp*lperp)/(lperp*lperp+lpar*lpar);
-        lperpsq = lperp*lperp;
-
-        return hoomd.make_scalar4(epsilon, sigma_min, lperpsq, chi);
+        return hoomd.make_scalar3(epsilon, lperp, lpar);
