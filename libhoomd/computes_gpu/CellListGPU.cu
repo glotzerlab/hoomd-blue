@@ -142,9 +142,9 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     Scalar3 f = box.makeFraction(pos,ghost_width);
 
     // check if the particle is inside the unit cell + ghost layer in all dimensions
-    if ((f.x < Scalar(0.0) || f.x >= Scalar(1.0)) ||
-        (f.y < Scalar(0.0) || f.y >= Scalar(1.0)) ||
-        (f.z < Scalar(0.0) || f.z >= Scalar(1.0)) )
+    if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
+        (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
+        (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)) )
         {
         // if a ghost particle is out of bounds, silently ignore it
         if (idx < N)
