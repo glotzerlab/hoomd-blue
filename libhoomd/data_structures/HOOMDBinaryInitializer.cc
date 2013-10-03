@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "HOOMDBinaryInitializer.h"
+#include "SnapshotSystemData.h"
 
 #include <iostream>
 #include <fstream>
@@ -80,13 +81,19 @@ using namespace boost::python;
 using namespace boost;
 using namespace boost::iostreams;
 
-/*! \param fname File name with the data to load
+/*! \param ExecutionConfiguration
+    \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
 */
-HOOMDBinaryInitializer::HOOMDBinaryInitializer(const std::string &fname)
+HOOMDBinaryInitializer::HOOMDBinaryInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                               const std::string &fname)
+    : m_exec_conf(exec_conf),
+      m_timestep(0)
     {
+    // execute only on rank zero
+    if (m_exec_conf->getRank()) return;
+
     // initialize member variables
-    m_timestep = 0;
     m_num_dimensions = 3;
     // read in the file
     readFile(fname);
@@ -94,36 +101,6 @@ HOOMDBinaryInitializer::HOOMDBinaryInitializer(const std::string &fname)
 
 /* XXX: shouldn't the following methods be put into
  * the header so that they get inlined? */
-
-/*! \returns Number of dimensions parsed from the binary file
-*/
-unsigned int HOOMDBinaryInitializer::getNumDimensions() const
-    {
-    return m_num_dimensions;
-    }
-
-/*! \returns Number of particles parsed from the binary file
-*/
-unsigned int HOOMDBinaryInitializer::getNumParticles() const
-    {
-    assert(m_x_array.size() > 0);
-    return (unsigned int)m_x_array.size();
-    }
-
-/*! \returns Numer of particle types parsed from the binary file
-*/
-unsigned int HOOMDBinaryInitializer::getNumParticleTypes() const
-    {
-    assert(m_type_mapping.size() > 0);
-    return (unsigned int)m_type_mapping.size();
-    }
-
-/*! \returns Box dimensions parsed from the binary file
-*/
-BoxDim HOOMDBinaryInitializer::getBox() const
-    {
-    return m_box;
-    }
 
 /*! \returns Time step parsed from the binary file
 */
@@ -139,45 +116,138 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
     }
 
 /*! initializes a snapshot with the internally stored copy of the particle data */
-void HOOMDBinaryInitializer::initSnapshot(SnapshotParticleData &snapshot) const
+boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() const
     {
-    assert(snapshot.size > 0);
-    assert(snapshot.size == m_x_array.size());
+    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    
+    // execute only on rank zero
+    if (m_exec_conf->getRank()) return snapshot;
+
+    // init dimensions
+    snapshot->dimensions = m_num_dimensions;
+
+    // init box
+    snapshot->global_box = m_box;
+
+    // init particle data snapshot
+    SnapshotParticleData& pdata = snapshot->particle_data; 
+
+    // resize snapshot
+    pdata.resize(m_x_array.size());
 
     // loop through all the particles and set them up
-    for (unsigned int i = 0; i < snapshot.size; i++)
+    for (unsigned int i = 0; i < pdata.size; i++)
         {
         unsigned int rtag = m_rtag_array[i];
 
-        snapshot.pos[i] = make_scalar3(m_x_array[rtag], m_y_array[rtag], m_z_array[rtag]);
-        snapshot.image[i] = make_int3(m_ix_array[rtag], m_iy_array[rtag], m_iz_array[rtag]);
-        snapshot.vel[i] = make_scalar3(m_vx_array[rtag], m_vy_array[rtag], m_vz_array[rtag]);
-        snapshot.accel[i] = make_scalar3(m_ax_array[rtag], m_ay_array[rtag], m_az_array[rtag]);
-        snapshot.mass[i] = m_mass_array[rtag];
-        snapshot.type[i] = m_type_array[rtag];
-        snapshot.diameter[i] = m_diameter_array[rtag];
-        snapshot.charge[i] = m_charge_array[rtag];
-        snapshot.body[i] = m_body_array[rtag];
+        pdata.pos[i] = make_scalar3(m_x_array[rtag], m_y_array[rtag], m_z_array[rtag]);
+        pdata.image[i] = make_int3(m_ix_array[rtag], m_iy_array[rtag], m_iz_array[rtag]);
+        pdata.vel[i] = make_scalar3(m_vx_array[rtag], m_vy_array[rtag], m_vz_array[rtag]);
+        pdata.accel[i] = make_scalar3(m_ax_array[rtag], m_ay_array[rtag], m_az_array[rtag]);
+        pdata.mass[i] = m_mass_array[rtag];
+        pdata.type[i] = m_type_array[rtag];
+        pdata.diameter[i] = m_diameter_array[rtag];
+        pdata.charge[i] = m_charge_array[rtag];
+        pdata.body[i] = m_body_array[rtag];
         }        
 
-    }
+    pdata.type_mapping = m_type_mapping;
 
-/*! \param wall_data WallData to initialize with the data read from the file
-*/
-void HOOMDBinaryInitializer::initWallData(boost::shared_ptr<WallData> wall_data) const
-    {
-    // copy the walls over from our internal list
-    for (unsigned int i = 0; i < m_walls.size(); i++)
-        wall_data->addWall(m_walls[i]);
-    }
+    /*
+     * Initialize bond data
+     */
+    SnapshotBondData& bdata = snapshot->bond_data;
 
-void HOOMDBinaryInitializer::initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data ) const
-    {
-    integrator_data->load(m_integrator_variables.size());
-    for (unsigned int i=0; i<m_integrator_variables.size(); i++)
+    // allocate memory in snapshot
+    bdata.resize(m_bonds.size());
+
+    // loop through all the bonds and add a bond for each
+    for (unsigned int i = 0; i < m_bonds.size(); i++)
         {
-        integrator_data->setIntegratorVariables(i, m_integrator_variables[i]);
+        bdata.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
+        bdata.type_id[i] = m_bonds[i].type;
         }
+        
+    bdata.type_mapping = m_bond_type_mapping;
+
+    /*
+     * Initialize angle data
+     */
+    SnapshotAngleData& adata = snapshot->angle_data;
+
+    // allocate memory in snapshot
+    adata.resize(m_angles.size());
+
+    // loop through all the angles and add an angle for each
+    for (unsigned int i = 0; i < m_angles.size(); i++)
+        {
+        adata.angles[i] = make_uint3(m_angles[i].a,m_angles[i].b,m_angles[i].c);
+        adata.type_id[i] = m_angles[i].type;
+        }
+        
+    adata.type_mapping = m_angle_type_mapping;
+
+    /*
+     * Initialize dihedral data
+     */
+    SnapshotDihedralData& ddata = snapshot->dihedral_data;
+
+    // allocate memory
+    ddata.resize(m_dihedrals.size());
+
+    // loop through all the dihedrals and add an dihedral for each
+    for (unsigned int i = 0; i < m_dihedrals.size(); i++)
+        {
+        ddata.dihedrals[i] = make_uint4(m_dihedrals[i].a,m_dihedrals[i].b,m_dihedrals[i].c, m_dihedrals[i].d);
+        ddata.type_id[i] = m_dihedrals[i].type;
+        }
+
+    ddata.type_mapping = m_dihedral_type_mapping;
+
+    /*
+     * Initialize improper data
+     */
+    SnapshotDihedralData& idata = snapshot->improper_data;
+
+    // allocate memory
+    idata.resize(m_dihedrals.size());
+
+    // loop through all the dihedrals and add an dihedral for each
+    for (unsigned int i = 0; i < m_impropers.size(); i++)
+        {
+        idata.dihedrals[i] = make_uint4(m_impropers[i].a,m_impropers[i].b,m_impropers[i].c, m_impropers[i].d);
+        idata.type_id[i] = m_impropers[i].type;
+        }
+        
+    idata.type_mapping = m_improper_type_mapping;
+
+    /*
+     * Initialize walls
+     */
+    snapshot->wall_data = m_walls;
+
+    /*
+     * Initialize integrator data
+     */
+    snapshot->integrator_data = m_integrator_variables;
+
+    /*
+     * Initalize rigid body data
+     */
+    SnapshotRigidData& rdata = snapshot->rigid_data;
+
+    unsigned int n_bodies = m_com.size();
+    rdata.resize(n_bodies);
+
+    for (unsigned int body = 0; body < n_bodies; body++)
+        {
+        rdata.com[body] = make_scalar3(m_com[body].x, m_com[body].y, m_com[body].z);
+        rdata.vel[body] = make_scalar3(m_vel[body].x, m_vel[body].y, m_vel[body].z);
+        rdata.angmom[body] = make_scalar3(m_angmom[body].x, m_angmom[body].y, m_angmom[body].z);
+        rdata.body_image[body] = m_body_image[body]; 
+        }
+
+    return snapshot;
     }
 
 //! Helper function to read a string from the file
@@ -216,14 +286,14 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     #ifndef ENABLE_ZLIB
     if (enable_decompression)
         {
-        cerr << endl << "***Error! HOOMDBinaryInitialzier is trying to read a compressed .gz file, but ZLIB was not" << endl;
-        cerr << "enabled in this build of hoomd" << endl << endl;
+        m_exec_conf->msg->error() << endl << "HOOMDBinaryInitialzier is trying to read a compressed .gz file, but ZLIB was not" << endl;
+            << "enabled in this build of hoomd" << endl << endl;
         throw runtime_error("Error reading binary file");
         }
     #endif
     
     // Open the file
-    cout<< "Reading " << fname << "..." << endl;
+    m_exec_conf->msg->notice(2) << "Reading " << fname << "..." << endl;
     // setup the file input for decompression
     filtering_istream f;
     #ifdef ENABLE_ZLIB
@@ -235,7 +305,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     // handle errors
     if (f.fail())
         {
-        cerr << endl << "***Error! Error opening " << fname << endl << endl;
+        m_exec_conf->msg->error() << endl << "Error opening " << fname << endl << endl;
         throw runtime_error("Error reading binary file");
         }
     
@@ -245,11 +315,11 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     f.read((char*)&file_magic, sizeof(int));
     if (magic != file_magic)
         {
-        cerr << endl << "***Error! " << fname << " does not appear to be a hoomd_bin file." << endl;
+        m_exec_conf->msg->error() << endl << fname << " does not appear to be a hoomd_bin file." << endl;
         if (enable_decompression)
-            cerr << "Is it perhaps an uncompressed file with an erroneous .gz extension?" << endl << endl;
+            m_exec_conf->msg->error() << "Is it perhaps an uncompressed file with an erroneous .gz extension?" << endl << endl;
         else
-            cerr << "Is it perhaps a compressed file without a .gz extension?" << endl << endl;
+            m_exec_conf->msg->error() << "Is it perhaps a compressed file without a .gz extension?" << endl << endl;
 
         throw runtime_error("Error reading binary file");
         }
@@ -261,8 +331,8 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     // right now, the version tag doesn't do anything: just warn if they don't match
     if (version != file_version)
         {
-        cout << endl
-             << "***Error! hoomd binary file does not match the current version,"
+        m_exec_conf->msg->error() << endl
+             << "hoomd binary file does not match the current version,"
              << endl << endl;
         throw runtime_error("Error reading binary file");
         }
@@ -494,163 +564,46 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     // check for required items in the file
     if (m_x_array.size() == 0)
         {
-        cerr << endl << "***Error! No particles found in binary file" << endl << endl;
+        m_exec_conf->msg->error() << endl << "No particles found in binary file" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
         
     // notify the user of what we have accomplished
-    cout << "--- hoomd_binary file read summary" << endl;
-    cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
+    m_exec_conf->msg->notice(2) << "--- hoomd_binary file read summary" << endl;
+    m_exec_conf->msg->notice(2) << m_x_array.size() << " positions at timestep " << m_timestep << endl;
     if (m_ix_array.size() > 0)
-        cout << m_ix_array.size() << " images" << endl;
+        m_exec_conf->msg->notice(2) << m_ix_array.size() << " images" << endl;
     if (m_vx_array.size() > 0)
-        cout << m_vx_array.size() << " velocities" << endl;
+        m_exec_conf->msg->notice(2) << m_vx_array.size() << " velocities" << endl;
     if (m_mass_array.size() > 0)
-        cout << m_mass_array.size() << " masses" << endl;
+        m_exec_conf->msg->notice(2) << m_mass_array.size() << " masses" << endl;
     if (m_diameter_array.size() > 0)
-        cout << m_diameter_array.size() << " diameters" << endl;
+        m_exec_conf->msg->notice(2) << m_diameter_array.size() << " diameters" << endl;
     if (m_charge_array.size() > 0)
-        cout << m_charge_array.size() << " charges" << endl;
-    cout << getNumParticleTypes() <<  " particle types" << endl;
+        m_exec_conf->msg->notice(2) << m_charge_array.size() << " charges" << endl;
+    m_exec_conf->msg->notice(2) << m_type_mapping.size() <<  " particle types" << endl;
     if (m_integrator_variables.size() > 0)
-        cout << m_integrator_variables.size() << " integrator states" << endl;
+        m_exec_conf->msg->notice(2) << m_integrator_variables.size() << " integrator states" << endl;
     if (m_bonds.size() > 0)
-        cout << m_bonds.size() << " bonds" << endl;
+        m_exec_conf->msg->notice(2) << m_bonds.size() << " bonds" << endl;
     if (m_angles.size() > 0)
-        cout << m_angles.size() << " angles" << endl;
+        m_exec_conf->msg->notice(2) << m_angles.size() << " angles" << endl;
     if (m_dihedrals.size() > 0)
-        cout << m_dihedrals.size() << " dihedrals" << endl;
+        m_exec_conf->msg->notice(2) << m_dihedrals.size() << " dihedrals" << endl;
     if (m_impropers.size() > 0)
-        cout << m_impropers.size() << " impropers" << endl;
+        m_exec_conf->msg->notice(2) << m_impropers.size() << " impropers" << endl;
     if (m_walls.size() > 0)
-        cout << m_walls.size() << " walls" << endl;
-    }
-
-/*! \return Number of bond types determined from the XML file
-*/
-unsigned int HOOMDBinaryInitializer::getNumBondTypes() const
-    {
-    return (unsigned int)m_bond_type_mapping.size();
-    }
-
-/*! \return Number of angle types determined from the XML file
-*/
-unsigned int HOOMDBinaryInitializer::getNumAngleTypes() const
-    {
-    return (unsigned int)m_angle_type_mapping.size();
-    }
-
-/*! \return Number of dihedral types determined from the XML file
-*/
-unsigned int HOOMDBinaryInitializer::getNumDihedralTypes() const
-    {
-    return (unsigned int)m_dihedral_type_mapping.size();
-    }
-
-/*! \return Number of improper types determined from the XML file
-*/
-unsigned int HOOMDBinaryInitializer::getNumImproperTypes() const
-    {
-    return (unsigned int)m_improper_type_mapping.size();
-    }
-
-/*! \param bond_data Shared pointer to the BondData to be initialized
-    Adds all bonds found in the XML file to the BondData
-*/
-void HOOMDBinaryInitializer::initBondData(boost::shared_ptr<BondData> bond_data) const
-    {
-    // loop through all the bonds and add a bond for each
-    for (unsigned int i = 0; i < m_bonds.size(); i++)
-        bond_data->addBond(m_bonds[i]);
-        
-    bond_data->setBondTypeMapping(m_bond_type_mapping);
-    }
-
-/*! \param angle_data Shared pointer to the AngleData to be initialized
-    Adds all angles found in the XML file to the AngleData
-*/
-void HOOMDBinaryInitializer::initAngleData(boost::shared_ptr<AngleData> angle_data) const
-    {
-    // loop through all the angles and add an angle for each
-    for (unsigned int i = 0; i < m_angles.size(); i++)
-        angle_data->addAngle(m_angles[i]);
-        
-    angle_data->setAngleTypeMapping(m_angle_type_mapping);
-    }
-
-/*! \param dihedral_data Shared pointer to the DihedralData to be initialized
-    Adds all dihedrals found in the XML file to the DihedralData
-*/
-void HOOMDBinaryInitializer::initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const
-    {
-    // loop through all the dihedrals and add an dihedral for each
-    for (unsigned int i = 0; i < m_dihedrals.size(); i++)
-        dihedral_data->addDihedral(m_dihedrals[i]);
-        
-    dihedral_data->setDihedralTypeMapping(m_dihedral_type_mapping);
-    }
-
-/*! \param improper_data Shared pointer to the ImproperData to be initialized
-    Adds all impropers found in the XML file to the ImproperData
-*/
-void HOOMDBinaryInitializer::initImproperData(boost::shared_ptr<DihedralData> improper_data) const
-    {
-    // loop through all the impropers and add an improper for each
-    for (unsigned int i = 0; i < m_impropers.size(); i++)
-        improper_data->addDihedral(m_impropers[i]);
-        
-    improper_data->setDihedralTypeMapping(m_improper_type_mapping);
-    }
-
-/*! \param rigid_data Shared pointer to the ImproperData to be initialized
-    Adds all rigid bodies found in the XML file to the RigidData
-*/
-void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_data) const
-    {
-    ArrayHandle<Scalar4> r_com_handle(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_vel_handle(rigid_data->getVel(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_angmom_handle(rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int3> r_body_image_handle(rigid_data->getBodyImage(), access_location::host, access_mode::readwrite);
-    
-    // We don't need to restore force, torque and orientation because the setup will do the rest,
-    // and simulation still resumes smoothly.
-    unsigned int n_bodies = rigid_data->getNumBodies();
-    for (unsigned int body = 0; body < n_bodies; body++)
-        {
-        r_com_handle.data[body].x = m_com[body].x;
-        r_com_handle.data[body].y = m_com[body].y;
-        r_com_handle.data[body].z = m_com[body].z;
-        r_com_handle.data[body].w = m_com[body].w;
-        
-        r_vel_handle.data[body].x = m_vel[body].x;
-        r_vel_handle.data[body].y = m_vel[body].y;
-        r_vel_handle.data[body].z = m_vel[body].z;
-        r_vel_handle.data[body].w = m_vel[body].w;
-        
-        r_angmom_handle.data[body].x = m_angmom[body].x;
-        r_angmom_handle.data[body].y = m_angmom[body].y;
-        r_angmom_handle.data[body].z = m_angmom[body].z;
-        r_angmom_handle.data[body].w = m_angmom[body].w;
-        
-        r_body_image_handle.data[body] = m_body_image[body];
-        }
-    }
-
-
-/*! \returns A mapping of type ids to type names deteremined from the XML input file
-*/
-std::vector<std::string> HOOMDBinaryInitializer::getTypeMapping() const
-    {
-    return m_type_mapping;
+        m_exec_conf->msg->notice(2) << m_walls.size() << " walls" << endl;
     }
 
 void export_HOOMDBinaryInitializer()
     {
-    class_< HOOMDBinaryInitializer, bases<ParticleDataInitializer> >("HOOMDBinaryInitializer", init<const string&>())
-    // virtual methods from ParticleDataInitializer are inherited
-    .def("getTimeStep", &HOOMDBinaryInitializer::getTimeStep)
-    .def("setTimeStep", &HOOMDBinaryInitializer::setTimeStep)
-    ;
+    class_< HOOMDBinaryInitializer >("HOOMDBinaryInitializer",
+        init<boost::shared_ptr<const ExecutionConfiguration>, const string&>())
+        // virtual methods from ParticleDataInitializer are inherited
+        .def("getTimeStep", &HOOMDBinaryInitializer::getTimeStep)
+        .def("setTimeStep", &HOOMDBinaryInitializer::setTimeStep)
+        ;
     }
 
 #ifdef WIN32

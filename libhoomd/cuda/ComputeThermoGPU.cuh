@@ -66,19 +66,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Holder for arguments to gpu_compute_thermo
 struct compute_thermo_args
     {
-    float4 *d_net_force;    //!< Net force / pe array to sum
-    float *d_net_virial;    //!< Net virial array to sum
+    Scalar4 *d_net_force;    //!< Net force / pe array to sum
+    Scalar *d_net_virial;    //!< Net virial array to sum
     unsigned int virial_pitch; //!< Pitch of 2D net_virial array
     unsigned int ndof;      //!< Number of degrees of freedom for T calculation
     unsigned int D;         //!< Dimensionality of the system
-    float4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
-    float *d_scratch_pressure_tensor; //!< n_blocks*6 elements of scratch spaace for partial sums of the pressure tensor
+    Scalar4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
+    Scalar *d_scratch_pressure_tensor; //!< n_blocks*6 elements of scratch spaace for partial sums of the pressure tensor
     unsigned int block_size;    //!< Block size to execute on the GPU
     unsigned int n_blocks;      //!< Number of blocks to execute / n_blocks * block_size >= group_size
+    Scalar external_virial_xx;  //!< xx component of the external virial
+    Scalar external_virial_xy;  //!< xy component of the external virial
+    Scalar external_virial_xz;  //!< xz component of the external virial
+    Scalar external_virial_yy;  //!< yy component of the external virial
+    Scalar external_virial_yz;  //!< yz component of the external virial
+    Scalar external_virial_zz;  //!< zz component of the external virial
     };
 
 //! Computes the thermodynamic properties for ComputeThermo
-cudaError_t gpu_compute_thermo(float *d_properties,
+cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                Scalar4 *d_vel,
                                unsigned int *d_group_members,
                                unsigned int group_size,

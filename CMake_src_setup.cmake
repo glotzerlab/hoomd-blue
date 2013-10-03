@@ -13,6 +13,7 @@ include_directories(${HOOMD_SOURCE_DIR}/libhoomd/utils
                     ${HOOMD_SOURCE_DIR}/libhoomd/updaters_gpu
                     ${HOOMD_SOURCE_DIR}/libhoomd/system
                     ${HOOMD_SOURCE_DIR}/libhoomd/extern
+                    ${HOOMD_SOURCE_DIR}/libhoomd/communication
                     ${CUDA_INCLUDE}
                     ${HOOMD_BINARY_DIR}/include)
 
@@ -21,7 +22,7 @@ include_directories(${HOOMD_SOURCE_DIR}/libhoomd/utils
 
 # handle linux/mac and windows dates differently
 if (NOT WIN32)
-    exec_program("date" OUTPUT_VARIABLE COMPILE_DATE)
+    exec_program("date +%x" OUTPUT_VARIABLE COMPILE_DATE)
 else(NOT WIN32)
     exec_program("cmd" ARGS "/c date /T" OUTPUT_VARIABLE COMPILE_DATE)
 endif (NOT WIN32)

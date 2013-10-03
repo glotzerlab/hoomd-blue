@@ -77,7 +77,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     but executing on the GPU.
 
     Per-type parameters are stored in a simple global memory area pointed to by
-    \a m_gpu_params. They are stored as float2's with the \a x component being K and the
+    \a m_gpu_params. They are stored as Scalar2's with the \a x component being K and the
     \a y component being t_0.
 
     The GPU kernel can be found in improperforce_kernel.cu.
@@ -105,7 +105,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
         
     protected:
         int m_block_size;               //!< Block size to run calculation on
-        GPUArray<float2>  m_params;     //!< Parameters stored on the GPU (k,chi)
+        GPUArray<Scalar2>  m_params;     //!< Parameters stored on the GPU (k,chi)
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

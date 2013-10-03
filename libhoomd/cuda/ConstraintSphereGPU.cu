@@ -79,15 +79,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param deltaT step size from the Integrator
 */
 extern "C" __global__
-void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
-                                                 float* d_virial,
+void gpu_compute_constraint_sphere_forces_kernel(Scalar4* d_force,
+                                                 Scalar* d_virial,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const Scalar4 *d_vel,
-                                                 const float4 *d_net_force,
+                                                 const Scalar4 *d_net_force,
                                                  Scalar3 P,
                                                  Scalar r,
                                                  Scalar deltaT)
@@ -102,9 +102,9 @@ void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
     unsigned int idx = d_group_members[group_idx];
                 
     // read in position, velocity, net force, and mass
-    float4 pos = d_pos[idx];
-    float4 vel = d_vel[idx];
-    float4 net_force = d_net_force[idx];
+    Scalar4 pos = d_pos[idx];
+    Scalar4 vel = d_vel[idx];
+    Scalar4 net_force = d_net_force[idx];
     Scalar m = vel.w;
     
     // convert to Scalar3's for passing to the evaluators
@@ -123,7 +123,7 @@ void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
     constraint.evalConstraintForce(FC, virial, C);
 
     // now that the force calculation is complete, write out the results
-    d_force[idx] = make_float4(FC.x, FC.y, FC.z, 0.0f);
+    d_force[idx] = make_scalar4(FC.x, FC.y, FC.z, Scalar(0.0));
     for (unsigned int i = 0; i < 6; i++)
         d_virial[i*virial_pitch+idx] = virial[i];
     }
@@ -146,15 +146,15 @@ void gpu_compute_constraint_sphere_forces_kernel(float4* d_force,
     \returns Any error code resulting from the kernel launch
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
-cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
-                                                 float* d_virial,
+cudaError_t gpu_compute_constraint_sphere_forces(Scalar4* d_force,
+                                                 Scalar* d_virial,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const Scalar4 *d_vel,
-                                                 const float4 *d_net_force,
+                                                 const Scalar4 *d_net_force,
                                                  const Scalar3& P,
                                                  Scalar r,
                                                  Scalar deltaT,
@@ -168,8 +168,8 @@ cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    cudaMemset(d_force, 0, sizeof(float4)*N);
-    cudaMemset(d_virial, 0, 6*sizeof(float)*virial_pitch);
+    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
+    cudaMemset(d_virial, 0, 6*sizeof(Scalar)*virial_pitch);
     gpu_compute_constraint_sphere_forces_kernel<<< grid, threads>>>(d_force,
                                                                     d_virial,
                                                                     virial_pitch,

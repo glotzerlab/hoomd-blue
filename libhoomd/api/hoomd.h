@@ -87,9 +87,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TablePotential.h"
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
+#include "AllTripletPotentials.h"
 #include "AllBondPotentials.h"
 #include "ComputeThermo.h"
-#include "ComputeThermoGPU.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
 #include "Analyzer.h"
@@ -107,9 +107,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegrationMethodTwoStep.h"
 #include "TwoStepNVE.h"
 #include "TwoStepNVT.h"
+#include "TwoStepNPTMTK.h"
 #include "TwoStepBDNVT.h"
-#include "TwoStepNPT.h"
-#include "TwoStepNPH.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepNVERigid.h" 
 #include "TwoStepNVTRigid.h"
@@ -128,6 +127,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPair.h"
+#include "PotentialTersoff.h"
 #include "PPPMForceCompute.h"
 #include "AllExternalPotentials.h"
 
@@ -138,14 +138,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
+#include "TwoStepNPTMTKGPU.h"
 #include "TwoStepBDNVTGPU.h"
-#include "TwoStepNPTGPU.h"
-#include "TwoStepNPHGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepNVERigidGPU.h" 
 #include "TwoStepNVTRigidGPU.h" 
 #include "TwoStepNPTRigidGPU.h" 
 #include "TwoStepBDNVTRigidGPU.h" 
+#include "ComputeThermoGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
 #include "CGCMMForceComputeGPU.h"
@@ -161,7 +161,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
+#include "PotentialTersoffGPU.h"
 #include "PPPMForceComputeGPU.h"
+#include "ComputeThermoGPU.h"
+#endif
+
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "DomainDecomposition.h"
+#include "HOOMDMPI.h"
+#ifdef ENABLE_CUDA
+#include "CommunicatorGPU.h"
+#endif
 #endif
 
 #include "SignalHandler.h"

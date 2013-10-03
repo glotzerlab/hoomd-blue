@@ -190,7 +190,6 @@ void RigidData::initializeData()
 
     ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
     
     // determine the number of rigid bodies
     unsigned int maxbody = 0;
@@ -339,13 +338,16 @@ void RigidData::initializeData()
         unsigned int body = h_body.data[j];
         Scalar mass_one = h_vel.data[j].w;
         body_mass_handle.data[body] += mass_one;
-        Scalar unwrappedx = h_pos.data[j].x + L.x * (h_image.data[j].x - nominal_body_image[body].x);
-        Scalar unwrappedy = h_pos.data[j].y + L.y * (h_image.data[j].y - nominal_body_image[body].y);
-        Scalar unwrappedz = h_pos.data[j].z + L.z * (h_image.data[j].z - nominal_body_image[body].z);
-            
-        com_handle.data[body].x += mass_one * unwrappedx;
-        com_handle.data[body].y += mass_one * unwrappedy;
-        com_handle.data[body].z += mass_one * unwrappedz;
+        // unwrap all particles in a body to the same image
+        int3 shift = make_int3(h_image.data[j].x - nominal_body_image[body].x,
+                               h_image.data[j].y - nominal_body_image[body].y,
+                               h_image.data[j].z - nominal_body_image[body].z);
+        Scalar3 wrapped = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+        Scalar3 unwrapped = box.shift(wrapped, shift);
+        
+        com_handle.data[body].x += mass_one * unwrapped.x;
+        com_handle.data[body].y += mass_one * unwrapped.y;
+        com_handle.data[body].z += mass_one * unwrapped.z;
         }
 
     // complete the COM calculation by dividing by the mass of the body
@@ -379,13 +381,16 @@ void RigidData::initializeData()
         Scalar mass_one = h_vel.data[j].w;
         unsigned int tag = h_tag.data[j];
         
-        Scalar unwrappedx = h_pos.data[j].x + L.x*(h_image.data[j].x - nominal_body_image[body].x);
-        Scalar unwrappedy = h_pos.data[j].y + L.y*(h_image.data[j].y - nominal_body_image[body].y);
-        Scalar unwrappedz = h_pos.data[j].z + L.z*(h_image.data[j].z - nominal_body_image[body].z);
+        // unwrap all particles in a body to the same image
+        int3 shift = make_int3(h_image.data[j].x - nominal_body_image[body].x,
+                               h_image.data[j].y - nominal_body_image[body].y,
+                               h_image.data[j].z - nominal_body_image[body].z);
+        Scalar3 wrapped = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+        Scalar3 unwrapped = box.shift(wrapped, shift);
         
-        Scalar dx = unwrappedx - com_handle.data[body].x;
-        Scalar dy = unwrappedy - com_handle.data[body].y;
-        Scalar dz = unwrappedz - com_handle.data[body].z;
+        Scalar dx = unwrapped.x - com_handle.data[body].x;
+        Scalar dy = unwrapped.y - com_handle.data[body].y;
+        Scalar dz = unwrapped.z - com_handle.data[body].z;
             
         inertia_handle.data[inertia_pitch * body + 0] += mass_one * (dy * dy + dz * dz);
         inertia_handle.data[inertia_pitch * body + 1] += mass_one * (dz * dz + dx * dx);
@@ -577,13 +582,16 @@ void RigidData::initializeData()
         
         // determine the particle position in the body frame
         // with ex_space, ey_space and ex_space vectors computed from the diagonalization
-        Scalar unwrappedx = h_pos.data[j].x + L.x * (h_image.data[j].x - nominal_body_image[body].x);
-        Scalar unwrappedy = h_pos.data[j].y + L.y * (h_image.data[j].y - nominal_body_image[body].y);
-        Scalar unwrappedz = h_pos.data[j].z + L.z * (h_image.data[j].z - nominal_body_image[body].z);
+        // unwrap all particles in a body to the same image
+        int3 shift = make_int3(h_image.data[j].x - nominal_body_image[body].x,
+                               h_image.data[j].y - nominal_body_image[body].y,
+                               h_image.data[j].z - nominal_body_image[body].z);
+        Scalar3 wrapped = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+        Scalar3 unwrapped = box.shift(wrapped, shift);
         
-        Scalar dx = unwrappedx - com_handle.data[body].x;
-        Scalar dy = unwrappedy - com_handle.data[body].y;
-        Scalar dz = unwrappedz - com_handle.data[body].z;
+        Scalar dx = unwrapped.x - com_handle.data[body].x;
+        Scalar dy = unwrapped.y - com_handle.data[body].y;
+        Scalar dz = unwrapped.z - com_handle.data[body].z;
                     
         unsigned int idx = body * particle_pos_pitch + current_localidx;
         particle_pos_handle.data[idx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
@@ -609,17 +617,7 @@ void RigidData::initializeData()
     // now that all computations using nominally unwrapped coordinates are done, put the COM into the simulation box
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
-        float dx = rintf(com_handle.data[body].x * Scalar(1.0)/L.x);
-        com_handle.data[body].x -= L.x * dx;
-        body_image_handle.data[body].x += (int)dx;
-
-        float dy= rintf(com_handle.data[body].y * Scalar(1.0)/L.y);
-        com_handle.data[body].y -= L.y * dy;
-        body_image_handle.data[body].y += (int)dy;
-
-        float dz = rintf(com_handle.data[body].z * Scalar(1.0)/L.z);
-        com_handle.data[body].z -= L.z * dz;
-        body_image_handle.data[body].z += (int)dz;
+        box.wrap(com_handle.data[body], body_image_handle.data[body]);
         }
     
     //initialize rigid_particle_indices
@@ -665,9 +663,6 @@ void RigidData::setRVCPU(bool set_x)
     {
     // get box
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getL();
-    Scalar3 hi = box.getHi();
-    Scalar3 lo = box.getLo();
 
     // access to the force
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -1030,7 +1025,7 @@ void RigidData::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey
     \param body Body index to set angular momentum
     \param angmom Angular momentum
 */
-void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
+void RigidData::setAngMom(unsigned int body, Scalar3 angmom)
     {
     if (body < 0 || body >= m_n_bodies) 
         {
@@ -1038,12 +1033,25 @@ void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
         return;
         }
     
-    ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_angmom, access_location::host, access_mode::readwrite);
     
-    angmom_handle.data[body].x = angmom.x;
-    angmom_handle.data[body].y = angmom.y;
-    angmom_handle.data[body].z = angmom.z;
-    angmom_handle.data[body].w = angmom.w;
+    h_angmom.data[body].x = angmom.x;
+    h_angmom.data[body].y = angmom.y;
+    h_angmom.data[body].z = angmom.z;
+    h_angmom.data[body].w = 0;
+
+    Scalar4 ex, ey, ez;
+    ArrayHandle<Scalar4> h_angvel(m_angvel, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_moment_inertia(m_moment_inertia, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_orientation, access_location::host, access_mode::read);
+    exyzFromQuaternion(h_orientation.data[body], ex, ey, ez);
+    
+    computeAngularVelocity(h_angmom.data[body],
+                           h_moment_inertia.data[body],
+                           ex,
+                           ey,
+                           ez,
+                           h_angvel.data[body]);
     }
 
 /*! computeVirialCorrectionStart() must be called at the start of any time step update when there are rigid bodies
@@ -1181,6 +1189,77 @@ void RigidData::computeVirialCorrectionEndGPU(Scalar deltaT)
     }
 #endif
 
+/*! \param snapshot SnapshotRigidData to initialize from
+ */
+void RigidData::initializeFromSnapshot(const SnapshotRigidData& snapshot)
+    {
+    // check that all fields in the snapshot have correct length
+    if (m_exec_conf->getRank() == 0 && !snapshot.validate())
+        {
+        m_exec_conf->msg->error() << "init.*: inconsistent size of rigid body snapshot."
+                                << std::endl << std::endl;
+        throw std::runtime_error("Error initializing rigid bodies.");
+        }
+
+    ArrayHandle<Scalar4> h_com(getCOM(), access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_vel(getVel(), access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_angmom(getAngMom(), access_location::host, access_mode::overwrite);
+    ArrayHandle<int3> h_body_image(getBodyImage(), access_location::host, access_mode::overwrite);
+  
+    // Error out if snapshot contains a different number of bodies
+    if (getNumBodies() != snapshot.size)
+        {
+        m_exec_conf->msg->error() << "SnapshotRigidData has mismatched size." << std::endl << std::endl;
+        throw std::runtime_error("Error initializing RigidData.");
+        }
+
+    // We don't need to restore force, torque and orientation because the setup will do the rest,
+    // and simulation still resumes smoothly.
+    // NOTE: this may not be true if re-initialized in the middle of the simulation
+    unsigned int n_bodies = snapshot.size;
+    for (unsigned int body = 0; body < n_bodies; body++)
+        {
+        h_com.data[body] = make_scalar4(snapshot.com[body].x, snapshot.com[body].y, snapshot.com[body].z,0.0);
+        h_vel.data[body] = make_scalar4(snapshot.vel[body].x, snapshot.vel[body].y, snapshot.vel[body].z,0.0);
+        h_angmom.data[body] = make_scalar4(snapshot.angmom[body].x, snapshot.angmom[body].y, snapshot.angmom[body].z, 0.0); 
+        h_body_image.data[body] = snapshot.body_image[body];
+        }
+ 
+    }
+
+/*! \param snapshot The snapshot to fill with the rigid body data
+ */
+void RigidData::takeSnapshot(SnapshotRigidData& snapshot) const
+    {
+    ArrayHandle<Scalar4> h_com(getCOM(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(getVel(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_angmom(getAngMom(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_body_image(getBodyImage(), access_location::host, access_mode::read);
+
+    // allocate memory in snapshot
+    unsigned int n_bodies = getNumBodies();
+    snapshot.resize(n_bodies);
+
+    for (unsigned int i = 0; i < n_bodies; ++i)
+        {
+        snapshot.com[i] = make_scalar3(h_com.data[i].x,h_com.data[i].y,h_com.data[i].z);
+        snapshot.vel[i] = make_scalar3(h_vel.data[i].x,h_vel.data[i].y,h_vel.data[i].z);
+        snapshot.angmom[i] = make_scalar3(h_angmom.data[i].x,h_angmom.data[i].y,h_angmom.data[i].z);
+        snapshot.body_image[i] = h_body_image.data[i];
+        }
+    }
+
+void export_SnapshotRigidData()
+    {
+    class_<SnapshotRigidData, boost::shared_ptr<SnapshotRigidData> >
+        ("SnapshotRigidData", init<>())
+        .def_readwrite("size", &SnapshotRigidData::size)
+        .def_readwrite("com", &SnapshotRigidData::com)
+        .def_readwrite("vel", &SnapshotRigidData::vel)
+        .def_readwrite("angmom", &SnapshotRigidData::angmom)
+        .def_readwrite("body_image", &SnapshotRigidData::body_image)
+        ;
+    }
 
 void export_RigidData()
     {

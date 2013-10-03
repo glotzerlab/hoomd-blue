@@ -52,3 +52,21 @@
 
 # this file exists to mark hoomd_plugins as a python module directory
 # \package prevent lint detector warning
+
+import sys
+import os
+import importlib
+
+# If HOOMD_PLUGIN_PATH is on the environment, add each colon-separated entry to the python module search path
+if 'HOOMD_PLUGIN_PATH' in os.environ:
+    plugin_path = os.environ['HOOMD_PLUGIN_PATH'].split(':');
+    
+    for p in plugin_path:
+        sys.path.append(p);
+
+# If HOOMD_EXTERNAL_PLUGINS is on the environment, import each colon-separated entry into this module
+if 'HOOMD_EXTERNAL_PLUGINS' in os.environ:
+    plugins = os.environ['HOOMD_EXTERNAL_PLUGINS'].split(':');
+    
+    for p in plugins:
+        vars()[p] = importlib.import_module(p)

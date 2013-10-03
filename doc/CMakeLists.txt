@@ -21,6 +21,9 @@ set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_CUDA=1\" \\
     \"NVCC=1\" \\
     \"BOOST_VERSION=103500\" ")
 
+# build MPI documentation
+set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_MPI=1\" ")
+
 # disable DOT in doxygen if dot is not found
 if(DOXYGEN_DOT_PATH)
     set(DOXYGEN_HAVE_DOT "YES")
@@ -104,6 +107,8 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/stylesheet.css
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/header.html
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/footer.html
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/triclinic.doc
                         )
 
 add_custom_command (OUTPUT ${DOXYGEN_USER_DOC_HTML_DIR}/index.html

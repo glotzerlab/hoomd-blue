@@ -62,6 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // hoomd patch version
 #define HOOMD_VERSION_PATCH ${HOOMD_VERSION_PATCH}
 
+#include "ExecutionConfiguration.h"
+
 /*! \file HOOMDVersion.h.in
 	\brief Functions and variables for printing compile time build information of HOOMD
 	\details This file is configured to HOOMDVersion.h by CMake, that is the file that should

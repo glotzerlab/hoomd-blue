@@ -300,7 +300,7 @@ class _bond(force._force):
 # Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of %bond in the simulation using
 # \link hoomd_script.bond.coeff.set bond_coeff.set()\endlink
 # \note For compatibility with older versions of HOOMD-blue, the syntax set_coeff() is also supported.
-#
+# \MPI_SUPPORTED
 class harmonic(_bond):
     ## Specify the %harmonic %bond %force
     #
@@ -371,6 +371,7 @@ class harmonic(_bond):
 # each type of %bond in the simulation using
 # \link bond.coeff.set bond_coeff.set()\endlink.
 # \note For compatibility with older versions of HOOMD-blue, the syntax set_coeff() is also supported.
+# \MPI_SUPPORTED
 class fene(_bond):
     ## Specify the %fene %bond %force
     #
@@ -494,6 +495,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 #
 # \note Coefficients for all bond types in the simulation must be
 # set before it can be started with run().
+# \MPI_NOT_SUPPORTED
 class table(force._force):
     ## Specify the Tabulated %bond %force
     #
@@ -540,8 +542,8 @@ class table(force._force):
 
     def update_bond_table(self, btype, func, rmin, rmax, coeff):
         # allocate arrays to store V and F
-        Vtable = hoomd.std_vector_float();
-        Ftable = hoomd.std_vector_float();
+        Vtable = hoomd.std_vector_scalar();
+        Ftable = hoomd.std_vector_scalar();
 
         # calculate dr
         dr = (rmax - rmin) / float(self.width-1);

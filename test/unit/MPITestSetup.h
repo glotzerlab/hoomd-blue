@@ -48,49 +48,62 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+#ifdef ENABLE_MPI
 
-#ifndef __TWOSTEPNPTGPU_CUH__
-#define __TWOSTEPNPTGPU_CUH__
+#include "boost_utf_configure.h"
+#include "ExecutionConfiguration.h"
 
-#include <cuda_runtime.h>
+//! Enable CUDA MPI if using MVAPICH2
+char env_str[] = "MV2_USE_CUDA=1";
 
-#include "ParticleData.cuh"
-#include "HOOMDMath.h"
-
-/*! \file TwoStepNPTGPU.cuh
-    \brief Declares GPU kernel code for NPT integration on the GPU. Used by TwoStepNPTGPU.
+#ifdef ENABLE_CUDA
+//! Excution Configuration for GPU
+/* For MPI libraries that directly support CUDA, it is required that
+   CUDA be initialized before setting up the MPI environmnet. This
+   global variable stores the ExecutionConfiguration for GPU, which is
+   initialized once
 */
-
-//! Kernel driver for the the first step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_step_one(Scalar4 *d_pos,
-                             Scalar4 *d_vel,
-                             const Scalar3 *d_accel,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             bool partial_scale,
-                             float Xi,
-                             float Eta,
-                             float deltaT);
-
-//! Kernel driver to scale the particles into a new box on the GPU
-cudaError_t gpu_npt_boxscale(const unsigned int N,
-                             Scalar4 *d_pos,
-                             int3 *d_image,
-                             const BoxDim& box,
-                             bool partial_scale,
-                             float Eta,
-                             float deltaT);
-
-//! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_step_two(Scalar4 *d_vel,
-                             Scalar3 *d_accel,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             float4 *d_net_force,
-                             float Xi,
-                             float Eta,
-                             float deltaT);
-
+boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
 #endif
 
+//! Execution configuration on the CPU
+boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
+
+//! Fixture to setup and tear down MPI
+struct MPISetup
+    {
+    //! Setup
+    MPISetup()
+        {
+        int argc = boost::unit_test::framework::master_test_suite().argc;
+        char **argv = boost::unit_test::framework::master_test_suite().argv;
+
+#ifdef ENABLE_CUDA
+        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
+#endif
+        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
+
+        int provided;
+        #ifdef ENABLE_MPI_CUDA
+        putenv(env_str);
+        #endif
+        MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
+#ifdef ENABLE_CUDA
+        exec_conf_gpu->setMPICommunicator(MPI_COMM_WORLD);
+        exec_conf_gpu->setCUDAErrorChecking(true);
+#endif
+        exec_conf_cpu->setMPICommunicator(MPI_COMM_WORLD);
+        }
+
+    //! Cleanup
+    ~MPISetup()
+        {
+        MPI_Finalize();
+        }
+
+    };
+
+BOOST_GLOBAL_FIXTURE( MPISetup )
+
+#endif //ENABLE_MPI

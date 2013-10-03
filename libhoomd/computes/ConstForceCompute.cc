@@ -73,7 +73,7 @@ using namespace std;
     \note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
 ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz)
-        : ForceCompute(sysdef)
+        : ForceCompute(sysdef), m_fx(fx), m_fy(fy), m_fz(fz)
     {
     m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
 
@@ -88,7 +88,7 @@ ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
     \note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
 ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz)
-        : ForceCompute(sysdef)
+        : ForceCompute(sysdef), m_fx(fx), m_fy(fy), m_fz(fz)
     {
     m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
 
@@ -107,6 +107,10 @@ ConstForceCompute::~ConstForceCompute()
 void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
     {
     assert(m_pdata != NULL);
+
+    m_fx = fx;
+    m_fy = fy;
+    m_fz = fz;
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
     //Don't need to zero data for force calculation.
@@ -152,7 +156,6 @@ void ConstForceCompute::setGroupForce(boost::shared_ptr<ParticleGroup> group, Sc
     {
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
 
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     m_fx = fx;
     m_fy = fy;
     m_fz = fz;
@@ -169,10 +172,8 @@ void ConstForceCompute::setGroupForce(boost::shared_ptr<ParticleGroup> group, Sc
 
     for (unsigned int i = 0; i < group->getNumMembers(); i++)
         {
-        // get the tag for the current group member from the group
-        unsigned int tag = group->getMemberTag(i);
-        // identify the index of the current particle tag
-        unsigned int idx = h_rtag.data[tag];
+        // get the index for the current group member
+        unsigned int idx = group->getMemberIndex(i);
         h_force.data[idx].x = fx;
         h_force.data[idx].y = fy;
         h_force.data[idx].z = fz;
@@ -183,30 +184,12 @@ void ConstForceCompute::setGroupForce(boost::shared_ptr<ParticleGroup> group, Sc
 
 void ConstForceCompute::rearrangeForces()
     {
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-
-    // Reset force array
-    for (unsigned int i = 0;i < m_pdata->getN();i++)
-        {
-        h_force.data[i].x = 0;
-        h_force.data[i].y = 0;
-        h_force.data[i].z = 0;
-        h_force.data[i].w = 0;
-        }
-
-    for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
-        {
-        // get the tag for the current group member from the group
-        unsigned int tag = m_group->getMemberTag(i);
-        // identify the index of the current particle tag
-        unsigned int idx = h_rtag.data[tag];
-        h_force.data[idx].x = m_fx;
-        h_force.data[idx].y = m_fy;
-        h_force.data[idx].z = m_fz;
-        h_force.data[idx].w = 0;
-        }
-
+    if (m_group)
+        // set force only on group of particles
+        setGroupForce(m_group, m_fx, m_fy, m_fz);
+    else
+        // set force on all particles
+        setForce(m_fx, m_fy, m_fz);
     }
 
 /*! This function calls rearrangeForces() whenever the particles have been sorted

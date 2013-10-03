@@ -127,7 +127,8 @@ class SFCPackUpdater : public Updater
         
         std::vector< unsigned int > m_traversal_order;      //!< Generated traversal order of bins
         std::vector<unsigned int> m_sort_order;             //!< Generated sort order of the particles
-        
+
+        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the maximum particle number change signal of particle data
         //! Helper function that actually performs the sort
         void getSortedOrder2D();
         //! Helper function that actually performs the sort
@@ -138,7 +139,9 @@ class SFCPackUpdater : public Updater
 
         //! Write traversal order out for visualization
         void writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order);
-        
+
+        //! Reallocate internal arrays
+        void reallocate();
     };
 
 //! Export the SFCPackUpdater class to python

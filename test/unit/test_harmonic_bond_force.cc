@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllBondPotentials.h"
 #include "ConstForceCompute.h"
+#include "SnapshotSystemData.h"
 
 #include "Initializers.h"
 
@@ -90,6 +91,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(0.9,0.0,0.0));
+    pdata_2->setFlags(~PDataFlags(0));
 
     // create the bond force compute to check
     shared_ptr<PotentialBondHarmonic> fc_2 = bf_creator(sysdef_2);
@@ -199,6 +201,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // also test more than one type of bond
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    pdata_6->setFlags(~PDataFlags(0));
     
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
     pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
@@ -279,6 +282,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // and 2) That two forces can add to the same particle
     shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+    pdata_4->setFlags(~PDataFlags(0));
     
     {
     ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
@@ -362,8 +366,11 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
+    snap->bond_data.type_mapping.push_back("A");
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    pdata->setFlags(~PDataFlags(0));
     
     shared_ptr<PotentialBondHarmonic> fc1 = bf_creator1(sysdef);
     shared_ptr<PotentialBondHarmonic> fc2 = bf_creator2(sysdef);
@@ -431,6 +438,7 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     // Generate a simple test particle data
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    pdata_2->setFlags(~PDataFlags(0));
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(0.9,0.0,0.0));

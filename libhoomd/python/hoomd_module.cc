@@ -90,6 +90,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
+#include "AllTripletPotentials.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoGPU.h"
 #include "NeighborList.h"
@@ -110,13 +111,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVE.h"
 #include "TwoStepNVT.h"
 #include "TwoStepBDNVT.h"
-#include "TwoStepNPT.h"
 #include "TwoStepNPTMTK.h"
-#include "TwoStepNPH.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepNVERigid.h" 
 #include "TwoStepNVTRigid.h"
-#include "TwoStepNPTRigid.h"  
+#include "TwoStepNPTRigid.h"
+#include "TwoStepNPHRigid.h"
 #include "TwoStepBDNVTRigid.h" 
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
@@ -130,7 +130,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
+#include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
+#include "PotentialTersoff.h"
 #include "PPPMForceCompute.h"
 #include "AllExternalPotentials.h"
 #include "Messenger.h"
@@ -142,12 +144,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
-#include "TwoStepNPTGPU.h"
 #include "TwoStepNPTMTKGPU.h"
-#include "TwoStepNPHGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepNVERigidGPU.h" 
 #include "TwoStepNVTRigidGPU.h" 
+#include "TwoStepNPHRigidGPU.h"
 #include "TwoStepNPTRigidGPU.h" 
 #include "TwoStepBDNVTRigidGPU.h" 
 #include "NeighborListGPU.h"
@@ -169,7 +170,20 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
+#include "PotentialTersoffGPU.h"
+
+#include <cuda_profiler_api.h>
 #endif
+
+// include MPI classes
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "DomainDecomposition.h"
+
+#ifdef ENABLE_CUDA
+#include "CommunicatorGPU.h"
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI
 
 #include "SignalHandler.h"
 
@@ -195,6 +209,24 @@ using namespace std;
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
+
+//! Function to export the tersoff parameter type to python
+void export_tersoff_params()
+{
+    class_<tersoff_params>("tersoff_params", init<>())
+        .def_readwrite("cutoff_thickness", &tersoff_params::cutoff_thickness)
+        .def_readwrite("coeffs", &tersoff_params::coeffs)
+        .def_readwrite("exp_consts", &tersoff_params::exp_consts)
+        .def_readwrite("dimer_r", &tersoff_params::dimer_r)
+        .def_readwrite("tersoff_n", &tersoff_params::tersoff_n)
+        .def_readwrite("gamman", &tersoff_params::gamman)
+        .def_readwrite("lambda_cube", &tersoff_params::lambda_cube)
+        .def_readwrite("ang_consts", &tersoff_params::ang_consts)
+        .def_readwrite("alpha", &tersoff_params::alpha)
+        ;
+
+    def("make_tersoff_params", &make_tersoff_params);
+}
 
 //! Scans for a VMD installation
 /*! \returns Full path to the vmd executable
@@ -329,6 +361,35 @@ string get_compiler_version()
     #endif
     }
 
+//! Determine availability of MPI support
+bool is_MPI_available()
+   {
+   return
+#ifdef ENABLE_MPI
+       true;
+#else
+       false;
+#endif
+    }
+
+//! Start the CUDA profiler
+void cuda_profile_start()
+    {
+    #ifdef ENABLE_CUDA
+    cudaDeviceSynchronize();
+    cudaProfilerStart();
+    #endif
+    }
+
+//! Stop the CUDA profiler
+void cuda_profile_stop()
+    {
+    #ifdef ENABLE_CUDA
+    cudaDeviceSynchronize();
+    cudaProfilerStop();
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -348,6 +409,11 @@ BOOST_PYTHON_MODULE(hoomd)
     scope().attr("__cuda_version__") = get_cuda_version_tuple();
     scope().attr("__compiler_version__") = get_compiler_version();
 
+    def("is_MPI_available", &is_MPI_available);
+
+    def("cuda_profile_start", &cuda_profile_start);
+    def("cuda_profile_stop", &cuda_profile_stop);
+
     // data structures
     class_<std::vector<int> >("std_vector_int")
     .def(vector_indexing_suite<std::vector<int> >());
@@ -364,15 +430,16 @@ BOOST_PYTHON_MODULE(hoomd)
     
     // data structures
     export_BoxDim();
-    export_ParticleDataInitializer();
     export_ParticleData();
     export_SnapshotParticleData();
     export_RigidData();
+    export_SnapshotRigidData();
     export_ExecutionConfiguration();
     export_BondData();
     export_SystemDefinition();
     export_AngleData();
     export_DihedralData();
+    export_SnapshotSystemData();
     
     // initializers
     export_RandomInitializer();
@@ -405,6 +472,10 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairEwald>("PotentialPairEwald");
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_PotentialPair<PotentialPairDPD> ("PotentialPairDPD");
+    export_PotentialPair<PotentialPairMoliere> ("PotentialPairMoliere");
+    export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
+    export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
+    export_tersoff_params();
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");   
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
@@ -431,6 +502,9 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>("PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
+    export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere> ("PotentialPairMoliereGPU");
+    export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL> ("PotentialPairZBLGPU");
+    export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTersoffGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");    
@@ -477,12 +551,11 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVE();
     export_TwoStepNVT();
     export_TwoStepBDNVT();
-    export_TwoStepNPT();
     export_TwoStepNPTMTK();
-    export_TwoStepNPH();
     export_Berendsen();
     export_TwoStepNVERigid();
     export_TwoStepNVTRigid();
+    export_TwoStepNPHRigid();
     export_TwoStepNPTRigid();
     export_TwoStepBDNVTRigid();
     export_Enforce2DUpdater();
@@ -492,19 +565,26 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
     export_TwoStepBDNVTGPU();
-    export_TwoStepNPTGPU();
     export_TwoStepNPTMTKGPU();
-    export_TwoStepNPHGPU();
     export_BerendsenGPU();
     export_TwoStepNVERigidGPU();
     export_TwoStepNVTRigidGPU();
+    export_TwoStepNPHRigidGPU();
     export_TwoStepNPTRigidGPU();
     export_TwoStepBDNVTRigidGPU();
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
     export_FIREEnergyMinimizerRigidGPU();          
 #endif
-    
+
+#ifdef ENABLE_MPI
+    export_Communicator();
+    export_DomainDecomposition();
+#ifdef ENABLE_CUDA
+    export_CommunicatorGPU();
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI
+
     // system
     export_System();
     

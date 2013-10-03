@@ -89,7 +89,7 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
   
     
     // allocate storage for the tables and parameters
-    GPUArray<float2> tables(m_table_width, m_bond_data->getNBondTypes(), exec_conf);
+    GPUArray<Scalar2> tables(m_table_width, m_bond_data->getNBondTypes(), exec_conf);
     m_tables.swap(tables);
     GPUArray<Scalar4> params(m_bond_data->getNBondTypes(), exec_conf);
     m_params.swap(params);
@@ -120,8 +120,8 @@ BondTablePotential::~BondTablePotential()
     \note See BondTablePotential for a detailed definiton of rmin and rmax
 */
 void BondTablePotential::setTable(unsigned int type,
-                              const std::vector<float> &V,
-                              const std::vector<float> &F,
+                              const std::vector<Scalar> &V,
+                              const std::vector<Scalar> &F,
                               Scalar rmin,
                               Scalar rmax)
     {
@@ -129,13 +129,13 @@ void BondTablePotential::setTable(unsigned int type,
     // make sure the type is valid
     if (type >= m_bond_data->getNBondTypes())
         {
-        cout << endl << "***Error! Invalid bond type specified" << endl << endl;
+        m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
         throw runtime_error("Error setting parameters in PotentialBond");
         }
 
 
     // access the arrays
-    ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
 
     // range check on the parameters
@@ -219,7 +219,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
 
     // access the table data
-    ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::read);
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
 
     // for each of the bonds
@@ -267,8 +267,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
 
             /// Here we use the table!!
             unsigned int value_i = (unsigned int)floor(value_f);
-            float2 VF0 = h_tables.data[m_table_value(value_i, bond.type)];
-            float2 VF1 = h_tables.data[m_table_value(value_i+1, bond.type)];
+            Scalar2 VF0 = h_tables.data[m_table_value(value_i, bond.type)];
+            Scalar2 VF1 = h_tables.data[m_table_value(value_i+1, bond.type)];
             // unpack the data
             Scalar V0 = VF0.x;
             Scalar V1 = VF1.x;
@@ -276,7 +276,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
             Scalar F1 = VF1.y;
 
             // compute the linear interpolation coefficient
-            Scalar f = value_f - float(value_i);
+            Scalar f = value_f - Scalar(value_i);
 
             // interpolate to get V and F;
             Scalar V = V0 + f * (V1 - V0);
@@ -317,7 +317,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
             }
         else
             {
-            cerr << endl << "***Error! Table bond out of bounds" << endl << endl;
+            m_exec_conf->msg->error() << "Table bond out of bounds" << endl;
             throw std::runtime_error("Error in bond calculation");
             }
 

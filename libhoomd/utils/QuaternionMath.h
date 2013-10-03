@@ -67,37 +67,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized cos functions on the host / device
-// __COS is __cosf when included in nvcc and cos when included into the host compiler
-#ifdef NVCC
-#define __COS __cosf
-#else
-#define __COS cos
-#endif
-
-// call different optimized sin functions on the host / device
-// __SIN is __sinf when included in nvcc and sin when included into the host compiler
-#ifdef NVCC
-#define __SIN __sinf
-#else
-#define __SIN sin
-#endif
-
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
 //! Normalize a quaternion
 /*! 
     \param q Quaternion to be normalized
 */
 DEVICE inline void normalize(Scalar4 &q)
     {
-    Scalar norm = RSQRT(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+    Scalar norm = fast::rsqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
     q.x *= norm;
     q.y *= norm;
     q.z *= norm;
@@ -159,8 +135,8 @@ DEVICE inline void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scal
     if (fabs(inertia_t) < EPSILON) phi *= Scalar(0.0);
     else phi /= (Scalar(4.0) * inertia_t);
     
-    c_phi = __COS(dt * phi);
-    s_phi = __SIN(dt * phi);
+    c_phi = fast::cos(dt * phi);
+    s_phi = fast::sin(dt * phi);
     
     // advance p and q
     p.x = c_phi * p.x + s_phi * kp.x;
@@ -413,12 +389,12 @@ DEVICE inline void quatconj(const Scalar4& a, Scalar4& b)
 */
 DEVICE inline void eulerToQuat(const Scalar phi,const Scalar theta, const Scalar psi, Scalar4& q)
     {
-    Scalar cosphi_2 = __COS(0.5*phi);
-    Scalar sinphi_2 = __SIN(0.5*phi);
-    Scalar costheta_2 = __COS(0.5*theta);
-    Scalar sintheta_2 = __SIN(0.5*theta);
-    Scalar cospsi_2 = __COS(0.5*psi);
-    Scalar sinpsi_2 = __SIN(0.5*psi);
+    Scalar cosphi_2 = fast::cos(0.5*phi);
+    Scalar sinphi_2 = fast::sin(0.5*phi);
+    Scalar costheta_2 = fast::cos(0.5*theta);
+    Scalar sintheta_2 = fast::sin(0.5*theta);
+    Scalar cospsi_2 = fast::cos(0.5*psi);
+    Scalar sinpsi_2 = fast::sin(0.5*psi);
     q.x =  cosphi_2*costheta_2*cospsi_2 + sinphi_2*sintheta_2*sinpsi_2;
     q.y =  sinphi_2*costheta_2*cospsi_2 - cosphi_2*sintheta_2*sinpsi_2;
     q.z =  cosphi_2*sintheta_2*cospsi_2 + sinphi_2*costheta_2*sinpsi_2;
@@ -476,17 +452,17 @@ DEVICE inline void eulerrot(const Scalar3& a,
     {
     // rotation matrix R with the columns are ex, ey and ez
     Scalar3 ex, ey, ez;
-    ex.x = __COS(theta) * __COS(psi);
-    ex.y = __COS(theta) * __SIN(psi);
-    ex.z = Scalar(-1.0) * __SIN(theta);
+    ex.x = fast::cos(theta) * fast::cos(psi);
+    ex.y = fast::cos(theta) * fast::sin(psi);
+    ex.z = Scalar(-1.0) * fast::sin(theta);
     
-    ey.x = Scalar(-1.0) * __COS(phi) * __SIN(psi) + __SIN(phi) * __SIN(theta) * __COS(psi);
-    ey.y = __COS(theta) * __COS(psi) + __SIN(phi) * __SIN(theta) * __SIN(psi);
-    ey.z = __SIN(phi) * __COS(theta);
+    ey.x = Scalar(-1.0) * fast::cos(phi) * fast::sin(psi) + fast::sin(phi) * fast::sin(theta) * fast::cos(psi);
+    ey.y = fast::cos(theta) * fast::cos(psi) + fast::sin(phi) * fast::sin(theta) * fast::sin(psi);
+    ey.z = fast::sin(phi) * fast::cos(theta);
     
-    ez.x = __SIN(phi) * __SIN(psi) + __COS(phi) * __SIN(theta) * __COS(psi);
-    ez.y = Scalar(-1.0) * __SIN(phi) * __COS(psi) + __COS(phi) * __SIN(theta) * __SIN(psi);
-    ez.z = __COS(phi) * __COS(theta);
+    ez.x = fast::sin(phi) * fast::sin(psi) + fast::cos(phi) * fast::sin(theta) * fast::cos(psi);
+    ez.y = Scalar(-1.0) * fast::sin(phi) * fast::cos(psi) + fast::cos(phi) * fast::sin(theta) * fast::sin(psi);
+    ez.z = fast::cos(phi) * fast::cos(theta);
     
     // rotate b using the rotation matrix: b = R a
     b.x = ex.x * a.x + ey.x * a.y + ez.x * a.z;

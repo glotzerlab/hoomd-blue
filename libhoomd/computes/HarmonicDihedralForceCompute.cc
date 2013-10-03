@@ -68,7 +68,7 @@ using namespace boost::python;
 using namespace std;
 
 // SMALL a relatively small number
-#define SMALL 0.001f
+#define SMALL Scalar(0.001)
 
 /*! \file HarmonicDihedralForceCompute.cc
     \brief Contains code for the HarmonicDihedralForceCompute class
@@ -259,10 +259,10 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar rg = sqrt(rgsq);
         
         Scalar rginv, raa2inv, rbb2inv;
-        rginv = raa2inv = rbb2inv = 0.0f;
-        if (rg > 0.0f) rginv = 1.0f/rg;
-        if (raasq > 0.0f) raa2inv = 1.0f/raasq;
-        if (rbbsq > 0.0f) rbb2inv = 1.0f/rbbsq;
+        rginv = raa2inv = rbb2inv = Scalar(0.0);
+        if (rg > Scalar(0.0)) rginv = Scalar(1.0)/rg;
+        if (raasq > Scalar(0.0)) raa2inv = Scalar(1.0)/raasq;
+        if (rbbsq > Scalar(0.0)) rbb2inv = Scalar(1.0)/rbbsq;
         Scalar rabinv = sqrt(raa2inv*rbb2inv);
         
         Scalar c_abcd = (aax*bbx + aay*bby + aaz*bbz)*rabinv;
@@ -272,8 +272,8 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         if (c_abcd < -1.0) c_abcd = -1.0;
         
         int multi = (int)m_multi[dihedral.type];
-        Scalar p = 1.0f;
-        Scalar dfab = 0.0f;
+        Scalar p = Scalar(1.0);
+        Scalar dfab = Scalar(0.0);
         Scalar ddfab;
         
         for (int j = 0; j < multi; j++)
@@ -291,12 +291,12 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         p = p*sign;
         dfab = dfab*sign;
         dfab *= (Scalar)-multi;
-        p += 1.0f;
+        p += Scalar(1.0);
         
         if (multi == 0)
             {
-            p =  1.0f + sign;
-            dfab = 0.0f;
+            p =  Scalar(1.0) + sign;
+            dfab = Scalar(0.0);
             }
             
             
@@ -348,16 +348,13 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(0.125);  // the .125 term is (1/2)K * 1/4
 
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
-        // symmetrized version of virial tensor
+        // upper triangular version of virial tensor
         Scalar dihedral_virial[6];
         dihedral_virial[0] = (1./4.)*(dab.x*ffax + dcb.x*ffcx + (ddc.x+dcb.x)*ffdx);
-        dihedral_virial[1] = (1./8.)*(dab.x*ffay + dcb.x*ffcy + (ddc.x+dcb.x)*ffdy
-                                     +dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx);
-        dihedral_virial[2] = (1./8.)*(dab.x*ffaz + dcb.x*ffcz + (ddc.x+dcb.x)*ffdz
-                                     +dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx);
+        dihedral_virial[1] = (1./4.)*(dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx);
+        dihedral_virial[2] = (1./4.)*(dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx);
         dihedral_virial[3] = (1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
-        dihedral_virial[4] = (1./8.)*(dab.y*ffaz + dcb.y*ffcz + (ddc.y+dcb.y)*ffdz
-                                     +dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
+        dihedral_virial[4] = (1./4.)*(dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
         dihedral_virial[5] = (1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
        
         h_force.data[idx_a].x += ffax; 

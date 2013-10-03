@@ -82,11 +82,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "GPUVector.h"
+#include "GPUFlags.h"
 #include "ExecutionConfiguration.h"
 #include "HOOMDMath.h"
 
 // Sentinel value in bond reverse-lookup map for unassigned bond tags
-#define NO_BOND 0xffffffff
+#define BOND_NOT_LOCAL 0xffffffff
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
@@ -114,19 +115,52 @@ struct Bond
 //! Handy structure for passing around and initializing the bond data
 struct SnapshotBondData
     {
+    //! Default constructor
+    SnapshotBondData()
+        { }
+
     //! Constructor
     /*! \param n_bonds Number of bonds contained in the snapshot
      */
     SnapshotBondData(unsigned int n_bonds)
         {
+        resize(n_bonds);
+
+        // provide default type mapping
+        type_mapping.push_back("polymer");
+        }
+
+    //! Resize the snapshot
+    /*! \param n_bonds Number of bonds in the snapshot
+     */
+    void resize(unsigned int n_bonds)
+        {
         type_id.resize(n_bonds);
         bonds.resize(n_bonds);
+        }
+
+    //! Validate the snapshot
+    /* \returns true if number of elements in snapshot is consistent
+     */
+    bool validate() const
+        {
+        if (! bonds.size() == type_id.size()) return false;
+        return true;
         }
 
     std::vector<unsigned int> type_id;             //!< Stores type for each bond
     std::vector<uint2> bonds;                      //!< .x and .y are tags of the two particles in the bond
     std::vector<std::string> type_mapping;         //!< Names of bond types
     };
+
+//! Definition of a buffer element
+struct bond_element
+    {
+    uint2 bond;                //!< Member tags of the bond
+    unsigned int type;         //!< Type of the bond
+    unsigned int tag;          //!< Unique bond identifier
+    };
+
 
 //! Stores all bonds in the simulation and mangages the GPU bond data structure
 /*! BondData tracks every bond defined in the simulation. On the CPU, bonds are stored just
@@ -144,12 +178,24 @@ class BondData : boost::noncopyable
     public:
         //! Constructs an empty list with no bonds
         BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types);
+
+        //! Constructs a BondData from a snapshot
+        BondData(boost::shared_ptr<ParticleData> pdata, const SnapshotBondData& snapshot);
         
         //! Destructor
         ~BondData();
         
         //! Add a bond to the list
         unsigned int addBond(const Bond& bond);
+
+        //! Add a new bond type
+        /*! \returns the id of the newly added type
+         */
+        unsigned int addBondType(const std::string& name)
+            {
+            m_bond_type_mapping.push_back(name);
+            return m_bond_type_mapping.size()-1;
+            }
 
         //! Remove a bond identified by its unique tag from the list
         void removeBond(unsigned int tag);
@@ -160,6 +206,14 @@ class BondData : boost::noncopyable
         unsigned int getNumBonds() const
             {
             return (unsigned int)m_bonds.size();
+            }
+
+        //! Get the global number of bonds
+        /*! \return Global number of bonds
+        */
+        unsigned int getNumBondsGlobal() const
+            {
+            return m_num_bonds_global;
             }
             
         //! Get a given bond
@@ -184,17 +238,25 @@ class BondData : boost::noncopyable
         */
         unsigned int getNBondTypes() const
             {
-            return m_n_bond_types;
+            return m_bond_type_mapping.size();
             }
             
-        //! Set the type mapping
-        void setBondTypeMapping(const std::vector<std::string>& bond_type_mapping);
-        
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name);
         
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
+
+        //! Unpack a buffer with new bonds to be added, and remove bonds according to a mask
+        /*! \param num_add_bonds Number of bonds in the buffer
+         *  \param num_remove_bonds Number of bonds to be removed
+         *  \param buf The buffer containing the bond data
+         *  \param remove_mask A mask that indicates whether the bond needs to be removed
+         */
+        void unpackRemoveBonds(unsigned int num_add_bonds,
+                               unsigned int num_remove_bonds,
+                               const GPUArray<bond_element>& buf,
+                               const GPUArray<unsigned int>& remove_mask);
 
         //! Gets the bond table
         const GPUVector<uint2>& getBondTable()
@@ -228,8 +290,12 @@ class BondData : boost::noncopyable
             }
 
         //! Access the bonds on the GPU
-        const GPUArray<uint2>& getGPUBondList();
-        
+        const GPUArray<uint2>& getGPUBondList()
+            {
+            checkUpdateBondList();
+            return m_gpu_bondlist;
+            }
+       
         //! Takes a snapshot of the current bond data
         void takeSnapshot(SnapshotBondData& snapshot);
 
@@ -244,8 +310,10 @@ class BondData : boost::noncopyable
             m_prof = prof;
             }
 
+        //! Helper function to reallocate the GPU bond table
+        void reallocate();
+
     private:
-        const unsigned int m_n_bond_types;              //!< Number of bond types
         bool m_bonds_dirty;                             //!< True if the bond list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
         boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
@@ -257,6 +325,9 @@ class BondData : boost::noncopyable
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to maximum particle number change signal
+        boost::signals::connection m_ghost_particle_num_change_connection; //!< Connection to ghost particle number change signal
+
     
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
 
@@ -269,8 +340,20 @@ class BondData : boost::noncopyable
             m_bonds_dirty = true;
             }
             
-        GPUArray<uint2> m_gpu_bondlist;     //!< List of bonds on the GPU
-        GPUArray<unsigned int> m_n_bonds;   //!< Array of the number of bonds
+        GPUArray<uint2> m_gpu_bondlist;         //!< List of bonds on the GPU
+        GPUArray<unsigned int> m_n_bonds;       //!< Array of the number of bonds
+#ifdef ENABLE_CUDA
+        unsigned int m_max_bond_num;            //!< Maximum bond number
+        GPUFlags<unsigned int> m_condition;     //!< Condition variable for bond counting
+#endif
+
+#ifdef ENABLE_CUDA
+        GPUFlags<unsigned int> m_duplicate_recv_bonds; //!< Number of duplicate bonds received
+        GPUArray<unsigned int> m_n_fetch_bond;  //!< Temporary counter for filling the bond table
+        GPUVector<unsigned char> m_recv_bond_active;   //!< Per-bond flag for buffers (1= bond is retained, 0 = duplicate)
+        bool m_buffers_initialized;             //!< True if internal buffers have been initialized
+#endif 
+        unsigned int m_num_bonds_global;        //!< Total number of bonds on all processors
 
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
 #ifdef ENABLE_CUDA
@@ -278,12 +361,22 @@ class BondData : boost::noncopyable
         void updateBondTableGPU();
 #endif
 
+        //! Helper function to check and update the GPU bondlist
+        void checkUpdateBondList();
+
         //! Helper function to update the GPU bond table
         void updateBondTable();
 
         //! Helper function to allocate the bond table
         void allocateBondTable(int height);
-        
+
+#ifdef ENABLE_CUDA
+        //! Helper function to unpack and remove bonds on the GPU
+        void unpackRemoveBondsGPU(unsigned int num_add_bonds,
+                               unsigned int num_remove_bonds,
+                               const GPUArray<bond_element>& buf,
+                               const GPUArray<unsigned int>& remove_mask);
+#endif
     };
 
 //! Exports BondData to python

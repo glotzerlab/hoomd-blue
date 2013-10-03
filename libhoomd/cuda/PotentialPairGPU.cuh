@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "HOOMDMath.h"
+#include "TextureTools.h"
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
@@ -71,10 +72,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct pair_args_t
     {
     //! Construct a pair_args_t
-    pair_args_t(float4 *_d_force,
-              float *_d_virial,
+    pair_args_t(Scalar4 *_d_force,
+              Scalar *_d_virial,
               const unsigned int _virial_pitch,
               const unsigned int _N,
+              const unsigned int _n_ghost,
               const Scalar4 *_d_pos,
               const Scalar *_d_diameter,
               const Scalar *_d_charge,
@@ -82,8 +84,8 @@ struct pair_args_t
               const unsigned int *_d_n_neigh,
               const unsigned int *_d_nlist,
               const Index2D& _nli,
-              const float *_d_rcutsq, 
-              const float *_d_ronsq,
+              const Scalar *_d_rcutsq, 
+              const Scalar *_d_ronsq,
               const unsigned int _ntypes,
               const unsigned int _block_size,
               const unsigned int _shift_mode,
@@ -92,6 +94,7 @@ struct pair_args_t
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
                   N(_N),
+                  n_ghost(_n_ghost),
                   d_pos(_d_pos),
                   d_diameter(_d_diameter),
                   d_charge(_d_charge),
@@ -108,10 +111,11 @@ struct pair_args_t
         {
         };
 
-    float4 *d_force;                //!< Force to write out
-    float *d_virial;                //!< Virial to write out
+    Scalar4 *d_force;                //!< Force to write out
+    Scalar *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const unsigned int N;           //!< number of particles
+    const unsigned int n_ghost;     //!< number of ghost particles
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar *d_diameter;       //!< particle diameters
     const Scalar *d_charge;         //!< particle charges
@@ -119,8 +123,8 @@ struct pair_args_t
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const Index2D& nli;             //!< Indexer for accessing d_nlist
-    const float *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const float *d_ronsq;           //!< Device array listing r_on squared per particle type pair
+    const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
+    const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int shift_mode;  //!< The potential energy shift mode
@@ -129,13 +133,13 @@ struct pair_args_t
 
 #ifdef NVCC
 //! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+scalar4_tex_t pdata_pos_tex;
 
 //! Texture for reading particle diameters
-texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
+scalar_tex_t pdata_diam_tex;
 
 //! Texture for reading particle charges
-texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
+scalar_tex_t pdata_charge_tex;
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
@@ -160,7 +164,7 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
     \a d_params, \a d_rcutsq, and \a d_ronsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
     amount of shared memory must be allocatd for this kernel launch. The amount is
-    (2*sizeof(float) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
+    (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
     
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
@@ -174,8 +178,8 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
 template< class evaluator, unsigned int shift_mode, unsigned int compute_virial >
-__global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
-                                               float *d_virial,
+__global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
+                                               Scalar *d_virial,
                                                const unsigned int virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
@@ -186,8 +190,8 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                                                const unsigned int *d_nlist,
                                                const Index2D nli,
                                                const typename evaluator::param_type *d_params,
-                                               const float *d_rcutsq,
-                                               const float *d_ronsq,
+                                               const Scalar *d_rcutsq,
+                                               const Scalar *d_ronsq,
                                                const unsigned int ntypes)
     {
     Index2D typpair_idx(ntypes);
@@ -197,8 +201,8 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
     extern __shared__ char s_data[];
     typename evaluator::param_type *s_params = 
         (typename evaluator::param_type *)(&s_data[0]);
-    float *s_rcutsq = (float *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
-    float *s_ronsq = (float *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(float))]);
+    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
+    Scalar *s_ronsq = (Scalar *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(Scalar))]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -224,29 +228,29 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 postypei = tex1Dfetch(pdata_pos_tex, idx);
-    float3 posi = make_float3(postypei.x, postypei.y, postypei.z);
+    Scalar4 postypei = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
-    float di;
+    Scalar di;
     if (evaluator::needsDiameter())
-        di = tex1Dfetch(pdata_diam_tex, idx);
+        di = texFetchScalar(d_diameter, pdata_diam_tex, idx);
     else
-        di += 1.0f; // shutup compiler warning
-    float qi;
+        di += Scalar(1.0); // shutup compiler warning
+    Scalar qi;
     if (evaluator::needsCharge())
-        qi = tex1Dfetch(pdata_charge_tex, idx);
+        qi = texFetchScalar(d_charge, pdata_charge_tex, idx);
     else
-        qi += 1.0f; // shutup compiler warning
+        qi += Scalar(1.0); // shutup compiler warning
 
 
     // initialize the force to 0
-    float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float virialxx = 0.0f;
-    float virialxy = 0.0f;
-    float virialxz = 0.0f;
-    float virialyy = 0.0f;
-    float virialyz = 0.0f;
-    float virialzz = 0.0f;
+    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+    Scalar virialxx = Scalar(0.0);
+    Scalar virialxy = Scalar(0.0);
+    Scalar virialxz = Scalar(0.0);
+    Scalar virialyy = Scalar(0.0);
+    Scalar virialyz = Scalar(0.0);
+    Scalar virialzz = Scalar(0.0);
 
     // prefetch neighbor index
     unsigned int cur_j = 0;
@@ -272,35 +276,35 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 postypej = tex1Dfetch(pdata_pos_tex, cur_j);
-            float3 posj = make_float3(postypej.x, postypej.y, postypej.z);
+            Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
+            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
-            float dj = 0.0f;
+            Scalar dj = Scalar(0.0);
             if (evaluator::needsDiameter())
-                dj = tex1Dfetch(pdata_diam_tex, cur_j);
+                dj = texFetchScalar(d_diameter, pdata_diam_tex, cur_j);
             else
-                dj += 1.0f; // shutup compiler warning
+                dj += Scalar(1.0); // shutup compiler warning
 
-            float qj = 0.0f;
+            Scalar qj = Scalar(0.0);
             if (evaluator::needsCharge())
-                qj = tex1Dfetch(pdata_charge_tex, cur_j);
+                qj = texFetchScalar(d_charge, pdata_charge_tex, cur_j);
             else
-                qj += 1.0f; // shutup compiler warning
+                qj += Scalar(1.0); // shutup compiler warning
 
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-            float3 dx = posi - posj;
+            Scalar3 dx = posi - posj;
 
             // apply periodic boundary conditions: (FLOPS 12)
             dx = box.minImage(dx);
 
             // calculate r squard (FLOPS: 5)
-            float rsq = dot(dx, dx);
+            Scalar rsq = dot(dx, dx);
 
             // access the per type pair parameters
-            unsigned int typpair = typpair_idx(__float_as_int(postypei.w), __float_as_int(postypej.w));
-            float rcutsq = s_rcutsq[typpair];
+            unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+            Scalar rcutsq = s_rcutsq[typpair];
             typename evaluator::param_type param = s_params[typpair];
-            float ronsq = 0.0f;
+            Scalar ronsq = Scalar(0.0);
             if (shift_mode == 2)
                 ronsq = s_ronsq[typpair];
 
@@ -317,8 +321,8 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
                 }
 
             // evaluate the potential
-            float force_divr = 0.0f;
-            float pair_eng = 0.0f;
+            Scalar force_divr = Scalar(0.0);
+            Scalar pair_eng = Scalar(0.0);
 
             evaluator eval(rsq, rcutsq, param);
             if (evaluator::needsDiameter())
@@ -354,7 +358,7 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
             // calculate the virial
             if (compute_virial)
                 {
-                float force_div2r = 0.5f * force_divr;
+                Scalar force_div2r = Scalar(0.5) * force_divr;
                 virialxx +=  dx.x * dx.x * force_div2r;
                 virialxy +=  dx.x * dx.y * force_div2r;
                 virialxz +=  dx.x * dx.z * force_div2r;
@@ -380,7 +384,7 @@ __global__ void gpu_compute_pair_forces_kernel(float4 *d_force,
         }
 
     // potential energy per particle must be halved
-    force.w *= 0.5f;
+    force.w *= Scalar(0.5);
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
 
@@ -417,25 +421,25 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     // bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.N);
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*(pair_args.N+pair_args.n_ghost));
     if (error != cudaSuccess)
         return error;
 
     // bind the diamter texture
     pdata_diam_tex.normalized = false;
     pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) *pair_args.N);
+    error = cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) *(pair_args.N+pair_args.n_ghost));
     if (error != cudaSuccess)
         return error;
     
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.N);
+    error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * (pair_args.N+pair_args.n_ghost));
     if (error != cudaSuccess)
         return error;
 
     Index2D typpair_idx(pair_args.ntypes);
-    unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type)) 
+    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) 
                                 * typpair_idx.getNumElements();
     
     // run the kernel

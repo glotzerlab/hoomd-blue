@@ -71,7 +71,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
-using namespace boost::filesystem;
+using boost::filesystem::exists;
 using namespace boost::python;
 using namespace std;
 
@@ -120,7 +120,7 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
                              bool overwrite)
     : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group),
     m_rigid_data(sysdef->getRigidData()), m_num_frames_written(0), m_last_written_step(0), m_appending(false),
-      m_unwrap_full(false), m_unwrap_rigid(false),
+      m_unwrap_full(false), m_unwrap_rigid(false), m_angle(false),
       m_overwrite(overwrite), m_is_initialized(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing DCDDumpWriter: " << fname << " " << period << " " << overwrite << endl;
@@ -188,7 +188,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 
 #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
-    if (m_comm && !m_comm->isRoot())
+    if (m_comm && !m_exec_conf->isRoot())
         {
         if (m_prof) m_prof->pop(); 
         return;
@@ -295,7 +295,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
     
     write_int(file, 164);
     write_int(file, 4);
-    unsigned int nparticles = m_group->getNumMembers();
+    unsigned int nparticles = m_group->getNumMembersGlobal();
     write_int(file, nparticles);
     write_int(file, 4);
     
@@ -314,16 +314,26 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
 void DCDDumpWriter::write_frame_header(std::fstream &file)
     {
     double unitcell[6];
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
     // set box dimensions
-    Scalar3 L = box.getL();
-    unitcell[0] = L.x;
-    unitcell[2] = L.y;
-    unitcell[5] = L.z;
+    Scalar a,b,c,alpha,beta,gamma;
+    Scalar3 va = box.getLatticeVector(0);
+    Scalar3 vb = box.getLatticeVector(1);
+    Scalar3 vc = box.getLatticeVector(2);
+    a = sqrt(dot(va,va));
+    b = sqrt(dot(vb,vb));
+    c = sqrt(dot(vc,vc));
+    alpha = dot(vb,vc)/(b*c);
+    beta = dot(va,vc)/(a*c);
+    gamma = dot(va,vb)/(a*b);
+    
+    unitcell[0] = a;
+    unitcell[2] = b;
+    unitcell[5] = c;
     // box angles are 90 degrees
-    unitcell[1] = 0.0f;
-    unitcell[3] = 0.0f;
-    unitcell[4] = 0.0f;
+    unitcell[1] = gamma;
+    unitcell[3] = beta;
+    unitcell[4] = alpha;
     
     write_int(file, 48);
     file.write((char *)unitcell, 48);
@@ -355,29 +365,41 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
 #endif        
   
     ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(),access_location::host,access_mode::read);
-    BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
+    BoxDim box = m_pdata->getGlobalBox();
     
-    unsigned int nparticles = m_group->getNumMembers();
+    unsigned int nparticles = m_group->getNumMembersGlobal();
+
+    // Create a tmp copy of the particle data and unwrap particles
+    std::vector<Scalar3> tmp_pos(snapshot.pos);
+    for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
+        {
+        unsigned int i = m_group->getMemberTag(group_idx);
+        
+        if (m_unwrap_full)
+            {
+            tmp_pos[i] = box.shift(tmp_pos[i], snapshot.image[i]);
+            }
+        else if (m_unwrap_rigid && snapshot.body[i] != NO_BODY)
+            {
+            int body_ix = body_image_handle.data[snapshot.body[i]].x;
+            int body_iy = body_image_handle.data[snapshot.body[i]].y;
+            int body_iz = body_image_handle.data[snapshot.body[i]].z;
+            int3 particle_img = snapshot.image[i];
+            int3 img_diff = make_int3(particle_img.x - body_ix,
+                                      particle_img.y - body_iy,
+                                      particle_img.z - body_iz);
+            
+            tmp_pos[i] = box.shift(tmp_pos[i], img_diff);
+            }
+        }
 
     // prepare x coords for writing, looping in tag order
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
-        unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(snapshot.pos[i].x);
-
-        // handle the unwrap options
-        if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(snapshot.image[i].x) * L.x;
-        else if (m_unwrap_rigid)
-            {
-            if (snapshot.body[i] != NO_BODY)
-                {
-                int body_ix = body_image_handle.data[snapshot.body[i]].x;
-                m_staging_buffer[group_idx] += float(snapshot.image[i].x - body_ix) * L.x;
-                }
-            }
+        unsigned int i = m_group->getMemberTag(group_idx);        
+        m_staging_buffer[group_idx] = float(tmp_pos[i].x);
         }
+
     // write x coords
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
@@ -387,20 +409,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(snapshot.pos[i].y);
-        
-        // handle the unwrap options
-        if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(snapshot.image[i].y) * L.y;
-        else if (m_unwrap_rigid)
-            {
-            if (snapshot.body[i] != NO_BODY)
-                {
-                int body_iy = body_image_handle.data[snapshot.body[i]].y;
-                m_staging_buffer[group_idx] += float(snapshot.image[i].y - body_iy) * L.y;
-                }
-            }
+        m_staging_buffer[group_idx] = float(tmp_pos[i].y);
         }
+
     // write y coords
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
@@ -410,20 +421,20 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[group_idx] = float(snapshot.pos[i].z);
+        m_staging_buffer[group_idx] = float(tmp_pos[i].z);
         
-        // handle the unwrap options
-        if (m_unwrap_full)
-            m_staging_buffer[group_idx] += float(snapshot.image[i].z) * L.z;
-        else if (m_unwrap_rigid)
+        // m_angle set to True turns on a hack where the particle orientation angle is written out to the z component
+        // this only works in 2D simulations, obviously
+        if (m_angle)
             {
-            if (snapshot.body[i] != NO_BODY)
-                {
-                int body_iz = body_image_handle.data[snapshot.body[i]].z;
-                m_staging_buffer[group_idx] += float(snapshot.image[i].z - body_iz) * L.z;
-                }
+            Scalar s = 1;
+            if (snapshot.orientation[i].w < 0)
+                s = -1;
+            
+            m_staging_buffer[group_idx] = acosf(snapshot.orientation[i].x) * 2 * s;
             }
-         }
+        }
+    
     // write z coords
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
@@ -458,6 +469,7 @@ void export_DCDDumpWriter()
     ("DCDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, unsigned int, boost::shared_ptr<ParticleGroup>, bool>())
     .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
     .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)
+    .def("setAngleZ", &DCDDumpWriter::setAngleZ)
     ;
     }
 

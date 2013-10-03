@@ -73,15 +73,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
-
 //! Class for evaluating the force shifted LJ pair potential
 /*! This evaluator is a variant of the Lennard-Jones pair potential, for which the force goes smoothly
     to zero at \f$ r = r_{\mathrm{cut}} \f$.
@@ -157,7 +148,7 @@ class EvaluatorPairForceShiftedLJ
                     pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
 
                 // shift force and add linear term to potential
-                Scalar rcut_r_inv = RSQRT(rsq*rcutsq);
+                Scalar rcut_r_inv = fast::rsqrt(rsq*rcutsq);
                 Scalar force_rcut_at_rcut = rcut6inv * (Scalar(12.0)*lj1*rcut6inv - Scalar(6.0)*lj2);
                 force_divr -= rcut_r_inv * force_rcut_at_rcut;
                 pair_eng += (rsq*rcut_r_inv-Scalar(1.0))*force_rcut_at_rcut;

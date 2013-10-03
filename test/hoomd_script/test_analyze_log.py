@@ -43,7 +43,8 @@ class analyze_log_tests (unittest.TestCase):
     
     def tearDown(self):
         init.reset();
-        os.remove("test.log");
+        if (comm.get_rank()==0):
+            os.remove("test.log");
 
 
 if __name__ == '__main__':

@@ -67,6 +67,10 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
     : Integrator(sysdef, deltaT), m_first_step(true), m_prepared(false), m_gave_warning(false)
     {
@@ -160,6 +164,19 @@ void IntegratorTwoStep::update(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
 
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // preset flags for ghost communication
+        m_comm->setFlags(determineFlags(timestep));
+
+        // perform all necessary communication steps. This ensures
+        // a) that particles have migrated to the correct domains
+        // b) that forces are calculated correctly, if ghost atom positions are updated every time step
+        m_comm->communicate(timestep+1);
+        }
+#endif
+
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
     if (exec_conf->exec_mode == ExecutionConfiguration::GPU)
@@ -215,8 +232,8 @@ void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethod
     // check for intersections with existing methods
     shared_ptr<ParticleGroup> new_group = new_method->getGroup();
     
-    if (new_group->getNumMembers() == 0)
-        m_exec_conf->msg->warning() << "itegrate.mode_standard: An integration method has been added that operates on zero particles." << endl;
+    if (new_group->getNumMembersGlobal() == 0)
+        m_exec_conf->msg->warning() << "integrate.mode_standard: An integration method has been added that operates on zero particles." << endl;
     
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
@@ -224,9 +241,9 @@ void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethod
         shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
         shared_ptr<ParticleGroup> intersection = ParticleGroup::groupIntersection(new_group, current_group);
         
-        if (intersection->getNumMembers() > 0)
+        if (intersection->getNumMembersGlobal() > 0)
             {
-            m_exec_conf->msg->error() << "itegrate.mode_standard: Multiple integration methods are applied to the same particle" << endl;
+            m_exec_conf->msg->error() << "integrate.mode_standard: Multiple integration methods are applied to the same particle" << endl;
             throw std::runtime_error("Error adding integration method");
             }
         }
@@ -294,6 +311,17 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         m_first_step = false;
         m_prepared = true;
         
+#ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            // preset flags for ghost communication
+            m_comm->setFlags(determineFlags(timestep));
+
+            // perform communication
+            m_comm->communicate(timestep);
+            }
+#endif
+
         // net force is always needed (ticket #393)
         computeNetForce(timestep);
         
@@ -325,6 +353,19 @@ PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
 
     return flags;
     }
+
+#ifdef ENABLE_MPI
+//! Set the communicator to use
+void IntegratorTwoStep::setCommunicator(boost::shared_ptr<Communicator> comm)
+    {
+    // set Communicator in all methods
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+            (*method)->setCommunicator(comm);
+
+    Integrator::setCommunicator(comm);
+    }
+#endif
 
 void export_IntegratorTwoStep()
     {

@@ -143,7 +143,7 @@ class EvaluatorBondFENE
             Scalar sigma6inv = lj2/lj1;
             Scalar epsilon = lj2*lj2/Scalar(4.0)/lj1;
 
-            // add != 0.0f check to allow epsilon=0 FENE bonds to go to r=0
+            // add != Scalar(0.0) check to allow epsilon=0 FENE bonds to go to r=0
             if (r6inv > sigma6inv/Scalar(2.0))     //wcalimit 2^(1/6))^6 sigma^6
                 {
                 WCAforcemag_divr = r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);

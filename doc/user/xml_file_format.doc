@@ -49,7 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*! \page page_xml_file_format XML File Format
-<center><b>Version 1.4</b></center>
+<center><b>Version 1.5</b></center>
 
 \section sec_xml_overview Overview
 
@@ -61,7 +61,7 @@ XML is that it is also easily machine readable and commonly used, so many parser
 The basic outline of a HOOMD-blue xml file looks like this
 \code
 <?xml version="1.0" encoding="UTF-8"?>
-<hoomd_xml version="1.4">
+<hoomd_xml version="1.5">
 <!-- this is a comment, you can put as many of these in the file 
 	wherever you wish to. -->
 <configuration time_step="0">
@@ -77,7 +77,7 @@ The first line of the file
 is just something that \b must be there to identify that this is an XML file.
 
 \code
-<hoomd_xml version="1.4">
+<hoomd_xml version="1.5">
 	<!-- contents of root node -->
 </hoomd_xml>
 \endcode
@@ -150,12 +150,18 @@ Version: 1.0 and newer
 
 \b Example:
 \code
-<box lx="5.1" ly="9.6" lz="15.8"/>
+<box lx="5.1" ly="9.6" lz="15.8" xy="1" yz="0" lz="0">
 \endcode
 \b Attributes:
  - \a lx Box length in the \b x direction
  - \a ly Box length in the \b y direction
  - \a lz Box length in the \b z direction
+ - \a xy Box tilt factor in the \b xy plane
+ - \a xz Box tilt factor in the \b xz plane
+ - \a yz Box tilt factor in the \b yz plane
+
+(Version 1.5 and newer)<br>
+\c xy="#" xz="#" yz="#" specifies the tilt factors for the triclinic unit cell. If they are zero, the box is orthorhombic.
 
 <hr>
 
@@ -190,7 +196,10 @@ particles merely to make it more easily human-readable.
  per-particle properties) list particles in <b>tag order</b>. That is, the first particle listed has tag 0, the
  second has tag 1, ..., and the last has tag <i>N</i>-1 where \a N is the number of particles in the simulation.
 
-All particles must be in the box: \a x \> -Lx/2.0 and \a x \< Lx/2.0 and similarly for \a y and \a z.
+All particles must be in the box:<br>
+\a \f$ x > -Lx/2 + (xz-xy*yz)*z + xy * y\f$  and \f$ x < Lx/2 + (xz-xy*yz)*z + xy * y \f$ <br>
+\a \f$ y > -Ly/2 + yz * z\f$  and \f$ y < Ly/2 + yz*z\f$<br>
+\a \f$ z > -Lz/2\f$  and \f$ z < Lz/2 \f$<br>
 
 <hr>
 
@@ -220,8 +229,15 @@ error.
 
 Image flags are used to track the movement of particles across the periodic boundary conditions. To unwrap
 the position of a single particle and see its trajectory as if it did not wrap around the boundary, 
-compute \code x + ix * Lx\endcode where \c x is the particle coordinate, \c ix is the image and \c Lx is the
-box dimension.
+compute
+
+\code
+x0 = x + ix * Lx + xy * iy * Ly + xz * iz * Lz
+y0 = x + iy * Ly + yz * iz * Lz
+z0 = z + iz * Lz
+\endcode where \c x, \c y, \c z are the wrapped particle coordinates, \c x0, \c y0, \c z0 are the unwrapped
+particle coordinates, \c ix, \c iy \c iz are the periodic image flags, \c Lx, \c Ly \c Lz are the
+box lengths, and \c xy, \c xz, \c yz are the tilt factors.
 
 <hr>
 

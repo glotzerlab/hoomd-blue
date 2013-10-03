@@ -73,6 +73,8 @@ BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition>
                                      const std::string& log_suffix)
     : BondTablePotential(sysdef, table_width, log_suffix), m_block_size(64)
     {
+    m_exec_conf->msg->notice(5) << "Constructing BondTablePotentialGPU" << endl;
+
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
         {
@@ -84,6 +86,11 @@ BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition>
     GPUArray<unsigned int> flags(1, this->exec_conf);
     m_flags.swap(flags);
     }
+
+BondTablePotentialGPU::~BondTablePotentialGPU()
+        {
+        m_exec_conf->msg->notice(5) << "Destroying BondTablePotentialGPU" << endl;
+        }
 
 /*! \param block_size Block size to set
 */
@@ -109,7 +116,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
     BoxDim box = m_pdata->getBox();
 
     // access the table data
-    ArrayHandle<float2> d_tables(m_tables, access_location::device, access_mode::read);
+    ArrayHandle<Scalar2> d_tables(m_tables, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);

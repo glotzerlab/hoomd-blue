@@ -62,8 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __CGCMMANGLEFORCEGPU_CUH__
 
 //! Kernel driver that computes harmonic angle forces for HarmonicAngleForceComputeGPU
-cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
-                                           float* d_virial,
+cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
+                                           Scalar* d_virial,
                                            const unsigned int virial_pitch,
                                            const unsigned int N,
                                            const Scalar4 *d_pos,
@@ -71,9 +71,9 @@ cudaError_t gpu_compute_CGCMM_angle_forces(float4* d_force,
                                            const uint4 *atable,
                                            const unsigned int pitch,
                                            const unsigned int *n_angles_list,
-                                           float2 *d_params,
-                                           float2 *d_CGCMMsr,
-                                           float4 *d_CGCMMepow,
+                                           Scalar2 *d_params,
+                                           Scalar2 *d_CGCMMsr,
+                                           Scalar4 *d_CGCMMepow,
                                            unsigned int n_angle_types,
                                            int block_size);
 

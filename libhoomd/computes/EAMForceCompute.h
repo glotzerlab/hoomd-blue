@@ -123,7 +123,7 @@ class EAMForceCompute : public ForceCompute
 
 
         vector<Scalar> electronDensity;                //!< array rho(r)
-        vector<float2> pairPotential;                  //!< array Z(r)
+        vector<Scalar2> pairPotential;                  //!< array Z(r)
         vector<Scalar> embeddingFunction;              //!< array F(rho)
 
         vector<Scalar> derivativeElectronDensity;      //!< array rho'(r)

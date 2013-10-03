@@ -179,7 +179,7 @@ class Saru {
 
   template <unsigned int steps> inline void rewindWeyl()
     { wstate=advanceAnyWeyl<oWeylOffset, oWeylPeriod-oWeylDelta, 
-	oWeylPeriod, steps>(wstate); }
+    oWeylPeriod, steps>(wstate); }
     
   unsigned int state;  // LCG state
   unsigned int wstate; // Offset Weyl sequence state
@@ -247,7 +247,7 @@ inline Saru::Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 
 
 template <unsigned int offset, unsigned int delta, 
-	  unsigned int modulus, unsigned int steps> 
+      unsigned int modulus, unsigned int steps> 
   inline unsigned int Saru::advanceAnyWeyl(unsigned int x) 
 {
   static const unsigned int fullDelta=CTmultmod<delta, steps%modulus, modulus>::value;

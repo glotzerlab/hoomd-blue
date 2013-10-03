@@ -54,6 +54,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the PPPMForceComputeGPU class
 */
 
+#ifdef SINGLE_PRECISION
+#define CUFFT_TRANSFORM_TYPE CUFFT_C2C
+#else
+#define CUFFT_TRANSFORM_TYPE CUFFT_Z2Z
+#endif
+
+
 #include "PotentialPair.h"
 #include "PPPMForceComputeGPU.h"
 
@@ -73,7 +80,7 @@ using namespace std;
 PPPMForceComputeGPU::PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                          boost::shared_ptr<NeighborList> nlist,
                                          boost::shared_ptr<ParticleGroup> group)
-    : PPPMForceCompute(sysdef, nlist, group), m_block_size(256)
+    : PPPMForceCompute(sysdef, nlist, group), m_block_size(256),m_first_run(true)
     {
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -104,7 +111,7 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
 void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut)
     {
     PPPMForceCompute::setParams(Nx, Ny, Nz, order, kappa, rcut);
-    cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_C2C);
+    cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_TRANSFORM_TYPE);
 
     GPUArray<Scalar> n_energy_sum(Nx*Ny*Nz, exec_conf);
     m_energy_sum.swap(n_energy_sum);
@@ -164,109 +171,118 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    ArrayHandle<cufftComplex> d_rho_real_space(m_rho_real_space, access_location::device, access_mode::readwrite);
-    ArrayHandle<cufftComplex> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
-    ArrayHandle<cufftComplex> d_Ey(m_Ey, access_location::device, access_mode::readwrite);
-    ArrayHandle<cufftComplex> d_Ez(m_Ez, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_rho_real_space(m_rho_real_space, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_Ey(m_Ey, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_Ez(m_Ez, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_kvec(m_kvec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_green_hat(m_green_hat, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> d_field(m_field, access_location::device, access_mode::readwrite);
 
-    ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
-    ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
+        { //begin ArrayHandle scope
+        ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
+        ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
-    // access the group
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+        // reset virial
+        cudaMemset(d_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
 
-    if(m_box_changed) 
-        {
-        Scalar3 L = box.getL();
-        Scalar temp = floor(((m_kappa*L.x/(M_PI*m_Nx)) *  pow(-log(EPS_HOC),0.25)));
-        int nbx = (int)temp;
-        temp = floor(((m_kappa*L.y/(M_PI*m_Ny)) * pow(-log(EPS_HOC),0.25)));
-        int nby = (int)temp;
-        temp =  floor(((m_kappa*L.z/(M_PI*m_Nz)) *  pow(-log(EPS_HOC),0.25)));
-        int nbz = (int)temp;
+        //Zero pppm forces on ALL particles, including neutral ones that aren't taken
+        //care of in calculate_forces_kernel
+        cudaMemset(d_force.data, 0, sizeof(Scalar4)*m_force.getNumElements());
 
-        ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);;
-        ArrayHandle<Scalar> d_gf_b(m_gf_b, access_location::device, access_mode::readwrite);
+        // access the group
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-        reset_kvec_green_hat(box,
-                             m_Nx,
-                             m_Ny,
-                             m_Nz,
-                             nbx,
-                             nby,
-                             nbz,
-                             m_order,
-                             m_kappa,
-                             d_kvec.data,
-                             d_green_hat.data,
-                             d_vg.data,
-                             d_gf_b.data,
-                             m_block_size);
+        if(m_box_changed || m_first_run) 
+            {
+            Scalar3 L = box.getL();
+            Scalar temp = floor(((m_kappa*L.x/(M_PI*m_Nx)) *  pow(-log(EPS_HOC),0.25)));
+            int nbx = (int)temp;
+            temp = floor(((m_kappa*L.y/(M_PI*m_Ny)) * pow(-log(EPS_HOC),0.25)));
+            int nby = (int)temp;
+            temp =  floor(((m_kappa*L.z/(M_PI*m_Nz)) *  pow(-log(EPS_HOC),0.25)));
+            int nbz = (int)temp;
+
+            ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);;
+            ArrayHandle<Scalar> d_gf_b(m_gf_b, access_location::device, access_mode::readwrite);
+            reset_kvec_green_hat(box,
+                                 m_Nx,
+                                 m_Ny,
+                                 m_Nz,
+                                 nbx,
+                                 nby,
+                                 nbz,
+                                 m_order,
+                                 m_kappa,
+                                 d_kvec.data,
+                                 d_green_hat.data,
+                                 d_vg.data,
+                                 d_gf_b.data,
+                                 m_block_size);
 
 
-        Scalar scale = 1.0f/((Scalar)(m_Nx * m_Ny * m_Nz));
-        m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
-        m_box_changed = false;
-        }
+            Scalar scale = Scalar(1.0)/((Scalar)(m_Nx * m_Ny * m_Nz));
+            m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
+            m_box_changed = false;
+            m_first_run = false;
+            }
 
-    // run the kernel in parallel on all GPUs
+        // run the kernel in parallel on all GPUs
 
-    gpu_compute_pppm_forces(d_force.data,
-                            m_pdata->getN(),
-                            d_pos.data,
-                            d_charge.data,
-                            box,
-                            m_Nx,
-                            m_Ny,
-                            m_Nz,
-                            m_order,
-                            h_rho_coeff.data,
-                            d_rho_real_space.data,
-                            plan,
-                            d_Ex.data,
-                            d_Ey.data,
-                            d_Ez.data,
-                            d_kvec.data,
-                            d_green_hat.data,
-                            d_field.data,            
-                            d_index_array.data,
-                            group_size,
-                            m_block_size);
+        gpu_compute_pppm_forces(d_force.data,
+                                m_pdata->getN(),
+                                d_pos.data,
+                                d_charge.data,
+                                box,
+                                m_Nx,
+                                m_Ny,
+                                m_Nz,
+                                m_order,
+                                h_rho_coeff.data,
+                                d_rho_real_space.data,
+                                plan,
+                                d_Ex.data,
+                                d_Ey.data,
+                                d_Ez.data,
+                                d_kvec.data,
+                                d_green_hat.data,
+                                d_field.data,            
+                                d_index_array.data,
+                                group_size,
+                                m_block_size);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
-    // If there are exclusions, correct for the long-range part of the potential
-    if( m_nlist->getExclusionsSet()) 
-        {
-        ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::device, access_mode::read);
-        Index2D nex = m_nlist->getExListIndexer();
-
-        fix_exclusions(d_force.data,
-                       d_virial.data,
-                       m_virial.getPitch(),
-                       m_pdata->getN(),
-                       d_pos.data,
-                       d_charge.data,
-                       box,
-                       d_n_ex.data,
-                       d_exlist.data,
-                       nex,
-                       m_kappa,
-                       d_index_array.data,
-                       group_size,
-                       m_block_size);
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-        }
+
+        // If there are exclusions, correct for the long-range part of the potential
+        if( m_nlist->getExclusionsSet()) 
+            {
+            ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::device, access_mode::read);
+            Index2D nex = m_nlist->getExListIndexer();
+
+            fix_exclusions(d_force.data,
+                           d_virial.data,
+                           m_virial.getPitch(),
+                           m_pdata->getN(),
+                           d_pos.data,
+                           d_charge.data,
+                           box,
+                           d_n_ex.data,
+                           d_exlist.data,
+                           nex,
+                           m_kappa,
+                           d_index_array.data,
+                           group_size,
+                           m_block_size);
+            if (exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        } // end ArrayHandle scope
 
     PDataFlags flags = m_pdata->getFlags();
-
+        
     if(flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]) 
         {
         ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);
@@ -299,7 +315,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         Scalar3 L = box.getL();
 
         pppm_virial_energy[0] *= m_energy_virial_factor;
-        pppm_virial_energy[0] -= m_q2 * m_kappa / 1.772453850905516027298168f;
+        pppm_virial_energy[0] -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
         pppm_virial_energy[0] -= 0.5*M_PI*m_q*m_q / (m_kappa*m_kappa* L.x * L.y * L.z);
 
         for(int i = 1; i < 7; i++) {
@@ -307,19 +323,20 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
             }
 
         // apply the correction to particle 0
-        ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
-        unsigned int virial_pitch = m_virial.getPitch();
+            {
+            ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
+            unsigned int virial_pitch = m_virial.getPitch();
 
-        h_force.data[0].w += pppm_virial_energy[0];
-        h_virial.data[0*virial_pitch+0] += pppm_virial_energy[1]; // xx
-        h_virial.data[1*virial_pitch+0] += pppm_virial_energy[2]; // xy
-        h_virial.data[2*virial_pitch+0] += pppm_virial_energy[3]; // xz
-        h_virial.data[3*virial_pitch+0] += pppm_virial_energy[4]; // yy
-        h_virial.data[4*virial_pitch+0] += pppm_virial_energy[5]; // yz
-        h_virial.data[5*virial_pitch+0] += pppm_virial_energy[6]; // zz
+            h_force.data[0].w += pppm_virial_energy[0];
+            h_virial.data[0*virial_pitch+0] += pppm_virial_energy[1]; // xx
+            h_virial.data[1*virial_pitch+0] += pppm_virial_energy[2]; // xy
+            h_virial.data[2*virial_pitch+0] += pppm_virial_energy[3]; // xz
+            h_virial.data[3*virial_pitch+0] += pppm_virial_energy[4]; // yy
+            h_virial.data[4*virial_pitch+0] += pppm_virial_energy[5]; // yz
+            h_virial.data[5*virial_pitch+0] += pppm_virial_energy[6]; // zz
+            }
         }
-
     if (m_prof) m_prof->pop(exec_conf);
     }
 

@@ -74,7 +74,13 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
 - Useful developer tools
   - Git >= 1.7.0
   - Doxygen  >= 1.7.5
+- For parallel builds
+  - MPI (generic, or with CUDA-Support: MVAPICH2 >= 1.8, OpenMPI >= 1.7)
 
+For a discussion of which kind of MPI library is best for your situation,
+see \ref sec_mpi_best_practices.
+See \ref sec_build_linux_generic_mpi for instructions on building an MPI
+enabled hoomd.
 <hr>
 \section sec_build_instructions Build instructions for Linux and Mac.
 
@@ -118,6 +124,16 @@ generate. The makefile/IDE project is now updated with the newly selected option
  	- When set to \b ON, all calculations are performed in single precision.
  	- When set to \b OFF, all calculations are performed in double precision. 
  	- Must be set to \b ON to enable the \b ENABLE_CUDA option (HOOMD-blue has not yet been updated to perform double precision calculations)
+ - \b ENABLE_MPI - Enable multi-processor/GPU simulations using MPI
+    - Requires an MPI library to be installed
+    - When set to \b ON (default if any MPI library is found automatically by CMake), multi-GPU simulations are supported
+    - When set to \b OFF, HOOMD always runs in single-GPU mode
+ - \b ENABLE_MPI_CUDA - Enable CUDA-aware MPI library support
+    - Requires a MPI library w/CUDA support to be installed
+    - When set to \b ON (default if a CUDA-aware MPI library is detected), HOOMD-blue will make use of  the capability of the MPI library to accelerate CUDA-buffer transfers
+    - When set to \b OFF, standard MPI calls will be used
+    \b Warning: Manually setting this feature to ON when the MPI library does not support CUDA may
+       result in a crash of HOOMD-blue
 
 There are a few options for controlling the CUDA compilation.
  - \b CUDA_ARCH_LIST - A semicolon separated list of GPU architecture to compile in. Portions of HOOMD are optimized for specific

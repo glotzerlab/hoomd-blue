@@ -72,6 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param box Box dimensions for periodic boundary condition handling
     \param denominv Intermediate variable computed on the host and used in the NVT integration step
     \param deltaT Amount of real time to step forward in one time step
+
     
     Take the first half step forward in the NVT integration.
     
@@ -85,8 +86,8 @@ void gpu_nvt_step_one_kernel(Scalar4 *d_pos,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              BoxDim box,
-                             float denominv,
-                             float deltaT)
+                             Scalar denominv,
+                             Scalar deltaT)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -96,15 +97,15 @@ void gpu_nvt_step_one_kernel(Scalar4 *d_pos,
         unsigned int idx = d_group_members[group_idx];
 
         // update positions to the next timestep and update velocities to the next half step
-        float4 postype = d_pos[idx];
-        float3 pos = make_float3(postype.x, postype.y, postype.z);
+        Scalar4 postype = d_pos[idx];
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         Scalar4 velmass = d_vel[idx];
-        Scalar3 vel = make_float3(velmass.x, velmass.y, velmass.z);
-        float3 accel = d_accel[idx];
+        Scalar3 vel = make_scalar3(velmass.x, velmass.y, velmass.z);
+        Scalar3 accel = d_accel[idx];
 
         // perform update computation
-        vel = (vel + (1.0f/2.0f) * accel * deltaT) * denominv;
+        vel = (vel + (Scalar(1.0)/Scalar(2.0)) * accel * deltaT) * denominv;
         pos += vel * deltaT;
 
         // read in the image flags
@@ -114,8 +115,8 @@ void gpu_nvt_step_one_kernel(Scalar4 *d_pos,
         box.wrap(pos, image);
 
         // write out the results
-        d_pos[idx] = make_float4(pos.x, pos.y, pos.z, postype.w);
-        d_vel[idx] = make_float4(vel.x, vel.y, vel.z, velmass.w);
+        d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);
+        d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, velmass.w);
         d_image[idx] = image;
         }
     }
@@ -139,22 +140,22 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
                              unsigned int group_size,
                              const BoxDim& box,
                              unsigned int block_size,
-                             float Xi,
-                             float deltaT)
+                             Scalar Xi,
+                             Scalar deltaT)
     {
     // setup the grid to run the kernel
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+   
     // run the kernel
-    gpu_nvt_step_one_kernel<<< grid, threads, block_size * sizeof(float) >>>(d_pos,
+    gpu_nvt_step_one_kernel<<< grid, threads, block_size * sizeof(Scalar) >>>(d_pos,
                                                                              d_vel,
                                                                              d_accel,
                                                                              d_image,
                                                                              d_group_members,
                                                                              group_size,
                                                                              box,
-                                                                             1.0f / (1.0f + deltaT/2.0f * Xi),
+                                                                             Scalar(1.0) / (Scalar(1.0) + deltaT/Scalar(2.0) * Xi),
                                                                              deltaT);
     return cudaSuccess;
     }
@@ -173,9 +174,9 @@ void gpu_nvt_step_two_kernel(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
-                             float Xi,
-                             float deltaT)
+                             Scalar4 *d_net_force,
+                             Scalar Xi,
+                             Scalar deltaT)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -188,16 +189,16 @@ void gpu_nvt_step_two_kernel(Scalar4 *d_vel,
         Scalar4 net_force = d_net_force[idx];
         Scalar3 accel = make_scalar3(net_force.x,net_force.y,net_force.z);
 
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
 
-        float mass = vel.w;
+        Scalar mass = vel.w;
         accel.x /= mass;
         accel.y /= mass;
         accel.z /= mass;
         
-        vel.x += (1.0f/2.0f) * deltaT * (accel.x - Xi * vel.x);
-        vel.y += (1.0f/2.0f) * deltaT * (accel.y - Xi * vel.y);
-        vel.z += (1.0f/2.0f) * deltaT * (accel.z - Xi * vel.z);
+        vel.x += (Scalar(1.0)/Scalar(2.0)) * deltaT * (accel.x - Xi * vel.x);
+        vel.y += (Scalar(1.0)/Scalar(2.0)) * deltaT * (accel.y - Xi * vel.y);
+        vel.z += (Scalar(1.0)/Scalar(2.0)) * deltaT * (accel.z - Xi * vel.z);
         
         // write out data
         d_vel[idx] = vel;
@@ -219,10 +220,10 @@ cudaError_t gpu_nvt_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
+                             Scalar4 *d_net_force,
                              unsigned int block_size,
-                             float Xi,
-                             float deltaT)
+                             Scalar Xi,
+                             Scalar deltaT)
     {
     // setup the grid to run the kernel
     dim3 grid( (group_size/block_size) + 1, 1, 1);

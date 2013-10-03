@@ -284,21 +284,28 @@ class _external_force(force._force):
 # in the particle concentration. The force parameters can be set on a per-particle
 # type-basis. The potential can e.g. be used to induce an ordered phase in a block-copolymer melt.
 #
-# The external potential \f$ V(\vec{r}) \f$ is implemented using the following formula:
+# The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
 #
-# \f[ V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(\frac{2 \pi p r_i}{L_i}\right)\right] \f]
+#    \f[
+#    V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(p \vec{b}_i\cdot\vec{r}\right)\right]
+#    \f]
 #
-# where \f$ A \f$ is the ordering parameter, \f$p\f$ the periodicity and \f$w\f$ the interface width
-# (relative to the box length \f$ L_i \f$ in the \f$ i \f$ -direction). The modulation is one-dimensional,
-# i.e. it extends along the cartesian coordinate \f$ i \f$ .
+#    where \f$A\f$ is the ordering parameter, \f$\vec{b}_i\f$ is the reciprocal lattice vector direction
+#    \f$i=0..2\f$, \f$p\f$ the periodicity and \f$w\f$ the interface width
+#    (relative to the distance \f$2\pi/|\mathbf{b_i}|\f$ between planes in the \f$i\f$-direction).
+#    The modulation is one-dimensional. It extends along the lattice vector \f$\mathbf{a}_i\f$ of the
+#    simulation cell.
+#
+# \MPI_SUPPORTED
 class periodic(_external_force):
     ## Apply a force derived from a %periodic potential to all particles
     #
     # \b Examples:
     # \code
+    # # Apply a periodic composition modulation along the first lattice vector
     # periodic = external.periodic()
-    # periodic.coeff.set('A', A=1.0, i=1, w=0.02, p=3)
-    # periodic.coeff.set('B', A=-1.0, i=1, w=0.02, p=3)
+    # periodic.force_coeff.set('A', A=1.0, i=0, w=0.02, p=3)
+    # periodic.force_coeff.set('B', A=-1.0, i=0, w=0.02, p=3)
     # \endcode
 
     def __init__(self, name=""):

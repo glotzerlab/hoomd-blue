@@ -74,21 +74,23 @@ using namespace std;
     \brief Contains definitions for RandomGenerator and related classes.
  */
 
-/*! \param n_particles Number of particles that will be generated
+/*! \param exec_conf The execution configuration used for messaging
+    \param n_particles Number of particles that will be generated
     \param box Box the particles are generated in
     \param radii Mapping of particle types to their minimum separation radius
 
     After construction, all data structure are set to defaults and particles are ready to be placed.
 */
-GeneratedParticles::GeneratedParticles(unsigned int n_particles,
+GeneratedParticles::GeneratedParticles(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                       unsigned int n_particles,
                                        const BoxDim& box,
                                        const std::map< std::string, Scalar >& radii) 
-    : m_particles(n_particles), m_box(box), m_radii(radii)
+    : m_exec_conf(exec_conf), m_particles(n_particles), m_box(box), m_radii(radii)
     {
     // sanity checks
     assert(n_particles > 0);
     assert(m_radii.size() > 0);
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
     
     // find the maximum particle radius
     Scalar max_radius = Scalar(0.0);
@@ -120,19 +122,9 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
 
     if (m_Mx > 100 || m_My > 100 || m_Mz > 100)
         {
-        cout << "***Warning! random generator is about to allocate a very large amount of memory and may crash." << endl << endl;
+        m_exec_conf->msg->warning() << "Random generator is about to allocate a very large amount of memory and may crash." << endl << endl;
         }
         
-    // make even bin dimensions
-    Scalar binx = L.x / Scalar(m_Mx);
-    Scalar biny = L.y / Scalar(m_My);
-    Scalar binz = L.z / Scalar(m_Mz);
-    
-    // precompute scale factors to eliminate division in inner loop
-    m_scalex = Scalar(1.0) / binx;
-    m_scaley = Scalar(1.0) / biny;
-    m_scalez = Scalar(1.0) / binz;
-    
     // setup the memory arrays
     m_bins.resize(m_Mx*m_My*m_Mz);
     }
@@ -145,41 +137,26 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
 */
 bool GeneratedParticles::canPlace(const particle& p)
     {
-    // begin with an error check that p.type is actualL.y in the radius map
+    // begin with an error check that p.type is actually in the radius map
     if (m_radii.count(p.type) == 0)
         {
-        cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
+        m_exec_conf->msg->error() << endl << "Radius not set for particle in RandomGenerator" << endl << endl;
         throw runtime_error("Error placing particle");
         }
         
-    // first, map the particle back into the box
-    Scalar x = p.x;
-    Scalar3 L = m_box.getL();
-    Scalar3 hi = m_box.getHi();
-    Scalar3 lo = m_box.getLo();
-    if (x > hi.x)
-        x -= L.x*(((int)((x-hi.x)/L.x))+1);
-    else if (x < lo.x)
-        x += L.x*(((int)((lo.x-x)/L.x))+1);
-        
-    Scalar y = p.y;
-    if (y > hi.y)
-        y -= L.y*(((int)((y-hi.y)/L.y))+1);
-    else if (y < lo.y)
-        y += L.y*(((int)((lo.y-y)/L.y))+1);
+    // first, map the particle back into the box 
+    Scalar3 pos = make_scalar3(p.x,p.y,p.z);
+    int3 img = m_box.getImage(pos);
+    int3 negimg = make_int3(-img.x, -img.y, -img.z);
+    pos = m_box.shift(pos, negimg);
 
-    Scalar z = p.z;
-    if (z > hi.y)
-        z -= L.z*(((int)((z-hi.y)/L.z))+1);
-    else if (z < lo.z)
-        z += L.z*(((int)((lo.z-z)/L.z))+1);
-        
     // determine the bin the particle is in
-    int ib = (int)((x-lo.x)*m_scalex);
-    int jb = (int)((y-lo.y)*m_scaley);
-    int kb = (int)((z-lo.z)*m_scalez);
+    Scalar3 f = m_box.makeFraction(pos);
+    int ib = (int)(f.x*m_Mx);
+    int jb = (int)(f.y*m_My);
+    int kb = (int)(f.z*m_Mz);
     
-    // need to handle the case where the particle is exactL.y at the box hi
+    // need to handle the case where the particle is exactly at the box hi
     if (ib == m_Mx)
         ib = 0;
     if (jb == m_My)
@@ -229,44 +206,17 @@ bool GeneratedParticles::canPlace(const particle& p)
                     Scalar min_dist = m_radii[p.type] + m_radii[p_cmp.type];
 
                     // map p_cmp into box
-                    Scalar cmp_x = p_cmp.x;
-                    if (cmp_x > hi.x)
-                        cmp_x -= L.x*(((int)((cmp_x-hi.x)/L.x))+1);
-                    else if (x < lo.x)
-                        cmp_x += L.x*(((int)((lo.x-cmp_x)/L.x))+1);
-        
-                    Scalar cmp_y = p_cmp.y;
-                    if (y > hi.y)
-                        cmp_y -= L.y*(((int)((cmp_y-hi.y)/L.y))+1);
-                    else if (y < lo.y)
-                        cmp_y += L.y*(((int)((lo.y-cmp_y)/L.y))+1);
+                    Scalar3 cmp_pos = make_scalar3(p_cmp.x, p_cmp.y, p_cmp.z);
+                    
+                    int3 img = m_box.getImage(pos);
+                    int3 negimg = make_int3(-img.x, -img.y, -img.z);
+                    cmp_pos = m_box.shift(cmp_pos,negimg);
 
-                    Scalar cmp_z = p_cmp.z;
-                    if (cmp_z > hi.y)
-                        cmp_z -= L.z*(((int)((cmp_z-hi.y)/L.z))+1);
-                    else if (cmp_z < lo.z)
-                        cmp_z += L.z*(((int)((lo.z-cmp_z)/L.z))+1);
-
+                    Scalar3 dx = pos - cmp_pos;
                     // minimum image convention for dx
-                    Scalar dx = x - cmp_x;
-                    if (dx > L.x/2.)
-                        dx -= L.x;
-                    else if (dx <= -L.x/2.)
-                        dx += L.x;
+                    dx = m_box.minImage(dx);
                         
-                    Scalar dy = y - cmp_y;
-                    if (dy > L.y/2.)
-                        dy -= L.y;
-                    else if (dy <= -L.y/2.)
-                        dy += L.y;
-                        
-                    Scalar dz = z - cmp_z;
-                    if (dz > L.z/2.)
-                        dz -= L.z;
-                    else if (dz <= -L.z/2.)
-                        dz += L.z;
-                        
-                    if (dx*dx + dy*dy + dz*dz < min_dist)
+                    if (dot(dx,dx) < min_dist*min_dist)
                         return false;
                     }
                 }
@@ -287,71 +237,35 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
     {
     assert(idx < m_particles.size());
     
-    // begin with an error check that p.type is actualL.y in the radius map
+    // begin with an error check that p.type is actually in the radius map
     if (m_radii.count(p.type) == 0)
         {
-        cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
+        m_exec_conf->msg->error() << endl << "Radius not set for particle in RandomGenerator" << endl << endl;
         throw runtime_error("Error placing particle");
         }
         
     // first, map the particle back into the box
-    Scalar x = p.x;
-    Scalar3 L = m_box.getL();
-    Scalar3 lo = m_box.getLo();
-    Scalar3 hi = m_box.getHi();
-    int ix = 0;
-    if (x > hi.x)
-        {
-        ix=(((int)((x-hi.x)/L.x))+1);
-        x -= L.x*ix;
-        }
-    else if (x < lo.x)
-        {
-        ix=-(((int)((lo.x-x)/L.x))+1);
-        x -= L.x*ix;
-        }
-
-    Scalar y = p.y;
-    int iy = 0;
-    if (y > hi.y)
-        {
-        iy=(((int)((y-hi.y)/L.y))+1);
-        y -= L.y*iy;
-        }
-    else if (y < lo.y)
-        {
-        iy=-(((int)((lo.y-y)/L.y))+1);
-        y -= L.y*iy;
-        }
-        
-    Scalar z = p.z;
-    int iz = 0;
-    if (z > hi.y)
-        {
-        iz=(((int)((z-hi.y)/L.z))+1);
-        z -= L.z*iz;
-        }
-    else if (z < lo.z)
-        {
-        iz=-(((int)((lo.z-z)/L.z))+1);
-        z -= L.z*iz;
-        }
+    Scalar3 pos = make_scalar3(p.x,p.y,p.z);
+    int3 img = m_box.getImage(pos);
+    int3 negimg = make_int3(-img.x,-img.y,-img.z);
+    pos = m_box.shift(pos,negimg);
 
     // set the particle data
-    m_particles[idx].x = x;
-    m_particles[idx].y = y;
-    m_particles[idx].z = z;
-    m_particles[idx].ix = ix;
-    m_particles[idx].iy = iy;
-    m_particles[idx].iz = iz;
+    m_particles[idx].x = pos.x;
+    m_particles[idx].y = pos.y;
+    m_particles[idx].z = pos.z;
+    m_particles[idx].ix = img.x;
+    m_particles[idx].iy = img.y;
+    m_particles[idx].iz = img.z;
     m_particles[idx].type = p.type;
     
     // determine the bin the particle is in
-    int ib = (int)((x-lo.x)*m_scalex);
-    int jb = (int)((y-lo.y)*m_scaley);
-    int kb = (int)((z-lo.z)*m_scalez);
+    Scalar3 f =m_box.makeFraction(pos);
+    int ib = (int)(f.x*m_Mx);
+    int jb = (int)(f.y*m_My);
+    int kb = (int)(f.z*m_Mz);
     
-    // need to handle the case where the particle is exactL.y at the box hi
+    // need to handle the case where the particle is exactly at the box hi
     if (ib == m_Mx)
         ib = 0;
     if (jb == m_My)
@@ -378,63 +292,27 @@ void GeneratedParticles::undoPlace(unsigned int idx)
     
     particle p = m_particles[idx];
     // first, map the particle back into the box
-    Scalar x = p.x;
-    Scalar3 L = m_box.getL();
-    Scalar3 hi = m_box.getHi();
-    Scalar3 lo = m_box.getLo();
-    int ix = 0;
-    if (x > hi.x)
-        {
-        ix=(((int)((x-hi.x)/L.x))+1);
-        x -= L.x*ix;
-        }
-    else if (x < lo.x)
-        {
-        ix=-(((int)((lo.x-x)/L.x))+1);
-        x -= L.x*ix;
-        }
+    int3 img = make_int3(0,0,0);
+    Scalar3 pos = make_scalar3(p.x,p.y,p.z);
 
-    Scalar y = p.y;
-    int iy = 0;
-    if (y > hi.y)
-        {
-        iy=(((int)((y-hi.y)/L.y))+1);
-        y -= L.y*iy;
-        }
-    else if (y < lo.y)
-        {
-        iy=-(((int)((lo.y-y)/L.y))+1);
-        y -= L.y*iy;
-        }
-        
-    Scalar z = p.z;
-    int iz = 0;
-    if (z > hi.y)
-        {
-        iz=(((int)((z-hi.y)/L.z))+1);
-        z -= L.z*iz;
-        }
-    else if (z < lo.z)
-        {
-        iz=-(((int)((lo.z-z)/L.z))+1);
-        z -= L.z*iz;
-        }
+    m_box.wrap(pos,img);
 
     // set the particle data
-    m_particles[idx].x = x;
-    m_particles[idx].y = y;
-    m_particles[idx].z = z;
-    m_particles[idx].ix = ix;
-    m_particles[idx].iy = iy;
-    m_particles[idx].iz = iz;
+    m_particles[idx].x = pos.x;
+    m_particles[idx].y = pos.y;
+    m_particles[idx].z = pos.z;
+    m_particles[idx].ix = img.x;
+    m_particles[idx].iy = img.y;
+    m_particles[idx].iz = img.z;
     m_particles[idx].type = p.type;
     
     // determine the bin the particle is in
-    int ib = (int)((x-lo.x)*m_scalex);
-    int jb = (int)((y-lo.y)*m_scaley);
-    int kb = (int)((z-lo.z)*m_scalez);
+    Scalar3 f = m_box.makeFraction(pos);
+    int ib = (int)(f.x*m_Mx);
+    int jb = (int)(f.y*m_My);
+    int kb = (int)(f.z*m_Mz);
     
-    // need to handle the case where the particle is exactL.y at the box hi
+    // need to handle the case where the particle is exactly at the box hi
     if (ib == m_Mx)
         ib = 0;
     if (jb == m_My)
@@ -470,65 +348,58 @@ void GeneratedParticles::addBond(unsigned int a, unsigned int b, const std::stri
     m_bonds.push_back(bond(a,b, type));
     }
 
-/*! \param box Box dimensions to generate in
+/*! \param exec_conf Execution configuration
+    \param box Box dimensions to generate in
     \param seed Random number generator seed
 */
-RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(box), m_seed(seed)
+RandomGenerator::RandomGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                 const BoxDim& box,
+                                 unsigned int seed)
+    : m_exec_conf(exec_conf),
+      m_box(box),
+      m_seed(seed)
     {
     }
 
-unsigned int RandomGenerator::getNumParticles() const
+/*! initializes a snapshot->with the internally stored copy of the particle and bond data */
+boost::shared_ptr<SnapshotSystemData> RandomGenerator::getSnapshot() const
     {
-    return (unsigned int)m_data.m_particles.size();
-    }
+    // create a snapshot
+    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
 
-unsigned int RandomGenerator::getNumParticleTypes() const
-    {
-    return (unsigned int)m_type_mapping.size();
-    }
+    // only execute on rank 0
+    if (m_exec_conf->getRank()) return snapshot;
 
-BoxDim RandomGenerator::getBox() const
-    {
-    return m_box;
-    }
+    // initialize box dimensions
+    snapshot->global_box = m_box;
 
+    // initialize particle data
+    SnapshotParticleData& pdata_snap = snapshot->particle_data;
 
-/*! initializes a snapshot with the internally stored copy of the particle data */
-void RandomGenerator::initSnapshot(SnapshotParticleData& snapshot) const
-    {
     unsigned int nparticles = m_data.m_particles.size();
-    assert(snapshot.size == nparticles);
+    pdata_snap.resize(nparticles);
 
     for (unsigned int i = 0; i < nparticles; i++)
         {
-        snapshot.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
-        snapshot.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
-        snapshot.type[i] = m_data.m_particles[i].type_id;
+        pdata_snap.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
+        pdata_snap.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
+        pdata_snap.type[i] = m_data.m_particles[i].type_id;
         }
-    }
 
-std::vector<std::string> RandomGenerator::getTypeMapping() const
-    {
-    return m_type_mapping;
-    }
+    pdata_snap.type_mapping = m_type_mapping;
 
-/*! \return Number of bond types generated
-*/
-unsigned int RandomGenerator::getNumBondTypes() const
-    {
-    return m_bond_type_mapping.size();
-    }
-
-/*! \param bond_data Shared pointer to the BondData to be initialized
-    Adds all generated bonds to the BondData
-*/
-void RandomGenerator::initBondData(boost::shared_ptr<BondData> bond_data) const
-    {
-    // loop through all the bonds and add a bond for each
+    // initialize bonds
+    SnapshotBondData& bdata_snap = snapshot->bond_data;
+    bdata_snap.resize(m_data.m_bonds.size());
     for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)
-        bond_data->addBond(Bond(m_data.m_bonds[i].type_id, m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b));
+        {
+        bdata_snap.bonds[i] = make_uint2(m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b);
+        bdata_snap.type_id[i] = m_data.m_bonds[i].type_id;
+        }
         
-    bond_data->setBondTypeMapping(m_bond_type_mapping);
+    bdata_snap.type_mapping = m_bond_type_mapping;
+
+    return snapshot;
     }
 
 /*! \param type Name of the particle type to set the radius for
@@ -553,6 +424,9 @@ void RandomGenerator::addGenerator(unsigned int repeat, boost::shared_ptr<Partic
 */
 void RandomGenerator::generate()
     {
+    // only execute on rank 0
+    if (m_exec_conf->getRank()) return;
+
     // sanity check
     assert(m_radii.size() > 0);
     assert(m_generators.size() > 0);
@@ -564,7 +438,7 @@ void RandomGenerator::generate()
         n_particles += m_generator_repeat[i] * m_generators[i]->getNumToGenerate();
         
     // setup data structures
-    m_data = GeneratedParticles(n_particles, m_box, m_radii);
+    m_data = GeneratedParticles(m_exec_conf, n_particles, m_box, m_radii);
     
     // start the random number generator
     boost::mt19937 rnd;
@@ -639,7 +513,8 @@ static Scalar random01(boost::mt19937& rnd)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // PolymerParticleGenerator
-/*! \param bond_len Bond length to generate
+/*! \param exec_conf Execution configuration used for messaging
+    \param bond_len Bond length to generate
     \param types Vector of type names. One element per bead of the polymer.
     \param bond_a List of the first particle in each bond
     \param bond_b List of the 2nd particle in each bond
@@ -649,8 +524,8 @@ static Scalar random01(boost::mt19937& rnd)
     A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
     Hence, the sizes of \a bond_a and \a bond_b \b must be the same.
 */
-PolymerParticleGenerator::PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts)
-        : m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_bond_type(bond_type), m_max_attempts(max_attempts)
+PolymerParticleGenerator::PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf, Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts)
+        : m_exec_conf(exec_conf), m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_bond_type(bond_type), m_max_attempts(max_attempts)
     {
     assert(m_types.size() > 0);
     assert(m_max_attempts > 0);
@@ -670,16 +545,15 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
     GeneratedParticles::particle p;
     p.type = m_types[0];
     
-    Scalar3 L = box.getL();
-    Scalar3 lo = box.getLo();
-    
     // make a maximum of m_max_attempts tries to generate the polymer
     for (unsigned int attempt = 0; attempt < m_max_attempts; attempt++)
         {
         // generate the position of the first particle
-        p.x = lo.x + random01(rnd) * L.x;
-        p.y = lo.y + random01(rnd) * L.y;
-        p.z = lo.z + random01(rnd) * L.z;
+        Scalar3 f = make_scalar3(random01(rnd),random01(rnd),random01(rnd));
+        Scalar3 pos = box.makeCoordinates(f);
+        p.x = pos.x;
+        p.y = pos.y;
+        p.z = pos.z;
         
         // see if we can place the particle
         if (!particles.canPlace(p))
@@ -691,7 +565,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
         if (generateNextParticle(particles, rnd, 1, start_idx, p))
             {
             // success! we are done
-            // create the bonds for this polymer now (polymers are simpL.y linear for now)
+            // create the bonds for this polymer now (polymers are simply linear for now)
             for (unsigned int i = 0; i < m_bond_a.size(); i++)
                 {
                 particles.addBond(start_idx+m_bond_a[i], start_idx + m_bond_b[i], m_bond_type[i]);
@@ -701,11 +575,11 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
             
         // failure, rollback
         particles.undoPlace(start_idx);
-        cout << "Notice: Polymer generator is trying particle " << start_idx << " again" << endl;
+        m_exec_conf->msg->notice(2) << "Polymer generator is trying particle " << start_idx << " again" << endl;
         }
         
     // we've failed to place a polymer, this is an unrecoverable error
-    cerr << endl << "***Error! The polymer generator failed to place a polymer, the system is too dense or the separation radii are set too high" << endl << endl;
+    m_exec_conf->msg->error() << endl << "The polymer generator failed to place a polymer, the system is too dense or the separation radii are set too high" << endl << endl;
     throw runtime_error("Error generating polymer system");
     }
 
@@ -793,18 +667,19 @@ void export_RandomGenerator()
     .def(vector_indexing_suite<std::vector<string> >())
     ;
     
-    class_< RandomGenerator, bases<ParticleDataInitializer> >("RandomGenerator", init<const BoxDim&, unsigned int>())
+    class_< RandomGenerator >("RandomGenerator", init<boost::shared_ptr<const ExecutionConfiguration>, const BoxDim&, unsigned int>())
     // virtual methods from ParticleDataInitializer are inherited
     .def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
     .def("addGenerator", &RandomGenerator::addGenerator)
     .def("generate", &RandomGenerator::generate)
+    .def("getSnapshot", &RandomGenerator::getSnapshot)
     ;
     
     class_< ParticleGeneratorWrap, boost::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())
     // no methods exposed to python
     ;
     
-    class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int >())
+    class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< boost::shared_ptr<const ExecutionConfiguration>, Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int >())
     // all methods are internal C++ methods
     ;
     }

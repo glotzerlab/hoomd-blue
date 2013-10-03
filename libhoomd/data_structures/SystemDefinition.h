@@ -71,6 +71,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SYSTEM_DEFINITION_H__
 #define __SYSTEM_DEFINITION_H__
 
+#ifdef ENABLE_MPI
+//! Forward declaration of Communicator
+class Communicator;
+#endif
+
+//! Forward declaration of SnapshotSytemData
+class SnapshotSystemData;
 
 //! Container class for all data needed to define the MD system
 /*! SystemDefinition is a big bucket where all of the data defining the MD system goes.
@@ -122,11 +129,13 @@ class SystemDefinition
                          unsigned int n_angle_types=0,
                          unsigned int n_dihedral_types=0,
                          unsigned int n_improper_types=0,
-                         boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()));
+                         boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
+                         boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
                          
-        //! Construct from an initializer (temporary measure until the initializer setup is rewritten)
-        SystemDefinition(const ParticleDataInitializer& init,
-                        boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()));
+        //! Construct from a snapshot
+        SystemDefinition(boost::shared_ptr<const SnapshotSystemData> snapshot,
+                         boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
+                         boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
                         
         //! Set the dimensionality of the system
         void setNDimensions(unsigned int);
@@ -178,7 +187,25 @@ class SystemDefinition
             return m_integrator_data;
             }
 
-            
+        //! Helper for python memory managment in init.reset
+        long getPDataRefs()
+            {
+            return m_particle_data.use_count();
+            }
+           
+        //! Return a snapshot of the current system data
+        boost::shared_ptr<SnapshotSystemData> takeSnapshot(bool particles,
+                                                           bool bonds,
+                                                           bool angles,
+                                                           bool dihedrals,
+                                                           bool impropers,
+                                                           bool rigid,
+                                                           bool walls,
+                                                           bool integrators);
+
+        //! Re-initialize the system from a snapshot
+        void initializeFromSnapshot(boost::shared_ptr<SnapshotSystemData> snapshot);
+
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
         boost::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system
@@ -189,7 +216,6 @@ class SystemDefinition
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data for the system
         boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data for the system
         boost::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
-
     };
 
 //! Exports SystemDefinition to python

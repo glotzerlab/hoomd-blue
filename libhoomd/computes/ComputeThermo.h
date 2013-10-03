@@ -174,7 +174,7 @@ class ComputeThermo : public Compute
                 }
             }
 
-        //! Returns the symmetrized virial tensor last computed by compute()
+        //! Returns the upper triangular virial tensor last computed by compute()
         /*! \returns Instantaneous virial tensor, or virial tensor containing NaN entries if it is
             not available
         */
@@ -224,7 +224,6 @@ class ComputeThermo : public Compute
         unsigned int m_ndof;            //!< Stores the number of degrees of freedom in the system
         vector<string> m_logname_list;  //!< Cache all generated logged quantities names
 
-        
         //! Does the actual computation
         virtual void computeProperties();
     };

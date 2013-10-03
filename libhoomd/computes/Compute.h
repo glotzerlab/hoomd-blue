@@ -52,9 +52,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
+#include <boost/thread.hpp>
 #include <string>
 #include <vector>
-
+#
 #include "SystemDefinition.h"
 #include "Profiler.h"
 
@@ -172,15 +173,30 @@ class Compute : boost::noncopyable
          */
         virtual void forceCompute(unsigned int timestep);
 
+#ifdef ENABLE_MPI
+        //! Set communicator this Compute is to use
+        /*! \param comm The communicator
+         */
+        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+            {
+            m_comm = comm;
+            }
+#endif
+
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
         boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
+#ifdef ENABLE_MPI
+        boost::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
+#endif
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
         // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
         // merge conflicts.
+        bool m_inside_thread;           //!< True if we are called from within a worker thread 
+        unsigned int m_thread_id;       //!< In multi-threading, this stores the thread ID from which the force compute was called
 
         //! Simple method for testing if the computation should be run or not
         virtual bool shouldCompute(unsigned int timestep);
@@ -188,7 +204,9 @@ class Compute : boost::noncopyable
         unsigned int m_last_computed;   //!< Stores the last timestep compute was called
         bool m_first_compute;           //!< true if compute has not yet been called
         bool m_force_compute;           //!< true if calculation is enforced
-        
+
+        bool m_mutex;                   //!< Mutex to protect against simultaneous updates of the same compute
+       
         //! The python export needs to be a friend to export shouldCompute()
         friend void export_Compute();
     };

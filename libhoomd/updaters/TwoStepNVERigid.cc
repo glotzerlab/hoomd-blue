@@ -99,6 +99,16 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
         {
         m_exec_conf->msg->warning() << "integrate.*_rigid: Empty group." << endl;
         }
+    
+    w = wdti1 = wdti2 = wdti4 = NULL;
+    q_t = q_r = q_b = NULL;
+    eta_t = eta_r = eta_b = NULL;
+    eta_dot_t = eta_dot_r = eta_dot_b = NULL;
+    f_eta_t = f_eta_r = f_eta_b = NULL;
+    
+    // Using thermostat or barostat 
+    t_stat = false;
+    p_stat = false;
     }
 
 TwoStepNVERigid::~TwoStepNVERigid()
@@ -134,14 +144,14 @@ void TwoStepNVERigid::setup()
         
     // Get the number of rigid bodies for frequent use
     m_n_bodies = m_body_group->getNumMembers();
-     
+    
+    // Get the system dimensionality    
+    dimension = m_sysdef->getNDimensions();
+ 
     // sanity check
     if (m_n_bodies <= 0)
         return;
-    
-    //GPUArray<Scalar> virial(m_rigid_data->getNmax(), m_n_bodies, m_pdata->getExecConf());
-    //m_virial.swap(virial);
-    
+        
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
     
@@ -170,6 +180,24 @@ void TwoStepNVERigid::setup()
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::read);
     
+    //! Total translational and rotational degrees of freedom of rigid bodies
+    nf_t = 3 * m_n_bodies;
+    nf_r = 3 * m_n_bodies;
+    
+    //! Subtract from nf_r one for each singular moment inertia of a rigid body
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+    
+        if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1.0;
+        if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1.0;
+        if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
+        }
+
+    g_f = nf_t + nf_r;  
+    onednft = 1.0 + (double)(dimension) / (double)g_f;
+    onednfr = (double) (dimension) / (double)g_f;
+
     // Reset all forces and torques
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
@@ -591,10 +619,233 @@ void TwoStepNVERigid::validateGroup()
         }
     }
 
+/*! Update Nose-Hoover thermostats
+    \param akin_t Translational kinetic energy
+    \param akin_r Rotational kinetic energy
+    \param timestep Current time step
+*/
+void TwoStepNVERigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep)
+    {
+    Scalar kt, gfkt_t, gfkt_r, tmp, ms, s, s2;
+    
+    kt = boltz * m_temperature->getValue(timestep);
+    gfkt_t = nf_t * kt;
+    gfkt_r = nf_r * kt;
+    
+    // update thermostat masses
+    
+    Scalar t_mass = boltz * m_temperature->getValue(timestep) / (t_freq * t_freq);
+    q_t[0] = nf_t * t_mass;
+    q_r[0] = nf_r * t_mass;
+    for (unsigned int i = 1; i < chain; i++)
+        q_t[i] = q_r[i] = t_mass;
+                
+    // update force of thermostats coupled to particles
+    
+    f_eta_t[0] = (akin_t - gfkt_t) / q_t[0];
+    f_eta_r[0] = (akin_r - gfkt_r) / q_r[0];
+    
+    // multiple timestep iteration
+    
+    for (unsigned int i = 0; i < iter; i++)
+        {
+        for (unsigned int j = 0; j < order; j++)
+            {
+            
+            // update thermostat velocities half step
+            
+            eta_dot_t[chain-1] += wdti2[j] * f_eta_t[chain-1];
+            eta_dot_r[chain-1] += wdti2[j] * f_eta_r[chain-1];
+            
+            for (unsigned int k = 1; k < chain; k++)
+                {
+                tmp = wdti4[j] * eta_dot_t[chain-k];
+                ms = maclaurin_series(tmp);
+                s = exp(-1.0 * tmp);
+                s2 = s * s;
+                eta_dot_t[chain-k-1] = eta_dot_t[chain-k-1] * s2 + 
+                                       wdti2[j] * f_eta_t[chain-k-1] * s * ms;
+                
+                tmp = wdti4[j] * eta_dot_r[chain-k];
+                ms = maclaurin_series(tmp);
+                s = exp(-1.0 * tmp);
+                s2 = s * s;
+                eta_dot_r[chain-k-1] = eta_dot_r[chain-k-1] * s2 + 
+                                       wdti2[j] * f_eta_r[chain-k-1] * s * ms;
+                }
+                
+            // update thermostat positions a full step
+            
+            for (unsigned int k = 0; k < chain; k++)
+                {
+                eta_t[k] += wdti1[j] * eta_dot_t[k];
+                eta_r[k] += wdti1[j] * eta_dot_r[k];
+                }
+                
+            // update thermostat forces
+            
+            for (unsigned int k = 1; k < chain; k++)
+                {
+                f_eta_t[k] = q_t[k-1] * eta_dot_t[k-1] * eta_dot_t[k-1] - kt;
+                f_eta_t[k] /= q_t[k];
+                f_eta_r[k] = q_r[k-1] * eta_dot_r[k-1] * eta_dot_r[k-1] - kt;
+                f_eta_r[k] /= q_r[k];
+                }
+                
+            // update thermostat velocities a full step
+            
+            for (unsigned int k = 0; k < chain-1; k++)
+                {
+                tmp = wdti4[j] * eta_dot_t[k+1];
+                ms = maclaurin_series(tmp);
+                s = exp(-1.0 * tmp);
+                s2 = s * s;
+                eta_dot_t[k] = eta_dot_t[k] * s2 + wdti2[j] * f_eta_t[k] * s * ms;
+                tmp = q_t[k] * eta_dot_t[k] * eta_dot_t[k] - kt;
+                f_eta_t[k+1] = tmp / q_t[k+1];
+                
+                tmp = wdti4[j] * eta_dot_r[k+1];
+                ms = maclaurin_series(tmp);
+                s = exp(-1.0 * tmp);
+                s2 = s * s;
+                eta_dot_r[k] = eta_dot_r[k] * s2 + wdti2[j] * f_eta_r[k] * s * ms;
+                tmp = q_r[k] * eta_dot_r[k] * eta_dot_r[k] - kt;
+                f_eta_r[k+1] = tmp / q_r[k+1];
+                }
+                
+            eta_dot_t[chain-1] += wdti2[j] * f_eta_t[chain-1];
+            eta_dot_r[chain-1] += wdti2[j] * f_eta_r[chain-1];
+            }
+        }
+        
+    }
+
+/*! Update Nose-Hoover thermostats coupled with barostat
+    \param timestep Current time step
+*/
+void TwoStepNVERigid::update_nhcb(unsigned int timestep)
+    {
+    Scalar kt, tmp, ms, s, s2;
+    Scalar dt_half;
+    
+    dt_half = 0.5 * m_deltaT;
+    
+    if (t_stat) kt = boltz * m_temperature->getValue(timestep);
+    else kt = boltz;
+    
+    // update thermostat masses
+    
+    double tb_mass = kt / (p_freq * p_freq);
+    q_b[0] = dimension * dimension * tb_mass;
+    for (unsigned int i = 1; i < chain; i++) 
+        q_b[i] = tb_mass;
+
+    // update forces acting on thermostat
+    W = (g_f + dimension) * kt / (p_freq * p_freq);
+    tmp = W * epsilon_dot * epsilon_dot;
+    f_eta_b[0] = (tmp - kt) / q_b[0];
+
+    // update thermostat velocities a half step
+
+    eta_dot_b[chain-1] += 0.5f * dt_half * f_eta_b[chain-1];
+
+    for (unsigned int k = 0; k < chain-1; k++) 
+        {
+        tmp = dt_half * eta_dot_b[chain-k-1];
+        ms = maclaurin_series(tmp);
+        s = exp(-0.5 * tmp);
+        s2 = s * s;
+        eta_dot_b[chain-k-2] = eta_dot_b[chain-k-2] * s2 + 
+                               dt_half * f_eta_b[chain-k-2] * s * ms;
+        }
+
+    // update thermostat positions
+
+    for (unsigned int k = 0; k < chain; k++)
+        eta_b[k] += m_deltaT * eta_dot_b[k];
+
+    // update epsilon dot
+  
+    s = exp(-1.0 * dt_half * eta_dot_b[0]);
+    epsilon_dot *= s;
+
+    // update thermostat forces
+
+    tmp = W * epsilon_dot * epsilon_dot;
+    f_eta_b[0] = (tmp - kt) / q_b[0];
+    for (unsigned int k = 1; k < chain; k++) 
+        {
+        f_eta_b[k] = q_b[k-1] * eta_dot_b[k-1] * eta_dot_b[k-1] - kt;
+        f_eta_b[k] /= q_b[k];
+        }
+
+    // update thermostat velocites a full step
+
+    for (unsigned int k = 0; k < chain-1; k++) 
+        {
+        tmp = dt_half * eta_dot_b[k+1];
+        ms = maclaurin_series(tmp);
+        s = exp(-0.5 * tmp);
+        s2 = s * s;
+        eta_dot_b[k] = eta_dot_b[k] * s2 + dt_half * f_eta_b[k] * s * ms;
+        tmp = q_b[k] * eta_dot_b[k] * eta_dot_b[k] - kt;
+        f_eta_b[k+1] = tmp / q_b[k+1];
+        }
+
+    eta_dot_b[chain-1] += 0.5f * dt_half * f_eta_b[chain-1];
+    }
+
+/*! Calculate the new box size from dilation
+    Remap the rigid body COMs from old box to new box
+    Note that NPT rigid currently only deals with rigid bodies, no point particles
+    For hybrid systems, use TwoStepNPT coupled with TwoStepNVTRigid to avoid duplicating box resize
+*/
+void TwoStepNVERigid::remap()
+{
+    BoxDim curBox = m_pdata->getGlobalBox();
+    Scalar3 curL = curBox.getL();
+    Scalar3 L = curL;
+
+    L.x = curL.x * dilation;
+    L.y = curL.y * dilation;
+    if (dimension == 3)
+        L.z = curL.z * dilation;
+
+    // copy and setL
+    BoxDim newBox = curBox;
+    newBox.setL(L);
+
+    // set the new box
+    m_pdata->setGlobalBox(newBox);
+
+    // convert rigid body COMs to lamda coords
+
+    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
+
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+
+        Scalar3 f = curBox.makeFraction(make_scalar3(com_handle.data[body].x,
+                                                     com_handle.data[body].y,
+                                                     com_handle.data[body].z));
+        Scalar3 scaled_cm = newBox.makeCoordinates(f);
+        com_handle.data[body].x = scaled_cm.x;
+        com_handle.data[body].y = scaled_cm.y;
+        com_handle.data[body].z = scaled_cm.z;
+        }
+    
+    }
+
 void export_TwoStepNVERigid()
 {
     class_<TwoStepNVERigid, boost::shared_ptr<TwoStepNVERigid>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
     ("TwoStepNVERigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+    .def("setT", &TwoStepNVERigid::setT)
+    .def("setP", &TwoStepNVERigid::setP)
+    .def("setTau", &TwoStepNVERigid::setTau)
+    .def("setTauP", &TwoStepNVERigid::setTauP)
+    .def("setPartialScale", &TwoStepNVERigid::setPartialScale)
     ;
 }
 

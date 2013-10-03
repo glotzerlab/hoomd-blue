@@ -68,7 +68,7 @@ using namespace boost::python;
 using namespace std;
 
 // \param SMALL a relatively small number
-#define SMALL 0.001f
+#define SMALL Scalar(0.001)
 
 /*! \file CGCMMAngleForceCompute.cc
     \brief Contains code for the CGCMMAngleForceCompute class
@@ -318,10 +318,10 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         //////////////////////////////////////////
         // THIS CODE DOES THE 1-3 LJ repulsions //
         //////////////////////////////////////////////////////////////////////////////
-        fac = 0.0f;
-        eac = 0.0f;
+        fac = Scalar(0.0);
+        eac = Scalar(0.0);
         for (int k = 0; k < 6; k++)
-            vac[k] = 0.0f;
+            vac[k] = Scalar(0.0);
 
         if (rac < m_rcut[angle.type])
             {
@@ -366,16 +366,13 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         Scalar angle_eng = (0.5*tk*dth + eac)*Scalar(1.0/3.0);
 
         // compute 1/3 of the virial, 1/3 for each atom in the angle
-        // symmetrized version of virial tensor
+        // upper triangular version of virial tensor
         Scalar angle_virial[6];
         angle_virial[0] = Scalar(1./3.) * ( dab.x*fab[0] + dcb.x*fcb[0] );
-        angle_virial[1] = Scalar(1./6.) * ( dab.x*fab[1] + dcb.x*fcb[1]
-                                          + dab.y*fab[0] + dcb.y*fcb[0] );
-        angle_virial[2] = Scalar(1./6.) * ( dab.x*fab[2] + dcb.x*fcb[2]
-                                          + dab.z*fab[0] + dcb.z*fcb[0] );
+        angle_virial[1] = Scalar(1./3.) * ( dab.y*fab[0] + dcb.y*fcb[0] );
+        angle_virial[2] = Scalar(1./3.) * ( dab.z*fab[0] + dcb.z*fcb[0] );
         angle_virial[3] = Scalar(1./3.) * ( dab.y*fab[1] + dcb.y*fcb[1] );
-        angle_virial[4] = Scalar(1./6.) * ( dab.y*fab[2] + dcb.y*fcb[2]
-                                          + dab.z*fab[1] + dcb.z*fcb[1] );
+        angle_virial[4] = Scalar(1./3.) * ( dab.z*fab[1] + dcb.z*fcb[1] );
         angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
         Scalar virial[6];
         for (unsigned int k=0; k < 6; k++)

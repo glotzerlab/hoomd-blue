@@ -78,14 +78,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
 // call different Saru PRNG initializers on the host / device
 // SARU is SaruGPU Class when included in nvcc and Saru Class when included into the host compiler
 #ifdef NVCC
@@ -95,7 +87,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // use different Saru PRNG returns on the host / device
-// CALL_SARU is currently define to return a random float for both the GPU and Host.  By changing saru.f to saru.d, a double could be returned instead.
+// CALL_SARU is currently define to return a random Scalar for both the GPU and Host.  By changing saru.f to saru.d, a double could be returned instead.
 #ifdef NVCC
 #define CALL_SARU(x,y) saru.f( (x), (y))
 #else
@@ -258,10 +250,10 @@ class EvaluatorPairDPDLJThermo
             // compute the force divided by r in force_divr
             if (rsq < rcutsq && lj1!= 0)
                 {
-                Scalar rinv = RSQRT(rsq);
+                Scalar rinv = fast::rsqrt(rsq);
                 Scalar r2inv = Scalar(1.0)/rsq;
                 Scalar r6inv = r2inv * r2inv * r2inv;
-                Scalar rcutinv = RSQRT(rcutsq);
+                Scalar rcutinv = fast::rsqrt(rcutsq);
 
                 // force calculation
                 
@@ -292,7 +284,7 @@ class EvaluatorPairDPDLJThermo
                 force_divr -=  gamma*m_dot*(rinv - rcutinv)*(rinv - rcutinv);
                 
                 //  Random Force 
-                force_divr += RSQRT(m_deltaT/(m_T*gamma*Scalar(6.0)))*(rinv - rcutinv)*alpha;
+                force_divr += fast::rsqrt(m_deltaT/(m_T*gamma*Scalar(6.0)))*(rinv - rcutinv)*alpha;
                 
                 //conservative energy only
                 pair_eng = r6inv * (lj1*r6inv - lj2);

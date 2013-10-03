@@ -70,6 +70,10 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
     \post \c force and \c virial GPUarrays are initialized
@@ -79,13 +83,13 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     m_index_thread_partial(0)
     {
     assert(m_pdata);
-    assert(m_pdata->getN() > 0);
+    assert(m_pdata->getMaxN() > 0);
     
     // allocate data on the host
-    unsigned int num_particles = m_pdata->getN();
-    GPUArray<Scalar4>  force(num_particles,exec_conf);
-    GPUArray<Scalar>   virial(num_particles,6,exec_conf);
-    GPUArray<Scalar4>  torque(num_particles,exec_conf);
+    unsigned int max_num_particles = m_pdata->getMaxN();
+    GPUArray<Scalar4>  force(max_num_particles,exec_conf);
+    GPUArray<Scalar>   virial(max_num_particles,6,exec_conf);
+    GPUArray<Scalar4>  torque(max_num_particles,exec_conf);
     m_force.swap(force);
     m_virial.swap(virial);
     m_torque.swap(torque);
@@ -97,6 +101,14 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
   
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
+
+    // connect to the ParticleData to receive notifications when the maximum number of particles changes
+    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ForceCompute::reallocate, this));
+
+    // reset external virial
+    for (unsigned int i = 0; i < 6; ++i)
+        m_external_virial[i] = Scalar(0.0);
+
     }
 
 /*! \post m_fdata and virial _partial are both allocated, and m_index_thread_partial is intiialized for indexing them
@@ -104,11 +116,40 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
 void ForceCompute::allocateThreadPartial()
     {
     assert(exec_conf->n_cpu >= 1);
-    m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
+    m_index_thread_partial = Index2D(m_pdata->getMaxN(), exec_conf->n_cpu);
     //Don't use GPU arrays here, *_partial's only used on CPU
     m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
     m_virial_partial = new Scalar[6*m_index_thread_partial.getNumElements()];
     m_torque_partial = new Scalar4[m_index_thread_partial.getNumElements()];
+    }
+
+/*! \post m_force, m_virial and m_torque are resized to the current maximum particle number
+ */
+void ForceCompute::reallocate()
+    {
+    m_force.resize(m_pdata->getMaxN());
+    m_virial.resize(m_pdata->getMaxN(),6);
+    m_torque.resize(m_pdata->getMaxN());
+
+    // the pitch of the virial array may have changed
+    m_virial_pitch = m_virial.getPitch();
+
+    reallocateThreadPartial();
+    }
+
+/*! \post m_fdata and virial _partial are both reallocated, and m_index_thread_partial is intiialized for indexing them
+*/
+void ForceCompute::reallocateThreadPartial()
+    {
+    assert(exec_conf->n_cpu >= 1);
+
+    // never allocated ? do nothing.
+    if (! m_fdata_partial || ! m_virial_partial || ! m_torque_partial) return;
+
+    delete[] m_fdata_partial;
+    delete[] m_virial_partial;
+    delete[] m_torque_partial;
+    allocateThreadPartial();
     }
 
 /*! Frees allocated memory
@@ -125,6 +166,7 @@ ForceCompute::~ForceCompute()
         m_torque_partial=NULL;
         }
     m_sort_connection.disconnect();
+    m_max_particle_num_change_connection.disconnect();
     }
 
 /*! Sums the total potential energy calculated by the last call to compute() and returns it.
@@ -141,7 +183,13 @@ Scalar ForceCompute::calcEnergySum()
         {
         pe_total += (double)h_force.data[i].w;
         }
-        
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // reduce potential energy on all processors
+        MPI_Allreduce(MPI_IN_PLACE, &pe_total, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+#endif
     return Scalar(pe_total);
     }
 
@@ -197,6 +245,99 @@ double ForceCompute::benchmark(unsigned int num_iters)
     return double(total_time_ns) / 1e6 / double(num_iters);
     }
 
+/*! \param tag Global particle tag
+    \returns Torque of particle referenced by tag
+ */
+Scalar4 ForceCompute::getTorque(unsigned int tag)
+    {
+    unsigned int i = m_pdata->getRTag(tag);
+    bool found = (i < m_pdata->getN());
+    Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::read);
+        result = h_torque.data[i];
+        }
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        unsigned int owner_rank = m_pdata->getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar4), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
+/*! \param tag Global particle tag
+    \returns Force of particle referenced by tag
+ */
+Scalar3 ForceCompute::getForce(unsigned int tag)
+    {
+    unsigned int i = m_pdata->getRTag(tag);
+    bool found = (i < m_pdata->getN());
+    Scalar3 result = make_scalar3(0.0,0.0,0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
+        result = make_scalar3(h_force.data[i].x, h_force.data[i].y, h_force.data[i].z);
+        }
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        unsigned int owner_rank = m_pdata->getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar3), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
+/*! \param tag Global particle tag
+    \param component Virial component (0=xx, 1=xy, 2=xz, 3=yy, 4=yz, 5=zz)
+    \returns Force of particle referenced by tag
+ */
+Scalar ForceCompute::getVirial(unsigned int tag, unsigned int component)
+    {
+    unsigned int i = m_pdata->getRTag(tag);
+    bool found = (i < m_pdata->getN());
+    Scalar result = Scalar(0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::read);
+        result = h_virial.data[m_virial_pitch*component+i];
+        }
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        unsigned int owner_rank = m_pdata->getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
+/*! \param tag Global particle tag
+    \returns Energy of particle referenced by tag
+ */
+Scalar ForceCompute::getEnergy(unsigned int tag)
+    {
+    unsigned int i = m_pdata->getRTag(tag);
+    bool found = (i < m_pdata->getN());
+    Scalar result = Scalar(0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::read);
+        result = h_force.data[i].w;
+        }
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        unsigned int owner_rank = m_pdata->getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
 //! Wrapper class for wrapping pure virtual methodos of ForceCompute in python
 class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
     {
@@ -206,7 +347,8 @@ class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
         ForceComputeWrap(shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef) { }
     protected:
         //! Calls the overidden ForceCompute::computeForces()
-        /*! \param timestep parameter to pass on to the overidden method */
+        /*! \param timestep parameter to pass on to the overidden method 
+         */
         void computeForces(unsigned int timestep)
             {
             this->get_override("computeForces")(timestep);

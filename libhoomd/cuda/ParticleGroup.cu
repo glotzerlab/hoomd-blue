@@ -48,49 +48,76 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
-#include "TwoStepNPT.h"
+#include <thrust/device_ptr.h>
+#include <thrust/fill.h>
+#include <thrust/copy.h>
+#include <thrust/scatter.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/constant_iterator.h>
 
-#ifndef __TWO_STEP_NPT_GPU_H__
-#define __TWO_STEP_NPT_GPU_H__
+#include "ParticleData.cuh"
 
-/*! \file TwoStepNPTGPU.h
-    \brief Declares the TwoStepNPTGPU class
-*/
-
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
+#ifdef WIN32
+#include <cassert>
+#else
+#include <assert.h>
 #endif
 
-//! Integrates part of the system forward in two steps in the NPT ensemble on the GPU
-/*! Implements Nose-Hoover/Anderson NPT integration through the IntegrationMethodTwoStep interface, runs on the GPU
-    
-    \ingroup updaters
+/*! \file ParticleGroup.cu
+    \brief Contains GPU kernel code used by ParticleGroup
 */
-class TwoStepNPTGPU : public TwoStepNPT
+
+//! GPU kernel to translate between global and local membership lookup table
+__global__ void gpu_rebuild_index_list_kernel(unsigned int N,
+                                              unsigned int *d_tag,
+                                              unsigned char *d_is_member_tag,
+                                              unsigned char *d_is_member)
     {
-    public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<ParticleGroup> group,
-                      boost::shared_ptr<ComputeThermo> thermo_group,
-                      boost::shared_ptr<ComputeThermo> thermo_all,
-                      Scalar tau,
-                      Scalar tauP,
-                      boost::shared_ptr<Variant> T,
-                      boost::shared_ptr<Variant> P);
-        virtual ~TwoStepNPTGPU() {};
-        
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
-        
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
-    };
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-//! Exports the TwoStepNPTGPU class to python
-void export_TwoStepNPTGPU();
+    if (idx >= N) return;
 
-#endif // #ifndef __TWO_STEP_NPT_GPU_H__
+    unsigned int tag = d_tag[idx];
+
+    d_is_member[idx] = d_is_member_tag[tag];
+    }
+
+//! GPU method for rebuilding the index list of a ParticleGroup
+/*! \param N number of local particles
+    \param d_is_member_tag Global lookup table for tag -> group membership
+    \param d_is_member Array of membership flags
+    \param d_member_idx Array of member indices
+    \param d_tag Array of tags
+    \param num_local_members Number of members on the local processor (return value)
+*/
+cudaError_t gpu_rebuild_index_list(unsigned int N,
+                                   unsigned char *d_is_member_tag,
+                                   unsigned char *d_is_member,
+                                   unsigned int *d_member_idx,
+                                   unsigned int *d_tag,
+                                   unsigned int &num_local_members)
+    {
+    assert(d_is_member);
+    assert(d_is_member_tag);
+    assert(d_member_idx);
+    assert(d_tag);
+
+    unsigned int block_size = 512;
+    gpu_rebuild_index_list_kernel<<<N/block_size+1,block_size>>>(N,
+                                                                 d_tag,
+                                                                 d_is_member_tag,
+                                                                 d_is_member);
+
+    thrust::device_ptr<unsigned char> is_member_ptr(d_is_member);
+    thrust::device_ptr<unsigned int> member_idx_ptr(d_member_idx);
+
+    thrust::counting_iterator<unsigned int> idx(0);
+
+    // fill member_idx array
+    num_local_members = thrust::copy_if(idx, idx + N, is_member_ptr, member_idx_ptr, thrust::identity<unsigned char>()) - member_idx_ptr;
+
+    return cudaSuccess;
+    }
 

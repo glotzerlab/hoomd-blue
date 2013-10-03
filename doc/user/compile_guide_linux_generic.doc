@@ -50,11 +50,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*! 
-\page page_compile_guide_linux_generic Compiling HOOMD-blue on Linux (generic)
+\page page_compile_guide_linux_generic Compiling HOOMD-blue on Linux (Cluster installation & generic linux)
 
 Table of contents:
  - \ref sec_build_linux_generic_prereq
  - \ref sec_build_linux_generic_compile
+ - \ref sec_build_linux_generic_mpi
 <hr>
 
 \section sec_build_linux_generic_prereq Software Prerequisites
@@ -68,21 +69,17 @@ hello
 " $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same
 output obtained above on the next line: "hello"
 
-The process for installing software/libraries differs from linux distribution to distribution. 
-In Gentoo (http://www.gentoo.org/) 
-\code
- $ emerge python
-\endcode
-would install python. Look at your linux distribution's documentation to find how to install
-packages on your system (i.e. yum, apt-get, up2date, or another). You may need to "su -" or use sudo to
-become root before installing.
-
 \section software_req_install_linux_python Python
 
 First, check if python is already installed
 \code
  $ python -V
 Python 2.4.4
+\endcode
+or
+\code
+ $ python3 -V
+Python 3.2.3
 \endcode
 Make sure that the version is 2.3 or greater. If you get
 \code
@@ -94,17 +91,59 @@ need the python development libraries which some distributions might separate in
 python-devel or some such. The existence of the python development package can be tested
 by checking the output of 
 \code 
- $ ls /usr/include/python2.X/Python.h
-/usr/include/python2.X/Python.h
+ $ find /usr/include/python* -name Python.h
+/usr/include/python2.4/Python.h
 \endcode
-where X is replaced with the major version of python that you have (i.e. For python 2.4.4 above,
-X would be 4). If this returned 
+The output should be the location of the python development files. If you get 
 \code
-ls: cannot access /usr/include/python2.X/Python.h: No such file or directory
+find: /usr/include/python*: No such file or directory
 \endcode
-then you do not have the python development libraries installed.
+or no output, then you do not have the python development libraries installed.
 
+On a compute cluster, Python may be installed in a non-standard location and it may be required to set
+your environment variables to point to these paths. Depending on your cluster configuration, this
+may be achieved with a command such as
+\code
+module load python
+\endcode
+or similar. Please refer to your cluster documentation or administrator for information on how to use
+software modules.
 
+If you don't have Python with development headers installed, follow on.
+
+\subsection python-root Installing Python as root
+If you have administrative priveleges on your machine, you may simply use your Linux distribution's package
+manager to install Python.  The process for installing software/libraries differs from linux distribution to
+distribution.  In Gentoo (http://www.gentoo.org/) 
+\code
+ $ emerge python
+\endcode
+would install python. Look at your linux distribution's documentation to find how to install
+packages on your system (i.e. yum, apt-get, up2date, or another). You may need to "su -" or use sudo to
+become root before installing.
+
+\subsection python-source Installing Python from source
+If you are not the administrator, you can still install python
+locally.
+
+Get the latest python version from http://www.python.org or directly do
+\code
+ $ wget http://www.python.org/ftp/python/3.3.0/Python-3.3.0.tar.bz2
+\endcode
+Unpack the python archive in a convenient location (you may delete the
+build directory after installation)
+\code
+ $ tar xvfj Python-3.3.0.tar.bz
+\endcode
+and build python
+\code
+ $ cd Python-3.3.0
+ $ ./configure --enable-shared --prefix=$HOME/local
+ $ make -j 10 install
+\endcode
+This installs python into the \b local/ subdirectory of your home directory.
+The \b -j option tells make to use the CPU cores available in your system for the build process, set
+its integer  argument to the number of cores of your system plus two.
 
 \section software_req_install_linux_boost Boost
 
@@ -112,61 +151,83 @@ First, check if boost is already installed
 \code
  $ grep BOOST_LIB_VERSION /usr/include/boost/version.hpp
 //  BOOST_LIB_VERSION must be defined to be the same as BOOST_VERSION
-#define BOOST_LIB_VERSION "1_34_1"
+#define BOOST_LIB_VERSION "1_44"
 \endcode
-Make sure that the version is 1_32_0 or newer. If you get
+Make sure that the version is 1_44 or newer. If you get
 \code
 grep: /usr/include/boost/version.hpp: No such file or directory
 \endcode
 then boost is not installed. You can upgrade/install boost with your distribution's package
-manager. You may need to install the boost-static package to get the static libraries needed by
+manager. You may need to install the boost-static package to get the static libraries if needed by
 HOOMD-blue.
 
-If your distribution doesn't have a new enough version of boost, you can build it by hand. Building boost is a time consuming process, but not complicated if you follow these instructions.
+If your distribution doesn't have a new enough version of boost, or if it is not provided on your cluster,
+you can build it by hand. Building boost is a time consuming process, but not complicated if you follow these instructions.
 
-Start by downloading \b boost_1_41_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
+In order to build boost, you need the development package for bzip. If your
+distribution provides the pacakge \b bzip2-devel, install it.
+If not, or if your cluster installation does not have provide the bzip2 header
+files, you need to install the bzip2 sources.
+\code
+ $ wget http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz
+ $ tar xvfz bzip2-1.0.6.tar.bz
+ $ cd bzip2-1.0.6
+ $ make install PREFIX=$HOME/local
+\endcode
+
+Proceed by downloading \b boost_1_52_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
 configure boost for building with the following commands.
 \code
- $ tar -xjf boost_1_41_0.tar.bz2 
- $ cd boost_1_41_0
- $ ./bootstrap.sh --prefix=/home/myuser/software
--n Building Boost.Jam with toolset darwin... 
-tools/jam/src/bin.macosxx86/bjam
--n Detecting Python version... 
-2.5
--n Detecting Python root... 
-/System/Library/Frameworks/Python.framework/Versions/2.5
+ $ tar -xjf boost_1_52_0.tar.bz2 
+ $ cd boost_1_52_0
+\endcode
+
+If you have previosly also installed python from source, the Boost installation scripts may not find
+it automatically. In this case, you need to inform the build system about the location of your python
+installation.
+\code
+ $ cp tools/build/v2/user-config.jam $HOME
+\endcode
+Now edit the file \b user-config.jam and add a line 
+\code
+using python : 3.3 : /home/myuser/local/bin/python3 : /home/myuser/local/include/python3.3m : /home/myuser/local/lib ;
+\endcode
+at the end of file. Now you can build boost.
+\code
+ $ ./bootstrap.sh --prefix=$HOME/local
+Building Boost.Build engine with toolset gcc... tools/build/v2/engine/bin.linuxx86_64/b2
+Detecting Python version... 2.4
 ...
 \endcode
 
+If it reports a different Python version than the one you have requested in
+your \b user-config.jam file, just ignore that message.
+The build engine should find the correct Python version nevertheless.
 Now, run the command
 \code
- $ ./bjam variant=release threading=multi link=shared,static
+ $ ./b2 install -j 10
 \endcode
-and wait a \e long time for everything to compile. At the end, you should see a message saying
+or, if you have previosly installed the bzip2 sources,
 \code
-...updated 765 targets...
+$ ./b2 install -j 10 -s BZIP2_SOURCE=/path/to/bzip2-1.0.6
+\endcode
+and wait some time for everything to compile. At the end, you should see a
+message saying
+\code
+...updated 963 targets...
 \endcode
 
-Now, you are ready to install the library.
-\code
- $ ./bjam variant=release threading=multi link=shared,static install
-\endcode
-After a considerably shorter wait, you should see
-\code
-...updated 7684 targets...
-\endcode
-again. Boost is now installed.
+Boost is now installed.
 
-You can delete the boost_1_41_0 directory now if you wish. It might be worth 
+You can delete the boost_1_52_0 directory now if you wish. It might be worth 
 saving for a little while until you have compiled HOOMD-blue and know everything 
 is working so that you won't need to go through all the setup steps again. 
 
 
-Before running ccmake or cmake-gui, set the following environment variables to the location where you installed boost:
+Before running cmake or cmake-gui, set the following environment variables to the location where you installed boost:
 \code
- $ export BOOST_ROOT=/home/myuser/software
- $ ccmake ../src  # or run cmake-gui
+ $ export BOOST_ROOT=/home/myuser/local
+ $ cmake ../src  # or run cmake-gui
  ... continue with build instructions ...
 \endcode
 
@@ -193,9 +254,9 @@ It is not very likely that your linux distribution includes CMake by default,
 but check anyways.
 \code
  $ cmake --version
-cmake version 2.6-patch 1
+cmake version 2.8.7
 \endcode
-Make sure the version is 2.6 or later. If you have an old version or get
+Make sure the version is 2.8.5 or later. If you have an old version or get
 \code
 bash: cmake: command not found
 \endcode
@@ -207,32 +268,26 @@ manager first. I.e. in Gentoo
 
 If your distribution does not have a cmake package, 
 then you can install it into your home directory by hand. First, download
-cmake-2.6.1-Linux-i386.tar.gz from the Downloads section at http://www.cmake.org.
+cmake-2.8.10-Linux-i386.tar.gz from the Downloads section at http://www.cmake.org.
 Unpack the tarball to any location you prefer: this example assumes you are installing it to the 
-${HOME}/software
+${HOME}/local
 \code 
- $ mkdir ~/software
- $ mv cmake-2.6.1-Linux-i386.tar.gz ~/software/
- $ cd ~/software
- $ tar -xvzf cmake-2.6.1-Linux-i386.tar.gz
+ $ mv  ~/local
+ $ cd ~/local
+ $ tar -xvzf cmake-2.8.10-Linux-i386.tar.gz
 \endcode
 Then you need to put the bin directory for cmake into your path. If you use bash for a shell you can do 
 this by editing ~/.bashrc. Look for a line with PATH=... and add the cmake directory to the end separated 
 by a colon. If you can't find the line, create it like so.
 \code
-PATH=$PATH:$HOME/software/cmake-2.6.1-Linux-i386/bin
+PATH=$PATH:$HOME/local/cmake-2.8.10-Linux-i386/bin
 export PATH
 \endcode
 Restart your bash shell (or open a new one) and try the version check above to test your installation.
 
 \section software_req_install_linux_cuda CUDA
 
-Even if you do not have the needed graphics hardware to run, you can still install the CUDA toolkit and 
-run executables in emulation mode. The emulation is slow, but will allow you to develop and test
-any changes you make that affect any of the *GPU classes. 
-
-CUDA is quite new and it is not likely that there is a package available through your linux distribution. 
-Gentoo is the only distribution currently offering a package:
+CUDA is not in call cases available through your linux distribution. Gentoo offers a package:
 \code
  $ emerge nvidia-cuda-toolkit
 \endcode
@@ -295,16 +350,16 @@ validated for the next feature release. Using the command <code>git checkout</co
 you can access bugfixes applied to the previous tagged release (\em maint) or experimental features
 still under development (\em next).
 
-To access a tagged release, check out the tag (for example 0.11.0):
+To access a tagged release, check out the tag (for example 0.11.3):
 \code
- $ git checkout v0.11.0
+ $ git checkout v0.11.3
 \endcode
 
 You can verify that the tagged release is exactly as it appeared to the developers when it was created if you
 have GPG installed.
 \code
  $ git cat-file blob 175bf6edfc8ac23c067df1d9bd7b5dd41982be3c | gpg --import
- $ git tag -v v0.11.0
+ $ git tag -v v0.11.3
 \endcode
 
 <b>Step 2: Compile and install hoomd with makefiles</b>
@@ -313,14 +368,21 @@ have GPG installed.
  $ mkdir build
  $ cd build
  $ cmake ../code -DCMAKE_INSTALL_PREFIX=~/hoomd-install
- $ make install -j4
+ $ make install -j10
 \endcode
-The -j4 option to make allows it to compile many files in parallel. Set the number to the number of CPU cores in your
+The -j10 option to make allows it to compile many files in parallel. Set the number to the number of CPU cores in your
 system plus two.
+
+If your build failes because of a version mismatch between the Boost python module and your python
+installation, you can run try to run cmake with an additional hint to your python installation:
+\code
+ $ cmake ../code -DPYTHON_EXECUTABLE=$HOME/local/python3.
+\endcode
+and run \b make again.
 
 Now run
 \code
- $ make check -j4
+ $ make check -j10
 \endcode
 to test your build
 
@@ -340,4 +402,78 @@ Either open a new terminal or
 for the path setting to take effect.
 
 <hr>
+
+\section sec_build_linux_generic_mpi Compiling with MPI enabled
+
+<b>Preinstalled MPI</b>
+
+If your cluster administrator provides an installation of MPI, you need to figure out if is in your
+\b $PATH. If the command
+\code
+ $ which mpicc
+/usr/bin/mpicc
+\endcode
+succeeds, you're all set. HOOMD-blue should detect your MPI compiler automatically.
+
+If this is not the case, set the MPI_HOME env var (if it isn't set already).
+\code
+ $ echo ${MPI_HOME}
+/home/software/rhel5/openmpi-1.4.2/gcc
+\endcode
+
+<b>Compile your own MPI: MVAPICH2</b>
+
+Hoomd-blue supports the use of CUDA enabled MPI libraries. This offers an extra speed-up
+of parallel simulations in some cases. This is likely to be true if the GPUs in one node provide
+peer-to-peer communication capability. To find out if this is the case, run the \b simpleP2P test from 
+the nVidia CUDA SDK.
+
+If you choose to complile your own MPI, you can run it out of your home directory.
+MVAPICH 1.8 (and later) supports CUDA integration that enables fast intra-node GPU performance.
+
+\code
+ $ tar -xvzf mvapich2-1.9.tgz
+ $ cd mvapich2-1.9
+ $ ./configure --prefix=${HOME}/local --enable-cuda --with-cuda=${CUDA_ROOT} --enable-shared
+ $ make -j10 # note: MVAPICH2 (<1.9) doesn't support parallel make (-j..) 
+ $ make install
+\endcode
+
+The following needs to be added to your environment variables in .bash_profile.
+\code
+export LD_LIBRARY_PATH=${HOME}/local/lib:${LD_LIBRARY_PATH}    # if not already there
+export MPI_HOME=${HOME}/local 
+
+# no need to set MV2_USE_CUDA, this is done automatically inside hoomd
+
+# if using nodes without IB adapters
+export MV2_USE_SHARED_MEM=1 
+export MV2_SMP_SEND_BUF_SIZE=262144
+\endcode
+
+<b>Compile your own MPI: OpenMPI</b>
+
+OpenMPI also supports fast CUDA integration, starting with version 1.7.
+
+It can be obtained from the OpenMPI <a href=http://www.open-mpi.org/nightly/trunk/>website</a>.
+
+Build OpenMPI with 
+
+ \code
+ $ ./configure --with-cuda=${CUDA_ROOT} --with-cuda-libdir=${CUDA_ROOT}/lib64 --prefix=${HOME}/local --with-hwloc=internal --with-openib=/usr
+ $ make install -j6
+\endcode
+
+The following needs to be added to your environment variables in .bash_profile.
+\code
+export LD_LIBRARY_PATH=${HOME}/local/lib:${LD_LIBRARY_PATH}    # if not already there
+export MPI_HOME=${HOME}/local 
+\endcode
+Then log out and back in before attempting to build boost (so that it can find MPI).
+
+<b>Build hoomd</b>
+
+Configure and build hoomd as normal (see \ref sec_build_linux_generic_compile). During the cmake step, MPI should
+be detected and enabled.
+
 */

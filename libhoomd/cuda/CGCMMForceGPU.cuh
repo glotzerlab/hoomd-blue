@@ -62,8 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __CGCMMFORCEGPU_CUH__
 
 //! Kernel driver that computes lj forces on the GPU for CGCMMForceComputeGPU
-cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
-                                     float* d_virial,
+cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
+                                     Scalar* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
@@ -71,9 +71,9 @@ cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
                                      const Index2D& nli,
-                                     const float4 *d_coeffs,
+                                     const Scalar4 *d_coeffs,
                                      const unsigned int coeff_width,
-                                     const float r_cutsq,
+                                     const Scalar r_cutsq,
                                      const unsigned int block_size);
 
 #endif

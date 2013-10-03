@@ -114,7 +114,13 @@ class WallData : boost::noncopyable
     public:
         //! Creates an empty structure with no walls
         WallData() : m_walls() {}
-        
+
+        //! Creates a WallData from a list of walls
+        WallData(const std::vector<Wall>& walls)
+            {
+            m_walls = walls;
+            }
+
         //! Get the number of walls in the data
         /*! \return Number of walls
         */
@@ -135,7 +141,13 @@ class WallData : boost::noncopyable
             
         //! Adds a wall to the data structure
         void addWall(const Wall& wall);
-        
+    
+        //! Removes all walls
+        void removeAllWalls()
+            {
+            m_walls.clear();
+            }
+
     private:
         //! Storage for the walls
         std::vector<Wall> m_walls;

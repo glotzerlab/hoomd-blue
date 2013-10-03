@@ -61,12 +61,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Compute harmonic bond forces on the GPU with BondEvaluatorHarmonic
 cudaError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
-                                      const float2 *d_params,
+                                      const Scalar2 *d_params,
                                       unsigned int *d_flags);
 
 //! Compute FENE bond forces on the GPU with BondEvaluatorFENE
 cudaError_t gpu_compute_fene_forces(const bond_args_t& bond_args,
-                                    const float4 *d_params,
+                                    const Scalar4 *d_params,
                                     unsigned int *d_flags);
 
 #endif

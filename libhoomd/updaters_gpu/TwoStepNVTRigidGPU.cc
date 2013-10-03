@@ -183,15 +183,13 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
 
-    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
     gpu_nvt_rigid_data d_nvt_rdata;
     d_nvt_rdata.n_bodies = m_n_bodies;
-    d_nvt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
-    d_nvt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
+    d_nvt_rdata.eta_dot_t0 = eta_dot_t[0];
+    d_nvt_rdata.eta_dot_r0 = eta_dot_r[0];
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
 
@@ -317,15 +315,13 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
 
-    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
     gpu_nvt_rigid_data d_nvt_rdata;
     d_nvt_rdata.n_bodies = m_n_bodies;
-    d_nvt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
-    d_nvt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
+    d_nvt_rdata.eta_dot_t0 = eta_dot_t[0];
+    d_nvt_rdata.eta_dot_r0 = eta_dot_r[0];
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     

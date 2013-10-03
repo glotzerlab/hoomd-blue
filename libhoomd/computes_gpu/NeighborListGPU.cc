@@ -60,6 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include <iostream>
 using namespace std;
 
@@ -119,7 +123,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     // check that the simulation box is big enough
     const BoxDim& box = m_pdata->getBox();
 
-    Scalar3 L = box.getL();
+    Scalar3 L = box.getNearestPlaneDistance();
 
     if (L.x <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
         L.y <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
@@ -135,12 +139,11 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-
     // access the nlist data arrays
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
+
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -152,10 +155,11 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     gpu_compute_nlist_nsq(d_nlist.data,
                           d_n_neigh.data,
                           d_last_pos.data,
-                          d_conditions.data,
+                          m_conditions.getDeviceFlags(),
                           m_nlist_indexer,
                           d_pos.data,
                           m_pdata->getN(),
+                          m_pdata->getNGhosts(),
                           box,
                           rmaxsq);
 
@@ -191,8 +195,38 @@ bool NeighborListGPU::distanceCheck()
 
     // maximum displacement for each particle (after subtraction of homogeneous dilations)
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
-    Scalar maxshiftsq = delta_max*delta_max;
-    
+    Scalar maxshiftsq = delta_max > 0  ? delta_max*delta_max : 0;
+
+    // the change of the global box size should not exceed the local box size 
+    Scalar3 del_L = L_g - m_last_L;
+    if ( fabs(del_L.x) >= m_last_L_local.x ||
+         fabs(del_L.y) >= m_last_L_local.y ||
+         fabs(del_L.z) >= m_last_L_local.z)
+        {
+        #ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            // particle migration will fail in MPI simulations, error out
+            m_exec_conf->msg->error() << "nlist: Too large change in box dimensions."
+                                      << std::endl << std::endl;
+            throw std::runtime_error("Error checking displacements");
+            }
+        else
+        #endif
+            {
+            // warn the user
+            m_exec_conf->msg->warning()
+                << "nlist: Extremely large change in box dimensions" << std::endl;
+            m_exec_conf->msg->warning()
+                << "Simulation may fail or run out of memory." << std::endl << std::endl;
+            }
+        }
+
+    bool check_out_of_bounds = false;
+#ifdef ENABLE_MPI
+    check_out_of_bounds = m_pdata->getDomainDecomposition();
+#endif
+
     gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
                                      d_last_pos.data,
                                      d_pos.data,
@@ -200,16 +234,50 @@ bool NeighborListGPU::distanceCheck()
                                      box,
                                      maxshiftsq,
                                      lambda,
-                                     m_checkn);
+                                     m_checkn,
+                                     check_out_of_bounds);
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     bool result;
-    result = (m_flags.readFlags() == m_checkn);
+    uint2 flags = m_flags.readFlags();
+    result = (flags.x == m_checkn);
+
+    if (check_out_of_bounds && (flags.x == m_checkn+1))
+        {
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+        unsigned int tag = h_tag.data[flags.y];
+        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one sub-domain length."
+                                  << std::endl << std::endl;
+        throw std::runtime_error("Error checking particle displacements");
+        }
+
     m_checkn++;
 
     if (m_prof) m_prof->pop(exec_conf);
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        if (m_prof)
+            {
+            m_prof->push(exec_conf, "dist-check");
+            m_prof->push("MPI allreduce");
+            }
+        // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
+        int local_result = result ? 1 : 0;
+        int global_result = 0;
+        MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
+        result = (global_result > 0);
+        if (m_prof)
+            {
+            m_prof->pop();
+            m_prof->pop();
+            }
+        }
+#endif
+
     return result;
     }
 
@@ -226,7 +294,7 @@ void NeighborListGPU::filterNlist()
     ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
-    
+   
     gpu_nlist_filter(d_n_neigh.data,
                      d_nlist.data,
                      m_nlist_indexer,
@@ -235,11 +303,38 @@ void NeighborListGPU::filterNlist()
                      m_ex_list_indexer,
                      m_pdata->getN(),
                      m_block_size_filter);
-    
+  
     if (m_prof)
         m_prof->pop(exec_conf);
     }
 
+
+//! Update the exclusion list on the GPU
+void NeighborListGPU::updateExListIdx()
+    {
+    if (m_prof)
+        m_prof->push(m_exec_conf,"update-ex");
+    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+
+    ArrayHandle<unsigned int> d_n_ex_tag(m_n_ex_tag, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_ex_list_tag(m_ex_list_tag, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::overwrite);
+  
+    gpu_update_exclusion_list(d_tag.data,
+                              d_rtag.data,
+                              d_n_ex_tag.data,
+                              d_ex_list_tag.data,
+                              m_ex_list_indexer_tag,
+                              d_n_ex_idx.data,
+                              d_ex_list_idx.data,
+                              m_ex_list_indexer,
+                              m_pdata->getN());
+
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
+    }
 
 void export_NeighborListGPU()
     {

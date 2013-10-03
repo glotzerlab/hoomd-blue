@@ -47,7 +47,6 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
 // Maintainer: joaander
 
 #include "ExecutionConfiguration.h"
@@ -66,8 +65,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #endif
 
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 #include <boost/python.hpp>
 using namespace boost::python;
+
+#include <boost/thread.hpp>
 
 #include <stdexcept>
 #include <iostream>
@@ -77,6 +82,9 @@ using namespace boost::python;
 
 using namespace std;
 using namespace boost;
+
+//! Environment variables needed for setting up MPI
+char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 
 /*! \file ExecutionConfiguration.cc
     \brief Defines ExecutionConfiguration and related classes
@@ -90,13 +98,23 @@ using namespace boost;
     cudaSetDevice is not called, so systems with compute-exclusive GPUs will see automatic choice of free GPUs.
     If there are no capable GPUs present in the system, then the execution mode will revert run on the CPU.
 */
-ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display, boost::shared_ptr<Messenger> _msg)
+ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
+                                               bool ignore_display,
+                                               boost::shared_ptr<Messenger> _msg
+#ifdef ENABLE_MPI
+                                               , bool init_mpi,
+                                               unsigned int n_ranks
+#endif
+                                               )
     : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
         msg = boost::shared_ptr<Messenger>(new Messenger());
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << min_cpu << " " << ignore_display << endl;
+
+    m_rank = guessRank();
+
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -107,14 +125,24 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
     if (dev_count > 0)
         {
         exec_mode = GPU;
-        
-        initializeGPU(-1, min_cpu);
+       
+        // if we are not running in compute exclusive mode, use
+        // local MPI rank as preferred GPU id
+        int gpu_id_hint = m_system_compute_exclusive ? -1 : guessLocalRank();
+        initializeGPU(gpu_id_hint, min_cpu);
         }
     else
         exec_mode = CPU;
         
 #else
     exec_mode=CPU;
+#endif
+
+#ifdef ENABLE_MPI
+    m_partition = 0;
+    m_has_initialized_mpi = false;
+    if (init_mpi)
+        initializeMPI(n_ranks);
 #endif
 
     setupStats();
@@ -133,7 +161,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                int gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
-                                               boost::shared_ptr<Messenger> _msg)
+                                               boost::shared_ptr<Messenger> _msg
+#ifdef ENABLE_MPI
+                                               , bool init_mpi,
+                                               unsigned int n_ranks
+#endif
+                                               )
     : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
@@ -141,7 +174,13 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
-    
+   
+#ifdef ENABLE_MPI
+    m_rank = guessRank();
+#else
+    m_rank = 0;
+#endif
+
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
@@ -157,6 +196,13 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
 #endif
 
+#ifdef ENABLE_MPI
+    m_partition = 0;
+    m_has_initialized_mpi = false;
+    if (init_mpi)
+        initializeMPI(n_ranks);
+#endif
+
     setupStats();
     }
 
@@ -164,11 +210,80 @@ ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_CUDA) && !defined(ENABLE_MPI_CUDA)
     if (exec_mode == GPU)
-        cudaThreadExit();
+        {
+        cudaDeviceReset();
+        }
+    #endif
+ 
+    #ifdef ENABLE_MPI
+    // enable Messenger to gracefully finish any MPI-IO
+    msg->unsetMPICommunicator();
+
+    if (m_has_initialized_mpi) MPI_Finalize();
+    #endif
+
+    #if defined(ENABLE_CUDA) && defined(ENABLE_MPI_CUDA)
+    if (exec_mode == GPU)
+        {
+        cudaDeviceReset();
+        }
     #endif
     }
+
+#ifdef ENABLE_MPI
+void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
+    {
+
+#ifdef ENABLE_MPI_CUDA
+    // if we are using an MPI-CUDA implementation, enable this feature
+    // before the MPI_Init
+    if (exec_mode==GPU)
+        {
+        // enable MPI-CUDA support
+        putenv(env_enable_mpi_cuda);
+        }
+#endif
+
+    MPI_Init(0, (char ***) NULL);
+
+    m_mpi_comm = MPI_COMM_WORLD;
+
+    int num_total_ranks;
+    MPI_Comm_size(m_mpi_comm, &num_total_ranks);
+
+    if  (n_ranks != 0)
+        {
+        int  rank;
+        MPI_Comm_rank(m_mpi_comm, &rank);
+
+        if (num_total_ranks % n_ranks != 0)
+            {
+            msg->error() << "Unable to split communicator with requested setting --nranks" << std::endl;
+            throw(runtime_error("Error setting up MPI."));
+            }
+
+        m_partition = rank / n_ranks;
+
+        // Split the communicator
+        MPI_Comm new_comm; 
+        MPI_Comm_split(m_mpi_comm, m_partition, rank, &new_comm);
+
+        // update communicator
+        m_mpi_comm = new_comm;
+        }
+
+    int rank;
+    MPI_Comm_rank(m_mpi_comm, &rank);
+    m_rank = rank;
+
+    msg->setRank(rank, m_partition);
+    msg->setMPICommunicator(m_mpi_comm);
+
+    m_has_initialized_mpi = true;
+    }
+#endif
 
 std::string ExecutionConfiguration::getGPUName() const
     {
@@ -310,7 +425,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
 */
 void ExecutionConfiguration::printGPUStats()
     {
-    msg->notice(1) << "HOOMD-blue is running on the following GPU:" << endl;
+    msg->notice(1) << "HOOMD-blue is running on the following GPU(s):" << endl;
             
     // build a status line
     ostringstream s;
@@ -318,6 +433,8 @@ void ExecutionConfiguration::printGPUStats()
     // start with the device ID and name
     int dev;
     cudaGetDevice(&dev);
+
+    s << " Rank " << getRank();
     s << " [" << dev << "]";
     s << setw(22) << dev_prop.name;
     
@@ -338,9 +455,11 @@ void ExecutionConfiguration::printGPUStats()
     // follow up with some flags to signify device features
     if (dev_prop.kernelExecTimeoutEnabled)
         s << ", DIS";
-            
-    msg->notice(1) << s.str() << endl;
-    
+         
+    s << std::endl;
+    // We print this information in rank order
+    msg->collectiveNoticeStr(1,s.str());
+
     // if the gpu is compute 1.1 or older, it is unsupported. Issue a warning to the user.
     if (dev_prop.major <= 1 && dev_prop.minor <= 1)
         {
@@ -470,7 +589,8 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             }
             
         // count the number of compute-exclusive gpus
-        if (m_gpu_available[dev] && prop.computeMode == cudaComputeModeExclusive)
+        if (m_gpu_available[dev] &&
+            (prop.computeMode == cudaComputeModeExclusive || prop.computeMode == cudaComputeModeExclusiveProcess))
             n_exclusive_gpus++;
         }
         
@@ -553,6 +673,57 @@ int ExecutionConfiguration::getNumCapableGPUs()
 
 #endif
 
+unsigned int ExecutionConfiguration::guessRank(boost::shared_ptr<Messenger> msg)
+    {
+    std::vector<std::string> env_vars;
+
+    // setup common environment variables containing rank information
+    // the actual rank is inferred from the MPI environment later, this is just used
+    // for display purposes during initialization
+    env_vars.push_back("MV2_COMM_WORLD_RANK");
+    env_vars.push_back("OMPI_COMM_WORLD_RANK");
+    env_vars.push_back("PMI_ID");
+    env_vars.push_back("PMI_RANK");
+
+    std::vector<std::string>::iterator it;
+
+    for (it = env_vars.begin(); it != env_vars.end(); it++)
+        {
+        char *env;
+        if ((env = getenv(it->c_str())) != NULL)
+            return atoi(env);
+
+        }
+
+    if (msg)
+        {
+        msg->warning() << "Unable to guess rank from environment variables. Assuming 0."
+                       << std::endl << std::endl;
+        }
+
+    return 0;
+    }
+
+int ExecutionConfiguration::guessLocalRank()
+    {
+    std::vector<std::string> env_vars;
+
+    // setup common environment variables containing local rank information
+    env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
+    env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
+
+    std::vector<std::string>::iterator it;
+
+    for (it = env_vars.begin(); it != env_vars.end(); it++)
+        {
+        char *env;
+        if ((env = getenv(it->c_str())) != NULL)
+            return atoi(env);
+        }
+
+    return -1;
+    }
+
 /*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
 */
 void ExecutionConfiguration::setupStats()
@@ -584,16 +755,36 @@ void ExecutionConfiguration::setupStats()
     if (exec_mode == CPU)
         {
         #ifdef ENABLE_OPENMP
-        msg->notice(1) << "OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        ostringstream s;
+        // We print this information in rank oder
+        s << "Rank " << getRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        msg->collectiveNoticeStr(1,s.str());
         #endif
         }
     }
+
+#ifdef ENABLE_MPI
+unsigned int ExecutionConfiguration::getNRanks() const
+    {
+    int size;
+    MPI_Comm_size(m_mpi_comm, &size);
+    return size;
+    }
+#endif 
 
 void export_ExecutionConfiguration()
     {
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
                          ("ExecutionConfiguration", init< bool, bool, boost::shared_ptr<Messenger> >())
+#ifdef ENABLE_MPI
+                         .def(init< bool, bool, boost::shared_ptr<Messenger>, bool>())
+                         .def(init< bool, bool, boost::shared_ptr<Messenger>, bool, unsigned int >())
+#endif 
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
+#ifdef ENABLE_MPI
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, bool >())
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, bool, unsigned int >())
+#endif
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
                          .def("getGPUName", &ExecutionConfiguration::getGPUName)
@@ -602,10 +793,22 @@ void export_ExecutionConfiguration()
 #ifdef ENABLE_CUDA
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
+#ifdef ENABLE_MPI
+                         .def("getPartition", &ExecutionConfiguration::getPartition)
+                         .def("getNRanks", &ExecutionConfiguration::getNRanks)
+                         .def("getRank", &ExecutionConfiguration::getRank)
+                         .def("guessRank", &ExecutionConfiguration::guessRank)
+                         .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
+                         .staticmethod("guessRank")
+                         .staticmethod("guessLocalRank")
+#endif
                          ;
                          
     enum_<ExecutionConfiguration::executionMode>("executionMode")
     .value("GPU", ExecutionConfiguration::GPU)
     .value("CPU", ExecutionConfiguration::CPU)
     ;
+
+    // allow classes to take shared_ptr<const ExecutionConfiguration> arguments
+    implicitly_convertible<boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<const ExecutionConfiguration> >();
     }

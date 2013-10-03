@@ -72,7 +72,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
-
 //! Base class that defines an integrator
 /*! An Integrator steps the entire simulation forward one time step in time.
     Prior to calling update(timestep), the system is at time step \a timestep.
@@ -158,13 +157,13 @@ class Integrator : public Updater
         
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep);
-        
+       
     protected:
         Scalar m_deltaT;                                            //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
 
         std::vector< boost::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
-        
+
         //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep);
         
@@ -175,6 +174,12 @@ class Integrator : public Updater
         //! helper function to compute net force/virial on the GPU
         void computeNetForceGPU(unsigned int timestep);
 #endif
+
+#ifdef ENABLE_MPI
+        //! helper function to determine the ghost communciation flags
+        CommFlags determineFlags(unsigned int timestep);
+#endif
+
     };
 
 //! Exports the NVEUpdater class to python

@@ -86,12 +86,14 @@ __all__ = [ "analyze",
             "variant", 
             "run",
             "run_upto",
+            "get_step",
             "tune",
             "hoomd",
             "compute",
             "charge",
-            "get_hoomd_script_version"];
-            
+            "get_hoomd_script_version",
+            "comm"];
+
 ## \internal
 # \brief Major version of hoomd_script
 version_major = 1;
@@ -191,7 +193,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         globals.integrator.update_forces();
         globals.integrator.update_methods();
         globals.integrator.update_thermos();
-    
+
     # if rigid bodies, setxv  
     if len(data.system_data(globals.system_definition).bodies) > 0:
         data.system_data(globals.system_definition).bodies.updateRV()
@@ -257,4 +259,13 @@ def run_upto(step, **keywords):
     run(n_steps, **keywords);
     util._disable_status_lines = False;
 
+## Get the current simulation time step
+#
+# \returns current simulation time step
+def get_step():
+    # check if initialization has occurred
+    if not init.is_initialized():
+        globals.msg.error("Cannot get step before initialization\n");
+        raise RuntimeError('Error getting step');
 
+    return globals.system.getCurrentTimeStep();

@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_CUH__
 #define __POTENTIAL_PAIR_DPDTHERMO_CUH__
 
+#include "TextureTools.h"
 #include "ParticleData.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "Index1D.h"
@@ -66,32 +67,36 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct dpd_pair_args_t
     {
     //! Construct a dpd_pair_args_t
-    dpd_pair_args_t(float4 *_d_force,
-                    float *_d_virial,
+    dpd_pair_args_t(Scalar4 *_d_force,
+                    Scalar *_d_virial,
                     const unsigned int _virial_pitch,
                     const unsigned int _N,
+                    const unsigned int _n_ghosts,
                     const Scalar4 *_d_pos,
                     const Scalar4 *_d_vel,
+                    const unsigned int *_d_tag,
                     const BoxDim& _box,
                     const unsigned int *_d_n_neigh,
                     const unsigned int *_d_nlist,
                     const Index2D& _nli,
-                    const float *_d_rcutsq,
-                    const float *_d_ronsq,
+                    const Scalar *_d_rcutsq,
+                    const Scalar *_d_ronsq,
                     const unsigned int _ntypes,
                     const unsigned int _block_size,
                     const unsigned int _seed,
                     const unsigned int _timestep,
-                    const float _deltaT,
-                    const float _T,
+                    const Scalar _deltaT,
+                    const Scalar _T,
                     const unsigned int _shift_mode,
                     const unsigned int _compute_virial)
                         : d_force(_d_force),
                         d_virial(_d_virial),
                         virial_pitch(_virial_pitch),
                         N(_N),
+                        n_ghosts(_n_ghosts),
                         d_pos(_d_pos),
                         d_vel(_d_vel),
+                        d_tag(_d_tag),
                         box(_box),
                         d_n_neigh(_d_n_neigh),
                         d_nlist(_d_nlist),
@@ -109,35 +114,39 @@ struct dpd_pair_args_t
         {
         };
 
-    float4 *d_force;                //!< Force to write out
-    float *d_virial;                //!< Virial to write out
+    Scalar4 *d_force;                //!< Force to write out
+    Scalar *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< Pitch of 2D virial array
     const unsigned int N;           //!< number of particles
+    const unsigned int n_ghosts;    //!< number of ghost particles
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar4 *d_vel;           //!< particle velocities
+    const unsigned int *d_tag;      //!< particle tags
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const Index2D& nli;             //!< Indexer for accessing d_nlist
-    const float *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const float *d_ronsq;           //!< Device array listing r_on squared per particle type pair
+    const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
+    const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int seed;        //!< user provided seed for PRNG
     const unsigned int timestep;    //!< timestep of simulation
-    const float deltaT;             //!< timestep size
-    const float T;                  //!< temperature
+    const Scalar deltaT;             //!< timestep size
+    const Scalar T;                  //!< temperature
     const unsigned int shift_mode;  //!< The potential energy shift mode
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     };
 
 #ifdef NVCC
 //! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_dpd_pos_tex;
+scalar4_tex_t pdata_dpd_pos_tex;
 
 //! Texture for reading particle velocities
-texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
+scalar4_tex_t pdata_dpd_vel_tex;
 
+//! Texture for reading particle tags
+texture<unsigned int, 1, cudaReadModeElementType> pdata_dpd_tag_tex;
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -149,6 +158,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
     \param N number of particles
     \param d_pos particle positions on the GPU
     \param d_vel particle velocities on the GPU
+    \param d_tag particle tags on the GPU
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -165,7 +175,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
     \a d_params, and \a d_rcutsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
     amount of shared memory must be allocatd for this kernel launch. The amount is
-    (2*sizeof(float) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
+    (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
@@ -178,23 +188,24 @@ texture<float4, 1, cudaReadModeElementType> pdata_dpd_vel_tex;
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
 template< class evaluator, unsigned int shift_mode, unsigned int compute_virial >
-__global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
-                                              float *d_virial,
+__global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
+                                              Scalar *d_virial,
                                               const unsigned int virial_pitch,
                                               const unsigned int N,
                                               const Scalar4 *d_pos,
                                               const Scalar4 *d_vel,
+                                              const unsigned int *d_tag,
                                               BoxDim box,
                                               const unsigned int *d_n_neigh,
                                               const unsigned int *d_nlist,
                                               const Index2D nli,
                                               const typename evaluator::param_type *d_params,
-                                              const float *d_rcutsq,
-                                              const float *d_ronsq,
+                                              const Scalar *d_rcutsq,
+                                              const Scalar *d_ronsq,
                                               const unsigned int d_seed,
                                               const unsigned int d_timestep,
-                                              const float d_deltaT,
-                                              const float d_T,
+                                              const Scalar d_deltaT,
+                                              const Scalar d_T,
                                               const int ntypes)
     {
     Index2D typpair_idx(ntypes);
@@ -204,8 +215,8 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
     extern __shared__ char s_data[];
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
-    float *s_rcutsq = (float *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
-    float *s_ronsq = (float *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(float))]);
+    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
+    Scalar *s_ronsq = (Scalar *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(Scalar))]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -231,23 +242,26 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 postypei = tex1Dfetch(pdata_dpd_pos_tex, idx);
-    float3 posi = make_float3(postypei.x, postypei.y, postypei.z);
+    Scalar4 postypei = texFetchScalar4(d_pos, pdata_dpd_pos_tex, idx);
+    Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
     // read in the velocity of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 velmassi = tex1Dfetch(pdata_dpd_vel_tex, idx);
-    float3 veli = make_float3(velmassi.x, velmassi.y, velmassi.z);
+    Scalar4 velmassi = texFetchScalar4(d_vel, pdata_dpd_vel_tex, idx);
+    Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 
     // initialize the force to 0
-    float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float virial[6];
+    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+    Scalar virial[6];
     for (unsigned int i = 0; i < 6; i++)
-        virial[i] = 0.0f;
+        virial[i] = Scalar(0.0);
 
     // prefetch neighbor index
     unsigned int cur_j = 0;
     unsigned int next_j = d_nlist[nli(idx, 0)];
+
+    // this particle's tag
+    unsigned int tagi = d_tag[idx];
 
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
@@ -269,30 +283,30 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             next_j = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 postypej = tex1Dfetch(pdata_dpd_pos_tex, cur_j);
-            float3 posj = make_float3(postypej.x, postypej.y, postypej.z);
+            Scalar4 postypej = texFetchScalar4(d_pos, pdata_dpd_pos_tex, cur_j);
+            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 velmassj = tex1Dfetch(pdata_dpd_vel_tex, cur_j);
-            float3 velj = make_float3(velmassj.x, velmassj.y, velmassj.z);;
+            Scalar4 velmassj = texFetchScalar4(d_vel, pdata_dpd_vel_tex, cur_j);
+            Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
 
             // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-            float3 dx = posi - posj;
+            Scalar3 dx = posi - posj;
 
             // apply periodic boundary conditions: (FLOPS 12)
             dx = box.minImage(dx);
 
             // calculate r squard (FLOPS: 5)
-            float rsq = dot(dx,dx);
+            Scalar rsq = dot(dx,dx);
 
             // calculate dv (FLOPS: 3)
-            float3 dv = veli - velj;
+            Scalar3 dv = veli - velj;
 
-            float rdotv = dot(dx, dv);
+            Scalar rdotv = dot(dx, dv);
 
             // access the per type pair parameters
-            unsigned int typpair = typpair_idx(__float_as_int(postypei.w), __float_as_int(postypej.w));
-            float rcutsq = s_rcutsq[typpair];
+            unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+            Scalar rcutsq = s_rcutsq[typpair];
             typename evaluator::param_type param = s_params[typpair];
 
             // design specifies that energies are shifted if
@@ -305,12 +319,14 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
             evaluator eval(rsq, rcutsq, param);
 
             // evaluate the potential
-            float force_divr = 0.0f;
-            float force_divr_cons = 0.0f;
-            float pair_eng = 0.0f;
+            Scalar force_divr = Scalar(0.0);
+            Scalar force_divr_cons = Scalar(0.0);
+            Scalar pair_eng = Scalar(0.0);
 
             // Special Potential Pair DPD Requirements
-            eval.set_seed_ij_timestep(d_seed,idx,cur_j,d_timestep);
+            // use particle i's and j's tags
+            unsigned int tagj = tex1Dfetch(pdata_dpd_tag_tex, cur_j);
+            eval.set_seed_ij_timestep(d_seed,tagi,tagj,d_timestep);
             eval.setDeltaT(d_deltaT);
             eval.setRDotV(rdotv);
             eval.setT(d_T);
@@ -346,7 +362,7 @@ __global__ void gpu_compute_dpd_forces_kernel(float4 *d_force,
         }
 
     // potential energy per particle must be halved
-    force.w *= 0.5f;
+    force.w *= Scalar(0.5);
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
 
@@ -379,19 +395,26 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     // bind the position texture
     pdata_dpd_pos_tex.normalized = false;
     pdata_dpd_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_dpd_pos_tex, args.d_pos, sizeof(float4)*args.N);
+    cudaError_t error = cudaBindTexture(0, pdata_dpd_pos_tex, args.d_pos, sizeof(Scalar4)*(args.N+args.n_ghosts));
     if (error != cudaSuccess)
         return error;
 
     // bind the velocity texture
     pdata_dpd_vel_tex.normalized = false;
     pdata_dpd_vel_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_dpd_vel_tex, args.d_vel,  sizeof(float4)*args.N);
+    error = cudaBindTexture(0, pdata_dpd_vel_tex, args.d_vel,  sizeof(Scalar4)*(args.N+args.n_ghosts));
+    if (error != cudaSuccess)
+        return error;
+
+    // bind the tag texture
+    pdata_dpd_tag_tex.normalized = false;
+    pdata_dpd_tag_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, pdata_dpd_tag_tex, args.d_tag,  sizeof(unsigned int)*(args.N+args.n_ghosts));
     if (error != cudaSuccess)
         return error;
 
     Index2D typpair_idx(args.ntypes);
-    unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type))
+    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                 * typpair_idx.getNumElements();
 
     // run the kernel
@@ -408,6 +431,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.N,
                                     args.d_pos,
                                     args.d_vel,
+                                    args.d_tag,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
@@ -430,6 +454,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.N,
                                     args.d_pos,
                                     args.d_vel,
+                                    args.d_tag,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
@@ -460,6 +485,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.N,
                                     args.d_pos,
                                     args.d_vel,
+                                    args.d_tag,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
@@ -482,6 +508,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.N,
                                     args.d_pos,
                                     args.d_vel,
+                                    args.d_tag,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,

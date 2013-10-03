@@ -118,6 +118,8 @@ foreach(_line ${_hoomd_config_h_lines})
     endif (${_line} MATCHES "#undef .*")
 endforeach()
 
+include_directories(${HOOMD_INCLUDE_DIR})
+
 # run all of HOOMD's generic lib setup scripts
 set(CMAKE_MODULE_PATH ${HOOMD_ROOT}/share/hoomd/CMake/cuda
                       ${HOOMD_ROOT}/share/hoomd/CMake/hoomd
@@ -139,8 +141,9 @@ include (HOOMDOSSpecificSetup)
 include (HOOMDCommonLibsSetup)
 # setup macros
 include (HOOMDMacros)
+# setup MPI support
+include (HOOMDMPISetup)
 
 set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS})
-include_directories(${HOOMD_INCLUDE_DIR})
 
 endif (HOOMD_FOUND)

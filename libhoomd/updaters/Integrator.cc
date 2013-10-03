@@ -70,6 +70,10 @@ using namespace boost;
 #include "Integrator.cuh"
 #endif
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 using namespace std;
 
 /*! \param sysdef System to update
@@ -161,6 +165,8 @@ unsigned int Integrator::getNDOFRemoved()
 
     Integrator provides:
         - volume
+        - box lengths lx, ly, lz
+        - tilt factors xy, xz, yz
         - momentum
 
     See Logger for more information on what this is about.
@@ -169,6 +175,12 @@ std::vector< std::string > Integrator::getProvidedLogQuantities()
     {
     vector<string> result;
     result.push_back("volume");
+    result.push_back("lx");
+    result.push_back("ly");
+    result.push_back("lz");
+    result.push_back("xy");
+    result.push_back("xz");
+    result.push_back("yz");
     result.push_back("momentum");
     return result;
     }
@@ -195,9 +207,44 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
     {
     if (quantity == "volume")
         {
-        BoxDim box = m_pdata->getBox();
+        BoxDim box = m_pdata->getGlobalBox();
+        return box.getVolume(m_sysdef->getNDimensions()==2);
+        }
+    else if (quantity == "lx")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
         Scalar3 L = box.getL();
-        return L.x*L.y*L.z;
+        return L.x;
+        }
+    else if (quantity == "ly")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar3 L = box.getL();
+        return L.y;
+        }
+    else if (quantity == "lz")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar3 L = box.getL();
+        return L.z;
+        }
+    else if (quantity == "xy")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar xy = box.getTiltFactorXY();
+        return xy;
+        }
+    else if (quantity == "xz")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar xz = box.getTiltFactorXZ();
+        return xz;
+        }
+    else if (quantity == "yz")
+        {
+        BoxDim box= m_pdata->getGlobalBox();
+        Scalar yz = box.getTiltFactorYZ();
+        return yz;
         }
     else if (quantity == "momentum")
         return computeTotalMomentum(timestep);
@@ -213,6 +260,19 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 */
 void Integrator::computeAccelerations(unsigned int timestep)
     {
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // preset flags for ghost communication
+        m_comm->setFlags(determineFlags(timestep));
+
+        // Move particles between domains. This ensures
+        // a) that particles have migrated to the correct domains
+        // b) that forces are calculated correctly, if additionally ghosts are updated every timestep
+        m_comm->communicate(timestep);
+        }
+#endif
+
     // compute the net forces
     computeNetForce(timestep);
     
@@ -278,17 +338,17 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 */
 void Integrator::computeNetForce(unsigned int timestep)
     {
-    // compute all the forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
-    
+
     if (m_prof)
         {
         m_prof->push("Integrate");
         m_prof->push("Net force");
         }
     
+    Scalar external_virial[6];
         {
         // access the net force and virial arrays
         const GPUArray<Scalar4>& net_force  = m_pdata->getNetForce();
@@ -302,13 +362,16 @@ void Integrator::computeNetForce(unsigned int timestep)
         memset((void *)h_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
         memset((void *)h_net_virial.data, 0, sizeof(Scalar)*net_virial.getNumElements());
         memset((void *)h_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
+
+        for (unsigned int i = 0; i < 6; ++i)
+           external_virial[i] = Scalar(0.0);
         
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
         unsigned int net_virial_pitch = net_virial.getPitch();
-        assert(nparticles == net_force.getNumElements());
+        assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
-        assert(nparticles == net_torque.getNumElements());
+        assert(nparticles <= net_torque.getNumElements());
 
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
             {
@@ -336,11 +399,19 @@ void Integrator::computeNetForce(unsigned int timestep)
                 h_net_torque.data[j].w += h_torque.data[j].w;
 
                 for (unsigned int k = 0; k < 6; k++)
+                    {
                     h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
+                    }
                 }
+
+            for (unsigned int k = 0; k < 6; k++)
+                external_virial[k] += (*force_compute)->getExternalVirial(k);
             }
         }
-    
+   
+    for (unsigned int k = 0; k < 6; k++)
+        m_pdata->setExternalVirial(k, external_virial[k]);
+
     if (m_prof)
         {
         m_prof->pop();
@@ -395,9 +466,14 @@ void Integrator::computeNetForce(unsigned int timestep)
                 for (unsigned int k = 0; k < 6; k++)
                     h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
                 }
+            for (unsigned int k = 0; k < 6; k++)
+                external_virial[k] += (*force_constraint)->getExternalVirial(k);
             }
         }
     
+    for (unsigned int k = 0; k < 6; k++)
+        m_pdata->setExternalVirial(k, external_virial[k]);
+
     if (m_prof)
         {
         m_prof->pop();
@@ -417,18 +493,20 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_exec_conf->msg->error() << "Cannot compute net force on the GPU if CUDA is disabled" << endl;
         throw runtime_error("Error computing accelerations");
         }
-    
+ 
     // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
-    
+
     if (m_prof)
         {
         m_prof->push("Integrate");
         m_prof->push(exec_conf, "Net force");
         }
     
+    Scalar external_virial[6];
         {
         // access the net force and virial arrays
         const GPUArray< Scalar4 >& net_force  = m_pdata->getNetForce();
@@ -441,9 +519,13 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::overwrite);
 
         unsigned int nparticles = m_pdata->getN();
-        assert(nparticles == net_force.getNumElements());
+        assert(nparticles <= net_force.getNumElements());
         assert(nparticles*6 <= net_virial.getNumElements());
-        assert(nparticles == net_torque.getNumElements());
+        assert(nparticles <= net_torque.getNumElements());
+
+        // zero external virial
+        for (unsigned int i = 0; i < 6; ++i)
+            external_virial[i] = Scalar(0.0); 
 
         // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
         // will do that
@@ -451,8 +533,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         if (m_forces.size() == 0)
             {
             // start by zeroing the net force and virial arrays
-            cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*nparticles);
-            cudaMemset(d_net_torque.data, 0, sizeof(Scalar4)*nparticles);
+            cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
+            cudaMemset(d_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
             cudaMemset(d_net_virial.data, 0, 6*sizeof(Scalar)*net_virial_pitch);
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -562,7 +644,15 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 CHECK_CUDA_ERROR();
             }
         }
-    
+   
+    // add up external virials
+    for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force ++)
+        for (unsigned int k = 0; k < 6; k++)
+            external_virial[k] += m_forces[cur_force]->getExternalVirial(k);
+
+    for (unsigned int k = 0; k < 6; k++)
+        m_pdata->setExternalVirial(k, external_virial[k]);
+
     if (m_prof)
         {
         m_prof->pop(exec_conf);
@@ -701,6 +791,15 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 CHECK_CUDA_ERROR();
             }
         }
+
+    // add up external virials
+    for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force ++)
+        for (unsigned int k = 0; k < 6; k++)
+            external_virial[k] += m_constraint_forces[cur_force]->getExternalVirial(k);
+
+    for (unsigned int k = 0; k < 6; k++)
+        m_pdata->setExternalVirial(k, external_virial[k]);
+
     
     if (m_prof)
         {
@@ -729,6 +828,30 @@ void Integrator::update(unsigned int timestep)
 void Integrator::prepRun(unsigned int timestep)
     {
     }
+
+#ifdef ENABLE_MPI
+/*! \param tstep Time step for which to determine the flags
+
+    The flags needed are determiend by peeking to \a tstep and then using bitwise or 
+    to combine the flags from all ForceComputes
+*/
+CommFlags Integrator::determineFlags(unsigned int timestep)
+    {
+    CommFlags flags(0);
+
+    // query all forces
+    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+        flags |= (*force_compute)->getRequestedCommFlags(timestep);
+
+    // query all constraints
+    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
+        flags |= (*force_constraint)->getRequestedCommFlags(timestep);
+ 
+    return flags;
+    }
+#endif
 
 void export_Integrator()
     {

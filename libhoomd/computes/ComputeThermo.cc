@@ -58,6 +58,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "HOOMDMPI.h"
+#endif
+
 #include <iostream>
 using namespace std;
 
@@ -73,7 +78,7 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
 
     assert(m_pdata);
-    GPUArray< Scalar > properties(10, exec_conf);
+    GPUArray< Scalar > properties(thermo_index::num_quantities, exec_conf);
     m_properties.swap(properties);
 
     m_logname_list.push_back(string("temperature") + suffix);
@@ -150,7 +155,7 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         }
     else if (quantity == m_logname_list[5])
         {
-        return Scalar(m_group->getNumMembers());
+        return Scalar(m_group->getNumMembersGlobal());
         }
     else if (quantity == m_logname_list[6])
         {
@@ -187,10 +192,11 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
 */
 void ComputeThermo::computeProperties()
     {
-    unsigned int group_size = m_group->getNumMembers();
     // just drop out if the group is an empty group
-    if (group_size == 0)
+    if (m_group->getNumMembersGlobal() == 0)
         return;
+
+    unsigned int group_size = m_group->getNumMembers();
 
     if (m_prof) m_prof->push("Thermo");
     
@@ -232,7 +238,6 @@ void ComputeThermo::computeProperties()
             pressure_kinetic_yz += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].z );
             pressure_kinetic_zz += mass*(  (double)h_vel.data[j].z * (double)h_vel.data[j].z );
             }
-
         // kinetic energy = 1/2 trace of kinetic part of pressure tensor
         ke_total = Scalar(0.5)*(pressure_kinetic_xx + pressure_kinetic_yy + pressure_kinetic_zz);
         }
@@ -253,24 +258,26 @@ void ComputeThermo::computeProperties()
     
     // total potential energy 
     double pe_total = 0.0;
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    if (flags[pdata_flag::potential_energy])
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        pe_total += (double)h_net_force.data[j].w;
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            pe_total += (double)h_net_force.data[j].w;
+            }
         }
 
-
     double W = 0.0;
-    double virial_xx = 0.0;
-    double virial_xy = 0.0;
-    double virial_xz = 0.0;
-    double virial_yy = 0.0;
-    double virial_yz = 0.0;
-    double virial_zz = 0.0;
+    double virial_xx = m_pdata->getExternalVirial(0);
+    double virial_xy = m_pdata->getExternalVirial(1);
+    double virial_xz = m_pdata->getExternalVirial(2);
+    double virial_yy = m_pdata->getExternalVirial(3);
+    double virial_yz = m_pdata->getExternalVirial(4);
+    double virial_zz = m_pdata->getExternalVirial(5);
 
     if (flags[pdata_flag::pressure_tensor])
         {
-        // Calculate symmetrized virial tensor
+        // Calculate upper triangular virial tensor
         unsigned int virial_pitch = net_virial.getPitch();
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
@@ -307,8 +314,9 @@ void ComputeThermo::computeProperties()
 
     // compute the pressure
     // volume/area & other 2D stuff needed
-    BoxDim box = m_pdata->getBox();
-    Scalar3 L = box.getL();
+    BoxDim global_box = m_pdata->getGlobalBox();
+
+    Scalar3 L = global_box.getL();
     Scalar volume;
     unsigned int D = m_sysdef->getNDimensions();
     if (D == 2)
@@ -347,6 +355,21 @@ void ComputeThermo::computeProperties()
     h_properties.data[thermo_index::pressure_yz] = pressure_yz;
     h_properties.data[thermo_index::pressure_zz] = pressure_zz;
 
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
+
+        if (m_prof)
+            m_prof->push("MPI Allreduce");
+
+        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR, MPI_SUM, mpi_comm);
+
+        if (m_prof)
+                m_prof->pop();
+        }
+#endif // ENABLE_MPI
+ 
     if (m_prof) m_prof->pop();
     }
 

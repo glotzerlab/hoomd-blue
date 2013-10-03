@@ -74,14 +74,15 @@ using namespace std;
 
 /*! \param pdata ParticleData these angles refer into
     \param n_angle_types Number of angle types in the list
-
-    Taking in pdata as a pointer instead of a shared pointer is sloppy, but there really isn't an alternative
-    due to the way ParticleData is constructed. Things will be fixed in a later version with a reorganization
-    of the various data structures. For now, be careful not to destroy the ParticleData and keep the AngleData hanging
-    around.
 */
 AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle_types)
-        : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf()), m_angles(exec_conf), m_angle_type(exec_conf), m_tags(exec_conf), m_angle_rtag(exec_conf)
+        : m_angles_dirty(false),
+          m_pdata(pdata),
+          exec_conf(m_pdata->getExecConf()),
+          m_angles(exec_conf),
+          m_angle_type(exec_conf),
+          m_tags(exec_conf),
+          m_angle_rtag(exec_conf)
     {
     assert(pdata);
     m_exec_conf = m_pdata->getExecConf();
@@ -105,6 +106,32 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
     allocateAngleTable(1);
     }
 
+/*! \param pdata ParticleData these angles refer into
+    \param snapshot Snapshot containing the angle data to initialize this class with
+*/
+AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, const SnapshotAngleData& snapshot)
+    : m_angles_dirty(false),
+      m_pdata(pdata),
+      exec_conf(m_pdata->getExecConf()),
+      m_angles(exec_conf),
+      m_angle_type(exec_conf),
+      m_tags(exec_conf),
+      m_angle_rtag(exec_conf)
+   {
+    assert(pdata);
+    m_exec_conf = m_pdata->getExecConf();
+    m_exec_conf->msg->notice(5) << "Constructing AngleData" << endl;
+
+    // attach to the signal for notifications of particle sorts
+    m_sort_connection = m_pdata->connectParticleSort(bind(&AngleData::setDirty, this));
+    
+    // allocate memory for the GPU angle table
+    allocateAngleTable(1);
+
+    // initialize from snapshot
+    initializeFromSnapshot(snapshot);
+    } 
+
 AngleData::~AngleData()
     {
     m_exec_conf->msg->notice(5) << "Destroying AngleData" << endl;
@@ -122,7 +149,15 @@ AngleData::~AngleData()
  */
 unsigned int AngleData::addAngle(const Angle& angle)
     {
-    
+    #ifdef ENABLE_MPI
+    // error out in multi-GPU
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_exec_conf->msg->error() << "Angles are not currently supported in multi-GPU mode." << std::endl;
+        throw std::runtime_error("Error adding angle");
+        }
+    #endif
+
     // check for some silly errors a user could make
     if (angle.a >= m_pdata->getN() || angle.b >= m_pdata->getN() || angle.c >= m_pdata->getN())
         {
@@ -143,10 +178,10 @@ unsigned int AngleData::addAngle(const Angle& angle)
         }
         
     // check that the type is within bouds
-    if (angle.type+1 > m_n_angle_types)
+    if (angle.type+1 > m_angle_type_mapping.size())
         {
         m_exec_conf->msg->error() << "Invalid angle type! "
-             << angle.type << ", the number of types is " << m_n_angle_types << endl;
+             << angle.type << ", the number of types is " << m_angle_type_mapping.size() << endl;
         throw runtime_error("Error adding angle");
         }
 
@@ -247,16 +282,6 @@ void AngleData::removeAngle(unsigned int tag)
     m_angles_dirty = true;
     }
 
-/*! \param angle_type_mapping Mapping array to set
-    \c angle_type_mapping[type] should be set to the name of the angle type with index \c type.
-    The vector \b must have \c n_angle_types elements in it.
-*/
-void AngleData::setAngleTypeMapping(const std::vector<std::string>& angle_type_mapping)
-    {
-    assert(angle_type_mapping.size() == m_n_angle_types);
-    m_angle_type_mapping = angle_type_mapping;
-    }
-
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
     \note Throws an exception if the type name is not found
@@ -282,7 +307,7 @@ unsigned int AngleData::getTypeByName(const std::string &name)
 std::string AngleData::getNameByType(unsigned int type)
     {
     // check for an invalid request
-    if (type >= m_n_angle_types)
+    if (type >= getNAngleTypes())
         {
         m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
@@ -478,16 +503,8 @@ void AngleData::allocateAngleTable(int height)
 */
 void AngleData::takeSnapshot(SnapshotAngleData& snapshot)
     {
-    // check for an invalid request
-    if (snapshot.angles.size() != getNumAngles())
-        {
-        m_exec_conf->msg->error() << "AngleData is being asked to initizalize a snapshot of the wrong size."
-             << endl;
-        throw runtime_error("Error taking snapshot.");
-        }
-
-    assert(snapshot.type_id.size() == getNumAngles());
-    assert(snapshot.type_mapping.size() == 0);
+    // allocate memory
+    snapshot.resize(getNumAngles());
 
     for (unsigned int angle_idx = 0; angle_idx < getNumAngles(); angle_idx++)
         {
@@ -495,7 +512,7 @@ void AngleData::takeSnapshot(SnapshotAngleData& snapshot)
         snapshot.type_id[angle_idx] = m_angle_type[angle_idx];
         }
 
-    for (unsigned int i = 0; i < m_n_angle_types; i++)
+    for (unsigned int i = 0; i < getNAngleTypes(); i++)
         snapshot.type_mapping.push_back(m_angle_type_mapping[i]);
     }
 
@@ -505,6 +522,14 @@ void AngleData::takeSnapshot(SnapshotAngleData& snapshot)
  */
 void AngleData::initializeFromSnapshot(const SnapshotAngleData& snapshot)
     {
+    // check that all fields in the snapshot have correct length
+    if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
+        {
+        m_exec_conf->msg->error() << "init.*: invalid angle data snapshot."
+                                << std::endl << std::endl;
+        throw std::runtime_error("Error initializing angle data.");
+        }
+
     m_angles.clear();
     m_angle_type.clear();
     m_tags.clear();
@@ -512,13 +537,13 @@ void AngleData::initializeFromSnapshot(const SnapshotAngleData& snapshot)
         m_deleted_tags.pop();
     m_angle_rtag.clear();
 
+    m_angle_type_mapping =  snapshot.type_mapping;
+    
     for (unsigned int angle_idx = 0; angle_idx < snapshot.angles.size(); angle_idx++)
         {
         Angle angle(snapshot.type_id[angle_idx], snapshot.angles[angle_idx].x, snapshot.angles[angle_idx].y, snapshot.angles[angle_idx].z);
         addAngle(angle);
         }
-
-    setAngleTypeMapping(snapshot.type_mapping);
     }
 
 void export_AngleData()
@@ -536,6 +561,7 @@ void export_AngleData()
     .def("getAngleTag", &AngleData::getAngleTag)
     .def("takeSnapshot", &AngleData::takeSnapshot)
     .def("initializeFromSnapshot", &AngleData::initializeFromSnapshot)
+    .def("addAngleType", &AngleData::addAngleType)
     ;
     
     class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())
@@ -544,6 +570,13 @@ void export_AngleData()
     .def_readwrite("c", &Angle::c)
     .def_readwrite("type", &Angle::type)
     ;
+
+    class_<SnapshotAngleData, boost::shared_ptr<SnapshotAngleData> >
+        ("SnapshotAngleData", init<unsigned int>())
+        .def_readwrite("angles", &SnapshotAngleData::angles)
+        .def_readwrite("type_id", &SnapshotAngleData::type_id)
+        .def_readwrite("type_mapping", &SnapshotAngleData::type_mapping)
+        ;
     }
 
 #ifdef WIN32

@@ -66,35 +66,36 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel driver for gpu_compute_nlist_binned_new_kernel()
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
-                                     float4 *d_last_updated_pos,
+                                     Scalar4 *d_last_updated_pos,
                                      unsigned int *d_conditions,
                                      const Index2D& nli,
-                                     const float4 *d_pos,
+                                     const Scalar4 *d_pos,
                                      const unsigned int *d_body,
-                                     const float *d_diameter,
+                                     const Scalar *d_diameter,
                                      const unsigned int N,
                                      const unsigned int *d_cell_size,
-                                     const float4 *d_cell_xyzf,
-                                     const float4 *d_cell_tdb,
+                                     const Scalar4 *d_cell_xyzf,
+                                     const Scalar4 *d_cell_tdb,
                                      const unsigned int *d_cell_adj,
                                      const Index3D& ci,
                                      const Index2D& cli,
                                      const Index2D& cadji,
                                      const BoxDim& box,
-                                     const float r_maxsq,
+                                     const Scalar r_maxsq,
                                      const unsigned int block_size,
                                      bool filter_body,
-                                     bool filter_diameter);
+                                     bool filter_diameter,
+                                     const Scalar3& ghost_width);
 
 //! Kernel driver for gpu_compute_nlist_binned_1x_kernel()
 cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         unsigned int *d_n_neigh,
-                                        float4 *d_last_updated_pos,
+                                        Scalar4 *d_last_updated_pos,
                                         unsigned int *d_conditions,
                                         const Index2D& nli,
-                                        const float4 *d_pos,
+                                        const Scalar4 *d_pos,
                                         const unsigned int *d_body,
-                                        const float *d_diameter,
+                                        const Scalar *d_diameter,
                                         const unsigned int N,
                                         const unsigned int *d_cell_size,
                                         const cudaArray *dca_cell_xyzf,
@@ -102,10 +103,12 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                         const cudaArray *dca_cell_adj,
                                         const Index3D& ci,
                                         const BoxDim& box,
-                                        const float r_maxsq,
+                                        const Scalar r_maxsq,
                                         const unsigned int block_size,
                                         bool filter_body,
-                                        bool filter_diameter);
+                                        bool filter_diameter,
+                                        const Scalar3& ghost_width);
+
 
 //! Sets up parameters for the gpu_compute_nlist_binned_kernel() call
 cudaError_t gpu_setup_compute_nlist_binned();

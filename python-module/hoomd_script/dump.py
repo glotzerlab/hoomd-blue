@@ -71,13 +71,16 @@ from hoomd_script import group as hs_group;
 # All values are written in native HOOMD-blue units, see \ref page_units for more information.
 #
 # \sa \ref page_xml_file_format
+# \MPI_SUPPORTED
 class xml(analyze._analyzer):
     ## Initialize the hoomd_xml writer
     #
     # \param filename (optional) Base of the file name
     # \param period (optional) Number of time steps between file dumps
     # \param params (optional) Any number of parameters that set_params() accepts
-    # 
+    # \param time_step (optional) Time step to write into the file (overrides the current simulation step). time_step
+    #                  is ignored for periodic updates
+    #
     # \b Examples:
     # \code
     # dump.xml(filename="atoms.dump", period=1000)
@@ -94,10 +97,10 @@ class xml(analyze._analyzer):
     # with set_params(), or by specifying the options in the dump.xml() command.
     #
     # If \a period is not specified, then no periodic updates will occur. Instead, the file
-    # \a filename is written immediately.
+    # \a filename is written immediately. \a time_step is passed on to write()
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, **params):
+    def __init__(self, filename="dump", period=None, time_step=None, **params):
         util.print_status_line();
     
         # initialize base class
@@ -115,7 +118,7 @@ class xml(analyze._analyzer):
             self.prev_period = 1;
         elif filename != "dump":
             util._disable_status_lines = True;
-            self.write(filename);
+            self.write(filename, time_step);
             util._disable_status_lines = False;
         else:
             self.enabled = False;
@@ -233,12 +236,16 @@ class xml(analyze._analyzer):
         if vizsigma is not None:
             self.cpp_analyzer.setVizSigma(vizsigma);
         
-   ## Write a file at the current time step
+    ## Write a file at the current time step
     #
     # \param filename File name to write to
+    # \param time_step (if set) Time step value to write out to the file
     #
     # The periodic file writes can be temporarily overridden and a file with any file name
     # written at the current time step.
+    #
+    # \note When \a time_step is None, the current system time step is written to the file. When specified,
+    #       \a time_step overrides this value.
     #
     # Executing write() requires that the %dump was saved in a variable when it was specified.
     # \code
@@ -248,12 +255,16 @@ class xml(analyze._analyzer):
     # \b Examples:
     # \code
     # xml.write(filename="start.xml")
+    # xml.write(filename="start.xml", time_step=0)
     # \endcode
-    def write(self, filename):
+    def write(self, filename, time_step = None):
         util.print_status_line();
         self.check_initialization();
         
-        self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
+        if time_step is None:
+            time_step = globals.system.getCurrentTimeStep()
+        
+        self.cpp_analyzer.writeFile(filename, time_step);
 
 ## Writes simulation snapshots in a binary format
 #
@@ -261,7 +272,7 @@ class xml(analyze._analyzer):
 # particles at that time step is written to the file in a binary format.
 #
 # \sa init.read_bin
-#
+# \MPI_NOT_SUPPORTED
 class bin(analyze._analyzer):
     ## Initialize the hoomd_bin writer
     #
@@ -316,7 +327,13 @@ class bin(analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True):
         util.print_status_line();
-    
+  
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("dump.bin is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error writing restart data.")
+
         # initialize base class
         analyze._analyzer.__init__(self);
         
@@ -334,6 +351,9 @@ class bin(analyze._analyzer):
             if period is None:
                 globals.msg.warning("Alternating file output set for dump.bin, but period is not set.\n");
                 globals.msg.warning("No output will be written.\n");
+        
+        globals.msg.warning("dump.bin does not support triclinic boxes.\n");
+        globals.msg.warning("dump.bin is deprecated and will be replaced in v1.1.0\n");
         
         if period is not None:
             self.setupAnalyzer(period);
@@ -378,6 +398,7 @@ class bin(analyze._analyzer):
 # The intended usage is to use write() to generate a single structure file that 
 # can be used by VMD for reading in particle names and %bond topology Use in 
 # conjunction with dump.dcd for reading the full simulation trajectory into VMD.
+# \MPI_NOT_SUPPORTED
 class mol2(analyze._analyzer):
     ## Initialize the mol2 writer
     #
@@ -402,7 +423,13 @@ class mol2(analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None):
         util.print_status_line();
-    
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("dump.mol2 is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error writing MOL2 file.")
+
         # initialize base class
         analyze._analyzer.__init__(self);
         
@@ -459,6 +486,8 @@ class mol2(analyze._analyzer):
 # a file via disable(), you cannot continue writing to the same file,
 # nor can you change the period of the %dump at any time. Either of these tasks 
 # can be performed by creating a new %dump file with the needed settings.
+#
+# \MPI_SUPPORTED
 class dcd(analyze._analyzer):
     ## Initialize the dcd writer
     #
@@ -473,6 +502,7 @@ class dcd(analyze._analyzer):
     #        breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
     #        unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
     #        some particles may be written just outside it. \a unwrap_rigid is ignored if \a unwrap_full is True.
+    # \param angle_z When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
     # 
     # \b Examples:
     # \code
@@ -487,7 +517,7 @@ class dcd(analyze._analyzer):
     #   consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False):
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False):
         util.print_status_line();
         
         # initialize base class
@@ -495,8 +525,10 @@ class dcd(analyze._analyzer):
         
         # create the c++ mirror class
         reported_period = period;
-        if type(period) != type(1):
-            reported_period = 1000;
+        try:
+            reported_period = int(period);
+        except TypeError:
+            reported_period = 1;
             
         if group is None:
             util._disable_status_lines = True;
@@ -506,6 +538,7 @@ class dcd(analyze._analyzer):
         self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
+        self.cpp_analyzer.setAngleZ(angle_z);
         self.setupAnalyzer(period);
     
     def enable(self):
@@ -528,7 +561,7 @@ class dcd(analyze._analyzer):
 # particles at that time step is written to the file in the PDB format.
 #
 # Particle positions are written directly in distance units, see \ref page_units for more information.
-#
+# \MPI_NOT_SUPPORTED
 class pdb(analyze._analyzer):
     ## Initialize the pdb writer
     #
@@ -556,7 +589,14 @@ class pdb(analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None):
         util.print_status_line();
-    
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("dump.pdb is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error writing PDB file.")
+
+
         # initialize base class
         analyze._analyzer.__init__(self);
         

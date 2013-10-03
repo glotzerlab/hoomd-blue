@@ -67,14 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
 //! Class for evaluating sphere constraints
 /*! <b>General Overview</b>
     EvaluatorConstraintSphere is a low level computation helper class to aid in evaluating particle constraints on a
@@ -107,7 +99,7 @@ class EvaluatorConstraintSphere
             V.z = U.z - P.z;
             
             // compute 1/magnitude of V
-            Scalar magVinv = RSQRT(V.x*V.x + V.y*V.y + V.z*V.z);
+            Scalar magVinv = fast::rsqrt(V.x*V.x + V.y*V.y + V.z*V.z);
             
             // compute Vhat, the unit vector pointing in the direction of V
             Scalar3 Vhat;

@@ -63,32 +63,34 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairDPDThermo.h"
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairEwald.h"
+#include "EvaluatorPairMoliere.h"
+#include "EvaluatorPairZBL.h"
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 
 cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
-                                      const float2 *d_params)
+                                      const Scalar2 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairLJ>(pair_args,
                                                     d_params);
     }
 
 cudaError_t gpu_compute_gauss_forces(const pair_args_t& pair_args,
-                                     const float2 *d_params)
+                                     const Scalar2 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairGauss>(pair_args,
                                                        d_params);
     }
 
 cudaError_t gpu_compute_slj_forces(const pair_args_t& pair_args,
-                                   const float2 *d_params)
+                                   const Scalar2 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairSLJ>(pair_args,
                                                      d_params);
     }
 
 cudaError_t gpu_compute_yukawa_forces(const pair_args_t& pair_args,
-                                      const float2 *d_params)
+                                      const Scalar2 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairYukawa>(pair_args,
                                                         d_params);
@@ -96,14 +98,14 @@ cudaError_t gpu_compute_yukawa_forces(const pair_args_t& pair_args,
 
 
 cudaError_t gpu_compute_morse_forces(const pair_args_t& pair_args,
-                                      const float4 *d_params)
+                                      const Scalar4 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairMorse>(pair_args,
                                                        d_params);
     }
 
 cudaError_t gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
-                                            const float2 *d_params)
+                                            const Scalar2 *d_params)
     {
     return gpu_compute_dpd_forces<EvaluatorPairDPDThermo>(args,
                                                           d_params);
@@ -111,7 +113,7 @@ cudaError_t gpu_compute_dpdthermodpd_forces(const dpd_pair_args_t& args,
 
 
 cudaError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
-                                         const float2 *d_params)
+                                         const Scalar2 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairDPDThermo>(pair_args,
                                                            d_params);
@@ -119,15 +121,28 @@ cudaError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
 
 
 cudaError_t gpu_compute_ewald_forces(const pair_args_t& pair_args,
-                                     const float *d_params)
+                                     const Scalar *d_params)
     {
     return  gpu_compute_pair_forces<EvaluatorPairEwald>(pair_args,
                                                         d_params);
     }
 
+cudaError_t gpu_compute_moliere_forces(const pair_args_t& pair_args,
+                                       const Scalar2 *d_params)
+    {
+    return gpu_compute_pair_forces<EvaluatorPairMoliere>(pair_args,
+                                                         d_params);
+    }
+
+cudaError_t gpu_compute_zbl_forces(const pair_args_t& pair_args,
+                                   const Scalar2 *d_params)
+    {
+    return gpu_compute_pair_forces<EvaluatorPairZBL>(pair_args,
+                                                     d_params);
+    }
 
 cudaError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
-                                              const float4 *d_params)
+                                              const Scalar4 *d_params)
     {
     return gpu_compute_dpd_forces<EvaluatorPairDPDLJThermo>(args,
                                                             d_params);
@@ -135,14 +150,14 @@ cudaError_t gpu_compute_dpdljthermodpd_forces(const dpd_pair_args_t& args,
 
 
 cudaError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
-                                           const float4 *d_params)
+                                           const Scalar4 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairDPDLJThermo>(args,
                                                              d_params);
     }
 
 cudaError_t gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
-                                                const float2 *d_params)
+                                                const Scalar2 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairForceShiftedLJ>(args,
                                                                 d_params);

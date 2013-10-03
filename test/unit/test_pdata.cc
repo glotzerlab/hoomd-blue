@@ -65,6 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "Initializers.h"
+#include "SnapshotSystemData.h"
 
 using namespace std;
 using namespace boost;
@@ -274,6 +275,180 @@ BOOST_AUTO_TEST_CASE( BoxDim_functionality_test1 )
     BOOST_CHECK_EQUAL(image.z, 31);
     }
 
+BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
+    {
+    BoxDim b(5.0);
+    
+    Scalar tol = Scalar(1e-4);
+
+    Scalar xy = 1.0;
+    Scalar xz = .4;
+    Scalar yz = .9;
+
+    b.setTiltFactors(xy,xz,yz);
+    MY_BOOST_CHECK_CLOSE(b.getTiltFactorXY(), xy,tol);
+    MY_BOOST_CHECK_CLOSE(b.getTiltFactorXZ(), xz,tol);
+    MY_BOOST_CHECK_CLOSE(b.getTiltFactorYZ(), yz,tol);
+
+    Scalar3 f = make_scalar3(.5,.6,.7);
+    Scalar3 L = b.getL();
+    
+    Scalar3 pos;
+    pos.x = b.getLo().x + f.x * L.x + xy * L.y * (f.y-Scalar(0.5)) + xz * L.z * (f.z-Scalar(0.5));
+    pos.y = b.getLo().y + f.y * L.y + yz * L.z * (f.z-Scalar(0.5));
+    pos.z = b.getLo().z + f.z * L.z;
+
+    // convert pos to fraction
+    Scalar3 f2 = b.makeFraction(pos);
+
+    MY_BOOST_CHECK_CLOSE(f2.x,f.x,tol);
+    MY_BOOST_CHECK_CLOSE(f2.y,f.y,tol);
+    MY_BOOST_CHECK_CLOSE(f2.z,f.z,tol);
+
+    // convert fraction to pos
+    Scalar3 pos2 = b.makeCoordinates(f);
+
+    MY_BOOST_CHECK_CLOSE(pos2.x, pos.x,tol);
+    MY_BOOST_CHECK_CLOSE(pos2.y, pos.y,tol);
+    MY_BOOST_CHECK_CLOSE(pos2.z, pos.z,tol);
+
+    // test minimum image
+
+    // along x coordinate
+    Scalar3 dx = make_scalar3(3.0,1.0,2.0);
+    Scalar3 dx2 = b.minImage(dx);   
+
+    MY_BOOST_CHECK_CLOSE(dx2.x, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.y, 1.0, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.z, 2.0, tol);
+
+    dx = make_scalar3(-3.0,1.0,2.0);
+    dx2 = b.minImage(dx);
+
+    MY_BOOST_CHECK_CLOSE(dx2.x, 2.0, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.y, 1.0, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.z, 2.0, tol);
+
+    // along y coordinate
+    dx = make_scalar3(2.0,2.6,1.5);
+    dx2 = b.minImage(dx);
+
+    MY_BOOST_CHECK_CLOSE(dx2.x, 2.0, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.y, -2.4, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.z, 1.5, tol);
+
+    dx = make_scalar3(2.0,-2.6,1.5);
+    dx2 = b.minImage(dx);
+
+    MY_BOOST_CHECK_CLOSE(dx2.x, 2.0, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.y, 2.4, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.z, 1.5, tol);
+
+    dx = make_scalar3(3.0,2.6,1.5);
+    dx2 = b.minImage(dx);
+
+    MY_BOOST_CHECK_CLOSE(dx2.x, -2.0, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.y, -2.4, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.z, 1.5, tol);
+
+    dx = make_scalar3(3.0,-2.6,1.5);
+    dx2 = b.minImage(dx);
+
+    MY_BOOST_CHECK_CLOSE(dx2.x,-2.0,tol);
+    MY_BOOST_CHECK_CLOSE(dx2.y,2.4,tol);
+    MY_BOOST_CHECK_CLOSE(dx.z, 1.5,tol);
+
+    // along z coordinate
+    dx = make_scalar3(2.1,1.5,3.0);
+    dx2 = b.minImage(dx);
+
+    MY_BOOST_CHECK_CLOSE(dx2.x, 0.1, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.y, 2.0 ,tol);
+    MY_BOOST_CHECK_CLOSE(dx2.z, -2.0,tol);
+
+    dx = make_scalar3(2.1,1.5,-3.0);
+    dx2 = b.minImage(dx);
+
+    MY_BOOST_CHECK_CLOSE(dx2.x, -0.9, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.y, 1.0, tol);
+    MY_BOOST_CHECK_CLOSE(dx2.z, 2.0, tol);
+
+    // test particle wrap
+
+    // along z direction
+    pos = make_scalar3(1.0,2.0,2.6);
+    int3 img = make_int3(0,0,0);
+
+    b.wrap(pos, img);
+    MY_BOOST_CHECK_CLOSE(pos.x, -1.0 ,tol);
+    MY_BOOST_CHECK_CLOSE(pos.y, -2.5,tol);
+    MY_BOOST_CHECK_CLOSE(pos.z, -2.4,tol);
+    BOOST_CHECK_EQUAL(img.x, 0);
+    BOOST_CHECK_EQUAL(img.y, 0);
+    BOOST_CHECK_EQUAL(img.z, 1);
+
+    pos = make_scalar3(-1.0,-2.0,-2.6);
+    img = make_int3(0,0,0);
+    b.wrap(pos,img);
+
+    MY_BOOST_CHECK_CLOSE(pos.x, 1.0 ,tol);
+    MY_BOOST_CHECK_CLOSE(pos.y, 2.5,tol);
+    MY_BOOST_CHECK_CLOSE(pos.z, 2.4,tol);
+    BOOST_CHECK_EQUAL(img.x, 0);
+    BOOST_CHECK_EQUAL(img.y, 0);
+    BOOST_CHECK_EQUAL(img.z, -1);
+
+    // along y direction
+    pos = make_scalar3(1.0,4.0,1.5);
+    img = make_int3(0,0,0);
+    
+    b.wrap(pos, img);
+    MY_BOOST_CHECK_CLOSE(pos.x, -4.0,tol);
+    MY_BOOST_CHECK_CLOSE(pos.y, -1.0,tol);
+    MY_BOOST_CHECK_CLOSE(pos.z, 1.5,tol);
+
+    BOOST_CHECK_EQUAL(img.x, 0);
+    BOOST_CHECK_EQUAL(img.y, 1);
+    BOOST_CHECK_EQUAL(img.z, 0);
+
+    pos = make_scalar3(-1.0,-4.0,-1.5);
+    img = make_int3(0,0,0);
+
+    b.wrap(pos, img);
+    MY_BOOST_CHECK_CLOSE(pos.x, 4.0, tol);
+    MY_BOOST_CHECK_CLOSE(pos.y, 1.0, tol);
+    MY_BOOST_CHECK_CLOSE(pos.z, -1.5, tol);
+
+    BOOST_CHECK_EQUAL(img.x, 0);
+    BOOST_CHECK_EQUAL(img.y, -1);
+    BOOST_CHECK_EQUAL(img.z, 0);
+
+    // along x direction
+    pos = make_scalar3(4.2,1.5, 1.0);
+    img = make_int3(0,0,0);
+    
+    b.wrap(pos, img);
+    MY_BOOST_CHECK_CLOSE(pos.x, -0.8, tol);
+    MY_BOOST_CHECK_CLOSE(pos.y, 1.5, tol);
+    MY_BOOST_CHECK_CLOSE(pos.z, 1.0, tol);
+
+    BOOST_CHECK_EQUAL(img.x, 1);
+    BOOST_CHECK_EQUAL(img.y, 0);
+    BOOST_CHECK_EQUAL(img.z, 0);
+
+    pos = make_scalar3(-5.0,-1.5, 1.0);
+    img = make_int3(0,0,0);
+
+    b.wrap(pos,img);
+    MY_BOOST_CHECK_CLOSE(pos.x, 0.0, tol);
+    MY_BOOST_CHECK_CLOSE(pos.y, -1.5, tol);
+    MY_BOOST_CHECK_CLOSE(pos.z, 1.0, tol);
+
+    BOOST_CHECK_EQUAL(img.x, -1);
+    BOOST_CHECK_EQUAL(img.y, 0);
+    BOOST_CHECK_EQUAL(img.z, 0);
+    }
+
 //! Test operation of the particle data class
 BOOST_AUTO_TEST_CASE( ParticleData_test )
     {
@@ -472,7 +647,8 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     // make a simple one-particle box
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     SimpleCubicInitializer one(1, 2.0, "ABC");
-    ParticleData one_data(one, exec_conf);
+    boost::shared_ptr<SnapshotSystemData> snapshot = one.getSnapshot();
+    ParticleData one_data(snapshot->particle_data, snapshot->global_box, exec_conf);
 
     BOOST_CHECK(one_data.getN() == 1);
     {
@@ -488,7 +664,8 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     
     // now try an 8-particle one
     SimpleCubicInitializer eight(2, 2.0, "A");
-    ParticleData eight_data(eight, exec_conf);
+    boost::shared_ptr<SnapshotSystemData> snapshot_eight = eight.getSnapshot();
+    ParticleData eight_data(snapshot_eight->particle_data, snapshot_eight->global_box, exec_conf);
     
     BOOST_CHECK(eight_data.getN() == 8);
     {
@@ -528,7 +705,8 @@ BOOST_AUTO_TEST_CASE( Random_test )
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     Scalar min_dist = Scalar(0.8);
     RandomInitializer rand_init(500, Scalar(0.4), min_dist, "ABC");
-    ParticleData pdata(rand_init, exec_conf);
+    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
+    ParticleData pdata(snap->particle_data, snap->global_box, exec_conf);
     
     BOOST_CHECK_EQUAL(pdata.getNameByType(0), "ABC");
     BOOST_CHECK_EQUAL(pdata.getTypeByName("ABC"), (unsigned int)0);

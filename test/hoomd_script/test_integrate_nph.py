@@ -13,34 +13,56 @@ class integrate_nph_tests (unittest.TestCase):
         force.constant(fx=0.1, fy=0.1, fz=0.1)
         import __main__;
         __main__.sorter.set_params(grid=8)
-
-    # tests basic creation of the dump
+        
+    # tests basic creation of the integrator
     def test(self):
         all = group.all();
-        integrate.mode_standard(dt=0.001);
-        integrate.nph(all, P=1.0, W=.001, mode = "cubic");
+        integrate.mode_standard(dt=0.005);
+        integrate.nph(group=all, tau=0.5, P=1.0, tauP=0.5);
+        run(100);
+
+    def test_mtk_cubic(self):
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nph(group=all, tau=0.5, P=1.0, tauP=0.5);
+        run(100);
+
+    def test_mtk_orthorhombic(self):
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nph(group=all, tau=0.5, P=1.0, tauP=0.5, couple="none");
+        run(100);
+
+    def test_mtk_tetragonal(self):
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nph(group=all, tau=0.5, P=1.0, tauP=0.5, couple="xy");
+        run(100);
+
+    def test_mtk_triclinic(self):
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nph(group=all, tau=0.5, P=1.0, tauP=0.5, couple="none", all=True);
         run(100);
 
     # test set_params
     def test_set_params(self):
-        integrate.mode_standard(dt=0.001);
+        integrate.mode_standard(dt=0.005);
         all = group.all();
-        nph = integrate.nph(all, P=1.0, W=.001);
+        nph = integrate.nph(group=all, tau=0.5, P=1.0, tauP=0.5);
+        nph.set_params(T=1.3);
+        nph.set_params(tau=0.6);
         nph.set_params(P=0.5);
-        nph.set_params(W=0.6);
-        run(100);
-        nph.set_params(mode="orthorhombic")
-        run(100);
-        nph.set_params(mode="tetragonal")
+        nph.set_params(tauP=0.6);
         run(100);
 
     # test w/ empty group
-    def test_empty(self):
+    def test_empty_mtk(self):
         empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
         mode = integrate.mode_standard(dt=0.005);
-        nph = integrate.nph(group=empty, P=1.0, W=1)
+        nve = integrate.nph(group=empty, P=1.0, tau=0.5, tauP=0.5)
         run(1);
-
+    
     def tearDown(self):
         init.reset();
 

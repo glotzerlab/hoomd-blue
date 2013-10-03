@@ -100,6 +100,7 @@ import sys;
 from hoomd_script import util;
 from hoomd_script import variant;
 from hoomd_script import init;
+from hoomd_script import comm;
 
 ## \internal
 # \brief Base class for integrators
@@ -188,6 +189,7 @@ class _integrator:
             
             for m in globals.integration_methods:
                 self.cpp_integrator.addIntegrationMethod(m.cpp_method);
+
         else:
             if len(globals.integration_methods) > 0:
                 globals.msg.error("This integrator does not support the use of integration methods,\n");
@@ -316,6 +318,8 @@ class _integration_method:
 #
 # There can only be one integration mode active at a time. If there are more than one integrate.mode_* commands in
 # a hoomd script, only the most recent before a given run() will take effect.
+#
+# \MPI_SUPPORTED
 class mode_standard(_integrator):
     ## Specifies the standard integration mode
     # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt (in time units)
@@ -334,7 +338,7 @@ class mode_standard(_integrator):
         # initialize the reflected c++ class
         self.cpp_integrator = hoomd.IntegratorTwoStep(globals.system_definition, dt);
         self.supports_methods = True;
-        
+       
         globals.system.setIntegrator(self.cpp_integrator);
     
     ## Changes parameters of an existing integration mode
@@ -370,7 +374,7 @@ class mode_standard(_integrator):
 # integrate.nvt uses the proper number of degrees of freedom to compute the temperature of the system in both
 # 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.nvt command
 # is specified.
-#
+# \MPI_SUPPORTED
 class nvt(_integration_method):
     ## Specifies the NVT integration method
     # \param group Group of particles on which to apply this method.
@@ -443,19 +447,53 @@ class nvt(_integration_method):
         if tau is not None:
             self.cpp_method.setTau(tau);
 
-## NPT Integration with various box-shape symmetries
+## NPT Integration via MTK barostat-thermostat with triclinic unit cell
 #
-# integrate.npt performs constant pressure, constant temperature simulations.
+# integrate.npt performs constant pressure, constant temperature simulations, allowing for a fully deformable
+# simulation box
 #
-# It supports two different integration algorithms:
-# - a Nos&eacute;-Hoover thermostat and Anderson barostat
-# - rigorous integration in the NPT ensemble based on the Martyna-Tobias-Klein (MTK) equations
+# The integration method is based on the rigorous Martyna-Tobias-Klein equations of motion for NPT.
+# For optimal stability, the update equations leave the phase-space meeasure invariant and are manifestly
+# time-reversible.
 #
-# When using the MTK equations, additional integration sub-modes are available, namely
-# - cubic symmetry, the ratios between the box lengths do not change
-# - orthorhombic symmetry, all box lengths can vary independently
-# - tetragonal symmetry, the \b x- direction is independently integrated from the \b y- and \b z- directions,
-#   and the ratio between the box lengths in the latter directions remains constant
+# By default, integrate.npt performs integration in a cubic box under hydrostatic pressure by simultaneously
+# rescaling the lengths \a Lx, \a Ly and \a Lz of the simulation box.
+#
+# integrate.npt can also perform more advanced integration modes. The integration mode
+# is specified by a set of \a couplings and by specifying the box degrees of freedom that are put under
+# barostat control.
+#
+# \a Couplings define which diagonal elements of the pressure tensor \f$ P_{\alpha,\beta} \f$
+# should be averaged over, so that the corresponding box lengths are rescaled by the same amount.
+#
+# Valid \a couplings are:<br>
+# - \b none (all box lengths are updated independently)
+# - \b xy (\a Lx and \a Ly are coupled)
+# - \b xz (\a Lx and \a Lz are coupled)
+# - \b yz (\a Ly and \a Lz are coupled)
+# - \b xyz (\a Lx and \a Ly and \a Lz are coupled)
+#
+# The default coupling is \b xyz, i.e. the ratios between all box lengths stay constant.
+#
+# <em>Degrees of freedom</em> of the box specify which lengths and tilt factors of the box should be updated,
+# and how particle coordinates and velocities should be rescaled.
+# 
+# Valid keywords for degrees of freedom are:
+# - \b x (the box length Lx is updated)
+# - \b y (the box length Ly is updated)
+# - \b z (the box length Lz is updated)
+# - \b xy (the tilt factor xy is updated)
+# - \b xz (the tilt factor xz is updated)
+# - \b yz (the tilt factor yz is updated)
+# - \b all (all elements are updated, equivalent to \b x, \b y, \b z, \b xy, \b xz, and \b yz together)
+#
+# Any of the six keywords can be combined together. By default, the \b x, \b y, and \b z degrees of freedom
+# are updated.
+#
+# For example:
+# - Specifying \b xyz copulings and \b x, \b y, and \b z degrees of freedom amounts to \a cubic symmetry (default)
+# - Specifying \b xy couplings and \b x, \b y, and \b z degrees of freedom amounts to \a tetragonal symmetry.
+# - Specifing no couplings and \b all degrees of freedom amounts to a fully deformable \a triclinic unit cell
 #
 # integrate.npt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -469,17 +507,24 @@ class nvt(_integration_method):
 # \cite Martyna1994
 # \cite Tuckerman2006
 # \cite Yu2010
+# Glaser et. al (2013), to be published
+# \MPI_SUPPORTED
 class npt(_integration_method):
     ## Specifies the NPT integrator
     # \param group Group of particles on which to apply this method.
-    # \param T Temperature set point for the Nos&eacute;-Hoover thermostat (in energy units)
-    # \param P Pressure set point for the Anderson barostat (in pressure units)
-    # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. (in time units)
+    # \param T Temperature set point for the thermostat, not needed if \b nph=True (in energy units)
+    # \param P Pressure set point for the barostat (in pressure units)
+    # \param tau Coupling constant for the thermostat, not needed if \nph=True (in time units)
     # \param tauP Coupling constant for the barostat (in time units)
-    # \param mtk True if the MTK equations should be used (default), False if the original Nos&eacute;-Hoover equations should be used
-    # \param partial_scale In Nos&eacute;-Hoover mode, if False (the default), \b all particles in the box are scaled due to the box size changes
-    #                      during NPT integration. If True, only those particles that belong to \a group will be scaled. In MTK mode, this parameter cannot be changed, and only the particles in the group are rescaled.
-    # \param mode Only available in MTK mode, can be "cubic" (default), "orthorhombic" or "tetragonal".
+    # \param couple Couplings of diagonal elements of the stress tensor, can be \b "none", \b "xy", \b "xz",\b "yz", or \b "xyz" (default)
+    # \param x if \b True, rescale \a Lx and x component of particle coordinates and velocities 
+    # \param y if \b True, rescale \a Ly and y component of particle coordinates and velocities
+    # \param z if \b True, rescale \a Lz and z component of particle coordinates and velocities
+    # \param xy if \b True, rescale \a xy tilt factor and x and y components of particle coordinates and velocities
+    # \param xz if \b True, rescale \a xz tilt factor and x and z components of particle coordinates and velocities
+    # \param yz if \b True, rescale \a yz tilt factor and y and z components of particle coordinates and velocities
+    # \param all if \b True, rescale all lengths and tilt factors and components of particle coordinates and velocities
+    # \param nph if \b True, integrate without a thermostat, i.e. in the NPH ensemble
     #
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
@@ -492,13 +537,27 @@ class npt(_integration_method):
     # \b Examples:
     # \code
     # integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0)
-    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
-    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, mtk=False)
-    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, mode="tetragonal")
+    # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
+    # # orthorhombic symmetry
+    # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none")
+    # # tetragonal symmetry
+    # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="xy")
+    # # triclinic symmetry
+    # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
     # \endcode
-    def __init__(self, group, T, tau, P, tauP, partial_scale=False, mtk=True, mode="cubic"):
+    def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None):
         util.print_status_line();
-        
+       
+        # check the input
+        if (T is None or tau is None):
+            if nph is False:
+                globals.msg.error("integrate.npt: Need temperature T and thermostat time scale tau.\n");
+                raise RuntimeError("Error setting up NPT integration.");
+            else:
+                # use dummy values
+                T=1.0
+                tau=1.0
+
         # initialize base class
         _integration_method.__init__(self);
         
@@ -510,35 +569,62 @@ class npt(_integration_method):
         thermo_group = compute._get_unique_thermo(group=group);
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
 
-        self.mtk = mtk
+        # need to know if we are running 2D simulations
+        twod = (globals.system_definition.getNDimensions() == 2);
+        if twod:
+            globals.msg.notice(2, "When running in 2D, z couplings and degrees of freedom are silently ignored.\n");
 
         # initialize the reflected c++ class
-        if mtk:
-            if mode == "cubic":
-                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.cubic
-            elif mode == "orthorhombic":
-                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.orthorhombic
-            elif mode == "tetragonal":
-                cpp_mode = hoomd.TwoStepNPTMTK.integrationMode.tetragonal
+        if twod:
+            # silently ignore any couplings that involve z
+            if couple == "none":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+            elif couple == "xy":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+            elif couple == "xz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+            elif couple == "yz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+            elif couple == "xyz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
             else:
-                globals.msg.error("Invalid integration mode\n");
+                globals.msg.error("Invalid coupling mode\n");
                 raise RuntimeError("Error setting up NPT integration.");
-
-            if not globals.exec_conf.isCUDAEnabled():
-                self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_mode);
-            else:
-                self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_mode);
         else:
-            if mode != "cubic":
-                globals.msg.error("In Nose-Hoover mode, only cubic symmetry is supported.");
+            if couple == "none":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_none
+            elif couple == "xy":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xy
+            elif couple == "xz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xz
+            elif couple == "yz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_yz
+            elif couple == "xyz":
+                cpp_couple = hoomd.TwoStepNPTMTK.couplingMode.couple_xyz
+            else:
+                globals.msg.error("Invalid coupling mode\n");
                 raise RuntimeError("Error setting up NPT integration.");
 
-            if not globals.exec_conf.isCUDAEnabled():
-                self.cpp_method = hoomd.TwoStepNPT(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
-            else:
-                self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
+        # set degrees of freedom flags
+        # silently ignore z related degrees of freedom when running in 2d
+        flags = 0;
+        if x or all:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_x
+        if y or all:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_y
+        if (z or all) and not twod:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_z
+        if xy or all:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xy
+        if (xz or all) and not twod:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_xz
+        if (yz or all) and not twod:
+            flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_yz
 
-            self.cpp_method.setPartialScale(partial_scale);
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+        else:
+            self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
 
         self.cpp_method.validateGroup()
 
@@ -547,8 +633,6 @@ class npt(_integration_method):
     # \param tau New coupling constant (if set) (in time units)
     # \param P New pressure (if set) (in pressure units)
     # \param tauP New barostat coupling constant (if set) (in time units)
-    # \param partial_scale (if set) Change whether all particles in the box are scaled (False), or just those in the
-    #                      group (True)
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -561,7 +645,7 @@ class npt(_integration_method):
     # integrator.set_params(tau=0.6)
     # integrator.set_params(dt=3e-3, T=2.0, P=1.0)
     # \endcode
-    def set_params(self, T=None, tau=None, P=None, tauP=None, partial_scale=None):
+    def set_params(self, T=None, tau=None, P=None, tauP=None):
         util.print_status_line();
         self.check_initialization();
         
@@ -578,128 +662,46 @@ class npt(_integration_method):
             self.cpp_method.setP(P.cpp_variant);
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
-        if partial_scale is not None:
-            self.cpp_method.setPartialScale(partial_scale);
 
-## NPH Integration via Andersen barostat or Parrinello-Rahman barostat restricted to anisotropic length fluctuations
+## NPH Integration via MTK barostat-thermostat with triclinic unit cell
 #
-# integrate.nph performs constant pressure (NPH) simulations using an Andersen barostat or a version of
-# the Rahman-Parrinello barostat for anisotropic box shape fluctuations.
-# An explicitly reversible and measure-preserving integration scheme is implemented.
+# integrate.nph performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
+# explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
+# cells and uses the same underying integrator as integrate.npt (with \b nph=True).
 #
+# The available options are identical to those of integrate.npt, except that *T* cannot be specified.
+# For further information, refer to the documentation of integrate.npt
+#
+# \note A time scale \b tau_p for the relaxation of the barostat is required. This is defined as the
+#       relaxation time the barostat would have at an average temperature \f$ T_0 =1 \f$, and it
+#       is related to the internally used (Andersen) Barostat mass \f$W\f$ via
+#       \f $W=d N T_0 \tau_p^2 \f $, where \f$ d \f$ is the dimensionsality and \f$ N \f$ the number
+#       of particles.
+#       
 # integrate.nph is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
 #
-class nph(_integration_method):
+# \sa integrate.npt
+# \MPI_SUPPORTED
+class nph(npt):
     ## Specifies the NPH integrator
-    # \param group Group of particles on which to apply this method.
-    # \param P isotropic pressure set point for the Andersen barostat (in pressure units)
-    # \param W generalized mass of the barostat (units: see below)
-    # \param mode mode for anisotropic volume fluctuations: cubic, orthorhombic or tetragonal
+    # \param params Parameters used for the underlying integrate.npt (for documentation, see there)
     #
-    # \note it is limitation of the current implementation that only the particles in \a group are scaled but
-    #       the pressure tensor is calculated from the contribution of all particles in the simulation
-    #
-    # Internally, a compute.thermo is automatically specified and associated with \a group.
-    #
-    # Valid settings for \a mode are:
-    # - \b cubic (default) specifies cubic symmetry of the simulation box. This corresponds to isotropic volume
-    #   fluctuations. The barostat mass \a W has units of mass/length^4.
-    # - \b orthorhombic specifies orthorhombic symmetry of the simulation box. All three
-    #   box lengths \f$ L_x, \f$ \f$ L_y \f$, and \f$ L_z \f$ fluctuate indepently.
-    #   The barostat mass \a W has units of mass.
-    # - \b tetragonal specifies tetragonal symmetry of the simulation box. Two independent box lengths,
-    #   \f$ L_x = L_\perp \f$ and \f$ L_y = L_z = L_\parallel \f$, fluctuate independently.
-    #   The barostat mass \a W has units of mass.
-    #
-    # In
     # \b Examples:
     # \code
-    # integrate.nph(group=all, P=2.0, W=1.0, mode="orthorhombic")
-    # integrator = integrate.nph(group=all, P=2.0, W=1.0)
+    # # Triclinic unit cell
+    # nph=integrate.nph(group=all, P=2.0, tau_p=1.0, couple="none", all=True)
+    # # Cubic unit cell
+    # nph = integrate.nph(group=all, P=2.0, tau_p=1.0)
     # \endcode
-    def __init__(self, group, P, W, mode="cubic"):
+    def __init__(self, **params):
         util.print_status_line();
 
         # initialize base class
-        _integration_method.__init__(self);
-
-        # setup the variant inputs
-        P = variant._setup_variant_input(P);
-
-        # create the compute thermo
-        thermo_all = compute._get_unique_thermo(group=globals.group_all);
-
-        # setup suffix
-        suffix = '_' + group.name;
-
-        # set integration mode
-        # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
-            if (mode == "cubic"):
-                cpp_mode = hoomd.TwoStepNPH.integrationMode.cubic;
-            elif (mode == "orthorhombic"):
-                cpp_mode = hoomd.TwoStepNPH.integrationMode.orthorhombic;
-            elif (mode == "tetragonal"):
-                cpp_mode = hoomd.TwoStepNPH.integrationMode.tetragonal;
-            else:
-                globals.msg.error("Invalid mode\n");
-                raise RuntimeError("Error changing parameters in integrate.nph");
-            self.cpp_method = hoomd.TwoStepNPH(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
-        else:
-            if (mode == "cubic"):
-                cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.cubic;
-            elif (mode == "orthorhombic"):
-                cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.orthorhombic;
-            elif (mode == "tetragonal"):
-                cpp_mode = hoomd.TwoStepNPHGPU.integrationMode.tetragonal;
-            else:
-                globals.msg.error("Invalid mode\n");
-                raise RuntimeError("Error changing parameters in integrate.nph");
-            self.cpp_method = hoomd.TwoStepNPHGPU(globals.system_definition, group.cpp_group, thermo_all.cpp_compute, W, P.cpp_variant, cpp_mode, suffix);
-
-        self.cpp_method.validateGroup()
-
-    ## Changes parameters of an existing integrator
-    # \param P New pressure (if set) (in pressure units)
-    # \param W New barostat mass constant (if set) (in mass units for \a mode = orthogonal or \a mode = tetragonal,
-    #          or mass/length^4 for \a mode = cubic )
-    # \param mode integration mode (\b cubic, \b orthorhombic or \b tetragonal)
-    #
-    # To change the parameters of an existing integrator, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # integrator = integrate.nph(P=1.2)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # integrator.set_params(P=1.2)
-    # integrator.set_params(P=1.0, W=.01)
-    # integrator.set_params(mode="tetragonal")
-    # \endcode
-    def set_params(self, P=None, W=None, mode=None):
-        util.print_status_line();
-        self.check_initialization();
-
-        # change the parameters
-        if P is not None:
-            # setup the variant inputs
-            P = variant._setup_variant_input(P);
-            self.cpp_method.setP(P.cpp_variant);
-        if W is not None:
-            self.cpp_method.setW(W);
-        if mode is not None:
-            if (mode == "cubic"):
-                self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.cubic);
-            elif (mode == "orthorhombic"):
-                self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.orthorhombic);
-            elif (mode == "tetragonal"):
-                self.cpp_method.setIntegrationMode(self.cpp_method.integrationMode.tetragonal);
-            else:
-                globals.msg.error("Invalid mode\n");
-                raise RuntimeError("Error changing parameters in integrate.nph");
+        util._disable_status_lines = True;
+        npt.__init__(self, nph=True, T=1.0, **params);
+        util._disable_status_lines = False;
 
 ## NVE Integration via Velocity-Verlet
 #
@@ -721,6 +723,7 @@ class nph(_integration_method):
 # integrate.nve is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_SUPPORTED
 class nve(_integration_method):
     ## Specifies the NVE integration method
     # \param group Group of particles on which to apply this method.
@@ -818,7 +821,7 @@ class nve(_integration_method):
 # integrate.bdnvt uses the proper number of degrees of freedom to compute the temperature of the system in both
 # 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.bdnvt command
 # is specified.
-#
+# \MPI_SUPPORTED
 class bdnvt(_integration_method):
     ## Specifies the BD NVT integrator
     # \param group Group of particles on which to apply this method.
@@ -954,6 +957,7 @@ class bdnvt(_integration_method):
 # integrate.nve_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
 class nve_rigid(_integration_method):
     ## Specifies the NVE integration method for rigid bodies 
     # \param group Group of particles on which to apply this method.
@@ -965,7 +969,13 @@ class nve_rigid(_integration_method):
     # \endcode
     def __init__(self, group):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.nve_rigid not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
+ 
         # initialize base class
         _integration_method.__init__(self);
         
@@ -990,6 +1000,7 @@ class nve_rigid(_integration_method):
 # integrate.nvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
 class nvt_rigid(_integration_method):
     ## Specifies the NVT integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
@@ -1006,6 +1017,12 @@ class nvt_rigid(_integration_method):
     # \endcode
     def __init__(self, group, T, tau):
         util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.nvt_rigid not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
         
         # initialize base class
         _integration_method.__init__(self);
@@ -1070,6 +1087,7 @@ class nvt_rigid(_integration_method):
 # integrate.bdnvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
 class bdnvt_rigid(_integration_method):
     ## Specifies the BD NVT integrator for rigid bodies
     # \param group Group of particles on which to apply this method.
@@ -1090,6 +1108,12 @@ class bdnvt_rigid(_integration_method):
     # \endcode
     def __init__(self, group, T, seed=0, gamma_diam=False):
         util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.bdnvt_rigid not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
         
         # initialize base class
         _integration_method.__init__(self);
@@ -1176,6 +1200,7 @@ class bdnvt_rigid(_integration_method):
 # integrate.npt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
 class npt_rigid(_integration_method):
     ## Specifies the NVT integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
@@ -1194,6 +1219,12 @@ class npt_rigid(_integration_method):
     # \endcode
     def __init__(self, group, T, tau, P, tauP):
         util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.npt_rigid not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
         
         # initialize base class
         _integration_method.__init__(self);
@@ -1248,6 +1279,87 @@ class npt_rigid(_integration_method):
         if tauP is not None:
             self.cpp_method.setTauP(tauP); 
 
+## NPH Integration for rigid bodies
+#
+# integrate.nph_rigid performs constant pressure, constant enthalpy simulations of the rigid bodies in the system.
+# The integration scheme is implemented from \cite Miller2002 and \cite Kamberaj2005 .
+#
+# Reference \cite Nguyen2011 describes the rigid body implementation details in HOOMD-blue. Cite it
+# if you utilize rigid body functionality in your work.
+#
+# integrate.nph_rigid \b only operates on particles that belong to rigid bodies.
+#
+# integrate.nph_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
+# the following modes are active:
+# - integrate.mode_standard
+# \MPI_NOT_SUPPORTED
+class nph_rigid(_integration_method):
+    ## Specifies the NPH integration method for rigid bodies
+    # \param group Group of particles on which to apply this method.
+    # \param tauP Time constatnt for the barostat (in time units)
+    # \param P Pressure set point for the barostat (in pressure units)
+    #
+    # \a P can be a variant type, allowing for pressure ramping in simulation runs.
+    #
+    # \b Examples:
+    # \code
+    # rigid = group.rigid()
+    # integrate.nph_rigid(group=all, P=1.0, tauP=1.0)
+    # 
+    # \endcode
+    def __init__(self, group, P, tauP):
+        util.print_status_line();
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.nph_rigid is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
+        
+        # initialize base class
+        _integration_method.__init__(self);
+        
+        # setup the variant inputs
+        P = variant._setup_variant_input(P);
+        
+         # create the compute thermo
+        thermo_group = compute._get_unique_thermo(group=group);
+        thermo_all = compute._get_unique_thermo(group=globals.group_all);
+        
+        # initialize the reflected c++ class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_method = hoomd.TwoStepNPHRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tauP, P.cpp_variant);
+        else:
+            self.cpp_method = hoomd.TwoStepNPHRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tauP, P.cpp_variant);
+    
+        self.cpp_method.validateGroup()
+    
+    ## Changes parameters of an existing integrator
+    # \param P New pressure (if set) (in pressure units)
+    # \param tauP New coupling constant (if set) (in time units)
+    #
+    # To change the parameters of an existing integrator, you must save it in a variable when it is
+    # specified, like so:
+    # \code
+    # integrator = integrate.nph_rigid(group=rigid, P=1.0)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # integrator.set_params(P=1.5, tauP=1.0)
+    # \endcode
+    def set_params(self, P=None, tauP=None):
+        util.print_status_line();
+        self.check_initialization();
+        
+        # change the parameters
+        if P is not None:
+            # setup the variant inputs
+            P = variant._setup_variant_input(P);
+            self.cpp_method.setP(P.cpp_variant);
+        if tauP is not None:
+            self.cpp_method.setTauP(tauP); 
+
 ## Energy Minimizer (FIRE)
 #
 # integrate.mode_minimize_fire uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
@@ -1284,6 +1396,7 @@ class npt_rigid(_integration_method):
 # attempts can be set by the user. 
 #
 # \warning All other integration methods must be disabled before using the FIRE energy minimizer.
+# \MPI_NOT_SUPPORTED
 class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     # \param group Particle group to be applied FIRE 
@@ -1307,7 +1420,13 @@ class mode_minimize_fire(_integrator):
     #   - <i>optional</i>: defaults to 10
     def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, falpha=None, ftol = None, Etol= None, min_steps=None):
         util.print_status_line();
-        
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("mode_minimize_fire is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration mode.")
+ 
         # initialize base class
         _integrator.__init__(self);
         
@@ -1352,6 +1471,7 @@ class mode_minimize_fire(_integrator):
 #
 # For the time being, energy minimization will be handled separately for rigid and non-rigid bodies
 #
+# \MPI_NOT_SUPPORTED
 class mode_minimize_rigid_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     #
@@ -1421,6 +1541,7 @@ class mode_minimize_rigid_fire(_integrator):
 #     \frac{dT_\mathrm{cur}}{dt} = \frac{T - T_\mathrm{cur}}{\tau}
 # \f]
 #
+# \MPI_NOT_SUPPORTED
 class berendsen(_integration_method):
     ## Initialize the Berendsen thermostat.
     # \param group Group to which the Berendsen thermostat will be applied.
@@ -1430,6 +1551,12 @@ class berendsen(_integration_method):
     def __init__(self, group, T, tau):
         util.print_status_line();
 
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error setting up integration method.")
+ 
         # initialize base class
         _integration_method.__init__(self);
 

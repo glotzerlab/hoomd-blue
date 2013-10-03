@@ -307,6 +307,7 @@ class sort(_updater):
 # \f$\langle 1/2 m v^2 \rangle = k_B T \f$. 
 #
 # update.rescale_temp is best coupled with the \ref integrate.nve "NVE" integrator.
+# \MPI_SUPPORTED
 class rescale_temp(_updater):
     ## Initialize the rescaler
     #
@@ -326,7 +327,7 @@ class rescale_temp(_updater):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, T, period=1):
         util.print_status_line();
-    
+
         # initialize base class
         _updater.__init__(self);
         
@@ -370,6 +371,7 @@ class rescale_temp(_updater):
 # \a limit option specified, where Newton's third law is broken and systems could gain momentum.
 # Of course, it can be used in any script.
 #
+# \MPI_SUPPORTED
 class zero_momentum(_updater):
     ## Initialize the momentum zeroer
     #
@@ -384,7 +386,7 @@ class zero_momentum(_updater):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, period=1):
         util.print_status_line();
-    
+ 
         # initialize base class
         _updater.__init__(self);
         
@@ -403,6 +405,7 @@ class zero_momentum(_updater):
 # the neighbor list to only find 2D neighbors. Doing so requires that a small, but non-zero, value be set for the z
 # dimension of the simulation box.
 #
+# \MPI_SUPPORTED
 class enforce2d(_updater):
     ## Initialize the 2D enforcement
     #
@@ -427,27 +430,36 @@ class enforce2d(_updater):
         
 ## Rescales the system box size
 #
-# Every \a period time steps, the system box size is updated to a value given by
+# Every \a period time steps, the system box dimensions is updated to values given by
 # the user (in a variant). As an option, the particles can either be left in place
 # as the box is changed or their positions can be scaled with the box.
 #
+# \MPI_SUPPORTED
 class box_resize(_updater):
     ## Initialize box size resizer
     #
-    # \param Lx the value of the box length in the x direction as a function of time (in distance units)
+    # \param Lx (if set) the value of the box length in the x direction as a function of time (in distance units)
     # \param Ly (if set) the value of the box length in the y direction as a function of time (in distance units)
     # \param Lz (if set) the value of the box length in the z direction as a function of time (in distance units)
+    # \param xy (if set) the value of the X-Y tilt factor as a function of time (dimensionless)
+    # \param xz (if set) the value of the X-Z tilt factor as a function of time (dimensionless)
+    # \param yz (if set) the value of the Y-Z tilt factor as a function of time (dimensionless)
     # \param period The box size will be updated every \a period time steps
     # 
-    # \a Lx, \a Ly, \a Lz can either be set to a constant number or a variant may be provided.
+    # \a Lx, \a Ly, \a Lz, \a xy, \a xz, \a yz can either be set to a constant number or a variant may be provided.
     #
     # \note If Ly or Lz (or both) are left as None, then they will be set to Lx as a convenience for 
-    # defining cubes.
+    # defining cubes. If Lx is left as None, the current box length in the x-direction will be used.
     #
     # \note
     # By default, particle positions are rescaled with the box. To change this behavior,
     # use set_params().
     # 
+    # \note
+    # If, under rescaling, tilt factors get too large, the simulation may slow down due to too many ghost atoms
+    # being communicated. update.box.resize does NOT reset the box to orthorhombic shape if this occurs (and does not
+    # move the next periodic image into the primary cell).
+    #
     # \b Examples:
     # \code
     # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
@@ -456,28 +468,57 @@ class box_resize(_updater):
     #                   Ly = variant.linear_interp([(0, 20), (1e6, 60)]),
     #                   Lz = variant.linear_interp([(0, 10), (1e6, 80)]))
     # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), Ly = 10, Lz = 10)
+    # 
+    # # Shear the box in the xy plane using Lees-Edwards boundary conditions
+    # update.box_resize(xy = variant.linear_interp([(0,0), (1e6, 1)]))
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, Lx, Ly = None, Lz = None, period = 1):
+    #
+    # If \a period is set to None, then the given box lengths are applied immediately and periodic updates
+    # are not performed.
+    #
+    def __init__(self, Lx=None, Ly = None, Lz = None, xy=None, xz=None, yz=None, period = 1):
         util.print_status_line();
     
         # initialize base class
         _updater.__init__(self);
-        
+       
+        if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
+            globals.msg.warning("update.box_resize: Ignoring request to setup updater without parameters\n")
+            return
+
         # setup arguments
+        if Lx is None:
+            # use current box length in x-direction
+            Lx = globals.system_definition.getParticleData().getGlobalBox().getL().x;
         if Ly is None:
             Ly = Lx;
         if Lz is None:
             Lz = Lx;
-            
+           
+        if xy is None:
+            xy = 0.0;
+        if xz is None:
+            xz = 0.0;
+        if yz is None:
+            yz = 0.0;
+
         Lx = variant._setup_variant_input(Lx);
         Ly = variant._setup_variant_input(Ly);
         Lz = variant._setup_variant_input(Lz);
 
+        xy = variant._setup_variant_input(xy);
+        xz = variant._setup_variant_input(xz);
+        yz = variant._setup_variant_input(yz);
+
         # create the c++ mirror class
-        self.cpp_updater = hoomd.BoxResizeUpdater(globals.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant);
-        self.setupUpdater(period);
+        self.cpp_updater = hoomd.BoxResizeUpdater(globals.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant,
+                                                  xy.cpp_variant, xz.cpp_variant, yz.cpp_variant);
+        if period is None:
+            self.cpp_updater.update(globals.system.getCurrentTimeStep());
+        else:
+            self.setupUpdater(period);
         
     ## Change box_resize parameters
     #

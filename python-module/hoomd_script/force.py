@@ -249,6 +249,7 @@ _force.cur_id = 0;
 # The command force.constant specifies that a %constant %force should be added to every
 # particle in the simulation or optionally to all particles in a group.
 #
+# \MPI_SUPPORTED
 class constant(_force):
     ## Specify the %constant %force
     #

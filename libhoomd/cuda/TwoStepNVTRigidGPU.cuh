@@ -68,23 +68,23 @@ struct gpu_nvt_rigid_data
     {
     unsigned int n_bodies;  //!< Number of rigid bodies
     
-    float  eta_dot_t0;      //!< Thermostat translational velocity
-    float  eta_dot_r0;      //!< Thermostat rotational velocity
+    Scalar  eta_dot_t0;      //!< Thermostat translational velocity
+    Scalar  eta_dot_r0;      //!< Thermostat rotational velocity
         
-    float *partial_Ksum_t;  //!< NBlocks elements, each is a partial sum of m*v^2
-    float *partial_Ksum_r;  //!< NBlocks elements, each is a partial sum of L*w^2
-    float *Ksum_t;          //!< fully reduced Ksum_t on one GPU
-    float *Ksum_r;          //!< fully reduced Ksum_r on one GPU
+    Scalar *partial_Ksum_t;  //!< NBlocks elements, each is a partial sum of m*v^2
+    Scalar *partial_Ksum_r;  //!< NBlocks elements, each is a partial sum of L*w^2
+    Scalar *Ksum_t;          //!< fully reduced Ksum_t on one GPU
+    Scalar *Ksum_r;          //!< fully reduced Ksum_r on one GPU
     };
 
 //! Kernel driver for the first part of the NVT update called by TwoStepNVTRigidGPU
 cudaError_t gpu_nvt_rigid_step_one( const gpu_rigid_data_arrays& rigid_data,
                                         unsigned int *d_group_members,
                                         unsigned int group_size,
-                                        float4 *d_net_force,
+                                        Scalar4 *d_net_force,
                                         const BoxDim& box, 
                                         const gpu_nvt_rigid_data &nvt_rdata,
-                                        float deltaT);
+                                        Scalar deltaT);
 
 //! Kernel driver for the Ksum reduction final pass called by TwoStepNVTRigidGPU
 cudaError_t gpu_nvt_rigid_reduce_ksum(const gpu_nvt_rigid_data &nvt_rdata);
@@ -93,11 +93,11 @@ cudaError_t gpu_nvt_rigid_reduce_ksum(const gpu_nvt_rigid_data &nvt_rdata);
 cudaError_t gpu_nvt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
-                                    float4 *d_net_force,
-                                    float *d_net_virial,
+                                    Scalar4 *d_net_force,
+                                    Scalar *d_net_virial,
                                     const BoxDim& box, 
                                     const gpu_nvt_rigid_data &nvt_rdata,
-                                    float deltaT);
+                                    Scalar deltaT);
 
 #endif // __TWO_STEP_NVT_RIGID_CUH__
 

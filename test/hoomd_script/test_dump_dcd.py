@@ -17,32 +17,39 @@ class dmp_dcd_tests (unittest.TestCase):
     def test(self):
         dump.dcd(filename="dump_dcd", period=100);
         run(100)
-        os.remove('dump_dcd')
+        if (comm.get_rank() == 0):
+            os.remove('dump_dcd')
     
     # tests unwrap_full option
     def test_unwrap_full(self):
         dump.dcd(filename="dump_dcd", period=100, unwrap_full=True);
         run(100)
-        os.remove('dump_dcd')
+        if (comm.get_rank() == 0):
+            os.remove('dump_dcd')
     
     # tests unwrap_rigid option
     def test_unwrap_rigid(self):
-        dump.dcd(filename="dump_dcd", period=100, unwrap_rigid=True);
-        run(100)
-        os.remove('dump_dcd')
-        
+        # only supported in single-processor mode
+        if comm.get_num_ranks()==1:
+            dump.dcd(filename="dump_dcd", period=100, unwrap_rigid=True);
+            run(100)
+            if (comm.get_rank() == 0):
+                os.remove('dump_dcd')
+            
     # tests group option
     def test_group(self):
         typeA = group.type('A');
         dump.dcd(filename="dump_dcd", group=typeA, period=100);
         run(100)
-        os.remove('dump_dcd')
+        if (comm.get_rank() == 0):
+            os.remove('dump_dcd')
             
     # tests variable periods
     def test_variable(self):
         dump.dcd(filename="dump_dcd", period=lambda n: n*100);
         run(100)
-        os.remove('dump_dcd')
+        if (comm.get_rank() == 0):
+            os.remove('dump_dcd')
             
     # test disable/enable
     def test_enable_disable(self):

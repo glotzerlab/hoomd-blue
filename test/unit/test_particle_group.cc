@@ -283,6 +283,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     ParticleGroup type0(sysdef, selector0);
     BOOST_REQUIRE_EQUAL_UINT(type0.getNumMembers(), 4);
     BOOST_CHECK_EQUAL_UINT(type0.getIndexArray().getNumElements(), 4);
+
     BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(0), 0);
     BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(1), 2);
     BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(2), 5);

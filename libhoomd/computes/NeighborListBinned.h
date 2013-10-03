@@ -50,11 +50,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "NeighborListGPU.h"
+#include "NeighborList.h"
 #include "CellList.h"
 
-/*! \file NeighborListGPUBinned.h
-    \brief Declares the NeighborListGPUBinned class
+/*! \file NeighborListBinned.h
+    \brief Declares the NeighborListBinned class
 */
 
 #ifdef NVCC
@@ -92,7 +92,6 @@ class NeighborListBinned : public NeighborList
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
-        
     };
 
 //! Exports NeighborListBinned to python

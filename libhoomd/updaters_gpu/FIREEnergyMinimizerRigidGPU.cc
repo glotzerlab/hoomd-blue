@@ -89,16 +89,16 @@ FIREEnergyMinimizerRigidGPU::FIREEnergyMinimizerRigidGPU(boost::shared_ptr<Syste
         }
     
     // allocate the sum arrays
-    GPUArray<float> sum_pe(1, m_pdata->getExecConf());
+    GPUArray<Scalar> sum_pe(1, m_pdata->getExecConf());
     m_sum_pe.swap(sum_pe);
-    GPUArray<float> sum_Pt(3, m_pdata->getExecConf());
+    GPUArray<Scalar> sum_Pt(3, m_pdata->getExecConf());
     m_sum_Pt.swap(sum_Pt);
-    GPUArray<float> sum_Pr(3, m_pdata->getExecConf());
+    GPUArray<Scalar> sum_Pr(3, m_pdata->getExecConf());
     m_sum_Pr.swap(sum_Pr);
     
     m_block_size = 256; 
     m_num_blocks = m_nparticles / m_block_size + 1;
-    GPUArray<float> partial_sum_pe(m_num_blocks, m_pdata->getExecConf());
+    GPUArray<Scalar> partial_sum_pe(m_num_blocks, m_pdata->getExecConf());
     m_partial_sum_pe.swap(partial_sum_pe);
     
     if (reset_and_create_integrator)
@@ -175,8 +175,8 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
         m_prof->push(exec_conf, "FIRE rigid compute total energy");
     
     ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
-    ArrayHandle<float> d_partial_sum_pe(m_partial_sum_pe, access_location::device, access_mode::overwrite);
-    ArrayHandle<float> d_sum_pe(m_sum_pe, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_partial_sum_pe(m_partial_sum_pe, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_sum_pe(m_sum_pe, access_location::device, access_mode::overwrite);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
         
@@ -196,7 +196,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     }
 
     {
-    ArrayHandle<float> h_sum_pe(m_sum_pe, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_sum_pe(m_sum_pe, access_location::host, access_mode::read);
     energy = h_sum_pe.data[0] / Scalar(m_nparticles);    
     }
 
@@ -230,8 +230,8 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
 
-    ArrayHandle<float> d_sum_Pt(m_sum_Pt, access_location::device, access_mode::overwrite);
-    ArrayHandle<float> d_sum_Pr(m_sum_Pr, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_sum_Pt(m_sum_Pt, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_sum_Pr(m_sum_Pr, access_location::device, access_mode::overwrite);
     gpu_fire_rigid_compute_sum_all(d_rdata, 
                                    d_sum_Pt.data, 
                                    d_sum_Pr.data);
@@ -245,8 +245,8 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     
     {
     
-    ArrayHandle<float> h_sum_Pt(m_sum_Pt, access_location::host, access_mode::read);
-    ArrayHandle<float> h_sum_Pr(m_sum_Pr, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_sum_Pt(m_sum_Pt, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_sum_Pr(m_sum_Pr, access_location::host, access_mode::read);
     
     Pt = h_sum_Pt.data[0];
     vnorm = sqrt(h_sum_Pt.data[1]);

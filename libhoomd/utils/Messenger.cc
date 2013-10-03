@@ -55,10 +55,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Messenger.h"
+#include "ExecutionConfiguration.h"
+
 #include <assert.h>
 using namespace std;
 
 #include <boost/python.hpp>
+
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 using namespace boost::python;
 
 /*! \post Warning and error streams are set to cerr
@@ -67,15 +74,28 @@ using namespace boost::python;
     \post prefixes are "error!!!!" , "warning!!" and "notice"
 */
 Messenger::Messenger()
+    : m_default_notice_level(2)
     {
     m_err_stream = &cerr;
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
     m_nullstream = boost::shared_ptr<nullstream>(new nullstream());
-    m_notice_level = 2;
+    m_notice_level = m_default_notice_level;
     m_err_prefix     = "**ERROR**";
     m_warning_prefix = "*Warning*";
     m_notice_prefix  = "notice";
+
+#ifdef ENABLE_MPI
+    m_shared_filename = "";
+    m_has_mpi_comm = false;
+#endif
+
+    // preliminarily initialize rank and partiton
+    #ifdef ENABLE_MPI 
+    setRank(ExecutionConfiguration::guessRank(),0);
+    #else
+    setRank(0,0);
+    #endif
     }
 
 Messenger::~Messenger()
@@ -94,7 +114,7 @@ std::ostream& Messenger::error() const
     {
     assert(m_err_stream);
     if (m_err_prefix != string(""))
-        *m_err_stream << m_err_prefix << ": ";
+        *m_err_stream << m_err_prefix << " RANK " << m_rank << ": ";
     return *m_err_stream;
     }
 
@@ -114,7 +134,7 @@ std::ostream& Messenger::warning() const
     {
     assert(m_warning_stream);
     if (m_warning_prefix != string(""))
-        *m_warning_stream << m_warning_prefix << ": ";
+        *m_warning_stream << m_warning_prefix << " RANK " << m_rank << ": ";
     return *m_warning_stream;
     }
 
@@ -147,6 +167,39 @@ std::ostream& Messenger::notice(unsigned int level) const
         }
     }
 
+/*! Outputs the the collective notice string on the processor with rank zero, in rank order.
+
+ \param level The notice level
+ \param msg Content of the notice
+ */
+void Messenger::collectiveNoticeStr(unsigned int level, const std::string& msg) const
+    {
+    std::vector<std::string> rank_notices;
+
+#ifdef ENABLE_MPI
+    if (m_has_mpi_comm)
+        {
+        gather_v(msg, rank_notices, 0, m_mpi_comm);
+        }
+    else
+#endif
+        {
+        rank_notices.push_back(msg);
+        }
+
+#ifdef ENABLE_MPI
+    if (!m_has_mpi_comm || m_rank == 0)
+#endif
+        {
+        // Output notices in rank order
+        std::vector<std::string>::iterator notice_it;
+        for (notice_it = rank_notices.begin(); notice_it != rank_notices.end(); notice_it++)
+            {
+            notice(level) << *notice_it;
+            }
+        }
+    }
+
 /*! \param level Notice level
     \param msg Message to print
     \sa notice()
@@ -162,21 +215,89 @@ void Messenger::noticeStr(unsigned int level, const std::string& msg) const
 */
 void Messenger::openFile(const std::string& fname)
     {
-    m_file = boost::shared_ptr<std::ofstream>(new ofstream(fname.c_str()));
+    m_file = boost::shared_ptr<std::ostream>(new ofstream(fname.c_str()));
     m_err_stream = m_file.get();
     m_warning_stream = m_file.get();
     m_notice_stream = m_file.get();
     }
 
+#ifdef ENABLE_MPI
+/*! Open a shared file for error, warning, and notice streams
+
+    A suffix .rank (where rank is the partition number)
+    is appended to the filename
+*/
+void Messenger::openSharedFile()
+    {
+    assert(m_has_mpi_comm);
+
+    std::ostringstream oss;
+    oss << m_shared_filename << "." << m_partition;
+    boost::iostreams::stream<mpi_io> *mpi_ios = new boost::iostreams::stream<mpi_io>((const MPI_Comm&) m_mpi_comm, oss.str());
+
+    // now update the error, warning, and notice streams
+    m_file = boost::shared_ptr<std::ostream>(mpi_ios);
+    m_err_stream = m_file.get();
+    m_warning_stream = m_file.get();
+    m_notice_stream = m_file.get();
+    }
+#endif 
+
 /*! Any open file is closed. stdout is opened again for notices and stderr for warnings and errors.
 */
 void Messenger::openStd()
     {
-    m_file = boost::shared_ptr<std::ofstream>();
+    m_file = boost::shared_ptr<std::ostream>();
     m_err_stream = &cerr;
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
     }
+
+#ifdef ENABLE_MPI
+/*! \param filename The output filename
+    \param mpi_comm The MPI communicator to use for MPI file IO
+ */
+mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
+    : m_mpi_comm(mpi_comm),  m_file_open(false)
+    {
+    assert(m_mpi_comm);
+   
+    unsigned int len = filename.size();
+    char cfilename[len+1];
+    filename.copy(cfilename,len);
+    cfilename[len] = '\0';
+
+    // overwrite old file
+    MPI_File_delete(cfilename, MPI_INFO_NULL);
+
+    // open the log file
+    int ret = MPI_File_open(m_mpi_comm, cfilename,  MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_UNIQUE_OPEN, MPI_INFO_NULL, &m_file);
+
+    if (ret == 0)
+        m_file_open = true;
+    }
+
+std::streamsize mpi_io::write(const char *s,  std::streamsize n)
+    {
+    assert(m_file_open);
+
+    char out_data[n];
+    strncpy(out_data, s, n);
+
+    // write value to log file using MPI-IO
+    MPI_Status status;
+    MPI_File_write_shared(m_file, out_data, n, MPI_CHAR, &status);
+    return n;
+    }
+
+void mpi_io::close()
+    {
+    if (m_file_open)
+        MPI_File_close(&m_file);
+
+    m_file_open = false;
+    }
+#endif
 
 void export_Messenger()
     {
@@ -194,6 +315,9 @@ void export_Messenger()
          .def("getNoticePrefix", &Messenger::getNoticePrefix, return_value_policy<copy_const_reference>())
          .def("setWarningPrefix", &Messenger::setWarningPrefix)
          .def("openFile", &Messenger::openFile)
+#ifdef ENABLE_MPI
+         .def("setSharedFile", &Messenger::setSharedFile)
+#endif
          .def("openStd", &Messenger::openStd)
          ;
     }

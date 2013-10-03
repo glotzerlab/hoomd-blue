@@ -73,17 +73,17 @@ struct EAMTexInterData{
     int nr;                 //!< Undocumented parameter
     int nrho;               //!< Undocumented parameter
     int block_size;         //!< Undocumented parameter
-    float dr;               //!< Undocumented parameter
-    float rdr;              //!< Undocumented parameter
-    float drho;             //!< Undocumented parameter
-    float rdrho;            //!< Undocumented parameter
-    float r_cutsq;          //!< Undocumented parameter
-    float r_cut;            //!< Undocumented parameter
+    Scalar dr;               //!< Undocumented parameter
+    Scalar rdr;              //!< Undocumented parameter
+    Scalar drho;             //!< Undocumented parameter
+    Scalar rdrho;            //!< Undocumented parameter
+    Scalar r_cutsq;          //!< Undocumented parameter
+    Scalar r_cut;            //!< Undocumented parameter
 };
 
 //! Collection of pointers for EAM force GPU kernels
 struct EAMTexInterArrays{
-    float* atomDerivativeEmbeddingFunction;    //!< Undocumented parameter
+    Scalar* atomDerivativeEmbeddingFunction;    //!< Undocumented parameter
 };
 
 //! Collection of cuda Arrays for EAM force GPU kernels
@@ -99,8 +99,8 @@ struct EAMtex{
 
 //! Kernel driver that computes lj forces on the GPU for EAMForceComputeGPU
 cudaError_t gpu_compute_eam_tex_inter_forces(
-    float4* d_force,
-    float* d_virial,
+    Scalar4* d_force,
+    Scalar* d_virial,
     const unsigned int virial_pitch,
     const unsigned int N,
     const Scalar4 *d_pos,

@@ -48,44 +48,38 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: jglaser
+// Maintainer: ndtrung
 
-#ifndef __TWOSTEPNPHGPU_CUH__
-#define __TWOSTEPNPHGPU_CUH__
-
-#include <cuda_runtime.h>
-
-#include "ParticleData.cuh"
-#include "HOOMDMath.h"
-
-/*! \file TwoStepNPHGPU.cuh
-    \brief Declares GPU kernel code for NPH integration on the GPU. Used by TwoStepNPHGPU.
+/*! \file TwoStepNPHRigidGPU.cuh
+    \brief Declares GPU kernel code for NPH rigid body integration on the GPU. Used by TwoStepNPHRigidGPU.
 */
 
-//! Kernel driver for the the first step of the computation called by NPHUpdaterGPU
-cudaError_t gpu_nph_step_one(Scalar4 *d_pos,
-                             Scalar4 *d_vel,
-                             const Scalar3 *d_accel,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             float3 L_old,
-                             float3 L_halfstep,
-                             float3 L_final,
-                             float deltaT);
+#include "TwoStepNPTRigidGPU.cuh"
 
-//! Kernel driver to wrap the particles into a new box on the GPU
-cudaError_t gpu_nph_wrap_particles(const unsigned int N,
-                             Scalar4 *d_pos,
-                             int3 *d_image,
-                             const BoxDim& box);
+#ifndef __TWO_STEP_NPH_RIGID_CUH__
+#define __TWO_STEP_NPH_RIGID_CUH__
 
-//! Kernel driver for the the second step of the computation called by NPHUpdaterGPU
-cudaError_t gpu_nph_step_two(Scalar4 *d_pos,
-                             Scalar3 *d_accel,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             float4 *d_net_force,
-                             float deltaT);
+//! Kernel driver for the first part of the NPH update called by TwoStepNPHRigidGPU
+cudaError_t gpu_nph_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   Scalar4 *d_net_force,
+                                   const BoxDim& box, 
+                                   const gpu_npt_rigid_data &npt_rdata,
+                                   Scalar deltaT);
 
-#endif
+//! Kernel driver for the second part of the NPH update called by TwoStepNPHRigidGPU
+cudaError_t gpu_nph_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size,
+                                   Scalar4 *d_net_force,
+                                   Scalar *d_net_virial,
+                                   const BoxDim& box, 
+                                   const gpu_npt_rigid_data &npt_rdata,
+                                   Scalar deltaT);
+
+//! Kernel driver for the Ksum reduction final pass called by TwoStepNPHRigidGPU
+cudaError_t gpu_nph_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
+
+#endif // __TWO_STEP_NPH_RIGID_CUH__
 

@@ -27,7 +27,7 @@ class integrate_nvt_tests (unittest.TestCase):
         nvt = integrate.nvt(all, T=1.2, tau=0.5);
         nvt.set_params(T=1.3);
         nvt.set_params(tau=0.6);
-    
+
     # test w/ empty group
     def test_empty(self):
         empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)

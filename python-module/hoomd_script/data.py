@@ -52,6 +52,7 @@
 
 import hoomd
 from hoomd_script import globals
+from hoomd_script import util
 
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
@@ -66,6 +67,11 @@ from hoomd_script import globals
 # too often. As a general guideline, consider writing a high performance C++ / GPU  plugin (\ref sec_build_plugin)
 # if particle %data needs to accessed more often than once every few thousand time steps.
 #
+# If modifications need to be done on more than just a few particles, e.g.
+# setting new positions for all particles, or updating the velocities, etc., \b snapshots can be used.
+# \ref data_snapshot store the entire system state in a single (currently opaque) object and can
+# be used to re-initialize the system system.restore_snapshot().
+# 
 # <h2>Documentation by example</h2>
 #
 # For most of the cases below, it is assumed that the result of the initialization command was saved at the beginning
@@ -163,6 +169,8 @@ from hoomd_script import globals
 # Performance is decent, but not great. The for loop above that sets all velocities to 0 takes 0.86 seconds to execute
 # on a 2.93 GHz core2 iMac. The interface has been designed to be flexible and easy to use for the widest variety of
 # initialization tasks, not efficiency.
+# For doing modifications that operate on the whole system data efficiently, snapshots have been
+# designed. Their usage is described below.
 #
 # There is a second way to access the particle data. Any defined group can be used in exactly the same way as
 # \c system.particles above, only the particles accessed will be those just belonging to the group. For a specific
@@ -187,9 +195,9 @@ from hoomd_script import globals
 # velocity         : (0.0, 0.0, 0.0)
 # orientation      : (0.9244732856750488, -0.3788720965385437, -0.029276784509420395, 0.0307924821972847)
 # angular_momentum (space frame) : (0.0, 0.0, 0.0)
-# moment of inertia: (10.000000953674316, 10.0, 0.0)
-# particle tags    : [0, 1, 2, 3, 4]
-# particle disp    : [[-3.725290298461914e-09, -4.172325134277344e-07, 2.0], [-2.421438694000244e-08, -2.086162567138672e-07, 0.9999998211860657], [-2.6206091519043184e-08, -2.073889504572435e-09, -3.361484459674102e-07], [-5.029141902923584e-08, 2.682209014892578e-07, -1.0000004768371582], [-3.3527612686157227e-08, -2.980232238769531e-07, -2.0]]
+# moment_inertia: (10.000000953674316, 10.0, 0.0)
+# particle_tags    : [0, 1, 2, 3, 4]
+# particle_disp    : [[-3.725290298461914e-09, -4.172325134277344e-07, 2.0], [-2.421438694000244e-08, -2.086162567138672e-07, 0.9999998211860657], [-2.6206091519043184e-08, -2.073889504572435e-09, -3.361484459674102e-07], [-5.029141902923584e-08, 2.682209014892578e-07, -1.0000004768371582], [-3.3527612686157227e-08, -2.980232238769531e-07, -2.0]]
 # >>> print b.COM
 # (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
 # >>> b.particle_disp = [[0,0,0], [0,0,0], [0,0,0.0], [0,0,0], [0,0,0]]
@@ -323,8 +331,24 @@ from hoomd_script import globals
 # If you need to store some particle properties at one time in the simulation and access them again later, you will need
 # to make copies of the actual property values themselves and not of the proxy references.
 #
+# \section data_snapshot Snapshots
+# <hr>
+# <h3>Snapshots</h3>
+# 
+# A snaphot of the current system state is obtained using system_data.take_snapshot(). It contains information
+# about the simulation box, particles, bonds, angles, dihedrals, impropers, walls and rigid bodies.
+# Once taken, it is not updated anymore (as opposed to the particle %data proxies, which always
+# return the current state). Instead, it can be used to restart the simulation
+# using system.restore_snapshot().
+#
+# In future releases it will be possible to modify or %analyze the contents of a snapshot.
+#
+# Example for taking a snapshot:
+# \code
+# snapshot = system.take_snapshot(all=True)
+# \endcode
 
-## \internal
+##
 # \brief Access system data
 #
 # system_data provides access to the different data structures that define the current state of the simulation.
@@ -344,6 +368,111 @@ class system_data:
         self.dihedrals = dihedral_data(sysdef.getDihedralData());
         self.impropers = dihedral_data(sysdef.getImproperData());
         self.bodies = body_data(sysdef.getRigidData());
+
+    ## Take a snapshot of the current system data
+    # 
+    # This functions returns a snapshot object. It contains the current
+    # partial or complete simulation state. With appropriate options
+    # it is possible to select which data properties should be included
+    # in the snapshot.
+    # 
+    # \param particles If true, particle data is included in the snapshot
+    # \param bonds If true, bond data is included in the snapshot
+    # \param angles If true, angle data is included in the snapshot
+    # \param dihedrals If true, dihedral data is included in the snapshot
+    # \param impropers If true, dihedral data is included in the snapshot
+    # \param rigid_bodies If true, rigid body data is included in the snapshot
+    # \param walls If true, wall data is included in the snapshot
+    # \param integrators If true, integrator data is included the snapshot
+    # \param all If true, the entire system state is saved in the snapshot
+    #
+    # Specific options (such as \b particles=True) take precedence over \b all=True.
+    #
+    # \returns the snapshot object.
+    #
+    # \code
+    # snapshot = system.take_snapshot()
+    # snapshot = system.take_snapshot(particles=true) 
+    # snapshot = system.take_snapshot(bonds=true)
+    # \endcode
+    #
+    # \MPI_SUPPORTED
+    def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None ):
+        util.print_status_line();
+
+        if all is True:
+            if particles is None:
+                particles=True
+            if bonds is None:
+                bonds=True
+            if angles is None:
+                angles=True
+            if dihedrals is None:
+                dihedrals=True
+            if impropers is None:
+                impropers=True
+            if rigid_bodies is None:
+                rigid_bodies=True
+            if walls is None:
+                walls=True
+            if integrators is None:
+                integrators=True
+      
+        if particles is None and not all:
+            particles = False
+        if bonds is None and not all:
+            bonds = False
+        if angles is None and not all:
+            angles = False
+        if dihedrals is None and not all:
+            dihedrals = False
+        if impropers is None and not all:
+            impropers = False
+        if rigid_bodies is None and not all:
+            rigid_bodies = False
+        if walls is None and not all:
+            walls = False
+        if integrators is None and not all:
+            integrators = False
+
+        if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or walls or integrators):
+            globals.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
+            return None
+
+        # take the snapshot
+        cpp_snapshot = self.sysdef.takeSnapshot(particles,bonds,angles,dihedrals,impropers,rigid_bodies,walls,integrators)
+
+        return cpp_snapshot
+
+    ## Re-initializes the system from a snapshot
+    # 
+    # \param snapshot The snapshot to initialize the system from
+    #
+    # Snapshots temporarily store system %data. Snapshots contain the complete simulation state in a
+    # single object. They can be used to restart a simulation.
+    #
+    # Example use cases in which a simulation may be restarted from a snapshot include python-script-level
+    # \b Monte-Carlo schemes, where the system state is stored after a move has been accepted (according to
+    # some criterium), and where the system is re-initialized from that same state in the case
+    # when a move is not accepted.
+    #
+    # Example for the procedure of taking a snapshot and re-initializing from it:
+    # \code
+    # system = init.read_xml("some_file.xml")
+    #
+    # ... run a simulation ...
+    #
+    # snapshot = system.take_snapshot(all=True)
+    # ...
+    # system.restore_snapshot(snapshot)
+    # \endcode
+    #
+    # \sa hoomd_script.data
+    # \MPI_SUPPORTED
+    def restore_snapshot(self, snapshot):
+        util.print_status_line();
+        
+        self.sysdef.initializeFromSnapshot(snapshot);
 
     ## \var sysdef
     # \internal
@@ -368,7 +497,7 @@ class system_data:
         if name == "dimensions":
             return self.sysdef.getNDimensions();
         elif name == "box":
-            b = self.sysdef.getParticleData().getBox();
+            b = self.sysdef.getParticleData().getGlobalBox();
             L = b.getL();
             return (L.x, L.y, L.z);
         
@@ -436,12 +565,12 @@ class particle_data:
     ## \internal
     # \brief Get the number of particles
     def __len__(self):
-        return self.pdata.getN();
+        return self.pdata.getNGlobal();
     
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Particle Data for %d particles of %d type(s)" % (self.pdata.getN(), self.pdata.getNTypes());
+        result = "Particle Data for %d particles of %d type(s)" % (self.pdata.getNGlobal(), self.pdata.getNTypes());
         return result
     
     ## \internal
@@ -598,10 +727,10 @@ class particle_data_proxy:
             raise AttributeError;
         if name == "orientation":
             o = hoomd.Scalar4();
-            o.x = int(value[0]);
-            o.y = int(value[1]);
-            o.z = int(value[2]);
-            o.w = int(value[3]);
+            o.x = value[0];
+            o.y = value[1];
+            o.z = value[2];
+            o.w = value[3];
             self.pdata.setOrientation(self.tag, o);
             return;
         if name == "net_force":
@@ -668,7 +797,7 @@ class force_data:
     ## \internal
     # \brief Get the number of particles
     def __len__(self):
-        return globals.system_definition.getParticleData().getN();
+        return globals.system_definition.getParticleData().getNGlobal();
     
     ## \internal
     # \brief Get an informal string representing the object
@@ -723,7 +852,12 @@ class force_data_proxy:
             f = self.fdata.cpp_force.getForce(self.tag);
             return (f.x, f.y, f.z);
         if name == "virial":
-            return self.fdata.cpp_force.getVirial(self.tag);
+            return (self.fdata.cpp_force.getVirial(self.tag,0),
+                    self.fdata.cpp_force.getVirial(self.tag,1),
+                    self.fdata.cpp_force.getVirial(self.tag,2),
+                    self.fdata.cpp_force.getVirial(self.tag,3),
+                    self.fdata.cpp_force.getVirial(self.tag,4),
+                    self.fdata.cpp_force.getVirial(self.tag,5));
         if name == "energy":
             energy = self.fdata.cpp_force.getEnergy(self.tag);
             return energy;
@@ -747,15 +881,15 @@ class bond_data:
     class bond_data_iterator:
         def __init__(self, data):
             self.data = data;
-            self.index = 0;
+            self.tag = 0;
         def __iter__(self):
             return self;
         def __next__(self):
-            if self.index == len(self.data):
+            if self.tag == len(self.data):
                 raise StopIteration;
             
-            result = self.data[self.index];
-            self.index += 1;
+            result = self.data[self.tag];
+            self.tag += 1;
             return result;
         
         # support python2
@@ -791,10 +925,10 @@ class bond_data:
     ## \internal
     # \brief Get a bond_proxy reference to the bond with id \a id
     # \param id Bond id to access
-    def __getitem__(self, id):
-        if id >= len(self) or id < 0:
+    def __getitem__(self, tag):
+        if tag >= len(self) or tag < 0:
             raise IndexError;
-        return bond_data_proxy(self.bdata, id);
+        return bond_data_proxy(self.bdata, tag);
     
     ## \internal
     # \brief Set a bond's properties
@@ -817,12 +951,12 @@ class bond_data:
     ## \internal
     # \brief Get the number of bonds
     def __len__(self):
-        return self.bdata.getNumBonds();
+        return self.bdata.getNumBondsGlobal();
     
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNumBonds(), self.bdata.getNBondTypes());
+        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNumBondsGlobal(), self.bdata.getNBondTypes());
         return result
     
     ## \internal
@@ -846,22 +980,21 @@ class bond_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
-#
+# \MPI_SUPPORTED
 class bond_data_proxy:
     ## \internal
     # \brief create a bond_data_proxy
     #
     # \param bdata BondData to which this proxy belongs
     # \param id index of this bond in \a bdata (at time of proxy creation)
-    def __init__(self, bdata, id):
+    def __init__(self, bdata, tag):
         self.bdata = bdata;
-        self.tag = self.bdata.getBondTag(id);
+        self.tag = tag
     
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
         result = "";
-        result += "tag          : " + str(self.tag) + "\n";
         result += "typeid       : " + str(self.typeid) + "\n";
         result += "a            : " + str(self.a) + "\n"
         result += "b            : " + str(self.b) + "\n"
@@ -1017,7 +1150,7 @@ class angle_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
-#
+# \MPI_NOT_SUPPORTED
 class angle_data_proxy:
     ## \internal
     # \brief create a angle_data_proxy
@@ -1196,7 +1329,7 @@ class dihedral_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
-#
+# \MPI_NOT_SUPPORTED
 class dihedral_data_proxy:
     ## \internal
     # \brief create a dihedral_data_proxy
@@ -1356,10 +1489,10 @@ class body_data:
 # - \c COM           : The Center of Mass position of the body
 # - \c velocity      : The velocity vector of the center of mass of the body
 # - \c orientation   : The orientation of the body (quaternion)
-# - \c angular momentum : The angular momentum of the body in the space frame
-# - \c moment of inertia : the principle components of the moment of inertia
-# - \c particle displacements : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
-#
+# - \c angular_momentum : The angular momentum of the body in the space frame
+# - \c moment_inertia : the principle components of the moment of inertia
+# - \c particle_disp : the displacements of the particles (or interaction sites) of the body relative to the COM in the body frame.
+# \MPI_NOT_SUPPORTED
 class body_data_proxy:
     ## \internal
     # \brief create a body_data_proxy
@@ -1367,6 +1500,13 @@ class body_data_proxy:
     # \param bdata RigidData to which this proxy belongs
     # \param tag tag of this body in \a bdata
     def __init__(self, bdata, tag):
+
+        # Error out in MPI simulations
+        if (hoomd.is_MPI_available()):
+            if globals.system_definition.getParticleData().getDomainDecomposition():
+                globals.msg.error("Rigid bodies are not supported in multi-processor simulations.\n\n")
+                raise RuntimeError("Error accessing body data.")
+ 
         self.bdata = bdata;
         self.tag = tag;
     
@@ -1380,11 +1520,11 @@ class body_data_proxy:
         result += "velocity         : " + str(self.velocity) + "\n"
         result += "orientation      : " + str(self.orientation) + "\n"
         result += "angular_momentum (space frame) : " + str(self.angular_momentum) + "\n"
-        result += "moment of inertia: " + str(self.moment_inertia) + "\n"
-        result += "particle tags    : " + str(self.particle_tags) + "\n"
-        result += "particle disp    : " + str(self.particle_disp) + "\n"
-        result += "net force        : " + str(self.net_force) + "\n"
-        result += "net torque       : " + str(self.net_torque) + "\n"
+        result += "moment_inertia: " + str(self.moment_inertia) + "\n"
+        result += "particle_tags    : " + str(self.particle_tags) + "\n"
+        result += "particle_disp    : " + str(self.particle_disp) + "\n"
+        result += "net_force        : " + str(self.net_force) + "\n"
+        result += "net_torque       : " + str(self.net_torque) + "\n"
                  
         return result;
     
@@ -1468,7 +1608,7 @@ class body_data_proxy:
             p.z = float(value[2]);
             self.bdata.setAngMom(self.tag, p);
             return;                    
-        if name == "momentum_inertia":
+        if name == "moment_inertia":
             p = hoomd.Scalar3();
             p.x = float(value[0]);
             p.y = float(value[1]);

@@ -79,7 +79,10 @@ class BoxResizeUpdater : public Updater
         BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef,
                          boost::shared_ptr<Variant> Lx,
                          boost::shared_ptr<Variant> Ly,
-                         boost::shared_ptr<Variant> Lz);
+                         boost::shared_ptr<Variant> Lz,
+                         boost::shared_ptr<Variant> xy,
+                         boost::shared_ptr<Variant> xz,
+                         boost::shared_ptr<Variant> yz);
 
         //! Destructor
         virtual ~BoxResizeUpdater();
@@ -94,6 +97,9 @@ class BoxResizeUpdater : public Updater
         boost::shared_ptr<Variant> m_Lx;    //!< Box Lx vs time
         boost::shared_ptr<Variant> m_Ly;    //!< Box Ly vs time
         boost::shared_ptr<Variant> m_Lz;    //!< Box Lz vs time
+        boost::shared_ptr<Variant> m_xy;    //!< Box xy tilt factor vs time
+        boost::shared_ptr<Variant> m_xz;    //!< Box xz tilt factor vs time
+        boost::shared_ptr<Variant> m_yz;    //!< Box yz tilt factor vs time
         bool m_scale_particles;                //!< Set to true if particle positions are to be scaled as well
     };
 

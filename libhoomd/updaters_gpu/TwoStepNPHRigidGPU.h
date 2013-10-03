@@ -48,15 +48,15 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: jglaser
+// Maintainer: ndtrung
 
-#include "TwoStepNPH.h"
+#include "TwoStepNPHRigid.h"
 
-#ifndef __TWO_STEP_NPH_GPU_H__
-#define __TWO_STEP_NPH_GPU_H__
+#ifndef __TWO_STEP_NPH_RIGID_GPU_H__
+#define __TWO_STEP_NPH_RIGID_GPU_H__
 
-/*! \file TwoStepNPHGPU.h
-    \brief Declares the TwoStepNPHGPU class
+/*! \file TwoStepNPHRigidGPU.h
+    \brief Declares the TwoStepNPHRigidGPU class
 */
 
 #ifdef NVCC
@@ -64,32 +64,51 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! Integrates part of the system forward in two steps in the NPH ensemble on the GPU
-/*! Implements Andersen NPH integration through the IntegrationMethodTwoStep interface, runs on the GPU
-
+/*! Implements velocity-verlet NPH integration through the IntegrationMethodTwoStep interface, runs on the GPU
+    
     \ingroup updaters
 */
-class TwoStepNPHGPU : public TwoStepNPH
+class TwoStepNPHRigidGPU : public TwoStepNPHRigid
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNPHGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo,
-                   Scalar W,
-                   boost::shared_ptr<Variant> P,
-                   integrationMode mode,
-                   const std::string& suffix);
-        virtual ~TwoStepNPHGPU() {};
-
+        TwoStepNPHRigidGPU(boost::shared_ptr<SystemDefinition> sysdef, 
+                            boost::shared_ptr<ParticleGroup> group,
+                            boost::shared_ptr<ComputeThermo> thermo_group,
+                            boost::shared_ptr<ComputeThermo> thermo_all,
+                            Scalar tauP,
+                            boost::shared_ptr<Variant> P,
+                            bool skip_restart=false);
+                            
+        virtual ~TwoStepNPHRigidGPU() {};
+        
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
-
+        
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
+       
+    protected:
+        GPUArray<Scalar> m_partial_Ksum_t;  //!< Translational kinetic energy per body
+        GPUArray<Scalar> m_partial_Ksum_r;  //!< Rotational kinetic energy per body
+        GPUArray<Scalar> m_Ksum_t;          //!< Translational kinetic energy 
+        GPUArray<Scalar> m_Ksum_r;          //!< Rotational kinetic energy
+        GPUArray<Scalar4> m_new_box;        //!< New box size
+        GPUArray<Scalar> m_partial_sum_virial_rigid;  //!< Partial sum for first pass reduction
+        GPUArray<Scalar> m_sum_virial_rigid;  //!< Total sum of virial on the GPU
+        
+        unsigned int m_block_size;        //!< Block size to launch on the GPU (must be a power of two)
+        unsigned int m_group_num_blocks;  //!< Number of blocks of \a block_size to launch when updating the group
+        unsigned int m_full_num_blocks;   //!< Number of blocks to launch when updating all particles
+        GPUArray<Scalar> m_partial_sum2K;  //!< Partial sums from the first pass reduction
+        GPUArray<Scalar> m_sum2K;          //!< Total sum of 2K on the GPU
+        GPUArray<Scalar> m_partial_sumW;   //!< Partial sums for the first pass reduction of W
+        GPUArray<Scalar> m_sumW;           //!< Total sum of W on the GPU
+    
     };
 
-//! Exports the TwoStepNPHGPU class to python
-void export_TwoStepNPHGPU();
+//! Exports the TwoStepNPHRigidGPU class to python
+void export_TwoStepNPHRigidGPU();
 
-#endif // #ifndef __TWO_STEP_NPH_GPU_H__
+#endif // #ifndef __TWO_STEP_NPH_RIGID_GPU_H__
 

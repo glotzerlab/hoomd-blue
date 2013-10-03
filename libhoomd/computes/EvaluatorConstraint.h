@@ -104,7 +104,7 @@ class EvaluatorConstraint
         
         //! Evaluate the additional constraint force
         /*! \param FC output parameter where the computed force is written
-            \param virial array of six scalars the computed symmetrized virial tensor is written
+            \param virial array of six scalars the computed virial tensor is written
             \param C constrained position particle will be moved to at the next step
             \return Additional force \a F needed to satisfy the constraint
         */

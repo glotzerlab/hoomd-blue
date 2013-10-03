@@ -60,6 +60,11 @@ using namespace boost::python;
 
 #include "TwoStepNVT.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "HOOMDMPI.h"
+#endif 
+
 /*! \file TwoStepNVT.h
     \brief Contains code for the TwoStepNVT class
 */
@@ -212,6 +217,16 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     Scalar curr_T = m_thermo->getTemperature();
     xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
     eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // broadcast integrator variables from rank 0 to other processors
+        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        }
+#endif
+
     
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     

@@ -47,3 +47,57 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -- end license --
+
+# Maintainer: jglaser / All Developers are free to add commands for new features
+
+## \package hoomd_script.comm
+# \brief Commands to support MPI communication
+
+import hoomd;
+from hoomd_script import init;
+from hoomd_script import data;
+from hoomd_script import util;
+from hoomd_script import globals;
+
+import sys;
+
+## Get the number of ranks
+# \returns the number of MPI ranks running in parallel
+# \note Returns 1 in non-mpi builds
+def get_num_ranks():
+    if hoomd.is_MPI_available():
+        return globals.exec_conf.getNRanks();
+    else:
+        return 1;
+
+## Return the current rank
+# If HOOMD is already initialized, it returns the actual MPI rank.
+# If HOOMD is not yet initialized, it guesses the rank from environment
+# variables.
+# \note Always returns 0 in non-mpi builds
+def get_rank():
+    if hoomd.is_MPI_available():
+        if init.is_initialized():
+            return globals.exec_conf.getRank()
+        else:
+            return hoomd.ExecutionConfiguration.guessRank(globals.msg)
+    else:
+        return 0;
+
+## Return the current partition
+# If HOOMD is already initialized, it returns the actual partition.
+# If HOOMD is not yet initialized, it guesses the partition id from environment
+# variables.
+# \note Always returns 0 in non-mpi builds
+def get_partition():
+    if hoomd.is_MPI_available():
+        if init.is_initialized():
+            return globals.exec_conf.getPartition()
+        else:
+            if globals.options.nrank is not None:
+                return int(hoomd.ExecutionConfiguration.guessRank(globals.msg)/globals.options.nrank)
+            else:
+                return 0
+    else:
+        return 0;
+

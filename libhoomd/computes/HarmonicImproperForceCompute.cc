@@ -68,7 +68,7 @@ using namespace boost::python;
 using namespace std;
 
 // SMALL a relatively small number
-#define SMALL 0.001f
+#define SMALL Scalar(0.001)
 
 /*! \file HarmonicImproperForceCompute.cc
     \brief Contains code for the HarmonicImproperForceCompute class
@@ -301,17 +301,14 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         Scalar ffcy = sy2 - ffdy;
         Scalar ffcz = sz2 - ffdz;
         
-        // and calculate the virial (symmetrized version)
+        // and calculate the virial (upper triangular version)
         // compute 1/4 of the virial, 1/4 for each atom in the improper
         Scalar improper_virial[6];
         improper_virial[0] = (1./4.)*(dab.x*ffax + dcb.x*ffcx + (ddc.x+dcb.x)*ffdx);
-        improper_virial[1] = (1./8.)*((dab.x*ffay + dcb.x*ffcy + (ddc.x+dcb.x)*ffdy)
-                                     +(dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx));
-        improper_virial[2] = (1./8.)*((dab.x*ffaz + dcb.x*ffcz + (ddc.x+dcb.x)*ffdz)
-                                     +(dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx));
+        improper_virial[1] = (1./4.)*(dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx);
+        improper_virial[2] = (1./4.)*(dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx);
         improper_virial[3] = (1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
-        improper_virial[4] = (1./8.)*((dab.y*ffaz + dcb.y*ffcz + (ddc.y+dcb.y)*ffdz)
-                                     +(dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy));
+        improper_virial[4] = (1./4.)*(dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
         improper_virial[5] = (1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
         
         

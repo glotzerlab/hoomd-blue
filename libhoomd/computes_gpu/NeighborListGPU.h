@@ -79,10 +79,9 @@ class NeighborListGPU : public NeighborList
         NeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
             : NeighborList(sysdef, r_cut, r_buff)
             {
-            GPUFlags<unsigned int> flags(exec_conf);
+            GPUFlags<uint2> flags(exec_conf);
             m_flags.swap(flags);
-            m_flags.resetFlags(0);
-            
+            m_flags.resetFlags(make_uint2(0,0));
             // default to full mode
             m_storage_mode = full;
             m_block_size_filter = 192;
@@ -102,8 +101,12 @@ class NeighborListGPU : public NeighborList
         
         //! Benchmark the filter kernel
         double benchmarkFilter(unsigned int num_iters);
+
+        //! Update the exclusion list on the GPU
+        virtual void updateExListIdx();
+
     protected:
-        GPUFlags<unsigned int> m_flags;     //!< Storage for device flags on the GPU
+        GPUFlags<uint2> m_flags;     //!< Storage for device flags on the GPU
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
@@ -115,11 +118,12 @@ class NeighborListGPU : public NeighborList
         virtual void setLastUpdatedPos()
             {
             m_last_L = m_pdata->getGlobalBox().getL(); 
+            m_last_L_local = m_pdata->getBox().getL();
             }
         
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
-    
+
     private:
         unsigned int m_block_size_filter;   //!< Block size for the filter kernel
         unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update

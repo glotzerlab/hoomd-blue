@@ -75,6 +75,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __HOOMD_INITIALIZER_H__
 #define __HOOMD_INITIALIZER_H__
 
+//! Forward declarations
+class ExecutionConfiguation;
+class SnapshotSystemData;
+
 //! Initializes particle data from a Hoomd input file
 /*! The input XML file format is identical to the output XML file format that HOOMDDumpWriter writes.
     For more information on the XML file format design see \ref page_dev_info. Although, HOOMD's
@@ -92,69 +96,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     \ingroup data_structs
 */
-class HOOMDInitializer : public ParticleDataInitializer
+class HOOMDInitializer 
     {
     public:
         //! Loads in the file and parses the data
-        HOOMDInitializer(const std::string &fname);
+        HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                         const std::string &fname);
 
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumDimensions() const;
-        
-        //! Returns the number of particles to be initialized
-        virtual unsigned int getNumParticles() const;
-        
-        //! Returns the number of particle types to be initialized
-        virtual unsigned int getNumParticleTypes() const;
-        
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
         
         //! Sets the timestep of the simulation
         virtual void setTimeStep(unsigned int ts);
 
-        //! Returns the box the particles will sit in
-        virtual BoxDim getBox() const;
-
         //! initializes a snapshot with the particle data
-        virtual void initSnapshot(SnapshotParticleData &snapshot) const;
+        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
 
-        //! Initialize the walls
-        virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
-        
-        //! Initialize the type name mapping
-        std::vector<std::string> getTypeMapping() const;
-        
-        //! Returns the number of bond types to be created
-        virtual unsigned int getNumBondTypes() const;
-        
-        //! Returns the number of angle types to be created
-        virtual unsigned int getNumAngleTypes() const;
-        
-        //! Returns the number of dihedral types to be created
-        virtual unsigned int getNumDihedralTypes() const;
-        
-        //! Returns the number of improper types to be created
-        virtual unsigned int getNumImproperTypes() const;
-        
-        //! Initialize the bond data
-        virtual void initBondData(boost::shared_ptr<BondData> bond_data) const;
-        
-        //! Initialize the angle data
-        virtual void initAngleData(boost::shared_ptr<AngleData> angle_data) const;
-        
-        //! Initialize the dihedral data
-        virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const;
-        
-        //! Initialize the improper data
-        virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const;
-        
-        //! Initialize the orientation data
-        virtual void initOrientation(Scalar4 *orientation) const;
-
-        //! Initialize the inertia tensor data
-        virtual void initMomentInertia(InertiaTensor *moment_inertia) const;
-        
         //! simple vec for storing particle data
         struct vec
             {
@@ -277,7 +234,8 @@ class HOOMDInitializer : public ParticleDataInitializer
         
         std::vector<Scalar4> m_orientation;             //!< Orientation of each particle
         std::vector<InertiaTensor> m_moment_inertia;    //!< Inertia tensor for each particle
-        
+
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     };
 
 //! Exports HOOMDInitializer to python

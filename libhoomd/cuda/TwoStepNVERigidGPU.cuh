@@ -64,27 +64,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_nve_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
+                             Scalar4 *d_net_force,
                              const BoxDim& box,
-                             float deltaT);
+                             Scalar deltaT);
 
 //! Kernel driver for the second part of the NVE update called by TwoStepNVERigidGPU
 cudaError_t gpu_nve_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
-                             float *d_net_virial,
+                             Scalar4 *d_net_force,
+                             Scalar *d_net_virial,
                              const BoxDim& box, 
-                             float deltaT);
+                             Scalar deltaT);
 
 //! Kernel driver for the force and torque computes
 cudaError_t gpu_rigid_force( const gpu_rigid_data_arrays& rigid_data,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
-                             float4 *d_net_torque,
+                             Scalar4 *d_net_force,
+                             Scalar4 *d_net_torque,
                              const BoxDim& box, 
-                             float deltaT);
+                             Scalar deltaT);
 
 #endif //__TWO_STEP_NVE_RIGID_GPU_CUH__
 

@@ -94,13 +94,34 @@ class ParticleData;
 //! Handy structure for passing around and initializing the dihedral data
 struct SnapshotDihedralData
     {
+    //! Constructs an empty snapshot
+    SnapshotDihedralData()
+        { }
+
     //! Constructor
     /*! \param n_dihedrals Number of dihedrals contained in the snapshot
      */
     SnapshotDihedralData(unsigned int n_dihedrals)
         {
+        resize(n_dihedrals);
+        }
+
+    //! Resize the snapshot
+    /*! \param n_dihedrals Number of dihedrals to allocate memory for
+     */
+    void resize(unsigned int n_dihedrals)
+        {
         type_id.resize(n_dihedrals);
         dihedrals.resize(n_dihedrals);
+        }
+
+    //! Validate the snapshot
+    /* \returns true if number of elements in snapshot is consistent
+     */
+    bool validate() const
+        {
+        if (! dihedrals.size() == type_id.size()) return false;
+        return true;
         }
 
     std::vector<unsigned int> type_id;                 //!< Stores type for each bo
@@ -150,11 +171,23 @@ class DihedralData : boost::noncopyable
         //! Constructs an empty list with no dihedrals
         DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types = 0);
         
+        //! Constructs a DihedralData from a snapshot
+        DihedralData(boost::shared_ptr<ParticleData> pdata, const SnapshotDihedralData& snapshot);
+
         //! Destructor
         ~DihedralData();
         
         //! Add a dihedral to the list
         unsigned int addDihedral(const Dihedral& dihedral);
+
+        //! Add a new dihedral type
+        /*! \returns the id of the newly added type
+         */
+        unsigned int addDihedralType(const std::string& name)
+            {
+            m_dihedral_type_mapping.push_back(name);
+            return m_dihedral_type_mapping.size()-1;
+            }
 
         //! Remove a dihedral identified by its unique tag from the list
         void removeDihedral(unsigned int tag);
@@ -190,12 +223,9 @@ class DihedralData : boost::noncopyable
         */
         unsigned int getNDihedralTypes() const
             {
-            return m_n_dihedral_types;
+            return m_dihedral_type_mapping.size();
             }
             
-        //! Set the type mapping
-        void setDihedralTypeMapping(const std::vector<std::string>& dihedral_type_mapping);
-        
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name);
         
@@ -245,7 +275,6 @@ class DihedralData : boost::noncopyable
         void initializeFromSnapshot(const SnapshotDihedralData& snapshot);
         
     private:
-        const unsigned int m_n_dihedral_types;              //!< Number of dihedral types
         bool m_dihedrals_dirty;                             //!< True if the dihedral list has been changed
         boost::shared_ptr<ParticleData> m_pdata;            //!< Particle Data these dihedrals belong to
         boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
