@@ -209,9 +209,11 @@ Table of contents:
 \section sec_index_angle Angle potentials
  - \link hoomd_script.angle.harmonic angle.harmonic\endlink - <i>Harmonic %angle force </i>
  - \link hoomd_script.angle.cgcmm angle.cgcmm\endlink - <i>CGCMM %angle force </i>
+ - \link hoomd_script.angle.table angle.table\endlink - <i>Tabulated %angle force </i>
 
 \section sec_index_dihedral Dihedral potentials
  - \link hoomd_script.dihedral.harmonic dihedral.harmonic\endlink - <i>Harmonic %dihedral force </i>
+ - \link hoomd_script.dihedral.table dihedral.table\endlink - <i>Tabulated %dihedral force </i>
 
 \section sec_index_improper Improper potentials
  - \link hoomd_script.improper.harmonic improper.harmonic\endlink - <i>Harmonic %improper force </i>
