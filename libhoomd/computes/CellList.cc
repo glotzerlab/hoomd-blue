@@ -506,11 +506,10 @@ void CellList::computeCellList()
         int jb = (int)(f.y * m_dim.y);
         int kb = (int)(f.z * m_dim.z);
         
-        // check if the particle is inside the unit cell + ghost layer
-        // for non-periodic directions
-        if ((!periodic.x && (f.x < Scalar(0.0) || f.x >= Scalar(1.0))) ||
-            (!periodic.y && (f.y < Scalar(0.0) || f.y >= Scalar(1.0))) ||
-            (!periodic.z && (f.z < Scalar(0.0) || f.z >= Scalar(1.0))) )
+        // check if the particle is inside the unit cell + ghost layer in all dimensions
+        if ((f.x < Scalar(0.0) || f.x >= Scalar(1.0)) ||
+            (f.y < Scalar(0.0) || f.y >= Scalar(1.0)) ||
+            (f.z < Scalar(0.0) || f.z >= Scalar(1.0)) )
             { 
             // if a ghost particle is out of bounds, silently ignore it
             if (n < m_pdata->getN())
