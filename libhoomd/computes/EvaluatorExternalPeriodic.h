@@ -64,9 +64,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// SCALARASINT resolves to __float_as_int on the device and to __scalar_as_int on the host
+// SCALARASINT resolves to __scalar_as_int on the device and to __scalar_as_int on the host
 #ifdef NVCC
-#define SCALARASINT(x) __float_as_int(x)
+#define SCALARASINT(x) __scalar_as_int(x)
 #else
 #define SCALARASINT(x) __scalar_as_int(x)
 #endif
@@ -155,11 +155,11 @@ class EvaluatorExternalPeriodic
             Scalar3 q = b*m_periodicity;
             clipParameter   = Scalar(1.0)/Scalar(2.0*M_PI)/(m_periodicity*m_interfaceWidth);
             arg = dot(m_pos,q);
-            clipcos = clipParameter*cosf(arg);
+            clipcos = clipParameter*fast::cos(arg);
             tanH = tanhf(clipcos);
             sechSq = (Scalar(1.0) - tanH*tanH);
 
-            F = m_orderParameter*sechSq*clipParameter*sinf(arg)*q;
+            F = m_orderParameter*sechSq*clipParameter*fast::sin(arg)*q;
             energy = m_orderParameter*tanH;
             }
 

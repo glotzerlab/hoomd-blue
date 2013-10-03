@@ -3,6 +3,9 @@
 ##################################
 ## Find MPI
 if (ENABLE_MPI)
+    # needed for MPI support
+    CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0 FATAL_ERROR)
+
     # the package is needed
     find_package(MPI REQUIRED)
 

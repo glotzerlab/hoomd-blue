@@ -70,17 +70,17 @@ cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
                                    unsigned int group_size,
                                    const BoxDim& box,
                                    unsigned int block_size,
-                                   float lambda,
-                                   float deltaT);
+                                   Scalar lambda,
+                                   Scalar deltaT);
 
 //! Kernel driver for gpu_berendsen_step_two_kernel
 cudaError_t gpu_berendsen_step_two(Scalar4 *d_vel,
                                    Scalar3 *d_accel,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
-                                   float4 *d_net_force,
+                                   Scalar4 *d_net_force,
                                    unsigned int block_size,
-                                   float deltaT);
+                                   Scalar deltaT);
 
 #endif // _BERENDSEN_GPU_CUH_
 

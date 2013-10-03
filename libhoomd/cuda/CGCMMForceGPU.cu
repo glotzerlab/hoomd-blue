@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: akohlmey
 
 #include "CGCMMForceGPU.cuh"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -63,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+scalar4_tex_t pdata_pos_tex;
 
 //! Kernel for calculating CG-CMM Lennard-Jones forces
 /*! This kernel is called to calculate the Lennard-Jones forces on all N particles for the CG-CMM model potential.
@@ -84,7 +85,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
     \a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j].x is \a lj12 for the type pair \a i, \a j.
     Similarly, .y, .z, and .w are the \a lj9, \a lj6, and \a lj4 parameters, respectively. The values in d_coeffs are
-    read into shared memory, so \c coeff_width*coeff_width*sizeof(float4) bytes of extern shared memory must be allocated
+    read into shared memory, so \c coeff_width*coeff_width*sizeof(Scalar4) bytes of extern shared memory must be allocated
     for the kernel call.
 
     Developer information:
@@ -92,8 +93,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-__global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
-                                                float* d_virial,
+__global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
+                                                Scalar* d_virial,
                                                 const unsigned int virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
@@ -101,12 +102,12 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
                                                const unsigned int *d_n_neigh,
                                                const unsigned int *d_nlist,
                                                const Index2D nli,
-                                               const float4 *d_coeffs,
+                                               const Scalar4 *d_coeffs,
                                                const int coeff_width,
-                                               const float r_cutsq)
+                                               const Scalar r_cutsq)
     {
     // read in the coefficients
-    extern __shared__ float4 s_coeffs[];
+    extern __shared__ Scalar4 s_coeffs[];
     for (unsigned int cur_offset = 0; cur_offset < coeff_width*coeff_width; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < coeff_width*coeff_width)
@@ -125,14 +126,14 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
-    float4 postype = tex1Dfetch(pdata_pos_tex, idx);
-    float3 pos = make_float3(postype.x, postype.y, postype.z);
+    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
-    float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float virial[6];
+    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+    Scalar virial[6];
     for (int i = 0; i < 6; i++)
-        virial[i] = 0.0f;
+        virial[i] = Scalar(0.0);
 
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
@@ -158,39 +159,39 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
             next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            float4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
-            float3 neigh_pos = make_float3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+            Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
+            Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
             // calculate dr (with periodic boundary conditions)
-            float3 dx = pos - neigh_pos;
+            Scalar3 dx = pos - neigh_pos;
 
             // apply periodic boundary conditions: (FLOPS 12)
             dx = box.minImage(dx);
 
             // calculate r squard (FLOPS: 5)
-            float rsq = dot(dx, dx);
+            Scalar rsq = dot(dx, dx);
 
             // calculate 1/r^2 (FLOPS: 2)
-            float r2inv;
+            Scalar r2inv;
             if (rsq >= r_cutsq)
-                r2inv = 0.0f;
+                r2inv = Scalar(0.0);
             else
-                r2inv = 1.0f / rsq;
+                r2inv = Scalar(1.0) / rsq;
 
             // lookup the coefficients between this combination of particle types
-            int typ_pair = __float_as_int(neigh_postype.w) * coeff_width + __float_as_int(postype.w);
-            float lj12 = s_coeffs[typ_pair].x;
-            float lj9 = s_coeffs[typ_pair].y;
-            float lj6 = s_coeffs[typ_pair].z;
-            float lj4 = s_coeffs[typ_pair].w;
+            int typ_pair = __scalar_as_int(neigh_postype.w) * coeff_width + __scalar_as_int(postype.w);
+            Scalar lj12 = s_coeffs[typ_pair].x;
+            Scalar lj9 = s_coeffs[typ_pair].y;
+            Scalar lj6 = s_coeffs[typ_pair].z;
+            Scalar lj4 = s_coeffs[typ_pair].w;
 
             // calculate 1/r^3 and 1/r^6 (FLOPS: 3)
-            float r3inv = r2inv * rsqrtf(rsq);
-            float r6inv = r3inv * r3inv;
+            Scalar r3inv = r2inv * rsqrtf(rsq);
+            Scalar r6inv = r3inv * r3inv;
             // calculate the force magnitude / r (FLOPS: 11)
-            float forcemag_divr = r6inv * (r2inv * (12.0f * lj12  * r6inv + 9.0f * r3inv * lj9 + 6.0f * lj6 ) + 4.0f * lj4);
+            Scalar forcemag_divr = r6inv * (r2inv * (Scalar(12.0) * lj12  * r6inv + Scalar(9.0) * r3inv * lj9 + Scalar(6.0) * lj6 ) + Scalar(4.0) * lj4);
             // calculate the virial (FLOPS: 3)
-            float forcemag_div2r = 0.5f*forcemag_divr;
+            Scalar forcemag_div2r = Scalar(0.5)*forcemag_divr;
             virial[0] += dx.x*dx.x*forcemag_div2r;
             virial[1] += dx.x*dx.y*forcemag_div2r;
             virial[2] += dx.x*dx.z*forcemag_div2r;
@@ -199,7 +200,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
             virial[5] += dx.z*dx.z*forcemag_div2r;
 
             // calculate the pair energy (FLOPS: 8)
-            float pair_eng = r6inv * (lj12 * r6inv + lj9 * r3inv + lj6) + lj4 * r2inv * r2inv;
+            Scalar pair_eng = r6inv * (lj12 * r6inv + lj9 * r3inv + lj6) + lj4 * r2inv * r2inv;
 
             // add up the force vector components (FLOPS: 7)
             force.x += dx.x * forcemag_divr;
@@ -210,7 +211,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
         }
 
     // potential energy per particle must be halved
-    force.w *= 0.5f;
+    force.w *= Scalar(0.5);
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_force[idx] = force;
     for (int i = 0; i < 6; i++)
@@ -239,8 +240,8 @@ __global__ void gpu_compute_cgcmm_forces_kernel(float4* d_force,
 
     This is just a driver for calcCGCMMForces_kernel, see the documentation for it for more information.
 */
-cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
-                                     float* d_virial,
+cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
+                                     Scalar* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
@@ -248,9 +249,9 @@ cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
                                      const Index2D& nli,
-                                     const float4 *d_coeffs,
+                                     const Scalar4 *d_coeffs,
                                      const unsigned int coeff_width,
-                                     const float r_cutsq,
+                                     const Scalar r_cutsq,
                                      const unsigned int block_size)
     {
     assert(d_coeffs);
@@ -263,12 +264,12 @@ cudaError_t gpu_compute_cgcmm_forces(float4* d_force,
     // bind the texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4)*N);
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
 
     // run the kernel
-    gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>
+    gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>
          (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
 
     return cudaSuccess;

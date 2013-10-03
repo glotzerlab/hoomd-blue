@@ -112,6 +112,7 @@ void BoxResizeUpdater::setParams(bool scale_particles)
 */
 void BoxResizeUpdater::update(unsigned int timestep)
     {
+    m_exec_conf->msg->notice(10) << "Box resize update" << endl;
     if (m_prof) m_prof->push("BoxResize");
 
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();

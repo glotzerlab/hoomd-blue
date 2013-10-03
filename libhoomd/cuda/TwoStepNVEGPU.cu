@@ -93,9 +93,9 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              BoxDim box,
-                             float deltaT,
+                             Scalar deltaT,
                              bool limit,
-                             float limit_val,
+                             Scalar limit_val,
                              bool zero_force)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
@@ -111,23 +111,23 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
 
         // read the particle's posision (MEM TRANSFER: 16 bytes)
         Scalar4 postype = d_pos[idx];
-        Scalar3 pos = make_float3(postype.x, postype.y, postype.z);
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 velmass = d_vel[idx];
-        float3 vel = make_float3(velmass.x, velmass.y, velmass.z);
+        Scalar4 velmass = d_vel[idx];
+        Scalar3 vel = make_scalar3(velmass.x, velmass.y, velmass.z);
 
         Scalar3 accel = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
         if (!zero_force)
             accel = d_accel[idx];
 
         // update the position (FLOPS: 15)
-        float3 dx = vel * deltaT + (1.0f/2.0f) * accel * deltaT * deltaT;
+        Scalar3 dx = vel * deltaT + (Scalar(1.0)/Scalar(2.0)) * accel * deltaT * deltaT;
 
         // limit the movement of the particles
         if (limit)
             {
-            float len = sqrtf(dot(dx, dx));
+            Scalar len = sqrtf(dot(dx, dx));
             if (len > limit_val)
                 dx = dx / len * limit_val;
             }
@@ -136,7 +136,7 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
         pos += dx;
 
         // update the velocity (FLOPS: 9)
-        vel += (1.0f/2.0f) * accel * deltaT;
+        vel += (Scalar(1.0)/Scalar(2.0)) * accel * deltaT;
 
         // read in the particle's image (MEM TRANSFER: 16 bytes)
         int3 image = d_image[idx];
@@ -145,7 +145,7 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
         box.wrap(pos, image);
 
         // write out the results (MEM_TRANSFER: 48 bytes)
-        d_pos[idx] = make_float4(pos.x, pos.y, pos.z, postype.w);
+        d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);
         d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, velmass.w);
         d_image[idx] = image;
         }
@@ -173,9 +173,9 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              const BoxDim& box,
-                             float deltaT,
+                             Scalar deltaT,
                              bool limit,
-                             float limit_val,
+                             Scalar limit_val,
                              bool zero_force)
     {
     // setup the grid to run the kernel
@@ -209,10 +209,10 @@ void gpu_nve_step_two_kernel(
                             Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
-                            float4 *d_net_force,
-                            float deltaT,
+                            Scalar4 *d_net_force,
+                            Scalar deltaT,
                             bool limit,
-                            float limit_val,
+                            Scalar limit_val,
                             bool zero_force)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
@@ -233,7 +233,7 @@ void gpu_nve_step_two_kernel(
             Scalar4 net_force = d_net_force[idx];
             accel = make_scalar3(net_force.x, net_force.y, net_force.z);
             // MEM TRANSFER: 4 bytes   FLOPS: 3
-            float mass = vel.w;
+            Scalar mass = vel.w;
             accel.x /= mass;
             accel.y /= mass;
             accel.z /= mass;
@@ -242,13 +242,13 @@ void gpu_nve_step_two_kernel(
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         
         // update the velocity (FLOPS: 6)
-        vel.x += (1.0f/2.0f) * accel.x * deltaT;
-        vel.y += (1.0f/2.0f) * accel.y * deltaT;
-        vel.z += (1.0f/2.0f) * accel.z * deltaT;
+        vel.x += (Scalar(1.0)/Scalar(2.0)) * accel.x * deltaT;
+        vel.y += (Scalar(1.0)/Scalar(2.0)) * accel.y * deltaT;
+        vel.z += (Scalar(1.0)/Scalar(2.0)) * accel.z * deltaT;
         
         if (limit)
             {
-            float vel_len = sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
+            Scalar vel_len = sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
             if ( (vel_len*deltaT) > limit_val)
                 {
                 vel.x = vel.x / vel_len * limit_val / deltaT;
@@ -281,10 +281,10 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
-                             float deltaT,
+                             Scalar4 *d_net_force,
+                             Scalar deltaT,
                              bool limit,
-                             float limit_val,
+                             Scalar limit_val,
                              bool zero_force)
     {
     

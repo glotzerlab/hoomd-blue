@@ -79,7 +79,7 @@ class BondTablePotentialGPU : public BondTablePotential
                           const std::string& log_suffix="");
 
         //! Destructor
-        virtual ~BondTablePotentialGPU() { }
+        virtual ~BondTablePotentialGPU();
 
         //! Set the block size
         void setBlockSize(int block_size);

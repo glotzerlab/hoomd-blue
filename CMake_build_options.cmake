@@ -25,10 +25,6 @@ option(SINGLE_PRECISION "Use single precision math" ON)
 
 #####################3
 ## CUDA related options
-if (NOT SINGLE_PRECISION)
-    set(ENABLE_CUDA OFF CACHE BOOL "Enable the compilation of the CUDA GPU code" FORCE)
-endif (NOT SINGLE_PRECISION)
-
 find_package(CUDA QUIET)
 if (CUDA_FOUND)
 option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" on)

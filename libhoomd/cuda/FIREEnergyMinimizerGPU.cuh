@@ -68,9 +68,9 @@ cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
 //! Kernel driver for summing the potential energy called by FIREEnergyMinimizerGPU
 cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
                             unsigned int group_size,
-                            float4* d_net_force, 
-                            float* d_sum_pe, 
-                            float* d_partial_sum_pe, 
+                            Scalar4* d_net_force, 
+                            Scalar* d_sum_pe, 
+                            Scalar* d_partial_sum_pe, 
                             unsigned int block_size, 
                             unsigned int num_blocks);
 
@@ -80,10 +80,10 @@ cudaError_t gpu_fire_compute_sum_all(const unsigned int N,
                             const Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
-                            float* d_sum_all, 
-                            float* d_partial_sum_P, 
-                            float* d_partial_sum_vsq, 
-                            float* d_partial_sum_asq, 
+                            Scalar* d_sum_all, 
+                            Scalar* d_partial_sum_P, 
+                            Scalar* d_partial_sum_vsq, 
+                            Scalar* d_partial_sum_asq, 
                             unsigned int block_size, 
                             unsigned int num_blocks);
                             
@@ -92,9 +92,9 @@ cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
                             const Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
-                            float alpha, 
-                            float vnorm, 
-                            float invfnorm);
+                            Scalar alpha, 
+                            Scalar vnorm, 
+                            Scalar invfnorm);
 
 #endif //__FIRE_ENERGY_MINIMIZER_GPU_CUH__
 

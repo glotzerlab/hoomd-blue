@@ -89,22 +89,22 @@ template<bool set_x>
 __global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
                                        Scalar4* pdata_vel,
                                        int3* pdata_image,
-                                       float4* pdata_orientation,
+                                       Scalar4* pdata_orientation,
                                        unsigned int *d_pgroup_idx,
                                        unsigned int n_pgroup,
                                        unsigned int *d_particle_offset,
                                        unsigned int *d_particle_body,
-                                       float4* d_rigid_orientation,
-                                       float4* d_rigid_com,
-                                       float4* d_rigid_vel,
-                                       float4* d_rigid_angvel,
+                                       Scalar4* d_rigid_orientation,
+                                       Scalar4* d_rigid_com,
+                                       Scalar4* d_rigid_vel,
+                                       Scalar4* d_rigid_angvel,
                                        int3* d_rigid_image,
-                                       float4* d_rigid_particle_dis,
-                                       float4* d_rigid_particle_orientation,
+                                       Scalar4* d_rigid_particle_dis,
+                                       Scalar4* d_rigid_particle_orientation,
                                        unsigned int nmax,
                                        BoxDim box)
     {
-    float4 com, vel, angvel, ex_space, ey_space, ez_space;
+    Scalar4 com, vel, angvel, ex_space, ey_space, ez_space;
     int3 body_image = make_int3(0, 0, 0);
 
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -115,7 +115,7 @@ __global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
     unsigned int pidx = d_pgroup_idx[group_idx];
     unsigned int idx_body = d_particle_body[pidx];
     unsigned int particle_offset = d_particle_offset[pidx];
-    float4 body_orientation = d_rigid_orientation[idx_body];
+    Scalar4 body_orientation = d_rigid_orientation[idx_body];
 
     com = d_rigid_com[idx_body];
     vel = d_rigid_vel[idx_body];
@@ -128,18 +128,18 @@ __global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
     exyzFromQuaternion(body_orientation, ex_space, ey_space, ez_space);
 
     int localidx = idx_body * nmax + particle_offset;
-    float4 particle_pos = d_rigid_particle_dis[localidx];
-    float4 constituent_orientation = d_rigid_particle_orientation[localidx];
+    Scalar4 particle_pos = d_rigid_particle_dis[localidx];
+    Scalar4 constituent_orientation = d_rigid_particle_orientation[localidx];
 
     // compute ri with new orientation
-    float3 ri;
+    Scalar3 ri;
     ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
     ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
     ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
 
     Scalar3 ppos;
     int3 image;
-    float4 porientation;
+    Scalar4 porientation;
     if (set_x)
         {
         // x_particle = com + ri
@@ -166,7 +166,7 @@ __global__ void gpu_rigid_setRV_kernel(Scalar4* pdata_pos,
     // write out the results
     if (set_x)
         {
-        pdata_pos[pidx] = make_float4(ppos.x, ppos.y, ppos.z, pdata_pos[pidx].w);
+        pdata_pos[pidx] = make_scalar4(ppos.x, ppos.y, ppos.z, pdata_pos[pidx].w);
         pdata_image[pidx] = image;
         pdata_orientation[pidx] = porientation;
         }
@@ -191,7 +191,7 @@ cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
                             int3 *d_image,
                             unsigned int *d_body,
                                    const gpu_rigid_data_arrays& rigid_data,
-                                   float4 *d_pdata_orientation,
+                                   Scalar4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    const BoxDim& box, 

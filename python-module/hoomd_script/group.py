@@ -267,7 +267,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
         raise RuntimeError('Error creating group');
     
     # handle the optional arguments
-    box = globals.system_definition.getParticleData().getBox();
+    box = globals.system_definition.getParticleData().getGlobalBox();
     if xmin is None:
         xmin = box.getLo().x - 0.5;
     if xmax is None:

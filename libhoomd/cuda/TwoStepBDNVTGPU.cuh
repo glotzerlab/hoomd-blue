@@ -63,14 +63,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Temporary holder struct to limit the number of arguments passed to gpu_bdnvt_step_two()
 struct bdnvt_step_two_args
     {
-    float *d_gamma;         //!< Device array listing per-type gammas
+    Scalar *d_gamma;         //!< Device array listing per-type gammas
     unsigned int n_types;   //!< Number of types in \a d_gamma
     bool gamma_diam;        //!< Set to true to use diameters as gammas
-    float T;                //!< Current temperature
+    Scalar T;                //!< Current temperature
     unsigned int timestep;  //!< Current timestep
     unsigned int seed;      //!< User chosen random number seed
-    float *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
-    float *d_partial_sum_bdenergy;  //!< Array used for summation
+    Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
+    Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
     unsigned int block_size;  //!<  Block size
     unsigned int num_blocks;  //!<  Number of blocks 
     bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
@@ -84,12 +84,12 @@ cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
                                const unsigned int *d_tag,
                                unsigned int *d_group_members,
                                unsigned int group_size,
-                               float4 *d_net_force,
+                               Scalar4 *d_net_force,
                                const bdnvt_step_two_args& bdnvt_args,
-                               float deltaT,
-                               float D,
+                               Scalar deltaT,
+                               Scalar D,
                                bool limit,
-                               float limit_val);
+                               Scalar limit_val);
                                
 #endif //__TWO_STEP_BDNVT_GPU_CUH__
 

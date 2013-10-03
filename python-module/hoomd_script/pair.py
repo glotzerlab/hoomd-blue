@@ -1558,8 +1558,8 @@ class table(force._force):
         
     def update_pair_table(self, typei, typej, func, rmin, rmax, coeff):
         # allocate arrays to store V and F
-        Vtable = hoomd.std_vector_float();
-        Ftable = hoomd.std_vector_float();
+        Vtable = hoomd.std_vector_scalar();
+        Ftable = hoomd.std_vector_scalar();
         
         # calculate dr
         dr = (rmax - rmin) / float(self.width-1);
@@ -1841,7 +1841,7 @@ class morse(pair):
 #
 # pair.dpd does not implement and energy shift / smoothing modes due to the function of the force.
 #
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class dpd(pair):
     ## Specify the DPD %pair %force and thermostat
     #
@@ -1863,12 +1863,6 @@ class dpd(pair):
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
 
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("pair.dpd is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up pair potential.")
-               
         # tell the base class how we operate
         
         # initialize the base class
@@ -2151,13 +2145,13 @@ class eam(force._force):
 #
 # \b Example:
 # \code
-# dpdlj = pair.dpdlj(r_cut=1.0, T=1.0)
+# dpdlj = pair.dpdlj(r_cut=2.5, T=1.0)
 # dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
 # dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
 # dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
 # dpdlj.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon = 3.0,sigma=1.0, gamma = 1.2)
 # dpdlj.set_params(T = 1.0)
-# integrate.mode_standard(dt=0.02)
+# integrate.mode_standard(dt=0.005)
 # integrate.nve(group=group.all())
 # \endcode
 #
@@ -2172,7 +2166,7 @@ class eam(force._force):
 # pair.dpdlj is a standard %pair potential and supports an energy shif for the conservative LJ potential.
 # See hoomd_script.pair.pair for a full description of the various options. XPLOR smoothing is not available.
 #
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class dpdlj(pair):
     ## Specify the DPD %pair %force and thermostat
     #
@@ -2194,12 +2188,6 @@ class dpdlj(pair):
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
 
-        # Error out in MPI simulations
-        if (hoomd.is_MPI_available()):
-            if globals.system_definition.getParticleData().getDomainDecomposition():
-                globals.msg.error("pair.dpdlj not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up pair potential.")
- 
         # tell the base class how we operate
         
         # initialize the base class
@@ -2376,3 +2364,249 @@ class force_shifted_lj(pair):
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_scalar2(lj1, lj2);
+
+## Moliere %pair %force
+#
+# The command pair.moliere specifies that a Moliere %pair %force should be added to every
+# non-bonded particle pair in the simulation
+#
+# \f{eqnarray*}
+# V_{\mathrm{Moliere}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp \left( -0.3 \frac{r_{ij}}{a_F} \right) + 0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp \left( -6.0 \frac{r_{ij}}{a_F} \right) \right] & r < r_{\mathrm{cut}} \\
+#                         = & 0 & r > r_{\mathrm{cut}} \\
+# \f}
+#
+# For an exat definition of the %force and potential calculation and how cutoff radii are handled,
+# see pair.
+#
+# The following coefficients must be set per unique %pair of particle types.  See hoomd_script.pair
+# or the \ref page_quick_start for information on how to set coefficients.
+# - \f$ Z_i \f$ - \c Z_i - Atomic number of species i (unitless)
+# - \f$ Z_j \f$ - \c Z_j - Atomic number of species j (unitless)
+# - \f$ e \f$ - \c elementary_charge - The elementary charge (in charge units)
+# - \f$ a_0 \f$ - \c a_0 - The Bohr radius (in distance units)
+#
+# pair.moliere is a standard %pair potential and supports a number of energy shift / smoothing
+# modes.  See pair for a full description of the various options.
+#
+class moliere(pair):
+    ## Specify the Moliere %pair %force
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param name Name of the force instance
+    #
+    # \code
+    # moliere = pair.moliere(r_cut = 3.0)
+    # moliere.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
+    # started with run().
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairMoliere(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairMoliere;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairMoliereGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairMoliereGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.moliere'));
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
+        self.pair_coeff.set_default_coeff('a_0', 1.0);
+
+    def process_coeff(self, coeff):
+        Z_i = coeff['Z_i'];
+        Z_j = coeff['Z_j'];
+        elementary_charge = coeff['elementary_charge'];
+        a_0 = coeff['a_0'];
+
+        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
+        if (not (Z_i == 0)) or (not (Z_j == 0)):
+            aF = 0.8853 * a_0 / math.pow(math.sqrt(Z_i) + math.sqrt(Z_j), 2.0 / 3.0);
+        else:
+            aF = 1.0;
+        return hoomd.make_scalar2(Zsq, aF);
+
+## ZBL %pair %force
+#
+# The command pair.zbl specifies that a Ziegler-Biersack-Littmark %pair %force should be added to every
+# non-bonded particle pair in the simulation
+#
+# \f{eqnarray*}
+# V_{\mathrm{ZBL}}(r) = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818 \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right], & r < r_{\mathrm{cut}} \\
+#                         = & 0, & r > r_{\mathrm{cut}} \\
+# \f}
+#
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled,
+# see pair.
+#
+# The following coefficients must be set per unique %pair of particle types.  See hoomd_script.pair
+# or the \ref page_quick_start for information on how to set coefficients.
+# - \f$ Z_i \f$ - \c Z_i - Atomic number of species i (unitless)
+# - \f$ Z_j \f$ - \c Z_j - Atomic number of species j (unitless)
+# - \f$ e \f$ - \c elementary_charge - The elementary charge (in charge units)
+# - \f$ a_0 \f$ - \c a_0 - The Bohr radius (in distance units)
+#
+# pair.zbl is a standard %pair potential and supports a number of energy shift / smoothing
+# modes.  See pair for a full description of the various options.
+#
+class zbl(pair):
+    ## Specify the ZBL %pair %force
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param name Name of the force instance
+    #
+    # \code
+    # zbl = pair.zbl(r_cut = 3.0)
+    # zbl.pair_coeff.set('A', 'B', Z_i = 54.0, Z_j = 7.0, elementary_charge = 1.0, a_0 = 1.0);
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be set before it can be
+    # started with run().
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairZBL(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairZBL;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairZBLGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairZBLGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.zbl'));
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['Z_i', 'Z_j', 'elementary_charge', 'a_0'];
+        self.pair_coeff.set_default_coeff('elementary_charge', 1.0);
+        self.pair_coeff.set_default_coeff('a_0', 1.0);
+
+    def process_coeff(self, coeff):
+        Z_i = coeff['Z_i'];
+        Z_j = coeff['Z_j'];
+        elementary_charge = coeff['elementary_charge'];
+        a_0 = coeff['a_0'];
+
+        Zsq = Z_i * Z_j * elementary_charge * elementary_charge;
+        if (not (Z_i == 0)) or (not (Z_j == 0)):
+            aF = 0.88534 * a_0 / ( math.pow( Z_i, 0.23 ) + math.pow( Z_j, 0.23 ) );
+        else:
+            aF = 1.0;
+        return hoomd.make_scalar2(Zsq, aF);
+
+## Tersoff Potential
+#
+# The command pair.tersoff specifies that the Tersoff three-body potential should be applied to every
+# non-bonded particle pair in the simulation.  Despite the fact that the Tersoff potential accounts
+# for the effects of third bodies, it is included in the %pair potentials because the species of the
+# third body is irrelevant.  It can thus use type-pair parameters similar to those of the %pair potentials.
+#
+# The Tersoff potential is a bond-order potential based on the Morse potential that accounts for the weakening of
+# individual bonds with increasing coordination number.  It does this by computing a modifier to the
+# attractive term of the potential.  The modifier contains the effects of third-bodies on the bond
+# energies.  The potential also includes a smoothing function around the cutoff.  The smoothing function
+# used in this work is exponential in nature as opposed to the sinusoid used by Tersoff.  The exponential
+# function provides continuity up (I believe) the second derivative.
+#
+class tersoff(pair):
+    ## Specify the Tersoff force
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param name Name of the force instance
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be set before it can be started with run()
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+
+        #update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+
+        # this potential cannot handle a half neighbor list
+        neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialTersoff(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialTersoff;
+        else:
+            self.cpp_force = hoomd.PotentialTersoffGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialTersoffGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.tersoff'));
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficients
+        self.required_coeffs = ['cutoff_thickness', 'C1', 'C2', 'lambda1', 'lambda2', 'dimer_r', 'n', 'gamma', 'lambda3', 'c', 'd', 'm', 'alpha']
+        self.pair_coeff.set_default_coeff('cutoff_thickness', 0.2);
+        self.pair_coeff.set_default_coeff('dimer_r', 1.5);
+        self.pair_coeff.set_default_coeff('C1', 1.0);
+        self.pair_coeff.set_default_coeff('C2', 1.0);
+        self.pair_coeff.set_default_coeff('lambda1', 2.0);
+        self.pair_coeff.set_default_coeff('lambda2', 1.0);
+        self.pair_coeff.set_default_coeff('lambda3', 0.0);
+        self.pair_coeff.set_default_coeff('n', 0.0);
+        self.pair_coeff.set_default_coeff('m', 0.0);
+        self.pair_coeff.set_default_coeff('c', 0.0);
+        self.pair_coeff.set_default_coeff('d', 1.0);
+        self.pair_coeff.set_default_coeff('gamma', 0.0);
+        self.pair_coeff.set_default_coeff('alpha', 3.0);
+
+    def process_coeff(self, coeff):
+        cutoff_d = coeff['cutoff_thickness'];
+        C1 = coeff['C1'];
+        C2 = coeff['C2'];
+        lambda1 = coeff['lambda1'];
+        lambda2 = coeff['lambda2'];
+        dimer_r = coeff['dimer_r'];
+        n = coeff['n'];
+        gamma = coeff['gamma'];
+        lambda3 = coeff['lambda3'];
+        c = coeff['c'];
+        d = coeff['d'];
+        m = coeff['m'];
+        alpha = coeff['alpha'];
+
+        gamman = math.pow(gamma, n);
+        c2 = c * c;
+        d2 = d * d;
+        lambda3_cube = lambda3 * lambda3 * lambda3;
+
+        tersoff_coeffs = hoomd.make_scalar2(C1, C2);
+        exp_consts = hoomd.make_scalar2(lambda1, lambda2);
+        ang_consts = hoomd.make_scalar3(c2, d2, m);
+
+        return hoomd.make_tersoff_params(cutoff_d, tersoff_coeffs, exp_consts, dimer_r, n, gamman, lambda3_cube, ang_consts, alpha);
+

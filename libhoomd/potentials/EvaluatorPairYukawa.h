@@ -71,22 +71,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized exp functions on the host / device
-// EXP is expf when included in nvcc and exp when included into the host compiler
-#ifdef NVCC
-#define EXP expf
-#else
-#define EXP exp
-#endif
-
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
 //! Class for evaluating the Yukawa pair potential
 /*! <b>General Overview</b>
 
@@ -151,20 +135,20 @@ class EvaluatorPairYukawa
             // compute the force divided by r in force_divr
             if (rsq < rcutsq && epsilon != 0)
                 {
-                Scalar rinv = RSQRT(rsq);
+                Scalar rinv = fast::rsqrt(rsq);
                 Scalar r = Scalar(1.0) / rinv;
                 Scalar r2inv = Scalar(1.0) / rsq;
                 
-                Scalar exp_val = EXP(-kappa * r);
+                Scalar exp_val = fast::exp(-kappa * r);
                 
                 force_divr = epsilon * exp_val * r2inv * (rinv + kappa);
                 pair_eng = epsilon * exp_val * rinv;
 
                 if (energy_shift)
                     {
-                    Scalar rcutinv = RSQRT(rcutsq);
+                    Scalar rcutinv = fast::rsqrt(rcutsq);
                     Scalar rcut = Scalar(1.0) / rcutinv;
-                    pair_eng -= epsilon * EXP(-kappa * rcut) * rcutinv;
+                    pair_eng -= epsilon * fast::exp(-kappa * rcut) * rcutinv;
                     }
                 return true;
                 }

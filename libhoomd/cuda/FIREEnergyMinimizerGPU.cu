@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: askeys
 
 #include "FIREEnergyMinimizerGPU.cuh"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -65,17 +66,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     minimization iteration on the GPU. Used by FIREEnergyMinimizerGPU.
 */
 
-//! The texture for reading the pdata force array
-texture<float4, 1, cudaReadModeElementType> net_force_tex;
-
 //! Shared memory used in reducing sums
-extern __shared__ float fire_sdata[];
+extern __shared__ Scalar fire_sdata[];
 //! Shared memory used in simultaneously reducing three sums (currently unused)
-extern __shared__ float fire_sdata1[];
+extern __shared__ Scalar fire_sdata1[];
 //! Shared memory used in simultaneously reducing three sums (currently unused)
-extern __shared__ float fire_sdata2[];
+extern __shared__ Scalar fire_sdata2[];
 //! Shared memory used in simultaneously reducing three sums (currently unused)
-extern __shared__ float fire_sdata3[];
+extern __shared__ Scalar fire_sdata3[];
 
 //! The kernel function to zeros velocities, called by gpu_fire_zero_v()
 /*! \param d_vel device array of particle velocities
@@ -98,9 +96,9 @@ void gpu_fire_zero_v_kernel(Scalar4 *d_vel,
         Scalar4 vel = d_vel[idx];
                 
         // zero the velocity(FLOPS: ?)
-        vel.x = 0.0f;
-        vel.y = 0.0f;
-        vel.z = 0.0f;
+        vel.x = Scalar(0.0);
+        vel.y = Scalar(0.0);
+        vel.z = Scalar(0.0);
                 
         // write out the results (MEM_TRANSFER: 32 bytes)
         d_vel[idx] = vel;
@@ -141,23 +139,23 @@ cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
 extern "C" __global__ 
     void gpu_fire_reduce_pe_partial_kernel(unsigned int *d_group_members,
                                            unsigned int group_size,
-                                           float4* d_net_force, 
-                                           float* d_partial_sum_pe)
+                                           Scalar4* d_net_force, 
+                                           Scalar* d_partial_sum_pe)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float pe = 0;
+    Scalar pe = 0;
     
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
         // read the particle's force and extract the pe from w component (MEM TRANSFER: 32 bytes)
         
-        float4 force = d_net_force[idx];
+        Scalar4 force = d_net_force[idx];
         pe = force.w;
         
-        // Uncoalesced Memory Read replace by Texture Read above.  floats4* d_net_force still being passed to support this
+        // Uncoalesced Memory Read replace by Texture Read above.  Scalars4* d_net_force still being passed to support this
         // defunct structure.
         //pe = d_net_force[idx].w;  
         } 
@@ -189,11 +187,11 @@ extern "C" __global__
     \param num_blocks Number of blocks to execute
 */
 extern "C" __global__ 
-    void gpu_fire_reduce_partial_sum_kernel(float *d_sum, 
-                                            float* d_partial_sum, 
+    void gpu_fire_reduce_partial_sum_kernel(Scalar *d_sum, 
+                                            Scalar* d_partial_sum, 
                                             unsigned int num_blocks)
     {
-    float sum = 0.0f;
+    Scalar sum = Scalar(0.0);
     
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_blocks; start += blockDim.x)
@@ -202,7 +200,7 @@ extern "C" __global__
         if (start + threadIdx.x < num_blocks)
             fire_sdata[threadIdx.x] = d_partial_sum[start + threadIdx.x];
         else
-            fire_sdata[threadIdx.x] = 0.0f;
+            fire_sdata[threadIdx.x] = Scalar(0.0);
         __syncthreads();
         
         // reduce the sum in parallel
@@ -236,9 +234,9 @@ extern "C" __global__
 */
 cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
                                     unsigned int group_size,
-                                    float4* d_net_force, 
-                                    float* d_sum_pe, 
-                                    float* d_partial_sum_pe, 
+                                    Scalar4* d_net_force, 
+                                    Scalar* d_sum_pe, 
+                                    Scalar* d_partial_sum_pe, 
                                     unsigned int block_size, 
                                     unsigned int num_blocks)
     {
@@ -249,12 +247,12 @@ cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    gpu_fire_reduce_pe_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_group_members,
+    gpu_fire_reduce_pe_partial_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(d_group_members,
                                                                                      group_size,
                                                                                      d_net_force, 
                                                                                      d_partial_sum_pe);
                                                                                      
-    gpu_fire_reduce_partial_sum_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_sum_pe, 
+    gpu_fire_reduce_partial_sum_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(d_sum_pe, 
                                                                                       d_partial_sum_pe, 
                                                                                       num_blocks);
     
@@ -273,19 +271,19 @@ extern "C" __global__
                                           const Scalar3 *d_accel,
                                           unsigned int *d_group_members,
                                           unsigned int group_size,    
-                                          float* d_partial_sum_P)
+                                          Scalar* d_partial_sum_P)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float P = 0;
+    Scalar P = 0;
     
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
      
-        float3 a = d_accel[idx];
-        float4 v = d_vel[idx];
+        Scalar3 a = d_accel[idx];
+        Scalar4 v = d_vel[idx];
         P = a.x*v.x + a.y*v.y + a.z*v.z;
         }
     
@@ -318,18 +316,18 @@ extern "C" __global__
     void gpu_fire_reduce_vsq_partial_kernel(const Scalar4 *d_vel,
                                             unsigned int *d_group_members,
                                             unsigned int group_size,
-                                            float* d_partial_sum_vsq)
+                                            Scalar* d_partial_sum_vsq)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float vsq = 0;
+    Scalar vsq = 0;
     
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
     
-        float4 v = d_vel[idx];
+        Scalar4 v = d_vel[idx];
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
         }
     
@@ -362,18 +360,18 @@ extern "C" __global__
     void gpu_fire_reduce_asq_partial_kernel(const Scalar3 *d_accel,
                                             unsigned int *d_group_members,
                                             unsigned int group_size,
-                                            float* d_partial_sum_asq)
+                                            Scalar* d_partial_sum_asq)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float asq = 0;
+    Scalar asq = 0;
 
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
     
-        float3 a = d_accel[idx];
+        Scalar3 a = d_accel[idx];
         asq = a.x*a.x + a.y*a.y + a.z*a.z;
         }
 
@@ -411,14 +409,14 @@ extern "C" __global__
                                             const Scalar3 *d_accel,
                                             unsigned int *d_group_members,
                                             unsigned int group_size,
-                                            float* d_partial_sum_P, 
-                                            float* d_partial_sum_vsq, 
-                                            float* d_partial_sum_asq)
+                                            Scalar* d_partial_sum_P, 
+                                            Scalar* d_partial_sum_vsq, 
+                                            Scalar* d_partial_sum_asq)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float P, vsq, asq; 
+    Scalar P, vsq, asq; 
     P=0;
     vsq=0;
     asq=0;
@@ -428,7 +426,7 @@ extern "C" __global__
         unsigned int idx = d_group_members[group_idx];
     
         Scalar3 a = d_accel[idx];
-        float4 v = d_vel[idx];
+        Scalar4 v = d_vel[idx];
         P = a.x*v.x + a.y*v.y + a.z*v.z;
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
         asq = a.x*a.x + a.y*a.y + a.z*a.z;
@@ -472,15 +470,15 @@ extern "C" __global__
     \note this function is never used, but could be implemented to improve performance
 */
 extern "C" __global__ 
-    void gpu_fire_reduce_partial_sum_3_kernel(float *d_sum, 
-                                              float* d_partial_sum1, 
-                                              float* d_partial_sum2, 
-                                              float* d_partial_sum3, 
+    void gpu_fire_reduce_partial_sum_3_kernel(Scalar *d_sum, 
+                                              Scalar* d_partial_sum1, 
+                                              Scalar* d_partial_sum2, 
+                                              Scalar* d_partial_sum3, 
                                               unsigned int num_blocks)
     {
-    float sum1 = 0.0f;
-    float sum2 = 0.0f;
-    float sum3 = 0.0f;
+    Scalar sum1 = Scalar(0.0);
+    Scalar sum2 = Scalar(0.0);
+    Scalar sum3 = Scalar(0.0);
     
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_blocks; start += blockDim.x)
@@ -494,9 +492,9 @@ extern "C" __global__
             }
         else
             {
-            fire_sdata1[threadIdx.x] = 0.0f;
-            fire_sdata2[threadIdx.x] = 0.0f;
-            fire_sdata3[threadIdx.x] = 0.0f;
+            fire_sdata1[threadIdx.x] = Scalar(0.0);
+            fire_sdata2[threadIdx.x] = Scalar(0.0);
+            fire_sdata3[threadIdx.x] = Scalar(0.0);
             }
         __syncthreads();
         
@@ -549,10 +547,10 @@ cudaError_t gpu_fire_compute_sum_all(
                                     const Scalar3 *d_accel,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
-                                    float* d_sum_all, 
-                                    float* d_partial_sum_P, 
-                                    float* d_partial_sum_vsq, 
-                                    float* d_partial_sum_asq, 
+                                    Scalar* d_sum_all, 
+                                    Scalar* d_partial_sum_P, 
+                                    Scalar* d_partial_sum_vsq, 
+                                    Scalar* d_partial_sum_asq, 
                                     unsigned int block_size, 
                                     unsigned int num_blocks)
     {
@@ -563,39 +561,39 @@ cudaError_t gpu_fire_compute_sum_all(
     dim3 threads1(256, 1, 1);
 
     // run the kernels
-    gpu_fire_reduce_P_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(  d_vel,
+    gpu_fire_reduce_P_partial_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(  d_vel,
 
       d_accel,
                                                                                       d_group_members,
                                                                                       group_size,
                                                                                       d_partial_sum_P);
 
-    gpu_fire_reduce_partial_sum_kernel<<< grid1, threads1, block_size*sizeof(float) >>>(&d_sum_all[0], 
+    gpu_fire_reduce_partial_sum_kernel<<< grid1, threads1, block_size*sizeof(Scalar) >>>(&d_sum_all[0], 
                                                                                       d_partial_sum_P, 
                                                                                       num_blocks);
 
-    gpu_fire_reduce_vsq_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_vel,
+    gpu_fire_reduce_vsq_partial_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(d_vel,
                                                                                       d_group_members,
                                                                                       group_size,
                                                                                       d_partial_sum_vsq);
 
-    gpu_fire_reduce_partial_sum_kernel<<< grid1, threads1, block_size*sizeof(float) >>>(&d_sum_all[1], 
+    gpu_fire_reduce_partial_sum_kernel<<< grid1, threads1, block_size*sizeof(Scalar) >>>(&d_sum_all[1], 
                                                                                       d_partial_sum_vsq, 
                                                                                       num_blocks);
 
-    gpu_fire_reduce_asq_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_accel,
+    gpu_fire_reduce_asq_partial_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(d_accel,
                                                                                       d_group_members,
                                                                                       group_size,
                                                                                       d_partial_sum_asq);
 
-    gpu_fire_reduce_partial_sum_kernel<<< grid1, threads1, block_size*sizeof(float) >>>(&d_sum_all[2], 
+    gpu_fire_reduce_partial_sum_kernel<<< grid1, threads1, block_size*sizeof(Scalar) >>>(&d_sum_all[2], 
                                                                                       d_partial_sum_asq, 
                                                                                       num_blocks);
 
     /*
     //do all three sums at once:
-    gpu_fire_reduce_all_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_vel, d_accel, d_partial_sum_P, d_partial_sum_vsq, d_partial_sum_asq);
-    gpu_fire_reduce_partial_sum_3_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_sum_all, d_partial_sum_P, d_partial_sum_vsq, d_partial_sum_asq, num_blocks);
+    gpu_fire_reduce_all_partial_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(d_vel, d_accel, d_partial_sum_P, d_partial_sum_vsq, d_partial_sum_asq);
+    gpu_fire_reduce_partial_sum_3_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(d_sum_all, d_partial_sum_P, d_partial_sum_vsq, d_partial_sum_asq, num_blocks);
     */
     
     return cudaSuccess;
@@ -616,9 +614,9 @@ extern "C" __global__
                                   const Scalar3 *d_accel,
                                   unsigned int *d_group_members,
                                   unsigned int group_size,
-                                  float alpha, 
-                                  float vnorm, 
-                                  float invfnorm)
+                                  Scalar alpha, 
+                                  Scalar vnorm, 
+                                  Scalar invfnorm)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -630,9 +628,9 @@ extern "C" __global__
         Scalar4 v = d_vel[idx];
         Scalar3 a = d_accel[idx];
                         
-        v.x = v.x*(1.0f-alpha) + alpha*a.x*invfnorm*vnorm;
-        v.y = v.y*(1.0f-alpha) + alpha*a.y*invfnorm*vnorm;
-        v.z = v.z*(1.0f-alpha) + alpha*a.z*invfnorm*vnorm;
+        v.x = v.x*(Scalar(1.0)-alpha) + alpha*a.x*invfnorm*vnorm;
+        v.y = v.y*(Scalar(1.0)-alpha) + alpha*a.y*invfnorm*vnorm;
+        v.z = v.z*(Scalar(1.0)-alpha) + alpha*a.z*invfnorm*vnorm;
                         
         // write out the results (MEM_TRANSFER: 32 bytes)
         d_vel[idx] = v;
@@ -654,9 +652,9 @@ cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
                               const Scalar3 *d_accel,
                               unsigned int *d_group_members,
                               unsigned int group_size,
-                              float alpha, 
-                              float vnorm, 
-                              float invfnorm)
+                              Scalar alpha, 
+                              Scalar vnorm, 
+                              Scalar invfnorm)
     {
     // setup the grid to run the kernel
     int block_size = 256;

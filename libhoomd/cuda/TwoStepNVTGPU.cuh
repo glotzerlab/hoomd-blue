@@ -69,18 +69,18 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
                              unsigned int group_size,
                              const BoxDim& box,
                              unsigned int block_size,
-                             float Xi,
-                             float deltaT);
+                             Scalar Xi,
+                             Scalar deltaT);
 
 //! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
 cudaError_t gpu_nvt_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
+                             Scalar4 *d_net_force,
                              unsigned int block_size,
-                             float Xi,
-                             float deltaT);
+                             Scalar Xi,
+                             Scalar deltaT);
 
 #endif //__TWO_STEP_NVT_GPU_CUH__
 

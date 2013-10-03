@@ -338,7 +338,6 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
     return result;
     }
 
-
 //! Wrapper class for wrapping pure virtual methodos of ForceCompute in python
 class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
     {

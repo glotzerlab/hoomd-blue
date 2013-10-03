@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "NeighborList.h"
 #include "ParticleGroup.h"
-#include "kiss_fftnd.h"
 
 #include <vector>
 
@@ -72,8 +71,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+// CUFFTCOMPLEX is cufftDoubleComplex when run in double precision with CUDA enabled, and cufftComplex otherwise
+#ifndef SINGLE_PRECISION
+#define CUFFTCOMPLEX cufftDoubleComplex
+#else
+#define CUFFTCOMPLEX cufftComplex
+#endif
+
 #ifndef __PPPMFORCECOMPUTE_H__
 #define __PPPMFORCECOMPUTE_H__
+
+// slave KISS data type to HOOMD Scalar
+#ifndef kiss_fft_scalar
+#define kiss_fft_scalar Scalar
+#endif
+#include "HOOMDMath.h"
+#include "kiss_fftnd.h"
+
 
 // MAX gives the larger of two values
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -153,10 +167,10 @@ class PPPMForceCompute : public ForceCompute
         Scalar m_energy_virial_factor;           //!< Multiplication factor for energy and virial
         bool m_box_changed;                      //!< Set to ttrue when the box size has changed
         GPUArray<Scalar3> m_kvec;                //!< k-vectors for each grid point
-        GPUArray<cufftComplex> m_rho_real_space; //!< x component of the grid based electric field
-        GPUArray<cufftComplex> m_Ex;             //!< x component of the grid based electric field
-        GPUArray<cufftComplex> m_Ey;             //!< y component of the grid based electric field
-        GPUArray<cufftComplex> m_Ez;             //!< z component of the grid based electric field
+        GPUArray<CUFFTCOMPLEX> m_rho_real_space; //!< x component of the grid based electric field
+        GPUArray<CUFFTCOMPLEX> m_Ex;             //!< x component of the grid based electric field
+        GPUArray<CUFFTCOMPLEX> m_Ey;             //!< y component of the grid based electric field
+        GPUArray<CUFFTCOMPLEX> m_Ez;             //!< z component of the grid based electric field
         GPUArray<Scalar3>m_field;                //!< grid based Electric field, combined
         GPUArray<Scalar> m_rho_coeff;            //!< Coefficients for computing the grid based charge density
         GPUArray<Scalar> m_gf_b;                 //!< Used to compute the grid based Green's function

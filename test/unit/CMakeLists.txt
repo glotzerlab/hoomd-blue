@@ -84,14 +84,14 @@ set(TEST_LIST
     test_constraint_sphere
     test_ewald_force
     test_pppm_force
-    test_npt_mtk_integrator
     )
 
     # put the longest tests last
     set(TEST_LIST ${TEST_LIST}
     test_bdnvt_integrator
     test_dpd_integrator
-    test_bd_rigid_updater)
+    test_bd_rigid_updater
+    test_npt_mtk_integrator)
 
 if(ENABLE_MPI)
     MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
@@ -102,7 +102,6 @@ if(ENABLE_MPI)
     # define every test together with the number of processors
     ADD_TO_MPI_TESTS(test_communication 8)
     ADD_TO_MPI_TESTS(test_nvt_integrator_mpi 3)
-    ADD_TO_MPI_TESTS(test_npt_mtk_integrator_mpi 3)
 endif(ENABLE_MPI)
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
@@ -158,7 +157,7 @@ foreach (CUR_TEST ${MPI_TEST_LIST})
     # add it to the unit test list
     get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
 
-    # add mpi_ prefix to distinguish these tests
+    # add mpi- prefix to distinguish these tests
     set(MPI_TEST_NAME mpi-${CUR_TEST})
 
     # unfortunately, this needs to be handled differently in visual studio

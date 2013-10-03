@@ -91,6 +91,7 @@ Table of contents:
  - \ref sec_index_dump
  - Potentials
    - \ref sec_index_pair
+   - \ref sec_index_manybody
    - \ref sec_index_bond
    - \ref sec_index_angle
    - \ref sec_index_dihedral
@@ -184,16 +185,21 @@ Table of contents:
  - \link hoomd_script.pair.dpd pair.dpd\endlink - <i>NVT Integration via Dissipative Particle Dynamics %pair %force </i> 
  - \link hoomd_script.pair.dpdlj pair.dpdlj\endlink - <i>NVT Integration via Dissipative Particle Dynamics and LJ Force %pair %force </i>
  - \link hoomd_script.pair.dpd_conservative pair.dpd_conservative\endlink - <i>DPD Conservative %pair %force </i>
- - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM %pair %force </i> 
  - \link hoomd_script.pair.ewald pair.ewald\endlink - <i>Short range ewald %pair %force </i> 
  - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>Gaussian %pair %force </i>
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>Lennard-Jones %pair %force </i>
+ - \link hoomd_script.pair.moliere pair.moliere\endlink - <i>Moliere %pair %force</i>
  - \link hoomd_script.pair.morse pair.morse\endlink - <i>Morse %pair %force </i>
  - \link hoomd_script.pair.table pair.table\endlink - <i>Tabulated %pair %force </i>
  - \link hoomd_script.pair.slj pair.slj\endlink - <i>Shifted Lennard-Jones %pair %force </i>
  - \link hoomd_script.pair.yukawa pair.yukawa\endlink - <i>Yukawa %pair %force </i>
+ - \link hoomd_script.pair.zbl pair.zbl\endlink - <i>Ziegler-Biersack-Littmark %pair %force</i>
  - \link hoomd_script.pair.force_shifted_lj pair.force_shifted_lj\endlink - <i>Force shifted Lennard-Jones %pair %force </i>
  - \link hoomd_script.pair.nlist nlist\endlink - <i>Interface for controlling neighbor list parameters </i>
+
+\section sec_index_manybody Many-body potentials
+ - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM many-body %pair %force </i> 
+ - \link hoomd_sciprt.pair.tersoff pair.tersoff\endlink - <i>Tersoff three-body %pair %force</i>
 
 \section sec_index_bond Bond potentials
  - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>Harmonic %bond force </i>

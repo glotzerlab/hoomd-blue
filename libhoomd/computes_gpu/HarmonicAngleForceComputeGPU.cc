@@ -82,7 +82,7 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Sys
         }
         
     // allocate and zero device memory
-    GPUArray<float2> params(m_angle_data->getNAngleTypes(), exec_conf);
+    GPUArray<Scalar2> params(m_angle_data->getNAngleTypes(), exec_conf);
     m_params.swap(params);
     }
 
@@ -101,9 +101,9 @@ void HarmonicAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar
     {
     HarmonicAngleForceCompute::setParams(type, K, t_0);
     
-    ArrayHandle<float2> h_params(m_params, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_float2(K, t_0);
+    h_params.data[type] = make_scalar2(K, t_0);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -125,7 +125,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
       
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
-    ArrayHandle<float2> d_params(m_params, access_location::device, access_mode::read);
+    ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
     ArrayHandle<uint4> d_gpu_anglelist(m_angle_data->getGPUAngleList(), access_location::device,access_mode::read);
     ArrayHandle<unsigned int> d_gpu_n_angles(m_angle_data->getNAnglesArray(), access_location::device, access_mode::read);

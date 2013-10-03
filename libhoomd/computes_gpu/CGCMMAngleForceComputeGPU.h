@@ -77,7 +77,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     but executing on the GPU.
 
     Per-type parameters are stored in a simple global memory area pointed to by
-    \a m_gpu_params. They are stored as float2's with the \a x component being K and the
+    \a m_gpu_params. They are stored as Scalar2's with the \a x component being K and the
     \a y component being t_0.
 
     The GPU kernel can be found in angleforce_kernel.cu.
@@ -105,11 +105,11 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
         
     protected:
         int m_block_size;               //!< Block size to run calculation on
-        GPUArray<float2> m_params;      //!< k, t0 Parameters stored on the GPU
+        GPUArray<Scalar2> m_params;      //!< k, t0 Parameters stored on the GPU
         
         // below are just for the CG-CMM angle potential
-        GPUArray<float2>  m_CGCMMsr;    //!< GPU copy of the angle's epsilon/sigma/rcut (esr)
-        GPUArray<float4>  m_CGCMMepow;  //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
+        GPUArray<Scalar2>  m_CGCMMsr;    //!< GPU copy of the angle's epsilon/sigma/rcut (esr)
+        GPUArray<Scalar4>  m_CGCMMepow;  //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

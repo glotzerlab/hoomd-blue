@@ -71,14 +71,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEVICE
 #endif
 
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
 //! Class for evaluating the Gaussian pair potential
 /*! <b>General Overview</b>
 
@@ -150,9 +142,9 @@ class EvaluatorPairSLJ
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // precompute some quantities
-            Scalar rinv = RSQRT(rsq);
+            Scalar rinv = fast::rsqrt(rsq);
             Scalar r = Scalar(1.0) / rinv;
-            Scalar rcutinv = RSQRT(rcutsq);
+            Scalar rcutinv = fast::rsqrt(rcutsq);
             Scalar rcut = Scalar(1.0) / rcutinv;
             
             // compute the force divided by r in force_divr
@@ -196,7 +188,6 @@ class EvaluatorPairSLJ
         Scalar lj2;     //!< lj2 parameter extracted from the params passed to the constructor
         Scalar delta;   //!< Delta parameter extracted from the call to setDiameter
     };
-
 
 #endif // __PAIR_EVALUATOR_SLJ_H__
 

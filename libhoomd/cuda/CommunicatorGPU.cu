@@ -71,18 +71,6 @@ unsigned int gpu_pdata_element_size()
     return sizeof(pdata_element_gpu);
     }
 
-//! Return the size of the ghost particle element
-unsigned int gpu_ghost_element_size()
-    {
-    return sizeof(ghost_element_gpu);
-    }
-
-//! Return the size of the ghost update element
-unsigned int gpu_update_element_size()
-    {
-    return sizeof(update_element_gpu);
-    }
-
 unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
 
 __constant__ unsigned int d_corner_plan_lookup[8]; //!< Lookup-table corner -> plan flags
@@ -174,7 +162,7 @@ __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btabl
  */
 void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                           unsigned char *d_plan,
-                                          const float4 *d_pos,
+                                          const Scalar4 *d_pos,
                                           const unsigned int *d_rtag,
                                           const unsigned int N,
                                           const unsigned int n_bonds,
@@ -707,14 +695,14 @@ __global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_npartic
                                              unsigned int *n_fetch_ptl,
                                              unsigned char *remove_mask,
                                              char *recv_buf,
-                                             float4 *d_pos,
-                                             float4 *d_vel,
-                                             float3 *d_accel,
+                                             Scalar4 *d_pos,
+                                             Scalar4 *d_vel,
+                                             Scalar3 *d_accel,
                                              int3 *d_image,
-                                             float *d_charge,
-                                             float *d_diameter,
+                                             Scalar *d_charge,
+                                             Scalar *d_diameter,
                                              unsigned int *d_body,
-                                             float4 *d_orientation,
+                                             Scalar4 *d_orientation,
                                              unsigned int *d_tag,
                                              unsigned int *d_rtag,
                                              const BoxDim global_box)
@@ -810,14 +798,14 @@ void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int n_remove_ptls,
                         unsigned char *d_remove_mask,
                         char *d_recv_buf,
-                        float4 *d_pos,
-                        float4 *d_vel,
-                        float3 *d_accel,
+                        Scalar4 *d_pos,
+                        Scalar4 *d_vel,
+                        Scalar3 *d_accel,
                         int3 *d_image,
-                        float *d_charge,
-                        float *d_diameter,
+                        Scalar *d_charge,
+                        Scalar *d_diameter,
                         unsigned int *d_body,
-                        float4 *d_orientation,
+                        Scalar4 *d_orientation,
                         unsigned int *d_tag,
                         unsigned int *d_rtag,
                         const BoxDim& global_box)
@@ -910,9 +898,9 @@ __global__ void gpu_nonbonded_plan_kernel(unsigned char *plan,
  */
 void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                       unsigned int N,
-                                      float4 *d_pos,
+                                      Scalar4 *d_pos,
                                       const BoxDim &box,
-                                      float3 ghost_fraction)
+                                      Scalar3 ghost_fraction)
     {
     unsigned int block_size = 512;
 
@@ -921,6 +909,54 @@ void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
                                                               d_pos,
                                                               box,
                                                               ghost_fraction);
+    }
+
+//! Write data to send buffer
+__device__ void write_to_buf(char *buf,
+                             const Scalar4 postype,
+                             const Scalar4 vel,
+                             const Scalar charge,
+                             const Scalar diameter,
+                             const Scalar4 orientation,
+                             const unsigned int tag,
+                             unsigned char exch_pos,
+                             unsigned char exch_vel,
+                             unsigned char exch_charge,
+                             unsigned char exch_diameter,
+                             unsigned char exch_orientation)
+    {
+    unsigned int offs = 0;
+
+    // Scalar4's first, then Scalars/unsigned ints
+    // for proper alignment
+    if (exch_pos)
+        {
+        *((Scalar4 *) &buf[offs]) = postype;
+        offs += sizeof(Scalar4);
+        }
+    if (exch_vel)
+        {
+        *((Scalar4 *) &buf[offs]) = vel;
+        offs += sizeof(Scalar4);
+        }
+    if (exch_orientation)
+        {
+        *((Scalar4 *) &buf[offs]) = orientation;
+        offs += sizeof(Scalar4);
+        } 
+    if (exch_charge)
+        {
+        *((Scalar *) &buf[offs]) = charge;
+        offs += sizeof(Scalar);
+        } 
+    if (exch_diameter)
+        {
+        *((Scalar *) &buf[offs]) = diameter;
+        offs += sizeof(Scalar);
+        } 
+
+    *((unsigned int *) &buf[offs]) = tag;
+    offs += sizeof(Scalar);
     }
 
 //! Kernel to pack local particle data into ghost send buffers
@@ -933,9 +969,11 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
                                          unsigned int ghost_idx_edge_pitch,
                                          unsigned int *d_ghost_idx_corner,
                                          unsigned int ghost_idx_corner_pitch,
-                                         float4 *d_pos,
-                                         float *d_charge,
-                                         float *d_diameter,
+                                         Scalar4 *d_pos,
+                                         Scalar *d_charge,
+                                         Scalar *d_diameter,
+                                         Scalar4 *d_vel,
+                                         Scalar4 *d_orientation,
                                          char *d_ghost_corner_buf,
                                          unsigned int corner_buf_pitch,
                                          char *d_ghost_edge_buf,
@@ -948,7 +986,14 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
                                          unsigned int max_copy_ghosts_corner,
                                          unsigned int max_copy_ghosts_edge,
                                          unsigned int max_copy_ghosts_face,
-                                         unsigned int *condition)
+                                         unsigned int *condition,
+                                         unsigned int sz,
+                                         unsigned char exch_pos,
+                                         unsigned char exch_vel,
+                                         unsigned char exch_charge,
+                                         unsigned char exch_diameter,
+                                         unsigned char exch_orientation)
+ 
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
     
@@ -962,11 +1007,24 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
 
     if (plan)
         {
-        ghost_element_gpu el;
-        el.pos = d_pos[idx];
-        el.charge = d_charge[idx];
-        el.diameter = d_diameter[idx];
-        el.tag = d_tag[idx];
+        Scalar4 postype;
+        Scalar4 vel;
+        Scalar charge;
+        Scalar diameter;
+        Scalar4 orientation;
+        unsigned int tag;
+        if (exch_pos)
+            postype = d_pos[idx];
+        if (exch_vel)
+            vel = d_vel[idx];
+        if (exch_charge)
+            charge = d_charge[idx];
+        if (exch_diameter)
+            diameter = d_diameter[idx];
+        if (exch_orientation)
+            orientation =  d_orientation[idx];
+
+        tag = d_tag[idx];
 
         // the boundary plan indicates whether the particle will cross a particle
         // in a specific direction
@@ -975,8 +1033,6 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
             if (d_is_at_boundary[face] && (plan & d_face_plan_lookup[face]))
                 boundary_plan |= d_face_plan_lookup[face];
 
-        el.plan = boundary_plan;
-
         unsigned int count = 0;
         if (plan & send_east) count++;
         if (plan & send_west) count++;
@@ -984,8 +1040,6 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
         if (plan & send_south) count++;
         if (plan & send_up) count++;
         if (plan & send_down) count++;
-
-        const unsigned int ghost_size = sizeof(ghost_element_gpu);
 
         // determine corner to send ptl to
         if (count == 3)
@@ -1010,7 +1064,11 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
             unsigned int n = atomicInc(&n_copy_ghosts_corner[corner],0xffffffff);
             if (n < max_copy_ghosts_corner)
                 {
-                *((ghost_element_gpu *) &d_ghost_corner_buf[n*ghost_size+corner*corner_buf_pitch]) = el;
+                // copy ghost data to send buffer
+                write_to_buf(&d_ghost_corner_buf[n*sz+corner*corner_buf_pitch],
+                    postype, vel, charge, diameter, orientation, tag,
+                    exch_pos, exch_vel, exch_charge, exch_diameter, exch_orientation);
+
                 d_ghost_idx_corner[n+corner*ghost_idx_corner_pitch] = idx;
                 }
             else
@@ -1040,7 +1098,10 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
             unsigned int n = atomicInc(&n_copy_ghosts_edge[edge],0xffffffff);
             if (n < max_copy_ghosts_edge)
                 {
-                *((ghost_element_gpu *) &d_ghost_edge_buf[n*ghost_size+edge*edge_buf_pitch]) = el;
+                // copy ghost data to send buffer
+                write_to_buf(&d_ghost_edge_buf[n*sz+edge*edge_buf_pitch],
+                    postype, vel, charge, diameter, orientation, tag,
+                    exch_pos, exch_vel, exch_charge, exch_diameter, exch_orientation);
 
                 // store particle index in ghost copying lists
                 d_ghost_idx_edge[n+edge*ghost_idx_edge_pitch] = idx;
@@ -1072,7 +1133,10 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
             unsigned int n = atomicInc(&n_copy_ghosts_face[face],0xffffffff);
             if (n < max_copy_ghosts_face)
                 {
-                *((ghost_element_gpu *) &d_ghost_face_buf[n*ghost_size+face*face_buf_pitch]) = el;
+                // copy ghost data to send buffer
+                write_to_buf(&d_ghost_face_buf[n*sz+face*face_buf_pitch],
+                    postype, vel, charge, diameter, orientation, tag,
+                    exch_pos, exch_vel, exch_charge, exch_diameter, exch_orientation);
 
                 // store particle index in ghost copying lists
                 d_ghost_idx_face[n+face*ghost_idx_face_pitch] = idx;
@@ -1101,6 +1165,8 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
  * \param d_pos Array of particle positions
  * \param d_charge Array of particle charges
  * \param d_diameter Array of particle diameters
+ * \param d_vel Particle data array of velocities
+ * \param d_orientation Particle data array of orientations
  * \param d_ghost_corner_buf Buffer for ghosts sent via a corner (return array)
  * \param corner_buf_pitch Offsets of different corners in send buffer
  * \param d_ghost_edge_buf Buffer for ghosts sent over an edge (return array)
@@ -1114,6 +1180,12 @@ __global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
  * \param max_copy_ghosts_edge Size of edge ghost send buffer
  * \param max_copy_ghosts_face Size of face ghost send buffer
  * \param d_condition Return value, unequal zero if buffer overflow
+ * \param sz Size of exchange element
+ * \param exch_pos >0 if exchanging positions
+ * \param exch_vel >0 if exchanging positions
+ * \param exch_charge >0 if exchanging positions
+ * \param exch_diameter >0 if exchanging positions
+ * \param exch_orientation >0 if exchanging positions
  */
 void gpu_exchange_ghosts(const unsigned int N,
                          const unsigned char *d_plan,
@@ -1124,9 +1196,11 @@ void gpu_exchange_ghosts(const unsigned int N,
                          unsigned int ghost_idx_edge_pitch,
                          unsigned int *d_ghost_idx_corner,
                          unsigned int ghost_idx_corner_pitch,
-                         float4 *d_pos,
-                         float *d_charge,
-                         float *d_diameter,
+                         Scalar4 *d_pos,
+                         Scalar *d_charge,
+                         Scalar *d_diameter,
+                         Scalar4 *d_vel,
+                         Scalar4 *d_orientation,
                          char *d_ghost_corner_buf,
                          unsigned int corner_buf_pitch,
                          char *d_ghost_edge_buf,
@@ -1139,14 +1213,19 @@ void gpu_exchange_ghosts(const unsigned int N,
                          unsigned int max_copy_ghosts_corner,
                          unsigned int max_copy_ghosts_edge,
                          unsigned int max_copy_ghosts_face,
-                         unsigned int *d_condition)
+                         unsigned int *d_condition,
+                         unsigned int sz,
+                         unsigned char exch_pos,
+                         unsigned char exch_vel,
+                         unsigned char exch_charge,
+                         unsigned char exch_diameter,
+                         unsigned char exch_orientation)
     {
     cudaMemset(d_n_copy_ghosts_corner, 0, sizeof(unsigned int)*8);
     cudaMemset(d_n_copy_ghosts_edge, 0, sizeof(unsigned int)*12);
     cudaMemset(d_n_copy_ghosts_face, 0, sizeof(unsigned int)*6);
 
-
-    unsigned int block_size = 512;
+    unsigned int block_size = 256;
     gpu_exchange_ghosts_kernel<<<N/block_size+1, block_size>>>(N,
                          d_plan,
                          d_tag,
@@ -1159,6 +1238,8 @@ void gpu_exchange_ghosts(const unsigned int N,
                          d_pos,
                          d_charge,
                          d_diameter,
+                         d_vel,
+                         d_orientation,
                          d_ghost_corner_buf,
                          corner_buf_pitch,
                          d_ghost_edge_buf,
@@ -1171,14 +1252,20 @@ void gpu_exchange_ghosts(const unsigned int N,
                          max_copy_ghosts_corner,
                          max_copy_ghosts_edge,
                          max_copy_ghosts_face,
-                         d_condition);
+                         d_condition,
+                         sz,
+                         exch_pos,
+                         exch_vel,
+                         exch_charge,
+                         exch_diameter,
+                         exch_orientation);
     }
 
 //! Unpack a buffer of received ghost particles into local particle data arrays
 /*! \tparam element_type Type of ghost element
     \tparam update True if only updating positions, false if copying all fields needed for force calculation
  */
-template<class element_type, bool update>
+template<bool update>
 __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                                                   unsigned int n_tot_recv_ghosts,
                                                   const unsigned int *n_local_ghosts_face,
@@ -1195,16 +1282,24 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                                                   Scalar4 *d_pos,
                                                   Scalar *d_charge,
                                                   Scalar *d_diameter,
+                                                  Scalar4 *d_vel,
+                                                  Scalar4 *d_orientation,
                                                   unsigned int *d_tag,
                                                   unsigned int *d_rtag,
-                                                  const BoxDim shifted_global_box)
+                                                  const BoxDim shifted_global_box,
+                                                  const unsigned int sz,
+                                                  unsigned char exch_pos,
+                                                  unsigned char exch_vel,
+                                                  unsigned char exch_charge,
+                                                  unsigned char exch_diameter,
+                                                  unsigned char exch_orientation
+                                                  )
     {
     unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
 
     if (ghost_idx >= n_tot_recv_ghosts) return;
 
-    element_type *el_ptr;
-    const unsigned int ghost_size = sizeof(element_type);
+    char *el_ptr;
 
     // decide for each ghost particle from which buffer we are fetching it from
     unsigned int offset = 0;
@@ -1222,7 +1317,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
             if (local_idx < local_offset) break;
             }
 
-        el_ptr = (element_type *) &d_recv_ghosts[local_idx*ghost_size];
+        el_ptr = (char *) &d_recv_ghosts[local_idx*sz];
         done = true;
         }
     else
@@ -1254,7 +1349,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                     }
 
                 unsigned int n = n_local_ghosts_face[i]+local_idx;
-                el_ptr = (element_type *) &d_face_ghosts[n*ghost_size + i*face_pitch];
+                el_ptr = (char *) &d_face_ghosts[n*sz + i*face_pitch];
                 done = true;
                 break;
                 }
@@ -1289,7 +1384,7 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
                     }
 
                 unsigned int n = n_local_ghosts_edge[i]+local_idx;
-                el_ptr = (element_type *) &d_edge_ghosts[n*ghost_size + i*edge_pitch];
+                el_ptr = (char *) &d_edge_ghosts[n*sz + i*edge_pitch];
                 done = true;
                 break;
                 }
@@ -1299,31 +1394,79 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
         }
 
     // we have a pointer to the data element to be unpacked, now unpack
+    // unpack in the order it was packed
     Scalar4 postype;
     if (update)
         {
-        // only update position
-        update_element_gpu &el = *(update_element_gpu *) el_ptr;
-        postype = el.pos;
-        }
+        unsigned int offs = 0;
+        if (exch_pos)
+            {
+            Scalar4 &pos = *((Scalar4 *) (el_ptr+offs));
+            offs += sizeof(Scalar4);
+            postype = pos;
+            }
+        if (exch_vel)
+            {
+            Scalar4 &vel = *((Scalar4 *) (el_ptr+offs));
+            offs += sizeof(Scalar4);
+            d_vel[N+ghost_idx] = vel;
+            }
+        if (exch_orientation)
+            {
+            Scalar4 &orientation = *((Scalar4 *) (el_ptr+offs));
+            offs += sizeof(Scalar4);
+            d_orientation[N+ghost_idx] = orientation;
+            }
+        } 
     else
         {
-        // unpack all data needed for force computation
-        ghost_element_gpu &el = *(ghost_element_gpu *) el_ptr;
-        postype = el.pos;
+        unsigned int offs = 0;
+        if (exch_pos)
+            {
+            Scalar4 &pos = *((Scalar4 *) (el_ptr+offs));
+            offs += sizeof(Scalar4);
+            postype = pos;
+            }
+        if (exch_vel)
+            {
+            Scalar4 &vel = *((Scalar4 *) (el_ptr+offs));
+            offs += sizeof(Scalar4);
+            d_vel[N+ghost_idx] = vel;
+            }
+        if (exch_orientation)
+            {
+            Scalar4 &orientation = *((Scalar4 *) (el_ptr+offs));
+            offs += sizeof(Scalar4);
+            d_orientation[N+ghost_idx] = orientation;
+            }
+        if (exch_charge)
+            {
+            Scalar charge = *((Scalar *) (el_ptr+offs));
+            offs += sizeof(Scalar);
+            d_charge[N+ghost_idx] = charge;
+            }
+       if (exch_diameter)
+            {
+            Scalar diameter = *((Scalar *) (el_ptr+offs));
+            offs += sizeof(Scalar);
+            d_diameter[N+ghost_idx] = diameter;
+            }
 
-        d_charge[N+ghost_idx] = el.charge;
-        d_diameter[N+ghost_idx] = el.diameter;
-        unsigned int tag = el.tag;
+        unsigned int tag = *((unsigned int *) (el_ptr+offs));
+        offs += sizeof(unsigned int);
+
         d_tag[N+ghost_idx] = tag;
         d_rtag[tag] = N+ghost_idx;
         }
 
     // apply global boundary conditions for received particle
-    int3 img = make_int3(0,0,0);
-    shifted_global_box.wrap(postype,img);
+    if (exch_pos)
+        {
+        int3 img = make_int3(0,0,0);
+        shifted_global_box.wrap(postype,img);
 
-    d_pos[N+ghost_idx] = postype;
+        d_pos[N+ghost_idx] = postype;
+        }
     }
 
 //! Unpack received ghosts
@@ -1343,9 +1486,17 @@ __global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
     \param d_pos Array of particle positions
     \param d_charge Array of particle charges
     \param d_diameter Array of particle diameters
+    \param d_vel Array of particle velocities
+    \param d_orientation Array of particle orientations
     \param d_tag Array of particle tags
     \param d_rtag Lookup table particle tag->idx
     \param shifted_global_box Global simulation box, shifted by one local box if local box has a global boundary
+    \param sz Size of exchange element
+    \param exch_pos >0 if exchanging positions
+    \param exch_vel >0 if exchanging positions
+    \param exch_charge >0 if exchanging positions
+    \param exch_diameter >0 if exchanging positions
+    \param exch_orientation >0 if exchanging positions
 */
 void gpu_exchange_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
@@ -1363,13 +1514,22 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                 Scalar4 *d_pos,
                                 Scalar *d_charge,
                                 Scalar *d_diameter,
+                                Scalar4 *d_vel,
+                                Scalar4 *d_orientation,
                                 unsigned int *d_tag,
                                 unsigned int *d_rtag,
-                                const BoxDim& shifted_global_box)
+                                const BoxDim& shifted_global_box,
+                                unsigned int sz,
+                                unsigned char exch_pos,
+                                unsigned char exch_vel,
+                                unsigned char exch_charge,
+                                unsigned char exch_diameter,
+                                unsigned char exch_orientation
+                                )
     {
     unsigned int block_size = 512;
 
-    gpu_exchange_ghosts_unpack_kernel<ghost_element_gpu, false><<<n_tot_recv_ghosts/block_size+1, block_size>>>(N,
+    gpu_exchange_ghosts_unpack_kernel<false><<<n_tot_recv_ghosts/block_size+1, block_size>>>(N,
                                                                            n_tot_recv_ghosts,
                                                                            d_n_local_ghosts_face,
                                                                            d_n_local_ghosts_edge,
@@ -1385,9 +1545,17 @@ void gpu_exchange_ghosts_unpack(unsigned int N,
                                                                            d_pos,
                                                                            d_charge,
                                                                            d_diameter,
+                                                                           d_vel,
+                                                                           d_orientation,
                                                                            d_tag,
                                                                            d_rtag,
-                                                                           shifted_global_box);
+                                                                           shifted_global_box,
+                                                                           sz,
+                                                                           exch_pos,
+                                                                           exch_vel,
+                                                                           exch_charge,
+                                                                           exch_diameter,
+                                                                           exch_orientation);
     } 
 
 //! Kernel to pack local particle data into ghost send buffers
@@ -1398,7 +1566,9 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
                                          const unsigned int ghost_idx_edge_pitch,
                                          const unsigned int *d_ghost_idx_corner,
                                          const unsigned int ghost_idx_corner_pitch,
-                                         const float4 *d_pos,
+                                         const Scalar4 *d_pos,
+                                         const Scalar4 *d_vel,
+                                         const Scalar4 *d_orientation,
                                          char *d_update_corner_buf,
                                          unsigned int corner_buf_pitch,
                                          char *d_update_edge_buf,
@@ -1407,7 +1577,11 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
                                          unsigned int face_buf_pitch,
                                          const unsigned int *n_copy_ghosts_corner,
                                          const unsigned int *n_copy_ghosts_edge,
-                                         const unsigned int *n_copy_ghosts_face)
+                                         const unsigned int *n_copy_ghosts_face,
+                                         unsigned int sz,
+                                         unsigned char exch_pos,
+                                         unsigned char exch_vel,
+                                         unsigned char exch_orientation)
     {
     unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
 
@@ -1421,14 +1595,13 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
     // order does matter, inside the individual buffers the particle order must be the same as the one
     // in the ghost index buffer (created by exchange_ghosts kernel)
     unsigned int offset = 0;
+    
+    char *buf_ptr = NULL;
 
     // the particle index we are going to fetch (initialized with a dummy value)
     unsigned int idx = NOT_LOCAL;
 
     bool done = false;
-
-    update_element_gpu *buf_ptr = NULL; 
-    const unsigned int update_size = sizeof(update_element_gpu);
 
     // first, ghosts that are sent over a corner
     for (unsigned int corner=0; corner < 8; ++corner)
@@ -1438,7 +1611,7 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
         if (local_idx < n_copy_ghosts_corner[corner])
             {
             idx = d_ghost_idx_corner[local_idx + corner * ghost_idx_corner_pitch];
-            buf_ptr = (update_element_gpu *) &d_update_corner_buf[local_idx*update_size + corner*corner_buf_pitch];
+            buf_ptr = (char *) &d_update_corner_buf[local_idx*sz + corner*corner_buf_pitch];
             done = true;
             break;
             }
@@ -1456,7 +1629,7 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
             if (local_idx < n_copy_ghosts_edge[edge])
                 {
                 idx = d_ghost_idx_edge[local_idx + edge * ghost_idx_edge_pitch];
-                buf_ptr = (update_element_gpu *) &d_update_edge_buf[local_idx*update_size + edge*edge_buf_pitch];
+                buf_ptr = (char *) &d_update_edge_buf[local_idx*sz + edge*edge_buf_pitch];
                 done = true;
                 break;
                 }
@@ -1475,7 +1648,7 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
             if (local_idx < n_copy_ghosts_face[face])
                 {
                 idx = d_ghost_idx_face[local_idx + face * ghost_idx_face_pitch];
-                buf_ptr = (update_element_gpu *) &d_update_face_buf[local_idx*update_size + face*face_buf_pitch];
+                buf_ptr = (char *) &d_update_face_buf[local_idx*sz + face*face_buf_pitch];
                 done = true;
                 break;
                 }
@@ -1486,8 +1659,22 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
 
     // we have found a ghost index to be updated
     // store data in buffer element
-    update_element_gpu &el = *buf_ptr;
-    el.pos = d_pos[idx];
+    unsigned int offs = 0;
+    if (exch_pos)
+        {
+        *((Scalar4 *) (buf_ptr+offs)) = d_pos[idx];
+        offs += sizeof(Scalar4);
+        }
+    if (exch_vel)
+        {
+        *((Scalar4 *) (buf_ptr+offs)) = d_vel[idx];
+        offs += sizeof(Scalar4);
+        }
+    if (exch_orientation)
+        {
+        *((Scalar4 *) (buf_ptr+offs)) = d_orientation[idx];
+        offs += sizeof(Scalar4);
+        }
     }
 
 //! Pack local particle data into ghost send buffers
@@ -1508,6 +1695,10 @@ __global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
     \param d_n_local_ghosts_corner Number of ghosts sent in every corner
     \param d_n_local_ghosts_edge Number of ghosts sent over every edge
     \param d_n_local_ghosts_face Number of ghosts sent across every face
+    \param sz Size of update element
+    \param exch_pos >0 if exchanging positions
+    \param exch_vel >0 if exchanging positions
+    \param exch_orientation >0 if exchanging positions
 */
 void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                      const unsigned int *d_ghost_idx_face,
@@ -1516,7 +1707,9 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                      const unsigned int ghost_idx_edge_pitch,
                                      const unsigned int *d_ghost_idx_corner,
                                      const unsigned int ghost_idx_corner_pitch,
-                                     const float4 *d_pos,
+                                     const Scalar4 *d_pos,
+                                     const Scalar4 *d_vel,
+                                     const Scalar4 *d_orientation,
                                      char *d_update_corner_buf,
                                      unsigned int corner_buf_pitch,
                                      char *d_update_edge_buf,
@@ -1525,7 +1718,11 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                      unsigned int face_buf_pitch,
                                      const unsigned int *d_n_local_ghosts_corner,
                                      const unsigned int *d_n_local_ghosts_edge,
-                                     const unsigned int *d_n_local_ghosts_face)
+                                     const unsigned int *d_n_local_ghosts_face,
+                                     unsigned int sz,
+                                     unsigned char exch_pos,
+                                     unsigned char exch_vel,
+                                     unsigned char exch_orientation)
     {
     unsigned int block_size = 512;
     gpu_update_ghosts_pack_kernel<<<n_copy_ghosts/block_size+1,block_size>>>(n_copy_ghosts,
@@ -1536,6 +1733,8 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                                                              d_ghost_idx_corner,
                                                                              ghost_idx_corner_pitch,
                                                                              d_pos,
+                                                                             d_vel,
+                                                                             d_orientation,
                                                                              d_update_corner_buf,
                                                                              corner_buf_pitch,
                                                                              d_update_edge_buf,
@@ -1544,7 +1743,11 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
                                                                              face_buf_pitch,
                                                                              d_n_local_ghosts_corner,
                                                                              d_n_local_ghosts_edge,
-                                                                             d_n_local_ghosts_face);
+                                                                             d_n_local_ghosts_face,
+                                                                             sz,
+                                                                             exch_pos,
+                                                                             exch_vel,
+                                                                             exch_orientation);
     }
 
 //! Unpack received ghosts
@@ -1562,7 +1765,13 @@ void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
     \param edge_pitch Offsets of different edges in edge ghost buffer
     \param d_recv_ghosts Buffer of ghosts received for the local box
     \param d_pos Array of particle positions
+    \param d_vel Array of particle velocities
+    \param d_orientation Array of particle orientations
     \param global_box Global simulation box
+    \param sz Size of update element
+    \param exch_pos >0 if exchanging positions
+    \param exch_vel >0 if exchanging positions
+    \param exch_orientation >0 if exchanging positions
 */
 void gpu_update_ghosts_unpack(unsigned int N,
                                 unsigned int n_tot_recv_ghosts,
@@ -1578,10 +1787,16 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                 const unsigned int edge_pitch,
                                 const char *d_recv_ghosts,
                                 Scalar4 *d_pos,
-                                const BoxDim& shifted_global_box)
+                                Scalar4 *d_vel,
+                                Scalar4 *d_orientation,
+                                const BoxDim& shifted_global_box,
+                                unsigned int sz,
+                                unsigned char exch_pos,
+                                unsigned char exch_vel,
+                                unsigned char exch_orientation)
     {
     unsigned int block_size = 512;
-    gpu_exchange_ghosts_unpack_kernel<update_element_gpu, true><<<n_tot_recv_ghosts/block_size+1, block_size>>>
+    gpu_exchange_ghosts_unpack_kernel<true><<<n_tot_recv_ghosts/block_size+1, block_size>>>
                                                                           (N,
                                                                            n_tot_recv_ghosts,
                                                                            d_n_local_ghosts_face,
@@ -1598,9 +1813,17 @@ void gpu_update_ghosts_unpack(unsigned int N,
                                                                            d_pos,
                                                                            NULL,
                                                                            NULL,
+                                                                           d_vel,
+                                                                           d_orientation,
                                                                            NULL,
                                                                            NULL,
-                                                                           shifted_global_box);
+                                                                           shifted_global_box,
+                                                                           sz,
+                                                                           exch_pos,
+                                                                           exch_vel,
+                                                                           0, 
+                                                                           0,
+                                                                           exch_orientation);
     } 
 
 

@@ -62,8 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __TABLEPOTENTIALGPU_CUH__
 
 //! Kernel driver that computes table forces on the GPU for TablePotentialGPU
-cudaError_t gpu_compute_table_forces(float4* d_force,
-                                     float* d_virial,
+cudaError_t gpu_compute_table_forces(Scalar4* d_force,
+                                     Scalar* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const unsigned int n_ghost,
@@ -72,8 +72,8 @@ cudaError_t gpu_compute_table_forces(float4* d_force,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
                                      const Index2D& nli,
-                                     const float2 *d_tables,
-                                     const float4 *d_params,
+                                     const Scalar2 *d_tables,
+                                     const Scalar4 *d_params,
                                      const unsigned int ntypes,
                                      const unsigned int table_width,
                                      const unsigned int block_size);

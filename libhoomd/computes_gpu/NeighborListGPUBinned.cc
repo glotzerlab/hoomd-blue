@@ -220,6 +220,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         }
     else
         {
+        #ifndef SINGLE_PRECISION
+        m_exec_conf->msg->error() << "NeighborListGPUBinned doesn't work in double precision on compute 1.x" << endl;
+        throw runtime_error("Error computing neighbor list");
+        #endif
+        
         unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
 
         // upate the cuda array allocations (note, this is smart enough to not reallocate when there has been no change)
@@ -231,9 +236,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
         // update the values in those arrays
         if (m_prof) m_prof->push(exec_conf, "copy");
-        cudaMemcpyToArray(dca_cell_xyzf, 0, 0, d_cell_xyzf.data, sizeof(float4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
+        cudaMemcpyToArray(dca_cell_xyzf, 0, 0, d_cell_xyzf.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
         if (m_filter_body || m_filter_diameter)
-            cudaMemcpyToArray(dca_cell_tdb, 0, 0, d_cell_tdb.data, sizeof(float4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
+            cudaMemcpyToArray(dca_cell_tdb, 0, 0, d_cell_tdb.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
         
         if (m_prof) m_prof->pop(exec_conf);
         
@@ -315,7 +320,7 @@ void NeighborListGPUBinned::allocateCudaArrays()
     // allocate the new ones
     unsigned int ncell = cur_dim.x * cur_dim.y * cur_dim.z;
     
-    cudaChannelFormatDesc xyzf_desc = cudaCreateChannelDesc< float4 >();
+    cudaChannelFormatDesc xyzf_desc = cudaCreateChannelDesc< Scalar4 >();
     cudaMallocArray(&dca_cell_xyzf, &xyzf_desc, cur_cell_Nmax, ncell);
     cudaMallocArray(&dca_cell_tdb, &xyzf_desc, cur_cell_Nmax, ncell);
     cudaChannelFormatDesc adj_desc = cudaCreateChannelDesc< unsigned int >();

@@ -67,7 +67,7 @@ using namespace std;
 /*! \param sysdef system to compute the cell list of
 */
 CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
-    : Compute(sysdef),  m_nominal_width(Scalar(1.0f)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
+    : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
       m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
@@ -136,9 +136,9 @@ uint3 CellList::computeDimensions()
         // decrease the number of bins if it exceeds the max
         if (dim.x * dim.y * dim.z > m_max_cells)
             {
-            float scale_factor = powf(float(m_max_cells) / float(dim.x*dim.y*dim.z), 1.0f/2.0f);
-            dim.x = int(float(dim.x)*scale_factor);
-            dim.y = int(float(dim.y)*scale_factor);
+            Scalar scale_factor = powf(Scalar(m_max_cells) / Scalar(dim.x*dim.y*dim.z), Scalar(1.0)/Scalar(2.0));
+            dim.x = int(Scalar(dim.x)*scale_factor);
+            dim.y = int(Scalar(dim.y)*scale_factor);
             }
         }
     else
@@ -152,10 +152,10 @@ uint3 CellList::computeDimensions()
         // decrease the number of bins if it exceeds the max
         if (dim.x * dim.y * dim.z > m_max_cells)
             {
-            float scale_factor = powf(float(m_max_cells) / float(dim.x*dim.y*dim.z), 1.0f/3.0f);
-            dim.x = int(float(dim.x)*scale_factor);
-            dim.y = int(float(dim.y)*scale_factor);
-            dim.z = int(float(dim.z)*scale_factor);
+            Scalar scale_factor = powf(Scalar(m_max_cells) / Scalar(dim.x*dim.y*dim.z), Scalar(1.0)/Scalar(3.0));
+            dim.x = int(Scalar(dim.x)*scale_factor);
+            dim.y = int(Scalar(dim.y)*scale_factor);
+            dim.z = int(Scalar(dim.z)*scale_factor);
             }
         }
 
@@ -176,9 +176,12 @@ void CellList::compute(unsigned int timestep)
     
     if (m_prof)
         m_prof->push("Cell");
-    
+
+    m_exec_conf->msg->notice(10) << "Cell list compute" << endl;
+
     if (m_params_changed)
         {
+        m_exec_conf->msg->notice(10) << "Cell list params changed" << endl;
         // need to fully reinitialize on any parameter change
         initializeAll();
         m_params_changed = false;
@@ -188,6 +191,10 @@ void CellList::compute(unsigned int timestep)
     if (m_box_changed)
         {
         uint3 new_dim = computeDimensions();
+        m_exec_conf->msg->notice(10) << "Cell list box changed "
+                                     << m_dim.x << " x " << m_dim.y << " x " << m_dim.z << " -> "
+                                     << new_dim.x << " x " << new_dim.y << " x " << new_dim.z << " -> "
+                                     << endl;
         if (new_dim.x == m_dim.x && new_dim.y == m_dim.y && new_dim.z == m_dim.z)
             {
             // number of bins has not changed, only need to update width
@@ -278,6 +285,7 @@ void CellList::initializeAll()
 
 void CellList::initializeWidth()
     {
+    m_exec_conf->msg->notice(10) << "Cell list initialize width" << endl;
     if (m_prof)
         m_prof->push("init");
     
@@ -309,13 +317,14 @@ void CellList::initializeWidth()
 
 void CellList::initializeMemory()
     {
+    m_exec_conf->msg->notice(10) << "Cell list initialize memory" << endl;
     if (m_prof)
         m_prof->push("init");
 
     // if it is still set at 0, estimate Nmax
     if (m_Nmax == 0)
         {
-        unsigned int estim_Nmax = (unsigned int)(ceilf(float((m_pdata->getN()+m_pdata->getNGhosts())*1.0f / float(m_dim.x*m_dim.y*m_dim.z))));
+        unsigned int estim_Nmax = (unsigned int)(ceil(double((m_pdata->getN()+m_pdata->getNGhosts())*1.0 / double(m_dim.x*m_dim.y*m_dim.z))));
         m_Nmax = estim_Nmax;
         if (m_Nmax == 0)
             m_Nmax = 1;
@@ -497,11 +506,10 @@ void CellList::computeCellList()
         int jb = (int)(f.y * m_dim.y);
         int kb = (int)(f.z * m_dim.z);
         
-        // check if the particle is inside the unit cell + ghost layer
-        // for non-periodic directions
-        if ((!periodic.x && (f.x < Scalar(0.0) || f.x >= Scalar(1.0))) ||
-            (!periodic.y && (f.y < Scalar(0.0) || f.y >= Scalar(1.0))) ||
-            (!periodic.z && (f.z < Scalar(0.0) || f.z >= Scalar(1.0))) )
+        // check if the particle is inside the unit cell + ghost layer in all dimensions
+        if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
+            (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
+            (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)) )
             { 
             // if a ghost particle is out of bounds, silently ignore it
             if (n < m_pdata->getN())

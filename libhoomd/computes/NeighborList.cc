@@ -866,7 +866,7 @@ void NeighborList::setLastUpdatedPos()
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        h_last_pos.data[i] = make_scalar4(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z, 0.0f);
+        h_last_pos.data[i] = make_scalar4(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z, Scalar(0.0));
         }
    
     // update last box length
@@ -1096,7 +1096,7 @@ void NeighborList::buildNlist(unsigned int timestep)
             if (m_filter_diameter)
                 {
                 // compute the shift in radius to accept neighbors based on their diameters
-                float delta = (di + h_diameter.data[j]) * Scalar(0.5) - Scalar(1.0);
+                Scalar delta = (di + h_diameter.data[j]) * Scalar(0.5) - Scalar(1.0);
                 // r^2 < (r_max + delta)^2
                 // r^2 < r_maxsq + delta^2 + 2*r_max*delta
                 sqshift = (delta + Scalar(2.0) * rmax) * delta;

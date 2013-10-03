@@ -68,7 +68,7 @@ using namespace boost::python;
 using namespace std;
 
 // SMALL a relatively small number
-#define SMALL 0.001f
+#define SMALL Scalar(0.001)
 
 /*! \file HarmonicDihedralForceCompute.cc
     \brief Contains code for the HarmonicDihedralForceCompute class
@@ -258,10 +258,10 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar rg = sqrt(rgsq);
         
         Scalar rginv, raa2inv, rbb2inv;
-        rginv = raa2inv = rbb2inv = 0.0f;
-        if (rg > 0.0f) rginv = 1.0f/rg;
-        if (raasq > 0.0f) raa2inv = 1.0f/raasq;
-        if (rbbsq > 0.0f) rbb2inv = 1.0f/rbbsq;
+        rginv = raa2inv = rbb2inv = Scalar(0.0);
+        if (rg > Scalar(0.0)) rginv = Scalar(1.0)/rg;
+        if (raasq > Scalar(0.0)) raa2inv = Scalar(1.0)/raasq;
+        if (rbbsq > Scalar(0.0)) rbb2inv = Scalar(1.0)/rbbsq;
         Scalar rabinv = sqrt(raa2inv*rbb2inv);
         
         Scalar c_abcd = (aax*bbx + aay*bby + aaz*bbz)*rabinv;
@@ -271,8 +271,8 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         if (c_abcd < -1.0) c_abcd = -1.0;
         
         int multi = (int)m_multi[dihedral.type];
-        Scalar p = 1.0f;
-        Scalar dfab = 0.0f;
+        Scalar p = Scalar(1.0);
+        Scalar dfab = Scalar(0.0);
         Scalar ddfab;
         
         for (int j = 0; j < multi; j++)
@@ -290,12 +290,12 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         p = p*sign;
         dfab = dfab*sign;
         dfab *= (Scalar)-multi;
-        p += 1.0f;
+        p += Scalar(1.0);
         
         if (multi == 0)
             {
-            p =  1.0f + sign;
-            dfab = 0.0f;
+            p =  Scalar(1.0) + sign;
+            dfab = Scalar(0.0);
             }
             
             

@@ -61,8 +61,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __HARMONICDIHEDRALFORCEGPU_CUH__
 
 //! Kernel driver that computes harmonic dihedral forces for HarmonicDihedralForceComputeGPU
-cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
-                                                 float* d_virial,
+cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
+                                                 Scalar* d_virial,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
@@ -71,7 +71,7 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(float4* d_force,
                                                  const uint1 *dihedral_ABCD,
                                                  const unsigned int pitch,
                                                  const unsigned int *n_dihedrals_list,
-                                                 float4 *d_params,
+                                                 Scalar4 *d_params,
                                                  unsigned int n_dihedral_types,
                                                  int block_size);
 

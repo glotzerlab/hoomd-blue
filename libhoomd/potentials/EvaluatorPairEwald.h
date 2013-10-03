@@ -65,33 +65,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#if defined NVCC
 #define DEVICE __device__
 #else
 #define DEVICE
-#endif
-
-// call different optimized exp functions on the host / device
-// EXP is expf when included in nvcc and exp when included into the host compiler
-#ifdef NVCC
-#define EXP expf
-#else
-#define EXP exp
-#endif
-
-// call different optimized sqrt functions on the host / device
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
-#endif
-
-#ifdef NVCC
-// ERFC is the complimentary error function
-#define ERFC erfc
-#else
-#define ERFC erfcf
 #endif
 
 //! Class for evaluating the Ewald pair potential
@@ -156,13 +133,13 @@ class EvaluatorPairEwald
             {
             if (rsq < rcutsq && qiqj != 0)
                 {
-                Scalar rinv = RSQRT(rsq);
+                Scalar rinv = fast::rsqrt(rsq);
                 Scalar r = Scalar(1.0) / rinv;
                 Scalar r2inv = Scalar(1.0) / rsq;
                 
-                Scalar erfc_by_r_val = ERFC(kappa * r) * rinv;
+                Scalar erfc_by_r_val = fast::erfc(kappa * r) * rinv;
                         
-                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*RSQRT(M_PI) * EXP(-kappa*kappa* rsq));
+                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*fast::rsqrt(M_PI) * fast::exp(-kappa*kappa* rsq));
                 pair_eng = qiqj * erfc_by_r_val ;
 
                 return true;

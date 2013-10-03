@@ -382,9 +382,12 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('pair.cgcmm', 'pair_cgcmm_setup', 500),
                 ('pair.gauss', 'pair_gauss_setup', 500),
                 ('pair.morse', 'pair_morse_setup', 500),
+                ('pair.moliere', 'pair_moliere_setup', 500),
+                ('pair.zbl', 'pair_zbl_setup', 500),
                 ('pair.dpd', 'pair_dpd_setup', 500),
                 ('pair.dpdlj', 'pair_dpdlj_setup', 500),                
                 ('pair.dpd_conservative', 'pair_dpd_conservative_setup', 500),
+                ('pair.tersoff', 'pair_tersoff_setup', 2500),
                 ('bond.harmonic', 'bond.harmonic', 10000),
                 ('bond.fene', 'bond_fene_setup', 2000),
                 ('angle.harmonic', 'angle.harmonic', 3000),
@@ -604,6 +607,28 @@ def pair_morse_setup():
     return fc;
 
 ## \internal
+# \brief Setup pair.moliere for benchmarking
+def pair_moliere_setup():
+    from hoomd_script import pair
+    fc = pair.moliere(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', Z_i = 7, Z_j = 7, a_0 = 0.52918, elementary_charge = 3.7947)
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
+# \brief Setup pair.zbl for benchmarking
+def pair_zbl_setup():
+    from hoomd_script import pair
+    fc = pair.zbl(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', Z_i = 7, Z_j = 7, a_0 = 0.52918, elementary_charge = 3.7947)
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
 # \brief Setup pair.dpd for benchmarking
 def pair_dpd_setup():
     from hoomd_script import pair
@@ -631,6 +656,30 @@ def pair_dpd_conservative_setup():
     from hoomd_script import pair
     fc = pair.dpd_conservative(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', A=40);
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
+# \brief Setup pair.tersoff for benchmarking
+def pair_tersoff_setup():
+    from hoomd_script import pair
+
+    c1nn = 9.91 / (1.0769 - 1);
+    c2nn = 1.0769 * c1nn;
+    l1nn = 1.92787 * math.sqrt(2 * 1.0769);
+    l2nn = l1nn / 1.0769;
+    l3nn = 0.0;
+    nnn = 0.6184432;
+    gammann = 0.019251;
+    cnn = 17.7959;
+    dnn = 5.9484;
+    mnn = 0.0;
+    r0nn = 1.11;
+
+    fc = pair.tersoff(r_cut=2.1);
+    fc.pair_coeff.set('A', 'A', cutoff_thickness = 0.2, C1 = c1nn, C2 = c2nn, lambda1 = l1nn, lambda2 = l2nn, lambda3 = l3nn, dimer_r = r0nn, n = nnn, gamma = gammann, c = cnn, d = dnn, m = mnn, alpha = 3.0)
     
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();

@@ -57,6 +57,7 @@ Moscow group.
 */
 
 #include "EAMForceGPU.cuh"
+#include "TextureTools.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -69,27 +70,45 @@ Moscow group.
 */
 
 //!< Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+scalar4_tex_t pdata_pos_tex;
+
+#ifdef SINGLE_PRECISION
 //! Texture for reading electron density
-texture<float, 1, cudaReadModeElementType> electronDensity_tex;
+texture<Scalar, 1, cudaReadModeElementType> electronDensity_tex;
 //! Texture for reading EAM pair potential
-texture<float2, 1, cudaReadModeElementType> pairPotential_tex;
+texture<Scalar2, 1, cudaReadModeElementType> pairPotential_tex;
 //! Texture for reading the embedding function
-texture<float, 1, cudaReadModeElementType> embeddingFunction_tex;
+texture<Scalar, 1, cudaReadModeElementType> embeddingFunction_tex;
 //! Texture for reading the derivative of the electron density
-texture<float, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
+texture<Scalar, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
 //! Texture for reading the derivative of the embedding function
-texture<float, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
+texture<Scalar, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
 //! Texture for reading the derivative of the atom embedding function
-texture<float, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
+texture<Scalar, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
+
+#else
+//! Texture for reading electron density
+texture<int2, 1, cudaReadModeElementType> electronDensity_tex;
+//! Texture for reading EAM pair potential
+texture<int4, 1, cudaReadModeElementType> pairPotential_tex;
+//! Texture for reading the embedding function
+texture<int2, 1, cudaReadModeElementType> embeddingFunction_tex;
+//! Texture for reading the derivative of the electron density
+texture<int2, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
+//! Texture for reading the derivative of the embedding function
+texture<int2, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
+//! Texture for reading the derivative of the atom embedding function
+texture<int2, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
+
+#endif
 
 //! Storage space for EAM parameters on the GPU
 __constant__ EAMTexInterData eam_data_ti;
 
 //! Kernel for computing EAM forces on the GPU
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
-    float4* d_force,
-    float* d_virial,
+    Scalar4* d_force,
+    Scalar* d_virial,
     const unsigned int virial_pitch,
     const unsigned int N,
     const Scalar4 *d_pos,
@@ -97,7 +116,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     const unsigned int *d_n_neigh,
     const unsigned int *d_nlist,
     const Index2D nli,
-    float* atomDerivativeEmbeddingFunction)
+    Scalar* atomDerivativeEmbeddingFunction)
     {
     // start by identifying which particle we are to handle
     volatile int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -108,21 +127,21 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     // load in the length of the list (MEM_TRANSFER: 4 bytes)
     int n_neigh = d_n_neigh[idx];
 
-    // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
+    // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    float4 postype = tex1Dfetch(pdata_pos_tex, idx);
-    float3 pos = make_float3(postype.x, postype.y, postype.z);
+    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
     // initialize the force to 0
-    float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
     // prefetch neighbor index
     int cur_neigh = 0;
     int next_neigh = d_nlist[nli(idx, 0)];
-    int typei  = __float_as_int(postype.w);
+    int typei  = __scalar_as_int(postype.w);
     // loop over neighbors
 
-    float atomElectronDensity  = 0.0f;
+    Scalar atomElectronDensity  = Scalar(0.0);
     int nr = eam_data_ti.nr;
     int ntypes = eam_data_ti.ntypes;
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
@@ -133,37 +152,41 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        float4 neigh_postype = tex1Dfetch(pdata_pos_tex, cur_neigh);
-        float3 neigh_pos = make_float3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
+        Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-        float3 dx = pos - neigh_pos;
-        int typej  = __float_as_int(neigh_postype.w);
+        Scalar3 dx = pos - neigh_pos;
+        int typej  = __scalar_as_int(neigh_postype.w);
         // apply periodic boundary conditions: (FLOPS 12)
         dx = box.minImage(dx);
 
         // calculate r squard (FLOPS: 5)
-        float rsq = dot(dx, dx);;
+        Scalar rsq = dot(dx, dx);;
         if (rsq < eam_data_ti.r_cutsq)
             {
-            float position_float = sqrtf(rsq) * eam_data_ti.rdr;
-            atomElectronDensity += tex1D(electronDensity_tex, position_float + nr * (typei * ntypes + typej) + 0.5f ); //electronDensity[r_index + eam_data_ti.nr * typej] + derivativeElectronDensity[r_index + eam_data_ti.nr * typej] * position * eam_data_ti.dr;
+            Scalar position_scalar = sqrtf(rsq) * eam_data_ti.rdr;
+            #ifdef SINGLE_PRECISION
+            atomElectronDensity += tex1D(electronDensity_tex, position_scalar + nr * (typei * ntypes + typej) + Scalar(0.5) ); //electronDensity[r_index + eam_data_ti.nr * typej] + derivativeElectronDensity[r_index + eam_data_ti.nr * typej] * position * eam_data_ti.dr;
+            #endif
             }
         }
 
-    float position = atomElectronDensity * eam_data_ti.rdrho;
+    Scalar position = atomElectronDensity * eam_data_ti.rdrho;
     /*unsigned int r_index = (unsigned int)position;
-    position -= (float)r_index;*/
-    atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data_ti.nrho + 0.5f);//derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho];
+    position -= (Scalar)r_index;*/
+    #ifdef SINGLE_PRECISION
+    atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data_ti.nrho + Scalar(0.5));//derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho];
 
-    force.w += tex1D(embeddingFunction_tex, position + typei * eam_data_ti.nrho + 0.5f);//embeddingFunction[r_index + typei * eam_data_ti.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho] * position * eam_data_ti.drho;
+    force.w += tex1D(embeddingFunction_tex, position + typei * eam_data_ti.nrho + Scalar(0.5));//embeddingFunction[r_index + typei * eam_data_ti.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho] * position * eam_data_ti.drho;
+    #endif
     d_force[idx] = force;
     }
 
 //! Second stage kernel for computing EAM forces on the GPU
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
-    float4* d_force,
-    float* d_virial,
+    Scalar4* d_force,
+    Scalar* d_virial,
     const unsigned int virial_pitch,
     const unsigned int N,
     const Scalar4 *d_pos,
@@ -171,7 +194,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     const unsigned int *d_n_neigh,
     const unsigned int *d_nlist,
     const Index2D nli,
-    float* atomDerivativeEmbeddingFunction)
+    Scalar* atomDerivativeEmbeddingFunction)
     {
     // start by identifying which particle we are to handle
     volatile  int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -182,68 +205,77 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     // loadj in the length of the list (MEM_TRANSFER: 4 bytes)
     int n_neigh = d_n_neigh[idx];
 
-    // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
+    // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    float4 postype = tex1Dfetch(pdata_pos_tex, idx);
-    float3 pos = make_float3(postype.x, postype.y, postype.z);
-    int typei = __float_as_int(postype.w);
+    Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+    int typei = __scalar_as_int(postype.w);
     // prefetch neighbor index
-    float position;
+    Scalar position;
     int cur_neigh = 0;
     int next_neigh = d_nlist[nli(idx, 0)];
-    //float4 force = force_data.force[idx];
-    float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    //Scalar4 force = force_data.force[idx];
+    Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
     //force.w = force_data.force[idx].w;
-    float fxi = 0.0f;
-    float fyi = 0.0f;
-    float fzi = 0.0f;
-    float m_pe = 0.0f;
-    float pairForce = 0.0f;
-    float virial[6];
+    Scalar fxi = Scalar(0.0);
+    Scalar fyi = Scalar(0.0);
+    Scalar fzi = Scalar(0.0);
+    Scalar m_pe = Scalar(0.0);
+    Scalar pairForce = Scalar(0.0);
+    Scalar virial[6];
     for (int i = 0; i < 6; i++)
-        virial[i] = 0.0f;
+        virial[i] = Scalar(0.0);
 
     force.w = d_force[idx].w;
     int nr = eam_data_ti.nr;
     int ntypes = eam_data_ti.ntypes;
-    float adef = atomDerivativeEmbeddingFunction[idx];
+    Scalar adef = atomDerivativeEmbeddingFunction[idx];
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
         {
         cur_neigh = next_neigh;
         next_neigh = d_nlist[nli(idx, neigh_idx+1)];
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        float4 neigh_postype = tex1Dfetch(pdata_pos_tex,cur_neigh);
-        float3 neigh_pos = make_float3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex,cur_neigh);
+        Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
         // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-        float3 dx = pos - neigh_pos;
-        int typej = __float_as_int(neigh_postype.w);
+        Scalar3 dx = pos - neigh_pos;
+        int typej = __scalar_as_int(neigh_postype.w);
         // apply periodic boundary conditions: (FLOPS 12)
         dx = box.minImage(dx);
 
         // calculate r squard (FLOPS: 5)
-        float rsq = dot(dx, dx);
+        Scalar rsq = dot(dx, dx);
 
         if (rsq > eam_data_ti.r_cutsq) continue;
 
-        float inverseR = rsqrtf(rsq);
-        float r = 1.0f / inverseR;
+        Scalar inverseR = rsqrtf(rsq);
+        Scalar r = Scalar(1.0) / inverseR;
         position = r * eam_data_ti.rdr;
         int shift = (typei>=typej)?(int)((2 * ntypes - typej -1)*typej/2 + typei) * nr:(int)((2 * ntypes - typei -1)*typei/2 + typej) * nr;
-        float2 pair_potential = tex1D(pairPotential_tex, position + shift + 0.5f);
-        float pair_eng =  pair_potential.x * inverseR;
+        #ifdef SINGLE_PRECISION
+        Scalar2 pair_potential = tex1D(pairPotential_tex, position + shift + Scalar(0.5));
+        #else
+        Scalar2 pair_potential = make_scalar2(Scalar(0.0), Scalar(0.0));
+        #endif
+        Scalar pair_eng =  pair_potential.x * inverseR;
 
-        float derivativePhi = (pair_potential.y - pair_eng) * inverseR;
+        Scalar derivativePhi = (pair_potential.y - pair_eng) * inverseR;
 
-        float derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data_ti.nr + 0.5f);
+        #ifdef SINGLE_PRECISION
+        Scalar derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data_ti.nr + Scalar(0.5));
 
-        float derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * eam_data_ti.nr + 0.5f);
+        Scalar derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * eam_data_ti.nr + Scalar(0.5));
+        #else
+        Scalar derivativeRhoI = Scalar(0.0);
+        Scalar derivativeRhoJ = Scalar(0.0);
+        #endif
 
-        float fullDerivativePhi = adef * derivativeRhoJ +
+        Scalar fullDerivativePhi = adef * derivativeRhoJ +
                 atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
         pairForce = - fullDerivativePhi * inverseR;
-        float pairForceover2 = 0.5f *pairForce;
+        Scalar pairForceover2 = Scalar(0.5) *pairForce;
         virial[0] += dx.x * dx.x *pairForceover2;
         virial[1] += dx.x * dx.y *pairForceover2;
         virial[2] += dx.x * dx.z *pairForceover2;
@@ -254,7 +286,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         fxi += dx.x * pairForce;
         fyi += dx.y * pairForce;
         fzi += dx.z * pairForce;
-        m_pe += pair_eng * 0.5f;
+        m_pe += pair_eng * Scalar(0.5);
         }
     
     force.x = fxi;
@@ -268,8 +300,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     }
 
 cudaError_t gpu_compute_eam_tex_inter_forces(
-    float4* d_force,
-    float* d_virial,
+    Scalar4* d_force,
+    Scalar* d_virial,
     const unsigned int virial_pitch,
     const unsigned int N,
     const Scalar4 *d_pos,
@@ -286,9 +318,10 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     dim3 threads(eam_data.block_size, 1, 1);
 
     // bind the texture
+    #ifdef SINGLE_PRECISION
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(float4)*N);
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
 
@@ -321,6 +354,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     error = cudaBindTextureToArray(derivativeEmbeddingFunction_tex, eam_tex.derivativeEmbeddingFunction);
     if (error != cudaSuccess)
         return error;
+    #endif
     // run the kernel
     cudaMemcpyToSymbol("eam_data_ti", &eam_data, sizeof(EAMTexInterData));
 

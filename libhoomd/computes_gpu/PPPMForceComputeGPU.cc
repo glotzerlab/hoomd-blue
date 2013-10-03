@@ -54,6 +54,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the PPPMForceComputeGPU class
 */
 
+#ifdef SINGLE_PRECISION
+#define CUFFT_TRANSFORM_TYPE CUFFT_C2C
+#else
+#define CUFFT_TRANSFORM_TYPE CUFFT_Z2Z
+#endif
+
+
 #include "PotentialPair.h"
 #include "PPPMForceComputeGPU.h"
 
@@ -104,7 +111,7 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
 void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut)
     {
     PPPMForceCompute::setParams(Nx, Ny, Nz, order, kappa, rcut);
-    cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_C2C);
+    cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_TRANSFORM_TYPE);
 
     GPUArray<Scalar> n_energy_sum(Nx*Ny*Nz, exec_conf);
     m_energy_sum.swap(n_energy_sum);
@@ -164,10 +171,10 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-    ArrayHandle<cufftComplex> d_rho_real_space(m_rho_real_space, access_location::device, access_mode::readwrite);
-    ArrayHandle<cufftComplex> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
-    ArrayHandle<cufftComplex> d_Ey(m_Ey, access_location::device, access_mode::readwrite);
-    ArrayHandle<cufftComplex> d_Ez(m_Ez, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_rho_real_space(m_rho_real_space, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_Ex(m_Ex, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_Ey(m_Ey, access_location::device, access_mode::readwrite);
+    ArrayHandle<CUFFTCOMPLEX> d_Ez(m_Ez, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_kvec(m_kvec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_green_hat(m_green_hat, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);
@@ -215,7 +222,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                                  m_block_size);
 
 
-            Scalar scale = 1.0f/((Scalar)(m_Nx * m_Ny * m_Nz));
+            Scalar scale = Scalar(1.0)/((Scalar)(m_Nx * m_Ny * m_Nz));
             m_energy_virial_factor = 0.5 * L.x * L.y * L.z * scale * scale;
             m_box_changed = false;
             m_first_run = false;
@@ -308,7 +315,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         Scalar3 L = box.getL();
 
         pppm_virial_energy[0] *= m_energy_virial_factor;
-        pppm_virial_energy[0] -= m_q2 * m_kappa / 1.772453850905516027298168f;
+        pppm_virial_energy[0] -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
         pppm_virial_energy[0] -= 0.5*M_PI*m_q*m_q / (m_kappa*m_kappa* L.x * L.y * L.z);
 
         for(int i = 1; i < 7; i++) {

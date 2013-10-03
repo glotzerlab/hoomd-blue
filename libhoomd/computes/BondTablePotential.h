@@ -108,8 +108,8 @@ class BondTablePotential : public ForceCompute
 
         //! Set the table for a given type pair
         virtual void setTable(unsigned int type,
-                              const std::vector<float> &V,
-                              const std::vector<float> &F,
+                              const std::vector<Scalar> &V,
+                              const std::vector<Scalar> &F,
                               Scalar rmin,
                               Scalar rmax);
 
@@ -122,7 +122,7 @@ class BondTablePotential : public ForceCompute
     protected:
         boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
         unsigned int m_table_width;                 //!< Width of the tables in memory
-        GPUArray<float2> m_tables;                  //!< Stored V and F tables
+        GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables
         GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table
         Index2D m_table_value;                      //!< Index table helper
         std::string m_log_name;                     //!< Cached log name

@@ -2,34 +2,32 @@
 
 ##################################
 ## Find CUDA
-if (SINGLE_PRECISION)
-    # If CUDA is enabled, set it up
-    if (ENABLE_CUDA)
-        # the package is needed
-        find_package(CUDA REQUIRED REQUIRED)
-        
-        if (${CUDA_VERSION} VERSION_LESS 4.0)
-            message(SEND_ERROR "CUDA 3.2 and older are not supported")
-        endif (${CUDA_VERSION} VERSION_LESS 4.0)
+# If CUDA is enabled, set it up
+if (ENABLE_CUDA)
+	# the package is needed
+	find_package(CUDA REQUIRED REQUIRED)
+	
+	if (${CUDA_VERSION} VERSION_LESS 4.0)
+		message(SEND_ERROR "CUDA 3.2 and older are not supported")
+	endif (${CUDA_VERSION} VERSION_LESS 4.0)
 
-        include_directories(${CUDA_INCLUDE_DIRS})
+	include_directories(${CUDA_INCLUDE_DIRS})
 
-        # Find Thrust
-        find_package(Thrust)
+    # Find Thrust
+    find_package(Thrust)
 
-        if (${THRUST_VERSION} VERSION_LESS 1.5.0)
-            message(SEND_ERROR "Thrust version ${THRUST_VERSION} found, >= 1.5.0 is required")
-        endif (${THRUST_VERSION} VERSION_LESS 1.5.0)
+    if (${THRUST_VERSION} VERSION_LESS 1.5.0)
+        message(SEND_ERROR "Thrust version ${THRUST_VERSION} found, >= 1.5.0 is required")
+    endif (${THRUST_VERSION} VERSION_LESS 1.5.0)
 
-        # hide some variables users don't need to see
-        mark_as_advanced(CUDA_SDK_ROOT_DIR)
-        if (CUDA_TOOLKIT_ROOT_DIR)
-            mark_as_advanced(CUDA_TOOLKIT_ROOT_DIR)
-        endif (CUDA_TOOLKIT_ROOT_DIR)
-        mark_as_advanced(CUDA_VERBOSE_BUILD)
-        mark_as_advanced(CUDA_BUILD_EMULATION)
-    endif (ENABLE_CUDA)
-endif (SINGLE_PRECISION)
+    # hide some variables users don't need to see
+    mark_as_advanced(CUDA_SDK_ROOT_DIR)
+    if (CUDA_TOOLKIT_ROOT_DIR)
+        mark_as_advanced(CUDA_TOOLKIT_ROOT_DIR)
+    endif (CUDA_TOOLKIT_ROOT_DIR)
+    mark_as_advanced(CUDA_VERBOSE_BUILD)
+    mark_as_advanced(CUDA_BUILD_EMULATION)
+endif (ENABLE_CUDA)
 
 # setup CUDA compile options
 if (ENABLE_CUDA)
@@ -40,6 +38,12 @@ if (ENABLE_CUDA)
         set(CUDA_ARCH_LIST 12 13 20 30 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     else()
         set(CUDA_ARCH_LIST 12 13 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+    endif()
+    
+    # if double precision is on, remove incompatible arches
+    if (NOT SINGLE_PRECISION)
+        list(REMOVE_ITEM CUDA_ARCH_LIST 13 12 11 10)
+        message(STATUS "Double precision build enabled, removing support for compute 1.x")
     endif()
     
     foreach(_cuda_arch ${CUDA_ARCH_LIST})

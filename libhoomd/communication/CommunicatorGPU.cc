@@ -144,6 +144,9 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf, "copy_ghosts");
 
     unsigned int n_tot_local_ghosts = 0;
+
+    CommFlags flags = getFlags();
+
         {
         ArrayHandle<unsigned int> h_n_local_ghosts_face(m_n_local_ghosts_face, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::host, access_mode::read);
@@ -166,7 +169,10 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
         ArrayHandle<unsigned int> d_ghost_idx_face(m_ghost_idx_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_ghost_idx_edge(m_ghost_idx_edge, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_ghost_idx_corner(m_ghost_idx_corner, access_location::device, access_mode::read);
+
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
 
         ArrayHandle<char> d_corner_update_buf(m_corner_update_buf, access_location::device, access_mode::overwrite);
         ArrayHandle<char> d_edge_update_buf(m_edge_update_buf, access_location::device, access_mode::overwrite);
@@ -181,6 +187,8 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                             d_ghost_idx_corner.data,
                             m_ghost_idx_corner.getPitch(),
                             d_pos.data,
+                            d_vel.data,
+                            d_orientation.data,
                             d_corner_update_buf.data,
                             m_corner_update_buf.getPitch(),
                             d_edge_update_buf.data,
@@ -189,7 +197,11 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                             m_face_update_buf.getPitch(),
                             d_n_local_ghosts_corner.data,
                             d_n_local_ghosts_edge.data,
-                            d_n_local_ghosts_face.data);
+                            d_n_local_ghosts_face.data,
+                            ghost_update_element_size(),
+                            flags[comm_flag::position] ? 1 : 0,
+                            flags[comm_flag::velocity] ? 1 : 0,
+                            flags[comm_flag::orientation] ? 1 : 0);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -249,7 +261,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                                n_copy_ghosts_face,
                                m_update_recv_buf.getNumElements(),
                                n_tot_recv_ghosts_local,
-                               gpu_update_element_size(),
+                               ghost_update_element_size(),
                                false);
             // update send buffer sizes
             for (unsigned int i = 0; i < 12; ++i)
@@ -264,6 +276,8 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
         {
         // unpack ghost data
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
 
         ArrayHandle<unsigned int> d_n_local_ghosts_face(m_n_local_ghosts_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::read);
@@ -294,7 +308,13 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                                  m_edge_update_buf.getPitch(),
                                  d_update_recv_buf.data,
                                  d_pos.data,
-                                 shifted_box);
+                                 d_vel.data,
+                                 d_orientation.data,
+                                 shifted_box,
+                                 ghost_update_element_size(),
+                                 flags[comm_flag::position] ? 1 : 0,
+                                 flags[comm_flag::velocity] ? 1 : 0,
+                                 flags[comm_flag::orientation] ? 1 : 0);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -374,18 +394,20 @@ void CommunicatorGPU::allocateBuffers()
     m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxy ? m_max_copy_ghosts_face : maxy;
     m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxz ? m_max_copy_ghosts_face : maxz;
 
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> face_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
-#else
-    GPUBufferMapped<char> face_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
-#endif
+    size_t exch_sz = ghost_exchange_element_size();
+    size_t updt_sz = ghost_update_element_size();
+    #ifdef ENABLE_MPI_CUDA
+    GPUArray<char> face_ghosts_buf(exch_sz*m_max_copy_ghosts_face, 6, m_exec_conf);
+    #else
+    GPUBufferMapped<char> face_ghosts_buf(exch_sz*m_max_copy_ghosts_face, 6, m_exec_conf);
+    #endif
     m_face_ghosts_buf.swap(face_ghosts_buf);
 
-#if defined(ENABLE_MPI_CUDA)
-    GPUArray<char> face_update_buf(gpu_update_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
-#else
-    GPUBufferMapped<char> face_update_buf(gpu_update_element_size()*m_max_copy_ghosts_face, 6, m_exec_conf);
-#endif
+    #if defined(ENABLE_MPI_CUDA)
+    GPUArray<char> face_update_buf(updt_sz*m_max_copy_ghosts_face, 6, m_exec_conf);
+    #else
+    GPUBufferMapped<char> face_update_buf(updt_sz*m_max_copy_ghosts_face, 6, m_exec_conf);
+    #endif
     m_face_update_buf.swap(face_update_buf);
 
     maxxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.y);
@@ -397,50 +419,50 @@ void CommunicatorGPU::allocateBuffers()
     m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxxz ? m_max_copy_ghosts_edge : maxxz;
     m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxyz ? m_max_copy_ghosts_edge : maxyz;
 
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> edge_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
-#else
-    GPUBufferMapped<char> edge_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
-#endif
+    #ifdef ENABLE_MPI_CUDA
+    GPUArray<char> edge_ghosts_buf(ghost_exchange_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
+    #else
+    GPUBufferMapped<char> edge_ghosts_buf(exch_sz*m_max_copy_ghosts_edge, 12, m_exec_conf);
+    #endif
     m_edge_ghosts_buf.swap(edge_ghosts_buf);
 
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> edge_update_buf(gpu_update_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
-#else
-    GPUBufferMapped<char> edge_update_buf(gpu_update_element_size()*m_max_copy_ghosts_edge, 12, m_exec_conf);
-#endif
+    #ifdef ENABLE_MPI_CUDA
+    GPUArray<char> edge_update_buf(updt_sz*m_max_copy_ghosts_edge, 12, m_exec_conf);
+    #else
+    GPUBufferMapped<char> edge_update_buf(updt_sz*m_max_copy_ghosts_edge, 12, m_exec_conf);
+    #endif
     m_edge_update_buf.swap(edge_update_buf);
 
     maxxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost*m_r_ghost/L.x/L.y/L.z);
     m_max_copy_ghosts_corner = maxxyz > 1 ? maxxyz : 1;
 
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> corner_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
-#else
-    GPUBufferMapped<char> corner_ghosts_buf(gpu_ghost_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
-#endif
+    #ifdef ENABLE_MPI_CUDA
+    GPUArray<char> corner_ghosts_buf(exch_sz*m_max_copy_ghosts_corner, 8, m_exec_conf);
+    #else
+    GPUBufferMapped<char> corner_ghosts_buf(exch_sz*m_max_copy_ghosts_corner, 8, m_exec_conf);
+    #endif
     m_corner_ghosts_buf.swap(corner_ghosts_buf);
 
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> corner_update_buf(gpu_update_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
-#else
-    GPUBufferMapped<char> corner_update_buf(gpu_update_element_size()*m_max_copy_ghosts_corner, 8, m_exec_conf);
-#endif
+    #ifdef ENABLE_MPI_CUDA
+    GPUArray<char> corner_update_buf(updt_sz*m_max_copy_ghosts_corner, 8, m_exec_conf);
+    #else
+    GPUBufferMapped<char> corner_update_buf(updt_sz*m_max_copy_ghosts_corner, 8, m_exec_conf);
+    #endif
     m_corner_update_buf.swap(corner_update_buf);
 
     m_max_recv_ghosts = m_max_copy_ghosts_face*6;
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> ghost_recv_buf(gpu_ghost_element_size()*m_max_recv_ghosts, m_exec_conf);
-#else
-    GPUBufferMapped<char> ghost_recv_buf(gpu_ghost_element_size()*m_max_recv_ghosts, m_exec_conf);
-#endif
+    #ifdef ENABLE_MPI_CUDA
+    GPUArray<char> ghost_recv_buf(exch_sz*m_max_recv_ghosts, m_exec_conf);
+    #else
+    GPUBufferMapped<char> ghost_recv_buf(exch_sz*m_max_recv_ghosts, m_exec_conf);
+    #endif
     m_ghosts_recv_buf.swap(ghost_recv_buf);
 
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> update_recv_buf(gpu_update_element_size()*m_max_recv_ghosts,m_exec_conf);
-#else
-    GPUBufferMapped<char> update_recv_buf(gpu_update_element_size()*m_max_recv_ghosts,m_exec_conf);
-#endif
+    #ifdef ENABLE_MPI_CUDA
+    GPUArray<char> update_recv_buf(updt_sz*m_max_recv_ghosts,m_exec_conf);
+    #else
+    GPUBufferMapped<char> update_recv_buf(updt_sz*m_max_recv_ghosts,m_exec_conf);
+    #endif
     m_update_recv_buf.swap(update_recv_buf);
 
     // buffer for particle plans
@@ -1271,25 +1293,27 @@ void CommunicatorGPU::exchangeGhosts()
     unsigned int n_copy_ghosts_face[6];
 
     unsigned int condition;
+    size_t exch_sz = ghost_exchange_element_size();
+    size_t updt_sz = ghost_update_element_size();
     do {
         // resize buffers if necessary 
-        if (m_corner_ghosts_buf.getPitch() < m_max_copy_ghosts_corner*gpu_ghost_element_size())
-            m_corner_ghosts_buf.resize(m_max_copy_ghosts_corner*gpu_ghost_element_size(), 8);
+        if (m_corner_ghosts_buf.getPitch() < m_max_copy_ghosts_corner*exch_sz)
+            m_corner_ghosts_buf.resize(m_max_copy_ghosts_corner*exch_sz, 8);
 
-        if (m_edge_ghosts_buf.getPitch() < m_max_copy_ghosts_edge*gpu_ghost_element_size())
-            m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
+        if (m_edge_ghosts_buf.getPitch() < m_max_copy_ghosts_edge*exch_sz)
+            m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*exch_sz, 12);
 
-        if (m_face_ghosts_buf.getPitch() < m_max_copy_ghosts_face*gpu_ghost_element_size())
-            m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
+        if (m_face_ghosts_buf.getPitch() < m_max_copy_ghosts_face*exch_sz)
+            m_face_ghosts_buf.resize(m_max_copy_ghosts_face*exch_sz, 6);
 
-        if (m_corner_update_buf.getPitch() < m_max_copy_ghosts_corner*gpu_update_element_size())
-            m_corner_update_buf.resize(m_max_copy_ghosts_corner*gpu_update_element_size(), 8);
+        if (m_corner_update_buf.getPitch() < m_max_copy_ghosts_corner*updt_sz)
+            m_corner_update_buf.resize(m_max_copy_ghosts_corner*updt_sz, 8);
 
-        if (m_edge_update_buf.getPitch() < m_max_copy_ghosts_edge*gpu_update_element_size())
-            m_edge_update_buf.resize(m_max_copy_ghosts_edge*gpu_update_element_size(), 12);
+        if (m_edge_update_buf.getPitch() < m_max_copy_ghosts_edge*updt_sz)
+            m_edge_update_buf.resize(m_max_copy_ghosts_edge*updt_sz, 12);
 
-        if (m_face_update_buf.getPitch() < m_max_copy_ghosts_face*gpu_update_element_size())
-            m_face_update_buf.resize(m_max_copy_ghosts_face*gpu_update_element_size(), 6);
+        if (m_face_update_buf.getPitch() < m_max_copy_ghosts_face*updt_sz)
+            m_face_update_buf.resize(m_max_copy_ghosts_face*updt_sz, 6);
 
         if (m_ghost_idx_face.getPitch() < m_max_copy_ghosts_face)
             m_ghost_idx_face.resize(m_max_copy_ghosts_face, 6);
@@ -1302,8 +1326,10 @@ void CommunicatorGPU::exchangeGhosts()
 
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::read);
 
@@ -1318,6 +1344,9 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<char> d_corner_ghosts_buf(m_corner_ghosts_buf, access_location::device, access_mode::overwrite);
             ArrayHandle<char> d_edge_ghosts_buf(m_edge_ghosts_buf, access_location::device, access_mode::overwrite);
             ArrayHandle<char> d_face_ghosts_buf(m_face_ghosts_buf, access_location::device, access_mode::overwrite);
+
+            CommFlags flags = getFlags();
+
             gpu_exchange_ghosts(m_pdata->getN(),
                                 d_plan.data,
                                 d_tag.data,
@@ -1330,6 +1359,8 @@ void CommunicatorGPU::exchangeGhosts()
                                 d_pos.data,
                                 d_charge.data,
                                 d_diameter.data,
+                                d_vel.data,
+                                d_orientation.data,
                                 d_corner_ghosts_buf.data,
                                 m_corner_ghosts_buf.getPitch(),
                                 d_edge_ghosts_buf.data,
@@ -1342,7 +1373,14 @@ void CommunicatorGPU::exchangeGhosts()
                                 m_max_copy_ghosts_corner,
                                 m_max_copy_ghosts_edge,
                                 m_max_copy_ghosts_face,
-                                m_condition.getDeviceFlags());
+                                m_condition.getDeviceFlags(),
+                                exch_sz,
+                                flags[comm_flag::position] ? 1 : 0,
+                                flags[comm_flag::velocity] ? 1 : 0,
+                                flags[comm_flag::charge] ? 1 : 0,
+                                flags[comm_flag::diameter] ? 1 : 0,
+                                flags[comm_flag::orientation] ? 1 : 0
+                                );
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -1481,8 +1519,8 @@ void CommunicatorGPU::exchangeGhosts()
                     new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_max_copy_ghosts_edge = new_size;
                 
-                m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*gpu_ghost_element_size(), 12);
-                m_edge_update_buf.resize(m_max_copy_ghosts_edge*gpu_update_element_size(), 12);
+                m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*exch_sz, 12);
+                m_edge_update_buf.resize(m_max_copy_ghosts_edge*updt_sz, 12);
                 }
 
             for (unsigned int i = 0; i < 6; ++i)
@@ -1500,24 +1538,24 @@ void CommunicatorGPU::exchangeGhosts()
                     new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_max_copy_ghosts_face = new_size;
 
-                m_face_ghosts_buf.resize(m_max_copy_ghosts_face*gpu_ghost_element_size(), 6);
-                m_face_update_buf.resize(m_max_copy_ghosts_face*gpu_update_element_size(), 6);
+                m_face_ghosts_buf.resize(m_max_copy_ghosts_face*exch_sz, 6);
+                m_face_update_buf.resize(m_max_copy_ghosts_face*updt_sz, 6);
                 }
 
-            if (m_ghosts_recv_buf.getNumElements() < (m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_ghost_element_size())
+            if (m_ghosts_recv_buf.getNumElements() < (m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*exch_sz)
                 {
                 unsigned int new_size =1;
                 while (new_size < m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
                     new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-                m_ghosts_recv_buf.resize(new_size*gpu_ghost_element_size());
+                m_ghosts_recv_buf.resize(new_size*exch_sz);
                 }
 
-            if (m_update_recv_buf.getNumElements() < (m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*gpu_update_element_size())
+            if (m_update_recv_buf.getNumElements() < (m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])*updt_sz)
                 {
                 unsigned int new_size =1;
                 while (new_size < m_n_tot_recv_ghosts_local + h_n_recv_ghosts_local.data[dir])
                     new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-                m_update_recv_buf.resize(new_size*gpu_update_element_size());
+                m_update_recv_buf.resize(new_size*updt_sz);
                 }
 
             unsigned int cpitch = m_corner_ghosts_buf.getPitch();
@@ -1549,7 +1587,7 @@ void CommunicatorGPU::exchangeGhosts()
                                n_copy_ghosts_face,
                                m_ghosts_recv_buf.getNumElements(),
                                m_n_tot_recv_ghosts_local, 
-                               gpu_ghost_element_size(),
+                               exch_sz,
                                false);
 
             // update buffer sizes
@@ -1588,8 +1626,10 @@ void CommunicatorGPU::exchangeGhosts()
 
         {
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
 
@@ -1608,25 +1648,36 @@ void CommunicatorGPU::exchangeGhosts()
         // get the updated shifted global box 
         const BoxDim shifted_box = getShiftedBox();
 
+        CommFlags flags = getFlags();
+
         gpu_exchange_ghosts_unpack(m_pdata->getN(),
-                                     m_n_tot_recv_ghosts,
-                                     d_n_local_ghosts_face.data,
-                                     d_n_local_ghosts_edge.data,
-                                     m_n_tot_recv_ghosts_local,
-                                     d_n_recv_ghosts_local.data,
-                                     d_n_recv_ghosts_face.data,
-                                     d_n_recv_ghosts_edge.data,
-                                     d_face_ghosts_buf.data,
-                                     m_face_ghosts_buf.getPitch(),
-                                     d_edge_ghosts_buf.data,
-                                     m_edge_ghosts_buf.getPitch(),
-                                     d_ghosts_recv_buf.data,
-                                     d_pos.data,
-                                     d_charge.data,
-                                     d_diameter.data,
-                                     d_tag.data,
-                                     d_rtag.data,
-                                     shifted_box);
+                                   m_n_tot_recv_ghosts,
+                                   d_n_local_ghosts_face.data,
+                                   d_n_local_ghosts_edge.data,
+                                   m_n_tot_recv_ghosts_local,
+                                   d_n_recv_ghosts_local.data,
+                                   d_n_recv_ghosts_face.data,
+                                   d_n_recv_ghosts_edge.data,
+                                   d_face_ghosts_buf.data,
+                                   m_face_ghosts_buf.getPitch(),
+                                   d_edge_ghosts_buf.data,
+                                   m_edge_ghosts_buf.getPitch(),
+                                   d_ghosts_recv_buf.data,
+                                   d_pos.data,
+                                   d_charge.data,
+                                   d_diameter.data,
+                                   d_vel.data,
+                                   d_orientation.data,
+                                   d_tag.data,
+                                   d_rtag.data,
+                                   shifted_box,
+                                   exch_sz,
+                                   flags[comm_flag::position] ? 1 : 0,
+                                   flags[comm_flag::velocity] ? 1 : 0,
+                                   flags[comm_flag::charge] ? 1 : 0,
+                                   flags[comm_flag::diameter] ? 1 : 0,
+                                   flags[comm_flag::orientation] ? 1 : 0
+                                   );
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -2202,7 +2253,91 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
     MPI_Waitall(recv_req_count, recv_req, recv_status);
     #endif
     }
-    
+
+size_t CommunicatorGPU::ghost_exchange_element_size()
+    {
+    // Compute size of exchange data element (properly alignned according
+    // to CUDA requirements)
+    size_t sz = 0;
+    CommFlags flags = getFlags();
+   
+    size_t max = 0;
+    size_t s;
+    if (flags[comm_flag::position])
+        {
+        size_t s = sizeof(Scalar4);
+        sz += s;
+        if (s > max) max =s;
+        }
+    if (flags[comm_flag::velocity])
+        {
+        s = sizeof(Scalar4);
+        sz += s;
+        if (s > max) max =s;
+        }
+    if (flags[comm_flag::orientation])
+        {
+        s = sizeof(Scalar4);
+        sz += s;
+        if (s > max) max = s;
+        }
+    if (flags[comm_flag::charge])
+        {
+        s = sizeof(Scalar);
+        sz += s;
+        if (s > max) max = s;
+        }
+    if (flags[comm_flag::diameter])
+        {
+        s = sizeof(Scalar);
+        sz += s;
+        if (s > max) max = s;
+        }
+
+    s = sizeof(unsigned int);
+    sz += s;
+    if (s > max) max =s;
+
+    // Alignment
+    if (sz % max) sz =((sz/max)+1)*max;
+
+    return sz;
+    }
+
+size_t CommunicatorGPU::ghost_update_element_size()
+    {
+    // Compute size of update data element
+    size_t sz = 0;
+    CommFlags flags = getFlags();
+ 
+    size_t max =0;
+    size_t s;
+    // only pos, vel, orientation (ignore charge and diameter)
+    if (flags[comm_flag::position])
+        {
+        size_t s = sizeof(Scalar4);
+        sz += s;
+        if (s > max) max =s;
+        }
+    if (flags[comm_flag::velocity])
+        {
+        s = sizeof(Scalar4);
+        sz += s;
+        if (s > max) max =s;
+        }
+    if (flags[comm_flag::orientation])
+        {
+        s = sizeof(Scalar4);
+        sz += s;
+        if (s > max) max = s;
+        }
+
+    // Alignment
+    if (max && sz % max) sz =((sz/max)+1)*max;
+
+    return sz;
+    }
+
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU()
     {

@@ -97,11 +97,11 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
     cgPow2[3]  = Scalar(6.0);
     
     // allocate and zero device memory
-    GPUArray<float2> params (m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    GPUArray<Scalar2> params (m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
     m_params.swap(params);
-    GPUArray<float2> CGCMMsr(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    GPUArray<Scalar2> CGCMMsr(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
     m_CGCMMsr.swap(CGCMMsr);
-    GPUArray<float4> CGCMMepow(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
+    GPUArray<Scalar4> CGCMMepow(m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
     m_CGCMMepow.swap(CGCMMepow);
     }
 
@@ -123,19 +123,19 @@ void CGCMMAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_
     {
     CGCMMAngleForceCompute::setParams(type, K, t_0, cg_type, eps, sigma);
     
-    const float myPow1 = cgPow1[cg_type];
-    const float myPow2 = cgPow2[cg_type];
-    const float myPref = prefact[cg_type];
+    const Scalar myPow1 = cgPow1[cg_type];
+    const Scalar myPow2 = cgPow2[cg_type];
+    const Scalar myPref = prefact[cg_type];
     
-    Scalar my_rcut = sigma*exp(1.0f/(myPow1-myPow2)*log(myPow1/myPow2));
+    Scalar my_rcut = sigma*exp(Scalar(1.0)/(myPow1-myPow2)*log(myPow1/myPow2));
    
-    ArrayHandle<float2> h_params(m_params, access_location::host, access_mode::readwrite);
-    ArrayHandle<float2> h_CGCMMsr(m_CGCMMsr, access_location::host, access_mode::readwrite);
-    ArrayHandle<float4> h_CGCMMepow(m_CGCMMepow, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar2> h_CGCMMsr(m_CGCMMsr, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_CGCMMepow(m_CGCMMepow, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_float2(K, t_0);
-    h_CGCMMsr.data[type] = make_float2(sigma, my_rcut);
-    h_CGCMMepow.data[type] = make_float4(eps, myPow1, myPow2, myPref);
+    h_params.data[type] = make_scalar2(K, t_0);
+    h_CGCMMsr.data[type] = make_scalar2(sigma, my_rcut);
+    h_CGCMMepow.data[type] = make_scalar4(eps, myPow1, myPow2, myPref);
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -160,9 +160,9 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     //m_virial.memclear();
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
-    ArrayHandle<float2> d_params(m_params, access_location::device, access_mode::read);
-    ArrayHandle<float2> d_CGCMMsr(m_CGCMMsr, access_location::device, access_mode::read);
-    ArrayHandle<float4> d_CGCMMepow(m_CGCMMepow, access_location::device, access_mode::read);
+    ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
+    ArrayHandle<Scalar2> d_CGCMMsr(m_CGCMMsr, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_CGCMMepow(m_CGCMMepow, access_location::device, access_mode::read);
 
     ArrayHandle<uint4> d_gpu_anglelist(m_CGCMMAngle_data->getGPUAngleList(), access_location::device,access_mode::read);
     ArrayHandle<unsigned int> d_gpu_n_angles(m_CGCMMAngle_data->getNAnglesArray(), access_location::device, access_mode::read);

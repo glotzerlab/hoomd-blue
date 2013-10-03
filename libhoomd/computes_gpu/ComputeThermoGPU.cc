@@ -96,10 +96,10 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // is reallocated when the maximum number of particles changes
     m_num_blocks = m_group->getNumMembersGlobal() / m_block_size + 1;
     
-    GPUArray< float4 > scratch(m_num_blocks, exec_conf);
+    GPUArray< Scalar4 > scratch(m_num_blocks, exec_conf);
     m_scratch.swap(scratch);
 
-    GPUArray< float > scratch_pressure_tensor(m_num_blocks * 6, exec_conf);
+    GPUArray< Scalar > scratch_pressure_tensor(m_num_blocks * 6, exec_conf);
     m_scratch_pressure_tensor.swap(scratch_pressure_tensor);
     }
 
@@ -132,9 +132,9 @@ void ComputeThermoGPU::computeProperties()
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::read);
-    ArrayHandle<float4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
-    ArrayHandle<float> d_scratch_pressure_tensor(m_scratch_pressure_tensor, access_location::device, access_mode::overwrite);
-    ArrayHandle<float> d_properties(m_properties, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_scratch_pressure_tensor(m_scratch_pressure_tensor, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_properties(m_properties, access_location::device, access_mode::overwrite);
     
     // access the group
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);

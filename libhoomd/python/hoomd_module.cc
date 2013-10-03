@@ -88,6 +88,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
 #include "AllBondPotentials.h"
+#include "AllTripletPotentials.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoGPU.h"
 #include "NeighborList.h"
@@ -127,7 +128,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EAMForceCompute.h"
 #include "ConstraintSphere.h"
 #include "PotentialPairDPDThermo.h"
+#include "EvaluatorTersoff.h"
 #include "PotentialPair.h"
+#include "PotentialTersoff.h"
 #include "PPPMForceCompute.h"
 #include "AllExternalPotentials.h"
 #include "Messenger.h"
@@ -163,6 +166,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
+#include "PotentialTersoffGPU.h"
 
 #include <cuda_profiler_api.h>
 #endif
@@ -201,6 +205,24 @@ using namespace std;
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
+
+//! Function to export the tersoff parameter type to python
+void export_tersoff_params()
+{
+    class_<tersoff_params>("tersoff_params", init<>())
+        .def_readwrite("cutoff_thickness", &tersoff_params::cutoff_thickness)
+        .def_readwrite("coeffs", &tersoff_params::coeffs)
+        .def_readwrite("exp_consts", &tersoff_params::exp_consts)
+        .def_readwrite("dimer_r", &tersoff_params::dimer_r)
+        .def_readwrite("tersoff_n", &tersoff_params::tersoff_n)
+        .def_readwrite("gamman", &tersoff_params::gamman)
+        .def_readwrite("lambda_cube", &tersoff_params::lambda_cube)
+        .def_readwrite("ang_consts", &tersoff_params::ang_consts)
+        .def_readwrite("alpha", &tersoff_params::alpha)
+        ;
+
+    def("make_tersoff_params", &make_tersoff_params);
+}
 
 //! Scans for a VMD installation
 /*! \returns Full path to the vmd executable
@@ -444,6 +466,10 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairEwald>("PotentialPairEwald");
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_PotentialPair<PotentialPairDPD> ("PotentialPairDPD");
+    export_PotentialPair<PotentialPairMoliere> ("PotentialPairMoliere");
+    export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
+    export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
+    export_tersoff_params();
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");   
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
@@ -470,6 +496,9 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>("PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
+    export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere> ("PotentialPairMoliereGPU");
+    export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL> ("PotentialPairZBLGPU");
+    export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTersoffGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");    

@@ -80,6 +80,11 @@ EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, cha
     {
     m_exec_conf->msg->notice(5) << "Constructing EAMForceCompute" << endl;
 
+#ifndef SINGLE_PRECISION
+    m_exec_conf->msg->error() << "EAM is not supported in double precision" << endl;
+    throw runtime_error("Error initializing");
+#endif
+
     assert(m_pdata);
 
     loadFile(filename, type_of_file);
@@ -403,8 +408,8 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             // only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
             if (rsq < r_cut_sq)
                 {
-                 Scalar position_float = sqrt(rsq) * rdr;
-                 Scalar position = position_float;
+                 Scalar position_scalar = sqrt(rsq) * rdr;
+                 Scalar position = position_scalar;
                  unsigned int r_index = (unsigned int)position;
                  r_index = min(r_index,nr);
                  position -= r_index;

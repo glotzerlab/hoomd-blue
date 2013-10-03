@@ -75,12 +75,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 template<bool check_bounds>
 __global__ void gpu_nlist_needs_update_check_new_kernel(uint2 *d_result,
-                                                        const float4 *d_last_pos,
-                                                        const float4 *d_pos,
+                                                        const Scalar4 *d_last_pos,
+                                                        const Scalar4 *d_pos,
                                                         const unsigned int N,
                                                         const BoxDim box,
-                                                        const float maxshiftsq,
-                                                        const float3 lambda,
+                                                        const Scalar maxshiftsq,
+                                                        const Scalar3 lambda,
                                                         const unsigned int checkn)
     {
     // each thread will compare vs it's old position to see if the list needs updating
@@ -90,12 +90,12 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(uint2 *d_result,
 
     if (idx < N)
         {
-        float4 cur_postype = d_pos[idx];
-        float3 cur_pos = make_float3(cur_postype.x, cur_postype.y, cur_postype.z);
-        float4 last_postype = d_last_pos[idx];
-        float3 last_pos = make_float3(last_postype.x, last_postype.y, last_postype.z);
+        Scalar4 cur_postype = d_pos[idx];
+        Scalar3 cur_pos = make_scalar3(cur_postype.x, cur_postype.y, cur_postype.z);
+        Scalar4 last_postype = d_last_pos[idx];
+        Scalar3 last_pos = make_scalar3(last_postype.x, last_postype.y, last_postype.z);
 
-        float3 dx = cur_pos - lambda*last_pos;
+        Scalar3 dx = cur_pos - lambda*last_pos;
         dx = box.minImage(dx);
 
         if (dot(dx, dx) >= maxshiftsq)
@@ -110,12 +110,12 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(uint2 *d_result,
     }
 
 cudaError_t gpu_nlist_needs_update_check_new(uint2 *d_result,
-                                             const float4 *d_last_pos,
-                                             const float4 *d_pos,
+                                             const Scalar4 *d_last_pos,
+                                             const Scalar4 *d_pos,
                                              const unsigned int N,
                                              const BoxDim& box,
-                                             const float maxshiftsq,
-                                             const float3 lambda,
+                                             const Scalar maxshiftsq,
+                                             const Scalar3 lambda,
                                              const unsigned int checkn,
                                              const bool check_bounds)
     {
@@ -243,10 +243,10 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
                              const unsigned int block_size)
     {
     // determine parameters for kernel launch
-    int n_blocks = (int)ceil(float(N)/(float)block_size);
+    int n_blocks = (int)ceil(double(N)/double(block_size));
     
     // split the processing of the full exclusion list up into a number of batches
-    unsigned int n_batches = (unsigned int)ceil(float(exli.getH())/(float)FILTER_BATCH_SIZE);
+    unsigned int n_batches = (unsigned int)ceil(double(exli.getH())/double(FILTER_BATCH_SIZE));
     unsigned int ex_start = 0;
     for (unsigned int batch = 0; batch < n_batches; batch++)
         {
@@ -287,17 +287,17 @@ const int NLIST_BLOCK_SIZE = 128;
 __global__
 void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
                                   unsigned int *d_n_neigh,
-                                  float4 *d_last_updated_pos,
+                                  Scalar4 *d_last_updated_pos,
                                   unsigned int *d_conditions,
                                   const Index2D nli,
-                                  const float4 *d_pos,
+                                  const Scalar4 *d_pos,
                                   const unsigned int N,
                                   const unsigned int n_ghost,
                                   const BoxDim box,
-                                  const float r_maxsq)
+                                  const Scalar r_maxsq)
     {
     // shared data to store all of the particles we compare against
-    __shared__ float sdata[NLIST_BLOCK_SIZE*4];
+    __shared__ Scalar sdata[NLIST_BLOCK_SIZE*4];
 
     // load in the particle
     int pidx = blockIdx.x * NLIST_BLOCK_SIZE + threadIdx.x;
@@ -305,13 +305,13 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
     // store the max number of neighbors needed for this thread
     unsigned int n_neigh_needed = 0;
 
-    float4 pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    Scalar4 pos = make_scalar4(0, 0, 0, 0);
     if (pidx < N)
         pos = d_pos[pidx];
 
-    float px = pos.x;
-    float py = pos.y;
-    float pz = pos.z;
+    Scalar px = pos.x;
+    Scalar py = pos.y;
+    Scalar pz = pos.z;
 
     // track the number of neighbors added so far
     int n_neigh = 0;
@@ -322,7 +322,7 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
     for (int start = 0; start < N + n_ghost; start += NLIST_BLOCK_SIZE)
         {
         // load data
-        float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        Scalar4 neigh_pos = make_scalar4(0, 0, 0, 0);
         if (start + threadIdx.x < N + n_ghost)
             neigh_pos = d_pos[start + threadIdx.x];
 
@@ -346,9 +346,9 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
             for (int cur_offset = 0; cur_offset < end_offset; cur_offset++)
                 {
                 // calculate dr
-                float3 dx = make_float3(px - sdata[cur_offset],
-                                        py - sdata[cur_offset + NLIST_BLOCK_SIZE],
-                                        pz - sdata[cur_offset + 2*NLIST_BLOCK_SIZE]);
+                Scalar3 dx = make_scalar3(px - sdata[cur_offset],
+                                          py - sdata[cur_offset + NLIST_BLOCK_SIZE],
+                                          pz - sdata[cur_offset + 2*NLIST_BLOCK_SIZE]);
                 dx = box.minImage(dx);
 
                 // we don't add if we are comparing to ourselves, and we don't add if we are above the cut
@@ -452,14 +452,14 @@ cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
 //! Generate the neighbor list on the GPU in O(N^2) time
 cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
                                   unsigned int *d_n_neigh,
-                                  float4 *d_last_updated_pos,
+                                  Scalar4 *d_last_updated_pos,
                                   unsigned int *d_conditions,
                                   const Index2D& nli,
-                                  const float4 *d_pos,
+                                  const Scalar4 *d_pos,
                                   const unsigned int N,
                                   const unsigned int n_ghost,
                                   const BoxDim& box,
-                                  const float r_maxsq)
+                                  const Scalar r_maxsq)
     {
     // setup the grid to run the kernel
     int block_size = NLIST_BLOCK_SIZE;

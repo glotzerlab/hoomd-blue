@@ -68,9 +68,9 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              const BoxDim& box,
-                             float deltaT,
+                             Scalar deltaT,
                              bool limit,
-                             float limit_val,
+                             Scalar limit_val,
                              bool zero_force);
 
 //! Kernel driver for the second part of the NVE update called by TwoStepNVEGPU
@@ -78,10 +78,10 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
-                             float deltaT,
+                             Scalar4 *d_net_force,
+                             Scalar deltaT,
                              bool limit,
-                             float limit_val,
+                             Scalar limit_val,
                              bool zero_force);
 
 #endif //__TWO_STEP_NVE_GPU_CUH__

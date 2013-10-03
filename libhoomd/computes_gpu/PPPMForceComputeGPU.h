@@ -74,7 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     but executing on the GPU.
 
     Per-type parameters are stored in a simple global memory area pointed to by
-    \a m_gpu_params. They are stored as float2's with the \a x component being K and the
+    \a m_gpu_params. They are stored as Scalar2's with the \a x component being K and the
     \a y component being r_0.
 
     The GPU kernel can be found in bondforce_kernel.cu.

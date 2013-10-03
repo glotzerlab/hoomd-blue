@@ -86,13 +86,13 @@ class FIREEnergyMinimizerRigidGPU : public FIREEnergyMinimizerRigid
         virtual void update(unsigned int);
         
     protected:
-        GPUArray<float> m_sum_pe;                  //!< memory space for the sum over potential energy
-        GPUArray<float> m_sum_Pt;                 //!< memory space for the sum over P, vsq, fsq
-        GPUArray<float> m_sum_Pr;                 //!< memory space for the sum over P, wsq, tsq 
+        GPUArray<Scalar> m_sum_pe;                  //!< memory space for the sum over potential energy
+        GPUArray<Scalar> m_sum_Pt;                 //!< memory space for the sum over P, vsq, fsq
+        GPUArray<Scalar> m_sum_Pr;                 //!< memory space for the sum over P, wsq, tsq 
         
         unsigned int m_block_size;                //!< block size for partial sum memory
         unsigned int m_num_blocks;                //!< number of memory blocks reserved for partial sum memory
-        GPUArray<float> m_partial_sum_pe;         //!< memory space for partial sum over P
+        GPUArray<Scalar> m_partial_sum_pe;         //!< memory space for partial sum over P
     private:
 
     };

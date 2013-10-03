@@ -62,6 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairMorse.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "PotentialPairDPDThermo.h"
+#include "EvaluatorPairMoliere.h"
+#include "EvaluatorPairZBL.h"
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 
@@ -94,6 +96,10 @@ typedef PotentialPair<EvaluatorPairEwald> PotentialPairEwald;
 typedef PotentialPair<EvaluatorPairMorse> PotentialPairMorse;
 //! Pair potential force compute for dpd conservative forces
 typedef PotentialPair<EvaluatorPairDPDThermo> PotentialPairDPD;
+//! Pair potential force compute for Moliere forces
+typedef PotentialPair<EvaluatorPairMoliere> PotentialPairMoliere;
+//! Pair potential force compute for ZBL forces
+typedef PotentialPair<EvaluatorPairZBL> PotentialPairZBL;
 //! Pair potential force compute for dpd thermostat and conservative forces
 typedef PotentialPairDPDThermo<EvaluatorPairDPDThermo> PotentialPairDPDThermoDPD;
 //! Pair potential force compute for dpdlj conservative forces (not intended to be used)
@@ -120,6 +126,10 @@ typedef PotentialPairGPU< EvaluatorPairEwald, gpu_compute_ewald_forces > Potenti
 typedef PotentialPairGPU< EvaluatorPairMorse, gpu_compute_morse_forces > PotentialPairMorseGPU;
 //! Pair potential force compute for dpd conservative forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > PotentialPairDPDGPU;
+//! Pair potential force compute for Moliere forces on the GPU
+typedef PotentialPairGPU<EvaluatorPairMoliere, gpu_compute_moliere_forces > PotentialPairMoliereGPU;
+//! Pair potential force compute for ZBL forces on the GPU
+typedef PotentialPairGPU<EvaluatorPairZBL, gpu_compute_zbl_forces > PotentialPairZBLGPU;
 //! Pair potential force compute for dpd thermostat and conservative forces on the GPU
 typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > PotentialPairDPDThermoDPDGPU;
 //! Pair potential force compute for dpdlj conservative forces on the GPU (not intended to be used)

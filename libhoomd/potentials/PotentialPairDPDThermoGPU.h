@@ -155,6 +155,7 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
 
     BoxDim box = this->m_pdata->getBox();
 
@@ -173,8 +174,10 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              d_virial.data,
                              this->m_virial.getPitch(),
                              this->m_pdata->getN(),
+                             this->m_pdata->getNGhosts(),
                              d_pos.data,
                              d_vel.data,
+                             d_tag.data,
                              box,
                              d_n_neigh.data,
                              d_nlist.data,

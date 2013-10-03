@@ -61,15 +61,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __CONSTRAINT_SPHERE_GPU_CUH__
 
 //! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-cudaError_t gpu_compute_constraint_sphere_forces(float4* d_force,
-                                                 float* d_virial,
+cudaError_t gpu_compute_constraint_sphere_forces(Scalar4* d_force,
+                                                 Scalar* d_virial,
                                                  const unsigned int virial_pitch,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const Scalar4 *d_vel,
-                                                 const float4 *d_net_force,
+                                                 const Scalar4 *d_net_force,
                                                  const Scalar3& P,
                                                  Scalar r,
                                                  Scalar deltaT,
