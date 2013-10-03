@@ -80,6 +80,11 @@ EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, cha
     {
     m_exec_conf->msg->notice(5) << "Constructing EAMForceCompute" << endl;
 
+#ifndef SINGLE_PRECISION
+    m_exec_conf->msg->error() << "EAM is not supported in double precision" << endl;
+    throw runtime_error("Error initializing");
+#endif
+
     assert(m_pdata);
 
     loadFile(filename, type_of_file);
