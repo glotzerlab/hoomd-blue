@@ -64,6 +64,8 @@ Rastko Sknepnek, Northwestern
  - pair.morse
 
 Carolyn Phillips, University of Michigan
+ - dihedral.table
+ - angle.table
  - bond.table
  - pair.dpdlj
  - pair.dpd
@@ -128,7 +130,9 @@ Pavani Medapuram, University of Minnesota
  - external.periodic
 
 Brandon D. Smith, University of Michigan
+ - full double precision compile time option
  - integrate.berendsen
+ - pair.tersoff
 
 Trung Dac Nguyen
  - integreate.nve_rigid
