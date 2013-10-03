@@ -176,9 +176,12 @@ void CellList::compute(unsigned int timestep)
     
     if (m_prof)
         m_prof->push("Cell");
-    
+
+    m_exec_conf->msg->notice(10) << "Cell list compute" << endl;
+
     if (m_params_changed)
         {
+        m_exec_conf->msg->notice(10) << "Cell list params changed" << endl;
         // need to fully reinitialize on any parameter change
         initializeAll();
         m_params_changed = false;
@@ -188,6 +191,10 @@ void CellList::compute(unsigned int timestep)
     if (m_box_changed)
         {
         uint3 new_dim = computeDimensions();
+        m_exec_conf->msg->notice(10) << "Cell list box changed "
+                                     << m_dim.x << " x " << m_dim.y << " x " << m_dim.z << " -> "
+                                     << new_dim.x << " x " << new_dim.y << " x " << new_dim.z << " -> "
+                                     << endl;
         if (new_dim.x == m_dim.x && new_dim.y == m_dim.y && new_dim.z == m_dim.z)
             {
             // number of bins has not changed, only need to update width
@@ -278,6 +285,7 @@ void CellList::initializeAll()
 
 void CellList::initializeWidth()
     {
+    m_exec_conf->msg->notice(10) << "Cell list initialize width" << endl;
     if (m_prof)
         m_prof->push("init");
     
@@ -309,6 +317,7 @@ void CellList::initializeWidth()
 
 void CellList::initializeMemory()
     {
+    m_exec_conf->msg->notice(10) << "Cell list initialize memory" << endl;
     if (m_prof)
         m_prof->push("init");
 
