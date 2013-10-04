@@ -68,12 +68,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Integrates part of the system forward in two steps in the NVT ensemble (via brownian dynamics)
 /*! Implements velocity-verlet NVE integration with additional brownian dynamics forces through the
     IntegrationMethodTwoStep interface
-    
+
     Brownian dyanmics modifies standard NVE integration with two additional forces, a random force and a drag force.
     To implement this as simply as possible, we will leveraging the existing TwoStepNVE clas and derive from it. The
     additions needed are a random number generator and some storage for gamma and temperature settings. The NVE
     integration is modified by overrideing integrateStepTwo() to add in the needed bd forces.
-    
+
     \ingroup updaters
 */
 class TwoStepBDNVT : public TwoStepNVE
@@ -87,33 +87,33 @@ class TwoStepBDNVT : public TwoStepNVE
                      bool gamma_diam,
                      const std::string& suffix = std::string(""));
         virtual ~TwoStepBDNVT();
-        
+
         //! Set a new temperature
         /*! \param T new temperature to set */
         void setT(boost::shared_ptr<Variant> T)
             {
             m_T = T;
             }
-        
+
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
-        
+
         //! Turn on or off Tally
         /*! \param tally if true, tallies energy exchange from bd thermal reservoir */
         void setTally(bool tally)
             {
             m_tally= tally;
-            }        
-            
+            }
+
         //! Returns a list of log quantities this integrator calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-        
+
         //! Returns logged values
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
-        
+
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
-    
+
     protected:
         boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
         unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
@@ -122,7 +122,7 @@ class TwoStepBDNVT : public TwoStepNVE
         Scalar m_extra_energy_overdeltaT;             //!< An energy packet that isn't added until the next time step
         bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
         std::string m_log_name;           //!< Name of the reservior quantity that we log
-        
+
         GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
     };
 
@@ -130,4 +130,3 @@ class TwoStepBDNVT : public TwoStepNVE
 void export_TwoStepBDNVT();
 
 #endif // #ifndef __TWO_STEP_BDNVT_H__
-

@@ -65,23 +65,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Integrates part of the system forward in two steps in the NVT ensemble on the GPU with the Langevin thermostat
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface, runs on the GPU
-    
+
     \ingroup updaters
 */
 class TwoStepBDNVTRigidGPU : public TwoStepBDNVTRigid
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef, 
+        TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
                              boost::shared_ptr<Variant> T,
                              unsigned int seed,
                              bool gamma_diam);
         virtual ~TwoStepBDNVTRigidGPU() {};
-        
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
-        
+
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
     };
@@ -90,4 +90,3 @@ class TwoStepBDNVTRigidGPU : public TwoStepBDNVTRigid
 void export_TwoStepBDNVTRigidGPU();
 
 #endif // #ifndef __TWO_STEP_BDNVT_RIGID_GPU_H__
-

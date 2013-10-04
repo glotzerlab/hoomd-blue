@@ -86,7 +86,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     that value to 2,000 or more.
 
     Usage:<br>
-    Constructe the SFCPackUpdater, attaching it to the ParticleData. The grid size is automatically set to reasonable 
+    Constructe the SFCPackUpdater, attaching it to the ParticleData. The grid size is automatically set to reasonable
     defaults, which is as high as it can possibly go without consuming a significant amount of memory. The grid
     dimension can be changed by calling setGrid().
 
@@ -105,10 +105,10 @@ class SFCPackUpdater : public Updater
 
         //! Destructor
         virtual ~SFCPackUpdater();
-        
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
-        
+
         //! Set the grid dimension
         /*! \param grid New grid dimension to set
             \note It is automatically rounded up to the nearest power of 2
@@ -117,14 +117,14 @@ class SFCPackUpdater : public Updater
             {
             m_grid = (unsigned int)pow(2.0, ceil(log(double(grid)) / log(2.0)));;
             }
-            
+
     private:
         unsigned int m_grid;        //!< Grid dimension to use
         unsigned int m_last_grid;   //!< The last value of MMax
         unsigned int m_last_dim;    //!< Check the last dimension we ran at
-        
+
         std::vector< std::pair<unsigned int, unsigned int> > m_particle_bins;    //!< Binned particles
-        
+
         std::vector< unsigned int > m_traversal_order;      //!< Generated traversal order of bins
         std::vector<unsigned int> m_sort_order;             //!< Generated sort order of the particles
 
@@ -133,7 +133,7 @@ class SFCPackUpdater : public Updater
         void getSortedOrder2D();
         //! Helper function that actually performs the sort
         void getSortedOrder3D();
-        
+
         //! Apply the sorted order to the particle data
         void applySortOrder();
 
@@ -152,4 +152,3 @@ void export_SFCPackUpdater();
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

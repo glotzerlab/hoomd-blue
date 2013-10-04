@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RigidBodyGroup.h"
 
 /*! \file FIREEnergyMinimizerRigid.h
-    \brief Declares a class for energy minimization for rigid bodies 
+    \brief Declares a class for energy minimization for rigid bodies
 */
 
 #ifdef NVCC
@@ -69,7 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
-    
+
     \ingroup updaters
 */
 class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
@@ -78,47 +78,46 @@ class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
         //! Constructs the minimizer and associates it with the system
         FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar, bool=true);
         virtual ~FIREEnergyMinimizerRigid();
-        
+
         virtual void reset();
 
         //! Perform one minimization iteration
         virtual void update(unsigned int);
-        
+
         //! Access the group
-        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }   
-        
-        //! Set the stopping criterion based on the total torque on all particles in the system  
+        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }
+
+        //! Set the stopping criterion based on the total torque on all particles in the system
         /*! \param wtol is the new torque tolerance to set
         */
-        void setWtol(Scalar wtol) {m_wtol = wtol;}        
-        
+        void setWtol(Scalar wtol) {m_wtol = wtol;}
+
         //! Get the period of minimization
-        unsigned int getEvery() 
-            { 
-            return m_nevery; 
+        unsigned int getEvery()
+            {
+            return m_nevery;
             }
-            
+
         /*! Set the period of minimization
            \param nevery Period to set
         */
-        void setEvery(unsigned int nevery) 
-            { 
-            m_nevery = nevery; 
+        void setEvery(unsigned int nevery)
+            {
+            m_nevery = nevery;
             }
-            
-    protected:        
+
+    protected:
         boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to the rigid data
         boost::shared_ptr<RigidBodyGroup> m_body_group; //!< Group of rigid bodies to work with
         unsigned int m_n_bodies;                    //!< Number of rigid bodies
-        unsigned int m_nparticles;                  //!< Total number of particles 
+        unsigned int m_nparticles;                  //!< Total number of particles
         unsigned int m_nevery;                      //!< Period of minimization
-        Scalar m_wtol;                          //!< stopping tolerance based on total torque        
+        Scalar m_wtol;                          //!< stopping tolerance based on total torque
     private:
-    
+
     };
 
 //! Exports the FIREEnergyMinimizerRigid class to python
 void export_FIREEnergyMinimizerRigid();
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_RIGID_H__
-

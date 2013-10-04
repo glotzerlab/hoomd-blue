@@ -90,4 +90,3 @@ class TwoStepBerendsenGPU : public TwoStepBerendsen
 void export_BerendsenGPU();
 
 #endif // __BERENDSEN_GPU_H__
-

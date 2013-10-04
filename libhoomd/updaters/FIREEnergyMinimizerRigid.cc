@@ -68,36 +68,36 @@ using namespace boost::python;
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on (group is a placeholder for now)
     \param dt Time step for MD integrator
-    \param reset_and_create_integrator Flag to indicate if resetting and creating integrator are needed 
+    \param reset_and_create_integrator Flag to indicate if resetting and creating integrator are needed
     \post The method is constructed with the given particle data and a NULL profiler.
 */
 FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                                     boost::shared_ptr<ParticleGroup> group,
-                                                    Scalar dt, 
+                                                    Scalar dt,
                                                     bool reset_and_create_integrator)
     :   FIREEnergyMinimizer(sysdef, group, dt, false), m_wtol(Scalar(1e-1)) // using false for the parent class
     {
     m_exec_conf->msg->notice(5) << "Constructing FIREEnergyMinimizerRigid" << endl;
 
     m_nparticles = m_pdata->getN();
-    
+
     // Get the system rigid data
     m_rigid_data = sysdef->getRigidData();
-    
+
     // Create my rigid body group from the particle group
     m_body_group = boost::shared_ptr<RigidBodyGroup>(new RigidBodyGroup(sysdef, m_group));
-    
+
     // Get the number of rigid bodies for frequent use
     m_n_bodies = m_body_group->getNumMembers();
-    
+
     if (m_n_bodies == 0)
         {
         m_exec_conf->msg->warning() << "integrate.mode_minimize_rigid_fire: Empty group of rigid bodies." << endl;
         }
-    
-    // Time steps to run NVE between minimizer moves    
+
+    // Time steps to run NVE between minimizer moves
     m_nevery = 1;
-        
+
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
@@ -121,115 +121,115 @@ void FIREEnergyMinimizerRigid::reset()
     {
     m_converged = false;
     m_n_since_negative = m_nmin+1;
-     m_n_since_start = 0;    
+     m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
-    
+
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
+
         // scales translational velocity
         vel_handle.data[body].x = 0.0;
         vel_handle.data[body].y = 0.0;
         vel_handle.data[body].z = 0.0;
-        
+
         angmom_handle.data[body].x = 0.0;
         angmom_handle.data[body].y = 0.0;
         angmom_handle.data[body].z = 0.0;
         }
-        
+
     setDeltaT(m_deltaT_set);
     }
 
-        
+
 /*! \param timestep is the current timestep
 */
 void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     {
     if (m_converged)
         return;
-    
+
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-        
+
     IntegratorTwoStep::update(timestep);
-    
+
     if (timestep % m_nevery != 0)
         return;
-        
+
     if (m_n_bodies <= 0)
         {
         m_exec_conf->msg->error() << "integrate.mode_minimize_rigid_fire:  There is no rigid body for this integrator" << endl;
         throw runtime_error("Error update for FIREEnergyMinimizerRigid (no rigid body)");
         return;
         }
-        
+
     Scalar Pt(0.0), Pr(0.0);
     Scalar vnorm(0.0), wnorm(0.0);
     Scalar fnorm(0.0), tnorm(0.0);
-    
+
     // Calculate the per-particle potential energy over particles in the group
     Scalar energy = 0.0;
-    
+
     {
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
-    // total potential energy 
+    // total potential energy
     double pe_total = 0.0;
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         pe_total += (double)h_net_force.data[j].w;
         }
-    energy = pe_total/Scalar(group_size);    
+    energy = pe_total/Scalar(group_size);
     }
-    
+
     if (m_was_reset)
         {
         m_was_reset = false;
         m_old_energy = energy + Scalar(100000) * m_etol;
         }
-   
-    
+
+
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-    
+
     // Calculates the powers
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
+
         // translational power = force * vel
-        Pt += force_handle.data[body].x * vel_handle.data[body].x + force_handle.data[body].y * vel_handle.data[body].y 
+        Pt += force_handle.data[body].x * vel_handle.data[body].x + force_handle.data[body].y * vel_handle.data[body].y
                 + force_handle.data[body].z * vel_handle.data[body].z;
-        fnorm += force_handle.data[body].x * force_handle.data[body].x + force_handle.data[body].y * force_handle.data[body].y 
+        fnorm += force_handle.data[body].x * force_handle.data[body].x + force_handle.data[body].y * force_handle.data[body].y
                 + force_handle.data[body].z * force_handle.data[body].z;
-        vnorm += vel_handle.data[body].x * vel_handle.data[body].x + vel_handle.data[body].y * vel_handle.data[body].y 
+        vnorm += vel_handle.data[body].x * vel_handle.data[body].x + vel_handle.data[body].y * vel_handle.data[body].y
                 + vel_handle.data[body].z * vel_handle.data[body].z;
-        
+
         // rotational power = torque * angvel
-        Pr += torque_handle.data[body].x * angvel_handle.data[body].x + torque_handle.data[body].y * angvel_handle.data[body].y 
+        Pr += torque_handle.data[body].x * angvel_handle.data[body].x + torque_handle.data[body].y * angvel_handle.data[body].y
                 + torque_handle.data[body].z * angvel_handle.data[body].z;
-        tnorm += torque_handle.data[body].x * torque_handle.data[body].x + torque_handle.data[body].y * torque_handle.data[body].y 
+        tnorm += torque_handle.data[body].x * torque_handle.data[body].x + torque_handle.data[body].y * torque_handle.data[body].y
                 + torque_handle.data[body].z * torque_handle.data[body].z;
-        wnorm += angvel_handle.data[body].x * angvel_handle.data[body].x + angvel_handle.data[body].y * angvel_handle.data[body].y 
+        wnorm += angvel_handle.data[body].x * angvel_handle.data[body].x + angvel_handle.data[body].y * angvel_handle.data[body].y
                 + angvel_handle.data[body].z * angvel_handle.data[body].z;
         }
-    
+
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
-    
+
     tnorm = sqrt(tnorm);
     wnorm = sqrt(wnorm);
-    
+
     //printf("f = %g (%g); w = %g (%g); e = %g (%g); min_steps: %d (%d) \n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol, wnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_wtol, fabs(energy-m_old_energy), m_etol, m_n_since_start, m_run_minsteps);
 
     if ((fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_ftol && wnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
@@ -244,28 +244,28 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     if (fabs(fnorm) > EPSILON)
         factor_t = m_alpha * vnorm / fnorm;
     else
-        factor_t = 1.0; 
-        
-    if (fabs(tnorm) > EPSILON)    
+        factor_t = 1.0;
+
+    if (fabs(tnorm) > EPSILON)
         factor_r = m_alpha * wnorm / tnorm;
-    else 
-        factor_r = 1.0; 
-        
+    else
+        factor_r = 1.0;
+
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
+
         // scales translational velocity
         vel_handle.data[body].x = vel_handle.data[body].x * (1.0 - m_alpha) + force_handle.data[body].x * factor_t;
         vel_handle.data[body].y = vel_handle.data[body].y * (1.0 - m_alpha) + force_handle.data[body].y * factor_t;
         vel_handle.data[body].z = vel_handle.data[body].z * (1.0 - m_alpha) + force_handle.data[body].z * factor_t;
-        
+
         // scales angular momenta (now using the same m_alpha as translational)
         angmom_handle.data[body].x = angmom_handle.data[body].x * (1.0 - m_alpha) + torque_handle.data[body].x * factor_r;
         angmom_handle.data[body].y = angmom_handle.data[body].y * (1.0 - m_alpha) + torque_handle.data[body].y * factor_r;
         angmom_handle.data[body].z = angmom_handle.data[body].z * (1.0 - m_alpha) + torque_handle.data[body].z * factor_r;
         }
-    
+
     // A simply naive measure is to sum up the power coming from translational and rotational motions,
     // more sophisticated measure can be devised later
     Scalar P = Pt + Pr;
@@ -286,18 +286,18 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
             unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
+
             vel_handle.data[body].x = Scalar(0.0);
             vel_handle.data[body].y = Scalar(0.0);
             vel_handle.data[body].z = Scalar(0.0);
-            
+
             angmom_handle.data[body].x = Scalar(0.0);
             angmom_handle.data[body].y = Scalar(0.0);
             angmom_handle.data[body].z = Scalar(0.0);
             }
         }
 
-    m_n_since_start++;    
+    m_n_since_start++;
     m_old_energy = energy;
     }
 
@@ -306,7 +306,7 @@ void export_FIREEnergyMinimizerRigid()
     {
     class_<FIREEnergyMinimizerRigid, boost::shared_ptr<FIREEnergyMinimizerRigid>, bases<FIREEnergyMinimizer>, boost::noncopyable>
         ("FIREEnergyMinimizerRigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
-        .def("setWtol", &FIREEnergyMinimizerRigid::setWtol)        
+        .def("setWtol", &FIREEnergyMinimizerRigid::setWtol)
         .def("getEvery", &FIREEnergyMinimizerRigid::getEvery)
         .def("setEvery", &FIREEnergyMinimizerRigid::setEvery);
     }
@@ -314,4 +314,3 @@ void export_FIREEnergyMinimizerRigid()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

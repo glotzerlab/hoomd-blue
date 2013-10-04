@@ -67,9 +67,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Integrates part of the system forward in two steps in the NPH ensemble
 /*! Implements Nose-Hoover NPH integration through the IntegrationMethodTwoStep interface
-    
+
     This class and TwoStepNVTRigid are supposed to be re-organized due to shared member functions
-    
+
     \ingroup updaters
 */
 class TwoStepNPHRigid : public TwoStepNVERigid
@@ -84,15 +84,15 @@ class TwoStepNPHRigid : public TwoStepNVERigid
                    boost::shared_ptr<Variant> P,
                    bool skip_restart=false);
         virtual ~TwoStepNPHRigid();
-        
+
         //! Computes initial forces and torques and initializes thermostats/barostats
         virtual void setup();
-        
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
-        
+
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);    
+        virtual void integrateStepTwo(unsigned int timestep);
 
     protected:
         //! Integrator variables
@@ -103,4 +103,3 @@ class TwoStepNPHRigid : public TwoStepNVERigid
 void export_TwoStepNPHRigid();
 
 #endif // #ifndef __TWO_STEP_NPH_RIGID_H__
-

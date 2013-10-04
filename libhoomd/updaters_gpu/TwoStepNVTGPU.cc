@@ -93,7 +93,7 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU when CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
-    
+
     m_block_size = 128;
     }
 
@@ -105,7 +105,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    
+
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVT step 1");
@@ -121,7 +121,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 
     BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    
+
     // perform the update on the GPU
     gpu_nvt_step_one(d_pos.data,
                      d_vel.data,
@@ -136,12 +136,12 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
     }
-        
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
@@ -150,16 +150,16 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    
+
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
+
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
-    
+
     // compute the current thermodynamic properties
     m_thermo->compute(timestep+1);
-    
+
     // next, update the state variables Xi and eta
     Scalar xi_prev = xi;
     Scalar curr_T = m_thermo->getTemperature();
@@ -174,7 +174,7 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
-  
+
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVT step 2");
@@ -184,7 +184,7 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    
+
     // perform the update on the GPU
     gpu_nvt_step_two(d_vel.data,
                      d_accel.data,
@@ -194,12 +194,12 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
                      m_block_size,
                      xi,
                      m_deltaT);
-    
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     setIntegratorVariables(v);
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -221,4 +221,3 @@ void export_TwoStepNVTGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

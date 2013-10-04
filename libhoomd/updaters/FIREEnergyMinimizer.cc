@@ -81,7 +81,7 @@ using namespace boost::python;
 */
 FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sysdef,
                                          boost::shared_ptr<ParticleGroup> group,
-                                         Scalar dt, 
+                                         Scalar dt,
                                          bool reset_and_create_integrator)
     :   IntegratorTwoStep(sysdef, dt),
         m_group(group),
@@ -90,7 +90,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
         m_fdec(Scalar(0.5)),
         m_alpha_start(Scalar(0.1)),
         m_falpha(Scalar(0.99)),
-        m_ftol(Scalar(1e-1)), 
+        m_ftol(Scalar(1e-1)),
         m_etol(Scalar(1e-3)),
         m_deltaT_max(dt),
         m_deltaT_set(dt/Scalar(10.0)),
@@ -107,7 +107,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
         //createIntegrator();
         boost::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(sysdef, group));
         addIntegrationMethod(integrator);
-        setDeltaT(m_deltaT_set);      
+        setDeltaT(m_deltaT_set);
         }
     }
 
@@ -124,7 +124,7 @@ FIREEnergyMinimizer::~FIREEnergyMinimizer()
 //    addIntegrationMethod(integrator);
 //    setDeltaT(m_deltaT);
 //    }
-    
+
 /*! \param dt is the new timestep to set
 
 The timestep is used by the underlying NVE integrator to advance the particles.
@@ -192,11 +192,11 @@ void FIREEnergyMinimizer::setFalpha(Scalar falpha)
         }
         m_falpha = falpha;
     }
-        
+
 void FIREEnergyMinimizer::reset()
     {
     m_converged = false;
-    m_n_since_negative = m_nmin+1; 
+    m_n_since_negative = m_nmin+1;
     m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
@@ -220,13 +220,13 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     {
     if (m_converged)
         return;
-        
+
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
-        return;    
-    
+        return;
+
     IntegratorTwoStep::update(timesteps);
-        
+
     Scalar P(0.0);
     Scalar vnorm(0.0);
     Scalar fnorm(0.0);
@@ -238,16 +238,16 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
-    // total potential energy 
+    // total potential energy
     double pe_total = 0.0;
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         pe_total += (double)h_net_force.data[j].w;
         }
-    energy = pe_total/Scalar(group_size);    
+    energy = pe_total/Scalar(group_size);
     }
-    
+
 
     if (m_was_reset)
         {
@@ -265,17 +265,17 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         fnorm += h_accel.data[j].x*h_accel.data[j].x+h_accel.data[j].y*h_accel.data[j].y+h_accel.data[j].z*h_accel.data[j].z;
         vnorm += h_vel.data[j].x*h_vel.data[j].x+ h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z;
         }
-        
+
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
-    
+
     if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         return;
         }
 
-    Scalar invfnorm = 1.0/fnorm;        
+    Scalar invfnorm = 1.0/fnorm;
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
@@ -283,7 +283,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         h_vel.data[j].y = h_vel.data[j].y*(1.0-m_alpha) + m_alpha*h_accel.data[j].y*invfnorm*vnorm;
         h_vel.data[j].z = h_vel.data[j].z*(1.0-m_alpha) + m_alpha*h_accel.data[j].z*invfnorm*vnorm;
         }
-             
+
     if (P > Scalar(0.0))
         {
         m_n_since_negative++;
@@ -306,7 +306,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
             h_vel.data[j].z = Scalar(0.0);
             }
         }
-    m_n_since_start++;    
+    m_n_since_start++;
     m_old_energy = energy;
 
     }
@@ -333,4 +333,3 @@ void export_FIREEnergyMinimizer()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

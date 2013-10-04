@@ -102,7 +102,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     Scalar sum_py = 0.0;
     Scalar sum_pz = 0.0;
     unsigned int n = 0;
-    
+
     // add up the momentum of every free particle
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -123,7 +123,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
         {
         ArrayHandle<Scalar4> h_body_vel(rigid_data->getVel(), access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_body_mass(rigid_data->getBodyMass(), access_location::host, access_mode::read);
-        
+
         for (unsigned int body = 0; body < n_bodies; body++)
             {
             Scalar mass = h_body_mass.data[body];
@@ -149,7 +149,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     Scalar avg_px = sum_px / Scalar(n);
     Scalar avg_py = sum_py / Scalar(n);
     Scalar avg_pz = sum_pz / Scalar(n);
-    
+
     // subtract this momentum from every free partcile
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -161,13 +161,13 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
             h_vel.data[i].z -= avg_pz/mass;
             }
         }
-        
+
     // subtract this momentum from every rigid body
     if (n_bodies > 0)
         {
         ArrayHandle<Scalar4> h_body_vel(rigid_data->getVel(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_body_mass(rigid_data->getBodyMass(), access_location::host, access_mode::read);
-        
+
         for (unsigned int body = 0; body < n_bodies; body++)
             {
             Scalar mass = h_body_mass.data[body];
@@ -180,7 +180,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 
     // update the body particle velocities to reflect the new body velocities
     m_sysdef->getRigidData()->setRV(false);
-    
+
     if (m_prof) m_prof->pop();
     }
 
@@ -194,4 +194,3 @@ void export_ZeroMomentumUpdater()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

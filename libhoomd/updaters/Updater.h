@@ -101,54 +101,54 @@ class Updater : boost::noncopyable
         //! Constructs the compute and associates it with the ParticleData
         Updater(boost::shared_ptr<SystemDefinition> sysdef);
         virtual ~Updater() {};
-        
+
         //! Abstract method that performs the update
         /*! Derived classes will implement this method to perform their specific update
             \param timestep Current time step of the simulation
         */
         virtual void update(unsigned int timestep) = 0;
-        
+
         //! Sets the profiler for the compute to use
         virtual void setProfiler(boost::shared_ptr<Profiler> prof);
-        
+
         //! Returns a list of log quantities this compute calculates
         /*! The base class implementation just returns an empty vector. Derived classes should override
             this behavior and return a list of quantities that they log.
-        
+
             See Logger for more information on what this is about.
         */
         virtual std::vector< std::string > getProvidedLogQuantities()
             {
             return std::vector< std::string >();
             }
-            
+
         //! Calculates the requested log value and returns it
         /*! \param quantity Name of the log quantity to get
             \param timestep Current time step of the simulation
-        
+
             The base class just returns 0. Derived classes should override this behavior and return
             the calculated value for the given quantity. Only quantities listed in
             the return value getProvidedLogQuantities() will be requested from
             getLogValue().
-        
+
             See Logger for more information on what this is about.
         */
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
             {
             return Scalar(0.0);
             }
-        
+
         //! Print some basic stats to stdout
         /*! Derived classes can optionally implement this function. A System will
             call all of the Updaters' printStats functions at the end of a run
-            so the user can see useful information 
+            so the user can see useful information
         */
         virtual void printStats()
             {
             }
-        
+
         //! Reset stat counters
-        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running 
+        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
             counters printed by printStats. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
@@ -179,7 +179,7 @@ class Updater : boost::noncopyable
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration        
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
 #ifdef ENABLE_MPI
         boost::shared_ptr<Communicator> m_comm;             //!< The communicator this updater is to use
 #endif
@@ -193,4 +193,3 @@ class Updater : boost::noncopyable
 void export_Updater();
 
 #endif
-

@@ -74,7 +74,7 @@ using namespace boost::python;
 */
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
                                                    boost::shared_ptr<ParticleGroup> group)
-    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf()), 
+    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf()),
       m_deltaT(Scalar(0.0)), m_valid_restart(false)
     {
     // sanity check
@@ -111,7 +111,7 @@ void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
 /*! \param v is the restart variables for the current integrator
     \param type is the type of expected integrator type
     \param nvariables is the expected number of variables
-    
+
     If the either the integrator type or number of variables does not match the
     expected values, this function throws the appropriate warning and returns
     "false."  Otherwise, the function returns true.
@@ -151,7 +151,7 @@ unsigned int IntegrationMethodTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> 
     {
     // get the size of the intersecion between query_group and m_group
     unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();
-    
+
     return m_sysdef->getNDimensions() * intersect_size;
     }
 
@@ -177,7 +177,7 @@ void IntegrationMethodTwoStep::validateGroup()
                 {
                 m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body. "
                      << "This integration method does not operate on rigid bodies" << endl;
-                    
+
                 throw std::runtime_error("Error initializing integration method");
                 }
             }
@@ -199,4 +199,3 @@ void export_IntegrationMethodTwoStep()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

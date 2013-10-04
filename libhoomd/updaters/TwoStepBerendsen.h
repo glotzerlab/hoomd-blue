@@ -109,4 +109,3 @@ class TwoStepBerendsen : public IntegrationMethodTwoStep
 void export_Berendsen();
 
 #endif // _BERENDSEN_H_
-

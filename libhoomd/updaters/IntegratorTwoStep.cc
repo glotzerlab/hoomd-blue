@@ -88,7 +88,7 @@ IntegratorTwoStep::~IntegratorTwoStep()
 void IntegratorTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
     {
     Integrator::setProfiler(prof);
-    
+
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setProfiler(prof);
@@ -100,11 +100,11 @@ std::vector< std::string > IntegratorTwoStep::getProvidedLogQuantities()
     {
     std::vector<std::string> combined_result;
     std::vector<std::string> result;
-    
+
     // Get base class provided log quantities
     result = Integrator::getProvidedLogQuantities();
     combined_result.insert(combined_result.end(), result.begin(), result.end());
-    
+
     // add integrationmethod quantities
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
@@ -145,13 +145,13 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_exec_conf->msg->warning() << "integrate.mode_standard: No integration methods are set, continuing anyways." << endl;
         m_gave_warning = true;
         }
-    
+
     // ensure that prepRun() has been called
     assert(m_prepared);
-    
+
     if (m_prof)
         m_prof->push("Integrate");
-    
+
     // perform the first step of the integration on all groups
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
@@ -215,7 +215,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
 void IntegratorTwoStep::setDeltaT(Scalar deltaT)
     {
     Integrator::setDeltaT(deltaT);
-    
+
     // set deltaT on all methods already added
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
@@ -231,26 +231,26 @@ void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethod
     {
     // check for intersections with existing methods
     shared_ptr<ParticleGroup> new_group = new_method->getGroup();
-    
+
     if (new_group->getNumMembersGlobal() == 0)
         m_exec_conf->msg->warning() << "integrate.mode_standard: An integration method has been added that operates on zero particles." << endl;
-    
+
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
         shared_ptr<ParticleGroup> intersection = ParticleGroup::groupIntersection(new_group, current_group);
-        
+
         if (intersection->getNumMembersGlobal() > 0)
             {
             m_exec_conf->msg->error() << "integrate.mode_standard: Multiple integration methods are applied to the same particle" << endl;
             throw std::runtime_error("Error adding integration method");
             }
         }
-    
+
     // ensure that the method has a matching deltaT
     new_method->setDeltaT(m_deltaT);
-    
+
     // add it to the list
     m_methods.push_back(new_method);
     }
@@ -268,7 +268,7 @@ void IntegratorTwoStep::removeAllIntegrationMethods()
 bool IntegratorTwoStep::isValidRestart()
     {
     bool res = true;
-    
+
     // loop through all methods
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
@@ -295,7 +295,7 @@ unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
         // dd them all together
         res += (*method)->getNDOF(group);
         }
-    
+
     return res - m_sysdef->getNDimensions() - getNDOFRemoved();
     }
 
@@ -310,7 +310,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         {
         m_first_step = false;
         m_prepared = true;
-        
+
 #ifdef ENABLE_MPI
         if (m_comm)
             {
@@ -324,11 +324,11 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 
         // net force is always needed (ticket #393)
         computeNetForce(timestep);
-        
+
         // but the accelerations only need to be calculated if the restart is not valid
         if (!isValidRestart())
             computeAccelerations(timestep);
-        
+
         // for the moment, isotropic_virial is invalid on the first step if there are any rigid bodies
         // a future update to the restart data format (that saves net_force and net_virial) will make it
         // valid when there is a valid restart
@@ -375,4 +375,3 @@ void export_IntegratorTwoStep()
         .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)
         ;
     }
-

@@ -195,7 +195,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar m_V;                     //!< Current volume
 
         couplingMode m_couple;          //!< Coupling of diagonal elements
-        unsigned int m_flags;             //!< Coupling flags for barostat 
+        unsigned int m_flags;             //!< Coupling flags for barostat
         bool m_nph;                     //!< True if integrating without thermostat
         Scalar m_mat_exp_v[6];          //!< Matrix exponential for velocity update (upper triangular)
         Scalar m_mat_exp_r[6];          //!< Matrix exponential for position update (upper triangular)
@@ -207,7 +207,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Helper function to advance the barostat parameters
         void advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Scalar &nuyy, Scalar &nuyz, Scalar &nuzz,
                              PressureTensor& P, unsigned int timestep);
-        
+
         //! Helper function to update the propagator elements
         void updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);
 
@@ -217,4 +217,3 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
 void export_TwoStepNPTMTK();
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_H__
-

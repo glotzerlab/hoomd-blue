@@ -94,23 +94,23 @@ TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU what CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
-        
+
     // allocate the sum arrays
     GPUArray<Scalar> sum(1, exec_conf);
     m_sum.swap(sum);
-    
+
     // initialize the partial sum array
-    m_block_size = 256; 
+    m_block_size = 256;
     unsigned int group_size = m_group->getNumMembers();
     m_num_blocks = group_size / m_block_size + 1;
     GPUArray<Scalar> partial_sum1(m_num_blocks, exec_conf);
-    m_partial_sum1.swap(partial_sum1);          
+    m_partial_sum1.swap(partial_sum1);
     }
 
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
-    
+
     This method is copied directoy from TwoStepNVEGPU::integrateStepOne() and reimplemented here to avoid multiple
     inheritance.
 */
@@ -119,7 +119,7 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVE step 1");
-    
+
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -145,30 +145,30 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
     }
-        
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
 void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     {
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
+
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVE step 2");
-    
+
     // get the dimensionality of the system
     const Scalar D = Scalar(m_sysdef->getNDimensions());
-    
+
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
- 
+
         {
         ArrayHandle<Scalar> d_partial_sumBD(m_partial_sum1, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_sumBD(m_sum, access_location::device, access_mode::overwrite);
@@ -177,7 +177,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-        
+
         unsigned int group_size = m_group->getNumMembers();
         m_num_blocks = group_size / m_block_size + 1;
 
@@ -194,7 +194,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         args.block_size = m_block_size;
         args.num_blocks = m_num_blocks;
         args.tally = m_tally;
-        
+
         gpu_bdnvt_step_two(d_pos.data,
                            d_vel.data,
                            d_accel.data,
@@ -211,17 +211,17 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
 
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-        
+
         }
- 
+
     if (m_tally)
         {
-        ArrayHandle<Scalar> h_sumBD(m_sum, access_location::host, access_mode::read);   
+        ArrayHandle<Scalar> h_sumBD(m_sum, access_location::host, access_mode::read);
         #ifdef ENABLE_MPI
         if (m_comm)
             {
-            MPI_Allreduce(MPI_IN_PLACE, &h_sumBD.data[0], 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator()); 
-            } 
+            MPI_Allreduce(MPI_IN_PLACE, &h_sumBD.data[0], 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            }
         #endif
         m_reservoir_energy -= h_sumBD.data[0]*m_deltaT;
         m_extra_energy_overdeltaT= 0.5*h_sumBD.data[0];
@@ -247,4 +247,3 @@ void export_TwoStepBDNVTGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

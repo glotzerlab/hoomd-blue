@@ -84,10 +84,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     Any number of ForceComputes can be used to specify the net force
     for use with this integrator. They are added via calling
-    addForceCompute(). Any number of forces can be added in this way. 
-    
+    addForceCompute(). Any number of forces can be added in this way.
+
     All forces added via addForceCompute() are computed independantly and then totaled up to calculate the net force
-    and enrgy on each particle. Constraint forces (ForceConstraint) are unique in that they need to be computed 
+    and enrgy on each particle. Constraint forces (ForceConstraint) are unique in that they need to be computed
     \b after the net forces is already available. To implement this behavior, call addForceConstraint() to add any
     number of constraint forces. All constraint forces will be computed independantly and will be able to read the
     current unconstrained net force. Separate constraint forces should not overlap. Degrees of freedom removed
@@ -112,28 +112,28 @@ class Integrator : public Updater
     public:
         //! Constructor
         Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
-        
+
         //! Destructor
         virtual ~Integrator();
-        
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
-        
+
         //! Add a ForceCompute to the list
         virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
 
         //! Add a ForceConstraint to the list
         virtual void addForceConstraint(boost::shared_ptr<ForceConstraint> fc);
-        
+
         //! Removes all ForceComputes from the list
         virtual void removeForceComputes();
-        
+
         //! Change the timestep
         virtual void setDeltaT(Scalar deltaT);
-        
+
         //! Return the timestep
         Scalar getDeltaT();
-        
+
         //! Get the number of degrees of freedom granted to a given group
         /*! \param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
@@ -142,22 +142,22 @@ class Integrator : public Updater
             {
             return 0;
             }
-        
+
         //! Count the total number of degrees of freedom removed by all constraint forces
         unsigned int getNDOFRemoved();
-        
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-        
+
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
         //! helper function to compute total momentum
         virtual Scalar computeTotalMomentum(unsigned int timestep);
-        
+
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep);
-       
+
     protected:
         Scalar m_deltaT;                                            //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
@@ -166,10 +166,10 @@ class Integrator : public Updater
 
         //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep);
-        
+
         //! helper function to compute net force/virial
         void computeNetForce(unsigned int timestep);
-        
+
 #ifdef ENABLE_CUDA
         //! helper function to compute net force/virial on the GPU
         void computeNetForceGPU(unsigned int timestep);
@@ -186,4 +186,3 @@ class Integrator : public Updater
 void export_Integrator();
 
 #endif
-

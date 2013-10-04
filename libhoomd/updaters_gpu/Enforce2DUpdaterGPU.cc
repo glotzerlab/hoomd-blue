@@ -89,14 +89,14 @@ Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sys
 void Enforce2DUpdaterGPU::update(unsigned int timestep)
     {
     assert(m_pdata);
-            
+
     if (m_prof)
         m_prof->push(exec_conf, "Enforce2D");
-        
+
     // access the particle data arrays
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-    
+
     // call the enforce 2d kernel
     gpu_enforce2d(m_pdata->getN(),
                   d_vel.data,
@@ -119,4 +119,3 @@ void export_Enforce2DUpdaterGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

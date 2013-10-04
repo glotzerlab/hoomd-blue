@@ -124,7 +124,7 @@ void TwoStepBDNVTRigid::setGamma(unsigned int typ, Scalar gamma)
         m_exec_conf->msg->error() << "intergae.bdnvt_rigid: Trying to set gamma for a non existant type! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepBDNVT");
         }
-        
+
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     h_gamma.data[typ] = gamma;
     }
@@ -137,9 +137,9 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
     // sanity check
     if (m_n_bodies <= 0)
         return;
-        
+
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
+
     // profile this step
     if (m_prof)
         m_prof->push("BD NVT rigid step 2");
@@ -158,7 +158,7 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
     const Scalar D = Scalar(m_sysdef->getNDimensions());
-    
+
     // initialize the RNG
     Saru saru(m_seed, timestep);
 
@@ -168,13 +168,13 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        
+
         // first, calculate the BD forces
         // Generate three random numbers
         Scalar rx = saru.d(-1,1);
         Scalar ry = saru.d(-1,1);
         Scalar rz = saru.d(-1,1);
-        
+
         Scalar gamma;
         if (m_gamma_diam)
             gamma = h_diameter.data[j];
@@ -183,14 +183,14 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
             gamma = h_gamma.data[type];
             }
-        
+
         // compute the bd force
         Scalar coeff = sqrt(Scalar(6.0)*gamma*currentTemp/m_deltaT);
         Scalar bd_fx = rx*coeff - gamma*h_vel.data[j].x;
         Scalar bd_fy = ry*coeff - gamma*h_vel.data[j].y;
         Scalar bd_fz = rz*coeff - gamma*h_vel.data[j].z;
 
-        
+
         if (D < 3.0)
             bd_fz = Scalar(0.0);
 
@@ -198,13 +198,13 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         h_net_force.data[j].y += bd_fy;
         h_net_force.data[j].z += bd_fz;
         }
-        
+
     }
-        
+
     // Perform the second step like in TwoStepNVERigid
     // compute net forces and torques on rigid bodies from particle forces
     computeForceAndTorque(timestep);
-    
+
     {
     // rigid data handes
     ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
@@ -213,21 +213,21 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    
+
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-    
+
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
-    
+
     Scalar dt_half = 0.5 * m_deltaT;
-    
+
     // 2nd step: final integration
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
-        
+
         Scalar dtfm = dt_half / body_mass_handle.data[body];
         vel_handle.data[body].x += dtfm * force_handle.data[body].x;
         vel_handle.data[body].y += dtfm * force_handle.data[body].y;
@@ -236,12 +236,12 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
         angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
         angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
-        
+
         computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
                                ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
         }
     } // out of scope for handles
-        
+
     // done profiling
     if (m_prof)
         m_prof->pop();
@@ -263,4 +263,3 @@ void export_TwoStepBDNVTRigid()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

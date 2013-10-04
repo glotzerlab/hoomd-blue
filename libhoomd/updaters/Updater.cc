@@ -66,7 +66,7 @@ using namespace boost::python;
 /*! \param sysdef System this compute will act on. Must not be NULL.
     \post The Updater is constructed with the given particle data and a NULL profiler.
 */
-Updater::Updater(boost::shared_ptr<SystemDefinition> sysdef) 
+Updater::Updater(boost::shared_ptr<SystemDefinition> sysdef)
     : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf())
     {
     // sanity check
@@ -97,7 +97,7 @@ class UpdaterWrap: public Updater, public wrapper<Updater>
         /*! \param sysdef parameter to forward to the base class constructor
         */
         UpdaterWrap(boost::shared_ptr<SystemDefinition> sysdef) : Updater(sysdef) { }
-        
+
         //! Hanldes pure virtual Updater::update()
         /*! \param timestep parameter to forward to Updater::update()
         */
@@ -118,4 +118,3 @@ void export_Updater()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

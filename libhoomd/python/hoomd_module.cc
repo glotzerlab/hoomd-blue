@@ -113,11 +113,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVT.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepBerendsen.h"
-#include "TwoStepNVERigid.h" 
+#include "TwoStepNVERigid.h"
 #include "TwoStepNVTRigid.h"
 #include "TwoStepNPTRigid.h"
 #include "TwoStepNPHRigid.h"
-#include "TwoStepBDNVTRigid.h" 
+#include "TwoStepBDNVTRigid.h"
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
 #include "FIREEnergyMinimizer.h"
@@ -146,11 +146,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepBerendsenGPU.h"
-#include "TwoStepNVERigidGPU.h" 
-#include "TwoStepNVTRigidGPU.h" 
+#include "TwoStepNVERigidGPU.h"
+#include "TwoStepNVTRigidGPU.h"
 #include "TwoStepNPHRigidGPU.h"
-#include "TwoStepNPTRigidGPU.h" 
-#include "TwoStepBDNVTRigidGPU.h" 
+#include "TwoStepNPTRigidGPU.h"
+#include "TwoStepBDNVTRigidGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
 #include "CGCMMForceComputeGPU.h"
@@ -235,7 +235,7 @@ void export_tersoff_params()
 string find_vmd()
     {
 #ifdef WIN32
-    
+
     // find VMD through the registry
     vector<string> reg_paths;
     reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9.1");
@@ -243,12 +243,12 @@ string find_vmd()
     reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9");
     reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.7");
     reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.6");
-    
+
     vector<string>::iterator cur_path;
     for (cur_path = reg_paths.begin(); cur_path != reg_paths.end(); ++cur_path)
         {
         string reg_path = *cur_path;
-        
+
         char *value = new char[1024];
         DWORD value_size = 1024;
         HKEY vmd_root_key;
@@ -264,7 +264,7 @@ string find_vmd()
                     return (install_dir / "vmd.exe").string();
                 }
             }
-            
+
         err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
         if (err_code == ERROR_SUCCESS)
             {
@@ -277,10 +277,10 @@ string find_vmd()
                     return (install_dir / "vmd.exe").string();
                 }
             }
-            
+
         delete[] value;
         }
-        
+
 #else
     // check some likely locations
     if (exists("/usr/bin/vmd"))
@@ -296,7 +296,7 @@ string find_vmd()
     if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
 #endif
-        
+
     // return an empty string if we didn't find it
     return "";
     }
@@ -309,7 +309,7 @@ string get_hoomd_version()
     ostringstream ver;
     // always outputting main version number: #402
     ver << "HOOMD-blue " << HOOMD_VERSION << endl;
-        
+
     return ver.str();
     }
 
@@ -420,14 +420,14 @@ BOOST_PYTHON_MODULE(hoomd)
 
     class_<std::vector<Scalar3> >("std_vector_scalar3")
     .def(vector_indexing_suite<std::vector<Scalar3> >());
-    
+
     InstallSIGINTHandler();
-    
+
     // utils
     export_hoomd_math_functions();
     export_ClockSource();
     export_Profiler();
-    
+
     // data structures
     export_BoxDim();
     export_ParticleData();
@@ -440,7 +440,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_AngleData();
     export_DihedralData();
     export_SnapshotSystemData();
-    
+
     // initializers
     export_RandomInitializer();
     export_RandomInitializerWithWalls();
@@ -448,7 +448,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HOOMDInitializer();
     export_HOOMDBinaryInitializer();
     export_RandomGenerator();
-    
+
     // computes
     export_Compute();
     export_CellList();
@@ -457,9 +457,9 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ConstForceCompute();
     export_ConstExternalFieldDipoleForceCompute();
     export_HarmonicAngleForceCompute();
-    export_TableAngleForceCompute();    
+    export_TableAngleForceCompute();
     export_HarmonicDihedralForceCompute();
-    export_TableDihedralForceCompute();    
+    export_TableDihedralForceCompute();
     export_HarmonicImproperForceCompute();
     export_CGCMMAngleForceCompute();
     export_TablePotential();
@@ -477,7 +477,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
     export_tersoff_params();
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
-    export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");   
+    export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
     export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>("PotentialPairDPDLJThermoDPD");
     export_PotentialBond<PotentialBondHarmonic>("PotentialBondHarmonic");
@@ -506,8 +506,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL> ("PotentialPairZBLGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTersoffGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
-    export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");    
-    export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");    
+    export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");
+    export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>("PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>("PotentialBondFENEGPU");
@@ -515,9 +515,9 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TablePotentialGPU();
     export_EAMForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
-    export_TableAngleForceComputeGPU();    
+    export_TableAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
-    export_TableDihedralForceComputeGPU();    
+    export_TableDihedralForceComputeGPU();
     export_HarmonicImproperForceComputeGPU();
     export_CGCMMAngleForceComputeGPU();
     export_ComputeThermoGPU();
@@ -526,7 +526,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PPPMForceComputeGPU();
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
 #endif
-    
+
     // analyzers
     export_Analyzer();
     export_IMDInterface();
@@ -538,7 +538,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Logger();
     export_MSDAnalyzer();
     export_ParticleGroup();
-    
+
     // updaters
     export_Updater();
     export_Integrator();
@@ -560,7 +560,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepBDNVTRigid();
     export_Enforce2DUpdater();
     export_FIREEnergyMinimizer();
-    export_FIREEnergyMinimizerRigid();        
+    export_FIREEnergyMinimizerRigid();
 #ifdef ENABLE_CUDA
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
@@ -574,7 +574,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepBDNVTRigidGPU();
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
-    export_FIREEnergyMinimizerRigidGPU();          
+    export_FIREEnergyMinimizerRigidGPU();
 #endif
 
 #ifdef ENABLE_MPI
@@ -587,10 +587,10 @@ BOOST_PYTHON_MODULE(hoomd)
 
     // system
     export_System();
-    
+
     // variant
     export_Variant();
-    
+
     // messenger
     export_Messenger();
     }

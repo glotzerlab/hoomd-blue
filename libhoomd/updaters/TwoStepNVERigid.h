@@ -75,7 +75,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Integrates part of the system forward in two steps in the NVE ensemble
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
- 
+
  \ingroup updaters
 */
 class TwoStepNVERigid : public IntegrationMethodTwoStep
@@ -86,22 +86,22 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
                         boost::shared_ptr<ParticleGroup> group,
                         bool skip_restart=false);
         virtual ~TwoStepNVERigid();
-        
+
         //! Computes the initial net forces, torques and angular momenta
        virtual void setup();
-        
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
-        
-        //! Performs the second step of the 
-        virtual void integrateStepTwo(unsigned int timestep);        
-       
+
+        //! Performs the second step of the
+        virtual void integrateStepTwo(unsigned int timestep);
+
         //! Computes the body forces and torques
         void computeForceAndTorque(unsigned int timestep);
-        
+
         //! Get the number of degrees of freedom granted to a given group
         virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> query_group);
-        
+
         //! Validate that all members in the particle group are valid (throw an exception if they are not)
         virtual void validateGroup();
 
@@ -112,7 +112,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
             {
             m_temperature = T;
             }
-        
+
         //! Update the pressure
         /*! \param P New pressure to set
         */
@@ -120,7 +120,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
             {
             m_pressure = P;
             }
-        
+
         //! Update the tau value
         /*! \param tau New time constant to set
         */
@@ -128,7 +128,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
             {
             t_freq = tau;
             }
-        
+
         //! Update the nuP value
         /*! \param tauP New pressure constant to set
         */
@@ -136,7 +136,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
             {
             p_freq = tauP;
             }
-        
+
         //! Set the partial scale option
         /*! \param partial_scale New partial_scale option to set
         */
@@ -153,7 +153,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
 
         //! Remap the particles from the old box to the new one
         void remap();
-        
+
         //! Adjust rigid body center of mass with deformed box
         void deform(unsigned int flag);
 
@@ -172,9 +172,9 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to rigid data
         boost::shared_ptr<ParticleData> m_pdata;    //!< Pointer to particle data
         boost::shared_ptr<RigidBodyGroup> m_body_group; //!< Group of rigid bodies to work with
-        
+
         bool m_first_step;                          //!< True if first step
-        
+
         bool t_stat;                                //!< True if using thermostat (NVT or NPT)
         bool p_stat;                                //!< True if using barostat (NPT or NPH)
         boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group
@@ -187,27 +187,27 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         boost::shared_ptr<Variant> m_pressure;      //!< Pressure set point
         Scalar m_curr_group_T;                      //!< Current group temperature
         Scalar m_curr_P;                            //!< Current system pressure
-        
+
         Scalar boltz;                               //!< Boltzmann constant
-        Scalar nf_t;                                //!< Translational degrees of freedom        
-        Scalar nf_r;                                //!< Rotational degrees of freedom 
+        Scalar nf_t;                                //!< Translational degrees of freedom
+        Scalar nf_r;                                //!< Rotational degrees of freedom
         Scalar g_f, onednft, onednfr;
 
         unsigned int dimension;                     //!< System dimension
-        Scalar m_dof;                               //!< Total number degrees of freedom used for system temperature compute 
+        Scalar m_dof;                               //!< Total number degrees of freedom used for system temperature compute
         unsigned int chain;                         //!< Number of thermostats
         unsigned int iter;                          //!< Number of iterations
         unsigned int order;                         //!< Number of thermostat per chain
-        
+
         Scalar  dilation;                           //!< Box size change
-        Scalar  epsilon;                            //!< Volume scaling "position" 
-        Scalar  epsilon_dot;                        //!< Volume scaling "velocity" 
+        Scalar  epsilon;                            //!< Volume scaling "position"
+        Scalar  epsilon_dot;                        //!< Volume scaling "velocity"
         Scalar  f_epsilon;                          //!< Volume scaling "force"
         Scalar  W;                                  //!< Volume scaling "mass"
 
         Scalar* q_t;                                //!< Thermostat translational mass
         Scalar* q_r;                                //!< Thermostat rotational mass
-        Scalar* q_b;                                //!< Thermostat mass, which is coupled with the barostat 
+        Scalar* q_b;                                //!< Thermostat mass, which is coupled with the barostat
         Scalar* eta_t;                              //!< Thermostat translational position
         Scalar* eta_r;                              //!< Thermostat rotational position
         Scalar* eta_b;                              //!< Thermostat position, which is coupled with the barostat
@@ -242,4 +242,3 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
 void export_TwoStepNVERigid();
 
 #endif
-

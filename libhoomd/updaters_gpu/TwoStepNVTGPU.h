@@ -65,11 +65,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Integrates part of the system forward in two steps in the NVT ensemble on the GPU
 /*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface, runs on the GPU
-    
+
     In order to compute efficiently and limit the number of kernel launches integrateStepOne() performs a first
     pass reduction on the sum of m*v^2 and stores the partial reductions. A second kernel is then launched to recude
     those to a final \a sum2K, which is a scalar but stored in a GPUArray for convenience.
-    
+
     \ingroup updaters
 */
 class TwoStepNVTGPU : public TwoStepNVT
@@ -83,10 +83,10 @@ class TwoStepNVTGPU : public TwoStepNVT
                       boost::shared_ptr<Variant> T,
                       const std::string& suffix = std::string(""));
         virtual ~TwoStepNVTGPU() {};
-        
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
-        
+
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
     protected:
@@ -97,4 +97,3 @@ class TwoStepNVTGPU : public TwoStepNVT
 void export_TwoStepNVTGPU();
 
 #endif // #ifndef __TWO_STEP_NVT_GPU_H__
-
