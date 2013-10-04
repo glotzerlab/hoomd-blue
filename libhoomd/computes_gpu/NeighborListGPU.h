@@ -117,8 +117,8 @@ class NeighborListGPU : public NeighborList
         //! GPU nlists set their last updated pos in the compute kernel, this call only resets the last box length
         virtual void setLastUpdatedPos()
             {
-            m_last_L = m_pdata->getGlobalBox().getL();
-            m_last_L_local = m_pdata->getBox().getL();
+            m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
+            m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
             }
 
         //! Filter the neighbor list of excluded particles

@@ -117,8 +117,8 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
 
 
     // initialize box length at last update
-    m_last_L = m_pdata->getGlobalBox().getL();
-    m_last_L_local = m_pdata->getBox().getL();
+    m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
+    m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
 
     // allocate conditions flags
     GPUFlags<unsigned int> conditions(exec_conf);
@@ -752,8 +752,8 @@ bool NeighborList::distanceCheck()
 
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
 
-    // get current global box lengths
-    Scalar3 L_g = m_pdata->getGlobalBox().getL();
+    // get current nearest plane distances
+    Scalar3 L_g = m_pdata->getGlobalBox().getNearestPlaneDistance();
 
     // Cutoff distance for inclusion in neighbor list
     Scalar rmax = m_r_cut + m_r_buff;
@@ -787,7 +787,7 @@ bool NeighborList::distanceCheck()
         if (m_pdata->getDomainDecomposition())
             {
             // particle migration will fail in MPI simulations, error out
-            m_exec_conf->msg->error() << "nlist: Too large change in box dimensions."
+            m_exec_conf->msg->error() << "nlist: Too large jump in box dimensions."
                                       << std::endl << std::endl;
             throw std::runtime_error("Error checking displacements");
             }
@@ -869,9 +869,9 @@ void NeighborList::setLastUpdatedPos()
         h_last_pos.data[i] = make_scalar4(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z, Scalar(0.0));
         }
 
-    // update last box length
-    m_last_L = m_pdata->getGlobalBox().getL();
-    m_last_L_local = m_pdata->getBox().getL();
+    // update last box nearest plane distance
+    m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
+    m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
 
     if (m_prof) m_prof->pop();
     }

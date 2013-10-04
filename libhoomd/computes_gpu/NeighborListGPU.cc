@@ -180,8 +180,8 @@ bool NeighborListGPU::distanceCheck()
     BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::read);
 
-    // get current global box lengths
-    Scalar3 L_g = m_pdata->getGlobalBox().getL();
+    // get current global nearest plane distance
+    Scalar3 L_g = m_pdata->getGlobalBox().getNearestPlaneDistance();
 
     // Cutoff distance for inclusion in neighbor list
     Scalar rmax = m_r_cut + m_r_buff;
