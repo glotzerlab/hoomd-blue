@@ -391,6 +391,7 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('bond.harmonic', 'bond.harmonic', 10000),
                 ('bond.fene', 'bond_fene_setup', 2000),
                 ('angle.harmonic', 'angle.harmonic', 3000),
+                ('angle.table', 'angle.table', 3000),
                 ('angle.cgcmm', 'angle.cgcmm', 2000),
                 ('dihedral.harmonic', 'dihedral.harmonic', 1000),
                 ('improper.harmonic', 'improper.harmonic', 1000)];

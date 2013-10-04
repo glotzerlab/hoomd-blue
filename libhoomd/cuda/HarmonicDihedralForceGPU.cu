@@ -111,7 +111,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
     int n_dihedrals = n_dihedrals_list[idx];
 
-    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
+    // read in the position of our b-particle from the a-b-c-d set. (MEM TRANSFER: 16 bytes)
     Scalar4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c-d quartet
     Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
     Scalar3 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
