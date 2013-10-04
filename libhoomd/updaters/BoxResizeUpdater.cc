@@ -147,6 +147,9 @@ void BoxResizeUpdater::update(unsigned int timestep)
     // only change the box if there is a change in the box dimensions
     if (!no_change)
         {
+        // set the new box
+        m_pdata->setGlobalBox(newBox);
+
         // scale the particle positions (if we have been asked to)
         if (m_scale_particles)
             {
@@ -220,9 +223,6 @@ void BoxResizeUpdater::update(unsigned int timestep)
                     }
                 }
             }
-
-        // set the new box
-        m_pdata->setGlobalBox(newBox);
 
         // update the body particle positions to reflect the new rigid body positions
         rigid_data->setRV(true);
