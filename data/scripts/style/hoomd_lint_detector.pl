@@ -60,6 +60,7 @@ sub process_file_lines
     
     # initialize counters to 0
     my $tab_count = 0;
+    my $eol_whitespace_count = 0;
     my $line_count = 0;
     my $overlength_count = 0;
     my $has_doxygen_file = 0;
@@ -70,6 +71,8 @@ sub process_file_lines
         {
         $tab_count += tr/\t//;
         $last_line = $_ if eof;
+        chomp();
+        $eol_whitespace_count += /(\s*)$/ && length($1);
 
         if (length($_) > $max_line_len)
             {
@@ -94,6 +97,10 @@ sub process_file_lines
     if ($tab_count > 0)
         {
         $message .= "tabs:                $tab_count\n";
+        }
+    if ($eol_whitespace_count > 0)
+        {
+        $message .= "EOL whitespace:      $eol_whitespace_count\n";
         }
     if ($overlength_count > $overlength_threshold)
         {
