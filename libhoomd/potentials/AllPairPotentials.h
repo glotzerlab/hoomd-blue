@@ -142,4 +142,3 @@ typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, gpu_compute_force_shifted_
 #endif
 
 #endif // __PAIR_POTENTIALS_H__
-

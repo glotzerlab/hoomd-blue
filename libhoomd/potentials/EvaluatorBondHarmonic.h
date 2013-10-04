@@ -152,4 +152,3 @@ class EvaluatorBondHarmonic
 
 
 #endif // __BOND_EVALUATOR_HARMONIC_H__
-

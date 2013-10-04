@@ -187,4 +187,3 @@ class EvaluatorBondFENE
 
 
 #endif // __BOND_EVALUATOR_FENE_H__
-

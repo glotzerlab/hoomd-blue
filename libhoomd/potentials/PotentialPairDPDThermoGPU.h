@@ -215,4 +215,3 @@ template < class T, class Base > void export_PotentialPairDPDThermoGPU(const std
 
 #endif // ENABLE_CUDA
 #endif // __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
-

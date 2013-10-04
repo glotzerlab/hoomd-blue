@@ -69,4 +69,3 @@ typedef PotentialTersoffGPU< EvaluatorTersoff, gpu_compute_tersoff_forces > Pote
 #endif // ENABLE_CUDA
 
 #endif // __TRIPLET_POTENTIALS_H__
-

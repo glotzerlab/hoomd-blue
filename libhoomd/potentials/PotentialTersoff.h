@@ -162,7 +162,7 @@ PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefiniti
     : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
     {
     this->exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << endl;
-    
+
     assert(m_pdata);
     assert(m_nlist);
 
@@ -275,7 +275,7 @@ Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, u
         }
     else
         {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" 
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity"
                   << std::endl << endl;
         throw std::runtime_error("Error getting log value");
         }
@@ -365,7 +365,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 
             // calculate dr_ij (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 dxij = posi - posj;
-            
+
             // apply periodic boundary conditions
             dxij = box.minImage(dxij);
 
@@ -580,4 +580,3 @@ template < class T > void export_PotentialTersoff(const std::string& name)
 #endif
 
 #endif
-

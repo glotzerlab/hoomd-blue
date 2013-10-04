@@ -379,7 +379,7 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned in
     flags |= PotentialPair<evaluator>::getRequestedCommFlags(timestep);
 
     return flags;
-    } 
+    }
 #endif
 
 
@@ -405,4 +405,3 @@ template < class T, class Base > void export_PotentialPairDPDThermo(const std::s
 #endif
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_H__
-

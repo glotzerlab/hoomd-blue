@@ -75,25 +75,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! <b>General Overview</b>
 
     See EvaluatorPairLJ
-    
+
     <b>SLJ specifics</b>
-    
+
     EvaluatorPairSLJ evaluates the function:
     \f{eqnarray*}
-    V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - 
+    V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} -
                            \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r < (r_{\mathrm{cut}} + \Delta) \\
                          = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
     \f}
     where \f$ \Delta = (d_i + d_j)/2 - 1 \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
-    
+
     The SLJ potential does not need charge, but does need diameter. Two parameters are specified and stored in a
     Scalar2. \a lj1 is placed in \a params.x and \a lj2 is in \a params.y.
-    
+
     These are related to the standard lj parameters sigma and epsilon by:
     - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
     - \a lj2 = 4.0 * epsilon * pow(sigma,6.0);
-  
-    Due to the way that SLJ modifies the cutoff condition, it will not function properly with the xplor shifting mode.  
+
+    Due to the way that SLJ modifies the cutoff condition, it will not function properly with the xplor shifting mode.
 */
 class EvaluatorPairSLJ
     {
@@ -110,7 +110,7 @@ class EvaluatorPairSLJ
             : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y)
             {
             }
-        
+
         //! SLJ uses diameter
         DEVICE static bool needsDiameter() { return true; }
         //! Accept the optional diameter values
@@ -129,14 +129,14 @@ class EvaluatorPairSLJ
             \param qj Charge of particle j
         */
         DEVICE void setCharge(Scalar qi, Scalar qj) { }
-        
+
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
-            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
+            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
                   in PotentialPair.
-            
+
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
@@ -146,7 +146,7 @@ class EvaluatorPairSLJ
             Scalar r = Scalar(1.0) / rinv;
             Scalar rcutinv = fast::rsqrt(rcutsq);
             Scalar rcut = Scalar(1.0) / rcutinv;
-            
+
             // compute the force divided by r in force_divr
             if (r < (rcut + delta) && lj1 != 0)
                 {
@@ -155,9 +155,9 @@ class EvaluatorPairSLJ
                 Scalar rmd2inv = rmdinv * rmdinv;
                 Scalar rmd6inv = rmd2inv * rmd2inv * rmd2inv;
                 force_divr= rinv * rmdinv * rmd6inv * (Scalar(12.0)*lj1*rmd6inv - Scalar(6.0)*lj2);
-                
+
                 pair_eng = rmd6inv * (lj1*rmd6inv - lj2);
-                
+
                 if (energy_shift)
                     {
                     Scalar rcut2inv = rcutinv * rcutinv;
@@ -169,7 +169,7 @@ class EvaluatorPairSLJ
             else
                 return false;
             }
-        
+
         #ifndef NVCC
         //! Get the name of this potential
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
@@ -190,4 +190,3 @@ class EvaluatorPairSLJ
     };
 
 #endif // __PAIR_EVALUATOR_SLJ_H__
-

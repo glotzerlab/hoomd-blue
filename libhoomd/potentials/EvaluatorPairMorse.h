@@ -75,19 +75,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! <b>General Overview</b>
 
     See EvaluatorPairLJ.
-    
+
     <b>Morse specifics</b>
-    
+
     EvaluatorPairMorse evaluates the function:
-    \f[ V_{\mathrm{Morse}}(r) = D_0 \left[ \exp \left(-2\alpha \left(r - r_0\right) \right) 
+    \f[ V_{\mathrm{Morse}}(r) = D_0 \left[ \exp \left(-2\alpha \left(r - r_0\right) \right)
                                            -2\exp \left(-\alpha \left(r-r_0\right) \right)  \right] \f]
-        
-    Morse potential does not need diameter or charge. Three parameters are specified and stored in a Scalar4, for speed. 
-    \a \f[ D_0 \f] is placed in \a params.x, \a \f[ \alpha \f] is in \a params.y, and \f[ r_0 \f] is in \a params.z. 
+
+    Morse potential does not need diameter or charge. Three parameters are specified and stored in a Scalar4, for speed.
+    \a \f[ D_0 \f] is placed in \a params.x, \a \f[ \alpha \f] is in \a params.y, and \f[ r_0 \f] is in \a params.z.
     \a param.w is always set to zero, and is ignored.
-        
+
 */
-class EvaluatorPairMorse 
+class EvaluatorPairMorse
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
@@ -102,7 +102,7 @@ class EvaluatorPairMorse
             : rsq(_rsq), rcutsq(_rcutsq), D0(_params.x), alpha(_params.y), r0(_params.z)
             {
             }
-        
+
         //! Morse doesn't use diameter
         DEVICE static bool needsDiameter() { return false; }
         //! Accept the optional diameter values
@@ -118,14 +118,14 @@ class EvaluatorPairMorse
             \param qj Charge of particle j
         */
         DEVICE void setCharge(Scalar qi, Scalar qj) { }
-        
+
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
-            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
+            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
                   in PotentialPair.
-            
+
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
@@ -135,10 +135,10 @@ class EvaluatorPairMorse
                 {
                 Scalar r = fast::sqrt(rsq);
                 Scalar Exp_factor = fast::exp(-alpha*(r-r0));
-                
+
                 pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
                 force_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) / r;
-                
+
                 if (energy_shift)
                     {
                     Scalar rcut = fast::sqrt(rcutsq);
@@ -150,7 +150,7 @@ class EvaluatorPairMorse
             else
                 return false;
             }
-        
+
         #ifndef NVCC
         //! Get the name of this potential
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
@@ -172,4 +172,3 @@ class EvaluatorPairMorse
 
 
 #endif // __PAIR_EVALUATOR_MORSE_H__
-
