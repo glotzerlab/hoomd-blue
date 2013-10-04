@@ -80,7 +80,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_max_copy_ghosts_corner(0),
       m_max_recv_ghosts(0),
       m_buffers_allocated(false)
-    { 
+    {
     // find out if this is a 1D decomposition
     unsigned int d = 0;
     if (decomposition->getDomainIndexer().getW() > 1) d++;
@@ -162,7 +162,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
 
         {
-        // call update ghosts kernel 
+        // call update ghosts kernel
         ArrayHandle<unsigned int> d_n_local_ghosts_face(m_n_local_ghosts_face, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_edge(m_n_local_ghosts_edge, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_n_local_ghosts_corner(m_n_local_ghosts_corner, access_location::device, access_mode::read);
@@ -290,7 +290,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
         ArrayHandle<char> d_face_update_buf(m_face_update_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_update_recv_buf(m_update_recv_buf, access_location::device, access_mode::read);
 
-        // get the updated shifted global box 
+        // get the updated shifted global box
         const BoxDim shifted_box = getShiftedBox();
 
         // unpack particles
@@ -327,7 +327,7 @@ void CommunicatorGPU::allocateBuffers()
     {
     /*
      * initial size of particle send buffers = max of avg. number of ptls in skin layer in any direction
-     */ 
+     */
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getNearestPlaneDistance();
 
@@ -350,7 +350,7 @@ void CommunicatorGPU::allocateBuffers()
     unsigned int maxxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.x/L.y);
     unsigned int maxxz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.x/L.z);
     unsigned int maxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.y/L.z);
-    
+
     m_max_send_ptls_edge = 1;
     m_max_send_ptls_edge = m_max_send_ptls_edge > maxxy ? m_max_send_ptls_edge : maxxy;
     m_max_send_ptls_edge = m_max_send_ptls_edge > maxxz ? m_max_send_ptls_edge : maxxz;
@@ -381,10 +381,10 @@ void CommunicatorGPU::allocateBuffers()
 #endif
 
     m_recv_buf.swap(recv_buf);
-   
+
     /*
      * initial size of ghost send buffers = max of avg number of ptls in ghost layer in every direction
-     */ 
+     */
     maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.x);
     maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.y);
     maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.z);
@@ -475,7 +475,7 @@ void CommunicatorGPU::allocateBuffers()
 
     GPUArray<unsigned int> ghost_idx_edge(m_max_copy_ghosts_edge, 12, m_exec_conf);
     m_ghost_idx_edge.swap(ghost_idx_edge);
-    
+
     GPUArray<unsigned int> ghost_idx_corner(m_max_copy_ghosts_corner, 8, m_exec_conf);
     m_ghost_idx_corner.swap(ghost_idx_corner);
 
@@ -589,7 +589,7 @@ void CommunicatorGPU::migrateParticles()
         unsigned int new_size = 1;
         while (new_size < m_pdata->getN())
                 new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
- 
+
         m_remove_mask.resize(new_size);
         }
 
@@ -598,7 +598,7 @@ void CommunicatorGPU::migrateParticles()
         unsigned int new_size = 1;
         while (new_size < m_pdata->getN())
                 new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
- 
+
         m_ptl_plan.resize(new_size);
         }
 
@@ -647,7 +647,7 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<char> d_corner_send_buf(m_corner_send_buf, access_location::device, access_mode::overwrite);
             ArrayHandle<char> d_edge_send_buf(m_edge_send_buf, access_location::device, access_mode::overwrite);
             ArrayHandle<char> d_face_send_buf(m_face_send_buf, access_location::device, access_mode::overwrite);
-     
+
             // Stage particle data for sending, wrap particles
             gpu_migrate_select_particles(m_pdata->getN(),
                                    d_pos.data,
@@ -688,7 +688,7 @@ void CommunicatorGPU::migrateParticles()
 
             // synchronize with GPU
             cudaDeviceSynchronize();
- 
+
             for (unsigned int i = 0; i < 6; ++i)
                 n_send_ptls_face[i] = h_n_send_ptls_face.data[i];
 
@@ -761,7 +761,7 @@ void CommunicatorGPU::migrateParticles()
             unsigned int new_size = 1;
             while (new_size < bdata->getNumBonds())
                     new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-     
+
             m_bond_remove_mask.resize(new_size);
             }
 
@@ -776,7 +776,7 @@ void CommunicatorGPU::migrateParticles()
             if (m_bond_face_send_buf.getPitch() < m_max_send_bonds_face)
                 m_bond_face_send_buf.resize(m_max_send_bonds_face, 6);
 
-            
+
                 {
                 ArrayHandle<uint2> d_bonds(bdata->getBondTable(), access_location::device, access_mode::read);
                 ArrayHandle<unsigned int> d_bond_type(bdata->getBondTypes(), access_location::device, access_mode::read);
@@ -799,16 +799,16 @@ void CommunicatorGPU::migrateParticles()
                                d_bond_tag.data,
                                d_rtag.data,
                                d_ptl_plan.data,
-                               d_bond_remove_mask.data, 
+                               d_bond_remove_mask.data,
                                d_bond_face_send_buf.data,
                                m_bond_face_send_buf.getPitch(),
                                d_bond_edge_send_buf.data,
                                m_bond_edge_send_buf.getPitch(),
                                d_bond_corner_send_buf.data,
                                m_bond_corner_send_buf.getPitch(),
-                               d_n_send_bonds_face.data,   
-                               d_n_send_bonds_edge.data,   
-                               d_n_send_bonds_corner.data,   
+                               d_n_send_bonds_face.data,
+                               d_n_send_bonds_edge.data,
+                               d_n_send_bonds_corner.data,
                                m_max_send_bonds_face,
                                m_max_send_bonds_edge,
                                m_max_send_bonds_corner,
@@ -827,7 +827,7 @@ void CommunicatorGPU::migrateParticles()
 
                 // synchronize with GPU
                 cudaDeviceSynchronize();
-     
+
                 for (unsigned int i = 0; i < 6; ++i)
                     n_send_bonds_face[i] = h_n_send_bonds_face.data[i];
 
@@ -983,7 +983,7 @@ void CommunicatorGPU::migrateParticles()
                 new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
             m_recv_buf.resize(new_size*gpu_pdata_element_size());
             }
-          
+
 
         unsigned int cpitch = m_corner_send_buf.getPitch();
         unsigned int epitch = m_edge_send_buf.getPitch();
@@ -1072,7 +1072,7 @@ void CommunicatorGPU::migrateParticles()
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-   
+
     m_pdata->removeParticles(n_remove_ptls);
 
     /*
@@ -1163,7 +1163,7 @@ void CommunicatorGPU::migrateParticles()
                     new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_recv_buf.resize(new_size);
                 }
-              
+
 
             unsigned int cpitch = m_bond_corner_send_buf.getPitch();
             unsigned int epitch = m_bond_edge_send_buf.getPitch();
@@ -1212,9 +1212,9 @@ void CommunicatorGPU::migrateParticles()
                                  m_n_remove_bonds.readFlags(),
                                  m_bond_recv_buf,
                                  m_bond_remove_mask);
-        } 
+        }
 
- 
+
     if (m_prof) m_prof->pop(m_exec_conf);
 
     // notify ParticleData that addition / removal of particles is complete
@@ -1296,7 +1296,7 @@ void CommunicatorGPU::exchangeGhosts()
     size_t exch_sz = ghost_exchange_element_size();
     size_t updt_sz = ghost_update_element_size();
     do {
-        // resize buffers if necessary 
+        // resize buffers if necessary
         if (m_corner_ghosts_buf.getPitch() < m_max_copy_ghosts_corner*exch_sz)
             m_corner_ghosts_buf.resize(m_max_copy_ghosts_corner*exch_sz, 8);
 
@@ -1393,7 +1393,7 @@ void CommunicatorGPU::exchangeGhosts()
 
             // synchronize with GPU
             cudaDeviceSynchronize();
-     
+
             for (unsigned int i = 0; i < 6; ++i)
                 n_copy_ghosts_face[i] = h_n_local_ghosts_face.data[i];
             for (unsigned int i = 0; i < 12; ++i)
@@ -1498,7 +1498,7 @@ void CommunicatorGPU::exchangeGhosts()
                                &h_n_recv_ghosts_local.data[dir],
                                false
                                );
-            
+
             unsigned int max_n_copy_edge = 0;
             unsigned int max_n_copy_face = 0;
 
@@ -1518,7 +1518,7 @@ void CommunicatorGPU::exchangeGhosts()
                 while (new_size < max_n_recv_edge + max_n_copy_edge)
                     new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
                 m_max_copy_ghosts_edge = new_size;
-                
+
                 m_edge_ghosts_buf.resize(m_max_copy_ghosts_edge*exch_sz, 12);
                 m_edge_update_buf.resize(m_max_copy_ghosts_edge*updt_sz, 12);
                 }
@@ -1586,7 +1586,7 @@ void CommunicatorGPU::exchangeGhosts()
                                n_copy_ghosts_edge,
                                n_copy_ghosts_face,
                                m_ghosts_recv_buf.getNumElements(),
-                               m_n_tot_recv_ghosts_local, 
+                               m_n_tot_recv_ghosts_local,
                                exch_sz,
                                false);
 
@@ -1645,7 +1645,7 @@ void CommunicatorGPU::exchangeGhosts()
         ArrayHandle<char> d_corner_ghosts_buf(m_corner_ghosts_buf, access_location::device, access_mode::read);
         ArrayHandle<char> d_ghosts_recv_buf(m_ghosts_recv_buf, access_location::device, access_mode::read);
 
-        // get the updated shifted global box 
+        // get the updated shifted global box
         const BoxDim shifted_box = getShiftedBox();
 
         CommFlags flags = getFlags();
@@ -1698,7 +1698,7 @@ void CommunicatorGPU::communicateStepOne(unsigned int cur_face,
                                         unsigned int *n_recv_ptls_local,
                                         bool unique_destination)
     {
- 
+
     // communicate size of the messages that will contain the particle data
     MPI_Request reqs[6];
     MPI_Status status[6];
@@ -1744,11 +1744,11 @@ void CommunicatorGPU::communicateStepOne(unsigned int cur_face,
         {
         // only send corner particle through face if face touches corner
         nptl = n_send_ptls_corner[corner_i];
-        
+
         for (unsigned int edge_j = 0; edge_j < 12; ++edge_j)
             if (getRoutingTable().m_route_corner_edge[cur_face][corner_i][edge_j])
                 n_remote_recv_ptls_edge[edge_j] += nptl;
-           
+
         // In particle migration, a particle gets sent to exactly one box
         if (unique_destination) continue;
 
@@ -1780,7 +1780,7 @@ void CommunicatorGPU::communicateStepOne(unsigned int cur_face,
 
         if (getRoutingTable().m_route_edge_local[cur_face][edge_i])
             n_remote_recv_ptls_local += nptl;
-        } 
+        }
 
     #ifndef MPI3
     MPI_Isend(&n_send_ptls_face[cur_face], 1, MPI_INT, send_neighbor, tag, m_mpi_comm, &send_req);
@@ -1913,7 +1913,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
     MPI_Irecv(&local_recv_buf_remote, 1, MPI_AINT, send_neighbor, 2, m_mpi_comm, &req[5]);
     MPI_Waitall(6,req,status);
 
-    // synchronize 
+    // synchronize
     for (unsigned int i = 0; i < 6; ++i)
         MPI_Win_post(recv_group, 0, m_win_face[i]);
     for (unsigned int i = 0; i < 12; ++i)
@@ -2008,7 +2008,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
                 recv_eoffset[edge_j] += recv_nptl;
                 #endif
                 }
-           
+
         // If we are only sending to a single destination box, do not replicate particles
         if (unique_destination) continue;
 
@@ -2090,7 +2090,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
             #endif
             }
         }
-            
+
     for (unsigned int edge_i = 0; edge_i < 12; ++edge_i)
         {
         nptl = n_send_ptls_edge[edge_i];
@@ -2178,7 +2178,7 @@ void CommunicatorGPU::communicateStepTwo(unsigned int cur_face,
             recv_loffset += recv_nptl;
             #endif
             }
-        } 
+        }
 
     if (getRoutingTable().m_route_face_local[cur_face])
         {
@@ -2260,7 +2260,7 @@ size_t CommunicatorGPU::ghost_exchange_element_size()
     // to CUDA requirements)
     size_t sz = 0;
     CommFlags flags = getFlags();
-   
+
     size_t max = 0;
     size_t s;
     if (flags[comm_flag::position])
@@ -2309,7 +2309,7 @@ size_t CommunicatorGPU::ghost_update_element_size()
     // Compute size of update data element
     size_t sz = 0;
     CommFlags flags = getFlags();
- 
+
     size_t max =0;
     size_t s;
     // only pos, vel, orientation (ignore charge and diameter)

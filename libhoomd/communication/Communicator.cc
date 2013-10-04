@@ -236,7 +236,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         }
 
     m_packed_size = sizeof(pdata_element);
- 
+
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         GPUVector<unsigned int> copy_ghosts(m_exec_conf);
@@ -254,7 +254,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         // start with send and receive buffer sizes of one
         GPUArray<bond_element> bond_recv_buf(1, m_exec_conf);
         m_bond_recv_buf.swap(bond_recv_buf);
-        
+
         GPUArray<bond_element> bond_send_buf(1, m_exec_conf);
         m_bond_send_buf.swap(bond_send_buf);
         }
@@ -326,7 +326,7 @@ void Communicator::setupRoutingTable()
 
         t.m_route_face_local[cur_face] = false;
         }
-    
+
     // fill routing table
     for (unsigned int cur_face = 0; cur_face < 6; ++ cur_face)
         {
@@ -376,7 +376,7 @@ void Communicator::setupRoutingTable()
             if (plan & face_plan_lookup[cur_face] && !sent)
                 t.m_route_corner_local[cur_face][corner_i] = true;
             }
-                
+
         for (unsigned int edge_i = 0; edge_i < 12; ++edge_i)
             {
             unsigned int plan = edge_plan_lookup[edge_i];
@@ -400,7 +400,7 @@ void Communicator::setupRoutingTable()
 
             if (plan & face_plan_lookup[cur_face] && !sent)
                 t.m_route_edge_local[cur_face][edge_i] = true;
-            } 
+            }
 
         for (unsigned int face_i = 0; face_i < 6; ++face_i)
             {
@@ -437,7 +437,7 @@ void Communicator::communicate(unsigned int timestep)
         // just update ghost positions
         updateGhosts(timestep);
         }
- 
+
     m_is_communicating = false;
     }
 
@@ -514,16 +514,16 @@ void Communicator::migrateParticles()
             if (scal4_tmp.size() < m_pdata->getN())
                 scal4_tmp.resize(m_pdata->getN());
 
-            if (scal3_tmp.size() < m_pdata->getN()) 
+            if (scal3_tmp.size() < m_pdata->getN())
                 scal3_tmp.resize(m_pdata->getN());
 
-            if (scal_tmp.size() < m_pdata->getN()) 
+            if (scal_tmp.size() < m_pdata->getN())
                 scal_tmp.resize(m_pdata->getN());
 
-            if (uint_tmp.size() < m_pdata->getN()) 
+            if (uint_tmp.size() < m_pdata->getN())
                 uint_tmp.resize(m_pdata->getN());
 
-            if (int3_tmp.size() < m_pdata->getN()) 
+            if (int3_tmp.size() < m_pdata->getN())
                 int3_tmp.resize(m_pdata->getN());
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -577,7 +577,7 @@ void Communicator::migrateParticles()
             }
 
         boost::shared_ptr<BondData> bdata(m_sysdef->getBondData());
-            
+
         if (bdata->getNumBondsGlobal())
             {
             /*
@@ -708,7 +708,7 @@ void Communicator::migrateParticles()
         MPI_Irecv(&n_recv_ptls, sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
         MPI_Waitall(2, reqs, status);
 
-        // Resize receive buffer 
+        // Resize receive buffer
         m_recvbuf.resize(n_recv_ptls*m_packed_size);
 
             {
@@ -734,7 +734,7 @@ void Communicator::migrateParticles()
                 Scalar4& postype = p.pos;
                 int3& image = p.image;
 
-                shifted_box.wrap(postype, image); 
+                shifted_box.wrap(postype, image);
                 }
             }
 
@@ -827,14 +827,14 @@ void Communicator::migrateParticles()
                                      n_remove_bonds,
                                      m_bond_recv_buf,
                                      m_bond_remove_mask);
-                                     
+
             } // end bond communication
 
         } // end dir loop
 
     // notify ParticleData that addition / removal of particles is complete
     m_pdata->notifyParticleSort();
- 
+
     if (m_prof)
         m_prof->pop();
     }
@@ -863,7 +863,7 @@ void Communicator::exchangeGhosts()
         for (unsigned int i = 0; i < m_pdata->getN(); ++i)
             h_plan.data[i] = 0;
         }
-        
+
     /*
      * Mark particles that are part of incomplete bonds for sending
      */
@@ -888,7 +888,7 @@ void Communicator::exchangeGhosts()
             unsigned int tag2 = bond.y;
             unsigned int idx1 = h_rtag.data[tag1];
             unsigned int idx2 = h_rtag.data[tag2];
-       
+
             if ((idx1 >= N) && (idx2 < N))
                 {
                 Scalar4 postype = h_pos.data[idx2];
@@ -907,7 +907,7 @@ void Communicator::exchangeGhosts()
                 h_plan.data[idx1] |= (f.x > Scalar(0.5)) ? send_east : send_west;
                 h_plan.data[idx1] |= (f.y > Scalar(0.5)) ? send_north : send_south;
                 h_plan.data[idx1] |= (f.z > Scalar(0.5)) ? send_up : send_down;
-                } 
+                }
             }
         }
 
@@ -927,7 +927,7 @@ void Communicator::exchangeGhosts()
             {
             Scalar4 postype = h_pos.data[idx];
             Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-            
+
             Scalar3 f = box.makeFraction(pos);
             if (f.x >= Scalar(1.0) - ghost_fraction.x)
                 h_plan.data[idx] |= send_east;
@@ -979,7 +979,7 @@ void Communicator::exchangeGhosts()
         m_velocity_copybuf.resize(max_copy_ghosts);
         m_orientation_copybuf.resize(max_copy_ghosts);
 
-      
+
             {
             // we fill all fields, but send only those that are requested by the CommFlags bitset
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -1038,7 +1038,7 @@ void Communicator::exchangeGhosts()
             send_neighbor,
             0,
             m_mpi_comm,
-            &reqs[0]); 
+            &reqs[0]);
         MPI_Irecv(&m_num_recv_ghosts[dir],
             sizeof(unsigned int),
             MPI_BYTE,
@@ -1167,7 +1167,7 @@ void Communicator::exchangeGhosts()
                     5,
                     m_mpi_comm,
                     &reqs[nreq++]);
-                } 
+                }
 
             if (flags[comm_flag::velocity])
                 {
@@ -1185,7 +1185,7 @@ void Communicator::exchangeGhosts()
                     6,
                     m_mpi_comm,
                     &reqs[nreq++]);
-                } 
+                }
 
 
             if (flags[comm_flag::orientation])
@@ -1204,7 +1204,7 @@ void Communicator::exchangeGhosts()
                     7,
                     m_mpi_comm,
                     &reqs[nreq++]);
-                } 
+                }
 
             MPI_Waitall(nreq, reqs, status);
             }
@@ -1215,7 +1215,7 @@ void Communicator::exchangeGhosts()
         // wrap particle positions
         CommFlags flags = getFlags();
         if (flags[comm_flag::position])
-            { 
+            {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
             const BoxDim shifted_box = getShiftedBox();
@@ -1224,17 +1224,17 @@ void Communicator::exchangeGhosts()
                 {
                 Scalar4& pos = h_pos.data[idx];
 
-                // wrap particles received across a global boundary 
+                // wrap particles received across a global boundary
                 int3 img = make_int3(0,0,0);
                 shifted_box.wrap(pos,img);
                 }
             }
 
-            { 
+            {
             // set reverse-lookup tag -> idx
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
-             
+
             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                 {
                 assert(h_tag.data[idx] <= m_pdata->getNGlobal());
@@ -1327,8 +1327,8 @@ void Communicator::updateGhosts(unsigned int timestep)
                 h_orientation_copybuf.data[ghost_idx] = h_orientation.data[idx];
                 }
             }
- 
- 
+
+
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
         // we receive from the direction opposite to the one we send to
@@ -1347,7 +1347,7 @@ void Communicator::updateGhosts(unsigned int timestep)
         start_idx = m_pdata->getN() + num_tot_recv_ghosts;
 
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
-    
+
         size_t sz = 0;
         // only non-permanent fields (position, velocity, orientation) need to be considered here
         // charge and diameter are not updated during a run
@@ -1401,7 +1401,7 @@ void Communicator::updateGhosts(unsigned int timestep)
 
         if (m_prof)
             m_prof->pop(0, (m_num_recv_ghosts[dir]+m_num_copy_ghosts[dir])*sz);
-      
+
 
         // wrap particle positions (only if copying positions)
         if (flags[comm_flag::position])
@@ -1413,7 +1413,7 @@ void Communicator::updateGhosts(unsigned int timestep)
                 {
                 Scalar4& pos = h_pos.data[idx];
 
-                // wrap particles received across a global boundary 
+                // wrap particles received across a global boundary
                 int3 img = make_int3(0,0,0);
                 shifted_box.wrap(pos, img);
                 }
@@ -1427,7 +1427,7 @@ void Communicator::updateGhosts(unsigned int timestep)
 
 const BoxDim Communicator::getShiftedBox() const
     {
-    // construct the shifted global box for applying global boundary conditions 
+    // construct the shifted global box for applying global boundary conditions
     BoxDim shifted_box = m_pdata->getGlobalBox();
     Scalar3 f= make_scalar3(0.5,0.5,0.5);
 
@@ -1460,7 +1460,7 @@ const BoxDim Communicator::getShiftedBox() const
 
     // only apply global boundary conditions along the communication directions
     uchar3 periodic = make_uchar3(0,0,0);
-    
+
     periodic.x = isCommunicating(face_east) ? 1 : 0;
     periodic.y = isCommunicating(face_north) ? 1 : 0;
     periodic.z = isCommunicating(face_up) ? 1 : 0;

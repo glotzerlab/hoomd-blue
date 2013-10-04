@@ -91,7 +91,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
             nx = ny = nz = 0;
             findDecomposition(L, nx,ny,nz);
             }
-        
+
         m_nx = nx;
         m_ny = ny;
         m_nz = nz;
@@ -210,7 +210,7 @@ bool DomainDecomposition::isAtBoundary(unsigned int dir) const
 const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     {
     // initialize local box with all properties of global box
-    BoxDim box = global_box; 
+    BoxDim box = global_box;
 
     // calculate the local box dimensions by sub-dividing the cartesian lattice
     Scalar3 L = global_box.getL();

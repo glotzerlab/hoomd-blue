@@ -116,7 +116,7 @@ class DomainDecomposition
 
         uint3 m_grid_pos;            //!< Position of this domain in the grid
         Index3D m_index;             //!< Index to the 3D processor grid
-     
+
         //! Find a domain decomposition with given parameters
         bool findDecomposition(Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz);
 

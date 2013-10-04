@@ -105,7 +105,7 @@ class CommunicatorGPU : public Communicator
 
         //! Build a ghost particle list, exchange ghost particle data with neighboring processors
         virtual void exchangeGhosts();
-         
+
         //@}
 
     protected:
@@ -135,12 +135,12 @@ class CommunicatorGPU : public Communicator
                                 const unsigned int n_tot_recv_ptls_local,
                                 const unsigned int element_size,
                                 bool unique_destination);
-       
+
         //! Check that restrictions on bond lengths etc. are not violated
         void checkValid(unsigned int timestep);
 
     private:
-        
+
         GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
         GPUArray<unsigned int> m_ptl_plan;          //!< Particle sending plans
 
@@ -181,10 +181,10 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge
         GPUArray<unsigned int> m_ghost_idx_face;    //!< Indices of particles copied as ghosts via a face
 
-        GPUArray<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions 
-        GPUArray<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions 
-        GPUArray<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions 
-        GPUArray<char> m_update_recv_buf;     //!< Receive buffer for ghost positions 
+        GPUArray<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions
+        GPUArray<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions
+        GPUArray<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions
+        GPUArray<char> m_update_recv_buf;     //!< Receive buffer for ghost positions
 
         unsigned int m_max_copy_ghosts_face;        //!< Maximum number of ghosts 'face' particles
         unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
@@ -210,7 +210,7 @@ class CommunicatorGPU : public Communicator
         uint3 m_mesh_dim;                           //!< Dimensions of mesh for which we allocated buffers
         uint3 m_inner_dim;                          //!< Number of non-ghost cells along every axis
         unsigned int m_n_ghost_cells;               //!< Number of ghost cells of mesh along non-periodic axes
-        unsigned int m_n_corner_cells;              //!< Number of corner cells 
+        unsigned int m_n_corner_cells;              //!< Number of corner cells
         uint3 m_n_edge_cells;                       //!< Number of edge cells, for every four edges along every axis
         uint3 m_n_face_cells;                       //!< Number of face cells for every axis
 
