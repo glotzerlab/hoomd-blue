@@ -97,7 +97,7 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
     cufftDestroy(plan);
     }
 
-/*! 
+/*!
   \param Nx Number of grid points in x direction
   \param Ny Number of grid points in y direction
   \param Nz Number of grid points in z direction
@@ -121,19 +121,19 @@ void PPPMForceComputeGPU::setParams(int Nx, int Ny, int Nz, int order, Scalar ka
 
     GPUArray<Scalar> n_v_xy_sum(Nx*Ny*Nz, exec_conf);
     m_v_xy_sum.swap(n_v_xy_sum);
-    
+
     GPUArray<Scalar> n_v_xz_sum(Nx*Ny*Nz, exec_conf);
     m_v_xz_sum.swap(n_v_xz_sum);
-    
+
     GPUArray<Scalar> n_v_yy_sum(Nx*Ny*Nz, exec_conf);
     m_v_yy_sum.swap(n_v_yy_sum);
-    
+
     GPUArray<Scalar> n_v_yz_sum(Nx*Ny*Nz, exec_conf);
     m_v_yz_sum.swap(n_v_yz_sum);
-    
+
     GPUArray<Scalar> n_v_zz_sum(Nx*Ny*Nz, exec_conf);
     m_v_zz_sum.swap(n_v_zz_sum);
-  
+
     GPUArray<Scalar> n_o_data(Nx*Ny*Nz, exec_conf);
     o_data.swap(n_o_data);
 
@@ -156,7 +156,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         m_exec_conf->msg->error() << "charge.pppm: setParams must be called prior to computeForces()" << endl;
         throw std::runtime_error("Error computing forces in PPPMForceComputeGPU");
         }
-    
+
     unsigned int group_size = m_group->getNumMembers();
     // just drop out if the group is an empty group
     if (group_size == 0)
@@ -164,7 +164,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "PPPM");
-    
+
     assert(m_pdata);
 
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -194,7 +194,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         // access the group
         ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-        if(m_box_changed || m_first_run) 
+        if(m_box_changed || m_first_run)
             {
             Scalar3 L = box.getL();
             Scalar temp = floor(((m_kappa*L.x/(M_PI*m_Nx)) *  pow(-log(EPS_HOC),0.25)));
@@ -247,7 +247,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                                 d_Ez.data,
                                 d_kvec.data,
                                 d_green_hat.data,
-                                d_field.data,            
+                                d_field.data,
                                 d_index_array.data,
                                 group_size,
                                 m_block_size);
@@ -256,7 +256,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
             CHECK_CUDA_ERROR();
 
         // If there are exclusions, correct for the long-range part of the potential
-        if( m_nlist->getExclusionsSet()) 
+        if( m_nlist->getExclusionsSet())
             {
             ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::device, access_mode::read);
@@ -282,8 +282,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
         } // end ArrayHandle scope
 
     PDataFlags flags = m_pdata->getFlags();
-        
-    if(flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]) 
+
+    if(flags[pdata_flag::potential_energy] || flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
         {
         ArrayHandle<Scalar> d_vg(m_vg, access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar> d_energy_sum(m_energy_sum, access_location::device, access_mode::readwrite);
@@ -343,7 +343,7 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
 void export_PPPMForceComputeGPU()
     {
     class_<PPPMForceComputeGPU, boost::shared_ptr<PPPMForceComputeGPU>, bases<PPPMForceCompute>, boost::noncopyable >
-        ("PPPMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, 
+        ("PPPMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>,
          boost::shared_ptr<NeighborList>,
          boost::shared_ptr<ParticleGroup> >())
         .def("setBlockSize", &PPPMForceComputeGPU::setBlockSize)

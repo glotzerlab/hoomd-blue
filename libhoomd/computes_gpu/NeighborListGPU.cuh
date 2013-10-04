@@ -104,6 +104,5 @@ cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
                                 unsigned int *d_ex_list_idx,
                                 const Index2D& ex_list_indexer,
                                 const unsigned int N);
- 
-#endif
 
+#endif

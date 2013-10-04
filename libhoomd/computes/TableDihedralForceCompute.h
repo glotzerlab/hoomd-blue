@@ -132,4 +132,3 @@ class TableDihedralForceCompute : public ForceCompute
 void export_TableDihedralForceCompute();
 
 #endif
-

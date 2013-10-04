@@ -135,4 +135,3 @@ class BondTablePotential : public ForceCompute
 void export_BondTablePotential();
 
 #endif
-

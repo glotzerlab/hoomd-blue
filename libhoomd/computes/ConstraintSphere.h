@@ -91,10 +91,10 @@ class ConstraintSphere : public ForceConstraint
         boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
         Scalar3 m_P;         //!< Position of the sphere
         Scalar m_r;          //!< Radius of the sphere
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
-    
+
     private:
         //! Validate that the sphere is in the box and all particles are very near the constraint
         void validate();
@@ -104,4 +104,3 @@ class ConstraintSphere : public ForceConstraint
 void export_ConstraintSphere();
 
 #endif
-

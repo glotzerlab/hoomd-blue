@@ -84,7 +84,7 @@ const Scalar cpu_sinc_coeff[] = {Scalar(1.0), Scalar(-1.0/6.0), Scalar(1.0/120.0
     \param group Particle group
     \post Memory is allocated, and forces are zeroed.
 */
-PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, 
+PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<NeighborList> nlist,
                                    boost::shared_ptr<ParticleGroup> group)
     : ForceCompute(sysdef), m_params_set(false), m_nlist(nlist), m_group(group),
@@ -258,7 +258,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         m_exec_conf->msg->error() << "charge.pppm: setParams must be called prior to computeForces()" << endl;
         throw std::runtime_error("Error computing forces in PPPMForceCompute");
         }
-   
+
     // start by updating the neighborlist
     m_nlist->compute(timestep);
 
@@ -269,7 +269,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     dim[1] = m_Ny;
     dim[2] = m_Nz;
 
-    if(first_run == 0) 
+    if(first_run == 0)
         {
         first_run = 1;
         fft_in = (kiss_fft_cpx *)malloc(m_Nx*m_Ny*m_Nz*sizeof(kiss_fft_cpx));
@@ -294,7 +294,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     PPPMForceCompute::assign_charges_to_grid();
 
 //FFTs go next
-    
+
         { // scoping array handles
         ArrayHandle<CUFFTCOMPLEX> h_rho_real_space(m_rho_real_space, access_location::host, access_mode::readwrite);
         for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
@@ -307,7 +307,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         for(int i = 0; i < m_Nx * m_Ny * m_Nz ; i++) {
             h_rho_real_space.data[i].x = fft_in[i].r;
             h_rho_real_space.data[i].y = fft_in[i].i;
-    
+
             }
         }
 
@@ -353,7 +353,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     PPPMForceCompute::calculate_forces();
 
     // If there are exclusions, correct for the long-range part of the potential
-    if( m_nlist->getExclusionsSet()) 
+    if( m_nlist->getExclusionsSet())
         {
         PPPMForceCompute::fix_exclusions_cpu();
         }
@@ -372,7 +372,7 @@ Scalar PPPMForceCompute::rms(Scalar h, Scalar prd, Scalar natoms)
     {
     int m;
     Scalar sum = 0.0;
-    Scalar acons[8][7]; 
+    Scalar acons[8][7];
 
     acons[1][0] = 2.0 / 3.0;
     acons[2][0] = 1.0 / 50.0;
@@ -403,7 +403,7 @@ Scalar PPPMForceCompute::rms(Scalar h, Scalar prd, Scalar natoms)
     acons[7][5] = 1755948832039.0 / 36229939200000.0;
     acons[7][6] = 4887769399.0 / 37838389248.0;
 
-    for (m = 0; m < m_order; m++) 
+    for (m = 0; m < m_order; m++)
         sum += acons[m_order][m] * pow(h*m_kappa,Scalar(2.0)*(Scalar)m);
     Scalar value = m_q2 * pow(h*m_kappa,(Scalar)m_order) *
         sqrt(m_kappa*prd*sqrt(2.0*M_PI)*sum/natoms) / (prd*prd);
@@ -415,11 +415,11 @@ void PPPMForceCompute::compute_rho_coeff()
     {
     int j, k, l, m;
     Scalar s;
-    Scalar a[136]; 
+    Scalar a[136];
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::readwrite);
 
     //    usage: a[x][y] = a[y + x*(2*m_order+1)]
-    
+
     for(l=0; l<m_order; l++)
         {
         for(m=0; m<(2*m_order+1); m++)
@@ -428,7 +428,7 @@ void PPPMForceCompute::compute_rho_coeff()
             }
         }
 
-    for (k = -m_order; k <= m_order; k++) 
+    for (k = -m_order; k <= m_order; k++)
         for (l = 0; l < m_order; l++) {
             a[(k+m_order) + l * (2*m_order+1)] = Scalar(0.0);
             }
@@ -460,7 +460,7 @@ void PPPMForceCompute::compute_gf_denom()
       ArrayHandle<Scalar> h_gf_b(m_gf_b, access_location::host, access_mode::readwrite);
     for (l = 1; l < m_order; l++) h_gf_b.data[l] = 0.0;
     h_gf_b.data[0] = 1.0;
-  
+
     for (m = 1; m < m_order; m++) {
         for (l = m; l > 0; l--) {
             h_gf_b.data[l] = 4.0 * (h_gf_b.data[l]*(l-m)*(l-m-0.5)-h_gf_b.data[l-1]*(l-m-1)*(l-m-1));
@@ -541,7 +541,7 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                 }
             }
         }
- 
+
     // Set up constants for virial calculation
     ArrayHandle<Scalar> h_vg(m_vg, access_location::host, access_mode::readwrite);;
     for(int x = 0; x < m_Nx; x++)
@@ -554,9 +554,9 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                 Scalar sqk =  kvec.x*kvec.x;
                 sqk += kvec.y*kvec.y;
                 sqk += kvec.z*kvec.z;
-    
-                int grid_point = z + m_Nz * (y + m_Ny * x);    
-                if (sqk == 0.0) 
+
+                int grid_point = z + m_Nz * (y + m_Ny * x);
+                if (sqk == 0.0)
                     {
                     h_vg.data[0 + 6*grid_point] = Scalar(0.0);
                     h_vg.data[1 + 6*grid_point] = Scalar(0.0);
@@ -575,8 +575,8 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                     h_vg.data[4 + 6*grid_point] =        vterm*kvec.y*kvec.z;
                     h_vg.data[5 + 6*grid_point] =  1.0 + vterm*kvec.z*kvec.z;
                     }
-                } 
-            } 
+                }
+            }
         }
 
 
@@ -590,23 +590,23 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
     Scalar3 kH = Scalar(2.0*M_PI)*make_scalar3(Scalar(1.0)/(Scalar)m_Nx,
                                                Scalar(1.0)/(Scalar)m_Ny,
                                                Scalar(1.0)/(Scalar)m_Nz);
-    Scalar xprd = L.x; 
-    Scalar yprd = L.y; 
-    Scalar zprd_slab = L.z; 
-    
+    Scalar xprd = L.x;
+    Scalar yprd = L.y;
+    Scalar zprd_slab = L.z;
+
     Scalar form = 1.0;
 
     PPPMForceCompute::compute_gf_denom();
 
-    Scalar temp = floor(((m_kappa*xprd/(M_PI*m_Nx)) * 
+    Scalar temp = floor(((m_kappa*xprd/(M_PI*m_Nx)) *
                          pow(-log(EPS_HOC),0.25)));
     int nbx = (int)temp;
 
-    temp = floor(((m_kappa*yprd/(M_PI*m_Ny)) * 
+    temp = floor(((m_kappa*yprd/(M_PI*m_Ny)) *
                   pow(-log(EPS_HOC),0.25)));
     int nby = (int)temp;
 
-    temp =  floor(((m_kappa*zprd_slab/(M_PI*m_Nz)) * 
+    temp =  floor(((m_kappa*zprd_slab/(M_PI*m_Nz)) *
                    pow(-log(EPS_HOC),0.25)));
     int nbz = (int)temp;
 
@@ -627,13 +627,13 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                 kper = k - m_Nx*(2*k/m_Nx);
                 snx = sin(0.5*kH.x*kper);
                 snx2 = snx*snx;
-     
+
                 kvec = kper*b1 + lper*b2 + mper*b3;
                 sqk = dot(kvec, kvec);
 
                 if (sqk != 0.0) {
                     numerator = form*12.5663706/sqk;
-                    denominator = gf_denom(snx2,sny2,snz2);  
+                    denominator = gf_denom(snx2,sny2,snz2);
 
                     sum1 = 0.0;
                     for (ix = -nbx; ix <= nbx; ix++) {
@@ -653,10 +653,10 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                                 wz = pow(sinc(argz),m_order);
 
                                 kn = kn1 + kn2 + kn3;
-                                
+
                                 dot1 = dot(kn,kvec);
                                 dot2 = dot(kn,kn);
-                                
+
                                 arg_gauss = Scalar(0.25)*dot2/m_kappa/m_kappa;
                                 gauss = exp(-arg_gauss);
 
@@ -669,7 +669,7 @@ void PPPMForceCompute::reset_kvec_green_hat_cpu()
                 }
             }
         }
-    }    
+    }
 
 void PPPMForceCompute::assign_charges_to_grid()
     {
@@ -701,17 +701,17 @@ void PPPMForceCompute::assign_charges_to_grid()
         pos_frac.z *= (Scalar)m_Nz;
 
         Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
-        int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
-    
+        int nlower, nupper, mx, my, mz, nxi, nyi, nzi;
+
         nlower = -(m_order-1)/2;
         nupper = m_order/2;
-    
-        if (m_order % 2) 
+
+        if (m_order % 2)
             {
             shift =0.5;
             shiftone = 0.0;
             }
-        else 
+        else
             {
             shift = 0.0;
             shiftone = 0.5;
@@ -720,7 +720,7 @@ void PPPMForceCompute::assign_charges_to_grid()
         nxi = (int)(pos_frac.x + shift);
         nyi = (int)(pos_frac.y + shift);
         nzi = (int)(pos_frac.z + shift);
- 
+
         dx = shiftone+(Scalar)nxi-pos_frac.x;
         dy = shiftone+(Scalar)nyi-pos_frac.y;
         dz = shiftone+(Scalar)nzi-pos_frac.z;
@@ -761,7 +761,7 @@ void PPPMForceCompute::assign_charges_to_grid()
                 }
             }
         }
-    
+
     }
 
 void PPPMForceCompute::combined_green_e()
@@ -785,10 +785,10 @@ void PPPMForceCompute::combined_green_e()
 
         h_Ex.data[i].x = h_kvec.data[i].x * rho_local.y;
         h_Ex.data[i].y = -h_kvec.data[i].x * rho_local.x;
-    
+
         h_Ey.data[i].x = h_kvec.data[i].y * rho_local.y;
         h_Ey.data[i].y = -h_kvec.data[i].y * rho_local.x;
-    
+
         h_Ez.data[i].x = h_kvec.data[i].z * rho_local.y;
         h_Ez.data[i].y = -h_kvec.data[i].z * rho_local.x;
         }
@@ -797,7 +797,7 @@ void PPPMForceCompute::combined_green_e()
 void PPPMForceCompute::calculate_forces()
     {
     const BoxDim& box = m_pdata->getBox();
-    
+
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
@@ -832,17 +832,17 @@ void PPPMForceCompute::calculate_forces()
         pos_frac.z *= (Scalar)m_Nz;
 
         Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
-        int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
-    
+        int nlower, nupper, mx, my, mz, nxi, nyi, nzi;
+
         nlower = -(m_order-1)/2;
         nupper = m_order/2;
-    
-        if (m_order % 2) 
+
+        if (m_order % 2)
             {
             shift =0.5;
             shiftone = 0.0;
             }
-        else 
+        else
             {
             shift = 0.0;
             shiftone = 0.5;
@@ -851,7 +851,7 @@ void PPPMForceCompute::calculate_forces()
         nxi = (int)(pos_frac.x + shift);
         nyi = (int)(pos_frac.y + shift);
         nzi = (int)(pos_frac.z + shift);
- 
+
         dx = shiftone+(Scalar)nxi-pos_frac.x;
         dy = shiftone+(Scalar)nyi-pos_frac.y;
         dz = shiftone+(Scalar)nzi-pos_frac.z;
@@ -896,7 +896,7 @@ void PPPMForceCompute::calculate_forces()
                 }
             }
         }
-    
+
     }
 
 void PPPMForceCompute::fix_exclusions_cpu()
@@ -949,16 +949,16 @@ void PPPMForceCompute::fix_exclusions_cpu()
             posj.z = h_pos.data[cur_j].z;
             Scalar qj = h_charge.data[cur_j];
             Scalar3 dx = posi - posj;
-            
-            // apply periodic boundary conditions: 
+
+            // apply periodic boundary conditions:
             dx = box.minImage(dx);
-            
+
             Scalar rsq = dot(dx, dx);
             Scalar r = sqrtf(rsq);
             Scalar qiqj = qi * qj;
             Scalar erffac = erf(m_kappa * r) / r;
             Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
-            Scalar pair_eng = qiqj * erffac; 
+            Scalar pair_eng = qiqj * erffac;
             virial[0]+= Scalar(0.5) * dx.x * dx.x * force_divr;
             virial[1]+= Scalar(0.5) * dx.y * dx.x * force_divr;
             virial[2]+= Scalar(0.5) * dx.z * dx.x * force_divr;
@@ -978,7 +978,7 @@ void PPPMForceCompute::fix_exclusions_cpu()
         for (unsigned int k = 0; k < 6; k++)
             h_virial.data[k*virial_pitch+idx] = -virial[k];
         }
-    
+
     }
 
 /*! Computes the additional energy and virial contributed by PPPM
@@ -1025,7 +1025,7 @@ void PPPMForceCompute::fix_thermo_quantities()
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
     h_force.data[0].w += pppm_virial_energy.y;
-    
+
 
     // Compute full virial tensor
     unsigned int virial_pitch = m_virial.getPitch();
@@ -1040,7 +1040,7 @@ void PPPMForceCompute::fix_thermo_quantities()
 void export_PPPMForceCompute()
     {
     class_<PPPMForceCompute, boost::shared_ptr<PPPMForceCompute>, bases<ForceCompute>, boost::noncopyable >
-        ("PPPMForceCompute", init< boost::shared_ptr<SystemDefinition>, 
+        ("PPPMForceCompute", init< boost::shared_ptr<SystemDefinition>,
          boost::shared_ptr<NeighborList>,
          boost::shared_ptr<ParticleGroup> >())
         .def("setParams", &PPPMForceCompute::setParams)

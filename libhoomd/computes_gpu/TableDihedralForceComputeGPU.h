@@ -95,4 +95,3 @@ class TableDihedralForceComputeGPU : public TableDihedralForceCompute
 void export_TableDihedralForceComputeGPU();
 
 #endif
-

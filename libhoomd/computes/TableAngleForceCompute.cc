@@ -76,7 +76,7 @@ TableAngleForceCompute::TableAngleForceCompute(boost::shared_ptr<SystemDefinitio
         : ForceCompute(sysdef), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing TableAngleForceCompute" << endl;
-    
+
     assert(m_pdata);
 
     // access the angle data for later use
@@ -97,11 +97,11 @@ TableAngleForceCompute::TableAngleForceCompute(boost::shared_ptr<SystemDefinitio
         }
 
 
-  
-    
+
+
     // allocate storage for the tables and parameters
     GPUArray<Scalar2> tables(m_table_width, m_angle_data->getNAngleTypes(), exec_conf);
-    m_tables.swap(tables);  
+    m_tables.swap(tables);
     assert(!m_tables.isNull());
 
     // helper to compute indices
@@ -110,7 +110,7 @@ TableAngleForceCompute::TableAngleForceCompute(boost::shared_ptr<SystemDefinitio
 
     m_log_name = std::string("angle_table_energy") + log_suffix;
     }
-    
+
 TableAngleForceCompute::~TableAngleForceCompute()
         {
         m_exec_conf->msg->notice(5) << "Destroying TableAngleForceCompute" << endl;
@@ -188,7 +188,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
 
 
     // access the particle data
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);    
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -198,7 +198,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
     assert(h_virial.data);
     assert(h_pos.data);
     assert(h_rtag.data);
-    
+
     unsigned int virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
@@ -220,7 +220,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         assert(angle.a < m_pdata->getN());
         assert(angle.b < m_pdata->getN());
         assert(angle.c < m_pdata->getN());
-        
+
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints
         unsigned int idx_a = h_rtag.data[angle.a];
@@ -235,17 +235,17 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
         dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
         dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
-        
+
         Scalar3 dcb;
         dcb.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
         dcb.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
         dcb.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
-        
+
         Scalar3 dac;
         dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x; // used for the 1-3 JL interaction
         dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
         dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
-        
+
 
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
@@ -259,19 +259,19 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         Scalar rab = sqrt(rsqab);
         Scalar rsqcb = dcb.x*dcb.x+dcb.y*dcb.y+dcb.z*dcb.z;
         Scalar rcb = sqrt(rsqcb);
-        
+
         // cosine of theta
         Scalar c_abbc = dab.x*dcb.x+dab.y*dcb.y+dab.z*dcb.z;
         c_abbc /= rab*rcb;
-        
+
         if (c_abbc > 1.0) c_abbc = 1.0;
         if (c_abbc < -1.0) c_abbc = -1.0;
-        
+
         //1/sine of theta
         Scalar s_abbc = sqrt(1.0 - c_abbc*c_abbc);
         if (s_abbc < SMALL) s_abbc = SMALL;
         s_abbc = 1.0/s_abbc;
-        
+
         //theta
         Scalar theta = acos(c_abbc);
 
@@ -296,25 +296,25 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         // interpolate to get V and T;
         Scalar V = V0 + f * (V1 - V0);
         Scalar T = T0 + f * (T1 - T0);
-        
+
         Scalar a =  T*s_abbc;
         Scalar a11 = a*c_abbc/rsqab;
         Scalar a12 = -a / (rab*rcb);
         Scalar a22 = a*c_abbc / rsqcb;
-        
+
 
         Scalar fab[3], fcb[3];
-        
+
         fab[0] = a11*dab.x + a12*dcb.x;
         fab[1] = a11*dab.y + a12*dcb.y;
         fab[2] = a11*dab.z + a12*dcb.z;
-        
+
         fcb[0] = a22*dcb.x + a12*dab.x;
         fcb[1] = a22*dcb.y + a12*dab.y;
         fcb[2] = a22*dcb.z + a12*dab.z;
-        
+
         Scalar angle_eng = V*Scalar(1.0/3.0);
-        
+
         // compute 1/3 of the virial, 1/3 for each atom in the angle
         // symmetrized version of virial tensor
         Scalar angle_virial[6];
@@ -327,7 +327,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         angle_virial[4] = Scalar(1./6.) * ( dab.y*fab[2] + dcb.y*fcb[2]
                                           + dab.z*fab[1] + dcb.z*fcb[1] );
         angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
-        
+
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
         h_force.data[idx_a].x += fab[0];
         h_force.data[idx_a].y += fab[1];
@@ -335,14 +335,14 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         h_force.data[idx_a].w += angle_eng;
         for (int j = 0; j < 6; j++)
             h_virial.data[j*virial_pitch+idx_a]  += angle_virial[j];
-        
+
         h_force.data[idx_b].x -= fab[0] + fcb[0];
         h_force.data[idx_b].y -= fab[1] + fcb[1];
         h_force.data[idx_b].z -= fab[2] + fcb[2];
         h_force.data[idx_b].w += angle_eng;
         for (int j = 0; j < 6; j++)
             h_virial.data[j*virial_pitch+idx_b]  += angle_virial[j];
-        
+
         h_force.data[idx_c].x += fcb[0];
         h_force.data[idx_c].y += fcb[1];
         h_force.data[idx_c].z += fcb[2];
@@ -351,7 +351,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
             h_virial.data[j*virial_pitch+idx_c]  += angle_virial[j];
 
         }
-        
+
     if (m_prof) m_prof->pop();
     }
 

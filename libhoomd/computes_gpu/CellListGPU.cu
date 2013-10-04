@@ -77,7 +77,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
     \param ghost_width Width of ghost layer
-    
+
     \note Optimized for Fermi
 */
 __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
@@ -99,7 +99,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              const BoxDim box,
                                              const Index3D ci,
                                              const Index2D cli,
-                                             const Scalar3 ghost_width) 
+                                             const Scalar3 ghost_width)
     {
     // read in the particle that belongs to this thread
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -216,13 +216,13 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
     {
     unsigned int block_size = 256;
     int n_blocks = (int)ceil(double(N+n_ghost)/double(block_size));
-    
+
     cudaError_t err;
     err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());
-    
+
     if (err != cudaSuccess)
         return err;
-    
+
     gpu_compute_cell_list_kernel<<<n_blocks, block_size>>>(d_cell_size,
                                                            d_xyzf,
                                                            d_tdb,
@@ -243,7 +243,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                                            ci,
                                                            cli,
                                                            ghost_width);
-    
+
     return cudaSuccess;
     }
 
@@ -266,7 +266,7 @@ template<class T> __device__ inline void swap(T & a, T & b)
 template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T *shared)
     {
     unsigned int tid = threadIdx.x;
-    
+
     // Parallel bitonic sort.
     for (int k = 2; k <= block_size; k *= 2)
         {
@@ -274,7 +274,7 @@ template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T
         for (int j = k / 2; j>0; j /= 2)
             {
             int ixj = tid ^ j;
-            
+
             if (ixj > tid)
                 {
                 if ((tid & k) == 0)
@@ -292,7 +292,7 @@ template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T
                         }
                     }
                 }
-                
+
             __syncthreads();
             }
         }
@@ -351,22 +351,22 @@ __device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
 template<class T, unsigned int block_size> __device__ inline void scan_naive(T *temp)
     {
     int thid = threadIdx.x;
-    
+
     int pout = 0;
     int pin = 1;
-    
+
     for (int offset = 1; offset < block_size; offset *= 2)
         {
         pout = 1 - pout;
         pin  = 1 - pout;
         __syncthreads();
-        
+
         temp[pout*block_size+thid] = temp[pin*block_size+thid];
-        
+
         if (thid >= offset)
             temp[pout*block_size+thid] += temp[pin*block_size+thid - offset];
         }
-        
+
     __syncthreads();
     // bring the data back to the initial array
     if (pout == 1)
@@ -399,7 +399,7 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
     \param ci Indexer to compute cell id from cell grid coords
     \param cli Indexer to index into \a d_xyzf and \a d_tdb
     \param ghost_width width of ghost layer
-    
+
     \note Optimized for compute 1.x hardware
 */
 template<unsigned int block_size>
@@ -438,11 +438,11 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
 
     // find the bin each particle belongs in
     Scalar3 f = box.makeFraction(pos,ghost_width);
-    
+
     unsigned int ib = (unsigned int)(f.x * ci.getW());
     unsigned int jb = (unsigned int)(f.y * ci.getH());
     unsigned int kb = (unsigned int)(f.z * ci.getD());
-    
+
     uchar3 periodic = box.getPeriodic();
 
     // need to handle the case where the particle is exactly at the box hi
@@ -452,7 +452,7 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
         jb = 0;
     if (kb == ci.getD() && periodic.z)
         kb = 0;
-        
+
     unsigned int bin = ci(ib, jb, kb);
 
     // check if the particle is inside the unit cell + ghost layer
@@ -490,52 +490,52 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
     __shared__ bin_id_pair bin_pairs[block_size];
     bin_pairs[threadIdx.x] = make_bin_id_pair(bin, idx);
     __syncthreads();
-    
+
     // sort it
     bitonic_sort<bin_id_pair, block_size>(bin_pairs);
-    
+
     // identify the breaking points
     __shared__ unsigned int unique[block_size*2+1];
-    
+
     bool is_unique = false;
     if (threadIdx.x > 0 && bin_pairs[threadIdx.x].bin != bin_pairs[threadIdx.x-1].bin)
         is_unique = true;
-        
+
     unique[threadIdx.x] = 0;
     if (is_unique)
         unique[threadIdx.x] = 1;
-        
+
     // threadIdx.x = 0 is unique: but we don't want to count it in the scan
     if (threadIdx.x == 0)
         is_unique = true;
-        
+
     __syncthreads();
-    
+
     // scan to find addresses to write to
     scan_naive<unsigned int, block_size>(unique);
-    
+
     // determine start location of each unique value in the array
     // save shared memory by reusing the temp data in the unique[] array
     unsigned int *start = &unique[block_size];
-    
+
     if (is_unique)
         start[unique[threadIdx.x]] = threadIdx.x;
-        
+
     // boundary condition: need one past the end
     if (threadIdx.x == 0)
         start[unique[block_size-1]+1] = block_size;
-        
+
     __syncthreads();
-    
+
     bool is_valid = (bin_pairs[threadIdx.x].bin < ci.getNumElements());
-    
+
     // now: each unique start point does it's own atomicAdd to find the starting offset
     // the is_valid check is to prevent writing to out of bounds memory at the tail end of the array
     if (is_unique && is_valid)
         bin_pairs[unique[threadIdx.x]].start_offset = atomicAdd(&d_cell_size[bin_pairs[threadIdx.x].bin], start[unique[threadIdx.x]+1] - start[unique[threadIdx.x]]);
-        
+
     __syncthreads();
-    
+
     // finally! we can write out all the particles
     // the is_valid check is to prevent writing to out of bounds memory at the tail end of the array
     unsigned int offset = bin_pairs[unique[threadIdx.x]].start_offset;
@@ -546,7 +546,7 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
             {
             unsigned int write_id = bin_pairs[threadIdx.x].id;
             unsigned int write_location = cli(size, bin_pairs[threadIdx.x].bin);
-            
+
             Scalar4 write_pos = d_pos[write_id];
             Scalar flag = 0;
             Scalar diameter = 0;
@@ -562,14 +562,14 @@ __global__ void gpu_compute_cell_list_1x_kernel(unsigned int *d_cell_size,
                 {
                 orientation = d_orientation[write_id];
                 }
-            
+
             if (flag_charge)
                 flag = d_charge[write_id];
             else if (flag_type)
                 flag = type;
             else
                 flag = __int_as_scalar(write_id);
-            
+
             d_xyzf[write_location] = make_scalar4(write_pos.x, write_pos.y, write_pos.z, flag);
             if (d_tdb != NULL)
                 d_tdb[write_location] = make_scalar4(type, diameter, body, 0);
@@ -609,13 +609,13 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
     {
     const unsigned int block_size = 64;
     int n_blocks = (int)ceil(double(N+n_ghost)/(double)block_size);
-    
+
     cudaError_t err;
     err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());
-    
+
     if (err != cudaSuccess)
         return err;
-    
+
     gpu_compute_cell_list_1x_kernel<block_size>
                                    <<<n_blocks, block_size>>>(d_cell_size,
                                                               d_xyzf,
@@ -637,7 +637,6 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                                               ci,
                                                               cli,
                                                               ghost_width);
-    
+
     return cudaSuccess;
     }
-

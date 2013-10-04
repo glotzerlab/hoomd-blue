@@ -108,26 +108,26 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
 
     cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(Scalar));
     cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(Scalar));
-    
+
     //Allocate mem on GPU for tables for EAM in cudaArray
     cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc< Scalar >();
 
     cudaMallocArray(&eam_tex_data.electronDensity, &eam_desc, m_ntypes * nr, 1);
     cudaMemcpyToArray(eam_tex_data.electronDensity, 0, 0, &electronDensity[0], m_ntypes * nr * sizeof(Scalar), cudaMemcpyHostToDevice);
-    
+
     cudaMallocArray(&eam_tex_data.embeddingFunction, &eam_desc, m_ntypes * nrho, 1);
     cudaMemcpyToArray(eam_tex_data.embeddingFunction, 0, 0, &embeddingFunction[0], m_ntypes * nrho * sizeof(Scalar), cudaMemcpyHostToDevice);
 
     cudaMallocArray(&eam_tex_data.derivativeElectronDensity, &eam_desc, m_ntypes * nr, 1);
     cudaMemcpyToArray(eam_tex_data.derivativeElectronDensity, 0, 0, &derivativeElectronDensity[0], m_ntypes * nr * sizeof(Scalar), cudaMemcpyHostToDevice);
-    
+
     cudaMallocArray(&eam_tex_data.derivativeEmbeddingFunction, &eam_desc, m_ntypes * nrho, 1);
     cudaMemcpyToArray(eam_tex_data.derivativeEmbeddingFunction, 0, 0, &derivativeEmbeddingFunction[0], m_ntypes * nrho * sizeof(Scalar), cudaMemcpyHostToDevice);
 
     eam_desc = cudaCreateChannelDesc< Scalar2 >();
     cudaMallocArray(&eam_tex_data.pairPotential, &eam_desc,  ((m_ntypes * m_ntypes / 2) + 1) * nr, 1);
     cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0], ((m_ntypes * m_ntypes / 2) + 1) * nr *sizeof(Scalar2), cudaMemcpyHostToDevice);
-    
+
     CHECK_CUDA_ERROR();
     }
 
@@ -178,7 +178,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
-  
+
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
@@ -196,7 +196,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
                                      eam_tex_data,
                                      eam_arrays,
                                      eam_data);
-    
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
@@ -214,4 +214,3 @@ void export_EAMForceComputeGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

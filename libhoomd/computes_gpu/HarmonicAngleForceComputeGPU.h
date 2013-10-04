@@ -91,7 +91,7 @@ class HarmonicAngleForceComputeGPU : public HarmonicAngleForceCompute
         HarmonicAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         ~HarmonicAngleForceComputeGPU();
-        
+
         //! Sets the block size to run on the device
         /*! \param block_size Block size to set
         */
@@ -99,14 +99,14 @@ class HarmonicAngleForceComputeGPU : public HarmonicAngleForceCompute
             {
             m_block_size = block_size;
             }
-            
+
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0);
-        
+
     protected:
         int m_block_size;            //!< Block size to run calculation on
         GPUArray<Scalar2>  m_params;  //!< Parameters stored on the GPU
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -119,4 +119,3 @@ void export_HarmonicAngleForceComputeGPU();
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

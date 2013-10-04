@@ -74,7 +74,7 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
     // create a default cell list if one was not specified
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
-    
+
     m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     m_cl->setRadius(1);
     m_cl->setComputeTDB(false);
@@ -90,14 +90,14 @@ NeighborListBinned::~NeighborListBinned()
 void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborList::setRCut(r_cut, r_buff);
-    
+
     m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     }
 
 void NeighborListBinned::setMaximumDiameter(Scalar d_max)
     {
     NeighborList::setMaximumDiameter(d_max);
-    
+
     // need to update the cell list settings appropriately
     m_cl->setNominalWidth(m_r_cut + m_r_buff + m_d_max - Scalar(1.0));
     }
@@ -105,7 +105,7 @@ void NeighborListBinned::setMaximumDiameter(Scalar d_max)
 void NeighborListBinned::buildNlist(unsigned int timestep)
     {
     m_cl->compute(timestep);
-    
+
     // check that at least 3x3x3 cells are computed
     uint3 dim = m_cl->getDim();
     if (dim.x < 3 || dim.y < 3 || (m_sysdef->getNDimensions() != 2 && dim.z < 3))
@@ -133,7 +133,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
-    
+
     // access the cell list data arrays
     ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_cell_xyzf(m_cl->getXYZFArray(), access_location::host, access_mode::read);
@@ -158,11 +158,11 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     for (int i = 0; i < (int)nparticles; i++)
         {
         unsigned int cur_n_neigh = 0;
-        
+
         Scalar3 my_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int bodyi = h_body.data[i];
         Scalar di = h_diameter.data[i];
-        
+
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos,ghost_width);
         int ib = (unsigned int)(f.x * dim.x);
@@ -176,33 +176,33 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
             jb = 0;
         if (kb == (int)dim.z && periodic.z)
             kb = 0;
-            
+
         // identify the bin
         unsigned int my_cell = ci(ib,jb,kb);
-        
+
         // loop through all neighboring bins
         for (unsigned int cur_adj = 0; cur_adj < cadji.getW(); cur_adj++)
             {
             unsigned int neigh_cell = h_cell_adj.data[cadji(cur_adj, my_cell)];
-                
+
             // check against all the particles in that neighboring bin to see if it is a neighbor
             unsigned int size = h_cell_size.data[neigh_cell];
             for (unsigned int cur_offset = 0; cur_offset < size; cur_offset++)
                 {
                 Scalar4& cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
-               
+
                 Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
 
                 Scalar3 dx = my_pos - neigh_pos;
-                
+
                 dx = box.minImage(dx);
 
                 bool excluded = (i == (int)cur_neigh);
 
                 if (m_filter_body && bodyi != NO_BODY)
                     excluded = excluded | (bodyi == h_body.data[cur_neigh]);
-                
+
                 Scalar sqshift = Scalar(0.0);
                 if (m_filter_diameter)
                     {
@@ -214,7 +214,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                     }
 
                 Scalar dr_sq = dot(dx,dx);
-                
+
                 if (dr_sq <= (rmaxsq + sqshift) && !excluded)
                     {
                     if (m_storage_mode == full || i < (int)cur_neigh)
@@ -227,13 +227,13 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
                         cur_n_neigh++;
                         }
-                    } 
+                    }
                 }
             }
-        
+
         h_n_neigh.data[i] = cur_n_neigh;
         }
-   
+
     // write out conditions
     m_conditions.resetFlags(conditions);
 
@@ -247,4 +247,3 @@ void export_NeighborListBinned()
                      ("NeighborListBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
                      ;
     }
-

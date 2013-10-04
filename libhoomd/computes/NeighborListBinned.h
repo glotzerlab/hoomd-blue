@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Efficient neighbor list build on the CPU
 /*! Implements the O(N) neighbor list build on the CPU using a cell list.
-    
+
     \ingroup computes
 */
 class NeighborListBinned : public NeighborList
@@ -77,13 +77,13 @@ class NeighborListBinned : public NeighborList
                            Scalar r_cut,
                            Scalar r_buff,
                            boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
-        
+
         //! Destructor
         virtual ~NeighborListBinned();
-        
+
         //! Change the cuttoff radius
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
-        
+
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
 
@@ -98,4 +98,3 @@ class NeighborListBinned : public NeighborList
 void export_NeighborListBinned();
 
 #endif
-

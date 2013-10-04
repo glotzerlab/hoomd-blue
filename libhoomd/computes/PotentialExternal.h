@@ -222,4 +222,3 @@ void export_PotentialExternal(const std::string& name)
     }
 
 #endif
-

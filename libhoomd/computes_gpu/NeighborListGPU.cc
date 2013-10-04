@@ -80,7 +80,7 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
     compute(0);
     buildNlist(0);
     filterNlist();
-    
+
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
@@ -88,18 +88,18 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
         CHECK_CUDA_ERROR();
         }
 #endif
-    
+
     // benchmark
     uint64_t start_time = t.getTime();
     for (unsigned int i = 0; i < num_iters; i++)
         filterNlist();
-        
+
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
-    
+
     // convert the run time to milliseconds
     return double(total_time_ns) / 1e6 / double(num_iters);
     }
@@ -116,7 +116,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
         {
         m_exec_conf->msg->error() << "NeighborListGPU does not currently support body or diameter exclusions." << endl;
         m_exec_conf->msg->error() << "Please contact the developers and notify them that you need this functionality" << endl;
-        
+
         throw runtime_error("Error computing neighbor list");
         }
 
@@ -174,7 +174,7 @@ bool NeighborListGPU::distanceCheck()
     {
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(exec_conf, "dist-check");
-    
+
     // access data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
@@ -197,7 +197,7 @@ bool NeighborListGPU::distanceCheck()
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
     Scalar maxshiftsq = delta_max > 0  ? delta_max*delta_max : 0;
 
-    // the change of the global box size should not exceed the local box size 
+    // the change of the global box size should not exceed the local box size
     Scalar3 del_L = L_g - m_last_L;
     if ( fabs(del_L.x) >= m_last_L_local.x ||
          fabs(del_L.y) >= m_last_L_local.y ||
@@ -236,7 +236,7 @@ bool NeighborListGPU::distanceCheck()
                                      lambda,
                                      m_checkn,
                                      check_out_of_bounds);
-    
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
@@ -287,14 +287,14 @@ void NeighborListGPU::filterNlist()
     {
     if (m_prof)
         m_prof->push(exec_conf, "filter");
-    
+
     // access data
-    
+
     ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
-   
+
     gpu_nlist_filter(d_n_neigh.data,
                      d_nlist.data,
                      m_nlist_indexer,
@@ -303,7 +303,7 @@ void NeighborListGPU::filterNlist()
                      m_ex_list_indexer,
                      m_pdata->getN(),
                      m_block_size_filter);
-  
+
     if (m_prof)
         m_prof->pop(exec_conf);
     }
@@ -321,7 +321,7 @@ void NeighborListGPU::updateExListIdx()
     ArrayHandle<unsigned int> d_ex_list_tag(m_ex_list_tag, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::overwrite);
-  
+
     gpu_update_exclusion_list(d_tag.data,
                               d_rtag.data,
                               d_n_ex_tag.data,
@@ -344,4 +344,3 @@ void export_NeighborListGPU()
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;
     }
-

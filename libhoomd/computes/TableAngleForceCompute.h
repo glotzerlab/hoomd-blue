@@ -119,7 +119,7 @@ class TableAngleForceCompute : public ForceCompute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
     protected:
-        boost::shared_ptr<AngleData> m_angle_data;  //!< Angle data to use in computing angles        
+        boost::shared_ptr<AngleData> m_angle_data;  //!< Angle data to use in computing angles
         unsigned int m_table_width;                 //!< Width of the tables in memory
         GPUArray<Scalar2> m_tables;                  //!< Stored V and T tables
         Index2D m_table_value;                      //!< Index table helper
@@ -133,4 +133,3 @@ class TableAngleForceCompute : public ForceCompute
 void export_TableAngleForceCompute();
 
 #endif
-

@@ -86,7 +86,7 @@ void CellListGPU::computeCellList()
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-   
+
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cell_size, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_xyzf(m_xyzf, access_location::device, access_mode::overwrite);
@@ -142,10 +142,10 @@ void CellListGPU::computeCellList()
                                  m_cell_list_indexer,
                                  getGhostWidth());
         }
-    
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     if (m_prof)
         m_prof->pop(exec_conf);
     }
@@ -156,4 +156,3 @@ void export_CellListGPU()
         ("CellListGPU", init< boost::shared_ptr<SystemDefinition> >())
         ;
     }
-

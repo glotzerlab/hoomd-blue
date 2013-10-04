@@ -76,7 +76,7 @@ TableDihedralForceCompute::TableDihedralForceCompute(boost::shared_ptr<SystemDef
         : ForceCompute(sysdef), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing TableDihedralForceCompute" << endl;
-    
+
     assert(m_pdata);
 
     // access the dihedral data for later use
@@ -89,8 +89,8 @@ TableDihedralForceCompute::TableDihedralForceCompute(boost::shared_ptr<SystemDef
         }
 
 
-  
-    
+
+
     // allocate storage for the tables and parameters
     GPUArray<Scalar2> tables(m_table_width, m_dihedral_data->getNDihedralTypes(), exec_conf);
     m_tables.swap(tables);
@@ -102,7 +102,7 @@ TableDihedralForceCompute::TableDihedralForceCompute(boost::shared_ptr<SystemDef
 
     m_log_name = std::string("dihedral_table_energy") + log_suffix;
     }
-    
+
 TableDihedralForceCompute::~TableDihedralForceCompute()
         {
         m_exec_conf->msg->notice(5) << "Destroying TableDihedralForceCompute" << endl;
@@ -188,7 +188,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
-    
+
     unsigned int virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
@@ -210,7 +210,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         assert(dihedral.a < m_pdata->getN());
         assert(dihedral.b < m_pdata->getN());
         assert(dihedral.c < m_pdata->getN());
-        assert(dihedral.d < m_pdata->getN());        
+        assert(dihedral.d < m_pdata->getN());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
@@ -228,40 +228,40 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x; //vb1x
         dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y; //vb1y
         dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z; //vb1z
-        
+
         Scalar3 dcb;
         dcb.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x; //vb2x
         dcb.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y; //vb2y
         dcb.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z; //vb2z
-        
+
         Scalar3 dcbm;
         dcbm.x = -dcb.x;
         dcbm.y = -dcb.y;
         dcbm.z = -dcb.z;
-        
+
         Scalar3 ddc;
         ddc.x = h_pos.data[idx_d].x - h_pos.data[idx_c].x; //vb3x
         ddc.y = h_pos.data[idx_d].y - h_pos.data[idx_c].y; //vb3y
         ddc.z = h_pos.data[idx_d].z - h_pos.data[idx_c].z; //vb3z
-        
+
         // apply periodic boundary conditions
         dab = box.minImage(dab);
         dcb = box.minImage(dcb);
         ddc = box.minImage(ddc);
         dcbm = box.minImage(dcbm);
-        
+
         // c0 calculation
         Scalar sb1 = 1.0 / (dab.x*dab.x + dab.y*dab.y + dab.z*dab.z);
         Scalar sb2 = 1.0 / (dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z);
         Scalar sb3 = 1.0 / (ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z);
-            
+
         Scalar rb1 = sqrt(sb1);
         Scalar rb3 = sqrt(sb3);
-            
+
         Scalar c0 = (dab.x*ddc.x + dab.y*ddc.y + dab.z*ddc.z) * rb1*rb3;
 
         // 1st and 2nd angle
-            
+
         Scalar b1mag2 = dab.x*dab.x + dab.y*dab.y + dab.z*dab.z;
         Scalar b1mag = sqrt(b1mag2);
         Scalar b2mag2 = dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z;
@@ -295,14 +295,14 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar s2 = sc2 * sc2;
         Scalar s12 = sc1 * sc2;
         Scalar c = (c0 + c1mag*c2mag) * s12;
-      
+
         if (c > 1.0) c = 1.0;
         if (c < -1.0) c = -1.0;
-        
+
         //phi
         Scalar phi = acos(c);
         // precomputed term
-        Scalar delta_phi = M_PI/Scalar(m_table_width - 1);       
+        Scalar delta_phi = M_PI/Scalar(m_table_width - 1);
         Scalar value_f = (phi) / delta_phi;
 
         // compute index into the table and read in values
@@ -325,7 +325,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar T = T0 + f * (T1 - T0);
 
 
-        Scalar a = T; 
+        Scalar a = T;
         c = c * a;
         s12 = s12 * a;
         Scalar a11 = c*sb1*s1;
@@ -338,23 +338,23 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar sx2  = a12*dab.x + a22*dcb.x + a23*ddc.x;
         Scalar sy2  = a12*dab.y + a22*dcb.y + a23*ddc.y;
         Scalar sz2  = a12*dab.z + a22*dcb.z + a23*ddc.z;
-        
+
         Scalar ffax = a11*dab.x + a12*dcb.x + a13*ddc.x;
         Scalar ffay = a11*dab.y + a12*dcb.y + a13*ddc.y;
         Scalar ffaz = a11*dab.z + a12*dcb.z + a13*ddc.z;
-        
+
         Scalar ffbx = -sx2 - ffax;
         Scalar ffby = -sy2 - ffay;
         Scalar ffbz = -sz2 - ffaz;
-        
+
         Scalar ffdx = a13*dab.x + a23*dcb.x + a33*ddc.x;
         Scalar ffdy = a13*dab.y + a23*dcb.y + a33*ddc.y;
         Scalar ffdz = a13*dab.z + a23*dcb.z + a33*ddc.z;
-        
+
         Scalar ffcx = sx2 - ffdx;
         Scalar ffcy = sy2 - ffdy;
         Scalar ffcz = sz2 - ffdz;
-        
+
         // Now, apply the force to each individual atom a,b,c,d
         // and accumlate the energy/virial
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
@@ -372,32 +372,32 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         dihedral_virial[4] = (1./8.)*(dab.y*ffaz + dcb.y*ffcz + (ddc.y+dcb.y)*ffdz
                                      +dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
         dihedral_virial[5] = (1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
-       
-        h_force.data[idx_a].x += ffax; 
-        h_force.data[idx_a].y += ffay; 
-        h_force.data[idx_a].z += ffaz; 
-        h_force.data[idx_a].w += dihedral_eng; 
+
+        h_force.data[idx_a].x += ffax;
+        h_force.data[idx_a].y += ffay;
+        h_force.data[idx_a].z += ffaz;
+        h_force.data[idx_a].w += dihedral_eng;
         for (int k = 0; k < 6; k++)
            h_virial.data[virial_pitch*k+idx_a]  += dihedral_virial[k];
 
-        h_force.data[idx_b].x += ffbx; 
-        h_force.data[idx_b].y += ffby; 
-        h_force.data[idx_b].z += ffbz; 
-        h_force.data[idx_b].w += dihedral_eng; 
+        h_force.data[idx_b].x += ffbx;
+        h_force.data[idx_b].y += ffby;
+        h_force.data[idx_b].z += ffbz;
+        h_force.data[idx_b].w += dihedral_eng;
         for (int k = 0; k < 6; k++)
            h_virial.data[virial_pitch*k+idx_b]  += dihedral_virial[k];
 
-        h_force.data[idx_c].x += ffcx; 
-        h_force.data[idx_c].y += ffcy; 
-        h_force.data[idx_c].z += ffcz; 
-        h_force.data[idx_c].w += dihedral_eng; 
+        h_force.data[idx_c].x += ffcx;
+        h_force.data[idx_c].y += ffcy;
+        h_force.data[idx_c].z += ffcz;
+        h_force.data[idx_c].w += dihedral_eng;
         for (int k = 0; k < 6; k++)
            h_virial.data[virial_pitch*k+idx_c]  += dihedral_virial[k];
 
-        h_force.data[idx_d].x += ffdx; 
-        h_force.data[idx_d].y += ffdy; 
-        h_force.data[idx_d].z += ffdz; 
-        h_force.data[idx_d].w += dihedral_eng; 
+        h_force.data[idx_d].x += ffdx;
+        h_force.data[idx_d].y += ffdy;
+        h_force.data[idx_d].z += ffdz;
+        h_force.data[idx_d].w += dihedral_eng;
         for (int k = 0; k < 6; k++)
            h_virial.data[virial_pitch*k+idx_d]  += dihedral_virial[k];
        }

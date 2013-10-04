@@ -80,7 +80,7 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Sys
         m_exec_conf->msg->error() << "Creating a AngleForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing AngleForceComputeGPU");
         }
-        
+
     // allocate and zero device memory
     GPUArray<Scalar2> params(m_angle_data->getNAngleTypes(), exec_conf);
     m_params.swap(params);
@@ -100,7 +100,7 @@ HarmonicAngleForceComputeGPU::~HarmonicAngleForceComputeGPU()
 void HarmonicAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_0)
     {
     HarmonicAngleForceCompute::setParams(type, K, t_0);
-    
+
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
     h_params.data[type] = make_scalar2(K, t_0);
@@ -117,12 +117,12 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
     {
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Angle");
-    
+
     // the angle table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-      
+
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
@@ -146,7 +146,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     if (m_prof) m_prof->pop(exec_conf);
     }
 
@@ -157,4 +157,3 @@ void export_HarmonicAngleForceComputeGPU()
     .def("setBlockSize", &HarmonicAngleForceComputeGPU::setBlockSize)
     ;
     }
-

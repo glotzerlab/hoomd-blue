@@ -67,9 +67,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Neighbor list build on the GPU
 /*! Implements the O(N^2) neighbor list build on the GPU. Also implements common functions (like distance check)
     on the GPU for use by other GPU nlist classes derived from NeighborListGPU.
-    
+
     GPU kernel methods are defined in NeighborListGPU.cuh and defined in NeighborListGPU.cu.
-    
+
     \ingroup computes
 */
 class NeighborListGPU : public NeighborList
@@ -87,7 +87,7 @@ class NeighborListGPU : public NeighborList
             m_block_size_filter = 192;
             m_checkn = 1;
             }
-        
+
         //! Destructor
         virtual ~NeighborListGPU()
             {
@@ -98,7 +98,7 @@ class NeighborListGPU : public NeighborList
             {
             m_block_size_filter = block_size;
             }
-        
+
         //! Benchmark the filter kernel
         double benchmarkFilter(unsigned int num_iters);
 
@@ -113,14 +113,14 @@ class NeighborListGPU : public NeighborList
 
         //! Perform the nlist distance check on the GPU
         virtual bool distanceCheck();
-        
+
         //! GPU nlists set their last updated pos in the compute kernel, this call only resets the last box length
         virtual void setLastUpdatedPos()
             {
-            m_last_L = m_pdata->getGlobalBox().getL(); 
+            m_last_L = m_pdata->getGlobalBox().getL();
             m_last_L_local = m_pdata->getBox().getL();
             }
-        
+
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
 
@@ -133,4 +133,3 @@ class NeighborListGPU : public NeighborList
 void export_NeighborListGPU();
 
 #endif
-

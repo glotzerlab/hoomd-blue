@@ -73,7 +73,7 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
         : ForceCompute(sysdef), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondTablePotential" << endl;
-    
+
     assert(m_pdata);
 
     // access the bond data for later use
@@ -86,8 +86,8 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
         }
 
 
-  
-    
+
+
     // allocate storage for the tables and parameters
     GPUArray<Scalar2> tables(m_table_width, m_bond_data->getNBondTypes(), exec_conf);
     m_tables.swap(tables);
@@ -100,12 +100,12 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
     m_table_value = table_value;
 
 
-  
-    
+
+
 
     m_log_name = std::string("bond_table_energy") + log_suffix;
     }
-    
+
 BondTablePotential::~BondTablePotential()
         {
         m_exec_conf->msg->notice(5) << "Destroying BondTablePotential" << endl;
@@ -241,7 +241,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
         Scalar3 pa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
         Scalar3 pb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
         Scalar3 dx = pb-pa;
-        
+
 
         // apply periodic boundary conditions
         dx = box.minImage(dx);

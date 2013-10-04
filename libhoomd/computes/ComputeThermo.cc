@@ -121,7 +121,7 @@ void ComputeThermo::compute(unsigned int timestep)
     {
     if (!shouldCompute(timestep))
         return;
-        
+
     computeProperties();
     }
 
@@ -199,10 +199,10 @@ void ComputeThermo::computeProperties()
     unsigned int group_size = m_group->getNumMembers();
 
     if (m_prof) m_prof->push("Thermo");
-    
+
     assert(m_pdata);
     assert(m_ndof != 0);
-    
+
     // access the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
@@ -212,7 +212,7 @@ void ComputeThermo::computeProperties()
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::read);
 
-    // total kinetic energy 
+    // total kinetic energy
     double ke_total = 0.0;
 
     PDataFlags flags = m_pdata->getFlags();
@@ -255,8 +255,8 @@ void ComputeThermo::computeProperties()
 
         ke_total *= Scalar(0.5);
         }
-    
-    // total potential energy 
+
+    // total potential energy
     double pe_total = 0.0;
     if (flags[pdata_flag::potential_energy])
         {
@@ -369,7 +369,7 @@ void ComputeThermo::computeProperties()
                 m_prof->pop();
         }
 #endif // ENABLE_MPI
- 
+
     if (m_prof) m_prof->pop();
     }
 

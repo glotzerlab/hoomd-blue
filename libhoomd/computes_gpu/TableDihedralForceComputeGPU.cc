@@ -129,7 +129,7 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
                              d_pos.data,
                              box,
                              d_gpu_dihedrallist.data,
-                             d_dihedrals_ABCD.data, 
+                             d_dihedrals_ABCD.data,
                              m_dihedral_data->getGPUDihedralList().getPitch(),
                              d_gpu_n_dihedrals.data,
                              d_tables.data,

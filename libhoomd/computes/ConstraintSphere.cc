@@ -115,9 +115,9 @@ void ConstraintSphere::computeForces(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    
+
     if (m_prof) m_prof->push("ConstraintSphere");
-    
+
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -125,8 +125,8 @@ void ConstraintSphere::computeForces(unsigned int timestep)
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-    
-   
+
+
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
     unsigned int virial_pitch = m_virial.getPitch();
@@ -148,17 +148,17 @@ void ConstraintSphere::computeForces(unsigned int timestep)
         Scalar3 V = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
         Scalar3 F = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
         Scalar m = h_vel.data[j].w;
-        
+
         // evaluate the constraint position
         EvaluatorConstraint constraint(X, V, F, m, m_deltaT);
         EvaluatorConstraintSphere sphere(m_P, m_r);
         Scalar3 C = sphere.evalClosest(constraint.evalU());
-        
+
         // evaluate the constraint force
         Scalar3 FC;
         Scalar virial[6];
         constraint.evalConstraintForce(FC, virial, C);
-        
+
         // apply the constraint force
         h_force.data[j].x = FC.x;
         h_force.data[j].y = FC.y;
@@ -166,7 +166,7 @@ void ConstraintSphere::computeForces(unsigned int timestep)
         for (int k = 0; k < 6; k++)
             h_virial.data[k*virial_pitch+j]  = virial[k];
         }
-        
+
     if (m_prof)
         m_prof->pop();
     }
@@ -179,7 +179,7 @@ void ConstraintSphere::validate()
     BoxDim box = m_pdata->getBox();
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
-    
+
     if (m_P.x + m_r > hi.x || m_P.x - m_r < lo.x ||
         m_P.y + m_r > hi.y || m_P.y - m_r < lo.y ||
         m_P.z + m_r > hi.z || m_P.z - m_r < lo.z)
@@ -187,7 +187,7 @@ void ConstraintSphere::validate()
         m_exec_conf->msg->warning() << "constrain.sphere: Sphere constraint is outside of the box. Constrained particle positions may be incorrect"
              << endl;
         }
-    
+
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
@@ -203,7 +203,7 @@ void ConstraintSphere::validate()
         // get the current particle properties
         unsigned int j = m_group->getMemberIndex(group_idx);
         Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-        
+
         // evaluate the constraint position
         EvaluatorConstraintSphere sphere(m_P, m_r);
         Scalar3 C = sphere.evalClosest(X);
@@ -212,7 +212,7 @@ void ConstraintSphere::validate()
         V.y = C.y - X.y;
         V.z = C.z - X.z;
         Scalar dist = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
-        
+
         if (dist > Scalar(1.0))
             {
             m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " is more than 1 unit of"
@@ -227,13 +227,13 @@ void ConstraintSphere::validate()
             errors = true;
             }
         }
-        
+
     if (errors)
         {
         throw std::runtime_error("Invalid constraint specified");
         }
     }
-        
+
 
 void export_ConstraintSphere()
     {
@@ -250,4 +250,3 @@ void export_ConstraintSphere()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

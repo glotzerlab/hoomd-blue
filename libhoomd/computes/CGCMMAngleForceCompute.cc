@@ -77,21 +77,21 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
+CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef), m_K(NULL), m_t_0(NULL), m_eps(NULL), m_sigma(NULL), m_rcut(NULL), m_cg_type(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing CGCMMAngleForceCompute" << endl;
 
     // access the angle data for later use
     m_CGCMMAngle_data = m_sysdef->getAngleData();
-    
+
     // check for some silly errors a user could make
     if (m_CGCMMAngle_data->getNAngleTypes() == 0)
         {
         m_exec_conf->msg->error() << "angle.cgcmm: No angle types specified" << endl;
         throw runtime_error("Error initializing CGCMMAngleForceCompute");
         }
-        
+
     // allocate the parameters
     m_K = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
     m_t_0 = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
@@ -99,14 +99,14 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
     m_sigma = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
     m_rcut =  new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
     m_cg_type = new unsigned int[m_CGCMMAngle_data->getNAngleTypes()];
-    
+
     assert(m_K);
     assert(m_t_0);
     assert(m_eps);
     assert(m_sigma);
     assert(m_rcut);
     assert(m_cg_type);
-    
+
     memset((void*)m_K,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
     memset((void*)m_t_0,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
     memset((void*)m_eps,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
@@ -118,12 +118,12 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
     prefact[1] = Scalar(6.75);
     prefact[2] = Scalar(2.59807621135332);
     prefact[3] = Scalar(4.0);
-    
+
     cgPow1[0]  = Scalar(0.0);
     cgPow1[1]  = Scalar(9.0);
     cgPow1[2]  = Scalar(12.0);
     cgPow1[3]  = Scalar(12.0);
-    
+
     cgPow2[0]  = Scalar(0.0);
     cgPow2[1]  = Scalar(6.0);
     cgPow2[2]  = Scalar(4.0);
@@ -165,19 +165,19 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
         m_exec_conf->msg->error() << "angle.cgcmm: Invalid angle type specified" << endl;
         throw runtime_error("Error setting parameters in CGCMMAngleForceCompute");
         }
-        
+
     const double myPow1 = cgPow1[cg_type];
     const double myPow2 = cgPow2[cg_type];
-    
+
     Scalar my_rcut = sigma * ((Scalar) exp(1.0/(myPow1-myPow2)*log(myPow1/myPow2)));
-    
+
     m_K[type] = K;
     m_t_0[type] = t_0;
     m_cg_type[type] = cg_type;
     m_eps[type] = eps;
     m_sigma[type] = sigma;
     m_rcut[type] = my_rcut;
-    
+
     // check for some silly errors a user could make
     if (cg_type > 3)
         m_exec_conf->msg->warning() << "angle.cgcmm: Unrecognized exponents specified" << endl;
@@ -224,12 +224,12 @@ Scalar CGCMMAngleForceCompute::getLogValue(const std::string& quantity, unsigned
 void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     {
     if (m_prof) m_prof->push("CGCMMAngle");
-    
+
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-   
+
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
     unsigned int virial_pitch = m_virial.getPitch();
@@ -243,14 +243,14 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     assert(h_virial.data);
     assert(h_pos.data);
     assert(h_rtag.data);
-    
+
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    
+
     // allocate forces
     Scalar fab[3], fcb[3];
     Scalar fac;
-    
+
     Scalar eac;
     Scalar vac[6];
     // for each of the angles
@@ -262,7 +262,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         assert(angle.a < m_pdata->getN());
         assert(angle.b < m_pdata->getN());
         assert(angle.c < m_pdata->getN());
-        
+
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints
         unsigned int idx_a = h_rtag.data[angle.a];
@@ -271,24 +271,24 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         assert(idx_a < m_pdata->getN());
         assert(idx_b < m_pdata->getN());
         assert(idx_c < m_pdata->getN());
-        
+
         // calculate d\vec{r}
         // MEM_TRANSFER: 18 Scalars / FLOPS 9
         Scalar3 dab;
         dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
         dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
         dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
-        
+
         Scalar3 dcb;
         dcb.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
         dcb.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
         dcb.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
-        
+
         Scalar3 dac;
         dac.x = h_pos.data[idx_a].x - h_pos.data[idx_c].x; // used for the 1-3 JL interaction
         dac.y = h_pos.data[idx_a].y - h_pos.data[idx_c].y;
         dac.z = h_pos.data[idx_a].z - h_pos.data[idx_c].z;
-        
+
         // apply minimum image conventions to all 3 vectors
         dab = box.minImage(dab);
         dcb = box.minImage(dcb);
@@ -296,7 +296,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 
         // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-        
+
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x*dab.x+dab.y*dab.y+dab.z*dab.z;
         Scalar rab = sqrt(rsqab);
@@ -304,17 +304,17 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         Scalar rcb = sqrt(rsqcb);
         Scalar rsqac = dac.x*dac.x+dac.y*dac.y+dac.z*dac.z;
         Scalar rac = sqrt(rsqac);
-        
+
         Scalar c_abbc = dab.x*dcb.x+dab.y*dcb.y+dab.z*dcb.z;
         c_abbc /= rab*rcb;
-        
+
         if (c_abbc > 1.0) c_abbc = 1.0;
         if (c_abbc < -1.0) c_abbc = -1.0;
-        
+
         Scalar s_abbc = sqrt(1.0 - c_abbc*c_abbc);
         if (s_abbc < SMALL) s_abbc = SMALL;
         s_abbc = 1.0/s_abbc;
-        
+
         //////////////////////////////////////////
         // THIS CODE DOES THE 1-3 LJ repulsions //
         //////////////////////////////////////////////////////////////////////////////
@@ -329,10 +329,10 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
             const Scalar cg_pow1 = cgPow1[cg_type];
             const Scalar cg_pow2 = cgPow2[cg_type];
             const Scalar cg_pref = prefact[cg_type];
-            
+
             const Scalar cg_ratio = m_sigma[angle.type]/rac;
             const Scalar cg_eps   = m_eps[angle.type];
-            
+
             fac = cg_pref*cg_eps / rsqac * (cg_pow1*pow(cg_ratio,cg_pow1) - cg_pow2*pow(cg_ratio,cg_pow2));
             eac = cg_eps + cg_pref*cg_eps * (pow(cg_ratio,cg_pow1) - pow(cg_ratio,cg_pow2));
 
@@ -344,24 +344,24 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
             vac[5] = fac * dac.z*dac.z;
             }
         //////////////////////////////////////////////////////////////////////////////
-        
+
         // actually calculate the force
         Scalar dth = acos(c_abbc) - m_t_0[angle.type];
         Scalar tk = m_K[angle.type]*dth;
-        
+
         Scalar a = -1.0 * tk * s_abbc;
         Scalar a11 = a*c_abbc/rsqab;
         Scalar a12 = -a / (rab*rcb);
         Scalar a22 = a*c_abbc / rsqcb;
-        
+
         fab[0] = a11*dab.x + a12*dcb.x;
         fab[1] = a11*dab.y + a12*dcb.y;
         fab[2] = a11*dab.z + a12*dcb.z;
-        
+
         fcb[0] = a22*dcb.x + a12*dab.x;
         fcb[1] = a22*dcb.y + a12*dab.y;
         fcb[2] = a22*dcb.z + a12*dab.z;
-        
+
         // compute 1/3 of the energy, 1/3 for each atom in the angle
         Scalar angle_eng = (0.5*tk*dth + eac)*Scalar(1.0/3.0);
 
@@ -379,21 +379,21 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
             virial[k] = angle_virial[k] + Scalar(1./3.)*vac[k];
 
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
-            
+
         h_force.data[idx_a].x += fab[0] + fac*dac.x;
         h_force.data[idx_a].y += fab[1] + fac*dac.y;
         h_force.data[idx_a].z += fab[2] + fac*dac.z;
         h_force.data[idx_a].w += angle_eng;
         for (int k = 0; k < 6; k++)
             h_virial.data[k*virial_pitch+idx_a] += virial[k];
-        
+
         h_force.data[idx_b].x -= fab[0] + fcb[0];
         h_force.data[idx_b].y -= fab[1] + fcb[1];
         h_force.data[idx_b].z -= fab[2] + fcb[2];
         h_force.data[idx_b].w += angle_eng;
         for (int k = 0; k < 6; k++)
             h_virial.data[k*virial_pitch+idx_b] += virial[k];
-        
+
         h_force.data[idx_c].x += fcb[0] - fac*dac.x;
         h_force.data[idx_c].y += fcb[1] - fac*dac.y;
         h_force.data[idx_c].z += fcb[2] - fac*dac.z;
@@ -401,7 +401,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         for (int k = 0; k < 6; k++)
             h_virial.data[k*virial_pitch+idx_c] += virial[k];
         }
-        
+
     if (m_prof) m_prof->pop();
     }
 
@@ -416,4 +416,3 @@ void export_CGCMMAngleForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

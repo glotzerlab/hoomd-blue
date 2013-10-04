@@ -99,7 +99,7 @@ ConstForceCompute::~ConstForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying ConstForceCompute" << endl;
     }
-    
+
 /*! \param fx x-component of the force
     \param fy y-component of the force
     \param fz z-component of the force
@@ -112,7 +112,7 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
     m_fy = fy;
     m_fz = fz;
 
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
     //Don't need to zero data for force calculation.
 
     assert(h_force.data);
@@ -134,11 +134,11 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
 */
 void ConstForceCompute::setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz)
     {
-        
+
     assert(m_pdata != NULL);
     assert(i < m_pdata->getN());
 
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite); 
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
     assert(h_force.data);
 
     h_force.data[i].x = fx;
@@ -213,4 +213,3 @@ void export_ConstForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

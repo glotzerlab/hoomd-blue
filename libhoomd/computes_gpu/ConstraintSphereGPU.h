@@ -74,10 +74,10 @@ class ConstraintSphereGPU : public ConstraintSphere
                             boost::shared_ptr<ParticleGroup> group,
                             Scalar3 P,
                             Scalar r);
-        
+
     protected:
         unsigned int m_block_size;  //!< block size to execute on the GPU
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -86,4 +86,3 @@ class ConstraintSphereGPU : public ConstraintSphere
 void export_ConstraintSphereGPU();
 
 #endif
-

@@ -111,7 +111,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 
     const unsigned int MAX_TYPE_NUMBER = 10;
     const unsigned int MAX_POINT_NUMBER = 1000000;
-    
+
     // Open potential file
     FILE *fp;
     fp = fopen(filename,"r");
@@ -125,13 +125,13 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     int n = fscanf(fp, "%d", &m_ntypes);
     if (n != 1) throw runtime_error("Error parsing eam file");
 
-    if(m_ntypes < 1 || m_ntypes > MAX_TYPE_NUMBER ) 
+    if(m_ntypes < 1 || m_ntypes > MAX_TYPE_NUMBER )
         {
         m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Type number is greater than " << MAX_TYPE_NUMBER << endl;
         throw runtime_error("Error loading file");
         }
     // temporary array to count used types
-    boost::dynamic_bitset<> types_set(m_pdata->getNTypes()); 
+    boost::dynamic_bitset<> types_set(m_pdata->getNTypes());
     //Load names of types.
     for(i = 0; i < m_ntypes; i++)
         {
@@ -154,7 +154,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
     //Load parameters.
     n = fscanf(fp,"%d", &nrho);
     if (n != 1) throw runtime_error("Error parsing eam file");
-    
+
     n = fscanf(fp,"%lg", &tmp);
     if (n != 1) throw runtime_error("Error parsing eam file");
 
@@ -224,11 +224,11 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 
             }
         }
-    
+
     if(res == EOF || res == 0)
         {
         m_exec_conf->msg->error() << "pair.eam: EAM file is truncated " << endl;
-        throw runtime_error("Error loading file");        
+        throw runtime_error("Error loading file");
         }
     //Read V(r)'s arrays
     for (k = 0; k < m_ntypes; k++)
@@ -244,7 +244,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
             }
 
         }
-    
+
     fclose(fp);
 
 
@@ -340,12 +340,12 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
     unsigned int virial_pitch = m_virial.getPitch();
- 
+
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
-    
+
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
@@ -554,4 +554,3 @@ void export_EAMForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

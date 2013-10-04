@@ -95,7 +95,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // this allocates more memory than necessary but is needed unless the scratch memory
     // is reallocated when the maximum number of particles changes
     m_num_blocks = m_group->getNumMembersGlobal() / m_block_size + 1;
-    
+
     GPUArray< Scalar4 > scratch(m_num_blocks, exec_conf);
     m_scratch.swap(scratch);
 
@@ -114,16 +114,16 @@ void ComputeThermoGPU::computeProperties()
         return;
 
     unsigned int group_size = m_group->getNumMembers();
-    
+
     if (m_prof) m_prof->push(m_exec_conf,"Thermo");
-    
+
     assert(m_pdata);
     assert(m_ndof != 0);
-    
+
     // access the particle data
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getGlobalBox();
-    
+
     PDataFlags flags = m_pdata->getFlags();
 
     { // scope these array handles so they are released before the additional terms are added
@@ -135,10 +135,10 @@ void ComputeThermoGPU::computeProperties()
     ArrayHandle<Scalar4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_scratch_pressure_tensor(m_scratch_pressure_tensor, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_properties(m_properties, access_location::device, access_mode::overwrite);
-    
+
     // access the group
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    
+
     // build up args list
     m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
     compute_thermo_args args;
@@ -166,7 +166,7 @@ void ComputeThermoGPU::computeProperties()
                         box,
                         args,
                         flags[pdata_flag::pressure_tensor]);
-   
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     }
@@ -203,4 +203,3 @@ void export_ComputeThermoGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

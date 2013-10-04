@@ -78,4 +78,3 @@ typedef PotentialExternalGPU<EvaluatorExternalPeriodic, gpu_compute_periodic_for
 #endif
 
 #endif // __EXTERNAL_POTENTIALS_H__
-

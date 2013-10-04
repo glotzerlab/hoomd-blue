@@ -128,7 +128,7 @@ bool Compute::shouldCompute(unsigned int timestep)
         return true;
         }
 
-    // Update if computation is enforced, but leave m_last_computed unchanged 
+    // Update if computation is enforced, but leave m_last_computed unchanged
     // (such that after a forced compute(), still a regular compute() is possible)
     if (m_force_compute)
         {
@@ -142,7 +142,7 @@ bool Compute::shouldCompute(unsigned int timestep)
         m_last_computed = timestep;
         return true;
         }
-    
+
 
     // failing the above, we perform no computation
     return false;
@@ -151,7 +151,7 @@ bool Compute::shouldCompute(unsigned int timestep)
 void Compute::forceCompute(unsigned int timestep)
     {
     m_force_compute = true;
-    
+
     compute(timestep);
     }
 
@@ -164,14 +164,14 @@ class ComputeWrap : public Compute, public wrapper<Compute>
         ComputeWrap(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef)
             {
             }
-            
+
         //! Calls overidden Compute::compute()
         /*! \param timestep Parameter to pass on to the base class method */
         void compute(unsigned int timestep)
             {
             this->get_override("compute")(timestep);
             }
-            
+
         //! Calls overidden Compute::compute()
         /*! \param num_iters Parameter to pass on to the base class method */
         double benchmark(unsigned int num_iters)
@@ -181,7 +181,7 @@ class ComputeWrap : public Compute, public wrapper<Compute>
             else
                 return Compute::benchmark(num_iters);
             }
-            
+
         //! Calls overridden Compute::printStats()
         void printStats()
             {
@@ -190,13 +190,13 @@ class ComputeWrap : public Compute, public wrapper<Compute>
             else
                 Compute::printStats();
             }
-            
+
         //! Default implementation of Compute::printStats()
         void default_printStats()
             {
             this->Compute::printStats();
             }
-            
+
         // A decision has been made to not currently support deriving new compute classes in python
         // thus, the internal methods of Compute that are only needed for that purpose do not need to be
         // exported, only the public interface
@@ -210,14 +210,14 @@ class ComputeWrap : public Compute, public wrapper<Compute>
             else
                 return Compute::shouldCompute(timestep);
             }*/
-        
+
         // Default implementation of Compute::shouldCompute()
         /* \param timestep Parameter to pass on to the base class method */
         /*bool default_shouldCompute(unsigned int timestep)
             {
             return this->Compute::shouldCompute(timestep);
             }
-        
+
         // The python export needs to be a friend to export protected members
         friend void export_Compute();*/
     };
@@ -235,4 +235,3 @@ void export_Compute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

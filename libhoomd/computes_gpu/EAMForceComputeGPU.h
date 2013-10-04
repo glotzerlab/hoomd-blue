@@ -102,4 +102,3 @@ class EAMForceComputeGPU : public EAMForceCompute
 void export_EAMForceComputeGPU();
 
 #endif
-
