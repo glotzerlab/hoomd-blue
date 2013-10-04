@@ -66,9 +66,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 //! Stores integrator variables
-/*! The integration state is necessary for exact restarts.  Extended systems 
-    integrators in the spirit of Nose-Hoover store the positions, velocities, 
-    etc. of the fictitious variables.  Other integrators store a random number 
+/*! The integration state is necessary for exact restarts.  Extended systems
+    integrators in the spirit of Nose-Hoover store the positions, velocities,
+    etc. of the fictitious variables.  Other integrators store a random number
     seed.
     \ingroup data_structs
 */
@@ -79,17 +79,17 @@ struct IntegratorVariables
     };
 
 //! Stores all integrator variables in the simulation
-/*! IntegratorData keeps track of the parameters for all of the integrators 
+/*! IntegratorData keeps track of the parameters for all of the integrators
     defined in the simulation, so that they can be saved and reloaded from data files.
-    
+
     Each integrator must register with IntegratorData by calling registerIntegrator(), which returns an unsinged int
     to be used to access the variables for that integrator. The same sequence of registerIntegrator() calls will produce
     the same set of handles, so they can be used to read existing state values after loading data from a file.
-    
+
     The state of current registered integrators is reset when a new IntegratorData is constructed. This is consistent
     with the above use-case, as the construction of a new IntegratorData means the construction of a new SystemData, and
     hence a new series of constructed Integrators, which will then re-register.
-    
+
     \ingroup data_structs
 */
 class IntegratorData
@@ -97,7 +97,7 @@ class IntegratorData
     public:
         //! Constructs an empty list with no integrator variables
         IntegratorData() : m_num_registered(0) {}
-       
+
         //! Constructs an IntegratorData from a given set of IntegratorVariables
         IntegratorData(const std::vector<IntegratorVariables>& variables)
             : m_num_registered(0)
@@ -107,10 +107,10 @@ class IntegratorData
 
         //! Destructor
         ~IntegratorData() {}
-        
+
         //! Register an integrator (should occur during integrator construction)
         unsigned int registerIntegrator();
-        
+
         //! Get the number of integrator variables
         /*! \return Number of integrator variables present
         */
@@ -118,7 +118,7 @@ class IntegratorData
             {
             return (unsigned int)m_integrator_variables.size();
             }
-            
+
         //! Load a number of integrator variables
         /*! \param n Number of variables to load
             When loading from a file, a given number of integrator variables must be preloaded without registering them.
@@ -128,7 +128,7 @@ class IntegratorData
             {
             m_integrator_variables.resize(n);
             }
-        
+
         //! Get a collection of integrator variables
         /*! \param i access integrator variables for integrator i
         */
@@ -136,7 +136,7 @@ class IntegratorData
             {
             assert(i < m_integrator_variables.size()); return m_integrator_variables[i];
             }
-            
+
         //! Set a collection of integrator variables
         /*! \param i set integrator variables for integrator i
             \param v Variables to set
@@ -145,15 +145,14 @@ class IntegratorData
             {
             assert(i < m_integrator_variables.size()); m_integrator_variables[i] = v;
             }
-            
+
     private:
         unsigned int m_num_registered;                                  //!< Number of integrators that have registered
         std::vector<IntegratorVariables> m_integrator_variables;        //!< List of the integrator variables defined
-        
+
     };
 
 //! Exports IntegratorData to python
 void export_IntegratorData();
 
 #endif
-

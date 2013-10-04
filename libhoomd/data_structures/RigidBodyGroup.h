@@ -69,35 +69,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Describes a group of rigid bodies
 /*! \b Overview
-    
+
     Some computations in HOOMD need to only be performed on certain groups of rigid bodies. Such groups are initialized
     from an already existing ParticleGroup for simplicity and integration into the rest of HOOMD.
-    
+
     The following common use-cases are expected and the design is tuned to make these optimal.
-     - Iterate through all rigid body indices in the group, and the order of iteration doesn't matter, except for 
+     - Iterate through all rigid body indices in the group, and the order of iteration doesn't matter, except for
        performance.
      - O(1) test if a particular body index is in the group
 
     Group membership is determined once at the instantiation of the group. Thus RigidBodyGroup only supports static
-    groups where membership does not change over the course of a simulation. Dynamic groups, if they are needed, 
+    groups where membership does not change over the course of a simulation. Dynamic groups, if they are needed,
     may require a drastically different design to allow for efficient access.
-    
+
     Membership is determined based on the particle members in a ParticleGroup. If only a portion of a body is included
     in the ParticleGroup, the body is included, and a warning is also issue to the user that a body has been partially
     selected.
 
     In many use-cases, RigidBodyGroup may be accessed many times within inner loops. Thus, it must not aquire any
-    ParticleData arrays within most of the get() calls as the caller must be allowed to leave their ParticleData 
+    ParticleData arrays within most of the get() calls as the caller must be allowed to leave their ParticleData
     aquired. Thus, all get() methods must return values from internal cached variables only. Those methods that
     absolutely require the particle data be released before they are called will be documented as such.
 
     <b>Data Structures and Implementation</b>
-    
+
     The initial and fundamental data structure in the group is a vector listing all of the bodies in the group,
     in a sorted index order. This list can be accessed directly via getMemberIndex() to meet the 1st use case listed
-    above. A dynamic bitset is used to store one bit per rigid body for efficient O(1) tests if a given body is in 
+    above. A dynamic bitset is used to store one bit per rigid body for efficient O(1) tests if a given body is in
     the group.
-    
+
     Finally, the common use case on the GPU using groups will include threads that access the group membership.
     For that it needs a list of indices of all the bodies in the group. To facilitates this, the list of indices
     in the group will be stored in a GPUArray.
@@ -109,14 +109,14 @@ class RigidBodyGroup
     public:
         //! \name Initialization methods
         // @{
-                
+
         //! Constructs a rigid body groupp given a particle group
         RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
-        
+
         // @}
         //! \name Accessor methods
         // @{
-                
+
         //! Get the number of members in the group
         /*! \returns The number of particles that belong to this group
         */
@@ -124,7 +124,7 @@ class RigidBodyGroup
             {
             return (unsigned int)m_member_idx.getNumElements();
             }
-            
+
         //! Get a member index from the group
         /*! \param j Value from 0 to getNumMembers()-1 of the group member to get
             \returns Index of the member at position \a j
@@ -145,7 +145,7 @@ class RigidBodyGroup
             {
             return m_is_member[idx];
             }
-        
+
         //! Direct access to the index list
         /*! \returns A GPUArray for directly accessing the index list, intended for use in using groups on the GPU
             \note The caller \b must \b not write to or change the array.
@@ -154,7 +154,7 @@ class RigidBodyGroup
             {
             return m_member_idx;
             }
-        
+
     private:
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         boost::shared_ptr<RigidData> m_rdata;           //!< The system definition this group is associated with
@@ -166,4 +166,3 @@ class RigidBodyGroup
     };
 
 #endif
-

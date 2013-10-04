@@ -70,7 +70,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #define HOSTDEVICE inline
 #endif
- 
+
 // RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
 #ifdef NVCC
 #define RSQRT(x) rsqrtf( (x) )
@@ -81,7 +81,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
     that box. For cubic boxes, inside is defined as x >= m_lo.x && x < m_hi.x, and similarly for y and z.
-   
+
     For triclinic boxes, tilt factors xy, xz and yz are defined. In this case, m_lo and m_hi are the corners of the
     corresponding cubic box, for which the tilt factors would be zero.
 
@@ -97,18 +97,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     performance optimizations used in the minimum image convention. Callers that specify lo and hi directly must be
     aware of this fact. BoxDim does not check for erroneous input regarding \a lo, \a hi and the periodic flags.
     getPeriodic() can be used to query which directions are periodic.
-    
+
     setL() can be used to update boxes where lo == -hi in all directions. setLoHi() can be used to update boxes where
     this is not the case.
-    
+
     BoxDim comes with several analysis/computaiton methods to aid in working with vectors in boxes.
-     - makeFraction() takes a vector in a box and computes a vector where all components are between 0 and 1. 0,0,0 is 
+     - makeFraction() takes a vector in a box and computes a vector where all components are between 0 and 1. 0,0,0 is
        lo and 1,1,1 is hi with a linear interpolation between.
      - minImage() takes a vector and wraps it back into the box following the minimum image convention, but only for
        those dimensions that are set periodic
      - wrap() wraps a vector back into the box and updates an image flag variable appropriately when particles cross
        box boundaries. It does this only for dimensions that are set periodic
-    
+
     \note minImage() and wrap() only work for particles that have moved up to 1 box image out of the box.
 */
 class BoxDim
@@ -354,7 +354,7 @@ class BoxDim
                     w.x += L.z * m_xz;
                     }
                 }
- 
+
             if (m_periodic.y)
                 {
                 if (w.y >= m_hi.y)
@@ -384,7 +384,7 @@ class BoxDim
                     w.x += (Scalar)i*L.x;
                     }
                 }
-            #endif 
+            #endif
 
             return w;
             }
@@ -485,7 +485,7 @@ class BoxDim
         /*! \param v The vector to shift
             \param shift The displacement in lattice coordinates
 
-            \note This method only works on boxes for which hi=-lo in all directions 
+            \note This method only works on boxes for which hi=-lo in all directions
          */
         HOSTDEVICE Scalar3 shift(const Scalar3& v, const int3& shift) const
             {
@@ -519,7 +519,7 @@ class BoxDim
          *   the lattice vectors a_2 and a_3 etc.
          *
          * \return A Scalar3 containing the distance between the a_2-a_3, a_3-a_1 and
-         *         a_1-a_2 planes for the triclinic lattice         
+         *         a_1-a_2 planes for the triclinic lattice
          */
         HOSTDEVICE Scalar3 getNearestPlaneDistance() const
             {
@@ -544,7 +544,7 @@ class BoxDim
             }
 
         /*! Get the lattice vector with index i
-         
+
             \param i Index (0<=i<=2) of the lattice vector
             \returns the lattice vector with index i, or (0,0,0) if i is invalid
          */
@@ -565,7 +565,7 @@ class BoxDim
 
             return make_scalar3(0.0,0.0,0.0);
             }
-        
+
         #ifdef ENABLE_MPI
         //! Serialization method
         template<class Archive>
@@ -581,7 +581,7 @@ class BoxDim
             ar & m_periodic;
             }
         #endif
- 
+
     private:
         Scalar3 m_lo;      //!< Minimum coords in the box
         Scalar3 m_hi;      //!< Maximum coords in the box

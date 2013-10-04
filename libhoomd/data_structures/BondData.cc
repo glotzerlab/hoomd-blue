@@ -81,7 +81,7 @@ using namespace std;
 /*! \param pdata ParticleData these bonds refer into
     \param n_bond_types Number of bond types in the list
 */
-BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
+BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types)
     : m_bonds_dirty(false),
       m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
       m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf)
@@ -109,11 +109,11 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
         char suffix[2];
         suffix[0] = 'A' + i;
         suffix[1] = '\0';
-        
+
         string name = string("bond") + string(suffix);
         m_bond_type_mapping.push_back(name);
         }
-        
+
     // allocate memory for the GPU bond table
     allocateBondTable(1);
 
@@ -128,7 +128,7 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
 /*! \param pdata ParticleData these bonds refer into
  * \param snapshot SnapshotBondData that contains the bond information
 */
-BondData::BondData(boost::shared_ptr<ParticleData> pdata, const SnapshotBondData& snapshot) 
+BondData::BondData(boost::shared_ptr<ParticleData> pdata, const SnapshotBondData& snapshot)
     : m_bonds_dirty(false),
       m_pdata(pdata), exec_conf(m_pdata->getExecConf()),
       m_bonds(exec_conf), m_bond_type(exec_conf), m_tags(exec_conf), m_bond_rtag(exec_conf),
@@ -136,7 +136,7 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, const SnapshotBondData
       m_max_bond_num(0),
       m_buffers_initialized(false),
 #endif
-      m_num_bonds_global(0) 
+      m_num_bonds_global(0)
     {
     assert(pdata);
     m_exec_conf = m_pdata->getExecConf();
@@ -200,13 +200,13 @@ unsigned int BondData::addBond(const Bond& bond)
         m_exec_conf->msg->error() << "Particle tag out of bounds when attempting to add bond: " << bond.a << "," << bond.b << endl;
         throw runtime_error("Error adding bond");
         }
-        
+
     if (bond.a == bond.b)
         {
         m_exec_conf->msg->error() << "Particle cannot be bonded to itself! " << bond.a << "," << bond.b << endl;
         throw runtime_error("Error adding bond");
         }
-        
+
     // check that the type is within bouds
     if (bond.type+1 > m_bond_type_mapping.size())
         {
@@ -285,7 +285,7 @@ const Bond BondData::getBondByTag(unsigned int tag) const
 
         bcast(b, rank, m_exec_conf->getMPICommunicator());
         bcast(bond_type, rank, m_exec_conf->getMPICommunicator());
-        }        
+        }
     else
 #endif
         {
@@ -377,7 +377,7 @@ unsigned int BondData::getTypeByName(const std::string &name)
         if (m_bond_type_mapping[i] == name)
             return i;
         }
-        
+
     m_exec_conf->msg->error() << "Bond type " << name << " not found!" << endl;
     throw runtime_error("Error mapping type name");
     return 0;
@@ -395,7 +395,7 @@ std::string BondData::getNameByType(unsigned int type)
         m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
-        
+
     // return the name
     return m_bond_type_mapping[type];
     }
@@ -597,10 +597,10 @@ void BondData::allocateBondTable(int height)
     {
     // make sure the arrays have been deallocated
     assert(m_n_bonds.isNull());
-    
+
     GPUArray<uint2> gpu_bondlist(m_pdata->getMaxN(), height, exec_conf);
     m_gpu_bondlist.swap(gpu_bondlist);
-        
+
     GPUArray<unsigned int> n_bonds(m_pdata->getMaxN(), exec_conf);
     m_n_bonds.swap(n_bonds);
     }
@@ -625,7 +625,7 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
             {
             local_bonds.push_back(m_bonds[bond_idx]);
             local_typeid.push_back(m_bond_type[bond_idx]);
-            
+
             bond_rtag_map.insert(std::pair<unsigned int, unsigned int>(m_tags[bond_idx], bond_idx));
             }
 
@@ -656,13 +656,13 @@ void BondData::takeSnapshot(SnapshotBondData& snapshot)
                         found = true;
                         break;
                         }
-                    }    
+                    }
                 if (! found)
                     {
                     cerr << endl << "***Error! Could not find bond " << bond_tag << " on any processor. " << endl << endl;
                     throw std::runtime_error("Error gathering BondData");
                     }
-                
+
                 // store bond in snapshot
                 unsigned int bond_idx = it->second;
 
@@ -735,7 +735,7 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
             {
             // reset reverse lookup tags
             ArrayHandle<unsigned int> h_bond_rtag(m_bond_rtag, access_location::host, access_mode::overwrite);
-            
+
             for (unsigned int tag = 0; tag < m_num_bonds_global; ++tag)
                 h_bond_rtag.data[tag] = BOND_NOT_LOCAL;
             }
@@ -755,7 +755,7 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
                 m_tags.push_back(bond_tag);
                 m_bond_rtag[bond_tag] = bond_idx++;
                 }
-    
+
         m_bond_type_mapping = type_mapping;
         }
     else
@@ -842,7 +842,7 @@ void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
                     h_bond_rtag.data[old_tag] = BOND_NOT_LOCAL;
                     }
                 }
-           
+
             zipiter i(boost::make_tuple(h_bonds.data,
                                         h_bond_type.data,
                                         h_bond_tag.data,
@@ -850,7 +850,7 @@ void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
             zipiter e = i+old_size;
 
             unsigned int num_bonds_removed =  e - std::remove_if(i,e,remove_pred());
-           
+
             assert(num_bonds_removed == num_remove_bonds);
 
             size -= num_bonds_removed;
@@ -873,7 +873,7 @@ void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
                 h_bond_tag.data[size+num_bonds_added] = tag;
                 num_bonds_added++;
                 }
-           
+
             // udpate rtags
             size += num_bonds_added;
 
@@ -884,7 +884,7 @@ void BondData::unpackRemoveBonds(unsigned int num_add_bonds,
                 h_bond_rtag.data[tag] = bond_idx;
                 }
             }
-           
+
         m_bonds.resize(size);
         m_bond_type.resize(size);
         m_tags.resize(size);
@@ -901,7 +901,7 @@ void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
     if (! m_buffers_initialized)
         {
         // allocate some buffers
-        
+
         // flags for every received bond to indicate if it is not a duplicate
         GPUVector<unsigned char> recv_bond_active(m_exec_conf);
         m_recv_bond_active.swap(recv_bond_active);
@@ -999,7 +999,7 @@ void export_BondData()
 
     class_< std::vector<uint2> >("std_vector_uint2")
     .def(vector_indexing_suite<std::vector<uint2> >())
-    ; 
+    ;
 
     class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<shared_ptr<ParticleData>, unsigned int>())
     .def("getNumBonds", &BondData::getNumBonds)
@@ -1016,7 +1016,7 @@ void export_BondData()
     .def("initializeFromSnapshot", &BondData::initializeFromSnapshot)
     .def("addBondType", &BondData::addBondType)
     ;
-    
+
     class_<SnapshotBondData, boost::shared_ptr<SnapshotBondData> >
     ("SnapshotBondData", init<unsigned int>())
     .def_readwrite("bonds", &SnapshotBondData::bonds)
@@ -1029,4 +1029,3 @@ void export_BondData()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

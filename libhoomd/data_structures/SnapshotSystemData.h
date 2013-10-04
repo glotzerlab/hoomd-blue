@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: jglaser
 
 /*! \file SnapshotSystemData.h
-    \brief Defines the SnapshotSystemData class 
+    \brief Defines the SnapshotSystemData class
 */
 
 #ifdef NVCC
@@ -98,7 +98,7 @@ struct SnapshotSystemData {
     SnapshotRigidData rigid_data;          //!< The rigid body data
     std::vector<Wall> wall_data;           //!< The wall data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
-  
+
     bool has_particle_data;                //!< True if snapshot contains particle data
     bool has_bond_data;                    //!< True if snapshot contains bond data
     bool has_angle_data;                   //!< True if snapshot contains angle data
@@ -129,4 +129,3 @@ struct SnapshotSystemData {
 void export_SnapshotSystemData();
 
 #endif
-

@@ -83,4 +83,3 @@ void export_SnapshotSystemData()
 
     implicitly_convertible<boost::shared_ptr<SnapshotSystemData>, boost::shared_ptr<const SnapshotSystemData> >();
     }
-

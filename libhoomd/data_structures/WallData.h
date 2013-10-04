@@ -89,11 +89,11 @@ struct Wall
         normal_y = ny / len;
         normal_z = nz / len;
         }
-        
+
     Scalar origin_x;    //!< x-component of the origin
     Scalar origin_y;    //!< y-component of the origin
     Scalar origin_z;    //!< z-component of the origin
-    
+
     Scalar normal_x;    //!< x-component of the normal
     Scalar normal_y;    //!< y-component of the normal
     Scalar normal_z;    //!< z-component of the normal
@@ -128,7 +128,7 @@ class WallData : boost::noncopyable
             {
             return (unsigned int)m_walls.size();
             }
-            
+
         //! Access a specific wall
         /*! \param idx Index of the wall to retrieve
             \return Wall stored at index \a idx
@@ -138,10 +138,10 @@ class WallData : boost::noncopyable
             assert(idx < m_walls.size());
             return m_walls[idx];
             }
-            
+
         //! Adds a wall to the data structure
         void addWall(const Wall& wall);
-    
+
         //! Removes all walls
         void removeAllWalls()
             {
@@ -154,4 +154,3 @@ class WallData : boost::noncopyable
     };
 
 #endif
-

@@ -73,7 +73,7 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
     // don't generate the body group unless there are bodies in the simulation
     if (m_rdata->getNumBodies() == 0)
         return;
-    
+
     // start by initializing a count of the number of particles in the group that belong to each body
     vector<unsigned int> particle_count(m_rdata->getNumBodies());
     particle_count.assign(m_rdata->getNumBodies(), 0);
@@ -98,21 +98,21 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
         }
 
     }
-    
+
     // validate that all bodies are completely selected
     // also count up the number of selected bodies
     unsigned int n_selected_bodies = 0;
-        
+
         {
         ArrayHandle<unsigned int> h_body_size(m_rdata->getBodySize(), access_location::host, access_mode::read);
-        
+
         for (unsigned int body_idx = 0; body_idx < m_rdata->getNumBodies(); body_idx++)
             {
             if (particle_count[body_idx] != 0)
                 {
                 n_selected_bodies++;
                 m_is_member[body_idx] = true;
-                
+
                 if (particle_count[body_idx] != h_body_size.data[body_idx])
                     m_exec_conf->msg->warning() << "group: Only a portion of body " << body_idx << " is included in the group" << endl;
                 }
@@ -122,7 +122,7 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
     // allocate memory for the gpu list
     GPUArray<unsigned int> member_idx(n_selected_bodies, m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
-    
+
     // assign all of the bodies that belong to the group
     ArrayHandle<unsigned int> h_member_idx(m_member_idx, access_location::host, access_mode::overwrite);
     unsigned int count = 0;
@@ -135,4 +135,3 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
             }
         }
     }
-

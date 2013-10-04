@@ -110,7 +110,7 @@ void RigidData::recalcIndices()
     {
     if (m_n_bodies == 0)
         return;
-        
+
     // sanity check
     assert(m_pdata);
     assert(!m_particle_tags.isNull());
@@ -118,24 +118,24 @@ void RigidData::recalcIndices()
 //  assert(m_n_bodies <= m_particle_tags.getPitch());
 //  assert(m_n_bodies <= m_particle_indices.getPitch());
 //  printf("m_n_bodies = %d; particle tags pitch = %d\n", m_n_bodies, m_particle_tags.getPitch());
-     
+
     assert(m_n_bodies == m_body_size.getNumElements());
-    
+
     // get the particle data
     ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // get all the rigid data we need
     ArrayHandle<unsigned int> tags(m_particle_tags, access_location::host, access_mode::read);
     unsigned int tags_pitch = m_particle_tags.getPitch();
-    
+
     ArrayHandle<unsigned int> indices(m_particle_indices, access_location::host, access_mode::readwrite);
     unsigned int indices_pitch = m_particle_indices.getPitch();
     ArrayHandle<unsigned int> rigid_particle_indices(m_rigid_particle_indices, access_location::host, access_mode::readwrite);
-    
-    
+
+
     ArrayHandle<unsigned int> body_size(m_body_size, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_particle_offset(m_particle_offset, access_location::host, access_mode::readwrite);
-    
+
     // for each body
     unsigned int ridx = 0;
     for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -144,7 +144,7 @@ void RigidData::recalcIndices()
         unsigned int len = body_size.data[body];
         assert(body <= m_particle_tags.getHeight() && body <= m_particle_indices.getHeight());
         assert(len <= tags_pitch && len <= indices_pitch);
-        
+
         for (unsigned int i = 0; i < len; i++)
             {
             // translate the tag to the current index
@@ -152,14 +152,14 @@ void RigidData::recalcIndices()
             unsigned int pidx = h_rtag.data[tag];
             indices.data[body*indices_pitch + i] = pidx;
             h_particle_offset.data[pidx] = i;
-            
+
             rigid_particle_indices.data[ridx++] = pidx;
             }
         }
-        
+
     #ifdef ENABLE_CUDA
     //Sort them so they are ordered
-    sort(rigid_particle_indices.data, rigid_particle_indices.data + ridx); 
+    sort(rigid_particle_indices.data, rigid_particle_indices.data + ridx);
     #endif
     }
 
@@ -169,11 +169,11 @@ inline static void mat_multiply(Scalar a[3][3], Scalar b[3][3], Scalar c[3][3])
     c[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0];
     c[0][1] = a[0][0] * b[0][1] + a[0][1] * b[1][1] + a[0][2] * b[2][1];
     c[0][2] = a[0][0] * b[0][2] + a[0][1] * b[1][2] + a[0][2] * b[2][2];
-    
+
     c[1][0] = a[1][0] * b[0][0] + a[1][1] * b[1][0] + a[1][2] * b[2][0];
     c[1][1] = a[1][0] * b[0][1] + a[1][1] * b[1][1] + a[1][2] * b[2][1];
     c[1][2] = a[1][0] * b[0][2] + a[1][1] * b[1][2] + a[1][2] * b[2][2];
-    
+
     c[2][0] = a[2][0] * b[0][0] + a[2][1] * b[1][0] + a[2][2] * b[2][0];
     c[2][1] = a[2][0] * b[0][1] + a[2][1] * b[1][1] + a[2][2] * b[2][1];
     c[2][2] = a[2][0] * b[0][2] + a[2][1] * b[1][2] + a[2][2] * b[2][2];
@@ -184,13 +184,13 @@ inline static void mat_multiply(Scalar a[3][3], Scalar b[3][3], Scalar c[3][3])
 */
 void RigidData::initializeData()
     {
-    
+
     // get the particle data
     ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     BoxDim box = m_pdata->getBox();
-    
+
     // determine the number of rigid bodies
     unsigned int maxbody = 0;
     unsigned int minbody = NO_BODY;
@@ -207,7 +207,7 @@ void RigidData::initializeData()
                 minbody = h_body.data[j];
             }
         }
-    
+
     if (found_body)
         {
         m_n_bodies = maxbody + 1;   // h_body.data[j] is numbered from 0
@@ -219,12 +219,12 @@ void RigidData::initializeData()
         }
     else
         m_n_bodies = 0;
-        
+
     if (m_n_bodies <= 0)
         {
         return;
         }
-        
+
     // allocate nbodies-size arrays
     GPUArray<unsigned int> body_dof(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar> body_mass(m_n_bodies, m_pdata->getExecConf());
@@ -243,9 +243,9 @@ void RigidData::initializeData()
     GPUArray<Scalar4> angvel(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> force(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> torque(m_n_bodies, m_pdata->getExecConf());
-    
+
     GPUArray<unsigned int> particle_offset(m_pdata->getN(), m_pdata->getExecConf());
-    
+
     m_body_dof.swap(body_dof);
     m_body_mass.swap(body_mass);
     m_body_size.swap(body_size);
@@ -263,33 +263,33 @@ void RigidData::initializeData()
     m_angvel.swap(angvel);
     m_force.swap(force);
     m_torque.swap(torque);
-    
+
     m_particle_offset.swap(particle_offset);
-    
+
     {
     // determine the largest size of rigid bodies (nmax)
     ArrayHandle<unsigned int> body_size_handle(m_body_size, access_location::host, access_mode::readwrite);
     for (unsigned int body = 0; body < m_n_bodies; body++)
         body_size_handle.data[body] = 0;
-        
+
     for (unsigned int j = 0; j < nparticles; j++)
         {
         unsigned int body = h_body.data[j];
         if (body != NO_BODY)
             body_size_handle.data[body]++;
         }
-        
+
     // determine the maximum number of particles in a rigid body
     m_nmax = 0;
     for (unsigned int body = 0; body < m_n_bodies; body++)
         if (m_nmax < body_size_handle.data[body])
             m_nmax = body_size_handle.data[body];
-    
+
     // determine body_mass, inertia tensor, com and vel
     GPUArray<Scalar> inertia(6, m_n_bodies, m_pdata->getExecConf()); // the inertia tensor is symmetric, therefore we only need to store 6 elements
     ArrayHandle<Scalar> inertia_handle(inertia, access_location::host, access_mode::readwrite);
     unsigned int inertia_pitch = inertia.getPitch();
-    
+
     ArrayHandle<unsigned int> body_dof_handle(m_body_dof, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::host, access_mode::readwrite);
@@ -299,14 +299,14 @@ void RigidData::initializeData()
     ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::host, access_mode::readwrite);
     ArrayHandle<int3> body_image_handle(m_body_image, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
-    
+
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
         body_mass_handle.data[body] = 0.0;
         com_handle.data[body].x = 0.0;
         com_handle.data[body].y = 0.0;
         com_handle.data[body].z = 0.0;
-        
+
         inertia_handle.data[inertia_pitch * body] = 0.0;
         inertia_handle.data[inertia_pitch * body + 1] = 0.0;
         inertia_handle.data[inertia_pitch * body + 2] = 0.0;
@@ -314,7 +314,7 @@ void RigidData::initializeData()
         inertia_handle.data[inertia_pitch * body + 4] = 0.0;
         inertia_handle.data[inertia_pitch * body + 5] = 0.0;
         }
-    
+
     // determine a nominal box image vector for each body
     // this is done so that bodies may be "unwrapped" from around the box dimensions in a numerically
     // stable way by bringing all particles unwrapped coords to being at most slightly outside of the box.
@@ -328,13 +328,13 @@ void RigidData::initializeData()
         if (body != NO_BODY)
             nominal_body_image[body] = h_image.data[j];
         }
-    
-    // compute the center of mass for each body by summing up mass * \vec{r} for each particle in the body    
+
+    // compute the center of mass for each body by summing up mass * \vec{r} for each particle in the body
     ArrayHandle< Scalar4 > h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         if (h_body.data[j] == NO_BODY) continue;
-        
+
         unsigned int body = h_body.data[j];
         Scalar mass_one = h_vel.data[j].w;
         body_mass_handle.data[body] += mass_one;
@@ -344,7 +344,7 @@ void RigidData::initializeData()
                                h_image.data[j].z - nominal_body_image[body].z);
         Scalar3 wrapped = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
         Scalar3 unwrapped = box.shift(wrapped, shift);
-        
+
         com_handle.data[body].x += mass_one * unwrapped.x;
         com_handle.data[body].y += mass_one * unwrapped.y;
         com_handle.data[body].z += mass_one * unwrapped.z;
@@ -359,12 +359,12 @@ void RigidData::initializeData()
         com_handle.data[body].x /= mass_body;
         com_handle.data[body].y /= mass_body;
         com_handle.data[body].z /= mass_body;
-        
+
         body_image_handle.data[body].x = nominal_body_image[body].x;
         body_image_handle.data[body].y = nominal_body_image[body].y;
         body_image_handle.data[body].z = nominal_body_image[body].z;
         }
-    
+
     Scalar4 porientation;
     Scalar4 ex, ey, ez;
     InertiaTensor pinertia_tensor;
@@ -376,59 +376,59 @@ void RigidData::initializeData()
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         if (h_body.data[j] == NO_BODY) continue;
-        
+
         unsigned int body = h_body.data[j];
         Scalar mass_one = h_vel.data[j].w;
         unsigned int tag = h_tag.data[j];
-        
+
         // unwrap all particles in a body to the same image
         int3 shift = make_int3(h_image.data[j].x - nominal_body_image[body].x,
                                h_image.data[j].y - nominal_body_image[body].y,
                                h_image.data[j].z - nominal_body_image[body].z);
         Scalar3 wrapped = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
         Scalar3 unwrapped = box.shift(wrapped, shift);
-        
+
         Scalar dx = unwrapped.x - com_handle.data[body].x;
         Scalar dy = unwrapped.y - com_handle.data[body].y;
         Scalar dz = unwrapped.z - com_handle.data[body].z;
-            
+
         inertia_handle.data[inertia_pitch * body + 0] += mass_one * (dy * dy + dz * dz);
         inertia_handle.data[inertia_pitch * body + 1] += mass_one * (dz * dz + dx * dx);
         inertia_handle.data[inertia_pitch * body + 2] += mass_one * (dx * dx + dy * dy);
         inertia_handle.data[inertia_pitch * body + 3] -= mass_one * dx * dy;
         inertia_handle.data[inertia_pitch * body + 4] -= mass_one * dy * dz;
         inertia_handle.data[inertia_pitch * body + 5] -= mass_one * dx * dz;
-        
+
         // take into account the partile inertia moments
         // get the original particle orientation and inertia tensor from input
         porientation = h_p_orientation.data[j];
         pinertia_tensor = m_pdata->getInertiaTensor(tag);
-        
+
         exyzFromQuaternion(porientation, ex, ey, ez);
-        
+
         rot_mat[0][0] = rot_mat_trans[0][0] = ex.x;
         rot_mat[1][0] = rot_mat_trans[0][1] = ex.y;
         rot_mat[2][0] = rot_mat_trans[0][2] = ex.z;
-        
+
         rot_mat[0][1] = rot_mat_trans[1][0] = ey.x;
         rot_mat[1][1] = rot_mat_trans[1][1] = ey.y;
         rot_mat[2][1] = rot_mat_trans[1][2] = ey.z;
-        
+
         rot_mat[0][2] = rot_mat_trans[2][0] = ez.x;
         rot_mat[1][2] = rot_mat_trans[2][1] = ez.y;
         rot_mat[2][2] = rot_mat_trans[2][2] = ez.z;
-        
+
         Ibody[0][0] = pinertia_tensor.components[0];
         Ibody[0][1] = Ibody[1][0] = pinertia_tensor.components[1];
         Ibody[0][2] = Ibody[2][0] = pinertia_tensor.components[2];
         Ibody[1][1] = pinertia_tensor.components[3];
         Ibody[1][2] = Ibody[2][1] = pinertia_tensor.components[4];
         Ibody[2][2] = pinertia_tensor.components[5];
-        
-        // convert the particle inertia tensor to the space fixed frame 
+
+        // convert the particle inertia tensor to the space fixed frame
         mat_multiply(Ibody, rot_mat_trans, tmp);
         mat_multiply(rot_mat, tmp, Ispace);
-        
+
         inertia_handle.data[inertia_pitch * body + 0] += Ispace[0][0];
         inertia_handle.data[inertia_pitch * body + 1] += Ispace[1][1];
         inertia_handle.data[inertia_pitch * body + 2] += Ispace[2][2];
@@ -436,7 +436,7 @@ void RigidData::initializeData()
         inertia_handle.data[inertia_pitch * body + 4] += Ispace[1][2];
         inertia_handle.data[inertia_pitch * body + 5] += Ispace[0][2];
         }
-    
+
     // allocate temporary arrays: revision needed!
     Scalar **matrix, *evalues, **evectors;
     matrix = new Scalar*[3];
@@ -447,7 +447,7 @@ void RigidData::initializeData()
         matrix[j] = new Scalar[3];
         evectors[j] = new Scalar[3];
         }
-        
+
     unsigned int dof_one;
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
@@ -457,97 +457,97 @@ void RigidData::initializeData()
         matrix[0][1] = matrix[1][0] = inertia_handle.data[inertia_pitch * body + 3];
         matrix[1][2] = matrix[2][1] = inertia_handle.data[inertia_pitch * body + 4];
         matrix[2][0] = matrix[0][2] = inertia_handle.data[inertia_pitch * body + 5];
-        
+
         int error = diagonalize(matrix, evalues, evectors);
-        if (error) 
+        if (error)
             m_exec_conf->msg->warning() << "rigid data: Insufficient Jacobi iterations for diagonalization!\n";
-        
+
         // obtain the moment inertia from eigen values
         moment_inertia_handle.data[body].x = evalues[0];
         moment_inertia_handle.data[body].y = evalues[1];
         moment_inertia_handle.data[body].z = evalues[2];
-            
+
         // set tiny moment of inertia component to be zero, count the number of degrees of freedom
         // the actual DOF for temperature calculation is computed in the integrator (TwoStepNVERigid)
         // where the number of system dimensions is available
         // The counting below is only for book-keeping
         dof_one = 6;
-    
+
         Scalar max = MAX(moment_inertia_handle.data[body].x, moment_inertia_handle.data[body].y);
         max = MAX(max, moment_inertia_handle.data[body].z);
-        
+
         if (moment_inertia_handle.data[body].x < EPSILON * max)
             {
             dof_one--;
             moment_inertia_handle.data[body].x = Scalar(0.0);
             }
-            
+
         if (moment_inertia_handle.data[body].y < EPSILON * max)
             {
             dof_one--;
             moment_inertia_handle.data[body].y = Scalar(0.0);
             }
-            
+
         if (moment_inertia_handle.data[body].z < EPSILON * max)
             {
             dof_one--;
             moment_inertia_handle.data[body].z = Scalar(0.0);
             }
-        
-        body_dof_handle.data[body] = dof_one;    
+
+        body_dof_handle.data[body] = dof_one;
         m_ndof += dof_one;
-        
+
         // obtain the principle axes from eigen vectors
         ex_space_handle.data[body].x = evectors[0][0];
         ex_space_handle.data[body].y = evectors[1][0];
         ex_space_handle.data[body].z = evectors[2][0];
-        
+
         ey_space_handle.data[body].x = evectors[0][1];
         ey_space_handle.data[body].y = evectors[1][1];
         ey_space_handle.data[body].z = evectors[2][1];
-        
+
         ez_space_handle.data[body].x = evectors[0][2];
         ez_space_handle.data[body].y = evectors[1][2];
         ez_space_handle.data[body].z = evectors[2][2];
-        
+
         // create the initial quaternion from the new body frame
         quaternionFromExyz(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body],
                            orientation_handle.data[body]);
         }
-        
+
     // deallocate temporary memory
     delete [] evalues;
-    
+
     for (unsigned int j = 0; j < 3; j++)
         {
         delete [] matrix[j];
         delete [] evectors[j];
         }
-        
+
     delete [] evectors;
     delete [] matrix;
-    
-        
+
+
     // allocate nmax by m_n_bodies arrays, swap to member variables then use array handles to access
     GPUArray<unsigned int> particle_tags(m_nmax, m_n_bodies,  m_pdata->getExecConf());
     m_particle_tags.swap(particle_tags);
     ArrayHandle<unsigned int> particle_tags_handle(m_particle_tags, access_location::host, access_mode::readwrite);
     unsigned int particle_tags_pitch = m_particle_tags.getPitch();
-    
+
     GPUArray<unsigned int> particle_indices(m_nmax, m_n_bodies, m_pdata->getExecConf());
     m_particle_indices.swap(particle_indices);
     ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::readwrite);
     unsigned int particle_indices_pitch = m_particle_indices.getPitch();
-    
-    for (unsigned int j = 0; j < m_n_bodies; j++) 
+
+    for (unsigned int j = 0; j < m_n_bodies; j++)
         for (unsigned int local = 0; local < particle_indices_pitch; local++)
             particle_indices_handle.data[j * particle_indices_pitch + local] = NO_INDEX; // initialize with a sentinel value
-    
+
     GPUArray<Scalar4> particle_pos(m_nmax, m_n_bodies, m_pdata->getExecConf());
     m_particle_pos.swap(particle_pos);
     ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite);
     unsigned int particle_pos_pitch = m_particle_pos.getPitch();
-    
+
     GPUArray<Scalar4> particle_orientation(m_nmax, m_n_bodies, m_pdata->getExecConf());
     m_particle_orientation.swap(particle_orientation);
     ArrayHandle<Scalar4> h_particle_orientation(m_particle_orientation, access_location::host, access_mode::readwrite);
@@ -556,21 +556,21 @@ void RigidData::initializeData()
     ArrayHandle<unsigned int> local_indices_handle(local_indices, access_location::host, access_mode::readwrite);
     for (unsigned int body = 0; body < m_n_bodies; body++)
         local_indices_handle.data[body] = 0;
-    
-    // Now set the m_nmax according to the actual pitches to avoid dublicating rounding up (e.g. if m_nmax is rounded up to 16 here, 
+
+    // Now set the m_nmax according to the actual pitches to avoid dublicating rounding up (e.g. if m_nmax is rounded up to 16 here,
     // then in the GPUArray constructor the pitch is rounded up once more to be 32.
     m_nmax = particle_tags_pitch;
-    
+
     //tally up how many particles belong to rigid bodies
     unsigned int rigid_particle_count = 0;
-    
+
     // determine the particle indices and particle tags
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         if (h_body.data[j] == NO_BODY) continue;
-        
+
         rigid_particle_count++;
-        
+
         // get the corresponding body
         unsigned int body = h_body.data[j];
         // get the current index in the body
@@ -579,7 +579,7 @@ void RigidData::initializeData()
         particle_indices_handle.data[body * particle_indices_pitch + current_localidx] = j;
         // set the particle tag to be the tag of this particle
         particle_tags_handle.data[body * particle_tags_pitch + current_localidx] = h_tag.data[j];
-        
+
         // determine the particle position in the body frame
         // with ex_space, ey_space and ex_space vectors computed from the diagonalization
         // unwrap all particles in a body to the same image
@@ -588,11 +588,11 @@ void RigidData::initializeData()
                                h_image.data[j].z - nominal_body_image[body].z);
         Scalar3 wrapped = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
         Scalar3 unwrapped = box.shift(wrapped, shift);
-        
+
         Scalar dx = unwrapped.x - com_handle.data[body].x;
         Scalar dy = unwrapped.y - com_handle.data[body].y;
         Scalar dz = unwrapped.z - com_handle.data[body].z;
-                    
+
         unsigned int idx = body * particle_pos_pitch + current_localidx;
         particle_pos_handle.data[idx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
                 dz * ex_space_handle.data[body].z;
@@ -600,16 +600,16 @@ void RigidData::initializeData()
                 dz * ey_space_handle.data[body].z;
         particle_pos_handle.data[idx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
                 dz * ez_space_handle.data[body].z;
-        
+
         // initialize h_particle_orientation.data[idx] here from the initial particle orientation. This means
         // reading the intial particle orientation from ParticleData and translating it backwards into the body frame
         Scalar4 qc;
         quatconj(orientation_handle.data[body], qc);
-        
+
         porientation = h_p_orientation.data[j];
         quatquat(qc, porientation, h_particle_orientation.data[idx]);
         normalize(h_particle_orientation.data[idx]);
-        
+
         // increment the current index by one
         local_indices_handle.data[body]++;
         }
@@ -619,7 +619,7 @@ void RigidData::initializeData()
         {
         box.wrap(com_handle.data[body], body_image_handle.data[body]);
         }
-    
+
     //initialize rigid_particle_indices
     GPUArray<unsigned int> rigid_particle_indices(rigid_particle_count, m_pdata->getExecConf());
     m_rigid_particle_indices.swap(rigid_particle_indices);
@@ -627,22 +627,22 @@ void RigidData::initializeData()
 
     GPUArray<Scalar4> particle_oldpos(m_pdata->getN(), m_pdata->getExecConf());
     m_particle_oldpos.swap(particle_oldpos);
-    
+
     GPUArray<Scalar4> particle_oldvel(m_pdata->getN(), m_pdata->getExecConf());
     m_particle_oldvel.swap(particle_oldvel);
-                                          
+
     // release particle data for later access
     }   // out of scope for handles
-        
+
     // finish up by initializing the indices
     recalcIndices();
     }
- 
+
 /* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration
     based on the body center of mass and particle relative position in each body frame.
     \param set_x if true, positions are updated too.  Else just velocities.
-   
-*/       
+
+*/
 void RigidData::setRV(bool set_x)
    {
     #ifdef ENABLE_CUDA
@@ -651,9 +651,9 @@ void RigidData::setRV(bool set_x)
         else
     #endif
          setRVCPU(true);
-   }    
+   }
 
-    
+
 /* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration on the CPU
     based on the body center of mass and particle relative position in each body frame.
     \param set_x if true, positions are updated too.  Else just velocities.
@@ -667,7 +667,7 @@ void RigidData::setRVCPU(bool set_x)
     // access to the force
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-    
+
     // rigid body handles
     ArrayHandle<unsigned int> body_size_handle(m_body_size, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> com(m_com, access_location::host, access_mode::read);
@@ -675,7 +675,7 @@ void RigidData::setRVCPU(bool set_x)
     ArrayHandle<Scalar4> angvel_handle(m_angvel, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::read);
     ArrayHandle<int3> body_image_handle(m_body_image, access_location::host, access_mode::read);
-        
+
     ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::read);
     unsigned int indices_pitch = m_particle_indices.getPitch();
     ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::read);
@@ -687,14 +687,14 @@ void RigidData::setRVCPU(bool set_x)
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_p_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-    
+
     Scalar4 ex_space, ey_space, ez_space;
-    
+
     // for each body of all the bodies
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
         exyzFromQuaternion(orientation_handle.data[body], ex_space, ey_space, ez_space);
-        
+
         unsigned int len = body_size_handle.data[body];
         // for each particle
         for (unsigned int j = 0; j < len; j++)
@@ -703,7 +703,7 @@ void RigidData::setRVCPU(bool set_x)
             unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
             // get the index of particle in the current rigid body in the particle_pos array
             unsigned int localidx = body * particle_pos_pitch + j;
-            
+
             // project the position in the body frame to the space frame: xr = rotation_matrix * particle_pos
             Scalar xr = ex_space.x * particle_pos_handle.data[localidx].x
                         + ey_space.x * particle_pos_handle.data[localidx].y
@@ -714,47 +714,47 @@ void RigidData::setRVCPU(bool set_x)
             Scalar zr = ex_space.z * particle_pos_handle.data[localidx].x
                         + ey_space.z * particle_pos_handle.data[localidx].y
                         + ez_space.z * particle_pos_handle.data[localidx].z;
-                        
-            if (set_x) 
+
+            if (set_x)
                 {
                 // x_particle = x_com + xr
                 Scalar3 pos = make_scalar3(com.data[body].x + xr,
                                            com.data[body].y + yr,
                                            com.data[body].z + zr);
-                
+
                 // adjust particle images based on body images
                 h_image.data[pidx] = body_image_handle.data[body];
-                
+
                 box.wrap(pos, h_image.data[pidx]);
                 h_pos.data[pidx].x = pos.x;
                 h_pos.data[pidx].y = pos.y;
                 h_pos.data[pidx].z = pos.z;
 
                 // update the particle orientation: q_i = quat[body] * particle_quat
-                Scalar4 porientation; 
+                Scalar4 porientation;
                 quatquat(orientation_handle.data[body], particle_orientation.data[localidx], porientation);
                 normalize(porientation);
                 h_p_orientation.data[pidx] = porientation;
                 }
-            
+
             // v_particle = v_com + angvel x xr
             h_vel.data[pidx].x = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
             h_vel.data[pidx].y = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
             h_vel.data[pidx].z = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
             }
         }
-        
+
     }
 
 /* Helper GPU function to set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration
     based on the body center of mass and particle relative position in each body frame.
     \param set_x if true, positions are updated too.  Else just velocities.
-   
+
 */
 #ifdef ENABLE_CUDA
 void RigidData::setRVGPU(bool set_x)
     {
-        
+
     // sanity check
     if (m_n_bodies <= 0)
         return;
@@ -766,12 +766,12 @@ void RigidData::setRVGPU(bool set_x)
 
     // Acquire handles
     ArrayHandle<unsigned int> rigid_particle_indices(m_rigid_particle_indices, access_location::device, access_mode::read);
-    
+
     // access all the needed data
     ArrayHandle<Scalar4> d_porientation(m_pdata->getOrientationArray(),access_location::device,access_mode::readwrite);
-    
+
     BoxDim box = m_pdata->getBox();
-    
+
     ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> com_handle(m_com, access_location::device, access_mode::readwrite);
@@ -784,19 +784,19 @@ void RigidData::setRVGPU(bool set_x)
     ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(m_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(m_torque, access_location::device, access_mode::read);
-    
+
     ArrayHandle<unsigned int> d_particle_offset(m_particle_offset, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_particle_orientation(m_particle_orientation, access_location::device, access_mode::readwrite);
 
 
-    // More data is filled in here than I use.  
+    // More data is filled in here than I use.
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = m_n_bodies;
     d_rdata.n_group_bodies = m_n_bodies;
     d_rdata.nmax = m_nmax;
     d_rdata.local_beg = 0;
     d_rdata.local_num = m_n_bodies;
-    
+
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
     d_rdata.com = com_handle.data;
@@ -811,8 +811,8 @@ void RigidData::setRVGPU(bool set_x)
     d_rdata.torque = torque_handle.data;
     d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
-    
-    
+
+
     gpu_rigid_setRV(               d_pos.data,
                                    d_vel.data,
                                    d_image.data,
@@ -822,11 +822,11 @@ void RigidData::setRVGPU(bool set_x)
                                    rigid_particle_indices.data,
                                    m_num_particles,
                                    box,
-                                   set_x);    
-                                       
-        
+                                   set_x);
+
+
     }
-#endif    
+#endif
 
 /*! Compute eigenvalues and eigenvectors of 3x3 real symmetric matrix based on Jacobi rotations adapted from Numerical Recipes jacobi() function (LAMMPS)
     \param matrix Matrix to be diagonalized
@@ -839,31 +839,31 @@ int RigidData::diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors)
     {
     int i,j,k;
     Scalar tresh, theta, tau, t, sm, s, h, g, c, b[3], z[3];
-    
+
     for (i = 0; i < 3; i++)
         {
         for (j = 0; j < 3; j++) evectors[i][j] = 0.0;
         evectors[i][i] = 1.0;
         }
-        
+
     for (i = 0; i < 3; i++)
         {
         b[i] = evalues[i] = matrix[i][i];
         z[i] = 0.0;
         }
-        
+
     for (int iter = 1; iter <= MAXJACOBI; iter++)
         {
         sm = 0.0;
         for (i = 0; i < 2; i++)
             for (j = i+1; j < 3; j++)
                 sm += fabs(matrix[i][j]);
-                
+
         if (sm == 0.0) return 0;
-        
+
         if (iter < 4) tresh = 0.2*sm/(3*3);
         else tresh = 0.0;
-        
+
         for (i = 0; i < 2; i++)
             {
             for (j = i+1; j < 3; j++)
@@ -882,7 +882,7 @@ int RigidData::diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors)
                         t = 1.0/(fabs(theta)+sqrt(1.0+theta*theta));
                         if (theta < 0.0) t = -t;
                         }
-                        
+
                     c = 1.0/sqrt(1.0+t*t);
                     s = t*c;
                     tau = s/(1.0+c);
@@ -899,21 +899,21 @@ int RigidData::diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors)
                     }
                 }
             }
-            
+
         for (i = 0; i < 3; i++)
             {
             evalues[i] = b[i] += z[i];
             z[i] = 0.0;
             }
         }
-        
+
     return 1;
     }
 
 /*! Perform a single Jacobi rotation
     \param matrix Matrix to be diagonalized
-    \param i 
-    \param j 
+    \param i
+    \param j
     \param k
     \param l
     \param s
@@ -937,14 +937,14 @@ void RigidData::rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Sc
 
 void RigidData::quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat)
     {
-    
+
     // enforce 3 evectors as a right-handed coordinate system
     // flip 3rd evector if needed
     Scalar ez0, ez1, ez2; // Cross product of first two vectors
     ez0 = ex_space.y * ey_space.z - ex_space.z * ey_space.y;
     ez1 = ex_space.z * ey_space.x - ex_space.x * ey_space.z;
     ez2 = ex_space.x * ey_space.y - ex_space.y * ey_space.x;
-    
+
     // then dot product with the third one
     if (ez0 * ez_space.x + ez1 * ez_space.y + ez2 * ez_space.z < 0.0)
         {
@@ -952,13 +952,13 @@ void RigidData::quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4
         ez_space.y = -ez_space.y;
         ez_space.z = -ez_space.z;
         }
-        
+
     // squares of quaternion components
     Scalar q0sq = 0.25 * (ex_space.x + ey_space.y + ez_space.z + 1.0);
     Scalar q1sq = q0sq - 0.5 * (ey_space.y + ez_space.z);
     Scalar q2sq = q0sq - 0.5 * (ex_space.x + ez_space.z);
     Scalar q3sq = q0sq - 0.5 * (ex_space.x + ey_space.y);
-    
+
     // some component must be greater than 1/4 since they sum to 1
     // compute other components from it
     if (q0sq >= 0.25)
@@ -989,14 +989,14 @@ void RigidData::quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4
         quat.y = (ez_space.x + ex_space.z) / (4.0 * quat.w);
         quat.z = (ez_space.y + ey_space.z) / (4.0 * quat.w);
         }
-        
+
     // Normalize
     Scalar norm = 1.0 / sqrt(quat.x * quat.x + quat.y * quat.y + quat.z * quat.z + quat.w * quat.w);
     quat.x *= norm;
     quat.y *= norm;
     quat.z *= norm;
     quat.w *= norm;
-    
+
     }
 
 /*! Calculate the axes from quaternion
@@ -1004,37 +1004,37 @@ void RigidData::quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4
     \param ex_space x-axis unit vector
     \param ey_space y-axis unit vector
     \param ez_space z-axis unit vector
-    
+
 */
 void RigidData::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space)
     {
     ex_space.x = quat.x * quat.x + quat.y * quat.y - quat.z * quat.z - quat.w * quat.w;
     ex_space.y = 2.0 * (quat.y * quat.z + quat.x * quat.w);
     ex_space.z = 2.0 * (quat.y * quat.w - quat.x * quat.z);
-    
+
     ey_space.x = 2.0 * (quat.y * quat.z - quat.x * quat.w);
     ey_space.y = quat.x * quat.x - quat.y * quat.y + quat.z * quat.z - quat.w * quat.w;
     ey_space.z = 2.0 * (quat.z * quat.w + quat.x * quat.y);
-  
+
     ez_space.x = 2.0 * (quat.y * quat.w + quat.x * quat.z);
     ez_space.y = 2.0 * (quat.z * quat.w - quat.x * quat.y);
     ez_space.z = quat.x * quat.x - quat.y * quat.y - quat.z * quat.z + quat.w * quat.w;
     }
-    
+
 /*!
     \param body Body index to set angular momentum
     \param angmom Angular momentum
 */
 void RigidData::setAngMom(unsigned int body, Scalar3 angmom)
     {
-    if (body < 0 || body >= m_n_bodies) 
+    if (body < 0 || body >= m_n_bodies)
         {
         m_exec_conf->msg->error() << "Error setting angular momentum for body " << body << "\n";
         return;
         }
-    
+
     ArrayHandle<Scalar4> h_angmom(m_angmom, access_location::host, access_mode::readwrite);
-    
+
     h_angmom.data[body].x = angmom.x;
     h_angmom.data[body].y = angmom.y;
     h_angmom.data[body].z = angmom.z;
@@ -1045,7 +1045,7 @@ void RigidData::setAngMom(unsigned int body, Scalar3 angmom)
     ArrayHandle<Scalar4> h_moment_inertia(m_moment_inertia, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_orientation, access_location::host, access_mode::read);
     exyzFromQuaternion(h_orientation.data[body], ex, ey, ez);
-    
+
     computeAngularVelocity(h_angmom.data[body],
                            h_moment_inertia.data[body],
                            ex,
@@ -1067,7 +1067,7 @@ void RigidData::computeVirialCorrectionStart()
     #endif
         computeVirialCorrectionStartCPU();
     }
-        
+
 
 /*! computeVirialCorrectionEnd() must be called at the end of any time step update when there are rigid bodies
     present in the system and the virial needs to be computed. And computeVirialCorrectionStart() must have been
@@ -1091,7 +1091,7 @@ void RigidData::computeVirialCorrectionStartCPU()
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_oldpos(m_particle_oldpos, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar4> h_oldvel(m_particle_oldvel, access_location::host, access_mode::overwrite);    
+    ArrayHandle<Scalar4> h_oldvel(m_particle_oldvel, access_location::host, access_mode::overwrite);
 
     // loop through the particles and save the current position and velocity of each one
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -1109,7 +1109,7 @@ void RigidData::computeVirialCorrectionEndCPU(Scalar deltaT)
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_oldpos(m_particle_oldpos, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_oldvel(m_particle_oldvel, access_location::host, access_mode::read); 
+    ArrayHandle<Scalar4> h_oldvel(m_particle_oldvel, access_location::host, access_mode::read);
 
     ArrayHandle<Scalar> h_net_virial( m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
     unsigned int virial_pitch = m_pdata->getNetVirial().getPitch();
@@ -1150,7 +1150,7 @@ void RigidData::computeVirialCorrectionStartGPU()
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_oldpos(m_particle_oldpos, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_oldvel(m_particle_oldvel, access_location::device, access_mode::overwrite);    
+    ArrayHandle<Scalar4> d_oldvel(m_particle_oldvel, access_location::device, access_mode::overwrite);
 
     // copy the existing position and velocity over to the oldpos arrays
     cudaMemcpy(d_oldpos.data, d_pos.data, sizeof(Scalar4)*m_pdata->getN(), cudaMemcpyDeviceToDevice);
@@ -1168,7 +1168,7 @@ void RigidData::computeVirialCorrectionEndGPU(Scalar deltaT)
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_oldpos(m_particle_oldpos, access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_oldvel(m_particle_oldvel, access_location::device, access_mode::read); 
+    ArrayHandle<Scalar4> d_oldvel(m_particle_oldvel, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar> d_net_virial( m_pdata->getNetVirial(), access_location::device, access_mode::readwrite);
     unsigned int virial_pitch = m_pdata->getNetVirial().getPitch();
@@ -1205,7 +1205,7 @@ void RigidData::initializeFromSnapshot(const SnapshotRigidData& snapshot)
     ArrayHandle<Scalar4> h_vel(getVel(), access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_angmom(getAngMom(), access_location::host, access_mode::overwrite);
     ArrayHandle<int3> h_body_image(getBodyImage(), access_location::host, access_mode::overwrite);
-  
+
     // Error out if snapshot contains a different number of bodies
     if (getNumBodies() != snapshot.size)
         {
@@ -1221,10 +1221,10 @@ void RigidData::initializeFromSnapshot(const SnapshotRigidData& snapshot)
         {
         h_com.data[body] = make_scalar4(snapshot.com[body].x, snapshot.com[body].y, snapshot.com[body].z,0.0);
         h_vel.data[body] = make_scalar4(snapshot.vel[body].x, snapshot.vel[body].y, snapshot.vel[body].z,0.0);
-        h_angmom.data[body] = make_scalar4(snapshot.angmom[body].x, snapshot.angmom[body].y, snapshot.angmom[body].z, 0.0); 
+        h_angmom.data[body] = make_scalar4(snapshot.angmom[body].x, snapshot.angmom[body].y, snapshot.angmom[body].z, 0.0);
         h_body_image.data[body] = snapshot.body_image[body];
         }
- 
+
     }
 
 /*! \param snapshot The snapshot to fill with the rigid body data
@@ -1265,21 +1265,21 @@ void export_RigidData()
     {
     class_<RigidData, boost::shared_ptr<RigidData>, boost::noncopyable>("RigidData", init< boost::shared_ptr<ParticleData> >())
     .def("initializeData", &RigidData::initializeData)
-    .def("getNumBodies", &RigidData::getNumBodies)    
-    .def("getBodyCOM", &RigidData::getBodyCOM)    
-    .def("setBodyCOM", &RigidData::setBodyCOM)        
-    .def("getBodyVel", &RigidData::getBodyVel)  
-    .def("setBodyVel", &RigidData::setBodyVel)      
-    .def("getBodyOrientation", &RigidData::getBodyOrientation)    
-    .def("setBodyOrientation", &RigidData::setBodyOrientation)        
-    .def("getBodyNSize", &RigidData::getBodyNSize)   
-    .def("getMass", &RigidData::getMass)   
-    .def("setMass", &RigidData::setMass)                   
-    .def("getBodyAngMom", &RigidData::getBodyAngMom) 
-    .def("setAngMom", &RigidData::setAngMom)                                                                                           
-    .def("getBodyMomInertia", &RigidData::getBodyMomInertia) 
-    .def("setBodyMomInertia", &RigidData::setBodyMomInertia)         
-    .def("getParticleTag", &RigidData::getParticleTag)   
+    .def("getNumBodies", &RigidData::getNumBodies)
+    .def("getBodyCOM", &RigidData::getBodyCOM)
+    .def("setBodyCOM", &RigidData::setBodyCOM)
+    .def("getBodyVel", &RigidData::getBodyVel)
+    .def("setBodyVel", &RigidData::setBodyVel)
+    .def("getBodyOrientation", &RigidData::getBodyOrientation)
+    .def("setBodyOrientation", &RigidData::setBodyOrientation)
+    .def("getBodyNSize", &RigidData::getBodyNSize)
+    .def("getMass", &RigidData::getMass)
+    .def("setMass", &RigidData::setMass)
+    .def("getBodyAngMom", &RigidData::getBodyAngMom)
+    .def("setAngMom", &RigidData::setAngMom)
+    .def("getBodyMomInertia", &RigidData::getBodyMomInertia)
+    .def("setBodyMomInertia", &RigidData::setBodyMomInertia)
+    .def("getParticleTag", &RigidData::getParticleTag)
     .def("getParticleDisp", &RigidData::getParticleDisp)
     .def("setParticleDisp", &RigidData::setParticleDisp)
     .def("getBodyNetForce", &RigidData::getBodyNetForce)
@@ -1291,4 +1291,3 @@ void export_RigidData()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

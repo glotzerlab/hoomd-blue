@@ -171,10 +171,10 @@ class AngleData : boost::noncopyable
 
          //! Constructs an AngleData from a snapshot
         AngleData(boost::shared_ptr<ParticleData> pdata, const SnapshotAngleData& snapshot);
-        
+
         //! Destructor
         ~AngleData();
-        
+
         //! Add an angle to the list
         unsigned int addAngle(const Angle& angle);
 
@@ -189,7 +189,7 @@ class AngleData : boost::noncopyable
 
         //! Remove an angle identified by its unique tag from the list
         void removeAngle(unsigned int tag);
-        
+
         //! Get the number of angles
         /*! \return Number of angles present
         */
@@ -197,7 +197,7 @@ class AngleData : boost::noncopyable
             {
             return (unsigned int)m_angles.size();
             }
-            
+
         //! Get a given an angle
         /*! \param i Angle to access
         */
@@ -215,7 +215,7 @@ class AngleData : boost::noncopyable
         //! Get tag given an id
         unsigned int getAngleTag(unsigned int id) const;
 
-            
+
         //! Get the number of angle types
         /*! \return Number of angle types in the list of angles
         */
@@ -223,10 +223,10 @@ class AngleData : boost::noncopyable
             {
             return m_angle_type_mapping.size();
             }
-            
+
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name);
-        
+
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
 
@@ -265,10 +265,10 @@ class AngleData : boost::noncopyable
 
         //! Takes a snapshot of the current angle data
         void takeSnapshot(SnapshotAngleData& snapshot);
-        
+
         //! Initialize the angle data from a snapshot
         void initializeFromSnapshot(const SnapshotAngleData& snapshot);
-        
+
     private:
         bool m_angles_dirty;                            //!< True if the angle list has been changed
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these angles belong to
@@ -279,11 +279,11 @@ class AngleData : boost::noncopyable
         std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted angle tags
         GPUVector<unsigned int> m_angle_rtag;           //!< Map to support lookup of angle by tag
         std::vector<std::string> m_angle_type_mapping;  //!< Mapping between angle type indices and names
-        
+
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
-        
+
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_angles_dirty flag when partciles are sorted or an angle is added.
             The flag is used to test if the data structure needs updating on the GPU.
@@ -292,7 +292,7 @@ class AngleData : boost::noncopyable
             {
             m_angles_dirty = true;
             }
-            
+
         GPUArray<uint4> m_gpu_anglelist;    //!< List of angles on the GPU
         GPUArray<unsigned int> m_n_angles;  //!< Host copy of the number of angles
 
@@ -302,17 +302,16 @@ class AngleData : boost::noncopyable
 #endif
         //! Helper function to update the GPU angle table
         void updateAngleTable();
-        
+
         //! Helper function to reallocate the angle table on the device
         void reallocateAngleTable(int height);
-        
+
         //! Helper function to allocate the angle table
         void allocateAngleTable(int height);
-        
+
     };
 
 //! Exports AngleData to python
 void export_AngleData();
 
 #endif
-

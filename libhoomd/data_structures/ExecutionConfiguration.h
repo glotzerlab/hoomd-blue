@@ -80,7 +80,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \ingroup data_structs
     ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU
     (if requested), stores information about the GPU on which this simulation is executing, and the number of CPUs
-    utilized in the CPU mode. 
+    utilized in the CPU mode.
 
     The execution configuration is determined at the beginning of the run and must
     remain static for the entire run. It can be accessed from the ParticleData of the
@@ -100,7 +100,7 @@ struct ExecutionConfiguration : boost::noncopyable
         GPU,    //!< Execute on the GPU
         CPU,    //!< Execute on the CPU
         };
-        
+
     //! Default constructor
     ExecutionConfiguration(bool min_cpu=false,
                            bool ignore_display=false,
@@ -110,7 +110,7 @@ struct ExecutionConfiguration : boost::noncopyable
                            unsigned int n_ranks = 0
 #endif
                            );
-    
+
     //! Force a mode selection
     ExecutionConfiguration(executionMode mode,
                            int gpu_id=-1,
@@ -122,9 +122,9 @@ struct ExecutionConfiguration : boost::noncopyable
                            unsigned int n_ranks = 0
 #endif
                            );
-    
+
     ~ExecutionConfiguration();
-   
+
 #ifdef ENABLE_MPI
     //! Returns the boost MPI communicator
     const MPI_Comm getMPICommunicator() const
@@ -154,7 +154,7 @@ struct ExecutionConfiguration : boost::noncopyable
         {
         return (exec_mode == GPU);
         }
-    
+
     //! Returns true if CUDA error checking is enabled
     bool isCUDAErrorCheckingEnabled() const
         {
@@ -164,7 +164,7 @@ struct ExecutionConfiguration : boost::noncopyable
         return m_cuda_error_checking;
         #endif
         }
-    
+
     //! Sets the cuda error checking mode
     void setCUDAErrorChecking(bool cuda_error_checking)
         {
@@ -175,16 +175,16 @@ struct ExecutionConfiguration : boost::noncopyable
     std::string getGPUName() const;
 #ifdef ENABLE_CUDA
     cudaDeviceProp dev_prop;    //!< Cached device properties
-    
+
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapabilityAsString() const;
-    
+
     //! Get thie compute capability of the GPU
     unsigned int getComputeCapability() const;
 
     //! Handle cuda error message
     void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;
-    
+
     //! Check for cuda errors
     void checkCUDAError(const char *file, unsigned int line) const;
 #endif
@@ -194,14 +194,14 @@ struct ExecutionConfiguration : boost::noncopyable
         {
         return m_rank;
         }
- 
+
 #ifdef ENABLE_MPI
     //! Returns the partition number of this processor
     unsigned int getPartition() const
         {
         return m_partition;
         }
-   
+
     //! Return the number of ranks in this partition
     unsigned int getNRanks() const;
 
@@ -215,26 +215,26 @@ struct ExecutionConfiguration : boost::noncopyable
     void setMPICommunicator(const MPI_Comm mpi_comm)
         {
         m_mpi_comm = mpi_comm;
-        } 
+        }
 #endif
 
 private:
 #ifdef ENABLE_CUDA
     //! Initialize the GPU with the given id
     void initializeGPU(int gpu_id, bool min_cpu);
-    
+
     //! Print out stats on the chosen GPUs
     void printGPUStats();
-    
+
     //! Scans through all GPUs reported by CUDA and marks if they are available
     void scanGPUs(bool ignore_display);
-    
+
     //! Returns true if the given GPU is available for computation
     bool isGPUAvailable(int gpu_id);
-    
+
     //! Returns the count of capable GPUs
     int getNumCapableGPUs();
-    
+
     //! Return the number of GPUs that can be checked for availability
     unsigned int getNumTotalGPUs()
         {
@@ -268,4 +268,3 @@ private:
 void export_ExecutionConfiguration();
 
 #endif
-

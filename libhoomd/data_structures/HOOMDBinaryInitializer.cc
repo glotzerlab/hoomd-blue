@@ -119,7 +119,7 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
 boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() const
     {
     boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
-    
+
     // execute only on rank zero
     if (m_exec_conf->getRank()) return snapshot;
 
@@ -130,7 +130,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
     snapshot->global_box = m_box;
 
     // init particle data snapshot
-    SnapshotParticleData& pdata = snapshot->particle_data; 
+    SnapshotParticleData& pdata = snapshot->particle_data;
 
     // resize snapshot
     pdata.resize(m_x_array.size());
@@ -149,7 +149,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
         pdata.diameter[i] = m_diameter_array[rtag];
         pdata.charge[i] = m_charge_array[rtag];
         pdata.body[i] = m_body_array[rtag];
-        }        
+        }
 
     pdata.type_mapping = m_type_mapping;
 
@@ -167,7 +167,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
         bdata.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
         bdata.type_id[i] = m_bonds[i].type;
         }
-        
+
     bdata.type_mapping = m_bond_type_mapping;
 
     /*
@@ -184,7 +184,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
         adata.angles[i] = make_uint3(m_angles[i].a,m_angles[i].b,m_angles[i].c);
         adata.type_id[i] = m_angles[i].type;
         }
-        
+
     adata.type_mapping = m_angle_type_mapping;
 
     /*
@@ -218,7 +218,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
         idata.dihedrals[i] = make_uint4(m_impropers[i].a,m_impropers[i].b,m_impropers[i].c, m_impropers[i].d);
         idata.type_id[i] = m_impropers[i].type;
         }
-        
+
     idata.type_mapping = m_improper_type_mapping;
 
     /*
@@ -244,7 +244,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
         rdata.com[body] = make_scalar3(m_com[body].x, m_com[body].y, m_com[body].z);
         rdata.vel[body] = make_scalar3(m_vel[body].x, m_vel[body].y, m_vel[body].z);
         rdata.angmom[body] = make_scalar3(m_angmom[body].x, m_angmom[body].y, m_angmom[body].z);
-        rdata.body_image[body] = m_body_image[body]; 
+        rdata.body_image[body] = m_body_image[body];
         }
 
     return snapshot;
@@ -282,7 +282,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     string ext = fname.substr(fname.size()-3, fname.size());
     if (ext == string(".gz"))
          enable_decompression = true;
-    
+
     #ifndef ENABLE_ZLIB
     if (enable_decompression)
         {
@@ -291,7 +291,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         throw runtime_error("Error reading binary file");
         }
     #endif
-    
+
     // Open the file
     m_exec_conf->msg->notice(2) << "Reading " << fname << "..." << endl;
     // setup the file input for decompression
@@ -301,14 +301,14 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.push(gzip_decompressor());
     #endif
     f.push(file_source(fname.c_str(), ios::in | ios::binary));
-    
+
     // handle errors
     if (f.fail())
         {
         m_exec_conf->msg->error() << endl << "Error opening " << fname << endl << endl;
         throw runtime_error("Error reading binary file");
         }
-    
+
     // read magic
     unsigned int magic = 0x444d4f48;
     unsigned int file_magic;
@@ -323,11 +323,11 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
 
         throw runtime_error("Error reading binary file");
         }
-    
+
     int version = 3;
     int file_version;
     f.read((char*)&file_version, sizeof(int));
-    
+
     // right now, the version tag doesn't do anything: just warn if they don't match
     if (version != file_version)
         {
@@ -336,7 +336,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
              << endl << endl;
         throw runtime_error("Error reading binary file");
         }
-    
+
     //parse timestep
     int timestep;
     f.read((char*)&timestep, sizeof(unsigned int));
@@ -346,14 +346,14 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     unsigned int dimensions;
     f.read((char*)&dimensions, sizeof(unsigned int));
     m_num_dimensions = dimensions;
-    
+
     //parse box
     Scalar Lx,Ly,Lz;
     f.read((char*)&Lx, sizeof(Scalar));
     f.read((char*)&Ly, sizeof(Scalar));
     f.read((char*)&Lz, sizeof(Scalar));
     m_box = BoxDim(Lx,Ly,Lz);
-    
+
     //allocate memory for particle arrays
     unsigned int np = 0;
     f.read((char*)&np, sizeof(unsigned int));
@@ -362,12 +362,12 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     m_ix_array.resize(np); m_iy_array.resize(np); m_iz_array.resize(np);
     m_vx_array.resize(np); m_vy_array.resize(np); m_vz_array.resize(np);
     m_ax_array.resize(np); m_ay_array.resize(np); m_az_array.resize(np);
-    m_mass_array.resize(np); 
-    m_diameter_array.resize(np); 
+    m_mass_array.resize(np);
+    m_diameter_array.resize(np);
     m_type_array.resize(np);
     m_charge_array.resize(np);
     m_body_array.resize(np);
-    
+
     //parse particle arrays
     f.read((char*)&(m_tag_array[0]), np*sizeof(unsigned int));
     f.read((char*)&(m_rtag_array[0]), np*sizeof(unsigned int));
@@ -418,7 +418,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         }
         m_integrator_variables = v;
     }
-    
+
     //parse bonds
     {
     ntypes = 0;
@@ -426,7 +426,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     m_bond_type_mapping.resize(ntypes);
     for (unsigned int i = 0; i < ntypes; i++)
         m_bond_type_mapping[i] = read_string(f);
-    
+
     unsigned int nb = 0;
     f.read((char*)&nb, sizeof(unsigned int));
     for (unsigned int j = 0; j < nb; j++)
@@ -435,7 +435,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&typ, sizeof(unsigned int));
         f.read((char*)&a, sizeof(unsigned int));
         f.read((char*)&b, sizeof(unsigned int));
-        
+
         m_bonds.push_back(Bond(typ, a, b));
         }
     }
@@ -457,7 +457,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&a, sizeof(unsigned int));
         f.read((char*)&b, sizeof(unsigned int));
         f.read((char*)&c, sizeof(unsigned int));
-        
+
         m_angles.push_back(Angle(typ, a, b, c));
         }
     }
@@ -469,7 +469,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     m_dihedral_type_mapping.resize(ntypes);
     for (unsigned int i = 0; i < ntypes; i++)
         m_dihedral_type_mapping[i] = read_string(f);
-    
+
     unsigned int nd = 0;
     f.read((char*)&nd, sizeof(unsigned int));
     for (unsigned int j = 0; j < nd; j++)
@@ -480,7 +480,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&b, sizeof(unsigned int));
         f.read((char*)&c, sizeof(unsigned int));
         f.read((char*)&d, sizeof(unsigned int));
-        
+
         m_dihedrals.push_back(Dihedral(typ, a, b, c, d));
         }
     }
@@ -503,11 +503,11 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&b, sizeof(unsigned int));
         f.read((char*)&c, sizeof(unsigned int));
         f.read((char*)&d, sizeof(unsigned int));
-        
+
         m_impropers.push_back(Dihedral(typ, a, b, c, d));
         }
     }
-    
+
     //parse walls
     {
     unsigned int nw = 0;
@@ -524,50 +524,50 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
         }
     }
-    
+
     // parse rigid bodies
     {
     unsigned int n_bodies = 0;
     f.read((char*)&n_bodies, sizeof(unsigned int));
-    
+
     if (n_bodies == 0) return;
-       
+
     m_com.resize(n_bodies);
     m_vel.resize(n_bodies);
     m_angmom.resize(n_bodies);
     m_body_image.resize(n_bodies);
-        
+
     for (unsigned int body = 0; body < n_bodies; body++)
         {
         f.read((char*)&(m_com[body].x), sizeof(Scalar));
         f.read((char*)&(m_com[body].y), sizeof(Scalar));
         f.read((char*)&(m_com[body].z), sizeof(Scalar));
         f.read((char*)&(m_com[body].w), sizeof(Scalar));
-        
+
         f.read((char*)&(m_vel[body].x), sizeof(Scalar));
         f.read((char*)&(m_vel[body].y), sizeof(Scalar));
         f.read((char*)&(m_vel[body].z), sizeof(Scalar));
         f.read((char*)&(m_vel[body].w), sizeof(Scalar));
-        
+
         f.read((char*)&(m_angmom[body].x), sizeof(Scalar));
         f.read((char*)&(m_angmom[body].y), sizeof(Scalar));
         f.read((char*)&(m_angmom[body].z), sizeof(Scalar));
         f.read((char*)&(m_angmom[body].w), sizeof(Scalar));
-        
+
         f.read((char*)&(m_body_image[body].x), sizeof(int));
         f.read((char*)&(m_body_image[body].y), sizeof(int));
         f.read((char*)&(m_body_image[body].z), sizeof(int));
         }
-    
+
     }
-    
+
     // check for required items in the file
     if (m_x_array.size() == 0)
         {
         m_exec_conf->msg->error() << endl << "No particles found in binary file" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
-        
+
     // notify the user of what we have accomplished
     m_exec_conf->msg->notice(2) << "--- hoomd_binary file read summary" << endl;
     m_exec_conf->msg->notice(2) << m_x_array.size() << " positions at timestep " << m_timestep << endl;
@@ -610,4 +610,3 @@ void export_HOOMDBinaryInitializer()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

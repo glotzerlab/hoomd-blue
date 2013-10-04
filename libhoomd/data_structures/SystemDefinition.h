@@ -131,15 +131,15 @@ class SystemDefinition
                          unsigned int n_improper_types=0,
                          boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
                          boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
-                         
+
         //! Construct from a snapshot
         SystemDefinition(boost::shared_ptr<const SnapshotSystemData> snapshot,
                          boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
                          boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
-                        
+
         //! Set the dimensionality of the system
         void setNDimensions(unsigned int);
-        
+
         //! Get the dimensionality of the system
         unsigned int getNDimensions() const
             {
@@ -182,7 +182,7 @@ class SystemDefinition
             }
 
         //! Returns the integrator variables (if applicable)
-        boost::shared_ptr<IntegratorData> getIntegratorData() 
+        boost::shared_ptr<IntegratorData> getIntegratorData()
             {
             return m_integrator_data;
             }
@@ -192,7 +192,7 @@ class SystemDefinition
             {
             return m_particle_data.use_count();
             }
-           
+
         //! Return a snapshot of the current system data
         boost::shared_ptr<SnapshotSystemData> takeSnapshot(bool particles,
                                                            bool bonds,
@@ -222,4 +222,3 @@ class SystemDefinition
 void export_SystemDefinition();
 
 #endif
-
