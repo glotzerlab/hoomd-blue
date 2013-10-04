@@ -120,13 +120,13 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
     Scalar4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
     Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
     Scalar3 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
-   
+
 
     // initialize the force to 0
     Scalar4 force_idx = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
-    
-    Scalar fab[3], fcb[3];    
-    
+
+    Scalar fab[3], fcb[3];
+
     // initialize the virial tensor to 0
     Scalar virial[6];
     for (unsigned int i = 0; i < 6; i++)
@@ -215,8 +215,8 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
         // interpolate to get V and T;
         Scalar V = V0 + f * (V1 - V0);
         Scalar T = T0 + f * (T1 - T0);
-        
-        
+
+
         Scalar a = T * s_abbc;
         Scalar a11 = a*c_abbc/rsqab;
         Scalar a12 = -a / (rab*rcb);
@@ -289,7 +289,7 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
     \param n_angles_list List of numbers of angles stored on the GPU
     \param n_angle_type number of angle types
     \param d_tables Tables of the potential and force
-    \param table_width Number of points in each table    
+    \param table_width Number of points in each table
     \param table_value indexer helper
     \param block_size Block size at which to run the kernel
 
@@ -324,7 +324,7 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
         return error;
 
     Scalar delta_th = M_PI/(table_width - 1.0f);
-    
+
     gpu_compute_table_angle_forces_kernel<<< grid, threads >>>
             (d_force,
              d_virial,

@@ -100,7 +100,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
                                                                  Scalar4 *d_CGCMMepow)
     {
     // start by identifying which particle we are to handle
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;    
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= N)
         return;
@@ -369,4 +369,3 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
 
     return cudaSuccess;
     }
-

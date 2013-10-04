@@ -63,15 +63,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel driver for zeroing velocities called by FIREEnergyMinimizerGPU
 cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
                             unsigned int *d_group_members,
-                            unsigned int group_size); 
+                            unsigned int group_size);
 
 //! Kernel driver for summing the potential energy called by FIREEnergyMinimizerGPU
 cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
                             unsigned int group_size,
-                            Scalar4* d_net_force, 
-                            Scalar* d_sum_pe, 
-                            Scalar* d_partial_sum_pe, 
-                            unsigned int block_size, 
+                            Scalar4* d_net_force,
+                            Scalar* d_sum_pe,
+                            Scalar* d_partial_sum_pe,
+                            unsigned int block_size,
                             unsigned int num_blocks);
 
 //! Kernel driver for summing over P, vsq, and asq called by FIREEnergyMinimizerGPU
@@ -80,21 +80,20 @@ cudaError_t gpu_fire_compute_sum_all(const unsigned int N,
                             const Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
-                            Scalar* d_sum_all, 
-                            Scalar* d_partial_sum_P, 
-                            Scalar* d_partial_sum_vsq, 
-                            Scalar* d_partial_sum_asq, 
-                            unsigned int block_size, 
+                            Scalar* d_sum_all,
+                            Scalar* d_partial_sum_P,
+                            Scalar* d_partial_sum_vsq,
+                            Scalar* d_partial_sum_asq,
+                            unsigned int block_size,
                             unsigned int num_blocks);
-                            
+
 //! Kernel driver for updating the velocities called by FIREEnergyMinimizerGPU
 cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
                             const Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
-                            Scalar alpha, 
-                            Scalar vnorm, 
+                            Scalar alpha,
+                            Scalar vnorm,
                             Scalar invfnorm);
 
 #endif //__FIRE_ENERGY_MINIMIZER_GPU_CUH__
-

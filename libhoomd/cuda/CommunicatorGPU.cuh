@@ -198,7 +198,7 @@ void gpu_migrate_select_particles(unsigned int N,
                                   unsigned int face_buf_pitch,
                                   const BoxDim& box,
                                   unsigned int *d_condition);
- 
+
 void gpu_reset_rtag_by_mask(const unsigned int N,
                             unsigned int *d_rtag,
                             const unsigned int *d_tag,
@@ -220,7 +220,7 @@ void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
                         unsigned int *d_tag,
                         unsigned int *d_rtag,
                         const BoxDim& global_box);
- 
+
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls,
                      unsigned int *d_delete_tags,
@@ -353,5 +353,5 @@ void gpu_check_bonds(const Scalar4 *d_postype,
                      const unsigned int pitch,
                      const unsigned int *d_n_bonds_list,
                      unsigned int *d_condition);
- 
+
 #endif // ENABLE_MPI

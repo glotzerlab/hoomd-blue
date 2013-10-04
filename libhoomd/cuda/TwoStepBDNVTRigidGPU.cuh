@@ -74,4 +74,3 @@ cudaError_t gpu_bdnvt_force(const Scalar4 *d_pos,
 
 
 #endif //__TWO_STEP_BDNVT_RIGID_GPU_CUH__
-

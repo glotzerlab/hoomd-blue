@@ -75,17 +75,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
     \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
-    
+
     This kernel must be executed with a 1D grid of any block size such that the number of threads is greater than or
     equal to the number of members in the group. The kernel's implementation simply reads one particle in each thread
     and updates that particle.
-    
+
     <b>Performance notes:</b>
     Particle properties are read via the texture cache to optimize the bandwidth obtained with sparse groups. The writes
     in sparse groups will not be coalesced. However, because ParticleGroup sorts the index list the writes will be as
     contiguous as possible leading to fewer memory transactions on compute 1.3 hardware and more cache hits on Fermi.
 */
-extern "C" __global__ 
+extern "C" __global__
 void gpu_nve_step_one_kernel(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
@@ -100,11 +100,11 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-    
+
         // do velocity verlet update
         // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
         // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
@@ -163,7 +163,7 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
     \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
-    
+
     See gpu_nve_step_one_kernel() for full documentation, this function is just a driver.
 */
 cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
@@ -185,7 +185,7 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
 
     // run the kernel
     gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
-    
+
     return cudaSuccess;
     }
 
@@ -200,10 +200,10 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
     \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
-    
+
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
 */
-extern "C" __global__ 
+extern "C" __global__
 void gpu_nve_step_two_kernel(
                             Scalar4 *d_vel,
                             Scalar3 *d_accel,
@@ -217,11 +217,11 @@ void gpu_nve_step_two_kernel(
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-        
+
         // read in the net forc and calculate the acceleration MEM TRANSFER: 16 bytes
         Scalar3 accel = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
@@ -238,14 +238,14 @@ void gpu_nve_step_two_kernel(
             accel.y /= mass;
             accel.z /= mass;
             }
-        
+
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
-        
+
         // update the velocity (FLOPS: 6)
         vel.x += (Scalar(1.0)/Scalar(2.0)) * accel.x * deltaT;
         vel.y += (Scalar(1.0)/Scalar(2.0)) * accel.y * deltaT;
         vel.z += (Scalar(1.0)/Scalar(2.0)) * accel.z * deltaT;
-        
+
         if (limit)
             {
             Scalar vel_len = sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
@@ -256,7 +256,7 @@ void gpu_nve_step_two_kernel(
                 vel.z = vel.z / vel_len * limit_val / deltaT;
                 }
             }
-            
+
         // write out data (MEM TRANSFER: 32 bytes)
         d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
@@ -287,12 +287,12 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                              Scalar limit_val,
                              bool zero_force)
     {
-    
+
     // setup the grid to run the kernel
     int block_size = 256;
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     // run the kernel
     gpu_nve_step_two_kernel<<< grid, threads >>>(d_vel,
                                                  d_accel,
@@ -303,7 +303,6 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                                                  limit,
                                                  limit_val,
                                                  zero_force);
-    
+
     return cudaSuccess;
     }
-

@@ -328,7 +328,7 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.N+bond_args.n_ghost));
     if (error != cudaSuccess)
         return error;
-    
+
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
     error = cudaBindTexture(0, pdata_charge_tex, bond_args.d_charge, sizeof(Scalar) * (bond_args.N+bond_args.n_ghost));
@@ -349,4 +349,3 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
 #endif
 
 #endif // __POTENTIAL_BOND_GPU_CUH__
-

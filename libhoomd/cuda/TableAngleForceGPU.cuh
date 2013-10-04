@@ -55,7 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ParticleData.cuh"
-#include "AngleData.cuh" 
+#include "AngleData.cuh"
 #include "Index1D.h"
 #include "HOOMDMath.h"
 
@@ -78,4 +78,3 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
                                      const unsigned int block_size);
 
 #endif
-

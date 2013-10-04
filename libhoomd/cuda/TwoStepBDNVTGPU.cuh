@@ -72,7 +72,7 @@ struct bdnvt_step_two_args
     Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
     Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
     unsigned int block_size;  //!<  Block size
-    unsigned int num_blocks;  //!<  Number of blocks 
+    unsigned int num_blocks;  //!<  Number of blocks
     bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
     };
 
@@ -90,6 +90,5 @@ cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
                                Scalar D,
                                bool limit,
                                Scalar limit_val);
-                               
-#endif //__TWO_STEP_BDNVT_GPU_CUH__
 
+#endif //__TWO_STEP_BDNVT_GPU_CUH__

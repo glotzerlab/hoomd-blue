@@ -54,4 +54,3 @@ cudaError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
                                        const tersoff_params *d_params);
 
 #endif
-

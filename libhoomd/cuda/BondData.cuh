@@ -102,7 +102,7 @@ void gpu_mark_recv_bond_duplicates(const unsigned int n_bonds,
                                    unsigned int *d_bond_rtag,
                                    unsigned char *d_recv_bond_active,
                                    unsigned int *d_n_duplicate_recv_bonds);
- 
+
 void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
                              const unsigned int n_recv_bonds,
                              const unsigned int n_unique_recv_bonds,
@@ -120,4 +120,3 @@ void gpu_update_bond_rtags(unsigned int *d_bond_rtag,
                            const unsigned int *d_bond_tag,
                            const unsigned int num_bonds);
 #endif
-

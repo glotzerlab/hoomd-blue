@@ -84,15 +84,15 @@ extern __shared__ Scalar s_gammas[];
     \param T Temperature set point
     \param deltaT Amount of real time to step forward in one time step
     \param D Dimensionality of the system
-    
+
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
-    
+
     Random number generation is done per thread with Saru's 3-seed constructor. The seeds are, the time step,
     the particle tag, and the user-defined seed.
-    
+
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
-extern "C" __global__ 
+extern "C" __global__
 void gpu_bdnvt_bdforce_kernel(const Scalar4 *d_pos,
                               const Scalar4 *d_vel,
                               const Scalar *d_diameter,
@@ -119,21 +119,21 @@ void gpu_bdnvt_bdforce_kernel(const Scalar4 *d_pos,
             }
         __syncthreads();
         }
-    
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-        
+
         // calculate the additional BD force
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
         Scalar4 vel = d_vel[idx];
         // read in the tag of our particle.
         // (MEM TRANSFER: 4 bytes)
         unsigned int ptag = d_tag[idx];
-        
+
         // calculate the magintude of the random force
         Scalar gamma;
         if (gamma_diam)
@@ -149,25 +149,25 @@ void gpu_bdnvt_bdforce_kernel(const Scalar4 *d_pos,
             unsigned int typ = __scalar_as_int(d_pos[idx].w);
             gamma = s_gammas[typ];
             }
-        
+
         Scalar coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
         Scalar3 bd_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        
+
         //Initialize the Random Number Generator and generate the 3 random numbers
         SaruGPU s(ptag, timestep, seed); // 3 dimensional seeding
-    
+
         Scalar randomx=s.f(-1.0, 1.0);
         Scalar randomy=s.f(-1.0, 1.0);
         Scalar randomz=s.f(-1.0, 1.0);
-        
+
         bd_force.x = randomx*coeff - gamma*vel.x;
         bd_force.y = randomy*coeff - gamma*vel.y;
         if (D > Scalar(2.0))
             bd_force.z = randomz*coeff - gamma*vel.z;
-        
+
         // read in the net force
         Scalar4 fi = d_net_force[idx];
-        
+
         // write out data (MEM TRANSFER: 32 bytes)
         fi.x += bd_force.x;
         fi.y += bd_force.y;
@@ -198,12 +198,12 @@ cudaError_t gpu_bdnvt_force(   const Scalar4 *d_pos,
                                Scalar deltaT,
                                Scalar D)
     {
-    
+
     // setup the grid to run the kernel
     int block_size = 256;
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     // run the kernel
     gpu_bdnvt_bdforce_kernel<<< grid, threads, sizeof(Scalar)*bdnvt_args.n_types >>>
                                                   (d_pos,
@@ -221,7 +221,6 @@ cudaError_t gpu_bdnvt_force(   const Scalar4 *d_pos,
                                                    bdnvt_args.T,
                                                    deltaT,
                                                    D);
-    
+
     return cudaSuccess;
     }
-

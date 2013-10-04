@@ -368,7 +368,7 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                                                      mat_exp_v_int[4],
                                                      mat_exp_v_int[5],
                                                      deltaT);
-        
+
     return cudaSuccess;
     }
 

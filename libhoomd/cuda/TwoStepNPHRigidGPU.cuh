@@ -64,7 +64,7 @@ cudaError_t gpu_nph_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    Scalar4 *d_net_force,
-                                   const BoxDim& box, 
+                                   const BoxDim& box,
                                    const gpu_npt_rigid_data &npt_rdata,
                                    Scalar deltaT);
 
@@ -74,7 +74,7 @@ cudaError_t gpu_nph_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int group_size,
                                    Scalar4 *d_net_force,
                                    Scalar *d_net_virial,
-                                   const BoxDim& box, 
+                                   const BoxDim& box,
                                    const gpu_npt_rigid_data &npt_rdata,
                                    Scalar deltaT);
 
@@ -82,4 +82,3 @@ cudaError_t gpu_nph_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
 cudaError_t gpu_nph_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
 
 #endif // __TWO_STEP_NPH_RIGID_CUH__
-

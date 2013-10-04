@@ -76,4 +76,3 @@ cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
                                               int block_size);
 
 #endif
-

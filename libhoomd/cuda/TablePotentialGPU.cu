@@ -312,4 +312,3 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
     }
 
 // vim:syntax=cpp
-

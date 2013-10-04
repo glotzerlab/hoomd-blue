@@ -231,7 +231,7 @@ __global__ void gpu_mark_recv_bond_duplicates_kernel(const unsigned int n_bonds,
 
     const bond_element& el = recv_bonds[recv_idx];
     unsigned int tag = el.tag;
-   
+
     // stage the bond
     unsigned int rtag = atomicMin(&bond_rtag[tag], (unsigned int) BOND_NOT_LOCAL-1);
 
@@ -302,7 +302,7 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
     unsigned int bond_idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     unsigned int new_nbonds = old_n_bonds - n_remove_bonds + n_unique_recv_bonds;
-    
+
     if (bond_idx >= old_n_bonds + n_unique_recv_bonds) return;
 
     bool replace = true;
@@ -314,7 +314,7 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
         // reset rtag
         if (replace) bond_rtag[bond_tag[bond_idx]] = BOND_NOT_LOCAL;
         }
-    
+
     if (replace && bond_idx < new_nbonds)
         {
         // try to atomically fetch a bond from the received list, ignore duplicates
@@ -329,7 +329,7 @@ __global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
                 active = true;
             }
 
-        if (n < n_recv_bonds) 
+        if (n < n_recv_bonds)
             {
             // copy over receive buffer data
             const bond_element &el= recv_buf[n];
@@ -391,7 +391,7 @@ void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
                              unsigned int *d_n_fetch_bond)
     {
     unsigned int block_size = 512;
-    
+
     cudaMemsetAsync(d_n_fetch_bond, 0, sizeof(unsigned int));
 
     unsigned int end = old_n_bonds + n_unique_recv_bonds;

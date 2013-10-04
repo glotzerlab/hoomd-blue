@@ -113,4 +113,3 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     const EAMTexInterData& eam_data);
 
 #endif
-

@@ -68,4 +68,3 @@ const unsigned int NOT_LOCAL = 0xffffffff;
 #endif
 
 #endif
-

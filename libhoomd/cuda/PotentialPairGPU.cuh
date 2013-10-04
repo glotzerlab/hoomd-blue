@@ -84,7 +84,7 @@ struct pair_args_t
               const unsigned int *_d_n_neigh,
               const unsigned int *_d_nlist,
               const Index2D& _nli,
-              const Scalar *_d_rcutsq, 
+              const Scalar *_d_rcutsq,
               const Scalar *_d_ronsq,
               const unsigned int _ntypes,
               const unsigned int _block_size,
@@ -142,7 +142,7 @@ scalar_tex_t pdata_diam_tex;
 scalar_tex_t pdata_charge_tex;
 
 //! Kernel for calculating pair forces
-/*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
+/*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
     forces for each pair is handled via the template class \a evaluator.
 
     \param d_force Device memory to write computed forces
@@ -160,18 +160,18 @@ scalar_tex_t pdata_charge_tex;
     \param d_rcutsq rcut squared, stored per type pair
     \param d_ronsq ron squared, stored per type pair
     \param ntypes Number of types in the simulation
-    
+
     \a d_params, \a d_rcutsq, and \a d_ronsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
     amount of shared memory must be allocatd for this kernel launch. The amount is
     (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
-    
+
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
                        (See PotentialPair for a discussion on what that entails)
     \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
-    
+
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
@@ -199,7 +199,7 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 
     // shared arrays for per type pair parameters
     extern __shared__ char s_data[];
-    typename evaluator::param_type *s_params = 
+    typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
     Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
     Scalar *s_ronsq = (Scalar *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(Scalar))]);
@@ -402,7 +402,7 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param pair_args Other arugments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
-    
+
     This is just a driver function for gpu_compute_pair_forces_kernel(), see it for details.
 */
 template< class evaluator >
@@ -413,7 +413,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     assert(pair_args.d_rcutsq);
     assert(pair_args.d_ronsq);
     assert(pair_args.ntypes > 0);
-    
+
     // setup the grid to run the kernel
     dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
     dim3 threads(pair_args.block_size, 1, 1);
@@ -431,7 +431,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     error = cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) *(pair_args.N+pair_args.n_ghost));
     if (error != cudaSuccess)
         return error;
-    
+
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
     error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * (pair_args.N+pair_args.n_ghost));
@@ -439,9 +439,9 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
         return error;
 
     Index2D typpair_idx(pair_args.ntypes);
-    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) 
+    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                 * typpair_idx.getNumElements();
-    
+
     // run the kernel
     if (pair_args.compute_virial)
         {
@@ -484,10 +484,9 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             }
         }
 
-        
+
     return cudaSuccess;
     }
 #endif
 
 #endif // __POTENTIAL_PAIR_GPU_CUH__
-

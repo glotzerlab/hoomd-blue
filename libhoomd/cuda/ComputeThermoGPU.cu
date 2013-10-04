@@ -75,12 +75,12 @@ extern __shared__ Scalar compute_pressure_tensor_sdata[];
     \param d_velocity Particle velocity and mass array from ParticleData
     \param d_group_members List of group members for which to sum properties
     \param group_size Number of particles in the group
-    
+
     All partial sums are packaged up in a Scalar4 to keep pointer management down.
      - 2*Kinetic energy is summed in .x
      - Potential energy is summed in .y
      - W is summed in .z
-    
+
     One thread is executed per group member. That thread reads in the values for its member into shared memory
     and then the block performs a reduction in parallel to produce a partial sum output for the block. These
     partial sums are written to d_scratch[blockIdx.x]. sizeof(Scalar3)*block_size of dynamic shared memory are needed
@@ -97,12 +97,12 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     Scalar3 my_element; // element of scratch space read in
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-   
+
         // update positions to the next timestep and update velocities to the next half step
         Scalar4 net_force = d_net_force[idx];
         Scalar net_isotropic_virial;
@@ -113,7 +113,7 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
                                +d_net_virial[5*virial_pitch+idx]); // zz
         Scalar4 vel = d_velocity[idx];
         Scalar mass = vel.w;
-        
+
         // compute our contribution to the sum
         my_element.x = mass * (vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
         my_element.y = net_force.w;
@@ -124,10 +124,10 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
         // non-participating thread: contribute 0 to the sum
         my_element = make_scalar3(0, 0, 0);
         }
-        
+
     compute_thermo_sdata[threadIdx.x] = my_element;
     __syncthreads();
-    
+
     // reduce the sum in parallel
     int offs = blockDim.x >> 1;
     while (offs > 0)
@@ -141,7 +141,7 @@ __global__ void gpu_compute_thermo_partial_sums(Scalar4 *d_scratch,
         offs >>= 1;
         __syncthreads();
         }
-        
+
     // write out our partial sum
     if (threadIdx.x == 0)
         {
@@ -238,10 +238,10 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
     \param num_partial_sums Number of partial sums in \a d_scratch
     \param external_virial External contribution to virial (1/3 trace)
 
-   
+
     Only one block is executed. In that block, the partial sums are read in and reduced to final values. From the final
     sums, the thermodynamic properties are computed and written to d_properties.
-    
+
     sizeof(Scalar3)*block_size bytes of shared memory are needed for this kernel to run.
 */
 __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
@@ -255,7 +255,7 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
                                               )
     {
     Scalar3 final_sum = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-    
+
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_partial_sums; start += blockDim.x)
         {
@@ -268,7 +268,7 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
         else
             compute_thermo_sdata[threadIdx.x] = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
         __syncthreads();
-        
+
         // reduce the sum in parallel
         int offs = blockDim.x >> 1;
         while (offs > 0)
@@ -282,7 +282,7 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
             offs >>= 1;
             __syncthreads();
             }
-        
+
         if (threadIdx.x == 0)
             {
             final_sum.x += compute_thermo_sdata[0].x;
@@ -290,14 +290,14 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
             final_sum.z += compute_thermo_sdata[0].z;
             }
         }
-        
+
     if (threadIdx.x == 0)
         {
         // compute final quantities
         Scalar ke_total = final_sum.x * Scalar(0.5);
         Scalar pe_total = final_sum.y;
         Scalar W = final_sum.z + external_virial;
-        
+
         // compute the temperature
         Scalar temperature = Scalar(2.0) * Scalar(ke_total) / Scalar(ndof);
 
@@ -429,7 +429,7 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
     \param box Box the particles are in
     \param args Additional arguments
     \param compute_pressure_tensor whether to compute the full pressure tensor
-    
+
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */
 
@@ -448,11 +448,11 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
     assert(args.d_net_force);
     assert(args.d_net_virial);
     assert(args.d_scratch);
-    
+
     dim3 grid(args.n_blocks, 1, 1);
     dim3 threads(args.block_size, 1, 1);
     unsigned int shared_bytes = sizeof(Scalar3)*args.block_size;
-   
+
     Scalar external_virial = Scalar(1.0/3.0)*(args.external_virial_xx
                              + args.external_virial_yy
                              + args.external_virial_zz);
@@ -486,7 +486,7 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
     grid = dim3(1, 1, 1);
     threads = dim3(final_block_size, 1, 1);
     shared_bytes = sizeof(Scalar3)*final_block_size;
-    
+
     // run the kernel
     gpu_compute_thermo_final_sums<<<grid, threads, shared_bytes>>>(d_properties,
                                                                    args.d_scratch,
@@ -496,7 +496,7 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                                                    group_size,
                                                                    args.n_blocks,
                                                                    external_virial);
-    
+
     if (compute_pressure_tensor)
         {
         shared_bytes = 6 * sizeof(Scalar) * final_block_size;
@@ -517,4 +517,3 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
 
     return cudaSuccess;
     }
-

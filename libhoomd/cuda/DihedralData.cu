@@ -223,4 +223,3 @@ cudaError_t gpu_create_dihedraltable(uint4 *d_gpu_dihedraltable,
 
     return cudaSuccess;
     }
-

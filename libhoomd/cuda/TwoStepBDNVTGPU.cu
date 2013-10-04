@@ -94,15 +94,15 @@ extern __shared__ Scalar bdtally_sdata[];
     \param d_partial_sum_bdenergy Placeholder for the partial sum
 
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
-    
+
     This kernel will tally the energy transfer from the bd thermal reservoir and the particle system
-    
+
     Random number generation is done per thread with Saru's 3-seed constructor. The seeds are, the time step,
     the particle tag, and the user-defined seed.
-    
+
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
-extern "C" __global__ 
+extern "C" __global__
 void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
                               Scalar4 *d_vel,
                               Scalar3 *d_accel,
@@ -134,23 +134,23 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
             }
         __syncthreads();
         }
-    
+
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
- 
+
     Scalar bd_energy_transfer = 0;
-       
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-        
+
         // ******** first, calculate the additional BD force
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
         Scalar4 vel = d_vel[idx];
         // read in the tag of our particle.
         // (MEM TRANSFER: 4 bytes)
         unsigned int ptag = d_tag[idx];
-        
+
         // calculate the magnitude of the random force
         Scalar gamma;
         if (gamma_diam)
@@ -166,22 +166,22 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
             unsigned int typ = __scalar_as_int(d_pos[idx].w);
             gamma = s_gammas[typ];
             }
-        
+
         Scalar coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
         Scalar3 bd_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        
+
         //Initialize the Random Number Generator and generate the 3 random numbers
         SaruGPU s(ptag, timestep + seed); // 2 dimensional seeding
-    
+
         Scalar randomx=s.f(-1.0, 1.0);
         Scalar randomy=s.f(-1.0, 1.0);
         Scalar randomz=s.f(-1.0, 1.0);
-        
+
         bd_force.x = randomx*coeff - gamma*vel.x;
         bd_force.y = randomy*coeff - gamma*vel.y;
         if (D > Scalar(2.0))
             bd_force.z = randomz*coeff - gamma*vel.z;
-        
+
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
         Scalar4 net_force = d_net_force[idx];
         Scalar3 accel = make_scalar3(net_force.x,net_force.y,net_force.z);
@@ -191,16 +191,16 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
         accel.x = (accel.x + bd_force.x) * minv;
         accel.y = (accel.y + bd_force.y) * minv;
         accel.z = (accel.z + bd_force.z) * minv;
-        
+
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         // update the velocity (FLOPS: 6)
         vel.x += (Scalar(1.0)/Scalar(2.0)) * accel.x * deltaT;
         vel.y += (Scalar(1.0)/Scalar(2.0)) * accel.y * deltaT;
         vel.z += (Scalar(1.0)/Scalar(2.0)) * accel.z * deltaT;
-        
+
         // tally the energy transfer from the bd thermal reservor to the particles (FLOPS: 6)
         bd_energy_transfer =  bd_force.x *vel.x +  bd_force.y * vel.y +  bd_force.z * vel.z;
-                        
+
         if (limit)
             {
             Scalar vel_len = sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
@@ -211,7 +211,7 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
                 vel.z = vel.z / vel_len * limit_val / deltaT;
                 }
             }
-            
+
         // write out data (MEM TRANSFER: 32 bytes)
         d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
@@ -224,7 +224,7 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
         __syncthreads();
         bdtally_sdata[threadIdx.x] = bd_energy_transfer;
         __syncthreads();
-        
+
         // reduce the sum in parallel
         int offs = blockDim.x >> 1;
         while (offs > 0)
@@ -234,7 +234,7 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
             offs >>= 1;
             __syncthreads();
             }
-        
+
         // write out our partial sum
         if (threadIdx.x == 0)
             {
@@ -244,19 +244,19 @@ void gpu_bdnvt_step_two_kernel(const Scalar4 *d_pos,
     }
 
 
-    
+
 //! Kernel function for reducing a partial sum to a full sum (one value)
 /*! \param d_sum Placeholder for the sum
     \param d_partial_sum Array containing the parial sum
     \param num_blocks Number of blocks to execute
 */
-extern "C" __global__ 
-    void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum, 
-                                            Scalar* d_partial_sum, 
+extern "C" __global__
+    void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
+                                            Scalar* d_partial_sum,
                                             unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
-    
+
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_blocks; start += blockDim.x)
         {
@@ -266,7 +266,7 @@ extern "C" __global__
         else
             bdtally_sdata[threadIdx.x] = Scalar(0.0);
         __syncthreads();
-        
+
         // reduce the sum in parallel
         int offs = blockDim.x >> 1;
         while (offs > 0)
@@ -276,15 +276,15 @@ extern "C" __global__
             offs >>= 1;
             __syncthreads();
             }
-            
+
         // everybody sums up sum2K
         sum += bdtally_sdata[0];
         }
-        
+
     if (threadIdx.x == 0)
         *d_sum = sum;
     }
-    
+
 
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
@@ -300,7 +300,7 @@ extern "C" __global__
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
-        
+
     This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
 cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
@@ -317,7 +317,7 @@ cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
                                bool limit,
                                Scalar limit_val)
     {
-    
+
     // setup the grid to run the kernel
     dim3 grid(bdnvt_args.num_blocks, 1, 1);
     dim3 grid1(1, 1, 1);
@@ -328,7 +328,7 @@ cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
     gpu_bdnvt_step_two_kernel<<< grid,
                                  threads,
                                  max((unsigned int)(sizeof(Scalar)*bdnvt_args.n_types),
-                                     (unsigned int)(bdnvt_args.block_size*sizeof(Scalar))) 
+                                     (unsigned int)(bdnvt_args.block_size*sizeof(Scalar)))
                              >>>(d_pos,
                                  d_vel,
                                  d_accel,
@@ -349,18 +349,17 @@ cudaError_t gpu_bdnvt_step_two(const Scalar4 *d_pos,
                                  limit_val,
                                  bdnvt_args.tally,
                                  bdnvt_args.d_partial_sum_bdenergy);
-                                                   
+
     // run the summation kernel
-    if (bdnvt_args.tally) 
+    if (bdnvt_args.tally)
         gpu_bdtally_reduce_partial_sum_kernel<<<grid1,
                                                 threads1,
                                                 bdnvt_args.block_size*sizeof(Scalar)
-                                             >>>(&bdnvt_args.d_sum_bdenergy[0], 
-                                                 bdnvt_args.d_partial_sum_bdenergy, 
-                                                 bdnvt_args.num_blocks);    
+                                             >>>(&bdnvt_args.d_sum_bdenergy[0],
+                                                 bdnvt_args.d_partial_sum_bdenergy,
+                                                 bdnvt_args.num_blocks);
 
-                                                   
-                                                   
+
+
     return cudaSuccess;
     }
-

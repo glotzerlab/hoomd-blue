@@ -94,4 +94,3 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                );
 
 #endif
-

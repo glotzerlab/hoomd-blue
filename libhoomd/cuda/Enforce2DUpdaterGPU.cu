@@ -61,7 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 /*! \file Enforce2DUpdaterGPU.cu
-    \brief Defines GPU kernel code for constraining systems to a 2D plane on 
+    \brief Defines GPU kernel code for constraining systems to a 2D plane on
     the GPU. Used by Enforce2DUpdaterGPU.
 */
 
@@ -70,23 +70,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param d_vel Particle velocities to constrain to xy plane
     \param d_accel Particle accelerations to constrain to xy plane
 */
-extern "C" __global__ 
+extern "C" __global__
 void gpu_enforce2d_kernel(const unsigned int N,
                           Scalar4 *d_vel,
                           Scalar3 *d_accel)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (idx < N)
-        {        
+        {
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
         Scalar4 vel = d_vel[idx];
         Scalar3 accel = d_accel[idx];
-                
+
         // zero the z-velocity and z-acceleration(FLOPS: ?)
         vel.z = Scalar(0.0);
         accel.z = Scalar(0.0);
-                
+
         // write out the results (MEM_TRANSFER: 32 bytes)
         d_vel[idx] = vel;
         d_accel[idx] = accel;
@@ -105,10 +105,9 @@ cudaError_t gpu_enforce2d(const unsigned int N,
     int block_size = 256;
     dim3 grid( (N/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-            
+
     // run the kernel
     gpu_enforce2d_kernel<<< grid, threads >>>(N, d_vel, d_accel);
-    
+
     return cudaSuccess;
     }
-
