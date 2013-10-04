@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: phillicl
 
 #include "TableDihedralForceGPU.cuh"
+#include "TextureTools.h"
 
 
 #ifdef WIN32
@@ -68,7 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 //! Texture for reading table values
-texture<float2, 1, cudaReadModeElementType> tables_tex;
+scalar2_tex_t tables_tex;
 
 /*!  This kernel is called to calculate the table dihedral forces on all triples this is defined or
 
@@ -82,6 +83,7 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
     \param pitch Pitch of 2D dihedral list
     \param n_dihedrals_list List of numbers of dihedrals stored on the GPU
     \param n_dihedral_type number of dihedral types
+    \param d_tables Tables of the potential and force
     \param table_value index helper function
     \param delta_phi dihedral delta of the table
 
@@ -91,8 +93,8 @@ texture<float2, 1, cudaReadModeElementType> tables_tex;
     * Table entries are read from tables_tex. Note that currently this is bound to a 1D memory region. Performance tests
       at a later date may result in this changing.
 */
-__global__ void gpu_compute_table_dihedral_forces_kernel(float4* d_force,
-                                     float* d_virial,
+__global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
+                                     Scalar* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *device_pos,
@@ -101,8 +103,9 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(float4* d_force,
                                      const uint1 *dihedral_ABCD,    
                                      const unsigned int pitch,
                                      const unsigned int *n_dihedrals_list,
+                                     const Scalar2 *d_tables,
                                      const Index2D table_value,
-                                     const float delta_phi)
+                                     const Scalar delta_phi)
     {
 
 
@@ -116,16 +119,16 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(float4* d_force,
     int n_dihedrals =n_dihedrals_list[idx];
 
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_postype = device_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
-    float3 idx_pos = make_float3(idx_postype.x, idx_postype.y, idx_postype.z);
-    float3 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b,c, and d atom in the a-b-c-d set
+    Scalar4 idx_postype = device_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
+    Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
+    Scalar3 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b,c, and d atom in the a-b-c-d set
    
 
     // initialize the force to 0
-    float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    Scalar4 force_idx = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
         
     // initialize the virial tensor to 0
-    float virial_idx[6];
+    Scalar virial_idx[6];
     for (unsigned int i = 0; i < 6; i++)
         virial_idx[i] = 0;
 
@@ -141,14 +144,14 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(float4* d_force,
         int cur_dihedral_abcd = cur_ABCD.x;
 
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
-        float4 x_postype = device_pos[cur_dihedral_x_idx];
-        float3 x_pos = make_float3(x_postype.x, x_postype.y, x_postype.z);
+        Scalar4 x_postype = device_pos[cur_dihedral_x_idx];
+        Scalar3 x_pos = make_scalar3(x_postype.x, x_postype.y, x_postype.z);
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
-        float4 y_postype = device_pos[cur_dihedral_y_idx];
-        float3 y_pos = make_float3(y_postype.x, y_postype.y, y_postype.z);
+        Scalar4 y_postype = device_pos[cur_dihedral_y_idx];
+        Scalar3 y_pos = make_scalar3(y_postype.x, y_postype.y, y_postype.z);
         // get the d-particle's position (MEM TRANSFER: 16 bytes)
-        float4 z_postype = device_pos[cur_dihedral_z_idx];
-        float3 z_pos = make_float3(z_postype.x, z_postype.y, z_postype.z);
+        Scalar4 z_postype = device_pos[cur_dihedral_z_idx];
+        Scalar3 z_pos = make_scalar3(z_postype.x, z_postype.y, z_postype.z);
 
         if (cur_dihedral_abcd == 0)
             {
@@ -180,137 +183,137 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(float4* d_force,
             }
 
         // calculate dr for a-b,c-b,and a-c
-        float3 dab = pos_a - pos_b;
-        float3 dcb = pos_c - pos_b;
-        float3 ddc = pos_d - pos_c;
+        Scalar3 dab = pos_a - pos_b;
+        Scalar3 dcb = pos_c - pos_b;
+        Scalar3 ddc = pos_d - pos_c;
 
         dab = box.minImage(dab);
         dcb = box.minImage(dcb);
         ddc = box.minImage(ddc);
 
-        float3 dcbm = -dcb;
+        Scalar3 dcbm = -dcb;
         dcbm = box.minImage(dcbm);
 
         // c0 calculation
-        float sb1 = 1.0 / (dab.x*dab.x + dab.y*dab.y + dab.z*dab.z);
-        float sb2 = 1.0 / (dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z);
-        float sb3 = 1.0 / (ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z);
+        Scalar sb1 = 1.0 / (dab.x*dab.x + dab.y*dab.y + dab.z*dab.z);
+        Scalar sb2 = 1.0 / (dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z);
+        Scalar sb3 = 1.0 / (ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z);
             
-        float rb1 = sqrt(sb1);
-        float rb3 = sqrt(sb3);
+        Scalar rb1 = sqrt(sb1);
+        Scalar rb3 = sqrt(sb3);
             
-        float c0 = (dab.x*ddc.x + dab.y*ddc.y + dab.z*ddc.z) * rb1*rb3;
+        Scalar c0 = (dab.x*ddc.x + dab.y*ddc.y + dab.z*ddc.z) * rb1*rb3;
 
         // 1st and 2nd angle
             
-        float b1mag2 = dab.x*dab.x + dab.y*dab.y + dab.z*dab.z;
-        float b1mag = sqrt(b1mag2);
-        float b2mag2 = dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z;
-        float b2mag = sqrt(b2mag2);
-        float b3mag2 = ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z;
-        float b3mag = sqrt(b3mag2);
+        Scalar b1mag2 = dab.x*dab.x + dab.y*dab.y + dab.z*dab.z;
+        Scalar b1mag = sqrt(b1mag2);
+        Scalar b2mag2 = dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z;
+        Scalar b2mag = sqrt(b2mag2);
+        Scalar b3mag2 = ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z;
+        Scalar b3mag = sqrt(b3mag2);
 
-        float ctmp = dab.x*dcb.x + dab.y*dcb.y + dab.z*dcb.z;
-        float r12c1 = 1.0f / (b1mag*b2mag);
-        float c1mag = ctmp * r12c1;
+        Scalar ctmp = dab.x*dcb.x + dab.y*dcb.y + dab.z*dcb.z;
+        Scalar r12c1 = 1.0f / (b1mag*b2mag);
+        Scalar c1mag = ctmp * r12c1;
 
         ctmp = dcbm.x*ddc.x + dcbm.y*ddc.y + dcbm.z*ddc.z;
-        float r12c2 = 1.0f / (b2mag*b3mag);
-        float c2mag = ctmp * r12c2;
+        Scalar r12c2 = 1.0f / (b2mag*b3mag);
+        Scalar c2mag = ctmp * r12c2;
 
         // cos and sin of 2 angles and final c
 
-        float sin2 = 1.0f - c1mag*c1mag;
+        Scalar sin2 = 1.0f - c1mag*c1mag;
         if (sin2 < 0.0f) sin2 = 0.0f;
-        float sc1 = sqrtf(sin2);
+        Scalar sc1 = sqrtf(sin2);
         if (sc1 < SMALL) sc1 = SMALL;
         sc1 = 1.0f/sc1;
 
         sin2 = 1.0f - c2mag*c2mag;
         if (sin2 < 0.0f) sin2 = 0.0f;
-        float sc2 = sqrtf(sin2);
+        Scalar sc2 = sqrtf(sin2);
         if (sc2 < SMALL) sc2 = SMALL;
         sc2 = 1.0f/sc2;
 
-        float s1 = sc1 * sc1;
-        float s2 = sc2 * sc2;
-        float s12 = sc1 * sc2;
-        float c = (c0 + c1mag*c2mag) * s12;
+        Scalar s1 = sc1 * sc1;
+        Scalar s2 = sc2 * sc2;
+        Scalar s12 = sc1 * sc2;
+        Scalar c = (c0 + c1mag*c2mag) * s12;
       
         if (c > 1.0f) c = 1.0f;
         if (c < -1.0f) c = -1.0f;
         
         //phi
-        float phi = acosf(c);
+        Scalar phi = acosf(c);
         // precomputed term
-        float value_f = phi / delta_phi;
+        Scalar value_f = phi / delta_phi;
 
         // compute index into the table and read in values
         unsigned int value_i = floor(value_f);
-        float2 VT0 = tex1Dfetch(tables_tex, table_value(value_i, cur_dihedral_type));
-        float2 VT1 = tex1Dfetch(tables_tex, table_value(value_i+1, cur_dihedral_type));
+        Scalar2 VT0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_dihedral_type));
+        Scalar2 VT1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_dihedral_type));
         // unpack the data
-        float V0 = VT0.x;
-        float V1 = VT1.x;
-        float T0 = VT0.y;
-        float T1 = VT1.y;
+        Scalar V0 = VT0.x;
+        Scalar V1 = VT1.x;
+        Scalar T0 = VT0.y;
+        Scalar T1 = VT1.y;
 
         // compute the linear interpolation coefficient
-        float f = value_f - float(value_i);
+        Scalar f = value_f - Scalar(value_i);
 
         // interpolate to get V and T;
-        float V = V0 + f * (V1 - V0);
-        float T = T0 + f * (T1 - T0);
+        Scalar V = V0 + f * (V1 - V0);
+        Scalar T = T0 + f * (T1 - T0);
         
         
-        float a = T; 
+        Scalar a = T; 
         c = c * a;
         s12 = s12 * a;
-        float a11 = c*sb1*s1;
-        float a22 = -sb2 * (2.0f*c0*s12 - c*(s1+s2));
-        float a33 = c*sb3*s2;
-        float a12 = -r12c1*(c1mag*c*s1 + c2mag*s12);
-        float a13 = -rb1*rb3*s12;
-        float a23 = r12c2*(c2mag*c*s2 + c1mag*s12);
+        Scalar a11 = c*sb1*s1;
+        Scalar a22 = -sb2 * (2.0f*c0*s12 - c*(s1+s2));
+        Scalar a33 = c*sb3*s2;
+        Scalar a12 = -r12c1*(c1mag*c*s1 + c2mag*s12);
+        Scalar a13 = -rb1*rb3*s12;
+        Scalar a23 = r12c2*(c2mag*c*s2 + c1mag*s12);
 
-        float sx2  = a12*dab.x + a22*dcb.x + a23*ddc.x;
-        float sy2  = a12*dab.y + a22*dcb.y + a23*ddc.y;
-        float sz2  = a12*dab.z + a22*dcb.z + a23*ddc.z;
+        Scalar sx2  = a12*dab.x + a22*dcb.x + a23*ddc.x;
+        Scalar sy2  = a12*dab.y + a22*dcb.y + a23*ddc.y;
+        Scalar sz2  = a12*dab.z + a22*dcb.z + a23*ddc.z;
         
-        float ffax = a11*dab.x + a12*dcb.x + a13*ddc.x;
-        float ffay = a11*dab.y + a12*dcb.y + a13*ddc.y;
-        float ffaz = a11*dab.z + a12*dcb.z + a13*ddc.z;
+        Scalar ffax = a11*dab.x + a12*dcb.x + a13*ddc.x;
+        Scalar ffay = a11*dab.y + a12*dcb.y + a13*ddc.y;
+        Scalar ffaz = a11*dab.z + a12*dcb.z + a13*ddc.z;
         
-        float ffbx = -sx2 - ffax;
-        float ffby = -sy2 - ffay;
-        float ffbz = -sz2 - ffaz;
+        Scalar ffbx = -sx2 - ffax;
+        Scalar ffby = -sy2 - ffay;
+        Scalar ffbz = -sz2 - ffaz;
         
-        float ffdx = a13*dab.x + a23*dcb.x + a33*ddc.x;
-        float ffdy = a13*dab.y + a23*dcb.y + a33*ddc.y;
-        float ffdz = a13*dab.z + a23*dcb.z + a33*ddc.z;
+        Scalar ffdx = a13*dab.x + a23*dcb.x + a33*ddc.x;
+        Scalar ffdy = a13*dab.y + a23*dcb.y + a33*ddc.y;
+        Scalar ffdz = a13*dab.z + a23*dcb.z + a33*ddc.z;
         
-        float ffcx = sx2 - ffdx;
-        float ffcy = sy2 - ffdy;
-        float ffcz = sz2 - ffdz;
+        Scalar ffcx = sx2 - ffdx;
+        Scalar ffcy = sy2 - ffdy;
+        Scalar ffcz = sz2 - ffdz;
 
         // Now, apply the force to each individual atom a,b,c,d
         // and accumlate the energy/virial
         
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
-        float dihedral_eng = V*float(1.0f/4.0f); 
+        Scalar dihedral_eng = V*Scalar(1.0f/4.0f); 
         
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // symmetrized version of virial tensor
-        float dihedral_virial[6];
-        dihedral_virial[0] = float(1./4.)*(dab.x*ffax + dcb.x*ffcx + (ddc.x+dcb.x)*ffdx);
-        dihedral_virial[1] = float(1./8.)*(dab.x*ffay + dcb.x*ffcy + (ddc.x+dcb.x)*ffdy
+        Scalar dihedral_virial[6];
+        dihedral_virial[0] = Scalar(1./4.)*(dab.x*ffax + dcb.x*ffcx + (ddc.x+dcb.x)*ffdx);
+        dihedral_virial[1] = Scalar(1./8.)*(dab.x*ffay + dcb.x*ffcy + (ddc.x+dcb.x)*ffdy
                                      +dab.y*ffax + dcb.y*ffcx + (ddc.y+dcb.y)*ffdx);
-        dihedral_virial[2] = float(1./8.)*(dab.x*ffaz + dcb.x*ffcz + (ddc.x+dcb.x)*ffdz
+        dihedral_virial[2] = Scalar(1./8.)*(dab.x*ffaz + dcb.x*ffcz + (ddc.x+dcb.x)*ffdz
                                      +dab.z*ffax + dcb.z*ffcx + (ddc.z+dcb.z)*ffdx);
-        dihedral_virial[3] = float(1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
-        dihedral_virial[4] = float(1./8.)*(dab.y*ffaz + dcb.y*ffcz + (ddc.y+dcb.y)*ffdz
+        dihedral_virial[3] = Scalar(1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
+        dihedral_virial[4] = Scalar(1./8.)*(dab.y*ffaz + dcb.y*ffcz + (ddc.y+dcb.y)*ffdz
                                      +dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
-        dihedral_virial[5] = float(1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
+        dihedral_virial[5] = Scalar(1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
 
         if (cur_dihedral_abcd == 0)
             {
@@ -366,8 +369,8 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(float4* d_force,
 
     \note This is just a kernel driver. See gpu_compute_table_dihedral_forces_kernel for full documentation.
 */
-cudaError_t gpu_compute_table_dihedral_forces(float4* d_force,
-                                     float* d_virial,
+cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
+                                     Scalar* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *device_pos,
@@ -376,7 +379,7 @@ cudaError_t gpu_compute_table_dihedral_forces(float4* d_force,
                                      const uint1 *dihedral_ABCD,    
                                      const unsigned int pitch,
                                      const unsigned int *n_dihedrals_list,
-                                     const float2 *d_tables,
+                                     const Scalar2 *d_tables,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
                                      const unsigned int block_size)
@@ -392,11 +395,11 @@ cudaError_t gpu_compute_table_dihedral_forces(float4* d_force,
     // bind the tables texture
     tables_tex.normalized = false;
     tables_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(float2) * table_value.getNumElements());
+    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_value.getNumElements());
     if (error != cudaSuccess)
         return error;
 
-    float delta_phi = M_PI/(table_width - 1.0f);
+    Scalar delta_phi = M_PI/(table_width - 1.0f);
     
     gpu_compute_table_dihedral_forces_kernel<<< grid, threads>>>
             (d_force,
@@ -409,6 +412,7 @@ cudaError_t gpu_compute_table_dihedral_forces(float4* d_force,
              dihedral_ABCD,
              pitch,
              n_dihedrals_list,
+             d_tables,
              table_value,
              delta_phi);
 

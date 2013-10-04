@@ -92,7 +92,7 @@ TableDihedralForceCompute::TableDihedralForceCompute(boost::shared_ptr<SystemDef
   
     
     // allocate storage for the tables and parameters
-    GPUArray<float2> tables(m_table_width, m_dihedral_data->getNDihedralTypes(), exec_conf);
+    GPUArray<Scalar2> tables(m_table_width, m_dihedral_data->getNDihedralTypes(), exec_conf);
     m_tables.swap(tables);
     assert(!m_tables.isNull());
 
@@ -114,8 +114,8 @@ TableDihedralForceCompute::~TableDihedralForceCompute()
     \post Values from \a V and \a T are copied into the interal storage for type pair (type)
 */
 void TableDihedralForceCompute::setTable(unsigned int type,
-                              const std::vector<float> &V,
-                              const std::vector<float> &T)
+                              const std::vector<Scalar> &V,
+                              const std::vector<Scalar> &T)
     {
 
     // make sure the type is valid
@@ -127,7 +127,7 @@ void TableDihedralForceCompute::setTable(unsigned int type,
 
 
     // access the arrays
-    ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::readwrite);
 
     if (V.size() != m_table_width || T.size() != m_table_width)
         {
@@ -199,7 +199,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
 
     // access the table data
-    ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::read);
+    ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
 
     // for each of the dihedrals
     const unsigned int size = (unsigned int)m_dihedral_data->getNumDihedrals();
@@ -309,8 +309,8 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
 
         /// Here we use the table!!
         unsigned int value_i = (unsigned int)floor(value_f);
-        float2 VT0 = h_tables.data[m_table_value(value_i, dihedral.type)];
-        float2 VT1 = h_tables.data[m_table_value(value_i+1, dihedral.type)];
+        Scalar2 VT0 = h_tables.data[m_table_value(value_i, dihedral.type)];
+        Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, dihedral.type)];
         // unpack the data
         Scalar V0 = VT0.x;
         Scalar V1 = VT1.x;
@@ -318,7 +318,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar T1 = VT1.y;
 
         // compute the linear interpolation coefficient
-        Scalar f = value_f - float(value_i);
+        Scalar f = value_f - Scalar(value_i);
 
         // interpolate to get V and T;
         Scalar V = V0 + f * (V1 - V0);

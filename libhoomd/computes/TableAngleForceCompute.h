@@ -80,7 +80,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     V(\theta) and T(\theta) are specified for each bond type.
 
     Three parameters need to be stored for each bond potential: thmin, thmax, and dr, the minimum r, maximum r, and spacing
-    between r values in the table respectively. For simple access on the GPU, these will be stored in a float4 where
+    between r values in the table respectively. For simple access on the GPU, these will be stored in a Scalar4 where
     x is thmin, y is thmax, and z is dr.
 
     V(0) is the value of V at r=thmin. V(i) is the value of V at r=thmin + dr * i where i is chosen such that r >= thmin
@@ -92,7 +92,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \b Interpolation
     Values are interpolated linearly between two points straddling the given r. For a given r, the first point needed, i
     can be calculated via i = floorf((r - thmin) / dr). The fraction between ri and ri+1 can be calculated via
-    f = (r - thmin) / dr - float(i). And the linear interpolation can then be performed via V(r) ~= Vi + f * (Vi+1 - Vi)
+    f = (r - thmin) / dr - Scalar(i). And the linear interpolation can then be performed via V(r) ~= Vi + f * (Vi+1 - Vi)
     \ingroup computes
 */
 class TableAngleForceCompute : public ForceCompute
@@ -108,8 +108,8 @@ class TableAngleForceCompute : public ForceCompute
 
         //! Set the table for a given type pair
         virtual void setTable(unsigned int type,
-                              const std::vector<float> &V,
-                              const std::vector<float> &T
+                              const std::vector<Scalar> &V,
+                              const std::vector<Scalar> &T
                               );
 
         //! Returns a list of log quantities this compute calculates
@@ -121,7 +121,7 @@ class TableAngleForceCompute : public ForceCompute
     protected:
         boost::shared_ptr<AngleData> m_angle_data;  //!< Angle data to use in computing angles        
         unsigned int m_table_width;                 //!< Width of the tables in memory
-        GPUArray<float2> m_tables;                  //!< Stored V and T tables
+        GPUArray<Scalar2> m_tables;                  //!< Stored V and T tables
         Index2D m_table_value;                      //!< Index table helper
         std::string m_log_name;                     //!< Cached log name
 

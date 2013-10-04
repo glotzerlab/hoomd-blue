@@ -63,8 +63,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __TABLEDIHEDRALFORCECOMPUTEGPU_CUH__
 
 //! Kernel driver that computes table forces on the GPU for TableDihedralForceGPU
-cudaError_t gpu_compute_table_dihedral_forces(float4* d_force,
-                                     float* d_virial,
+cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
+                                     Scalar* d_virial,
                                      const unsigned int virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
@@ -73,7 +73,7 @@ cudaError_t gpu_compute_table_dihedral_forces(float4* d_force,
                                      const uint1 *dihedral_ABCD,          
                                      const unsigned int pitch,
                                      const unsigned int *n_dihedrals_list,
-                                     const float2 *d_tables,
+                                     const Scalar2 *d_tables,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
                                      const unsigned int block_size);

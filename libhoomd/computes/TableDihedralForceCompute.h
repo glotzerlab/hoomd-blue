@@ -80,7 +80,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     V(r) and F(r) are specified for each dihedral type.
 
     Three parameters need to be stored for each dihedral potential: rmin, rmax, and dr, the minimum r, maximum r, and spacing
-    between r values in the table respectively. For simple access on the GPU, these will be stored in a float4 where
+    between r values in the table respectively. For simple access on the GPU, these will be stored in a Scalar4 where
     x is rmin, y is rmax, and z is dr.
 
     V(0) is the value of V at r=rmin. V(i) is the value of V at r=rmin + dr * i where i is chosen such that r >= rmin
@@ -92,7 +92,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \b Interpolation
     Values are interpolated linearly between two points straddling the given r. For a given r, the first point needed, i
     can be calculated via i = floorf((r - rmin) / dr). The fraction between ri and ri+1 can be calculated via
-    f = (r - rmin) / dr - float(i). And the linear interpolation can then be performed via V(r) ~= Vi + f * (Vi+1 - Vi)
+    f = (r - rmin) / dr - Scalar(i). And the linear interpolation can then be performed via V(r) ~= Vi + f * (Vi+1 - Vi)
     \ingroup computes
 */
 class TableDihedralForceCompute : public ForceCompute
@@ -108,8 +108,8 @@ class TableDihedralForceCompute : public ForceCompute
 
         //! Set the table for a given type pair
         virtual void setTable(unsigned int type,
-                              const std::vector<float> &V,
-                              const std::vector<float> &T);
+                              const std::vector<Scalar> &V,
+                              const std::vector<Scalar> &T);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -120,7 +120,7 @@ class TableDihedralForceCompute : public ForceCompute
     protected:
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Bond data to use in computing dihedrals
         unsigned int m_table_width;                 //!< Width of the tables in memory
-        GPUArray<float2> m_tables;                  //!< Stored V and F tables
+        GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables
         Index2D m_table_value;                      //!< Index table helper
         std::string m_log_name;                     //!< Cached log name
 
