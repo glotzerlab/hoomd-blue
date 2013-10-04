@@ -298,7 +298,7 @@ def read_xml(filename, time_step = None):
 # later in the script. See hoomd_script.data for more information.
 #
 # \sa dump.bin
-def read_bin(filename):
+def read_bin(filename, time_step = None):
     util.print_status_line();
     
     # initialize GPU/CPU execution configuration and MPI early
