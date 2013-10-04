@@ -1,7 +1,7 @@
 # Maintainer: joaander
 
 # Specify cmake modules path to use our custom modules
-set(CMAKE_MODULE_PATH 
+set(CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cuda"
     "${CMAKE_CURRENT_SOURCE_DIR}/hoomd"
     "${CMAKE_CURRENT_SOURCE_DIR}/git"

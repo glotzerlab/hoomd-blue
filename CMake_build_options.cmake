@@ -40,7 +40,7 @@ endif (CMAKE_CXX_COMPILER MATCHES "icpc")
 if (ENABLE_CUDA)
     # optional ocelot emulation mode
     option(ENABLE_OCELOT "Enable ocelot emulation for CUDA GPU code" off)
-    if (ENABLE_OCELOT) 
+    if (ENABLE_OCELOT)
         set(CUDA_ARCH "11")
         add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
         list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")

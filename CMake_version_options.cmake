@@ -28,4 +28,3 @@ if (GIT_SHA1)
 else (GIT_SHA1)
     set(HOOMD_GIT_SHA1 "unknown")
 endif (GIT_SHA1)
-

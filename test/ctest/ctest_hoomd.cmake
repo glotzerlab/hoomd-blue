@@ -29,7 +29,7 @@ SET (SINGLE_PRECISION "ON")
 # (set to OFF to enable shared library builds)
 SET (ENABLE_STATIC "OFF")
 
-# (set tests to ignore, see the example for the format) 
+# (set tests to ignore, see the example for the format)
 # (bdnvt and npt take minutes to run, and an enternity with valgrind enabled, so they are ignored by default)
 SET (IGNORE_TESTS "")
 #SET (IGNORE_TESTS "-E \"test_bdnvt_integrator|test_npt_integrator\"")

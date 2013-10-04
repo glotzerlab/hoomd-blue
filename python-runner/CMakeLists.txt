@@ -12,7 +12,7 @@ if (PYTHON_SITEDIR)
 else (PYTHON_SITEDIR)
     # setup and install the hoomd executable
     set(_hoomd_run_input ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_run.in)
-    
+
     add_executable(hoomd hoomd.cc)
     target_link_libraries(hoomd libhoomd ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(hoomd)
@@ -36,4 +36,4 @@ else (PYTHON_SITEDIR)
     install(TARGETS hoomd
             RUNTIME DESTINATION ${BIN_INSTALL_DIR})
 endif (PYTHON_SITEDIR)
-    
+

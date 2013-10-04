@@ -14,7 +14,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/icons ${CMAKE_CURRENT_SOURCE_DIR}/
         DESTINATION share
         PATTERN ".svn" EXCLUDE
         )
-endif (NOT WIN32 AND NOT APPLE)	
+endif (NOT WIN32 AND NOT APPLE)
 
 ## install the icon file in windows
 if (WIN32)

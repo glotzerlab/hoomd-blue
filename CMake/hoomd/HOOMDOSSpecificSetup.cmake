@@ -4,13 +4,13 @@
 ## On windows: we need winsock
 if (WIN32)
     if(CMAKE_CL_64)
-    find_library(WINSOCK_LIB WSock32 PATHS 
-        $ENV{PLATFORMSDK_DIR}Lib/AMD64 "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib/AMD64" 
-        "$ENV{PROGRAMFILES}/Microsoft Visual Studio 8/VC/PlatformSDK/Lib/AMD64" 
+    find_library(WINSOCK_LIB WSock32 PATHS
+        $ENV{PLATFORMSDK_DIR}Lib/AMD64 "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib/AMD64"
+        "$ENV{PROGRAMFILES}/Microsoft Visual Studio 8/VC/PlatformSDK/Lib/AMD64"
         DOC "Path to WSock32.lib")
     else(CMAKE_CL_64)
     find_library(WINSOCK_LIB WSock32 PATHS
-        $ENV{PLATFORMSDK_DIR}Lib "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib" 
+        $ENV{PLATFORMSDK_DIR}Lib "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib"
         "$ENV{PROGRAMFILES}/Microsoft Visual Studio 8/VC/PlatformSDK/Lib"
         "$ENV{PROGRAMFILES}/Microsoft Platform SDK for Windows Server 2003 R2/Lib"
         DOC "Path to WSock32.lib")
