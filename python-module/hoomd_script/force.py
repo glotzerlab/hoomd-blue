@@ -74,7 +74,7 @@ class _force:
     ## \internal
     # \brief Constructs the force
     #
-    # \param name name of the force instance 
+    # \param name name of the force instance
     #
     # Initializes the cpp_analyzer to None.
     # If specified, assigns a name to the instance
@@ -84,24 +84,24 @@ class _force:
         if not init.is_initialized():
             globals.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating force');
-        
+
         # Allow force to store a name.  Used for discombobulation in the logger
-        if name is None:    
+        if name is None:
             self.name = "";
         else:
             self.name="_" + name;
-        
+
         self.cpp_force = None;
 
         # increment the id counter
         id = _force.cur_id;
         _force.cur_id += 1;
-        
+
         self.force_name = "force%d" % (id);
         self.enabled = True;
         self.log =True;
         globals.forces.append(self);
-        
+
     ## \var enabled
     # \internal
     # \brief True if the force is enabled
@@ -109,7 +109,7 @@ class _force:
     ## \var cpp_force
     # \internal
     # \brief Stores the C++ side ForceCompute managed by this class
-    
+
     ## \var force_name
     # \internal
     # \brief The Force's name as it is assigned to the System
@@ -121,7 +121,7 @@ class _force:
         if self.cpp_force is None:
             globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
-        
+
 
     ## Disables the force
     # \param log Set to True if you plan to continue logging the potential energy associated with this force.
@@ -133,17 +133,17 @@ class _force:
     # \endcode
     #
     # Executing the disable command will remove the force from the simulation.
-    # Any run() command executed after disabling a force will not calculate or 
+    # Any run() command executed after disabling a force will not calculate or
     # use the force during the simulation. A disabled force can be re-enabled
     # with enable()
     #
-    # By setting \a log to True, the values of the force can be logged even though the forces are not applied 
-    # in the simulation.  For forces that use cutoff radii, setting \a log=True will cause the correct r_cut values 
+    # By setting \a log to True, the values of the force can be logged even though the forces are not applied
+    # in the simulation.  For forces that use cutoff radii, setting \a log=True will cause the correct r_cut values
     # to be used throughout the simulation, and therefore possibly drive the neighbor list size larger than it
     # otherwise would be. If \a log is left False, the potential energy associated with this force will not be
     # available for logging.
     #
-    # To use this command, you must have saved the force in a variable, as 
+    # To use this command, you must have saved the force in a variable, as
     # shown in this example:
     # \code
     # force = pair.some_force()
@@ -154,15 +154,15 @@ class _force:
     def disable(self, log=False):
         util.print_status_line();
         self.check_initialization();
-            
+
         # check if we are already disabled
         if not self.enabled:
             globals.msg.warning("Ignoring command to disable a force that is already disabled");
             return;
-        
+
         self.enabled = False;
         self.log = log;
-        
+
         # remove the compute from the system if it is not going to be logged
         if not log:
             globals.system.removeCompute(self.force_name);
@@ -175,15 +175,15 @@ class _force:
     # t = force.benchmark(n = 100)
     # \endcode
     #
-    # The value returned by benchmark() is the average time to perform the force 
+    # The value returned by benchmark() is the average time to perform the force
     # computation, in milliseconds. The benchmark is performed by taking the current
     # positions of all particles in the simulation and repeatedly calculating the forces
-    # on them. Thus, you can benchmark different situations as you need to by simply 
+    # on them. Thus, you can benchmark different situations as you need to by simply
     # running a simulation to achieve the desired state before running benchmark().
     #
     # \note
-    # There is, however, one subtle side effect. If the benchmark() command is run 
-    # directly after the particle data is initialized with an init command, then the 
+    # There is, however, one subtle side effect. If the benchmark() command is run
+    # directly after the particle data is initialized with an init command, then the
     # results of the benchmark will not be typical of the time needed during the actual
     # simulation. Particles are not reordered to improve cache performance until at least
     # one time step is performed. Executing run(1) before the benchmark will solve this problem.
@@ -197,7 +197,7 @@ class _force:
     # \endcode
     def benchmark(self, n):
         self.check_initialization();
-        
+
         # run the benchmark
         return self.cpp_force.benchmark(int(n))
 
@@ -212,19 +212,19 @@ class _force:
     def enable(self):
         util.print_status_line();
         self.check_initialization();
-            
+
         # check if we are already disabled
         if self.enabled:
             globals.msg.warning("Ignoring command to enable a force that is already enabled");
             return;
-        
+
         # add the compute back to the system if it was removed
         if not self.log:
             globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         self.enabled = True;
         self.log = True;
-        
+
     ## \internal
     # \brief updates force coefficients
     def update_coeffs(self):
@@ -265,10 +265,10 @@ class constant(_force):
     # \endcode
     def __init__(self, fx, fy, fz, group=None):
         util.print_status_line();
-        
+
         # initialize the base class
         _force.__init__(self);
-        
+
         # create the c++ mirror class
         if (group is not None):
             self.cpp_force = hoomd.ConstForceCompute(globals.system_definition, group.cpp_group, fx, fy, fz);
@@ -276,7 +276,7 @@ class constant(_force):
             self.cpp_force = hoomd.ConstForceCompute(globals.system_definition, globals.group_all.cpp_group, fx, fy, fz);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
     ## Change the value of the force
     #
     # \param fx New x-component of the %force (in force units)
@@ -296,11 +296,11 @@ class constant(_force):
     # \endcode
     def set_force(self, fx, fy, fz, group=None):
         self.check_initialization();
-        if (group is not None): 
+        if (group is not None):
             self.cpp_force.setGroupForce(group.cpp_group,fx,fy,fz);
         else:
             self.cpp_force.setForce(fx, fy, fz);
- 
+
     # there are no coeffs to update in the constant force compute
     def update_coeffs(self):
         pass
@@ -319,13 +319,13 @@ class const_external_field_dipole(_force):
     # \endcode
     def __init__(self, field_x,field_y,field_z,p):
         util.print_status_line()
-        
+
         # initialize the base class
         _force.__init__(self)
-        
+
         # create the c++ mirror class
         self.cpp_force = hoomd.ConstExternalFieldDipoleForceCompute(globals.system_definition, field_x, field_y, field_z, p)
-        
+
         globals.system.addCompute(self.cpp_force, self.force_name)
         #
 
@@ -343,11 +343,9 @@ class const_external_field_dipole(_force):
     # \endcode
     def set_params(field_x, field_y,field_z,p):
         self.check_initialization()
-        
+
         self.cpp_force.setParams(field_x,field_y,field_z,p)
-        
+
     # there are no coeffs to update in the constant ExternalFieldDipoleForceCompute
     def update_coeffs(self):
         pass
-
-

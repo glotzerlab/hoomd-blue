@@ -70,7 +70,7 @@ from hoomd_script import init;
 # An updater in hoomd_script reflects an Updater in c++. It is responsible
 # for all high-level management that happens behind the scenes for hoomd_script
 # writers. 1) The instance of the c++ updater itself is tracked and added to the
-# System 2) methods are provided for disabling the updater and changing the 
+# System 2) methods are provided for disabling the updater and changing the
 # period which the system calls it
 class _updater:
     ## \internal
@@ -83,30 +83,30 @@ class _updater:
         if not init.is_initialized():
             globals.msg.error("Cannot create updater before initialization\n");
             raise RuntimeError('Error creating updater');
-        
+
         self.cpp_updater = None;
 
         # increment the id counter
         id = _updater.cur_id;
         _updater.cur_id += 1;
-        
+
         self.updater_name = "updater%d" % (id);
         self.enabled = True;
-        
+
     ## \internal
-    # 
+    #
     # \brief Helper function to setup updater period
     #
     # \param period An integer or callable function period
     #
     # If an integer is specified, then that is set as the period for the analyzer.
-    # If a callable is passed in as a period, then a default period of 1000 is set 
+    # If a callable is passed in as a period, then a default period of 1000 is set
     # to the integer period and the variable period is enabled
     #
     def setupUpdater(self, period):
         if type(period) == type(1.0):
             period = int(period);
-        
+
         if type(period) == type(1):
             globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
         elif type(period) == type(lambda n: n*2):
@@ -123,7 +123,7 @@ class _updater:
     ## \var cpp_updater
     # \internal
     # \brief Stores the C++ side Updater managed by this class
-    
+
     ## \var updater_name
     # \internal
     # \brief The Updater's name as it is assigned to the System
@@ -148,11 +148,11 @@ class _updater:
     # \endcode
     #
     # Executing the disable command will remove the updater from the system.
-    # Any run() command executed after disabling an updater will not use that 
+    # Any run() command executed after disabling an updater will not use that
     # updater during the simulation. A disabled updater can be re-enabled
     # with enable()
     #
-    # To use this command, you must have saved the updater in a variable, as 
+    # To use this command, you must have saved the updater in a variable, as
     # shown in this example:
     # \code
     # updater = update.some_updater()
@@ -162,12 +162,12 @@ class _updater:
     def disable(self):
         util.print_status_line();
         self.check_initialization();
-        
+
         # check if we are already disabled
         if not self.enabled:
             globals.msg.warning("Ignoring command to disable an updater that is already disabled");
             return;
-        
+
         self.prev_period = globals.system.getUpdaterPeriod(self.updater_name);
         globals.system.removeUpdater(self.updater_name);
         self.enabled = False;
@@ -183,15 +183,15 @@ class _updater:
     def enable(self):
         util.print_status_line();
         self.check_initialization();
-            
+
         # check if we are already disabled
         if self.enabled:
             globals.msg.warning("Ignoring command to enable an updater that is already enabled");
             return;
-            
+
         globals.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period);
         self.enabled = True;
-        
+
     ## Changes the period between updater executions
     #
     # \param period New period to set
@@ -205,7 +205,7 @@ class _updater:
     # While the simulation is \ref run() "running", the action of each updater
     # is executed every \a period time steps.
     #
-    # To use this command, you must have saved the updater in a variable, as 
+    # To use this command, you must have saved the updater in a variable, as
     # shown in this example:
     # \code
     # updater = update.some_updater()
@@ -214,10 +214,10 @@ class _updater:
     # \endcode
     def set_period(self, period):
         util.print_status_line();
-        
+
         if type(period) == type(1.0):
             period = int(period);
-        
+
         if type(period) == type(1):
             if self.enabled:
                 globals.system.setUpdaterPeriod(self.updater_name, period);
@@ -234,10 +234,10 @@ class _updater:
 #
 # Every \a period time steps, particles are reordered in memory based on
 # a Hilbert curve. This operation is very efficient, and the reordered particles
-# significantly improve performance of all other algorithmic steps in HOOMD. 
-# 
+# significantly improve performance of all other algorithmic steps in HOOMD.
+#
 # The reordering is accomplished by placing particles in spatial bins. A Hilbert curve is generated that traverses
-# these bins and particles are reordered in memory in the same order in which 
+# these bins and particles are reordered in memory in the same order in which
 # they fall on the curve. The grid dimension used over the course of the simulation is held constant, and the default
 # is chosen to be as fine as possible without utilizing too much memory. The dimension can be changed with set_params(),
 # just be aware that the value chosen will be rounded up to the next power of 2 and that the amount of memory usage for
@@ -248,12 +248,12 @@ class _updater:
 # - \a grid=1024 uses 4096 MB
 #
 # 2D simulations do not use any additional memory and default to \a grid=4096
-# 
-# Because all simulations benefit from this process, a sorter is created by 
+#
+# Because all simulations benefit from this process, a sorter is created by
 # default. If you have reason to disable it or modify parameters, you
 # can use the built-in variable \c sorter to do so after initialization. The
 # following code example disables the sorter. The init.create_random command
-# is just an example; sorter can be modified after any command that initializes 
+# is just an example; sorter can be modified after any command that initializes
 # the system.
 # \code
 # init.create_random(N=1000, phi_p=0.2)
@@ -263,7 +263,7 @@ class sort(_updater):
     ## Initialize the sorter
     #
     # Users should not initialize the sorter directly. One in created for you
-    # when any initialization command from init is run. 
+    # when any initialization command from init is run.
     # The created sorter can be accessed via the built-in variable \c sorter.
     #
     # By default, the sorter is created with a \a grid of 256 (4096 in 2D) and
@@ -273,21 +273,21 @@ class sort(_updater):
     def __init__(self):
         # initialize base class
         _updater.__init__(self);
-        
+
         # create the c++ mirror class
         self.cpp_updater = hoomd.SFCPackUpdater(globals.system_definition);
-        
+
         default_period = 300;
         # change default period to 100 on the CPU
         if not globals.exec_conf.isCUDAEnabled():
             default_period = 100;
-            
+
         self.setupUpdater(default_period);
 
     ## Change sorter parameters
     #
     # \param grid New grid dimension (if set)
-    # 
+    #
     # \b Examples:
     # \code
     # sorter.set_params(grid=128)
@@ -295,7 +295,7 @@ class sort(_updater):
     def set_params(self, grid=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         if grid is not None:
             self.cpp_updater.setGrid(grid);
 
@@ -304,7 +304,7 @@ class sort(_updater):
 #
 # Every \a period time steps, particle velocities are rescaled by equal factors
 # so that they are consistent with a given temperature in the equipartition theorem
-# \f$\langle 1/2 m v^2 \rangle = k_B T \f$. 
+# \f$\langle 1/2 m v^2 \rangle = k_B T \f$.
 #
 # update.rescale_temp is best coupled with the \ref integrate.nve "NVE" integrator.
 # \MPI_SUPPORTED
@@ -330,13 +330,13 @@ class rescale_temp(_updater):
 
         # initialize base class
         _updater.__init__(self);
-        
+
         # setup the variant inputs
         T = variant._setup_variant_input(T);
-        
+
         # create the compute thermo
         thermo = compute._get_unique_thermo(group=globals.group_all);
-        
+
         # create the c++ mirror class
         self.cpp_updater = hoomd.TempRescaleUpdater(globals.system_definition, thermo.cpp_compute, T.cpp_variant);
         self.setupUpdater(period);
@@ -344,7 +344,7 @@ class rescale_temp(_updater):
     ## Change rescale_temp parameters
     #
     # \param T New temperature set point (in energy units)
-    # 
+    #
     # To change the parameters of an existing updater, you must have saved it when it was specified.
     # \code
     # rescaler = update.rescale_temp(T=0.5)
@@ -357,14 +357,14 @@ class rescale_temp(_updater):
     def set_params(self, T=None):
         util.print_status_line();
         self.check_initialization();
-            
+
         if T is not None:
             T = variant._setup_variant_input(T);
             self.cpp_updater.setT(T.cpp_variant);
 
 ## Zeroes system momentum
 #
-# Every \a period time steps, particle velocities are modified such that the total linear 
+# Every \a period time steps, particle velocities are modified such that the total linear
 # momentum of the system is set to zero.
 #
 # update.zero_momentum is intended to be used when the \ref integrate.nve "NVE" integrator has the
@@ -376,7 +376,7 @@ class zero_momentum(_updater):
     ## Initialize the momentum zeroer
     #
     # \param period Momentum will be zeroed every \a period time steps
-    # 
+    #
     # \b Examples:
     # \code
     # update.zero_momentum()
@@ -386,10 +386,10 @@ class zero_momentum(_updater):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, period=1):
         util.print_status_line();
- 
+
         # initialize base class
         _updater.__init__(self);
-        
+
         # create the c++ mirror class
         self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.system_definition);
         self.setupUpdater(period);
@@ -417,17 +417,17 @@ class enforce2d(_updater):
     def __init__(self):
         util.print_status_line();
         period = 1;
-    
+
         # initialize base class
         _updater.__init__(self);
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_updater = hoomd.Enforce2DUpdater(globals.system_definition);
         else:
             self.cpp_updater = hoomd.Enforce2DUpdaterGPU(globals.system_definition);
         self.setupUpdater(period);
-        
+
 ## Rescales the system box size
 #
 # Every \a period time steps, the system box dimensions is updated to values given by
@@ -445,16 +445,16 @@ class box_resize(_updater):
     # \param xz (if set) the value of the X-Z tilt factor as a function of time (dimensionless)
     # \param yz (if set) the value of the Y-Z tilt factor as a function of time (dimensionless)
     # \param period The box size will be updated every \a period time steps
-    # 
+    #
     # \a Lx, \a Ly, \a Lz, \a xy, \a xz, \a yz can either be set to a constant number or a variant may be provided.
     #
-    # \note If Ly or Lz (or both) are left as None, then they will be set to Lx as a convenience for 
+    # \note If Ly or Lz (or both) are left as None, then they will be set to Lx as a convenience for
     # defining cubes. If Lx is left as None, the current box length in the x-direction will be used.
     #
     # \note
     # By default, particle positions are rescaled with the box. To change this behavior,
     # use set_params().
-    # 
+    #
     # \note
     # If, under rescaling, tilt factors get too large, the simulation may slow down due to too many ghost atoms
     # being communicated. update.box.resize does NOT reset the box to orthorhombic shape if this occurs (and does not
@@ -464,11 +464,11 @@ class box_resize(_updater):
     # \code
     # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
     # box_resize = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
-    # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), 
+    # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]),
     #                   Ly = variant.linear_interp([(0, 20), (1e6, 60)]),
     #                   Lz = variant.linear_interp([(0, 10), (1e6, 80)]))
     # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), Ly = 10, Lz = 10)
-    # 
+    #
     # # Shear the box in the xy plane using Lees-Edwards boundary conditions
     # update.box_resize(xy = variant.linear_interp([(0,0), (1e6, 1)]))
     # \endcode
@@ -480,10 +480,10 @@ class box_resize(_updater):
     #
     def __init__(self, Lx=None, Ly = None, Lz = None, xy=None, xz=None, yz=None, period = 1):
         util.print_status_line();
-    
+
         # initialize base class
         _updater.__init__(self);
-       
+
         if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
             globals.msg.warning("update.box_resize: Ignoring request to setup updater without parameters\n")
             return
@@ -496,7 +496,7 @@ class box_resize(_updater):
             Ly = Lx;
         if Lz is None:
             Lz = Lx;
-           
+
         if xy is None:
             xy = 0.0;
         if xz is None:
@@ -519,12 +519,12 @@ class box_resize(_updater):
             self.cpp_updater.update(globals.system.getCurrentTimeStep());
         else:
             self.setupUpdater(period);
-        
+
     ## Change box_resize parameters
     #
     # \param scale_particles Set to True to scale particles with the box. Set to False
     #        to have particles remain in place when the box is scaled.
-    # 
+    #
     # To change the parameters of an existing updater, you must have saved it when it was specified.
     # \code
     # box_resize = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
@@ -538,10 +538,9 @@ class box_resize(_updater):
     def set_params(self, scale_particles=None):
         util.print_status_line();
         self.check_initialization();
-            
+
         if scale_particles is not None:
             self.cpp_updater.setParams(scale_particles);
 
 # Global current id counter to assign updaters unique names
 _updater.cur_id = 0;
-

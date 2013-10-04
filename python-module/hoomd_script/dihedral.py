@@ -225,18 +225,18 @@ class coeff:
 ## \package hoomd_script.dihedral
 # \brief Commands that specify %dihedral forces
 #
-# Dihedrals add forces between specified quadruplets of particles and are typically used to 
+# Dihedrals add forces between specified quadruplets of particles and are typically used to
 # model rotation about chemical bonds. Dihedrals between particles are set when an input XML file is read
 # (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
 #
-# By themselves, dihedrals that have been specified in an input file do nothing. Only when you 
-# specify an dihedral force (i.e. dihedral.harmonic), are forces actually calculated between the 
+# By themselves, dihedrals that have been specified in an input file do nothing. Only when you
+# specify an dihedral force (i.e. dihedral.harmonic), are forces actually calculated between the
 # listed particles.
 
 ## Harmonic %dihedral force
 #
-# The command dihedral.harmonic specifies a %harmonic dihedral potential energy between every defined 
-# quadruplet of particles in the simulation. 
+# The command dihedral.harmonic specifies a %harmonic dihedral potential energy between every defined
+# quadruplet of particles in the simulation.
 # \f[ V(r) = \frac{1}{2}k \left( 1 + d \cos\left(n * \phi(r) \right) \right) \f]
 # where \f$ \phi \f$ is angle between two sides of the dihedral
 #
@@ -263,10 +263,10 @@ class harmonic(force._force):
         if globals.system_definition.getDihedralData().getNumDihedrals() == 0:
             globals.msg.error("No dihedrals are defined.\n");
             raise RuntimeError("Error creating dihedral forces");
-        
+
         # initialize the base class
         force._force.__init__(self);
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.HarmonicDihedralForceCompute(globals.system_definition);
@@ -275,10 +275,10 @@ class harmonic(force._force):
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('dihedral.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # variable for tracking which dihedral type coefficients have been set
         self.dihedral_types_set = [];
-    
+
     ## Sets the %harmonic %dihedral coefficients for a particular %dihedral type
     #
     # \param dihedral_type Dihedral type to set coefficients for
@@ -297,25 +297,25 @@ class harmonic(force._force):
     # harmonic.set_coeff('psi-ang', k=100.0, d=1, n=4)
     # \endcode
     #
-    # The coefficients for every %dihedral type in the simulation must be set 
+    # The coefficients for every %dihedral type in the simulation must be set
     # before the run() can be started.
     def set_coeff(self, dihedral_type, k, d, n):
         util.print_status_line();
-        
+
         # set the parameters for the appropriate type
         self.cpp_force.setParams(globals.system_definition.getDihedralData().getTypeByName(dihedral_type), k, d, n);
-        
+
         # track which particle types we have set
         if not dihedral_type in self.dihedral_types_set:
             self.dihedral_types_set.append(dihedral_type);
-        
+
     def update_coeffs(self):
         # get a list of all dihedral types in the simulation
         ntypes = globals.system_definition.getDihedralData().getNDihedralTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getDihedralData().getNameByType(i));
-            
+
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.dihedral_types_set:
@@ -325,7 +325,7 @@ class harmonic(force._force):
 
 ## Tabulated %dihedral %force
 #
-# The command dihedral.table specifies that a tabulated  %dihedral %force should be added to every bonded triple of particles 
+# The command dihedral.table specifies that a tabulated  %dihedral %force should be added to every bonded triple of particles
 # in the simulation.
 #
 # The %torque \f$ \vec{F}\f$ is (in force units)
@@ -336,19 +336,19 @@ class harmonic(force._force):
 # \f{eqnarray*}
 #            = & V_{\mathrm{user}}(\theta) \\
 # \f}
-# ,where \f$ \theta \f$ is the angle between the triple to the other in the %dihedral.  
+# ,where \f$ \theta \f$ is the angle between the triple to the other in the %dihedral.
 #
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between 
+# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between
 # \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
+# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
 #
 # The following coefficients must be set per unique %pair of particle types.
 # - \f$ F_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ - evaluated by `func` (see example)
 # - coefficients passed to `func` - `coeff` (see example)
 #
 # The table *width* is set once when dihedral.table is specified (see table.__init__())
-# There are two ways to specify the other parameters. 
-# 
+# There are two ways to specify the other parameters.
+#
 # \par Example: Set table from a given function
 # When you have a functional form for V and F, you can enter that
 # directly into python. dihedral.table will evaluate the given function over \a width points between \a rmin and \a rmax
@@ -380,7 +380,7 @@ class harmonic(force._force):
 # ~~~~~~~~~~~~~
 #
 #
-# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
+# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
 # not diverge near r=0, then a setting of \c rmin=0 is valid.
 #
 # \note %Dihedral coefficients for all type dihedrals in the simulation must be
@@ -422,7 +422,7 @@ class table(force._force):
             self.cpp_force = hoomd.TableDihedralForceCompute(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.TableDihedralForceComputeGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('dihedral.table')); 
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('dihedral.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -474,7 +474,7 @@ class table(force._force):
             self.update_dihedral_table(i, func, coeff);
 
       ## Set a dihedral pair interaction from a file
-      # \param dihedralname Name of dihedral 
+      # \param dihedralname Name of dihedral
       # \param filename Name of the file to read
       #
      # The provided file specifies V and F at equally spaced theta values.

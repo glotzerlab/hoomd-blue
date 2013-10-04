@@ -30,7 +30,7 @@ for row in reader:
 
     if row[0] == 'gpustarttimestamp':
         continue;
-    
+
     # get the current timestamp, method name, and gputime
     timestamp = int(row[0], 16);
     gputime = float(row[2]);
@@ -46,14 +46,14 @@ for row in reader:
     # if this is the mark method, record the mark time
     if method == mark_method:
         marks.append(timestamp);
-    
+
     idle = float(timestamp - prev_timestamp)/1e3 - prev_gputime;
-    
+
     if method in idletime:
         idletime[method].append(idle);
     else:
         idletime[method] = [idle];
-    
+
     prev_timestamp = timestamp;
     prev_gputime = gputime;
 
@@ -64,7 +64,7 @@ if mark_method is not None and len(marks):
     tstep_size = [];
     for i in xrange(len(marks)-1):
         tstep_size.append(marks[i+1] - marks[i]);
-    
+
     print "Average us/step : %3.2f" % (float(numpy.average(tstep_size))/1e3);
     print " Median us/step : %3.2f" % (float(numpy.median(tstep_size))/1e3);
     print

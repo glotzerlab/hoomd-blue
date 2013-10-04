@@ -62,28 +62,28 @@ from hoomd_script import globals;
 # \brief Internal utility functions used by hoomd_script
 
 ## \internal
-# \brief Internal flag tracking if 
+# \brief Internal flag tracking if
 _disable_status_lines = False;
 
 ## Prints a status line tracking the execution of the current hoomd script
 def print_status_line():
     if _disable_status_lines:
         return;
-    
+
     # get the traceback info first
     stack = traceback.extract_stack();
     if len(stack) < 3:
         globals.msg.notice(2, "hoomd_script executing unknown command\n");
     file_name, line, module, code = stack[-3];
-    
+
     # if we are in interactive mode, there is no need to print anything: the
     # interpreter loop does it for us. We can make that check by testing if
-    # sys.ps1 is defined (this is not a hack, the python documentation states 
+    # sys.ps1 is defined (this is not a hack, the python documentation states
     # that ps1 is _only_ defined in interactive mode
     if 'ps1' in sys.__dict__:
         return
 
-    # piped input from stdin doesn't provide a code line, handle the situation 
+    # piped input from stdin doesn't provide a code line, handle the situation
     if not code:
         message = os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  <unknown code>";
         globals.msg.notice(1, message + '\n');
@@ -99,8 +99,7 @@ def print_status_line():
             if sum(balance(dequote(x)) for x in message) == 0 or line == 0:
                 break
             line = line - 1
-        
+
         message.insert(0,os.path.basename(file_name) + ":" + str(line).zfill(3) + "  |  ")
         globals.msg.notice(1, ''.join(message).rstrip('\n') + '\n');
         linecache.clearcache()
-

@@ -63,7 +63,7 @@ from hoomd_script import util;
 # Walls can add forces to any particles within a certain distance of the wall. Walls are created
 # when an input XML file is read (read.xml).
 #
-# By themselves, walls that have been specified in an input file do nothing. Only when you 
+# By themselves, walls that have been specified in an input file do nothing. Only when you
 # specify a wall force (i.e. wall.lj), are forces actually applied between the wall and the
 # particle.
 
@@ -78,11 +78,11 @@ from hoomd_script import util;
 #             = & 0            & r \ge r_{\mathrm{cut}} \\
 # \f}
 # where
-# \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+# \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
 #                                        \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
 # and \f$ \vec{r} \f$ is the vector pointing from the %wall to the particle parallel to the wall's normal.
 #
-# The following coefficients must be set for each particle type using set_coeff(). 
+# The following coefficients must be set for each particle type using set_coeff().
 # - \f$ \varepsilon \f$ - \c epsilon (in energy units)
 # - \f$ \sigma \f$ - \c sigma (in distance units)
 # - \f$ \alpha \f$ - \c alpha (unitless)
@@ -118,18 +118,18 @@ class lj(force._force):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("wall.lj is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up wall potential.")
- 
+
         # initialize the base class
         force._force.__init__(self);
-        
+
         # create the c++ mirror class
         self.cpp_force = hoomd.LJWallForceCompute(globals.system_definition, r_cut);
-        
+
         # variable for tracking which particle type coefficients have been set
         self.particle_types_set = [];
-        
+
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
     ## Sets the particle-wall interaction coefficients for a particular particle type
     #
     # \param particle_type Particle type to set coefficients for
@@ -148,31 +148,30 @@ class lj(force._force):
     # lj_wall.set_coeff('B', epsilon=1.0, sigma=2.0, alpha=0.0)
     # \endcode
     #
-    # The coefficients for every particle type in the simulation must be set 
+    # The coefficients for every particle type in the simulation must be set
     # before the run() can be started.
     def set_coeff(self, particle_type, epsilon, sigma, alpha):
         util.print_status_line();
-        
+
         # calculate the parameters
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         # set the parameters for the appropriate type
         self.cpp_force.setParams(globals.system_definition.getParticleData().getTypeByName(particle_type), lj1, lj2);
-        
+
         # track which particle types we have set
         if not particle_type in self.particle_types_set:
             self.particle_types_set.append(particle_type);
-        
+
     def update_coeffs(self):
         # get a list of all particle types in the simulation
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-            
+
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.particle_types_set:
                 globals.msg.error(str(cur_type) + " coefficients missing in wall.lj\n");
                 raise RuntimeError("Error updating coefficients");
-

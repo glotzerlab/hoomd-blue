@@ -30,7 +30,7 @@ sub process_file_astyle
         my $parser = Text::Diff::Parser->new($diffs);
         $parser->simplify();
         my $total_changes = 0;
-        foreach my $change ( $parser->changes ) 
+        foreach my $change ( $parser->changes )
                 {
                 $total_changes += $change->size;
                 }
@@ -54,10 +54,10 @@ sub process_file_lines
     my $fullpath = $_[1];
     # for checking the final newline
     my $last_line;
-    
+
     # open the file
     open(FILE, "< $fname") or die "can't open $fname: $!";
-    
+
     # initialize counters to 0
     my $tab_count = 0;
     my $eol_whitespace_count = 0;
@@ -114,7 +114,7 @@ sub process_file_lines
         {
         $message .= "missing doxygen \\package\n";
         }
-    
+
     #if (not $last_line =~ /^\n/)
     #    {
     #    $message .= "end of file newline: missing\n";
@@ -123,34 +123,34 @@ sub process_file_lines
     return ($message, $line_count);
     }
 
-sub wanted 
+sub wanted
     {
-    my $fname = $_;    
-    
+    my $fname = $_;
+
     # skip processing if this file is in the extern directory
     if ($File::Find::name =~ /\/extern\//)
         {
         return;
         }
-    
+
     # skip processing if this file is in the build
     if ($File::Find::name =~ /\/build\//)
         {
         return;
         }
-    
+
     # skip processing if this file is in the microbenchmarks directory
     if ($File::Find::name =~ /\/microbenchmarks\//)
         {
         return;
         }
-    
+
     # skip processing if this file is in the share directory
     if ($File::Find::name =~ /\/share\//)
         {
         return;
         }
-    
+
     if (/\.cc$/ or /\.h$/ or /\.cu$/ or /\.cuh$/ or /\.py$/)
         {
         my $full_message = "";

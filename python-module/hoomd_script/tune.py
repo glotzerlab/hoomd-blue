@@ -94,12 +94,12 @@ _override_block_size_compute_cap = None;
 
 ## \internal
 # \brief Saves the block size tuning override file
-# 
+#
 # \param common_optimal_db Dictionary of the common optimal block sizes identified
-# 
+#
 def _save_override_file(common_optimal_db):
     fname = os.path.expanduser("~") + '/.hoomd_block_tuning';
-    
+
     # see if the user really wants to overwrite the file
     if os.path.isfile(fname):
         globals.msg.warning(fname + " exists. This file is being overwritten with new settings\n");
@@ -107,7 +107,7 @@ def _save_override_file(common_optimal_db):
     # save the file
     f = open(fname, 'wb');
     globals.msg.notice(2, 'Writing optimal block sizes to ' + str(fname) + '\n');
-    
+
     # write the version of the file
     pickle.dump(0, f);
     # write out the version this was tuned on
@@ -116,19 +116,19 @@ def _save_override_file(common_optimal_db):
     pickle.dump(globals.system_definition.getParticleData().getExecConf().getComputeCapability(), f);
     # write out the dictionary
     pickle.dump(common_optimal_db, f);
-    
+
     f.close();
-    
+
 ## \internal
 # \brief Loads in the override block size tuning db
-# 
+#
 # unpickles the file ~/.hoomd_block_tuning and fills out _override_block_size_db and _override_block_size_compute_cap
 #
 def _load_override_file():
     global _override_block_size_db, _override_block_size_compute_cap;
-    
+
     fname = os.path.expanduser("~") + '/.hoomd_block_tuning';
-    
+
     # only load if the file exists
     if not os.path.isfile(fname):
         return
@@ -136,10 +136,10 @@ def _load_override_file():
     # save the file
     f = open(fname, 'rb');
     globals.msg.notice(2, 'Reading optimal block sizes from ' + str(fname) + '\n');
-    
+
     # read the version of the file
     ver = pickle.load(f);
-    
+
     # handle the different file versions
     if ver == 0:
         # read and verify the version this was tuned on
@@ -148,16 +148,16 @@ def _load_override_file():
             globals.msg.warning("~/.hoomd_block_tuning was created with" + str(hoomd_version) + \
                                 ", but this is " + str(hoomd.get_hoomd_version()) + ". Reverting to default performance tuning.\n");
             return;
-        
+
         # read the compute capability of the GPU this was tuned on
         _override_block_size_compute_cap = pickle.load(f);
         # read the dictionary
         _override_block_size_db = pickle.load(f);
-        
+
     else:
         globals.msg.error("Unknown ~/.hoomd_block_tuning format " + str(ver) + ".\n");
         raise RuntimeError("Error loading .hoomd_block_tuning");
-    
+
     f.close();
 
 # load the override file on startup
@@ -175,9 +175,9 @@ _load_override_file();
 # the default database above
 def _get_optimal_block_size(name):
     global _override_block_size_db, _override_block_size_compute_cap;
-    
+
     compute_cap = globals.system_definition.getParticleData().getExecConf().getComputeCapability();
-    
+
     # check for the override first
     if _override_block_size_db is not None:
         # first verify the compute capability
@@ -215,7 +215,7 @@ def _get_optimal_block_size(name):
 
 ## \internal
 # \brief Finds the optimal block size for a given force compute
-# 
+#
 # \param fc Force compute to find the optimal block size of
 # \param n Number of benchmark iterations to perform
 # \return Fastest block size
@@ -224,7 +224,7 @@ def _get_optimal_block_size(name):
 #
 def _find_optimal_block_size_fc(fc, n):
     timings = [];
-    
+
     # run the benchmark
     try:
         for block_size in range(64,1024+32,32):
@@ -238,12 +238,12 @@ def _find_optimal_block_size_fc(fc, n):
     fastest = min(timings);
     globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
     globals.msg.notice(2, '---------------\n');
-    
+
     return fastest[1];
-    
+
 ## \internal
 # \brief Finds the optimal block size for a neighbor list compute
-# 
+#
 # \param nl Force compute to find the optimal block size of
 # \param n Number of benchmark iterations to perform
 # \return Fastest block size
@@ -252,7 +252,7 @@ def _find_optimal_block_size_fc(fc, n):
 #
 def _find_optimal_block_size_nl(nl, n):
     timings = [];
-    
+
     # run the benchmark
     try:
         for block_size in range(64,1024+32,32):
@@ -262,18 +262,18 @@ def _find_optimal_block_size_nl(nl, n):
             timings.append( (t, block_size) );
     except RuntimeError:
         globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
-    
-    
+
+
     fastest = min(timings);
     globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
     globals.msg.notice(2, '---------------\n');
     nl.cpp_nlist.setBlockSize(fastest[1]);
-    
+
     return fastest[1];
 
 ## \internal
 # \brief Finds the optimal block size for the neighbor list filter step
-# 
+#
 # \param nl Neighbor list compute to find the optimal block size of
 # \param n Number of benchmark iterations to perform
 # \return Fastest block size
@@ -282,7 +282,7 @@ def _find_optimal_block_size_nl(nl, n):
 #
 def _find_optimal_block_size_nl_filter(nl, n):
     timings = [];
-    
+
     # run the benchmark
     try:
         for block_size in range(64,1024+32,32):
@@ -292,13 +292,13 @@ def _find_optimal_block_size_nl_filter(nl, n):
             timings.append( (t, block_size) );
     except RuntimeError:
         globals.msg.notice(2, "Note: Too many resources requested for launch is a normal message when finding optimal block sizes\n");
-    
-    
+
+
     fastest = min(timings);
     globals.msg.notice(2, 'fastest: ' + str(fastest[1]) + '\n');
     globals.msg.notice(2, '---------------\n');
     nl.cpp_nlist.setBlockSizeFilter(fastest[1]);
-    
+
     return fastest[1];
 
 ## \internal
@@ -309,30 +309,30 @@ def _find_optimal_block_size_nl_filter(nl, n):
 def _choose_optimal_block_sizes(optimal_dbs):
     # create a new db with the common optimal settings
     common_optimal_db = {};
-    
+
     # choose the most common optimal block size for each entry
     for entry in optimal_dbs[0]:
-        
+
         count = {};
-        
+
         for db in optimal_dbs:
             best_block_size = db[entry];
             count[best_block_size] = count.setdefault(best_block_size, 0) + 1;
-        
+
         # find the most common
         common_optimal_list = [];
         max_count = max(count.values());
         for (block_size, c) in count.items():
             if c == max_count:
                 common_optimal_list.append(block_size);
-        
+
         # add it to the common optimal db
         common_optimal = common_optimal_list[0];
         common_optimal_db[entry] = common_optimal;
-        
+
         if len(common_optimal_list) > 1:
             globals.msg.notice(2, "More than one common optimal block size found for " + str(entry) + ", using" + str(common_optimal) + '\n');
-    
+
     return common_optimal_db;
 
 ## Determine optimal block size tuning parameters
@@ -344,7 +344,7 @@ def _choose_optimal_block_sizes(optimal_dbs):
 # Unfortunately, the optimal values are impossible to predict and must be benchmarked. Additionally,
 # the optimal values can vary due to different hardware and even compiler versions! HOOMD includes
 # a balanced default set of tuning parameters benchmarked on various hardware configurations,
-# all with the latest version of CUDA. 
+# all with the latest version of CUDA.
 #
 # You might be able to boost the performance of your simulations over the default by a small amount
 # if you run the tuning benchmark on your own machine. find_optimal_block_sizes() is the command
@@ -355,11 +355,11 @@ def _choose_optimal_block_sizes(optimal_dbs):
 #\endcode
 #
 # Be prepared to wait a while when running it. After it completes successfully, it will save the
-# determined optimal tuning parameters in a file ~/.hoomd_block_tuning. This file will be 
-# automatically read by any future invocations of HOOMD. 
+# determined optimal tuning parameters in a file ~/.hoomd_block_tuning. This file will be
+# automatically read by any future invocations of HOOMD.
 #
 # \note HOOMD ignores .hoomd_block_tuning files from older versions. You must rerun the tuning
-# script after upgrading HOOMD. 
+# script after upgrading HOOMD.
 def find_optimal_block_sizes(save = True, only=None):
     from hoomd_script import bond
     from hoomd_script import angle
@@ -370,7 +370,7 @@ def find_optimal_block_sizes(save = True, only=None):
     # we cannot save if only is set
     if only:
         save = False;
-    
+
     # list of force computes to tune
     fc_list = [ ('pair.table', 'pair_table_setup', 500),
                 ('bond.table', 'bond_table_setup', 2000),
@@ -385,7 +385,7 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('pair.moliere', 'pair_moliere_setup', 500),
                 ('pair.zbl', 'pair_zbl_setup', 500),
                 ('pair.dpd', 'pair_dpd_setup', 500),
-                ('pair.dpdlj', 'pair_dpdlj_setup', 500),                
+                ('pair.dpdlj', 'pair_dpdlj_setup', 500),
                 ('pair.dpd_conservative', 'pair_dpd_conservative_setup', 500),
                 ('pair.tersoff', 'pair_tersoff_setup', 2500),
                 ('bond.harmonic', 'bond.harmonic', 10000),
@@ -395,7 +395,7 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('angle.cgcmm', 'angle.cgcmm', 2000),
                 ('dihedral.harmonic', 'dihedral.harmonic', 1000),
                 ('improper.harmonic', 'improper.harmonic', 1000)];
- 
+
     # setup the particle system to benchmark
     polymer = dict(bond_len=1.2, type=['A']*50, bond="linear", count=2000);
     N = len(polymer['type']) * polymer['count'];
@@ -403,36 +403,36 @@ def find_optimal_block_sizes(save = True, only=None):
     L = math.pow(math.pi * N / (6.0 * phi_p), 1.0/3.0);
 
     sysdef = init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer], separation=dict(A=0.35, B=0.35), seed=12)
-    
+
     # need some angles, dihedrals, and impropers to benchmark
     angle_data = sysdef.sysdef.getAngleData();
     dihedral_data = sysdef.sysdef.getDihedralData();
     improper_data = sysdef.sysdef.getImproperData();
     num_particles = len(polymer['type']) * polymer['count'];
-    
+
     for i in range(1,num_particles-3):
         angle_data.addAngle(hoomd.Angle(0, i, i+1, i+2));
-    
+
     for i in range(1,num_particles-4):
         dihedral_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
         improper_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
-   
+
     del angle_data
     del dihedral_data
     del improper_data
     del sysdef
-    
+
     # run one time step to resort the particles for optimal memory access patterns
     hoomd_script.run(1);
-    
+
     # list of optimal databases
     optimal_dbs = [];
     num_repeats = 3;
     for i in range(0,num_repeats):
-        
+
         # initialize an empty database of optimal sizes
         optimal_db = {};
-        
+
         # for each force compute
         for (fc_name,fc_init,n) in fc_list:
             if only and (not fc_name in only):
@@ -443,11 +443,11 @@ def find_optimal_block_sizes(save = True, only=None):
             fc = eval(fc_init + '()')
             optimal = _find_optimal_block_size_fc(fc, n)
             optimal_db[fc_name] = optimal;
-            
+
             # clean up
             fc.disable()
             del fc
-        
+
         # now, benchmark the neighbor list
         if (only is None) or (only == 'nlist'):
             globals.msg.notice(2, 'Benchmarking nlist\n');
@@ -455,7 +455,7 @@ def find_optimal_block_sizes(save = True, only=None):
             optimal = _find_optimal_block_size_nl(globals.neighbor_list, 100)
             optimal_db['nlist'] = optimal;
             del lj;
-        
+
         # and the neighbor list filtering
         if (only is None) or (only == 'nlist.filter'):
             globals.msg.notice(2, 'Benchmarking nlist.filter\n');
@@ -464,25 +464,25 @@ def find_optimal_block_sizes(save = True, only=None):
             optimal = _find_optimal_block_size_nl_filter(globals.neighbor_list, 200)
             optimal_db['nlist.filter'] = optimal;
             del lj;
-        
+
         # add it to the list
         optimal_dbs.append(optimal_db);
-    
+
     # print out all the optimal block sizes
     globals.msg.notice(2, '*****************\n');
     globals.msg.notice(2, 'Optimal block sizes found:\n');
     for db in optimal_dbs:
         globals.msg.notice(2, str(db) + '\n');
-    
+
     # create a new db with the common optimal settings
     globals.msg.notice(2, "Chosing common optimal block sizes:\n");
     common_optimal_db = _choose_optimal_block_sizes(optimal_dbs);
     globals.msg.notice(2, str(common_optimal_db) + '\n');
-        
+
     globals.msg.notice(2, '*****************\n')
     if save:
         _save_override_file(common_optimal_db);
-    
+
     ## Currently not working for some reason.....
     # init.reset();
     util._disable_status_lines = False;
@@ -496,7 +496,7 @@ def lj_table(r, rmin, rmax, epsilon, sigma):
 def bond_table(r, rmin, rmax, kappa, r0):
     V = 0.5 * kappa * (r-r0)**2;
     F = -kappa*(r-r0);
-    return (V, F)    
+    return (V, F)
 
 ## \internal
 # \brief Setup pair.table for benchmarking
@@ -504,11 +504,11 @@ def pair_table_setup():
     from hoomd_script import pair
     table = pair.table(width=1000);
     table.pair_coeff.set('A', 'A', func=lj_table, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.0, sigma=1.0));
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return table;
-    
+
 ## \internal
 # \brief Setup pair.table for benchmarking
 def bond_table_setup():
@@ -516,8 +516,8 @@ def bond_table_setup():
     btable = bond.table(width=1000)
     btable.bond_coeff.set('polymer', func=bond_table, rmin=0.1, rmax=10.0, coeff=dict(kappa=330, r0=0.84))
 
-    btable.update_coeffs();  
-    return btable;    
+    btable.update_coeffs();
+    return btable;
 
 ## \internal
 # \brief Setup pair.lj for benchmarking
@@ -525,7 +525,7 @@ def pair_lj_setup():
     from hoomd_script import pair
     fc = pair.lj(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -547,18 +547,18 @@ def pair_slj_setup():
     from hoomd_script import pair
     fc = pair.slj(r_cut=3.0, d_max=1.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
-    
+
 ## \internal
 # \brief Setup pair.yukawa for benchmarking
 def pair_yukawa_setup():
     from hoomd_script import pair
     fc = pair.yukawa(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0);
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -569,7 +569,7 @@ def pair_ewald_setup():
     from hoomd_script import pair
     fc = pair.ewald(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', kappa=1.0, grid=16, order=4);
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -580,7 +580,7 @@ def pair_cgcmm_setup():
     from hoomd_script import pair
     fc = pair.cgcmm(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6');
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -591,7 +591,7 @@ def pair_gauss_setup():
     from hoomd_script import pair
     fc = pair.gauss(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -602,7 +602,7 @@ def pair_morse_setup():
     from hoomd_script import pair
     fc = pair.morse(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0);
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -613,7 +613,7 @@ def pair_moliere_setup():
     from hoomd_script import pair
     fc = pair.moliere(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', Z_i = 7, Z_j = 7, a_0 = 0.52918, elementary_charge = 3.7947)
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -624,7 +624,7 @@ def pair_zbl_setup():
     from hoomd_script import pair
     fc = pair.zbl(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', Z_i = 7, Z_j = 7, a_0 = 0.52918, elementary_charge = 3.7947)
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -634,19 +634,19 @@ def pair_zbl_setup():
 def pair_dpd_setup():
     from hoomd_script import pair
     fc = pair.dpd(r_cut=3.0, T=1.0);
-    fc.pair_coeff.set('A', 'A', A=40.0, gamma=4.5); 
-    
+    fc.pair_coeff.set('A', 'A', A=40.0, gamma=4.5);
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
-    return fc;    
+    return fc;
 
 ## \internal
 # \brief Setup pair.dpdlj for benchmarking
 def pair_dpdlj_setup():
     from hoomd_script import pair
     fc = pair.dpd(r_cut=3.0, T=1.0);
-    fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, gamma=4.5); 
-    
+    fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, gamma=4.5);
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -657,7 +657,7 @@ def pair_dpd_conservative_setup():
     from hoomd_script import pair
     fc = pair.dpd_conservative(r_cut=3.0);
     fc.pair_coeff.set('A', 'A', A=40);
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -681,7 +681,7 @@ def pair_tersoff_setup():
 
     fc = pair.tersoff(r_cut=2.1);
     fc.pair_coeff.set('A', 'A', cutoff_thickness = 0.2, C1 = c1nn, C2 = c2nn, lambda1 = l1nn, lambda2 = l2nn, lambda3 = l3nn, dimer_r = r0nn, n = nnn, gamma = gammann, c = cnn, d = dnn, m = mnn, alpha = 3.0)
-    
+
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
@@ -692,7 +692,7 @@ def bond_fene_setup():
     from hoomd_script import bond
     fc = bond.fene();
     fc.set_coeff('polymer', k=30.0, r0=3.0, sigma=1.0, epsilon=2.0);
-    
+
     # no valid run() occurs, so we need to manually update the bond coeff
     fc.update_coeffs();
     return fc;
@@ -728,7 +728,7 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot tune r_buff before initialization\n");
-    
+
     # check that there is a nlist
     if globals.neighbor_list is None:
         globals.msg.error("Cannot tune r_buff when there is no neighbor list\n");
@@ -738,7 +738,7 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
 
     # make the warmup run
     hoomd_script.run(warmup);
-    
+
     # initialize scan variables
     dr = (r_max - r_min) / (jumps - 1);
     r_buff_list = [];
@@ -749,7 +749,7 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
         # set the current r_buff
         r_buff = r_min + i * dr;
         globals.neighbor_list.set_params(r_buff=r_buff);
-        
+
         # run the benchmark 3 times
         tps = [];
         hoomd_script.run(steps);
@@ -758,12 +758,12 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
         tps.append(globals.system.getLastTPS())
         hoomd_script.run(steps);
         tps.append(globals.system.getLastTPS())
-        
+
         # record the median tps of the 3
         tps.sort();
         tps_list.append(tps[1]);
         r_buff_list.append(r_buff);
-    
+
     # find the fastest r_buff
     fastest = tps_list.index(max(tps_list));
     fastest_r_buff = r_buff_list[fastest];
@@ -777,11 +777,10 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     globals.msg.notice(2, "tps = " + str(tps_list) + '\n');
     globals.msg.notice(2, "Optimal r_buff: " + str(fastest_r_buff) + '\n');
     globals.msg.notice(2, "Maximum check_period: " + str(globals.neighbor_list.query_update_period()) + '\n');
-    
+
     # set the found max check period
     if set_max_check_period:
         globals.neighbor_list.set_params(check_period=globals.neighbor_list.query_update_period());
-    
+
     # return the results to the script
     return (fastest_r_buff, globals.neighbor_list.query_update_period());
-

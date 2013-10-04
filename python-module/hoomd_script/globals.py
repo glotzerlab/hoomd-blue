@@ -55,11 +55,11 @@
 #
 # To present a simple procedural user interface, hoomd_script
 # needs to track many variables globally. These are stored here.
-# 
+#
 # User scripts are not intended to access these variables. However,
 # there may be some special cases where it is needed. Any variable
 # defined here can be accessed in a user script by prepending
-# "globals." to the variable name. For example, to access the 
+# "globals." to the variable name. For example, to access the
 # global SystemDefinition, a user script can access \c globals.system_definition .
 
 import hoomd;
@@ -111,9 +111,9 @@ msg = hoomd.Messenger();
 def clear():
     global system_definition, system, forces, constraint_forces, external_forces, integration_methods, integrator, neighbor_list, loggers, thermos;
     global group_all, exec_conf;
-    
+
     # do NOT reset exec_conf, this variable is cached
-    # to prevent re-initialization of MPI when init.reset/init.* is 
+    # to prevent re-initialization of MPI when init.reset/init.* is
     # called from within the same script
     system_definition = None;
     system = None;
@@ -126,8 +126,7 @@ def clear():
     loggers = [];
     thermos = [];
     group_all = None;
-    
+
     import __main__;
     __main__.sorter = None;
     __main__.nlist = None;
-

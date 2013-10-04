@@ -54,7 +54,7 @@
 # \brief Commands that integrate the equations of motion
 #
 # To integrate the system forward in time, an integration mode must be set. Only one integration mode can be active at
-# a time, and the last \c integrate.mode_* command before the run() command is the one that will take effect. It is 
+# a time, and the last \c integrate.mode_* command before the run() command is the one that will take effect. It is
 # possible to set one mode, run() for a certain number of steps and then switch to another mode before the next run()
 # command.
 #
@@ -120,18 +120,18 @@ class _integrator:
         if not init.is_initialized():
             globals.msg.error("Cannot create integrator before initialization\n");
             raise RuntimeError('Error creating integrator');
-        
+
         # by default, integrators do not support methods
         self.cpp_integrator = None;
         self.supports_methods = False;
-        
+
         # save ourselves in the global variable
         globals.integrator = self;
-        
+
     ## \var cpp_integrator
-    # \internal 
+    # \internal
     # \brief Stores the C++ side Integrator managed by this class
-    
+
     ## \var supports_methods
     # \internal
     # \brief True if this integrator supports integration methods
@@ -150,20 +150,20 @@ class _integrator:
     # \brief Updates the integrators in the reflected c++ class
     def update_forces(self):
         self.check_initialization();
-        
+
         # set the forces
         self.cpp_integrator.removeForceComputes();
         for f in globals.forces:
             if f.cpp_force is None:
                 globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
-            
-            if f.log or f.enabled:    
+
+            if f.log or f.enabled:
                 f.update_coeffs();
-                
+
             if f.enabled:
                 self.cpp_integrator.addForceCompute(f.cpp_force);
-        
+
         # set the constraint forces
         for f in globals.constraint_forces:
             if f.cpp_force is None:
@@ -172,21 +172,21 @@ class _integrator:
 
             if f.enabled:
                 self.cpp_integrator.addForceConstraint(f.cpp_force);
-            
-    
+
+
     ## \internal
     # \brief Updates the integration methods in the reflected c++ class
     def update_methods(self):
         self.check_initialization();
-            
+
         # if we support methods, add them all to the list
         if self.supports_methods:
             self.cpp_integrator.removeAllIntegrationMethods();
-            
+
             if len(globals.integration_methods) == 0:
                 globals.msg.error('This integrator requires that one or more integration methods be specified.\n');
                 raise RuntimeError('Error initializing integrator methods');
-            
+
             for m in globals.integration_methods:
                 self.cpp_integrator.addIntegrationMethod(m.cpp_method);
 
@@ -201,7 +201,7 @@ class _integrator:
     # \brief Counts the number of degrees of freedom and updates each compute.thermo specified
     def update_thermos(self):
         self.check_initialization();
-        
+
         for t in globals.thermos:
             ndof = self.cpp_integrator.getNDOF(t.group.cpp_group);
             t.cpp_compute.setNDOF(ndof);
@@ -225,9 +225,9 @@ class _integration_method:
         if not init.is_initialized():
             globals.msg.error("Cannot create an integration method before initialization\n");
             raise RuntimeError('Error creating integration method');
-        
+
         self.cpp_method = None;
-        
+
         self.enabled = True;
         globals.integration_methods.append(self);
 
@@ -258,7 +258,7 @@ class _integration_method:
     # after disabling an integration method will not apply the integration method to the particles during the
     # simulation. A disabled integration method can be re-enabled with enable()
     #
-    # To use this command, you must have saved the force in a variable, as 
+    # To use this command, you must have saved the force in a variable, as
     # shown in this example:
     # \code
     # method = integrate.some_method()
@@ -268,12 +268,12 @@ class _integration_method:
     def disable(self):
         util.print_status_line();
         self.check_initialization()
-        
+
         # check if we are already disabled
         if not self.enabled:
             globals.msg.warning("Ignoring command to disable an integration method that is already disabled");
             return;
-        
+
         self.enabled = False;
         globals.integration_methods.remove(self);
 
@@ -288,12 +288,12 @@ class _integration_method:
     def enable(self):
         util.print_status_line();
         self.check_initialization();
-        
+
         # check if we are already disabled
         if self.enabled:
             globals.msg.warning("Ignoring command to enable an integration method that is already enabled");
             return;
-        
+
         self.enabled = True;
         globals.integration_methods.append(self);
 
@@ -331,16 +331,16 @@ class mode_standard(_integrator):
     # \endcode
     def __init__(self, dt):
         util.print_status_line();
-        
+
         # initialize base class
         _integrator.__init__(self);
-        
+
         # initialize the reflected c++ class
         self.cpp_integrator = hoomd.IntegratorTwoStep(globals.system_definition, dt);
         self.supports_methods = True;
-       
+
         globals.system.setIntegrator(self.cpp_integrator);
-    
+
     ## Changes parameters of an existing integration mode
     # \param dt New time step delta (if set) (in time units)
     #
@@ -357,7 +357,7 @@ class mode_standard(_integrator):
     def set_params(self, dt=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         # change the parameters
         if dt is not None:
             self.cpp_integrator.setDeltaT(dt);
@@ -381,7 +381,7 @@ class nvt(_integration_method):
     # \param T Temperature set point for the Nos&eacute;-Hoover thermostat. (in energy units)
     # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. (in time units)
     #
-    # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
+    # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
     # and \f$ k_B T_0 \f$ is the set point (\a T above).
     #
@@ -399,27 +399,27 @@ class nvt(_integration_method):
     # \endcode
     def __init__(self, group, T, tau):
         util.print_status_line();
-        
+
         # initialize base class
         _integration_method.__init__(self);
-        
+
         # setup the variant inputs
         T = variant._setup_variant_input(T);
-        
+
         # create the compute thermo
         thermo = compute._get_unique_thermo(group=group);
 
         # setup suffix
         suffix = '_' + group.name;
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         else:
             self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
-        
+
         self.cpp_method.validateGroup()
-    
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tau New coupling constant (if set) (in time units)
@@ -438,7 +438,7 @@ class nvt(_integration_method):
     def set_params(self, T=None, tau=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         # change the parameters
         if T is not None:
             # setup the variant inputs
@@ -477,7 +477,7 @@ class nvt(_integration_method):
 #
 # <em>Degrees of freedom</em> of the box specify which lengths and tilt factors of the box should be updated,
 # and how particle coordinates and velocities should be rescaled.
-# 
+#
 # Valid keywords for degrees of freedom are:
 # - \b x (the box length Lx is updated)
 # - \b y (the box length Ly is updated)
@@ -517,7 +517,7 @@ class npt(_integration_method):
     # \param tau Coupling constant for the thermostat, not needed if \nph=True (in time units)
     # \param tauP Coupling constant for the barostat (in time units)
     # \param couple Couplings of diagonal elements of the stress tensor, can be \b "none", \b "xy", \b "xz",\b "yz", or \b "xyz" (default)
-    # \param x if \b True, rescale \a Lx and x component of particle coordinates and velocities 
+    # \param x if \b True, rescale \a Lx and x component of particle coordinates and velocities
     # \param y if \b True, rescale \a Ly and y component of particle coordinates and velocities
     # \param z if \b True, rescale \a Lz and z component of particle coordinates and velocities
     # \param xy if \b True, rescale \a xy tilt factor and x and y components of particle coordinates and velocities
@@ -528,7 +528,7 @@ class npt(_integration_method):
     #
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
-    # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
+    # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
     # and \f$ k_B T_0 \f$ is the set point (\a T above).
     #
@@ -547,7 +547,7 @@ class npt(_integration_method):
     # \endcode
     def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None):
         util.print_status_line();
-       
+
         # check the input
         if (T is None or tau is None):
             if nph is False:
@@ -560,11 +560,11 @@ class npt(_integration_method):
 
         # initialize base class
         _integration_method.__init__(self);
-        
+
         # setup the variant inputs
         T = variant._setup_variant_input(T);
         P = variant._setup_variant_input(P);
-        
+
         # create the compute thermo
         thermo_group = compute._get_unique_thermo(group=group);
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
@@ -648,7 +648,7 @@ class npt(_integration_method):
     def set_params(self, T=None, tau=None, P=None, tauP=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         # change the parameters
         if T is not None:
             # setup the variant inputs
@@ -677,7 +677,7 @@ class npt(_integration_method):
 #       is related to the internally used (Andersen) Barostat mass \f$W\f$ via
 #       \f $W=d N T_0 \tau_p^2 \f $, where \f$ d \f$ is the dimensionsality and \f$ N \f$ the number
 #       of particles.
-#       
+#
 # integrate.nph is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
@@ -706,9 +706,9 @@ class nph(npt):
 ## NVE Integration via Velocity-Verlet
 #
 # integrate.nve performs constant volume, constant energy simulations using the standard
-# Velocity-Verlet method. For poor initial conditions that include overlapping atoms, a 
-# limit can be specified to the movement a particle is allowed to make in one time step. 
-# After a few thousand time steps with the limit set, the system should be in a safe state 
+# Velocity-Verlet method. For poor initial conditions that include overlapping atoms, a
+# limit can be specified to the movement a particle is allowed to make in one time step.
+# After a few thousand time steps with the limit set, the system should be in a safe state
 # to continue with unconstrained integration.
 #
 # Another use-case for integrate.nve is to fix the velocity of a certain group of particles. This can be achieved by
@@ -716,7 +716,7 @@ class nph(npt):
 # for that group. A True value for \a zero_force causes integrate.nve to ignore any net force on each particle and
 # integrate them forward in time with a constant velocity.
 #
-# \note With an active limit, Newton's third law is effectively \b not obeyed and the system 
+# \note With an active limit, Newton's third law is effectively \b not obeyed and the system
 # can gain linear momentum. Activate the update.zero_momentum updater during the limited nve
 # run to prevent this.
 #
@@ -744,27 +744,27 @@ class nve(_integration_method):
     # \endcode
     def __init__(self, group, limit=None, zero_force=False):
         util.print_status_line();
-        
+
         # initialize base class
         _integration_method.__init__(self);
-        
+
         # create the compute thermo
         compute._get_unique_thermo(group=group);
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepNVE(globals.system_definition, group.cpp_group, False);
         else:
             self.cpp_method = hoomd.TwoStepNVEGPU(globals.system_definition, group.cpp_group);
-        
+
         # set the limit
         if limit is not None:
             self.cpp_method.setLimit(limit);
-        
+
         self.cpp_method.setZeroForce(zero_force);
-        
+
         self.cpp_method.validateGroup()
-        
+
     ## Changes parameters of an existing integrator
     # \param limit (if set) New limit value to set. Removes the limit if limit is False
     # \param zero_force (if set) New value for the zero force option
@@ -783,20 +783,20 @@ class nve(_integration_method):
     def set_params(self, limit=None, zero_force=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         # change the parameters
         if limit is not None:
             if limit == False:
                 self.cpp_method.removeLimit();
             else:
                 self.cpp_method.setLimit(limit);
-        
+
         if zero_force is not None:
             self.cpp_method.setZeroForce(zero_force);
 
 ## NVT integration via Brownian dynamics
 #
-# integrate.bdnvt performs constant volume, fixed average temperature simulation based on a 
+# integrate.bdnvt performs constant volume, fixed average temperature simulation based on a
 # NVE simulation with added damping and stochastic heat bath forces.
 #
 # The total added %force \f$ \vec{F}\f$ is
@@ -804,13 +804,13 @@ class nve(_integration_method):
 # where \f$ \vec{v} \f$ is the particle's velocity and \f$ \vec{F}_{\mathrm{rand}} \f$
 # is a random force with magnitude chosen via the fluctuation-dissipation theorem
 # to be consistent with the specified drag (\a gamma) and temperature (\a T).
-# 
-# For poor initial conditions that include overlapping atoms, a 
-# limit can be specified to the movement a particle is allowed to make in one time step. 
-# After a few thousand time steps with the limit set, the system should be in a safe state 
+#
+# For poor initial conditions that include overlapping atoms, a
+# limit can be specified to the movement a particle is allowed to make in one time step.
+# After a few thousand time steps with the limit set, the system should be in a safe state
 # to continue with unconstrained integration.
 #
-# \note With an active limit, Newton's third law is effectively \b not obeyed and the system 
+# \note With an active limit, Newton's third law is effectively \b not obeyed and the system
 # can gain linear momentum. Activate the update.zero_momentum updater during the limited bdnvt
 # run to prevent this.
 #
@@ -826,7 +826,7 @@ class bdnvt(_integration_method):
     ## Specifies the BD NVT integrator
     # \param group Group of particles on which to apply this method.
     # \param T Temperature of the simulation (in energy units)
-    # \param seed Random seed to use for the run. Simulations that are identical, except for the seed, will follow 
+    # \param seed Random seed to use for the run. Simulations that are identical, except for the seed, will follow
     # different trajectories.
     # \param gamma_diam If True, then then gamma for each particle will be assigned to its diameter. If False (the
     #                   default), gammas are assigned per particle type via set_gamma().
@@ -839,7 +839,7 @@ class bdnvt(_integration_method):
     #
     # Internally, a compute.thermo is automatically specified and associated with \a group.
     #
-    # \warning If starting from a restart binary file, the energy of the reservoir will be reset to zero.  
+    # \warning If starting from a restart binary file, the energy of the reservoir will be reset to zero.
     # \b Examples:
     # \code
     # all = group.all();
@@ -851,33 +851,33 @@ class bdnvt(_integration_method):
     # \endcode
     def __init__(self, group, T, seed=0, gamma_diam=False, limit=None, tally=False):
         util.print_status_line();
-        
+
         # initialize base class
         _integration_method.__init__(self);
-        
+
         # setup the variant inputs
         T = variant._setup_variant_input(T);
-        
+
         # create the compute thermo
         compute._get_unique_thermo(group=group);
-        
+
         # setup suffix
         suffix = '_' + group.name;
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepBDNVT(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, suffix);
         else:
             self.cpp_method = hoomd.TwoStepBDNVTGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, suffix);
-       
+
         self.cpp_method.setTally(tally);
-        
+
         # set the limit
         if limit is not None:
             self.cpp_method.setLimit(limit);
-    
+
         self.cpp_method.validateGroup()
-    
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tally (optional) If true, the energy exchange between the bd thermal reservoir and the particles is
@@ -898,13 +898,13 @@ class bdnvt(_integration_method):
     def set_params(self, T=None, tally=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         # change the parameters
         if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
-        
+
         if tally is not None:
             self.cpp_method.setTally(tally);
 
@@ -915,13 +915,13 @@ class bdnvt(_integration_method):
     # set_gamma() sets the coefficient \f$ \gamma \f$ for a single particle type, identified
     # by name.
     #
-    # The gamma parameter determines how strongly a particular particle is coupled to 
-    # the stochastic bath.  The higher the gamma, the more strongly coupled: see 
+    # The gamma parameter determines how strongly a particular particle is coupled to
+    # the stochastic bath.  The higher the gamma, the more strongly coupled: see
     # integrate.bdnvt.
     #
     # If gamma is not set for any particle type, it will automatically default to  1.0.
     # It is not an error to specify gammas for particle types that do not exist in the simulation.
-    # This can be useful in defining a single simulation script for many different types of particles 
+    # This can be useful in defining a single simulation script for many different types of particles
     # even when some simulations only include a subset.
     #
     # \b Examples:
@@ -932,18 +932,18 @@ class bdnvt(_integration_method):
     def set_gamma(self, a, gamma):
         util.print_status_line();
         self.check_initialization();
-        
+
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-        
+
         # change the parameters
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
-        
-                
+
+
 ## NVE Integration for rigid bodies
 #
 # integrate.nve_rigid performs constant volume, constant energy simulations on rigid bodies
@@ -959,7 +959,7 @@ class bdnvt(_integration_method):
 # - integrate.mode_standard
 # \MPI_NOT_SUPPORTED
 class nve_rigid(_integration_method):
-    ## Specifies the NVE integration method for rigid bodies 
+    ## Specifies the NVE integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
     #
     # \b Examples:
@@ -975,10 +975,10 @@ class nve_rigid(_integration_method):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("integrate.nve_rigid not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration method.")
- 
+
         # initialize base class
         _integration_method.__init__(self);
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepNVERigid(globals.system_definition, group.cpp_group);
@@ -1023,24 +1023,24 @@ class nvt_rigid(_integration_method):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("integrate.nvt_rigid not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration method.")
-        
+
         # initialize base class
         _integration_method.__init__(self);
-        
+
         # setup the variant inputs
         T = variant._setup_variant_input(T);
-        
+
         # create the compute thermo
         thermo = compute._get_unique_thermo(group=group);
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
         else:
             self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
-    
+
         self.cpp_method.validateGroup()
-    
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tau New coupling constant (if set) (in time units)
@@ -1058,15 +1058,15 @@ class nvt_rigid(_integration_method):
     def set_params(self, T=None, tau=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         # change the parameters
         if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
         if tau is not None:
-            self.cpp_method.setTau(tau);  
-              
+            self.cpp_method.setTau(tau);
+
 ## NVT integration via Brownian dynamics for rigid bodies
 #
 # integrate.bdnvt_rigid performs constant volume, constant temperature simulation based on a
@@ -1092,7 +1092,7 @@ class bdnvt_rigid(_integration_method):
     ## Specifies the BD NVT integrator for rigid bodies
     # \param group Group of particles on which to apply this method.
     # \param T Temperature of the simulation \a T (in energy units)
-    # \param seed Random seed to use for the run. Simulations that are identical, except for the seed, will follow 
+    # \param seed Random seed to use for the run. Simulations that are identical, except for the seed, will follow
     # different trajectories.
     # \param gamma_diam If True, then then gamma for each particle will be assigned to its diameter. If False (the
     #                   default), gammas are assigned per particle type via set_gamma().
@@ -1114,21 +1114,21 @@ class bdnvt_rigid(_integration_method):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("integrate.bdnvt_rigid not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration method.")
-        
+
         # initialize base class
         _integration_method.__init__(self);
-        
+
         # setup the variant inputs
         T = variant._setup_variant_input(T);
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepBDNVTRigid(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
         else:
             self.cpp_method = hoomd.TwoStepBDNVTRigidGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
-        
+
         self.cpp_method.validateGroup()
-    
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     #
@@ -1145,7 +1145,7 @@ class bdnvt_rigid(_integration_method):
     def set_params(self, T=None):
         util.print_status_line();
         self.check_initialization();
-                
+
         # change the parameters
         if T is not None:
             # setup the variant inputs
@@ -1159,13 +1159,13 @@ class bdnvt_rigid(_integration_method):
     # set_gamma() sets the coefficient \f$ \gamma \f$ for a single particle type, identified
     # by name.
     #
-    # The gamma parameter determines how strongly a particular particle is coupled to 
-    # the stochastic bath.  The higher the gamma, the more strongly coupled: see 
+    # The gamma parameter determines how strongly a particular particle is coupled to
+    # the stochastic bath.  The higher the gamma, the more strongly coupled: see
     # integrate.bdnvt_rigid.
     #
     # If gamma is not set for any particle type, it will automatically default to  1.0.
     # It is not an error to specify gammas for particle types that do not exist in the simulation.
-    # This can be useful in defining a single simulation script for many different types of particles 
+    # This can be useful in defining a single simulation script for many different types of particles
     # even when some simulations only include a subset.
     #
     # \b Examples:
@@ -1176,12 +1176,12 @@ class bdnvt_rigid(_integration_method):
     def set_gamma(self, a, gamma):
         util.print_status_line();
         self.check_initialization();
-        
+
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-        
+
         # change the parameters
         for i in range(0,ntypes):
             if a == type_list[i]:
@@ -1215,7 +1215,7 @@ class npt_rigid(_integration_method):
     # \code
     # rigid = group.rigid()
     # integrate.npt_rigid(group=all, T=1.0, tau=10.0, P=1.0, tauP=1.0)
-    # 
+    #
     # \endcode
     def __init__(self, group, T, tau, P, tauP):
         util.print_status_line();
@@ -1225,26 +1225,26 @@ class npt_rigid(_integration_method):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("integrate.npt_rigid not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration method.")
-        
+
         # initialize base class
         _integration_method.__init__(self);
-        
+
         # setup the variant inputs
         T = variant._setup_variant_input(T);
         P = variant._setup_variant_input(P);
-        
+
          # create the compute thermo
         thermo_group = compute._get_unique_thermo(group=group);
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepNPTRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
         else:
             self.cpp_method = hoomd.TwoStepNPTRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
-    
+
         self.cpp_method.validateGroup()
-    
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tau New coupling constant (if set) (in time units)
@@ -1264,20 +1264,20 @@ class npt_rigid(_integration_method):
     def set_params(self, T=None, tau=None, P=None, tauP=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         # change the parameters
         if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
         if tau is not None:
-            self.cpp_method.setTau(tau); 
+            self.cpp_method.setTau(tau);
         if P is not None:
             # setup the variant inputs
             P = variant._setup_variant_input(P);
             self.cpp_method.setP(P.cpp_variant);
         if tauP is not None:
-            self.cpp_method.setTauP(tauP); 
+            self.cpp_method.setTauP(tauP);
 
 ## NPH Integration for rigid bodies
 #
@@ -1305,7 +1305,7 @@ class nph_rigid(_integration_method):
     # \code
     # rigid = group.rigid()
     # integrate.nph_rigid(group=all, P=1.0, tauP=1.0)
-    # 
+    #
     # \endcode
     def __init__(self, group, P, tauP):
         util.print_status_line();
@@ -1315,25 +1315,25 @@ class nph_rigid(_integration_method):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("integrate.nph_rigid is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration method.")
-        
+
         # initialize base class
         _integration_method.__init__(self);
-        
+
         # setup the variant inputs
         P = variant._setup_variant_input(P);
-        
+
          # create the compute thermo
         thermo_group = compute._get_unique_thermo(group=group);
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepNPHRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tauP, P.cpp_variant);
         else:
             self.cpp_method = hoomd.TwoStepNPHRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tauP, P.cpp_variant);
-    
+
         self.cpp_method.validateGroup()
-    
+
     ## Changes parameters of an existing integrator
     # \param P New pressure (if set) (in pressure units)
     # \param tauP New coupling constant (if set) (in time units)
@@ -1351,14 +1351,14 @@ class nph_rigid(_integration_method):
     def set_params(self, P=None, tauP=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         # change the parameters
         if P is not None:
             # setup the variant inputs
             P = variant._setup_variant_input(P);
             self.cpp_method.setP(P.cpp_variant);
         if tauP is not None:
-            self.cpp_method.setTauP(tauP); 
+            self.cpp_method.setTauP(tauP);
 
 ## Energy Minimizer (FIRE)
 #
@@ -1368,14 +1368,14 @@ class nph_rigid(_integration_method):
 #
 # At each time step,\f$\Delta t \f$, the algorithm uses the NVE Integrator to generate a x, v, and F, and then adjusts
 # v according to \f[ \vec{v} = (1-\alpha)\vec{v} + \alpha \hat{F}|\vec{v}|  \f] where \f$ \alpha \f$ and \f$\Delta t \f$
-# are dynamically adaptive quantities.  While a current search has been lowering the energy of system for more than 
+# are dynamically adaptive quantities.  While a current search has been lowering the energy of system for more than
 # \f$N_{min}\f$ steps, \f$ \alpha \f$  is decreased by \f$ \alpha \rightarrow \alpha f_{alpha} \f$ and
 # \f$\Delta t \f$ is increased by \f$ \Delta t \rightarrow max(\Delta t * f_{inc}, \Delta t_{max}) \f$.
 # If the energy of the system increases (or stays the same), the velocity of the particles is set to 0,
 # \f$ \alpha \rightarrow \alpha_{start}\f$ and
-# \f$ \Delta t \rightarrow \Delta t * f_{dec} \f$.  Convergence is determined by both the force per particle or the 
+# \f$ \Delta t \rightarrow \Delta t * f_{dec} \f$.  Convergence is determined by both the force per particle or the
 # change in energy per particle dropping below \a ftol and \a Etol, respectively or,
-# 
+#
 # \f[ \frac{\sum |F|}{N*\sqrt{N_{dof}}} <ftol \;\; and \;\; \Delta \frac{\sum |E|}{N} < Etol  \f]
 # where N is the number of particles the minimization is acting over (i.e. the group size).  Either of the two criterion can be effectively turned off by setting the tolerance to a large number.
 #
@@ -1393,30 +1393,30 @@ class nph_rigid(_integration_method):
 # \note As a default setting, the algorithm will start with a \f$ \Delta t = \frac{1}{10} \Delta t_{max} \f$ and
 # attempts at least 10 search steps.  In practice, it was found that this prevents the simulation from making too
 # aggressive a first step, but also from quitting before having found a good search direction. The minimum number of
-# attempts can be set by the user. 
+# attempts can be set by the user.
 #
 # \warning All other integration methods must be disabled before using the FIRE energy minimizer.
 # \MPI_NOT_SUPPORTED
 class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
-    # \param group Particle group to be applied FIRE 
+    # \param group Particle group to be applied FIRE
     # \param group Group of particles on which to apply this method.
     # \param dt This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting. (in time units)
-    # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
+    # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt.
     #   - <i>optional</i>: defaults to 5
-    # \param finc Factor to increase \f$ \Delta t \f$ by 
+    # \param finc Factor to increase \f$ \Delta t \f$ by
     #   - <i>optional</i>: defaults to 1.1
-    # \param fdec Factor to decrease \f$ \Delta t \f$ by 
+    # \param fdec Factor to decrease \f$ \Delta t \f$ by
     #   - <i>optional</i>: defaults to 0.5
-    # \param alpha_start Initial (and maximum) \f$ \alpha \f$ 
+    # \param alpha_start Initial (and maximum) \f$ \alpha \f$
     #   - <i>optional</i>: defaults to 0.1
-    # \param falpha Factor to decrease \f$ \alpha t \f$ by 
+    # \param falpha Factor to decrease \f$ \alpha t \f$ by
     #   - <i>optional</i>: defaults to 0.99
     # \param ftol force convergence criteria (in force units)
     #   - <i>optional</i>: defaults to 1e-1
     # \param Etol energy convergence criteria (in energy units)
     #   - <i>optional</i>: defaults to 1e-5
-    # \param min_steps A minimum number of attempts before convergence criteria are considered 
+    # \param min_steps A minimum number of attempts before convergence criteria are considered
     #   - <i>optional</i>: defaults to 10
     def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, falpha=None, ftol = None, Etol= None, min_steps=None):
         util.print_status_line();
@@ -1426,10 +1426,10 @@ class mode_minimize_fire(_integrator):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("mode_minimize_fire is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration mode.")
- 
+
         # initialize base class
         _integrator.__init__(self);
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_integrator = hoomd.FIREEnergyMinimizer(globals.system_definition, group.cpp_group, dt);
@@ -1437,9 +1437,9 @@ class mode_minimize_fire(_integrator):
             self.cpp_integrator = hoomd.FIREEnergyMinimizerGPU(globals.system_definition, group.cpp_group, dt);
 
         self.supports_methods = False;
-        
-        globals.system.setIntegrator(self.cpp_integrator);        
-        
+
+        globals.system.setIntegrator(self.cpp_integrator);
+
         # change the set parameters if not None
         if not(Nmin is None):
             self.cpp_integrator.setNmin(Nmin);
@@ -1454,16 +1454,16 @@ class mode_minimize_fire(_integrator):
         if not(ftol is None):
             self.cpp_integrator.setFtol(ftol);
         if not(Etol is None):
-            self.cpp_integrator.setEtol(Etol); 
+            self.cpp_integrator.setEtol(Etol);
         if not(min_steps is None):
-            self.cpp_integrator.setMinSteps(min_steps);               
-            
+            self.cpp_integrator.setMinSteps(min_steps);
+
     ## Asks if Energy Minimizer has converged
     #
     def has_converged(self):
         self.check_initialization();
         return self.cpp_integrator.hasConverged()
- 
+
 ## Energy Minimizer RIGID (FIRE)
 #
 # integrate.energyminimizer_FIRE uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
@@ -1477,28 +1477,28 @@ class mode_minimize_rigid_fire(_integrator):
     #
     # \param group Group of particles in rigid bodies
     # \param dt This is the maximum timestep the minimizer is permitted to use.  Consider the stability of the system when setting. (in time units)
-    # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
+    # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt.
     #   - <i>optional</i>: defaults to 5
-    # \param finc Factor to increase \f$ \Delta t \f$ by 
+    # \param finc Factor to increase \f$ \Delta t \f$ by
     #   - <i>optional</i>: defaults to 1.1
-    # \param fdec Factor to decrease \f$ \Delta t \f$ by 
+    # \param fdec Factor to decrease \f$ \Delta t \f$ by
     #   - <i>optional</i>: defaults to 0.5
-    # \param alpha_start Initial (and maximum) \f$ \alpha \f$ 
+    # \param alpha_start Initial (and maximum) \f$ \alpha \f$
     #   - <i>optional</i>: defaults to 0.1
-    # \param falpha Factor to decrease \f$ \alpha t \f$ by 
+    # \param falpha Factor to decrease \f$ \alpha t \f$ by
     #   - <i>optional</i>: defaults to 0.99
-    # \param ftol force convergence criteria 
+    # \param ftol force convergence criteria
     #   - <i>optional</i>: defaults to 1e-1
-    # \param wtol torque convergence criteria 
-    #   - <i>optional</i>: defaults to 1e-1    
-    # \param Etol energy convergence criteria 
+    # \param wtol torque convergence criteria
+    #   - <i>optional</i>: defaults to 1e-1
+    # \param Etol energy convergence criteria
     #   - <i>optional</i>: defaults to 1e-5
     def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, falpha=None, ftol = None, wtol=None, Etol= None):
         util.print_status_line();
-        
+
         # initialize base class
         _integrator.__init__(self);
-        
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_integrator = hoomd.FIREEnergyMinimizerRigid(globals.system_definition, group.cpp_group, dt);
@@ -1506,9 +1506,9 @@ class mode_minimize_rigid_fire(_integrator):
             self.cpp_integrator = hoomd.FIREEnergyMinimizerRigidGPU(globals.system_definition, group.cpp_group, dt);
 
         self.supports_methods = False;
-        
-        globals.system.setIntegrator(self.cpp_integrator);        
-        
+
+        globals.system.setIntegrator(self.cpp_integrator);
+
         # change the set parameters if not None
         if not(Nmin is None):
             self.cpp_integrator.setNmin(Nmin);
@@ -1523,10 +1523,10 @@ class mode_minimize_rigid_fire(_integrator):
         if not(ftol is None):
             self.cpp_integrator.setFtol(ftol);
         if not(wtol is None):
-            self.cpp_integrator.setWtol(wtol);            
+            self.cpp_integrator.setWtol(wtol);
         if not(Etol is None):
             self.cpp_integrator.setEtol(Etol);
-            
+
     ## Asks if Energy Minimizer has converged
     #
     def has_converged(self):
@@ -1556,7 +1556,7 @@ class berendsen(_integration_method):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error setting up integration method.")
- 
+
         # initialize base class
         _integration_method.__init__(self);
 
@@ -1579,4 +1579,3 @@ class berendsen(_integration_method):
                                                         thermo.cpp_compute,
                                                         tau,
                                                         T.cpp_variant);
-

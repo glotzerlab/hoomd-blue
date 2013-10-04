@@ -100,4 +100,3 @@ def get_partition():
                 return 0
     else:
         return 0;
-

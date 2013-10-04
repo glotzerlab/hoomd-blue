@@ -66,7 +66,7 @@ from hoomd_script import init;
 ## \internal
 # \brief Base class for variant type
 #
-# _variant should not be used directly in code, it only serves as a base class 
+# _variant should not be used directly in code, it only serves as a base class
 # for the other variant types.
 class _variant:
     ## Does common initialization for all variants
@@ -76,9 +76,9 @@ class _variant:
         if not init.is_initialized():
             globals.msg.error("Cannot create a variant before initialization\n");
             raise RuntimeError('Error creating variant');
-        
+
         self.cpp_variant = None;
-        
+
 ## \internal
 # \brief A constant "variant"
 #
@@ -94,18 +94,18 @@ class _constant(_variant):
     def __init__(self, val):
         # initialize the base class
         _variant.__init__(self);
-        
+
         # create the c++ mirror class
         self.cpp_variant = hoomd.VariantConst(val);
         self.cpp_variant.setOffset(globals.system.getCurrentTimeStep());
-        
+
 ## Linearly interpolated variant
 #
 # variant.linear_interp creates a time-varying quantity where the value at each time step
-# is determined by linear interpolation between a given set of points. 
+# is determined by linear interpolation between a given set of points.
 
 # At time steps before the
-# initial point, the value is identical to the value at the first given point. At time steps 
+# initial point, the value is identical to the value at the first given point. At time steps
 # after the final point, the value is identical to the value at the last given point. All points
 # between are determined by linear interpolation.
 #
@@ -120,7 +120,7 @@ class _constant(_variant):
 # \endcode
 # A value specified at time 0 in the shown linear_interp is set at the actual \b absolute time step
 # 1000. To say it another way, time for validate.linear_interp starts counting from 0 right
-# at the time of creation. The point where 0 is defined can be changed by setting the \z zero parameter in the 
+# at the time of creation. The point where 0 is defined can be changed by setting the \z zero parameter in the
 # command that specifies the linear_interp.
 #
 # See __init__() for the syntax which the set values can be specified.
@@ -133,24 +133,24 @@ class linear_interp(_variant):
     # \a points is a list of (time, set value) tuples. For example, to specify
     # a series of points that goes from 10 at time step 0 to 20 at time step 100 and then
     # back down to 5 at time step 200:
-    # \code 
+    # \code
     # points = [(0, 10), (100, 20), (200, 5)]
     # \endcode
-    # Any number of points can be specified in any order. However, listing them 
-    # monotonically increasing in time will result in a much more human readable set 
+    # Any number of points can be specified in any order. However, listing them
+    # monotonically increasing in time will result in a much more human readable set
     # of values.
     #
     # \b Examples:
     # \code
     # L = variant.linear_interp(points = [(0, 10), (100, 20), (200, 5)])
     # V = variant.linear_interp(points = [(0, 10), (1e6, 20)], zero=80000)
-    # integrate.nvt(group=all, tau = 0.5, 
+    # integrate.nvt(group=all, tau = 0.5,
     #     T = variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)])
     # \endcode
     def __init__(self, points, zero='now'):
         # initialize the base class
         _variant.__init__(self);
-        
+
         # create the c++ mirror class
         self.cpp_variant = hoomd.VariantLinear();
         if zero == 'now':
@@ -163,19 +163,19 @@ class linear_interp(_variant):
             if zero > globals.system.getCurrentTimeStep():
                 globals.msg.error("Cannot create a linear_interp variant with a zero in the future\n");
                 raise RuntimeError('Error creating variant');
-                                
+
             self.cpp_variant.setOffset(zero);
-        
+
         # set the points
         if len(points) == 0:
             globals.msg.error("Cannot create a linear_interp variant with 0 points\n");
             raise RuntimeError('Error creating variant');
-            
+
         for (t, v) in points:
             if t < 0:
                 globals.msg.error("Negative times are not allowed in variant.linear_interp\n");
                 raise RuntimeError('Error creating variant');
-        
+
             self.cpp_variant.setPoint(int(t), v);
 
 
@@ -195,5 +195,3 @@ def _setup_variant_input(v):
         except ValueError:
             globals.msg.error("Value must either be a scalar value or a the result of a variant command\n");
             raise RuntimeError('Error creating variant');
-    
-

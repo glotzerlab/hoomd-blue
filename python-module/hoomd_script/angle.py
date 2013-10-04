@@ -227,12 +227,12 @@ class coeff:
 ## \package hoomd_script.angle
 # \brief Commands that specify %angle forces
 #
-# Angles add forces between specified triplets of particles and are typically used to 
+# Angles add forces between specified triplets of particles and are typically used to
 # model chemical angles between two bonds. Angles between particles are set when an input XML file is read
 # (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
 #
-# By themselves, angles that have been specified in an input file do nothing. Only when you 
-# specify an angle force (i.e. angle.harmonic), are forces actually calculated between the 
+# By themselves, angles that have been specified in an input file do nothing. Only when you
+# specify an angle force (i.e. angle.harmonic), are forces actually calculated between the
 # listed particles.
 
 ## Harmonic %angle force
@@ -265,10 +265,10 @@ class harmonic(force._force):
         if globals.system_definition.getAngleData().getNumAngles() == 0:
             globals.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating angle forces");
-        
+
         # initialize the base class
         force._force.__init__(self);
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.HarmonicAngleForceCompute(globals.system_definition);
@@ -277,10 +277,10 @@ class harmonic(force._force):
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # variable for tracking which angle type coefficients have been set
         self.angle_types_set = [];
-    
+
     ## Sets the %harmonic %angle coefficients for a particular %angle type
     #
     # \param angle_type Angle type to set coefficients for
@@ -298,25 +298,25 @@ class harmonic(force._force):
     # harmonic.set_coeff('backbone', k=100.0, t0=1.0)
     # \endcode
     #
-    # The coefficients for every %angle type in the simulation must be set 
+    # The coefficients for every %angle type in the simulation must be set
     # before the run() can be started.
     def set_coeff(self, angle_type, k, t0):
         util.print_status_line();
-        
+
         # set the parameters for the appropriate type
         self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), k, t0);
-        
+
         # track which particle types we have set
         if not angle_type in self.angle_types_set:
             self.angle_types_set.append(angle_type);
-        
+
     def update_coeffs(self):
         # get a list of all angle types in the simulation
         ntypes = globals.system_definition.getAngleData().getNAngleTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getAngleData().getNameByType(i));
-            
+
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.angle_types_set:
@@ -336,18 +336,18 @@ class harmonic(force._force):
 # \f[ V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2 \f]
 # where \f$ \theta \f$ is the current angle between the three particles
 # and either
-# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ 
-#     \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right] 
+# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[
+#     \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right]
 #     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}} \f],
 # or
-# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} 
-#     V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} - 
-#     \left( \frac{\sigma}{r} \right)^{6} \right] 
+# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
+#     V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} -
+#     \left( \frac{\sigma}{r} \right)^{6} \right]
 #     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}\f],
 # or
 # \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
-#     V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-#     \left( \frac{\sigma}{r} \right)^{4} \right] 
+#     V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+#     \left( \frac{\sigma}{r} \right)^{4} \right]
 #     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}} \f],
 #  \f$ r_{13} \f$ being the distance between the two outer particles of the angle.
 #
@@ -357,7 +357,7 @@ class harmonic(force._force):
 # - \f$ \varepsilon \f$ - strength of potential (in energy units)
 # - \f$ \sigma \f$ - distance of interaction (in distance units)
 #
-# Coefficients \f$ k, \theta_0, \varepsilon,\f$ and \f$ \sigma \f$ and Lennard-Jones exponents pair must be set for 
+# Coefficients \f$ k, \theta_0, \varepsilon,\f$ and \f$ \sigma \f$ and Lennard-Jones exponents pair must be set for
 # each type of %angle in the simulation using
 # set_coeff().
 #
@@ -376,10 +376,10 @@ class cgcmm(force._force):
         if globals.system_definition.getAngleData().getNumAngles() == 0:
             globals.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating CGCMM angle forces");
-        
+
         # initialize the base class
         force._force.__init__(self);
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.CGCMMAngleForceCompute(globals.system_definition);
@@ -388,10 +388,10 @@ class cgcmm(force._force):
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.cgcmm'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # variable for tracking which angle type coefficients have been set
         self.angle_types_set = [];
-    
+
     ## Sets the CG-CMM %angle coefficients for a particular %angle type
     #
     # \param angle_type Angle type to set coefficients for
@@ -414,23 +414,23 @@ class cgcmm(force._force):
         # cgcmm.set_coeff('cg96', k=100.0, t0=1.0, exponents='LJ9-6', epsilon=9.0, sigma=0.3)
     # \endcode
     #
-    # The coefficients for every CG-CMM angle type in the simulation must be set 
+    # The coefficients for every CG-CMM angle type in the simulation must be set
     # before the run() can be started.
     def set_coeff(self, angle_type, k, t0, exponents, epsilon, sigma):
         util.print_status_line();
         cg_type=0
-        
+
         # set the parameters for the appropriate type
         if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
             cg_type=2;
 
-            self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), 
+            self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type),
                                      k,
                                      t0,
                                      cg_type,
                                      epsilon,
                                      sigma);
-    
+
         elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
             cg_type=1;
 
@@ -443,7 +443,7 @@ class cgcmm(force._force):
 
         elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
             cg_type=3;
-                    
+
             self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type),
                                      k,
                                      t0,
@@ -456,14 +456,14 @@ class cgcmm(force._force):
         # track which particle types we have set
         if not angle_type in self.angle_types_set:
             self.angle_types_set.append(angle_type);
-        
+
     def update_coeffs(self):
         # get a list of all angle types in the simulation
         ntypes = globals.system_definition.getAngleData().getNAngleTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getAngleData().getNameByType(i));
-            
+
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.angle_types_set:
@@ -480,7 +480,7 @@ def _table_eval(theta, V, T, width):
 
 ## Tabulated %angle %force
 #
-# The command angle.table specifies that a tabulated  %angle %force should be added to every bonded triple of particles 
+# The command angle.table specifies that a tabulated  %angle %force should be added to every bonded triple of particles
 # in the simulation.
 #
 # The %torque \f$ \vec{F}\f$ is (in force units)
@@ -491,19 +491,19 @@ def _table_eval(theta, V, T, width):
 # \f{eqnarray*}
 #            = & V_{\mathrm{user}}(\theta) \\
 # \f}
-# ,where \f$ \theta \f$ is the angle between the triple to the other in the %angle.  
+# ,where \f$ \theta \f$ is the angle between the triple to the other in the %angle.
 #
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between 
+# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between
 # \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
+# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
 #
 # The following coefficients must be set per unique %pair of particle types.
 # - \f$ F_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ - evaluated by `func` (see example)
 # - coefficients passed to `func` - `coeff` (see example)
 #
 # The table *width* is set once when angle.table is specified (see table.__init__())
-# There are two ways to specify the other parameters. 
-# 
+# There are two ways to specify the other parameters.
+#
 # \par Example: Set table from a given function
 # When you have a functional form for V and F, you can enter that
 # directly into python. angle.table will evaluate the given function over \a width points between \a rmin and \a rmax
@@ -535,7 +535,7 @@ def _table_eval(theta, V, T, width):
 # ~~~~~~~~~~~~~
 #
 #
-# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
+# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
 # not diverge near r=0, then a setting of \c rmin=0 is valid.
 #
 # \note %Angle coefficients for all type angles in the simulation must be
@@ -577,7 +577,7 @@ class table(force._force):
             self.cpp_force = hoomd.TableAngleForceCompute(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.TableAngleForceComputeGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.table')); 
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -629,7 +629,7 @@ class table(force._force):
             self.update_angle_table(i, func, coeff);
 
       ## Set a angle pair interaction from a file
-      # \param anglename Name of angle 
+      # \param anglename Name of angle
       # \param filename Name of the file to read
       #
      # The provided file specifies V and F at equally spaced theta values.
@@ -694,4 +694,3 @@ class table(force._force):
           util._disable_status_lines = True;
           self.angle_coeff.set(anglename, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
           util._disable_status_lines = True;
-

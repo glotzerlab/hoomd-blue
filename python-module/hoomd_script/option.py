@@ -110,7 +110,7 @@ class options:
 #
 # \internal
 # Parses all hoomd_script command line options into the module variable cmd_options
-def _parse_command_line():    
+def _parse_command_line():
     parser = OptionParser();
     parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)");
     parser.add_option("--gpu", dest="gpu", help="GPU on which to execute");
@@ -129,12 +129,12 @@ def _parse_command_line():
     parser.add_option("--user", dest="user", help="User options");
 
     (cmd_options, args) = parser.parse_args();
-    
+
     # chedk for valid mode setting
     if cmd_options.mode is not None:
         if not (cmd_options.mode == "cpu" or cmd_options.mode == "gpu"):
             parser.error("--mode must be either cpu or gpu");
-    
+
     # check for sane options
     if cmd_options.mode == "cpu" and (cmd_options.gpu is not None):
         parser.error("--mode=cpu cannot be specified along with --gpu")
@@ -149,14 +149,14 @@ def _parse_command_line():
     # set the mode to cpu if the ncpu was set
     if cmd_options.ncpu is not None and cmd_options.mode is None:
         cmd_options.mode = "cpu"
-    
+
     # convert ncpu to an integer
     if cmd_options.ncpu is not None:
         try:
             cmd_options.ncpu = int(cmd_options.ncpu);
         except ValueError:
             parser.error('--ncpu must be an integer')
-    
+
     # convert gpu to an integer
     if cmd_options.gpu:
         try:
@@ -180,7 +180,7 @@ def _parse_command_line():
             cmd_options.nx = int(cmd_options.nx);
         except ValueError:
             parser.error('--nx must be an integer')
-            
+
     # Convert ny to an integer
     if cmd_options.ny is not None:
         if not hoomd.is_MPI_available():
@@ -208,7 +208,7 @@ def _parse_command_line():
     globals.options.gpu_error_checking = cmd_options.gpu_error_checking;
     globals.options.min_cpu = cmd_options.min_cpu;
     globals.options.ignore_display = cmd_options.ignore_display;
-    
+
     globals.options.nx = cmd_options.nx;
     globals.options.ny = cmd_options.ny;
     globals.options.nz = cmd_options.nz;
@@ -249,12 +249,12 @@ def set_mode(mode):
     if init.is_initialized():
             globals.msg.error("Cannot change mode after initialization\n");
             raise RuntimeError('Error setting option');
-    
+
     if mode is not None:
         if not (mode == "cpu" or mode == "gpu"):
             globals.msg.error("Invalid mode setting\n");
             raise RuntimeError('Error setting option');
-        
+
     globals.options.mode = mode;
 
 ## Set the gpu
@@ -269,17 +269,17 @@ def set_gpu(gpu):
     if init.is_initialized():
             globals.msg.error("Cannot change gpu after initialization\n");
             raise RuntimeError('Error setting option');
-    
+
     if gpu is not None:
         try:
             gpu = int(gpu);
         except ValueError:
             globals.msg.error("gpu must be an integer\n");
             raise RuntimeError('Error setting option');
-        
+
         # imply mode=gpu
         globals.options.mode = "gpu";
-        
+
     globals.options.gpu = gpu;
 
 ## Set the number of CPU threads
@@ -294,17 +294,17 @@ def set_ncpu(ncpu):
     if init.is_initialized():
             globals.msg.error("Cannot change number of threads after initialization\n");
             raise RuntimeError('Error setting option');
-    
+
     if ncpu is not None:
         try:
             ncpu = int(ncpu);
         except ValueError:
             globals.msg.error("ncpu must be an integer\n");
             raise RuntimeError('Error setting option');
-        
+
         # imply mode=cpu
         globals.options.mode = "cpu";
-        
+
     globals.options.ncpu = ncpu;
 
 ## Set the error checking flag
@@ -317,7 +317,7 @@ def set_gpu_error_checking(gpu_error_checking):
     if init.is_initialized():
             globals.msg.error("Cannot change error checking flag after initialization\n");
             raise RuntimeError('Error setting option');
-            
+
     globals.options.gpu_error_checking = gpu_error_checking;
 
 ## Set the minimize CPU usage flag
@@ -330,7 +330,7 @@ def set_min_cpu(min_cpu):
     if init.is_initialized():
             globals.msg.error("Cannot change minimize cpu usage flag after initialization\n");
             raise RuntimeError('Error setting option');
-            
+
     globals.options.min_cpu = min_cpu;
 
 ## Set the ignore display GPU flag
@@ -343,7 +343,7 @@ def set_ignore_display(ignore_display):
     if init.is_initialized():
             globals.msg.error("Cannot change ignore display GPU flag after initialization\n");
             raise RuntimeError('Error setting option');
-            
+
     globals.options.ignore_display = ignore_display;
 
 ## Get user options
@@ -395,4 +395,3 @@ def set_msg_file(fname):
 ################### Parse command line on load
 globals.options = options();
 _parse_command_line();
-
