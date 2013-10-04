@@ -63,11 +63,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <fstream>
-                                                                       
+
 #include "PPPMForceCompute.h"
 #ifdef ENABLE_CUDA
 #include "PPPMForceComputeGPU.h"
-#endif 
+#endif
 
 #include "NeighborListBinned.h"
 #include "Initializers.h"
@@ -88,23 +88,23 @@ using namespace boost::python;
 #include "boost_utf_configure.h"
 
 //! Typedef'd PPPMForceCompute factory
- 
+
 typedef boost::function<shared_ptr<PPPMForceCompute> (shared_ptr<SystemDefinition> sysdef,
-                                                      shared_ptr<NeighborList> nlist, 
+                                                      shared_ptr<NeighborList> nlist,
                                                       shared_ptr<ParticleGroup> group)> pppmforce_creator;
- 
+
 //! Test the ability of the lj force compute to actually calucate forces
 void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    // this is a 2-particle of charge 1 and -1 
+    // this is a 2-particle of charge 1 and -1
     // due to the complexity of FFTs, the correct resutls are not analytically computed
     // but instead taken from a known working implementation of the PPPM method
     // The box lengths and grid points are different in each direction
-    
+
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(6.0, 10.0, 14.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
-    
+
     shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.0), Scalar(1.0)));
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
@@ -121,21 +121,21 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     }
 
     shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
-    
+
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
     int Nx = 10;
-    int Ny = 15; 
+    int Ny = 15;
     int Nz = 24;
     int order = 5;
     Scalar kappa = 1.0;
     Scalar rcut = 1.0;
     Scalar volume = 6.0*10.0*14.0;
     fc_2->setParams(Nx, Ny, Nz, order, kappa, rcut);
-    
+
     // compute the forces
     fc_2->compute(0);
-    
+
     ArrayHandle<Scalar4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
     unsigned int pitch = fc_2->getVirialArray().getPitch();
@@ -164,18 +164,18 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
 //! Test the ability of the lj force compute to actually calucate forces
 void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    // this is a 2-particle of charge 1 and -1 
+    // this is a 2-particle of charge 1 and -1
     // due to the complexity of FFTs, the correct resutls are not analytically computed
     // but instead taken from a known working implementation of the PPPM method (LAMMPS ewald/disp
     // with lj/long/coul/long at RMS error = 6.14724e-06)
     // The box lengths and grid points are different in each direction
-   
+
     // set up triclinic box
     Scalar tilt(0.5);
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(10.0,tilt,tilt,tilt), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
-    
+
     shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.0), Scalar(1.0)));
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
@@ -192,20 +192,20 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
     }
 
     shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
-    
+
 
     int Nx = 128;
-    int Ny = 128; 
+    int Ny = 128;
     int Nz = 128;
     int order = 3;
     Scalar kappa = 1.519768; // this value is calculated by charge.pppm
     Scalar rcut = 2.0;
     Scalar volume = 10.0*10.0*10.0;
     fc_2->setParams(Nx, Ny, Nz, order, kappa, rcut);
-    
+
     // compute the forces
     fc_2->compute(0);
-    
+
     ArrayHandle<Scalar4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
     unsigned int pitch = fc_2->getVirialArray().getPitch();
@@ -290,4 +290,3 @@ BOOST_AUTO_TEST_CASE( PPPMForceComputeGPU_triclinic )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

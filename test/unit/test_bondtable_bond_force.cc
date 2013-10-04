@@ -90,7 +90,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    
+
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(1.0,0.0,0.0));
 
@@ -98,12 +98,12 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     shared_ptr<BondTablePotential> fc_2 = bf_creator(sysdef_2,3);
 
 
-    
+
     // compute the force and check the results
     fc_2->compute(0);
     GPUArray<Scalar4>& force_array_1 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
-    
+
     {
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
@@ -124,14 +124,14 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
 
     // add a bond and check again
     sysdef_2->getBondData()->addBond(Bond(0, 0,1));
-    
+
     // specify a table to interpolate
     vector<Scalar> V, F;
     V.push_back(10.0);  F.push_back(1.0);
     V.push_back(21.0);  F.push_back(6.0);
     V.push_back(5.0);   F.push_back(2.0);
     fc_2->setTable(0, V, F, 2.0, 4.0);
-        
+
     // now go to rmin and check for the correct force value
     {
     ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
@@ -139,14 +139,14 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     }
 
     fc_2->compute(1);
-    
+
     {
     GPUArray<Scalar4>& force_array_3 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_2->getVirialArray();
     unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, -1.0, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[0].z, tol_small);
@@ -154,7 +154,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+0]
                                        +h_virial_3.data[3*pitch+0]
                                        +h_virial_3.data[5*pitch+0]), (1.0 / 6.0) * 2.0, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, 1.0, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[1].z, tol_small);
@@ -170,10 +170,10 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     h_pos.data[1].y = Scalar(3.5);
     h_pos.data[1].x = Scalar(0.0);
     }
-    
+
     // check the forces
     fc_2->compute(2);
-    
+
     {
     GPUArray<Scalar4>& force_array_4 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc_2->getVirialArray();
@@ -187,7 +187,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_4.data[0*pitch+0]
                                        +h_virial_4.data[3*pitch+0]
                                        +h_virial_4.data[5*pitch+0]), (1.0 / 6.0) * 4.0 * 3.5, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].y, 4.0, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_4.data[1].z, tol_small);
@@ -196,7 +196,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
                                        +h_virial_4.data[3*pitch+1]
                                        +h_virial_4.data[5*pitch+1]), (1.0 / 6.0) * 4.0 * 3.5, tol);
     }
-    }    
+    }
 
 
 //! checks to see if BondTablePotential correctly handles multiple types
@@ -211,40 +211,40 @@ void bond_force_type_test(bondforce_creator bf_creator, boost::shared_ptr<Execut
     pdata_2->setPosition(1,make_scalar3(1.0,0.0,0.0));
     pdata_2->setPosition(2,make_scalar3(1.0,1.0,0.0));
     }
-    
+
     // create the bond force compute to check
     shared_ptr<BondTablePotential> fc_2 = bf_creator(sysdef_2,3);
-    
+
     // specify a table to interpolate
     vector<Scalar> V, F;
     V.push_back(10.0);  F.push_back(1.0);
     V.push_back(20.0);  F.push_back(6.0);
     V.push_back(5.0);   F.push_back(2.0);
     fc_2->setTable(0, V, F, 1.0, 2.0);
-    
+
     // specify a second table to interpolate
     V.clear(); F.clear();
     V.push_back(20.0);  F.push_back(2.0);
     V.push_back(40.0);  F.push_back(12.0);
     V.push_back(10.0);   F.push_back(4.0);
     fc_2->setTable(1, V, F, 0.0, 2.0);
-    
-    // add a bond 
+
+    // add a bond
     sysdef_2->getBondData()->addBond(Bond(0, 0,1));
-    
+
     // add a second bond
     sysdef_2->getBondData()->addBond(Bond(1, 1,2));
-    
+
     // compute and check
     fc_2->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_6 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_6 =  fc_2->getVirialArray();
     unsigned int pitch = virial_array_6.getPitch();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_6.data[0].x, -1.0, tol);
     MY_BOOST_CHECK_SMALL(h_force_6.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_6.data[0].z, tol_small);
@@ -252,7 +252,7 @@ void bond_force_type_test(bondforce_creator bf_creator, boost::shared_ptr<Execut
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_6.data[0*pitch+0]
                                        +h_virial_6.data[3*pitch+0]
                                        +h_virial_6.data[5*pitch+0]), (1.0)*1.0/6.0, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_6.data[1].x, 1.0, tol);
     MY_BOOST_CHECK_CLOSE(h_force_6.data[1].y, -12.0, tol);
     MY_BOOST_CHECK_SMALL(h_force_6.data[1].z, tol_small);
@@ -260,7 +260,7 @@ void bond_force_type_test(bondforce_creator bf_creator, boost::shared_ptr<Execut
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_6.data[0*pitch+1]
                                        +h_virial_6.data[3*pitch+1]
                                        +h_virial_6.data[5*pitch+1]), (1*1.0 + 12.0 * 1.0)*1.0/6.0, tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_6.data[2].x, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_6.data[2].y, 12.0, tol);
     MY_BOOST_CHECK_SMALL(h_force_6.data[2].z, tol_small);
@@ -268,11 +268,11 @@ void bond_force_type_test(bondforce_creator bf_creator, boost::shared_ptr<Execut
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_6.data[0*pitch+2]
                                        +h_virial_6.data[3*pitch+2]
                                        +h_virial_6.data[5*pitch+2]), (12*1.0)*1.0/6.0, tol);
-    
+
     }
      }
 
-    
+
 
 //! BondTablePotential creator for bond_force_basic_tests()
 shared_ptr<BondTablePotential> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef, unsigned int width)
@@ -294,14 +294,14 @@ BOOST_AUTO_TEST_CASE( BondTablePotential_basic )
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1, _2);
     bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-   
+
 //! boost test case for bond force type on the CPU
 BOOST_AUTO_TEST_CASE( BondTablePotential_type )
     {
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1, _2);
     bond_force_type_test(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-      
+
 
 #ifdef ENABLE_CUDA
 //! boost test case for bond forces on the GPU
@@ -310,13 +310,13 @@ BOOST_AUTO_TEST_CASE( BondTablePotentialGPU_basic )
     bondforce_creator bf_creator = bind(gpu_bf_creator, _1, _2);
     bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-    
+
 //! boost test case for bond force type on the GPU
 BOOST_AUTO_TEST_CASE( BondTablePotentialGPU_type )
     {
     bondforce_creator bf_creator = bind(gpu_bf_creator, _1, _2);
     bond_force_type_test(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
-    }    
+    }
 
 #endif
 
@@ -325,4 +325,3 @@ BOOST_AUTO_TEST_CASE( BondTablePotentialGPU_type )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

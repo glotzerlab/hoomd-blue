@@ -118,39 +118,39 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
         h_vel.data[j].y = 0.0;
         h_vel.data[j].z = 0.0;
         }
-        
+
     }
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(2.0);
-    
+
     cout << endl << "Test 1" << endl;
     cout << "Creating an ideal gas of 1000 particles" << endl;
     cout << "Temperature set at " << Temp << endl;
-    
+
     shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 0);
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
-    
+
     int i;
     Scalar AvgT = Scalar(0);
     Scalar VarianceE = Scalar(0);
     Scalar KE;
-    
+
     for (i = 0; i < 50000; i++)
         {
         if (i % 100 == 0)
             {
             ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
+            for (int j = 0; j < 1000; j++)
                 KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             //VarianceE += pow((KE-Scalar(1.5)*1000*Temp),2);
             AvgT += Scalar(2.0)*KE/(3*1000);
             //cout << "Average Temperature at time step " << i << " is " << AvgT << endl;
             }
-            
+
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
@@ -160,27 +160,27 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
     Scalar MSD = Scalar(0);
     Scalar t = Scalar(i) * deltaT;
-    
+
     for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
     Scalar D = MSD/(6*t*1000);
-    
+
     cout << "Calculating Diffusion Coefficient " << D << endl;
     cout << "Average Temperature " << AvgT << endl;
-    
-    // Turning off Variance Check as requires too many calculations to converge for a unit test... 
+
+    // Turning off Variance Check as requires too many calculations to converge for a unit test...
     // but have demonstrated that it works
     //cout << "Energy Variance " << VarianceE <<  " " << 3.0/2.0*Temp*Temp*1000 << endl;
-    
+
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 2.0, 3);
     MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 2.5);
     }
-    
+
     // Resetting the Temperature to 1.0
     shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
     cout << "Temperature set at " << T_variant->getValue(0) << endl;
     two_step_bdnvt->setT(T_variant);
-    
+
     //Restoring the position of the particles to the origin for simplicity of calculating diffusion
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -192,7 +192,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
         h_pos.data[j].z = 0.0;
         }
     }
-    
+
     AvgT = Scalar(0);
     for (i = 0; i < 50000; i++)
         {
@@ -200,12 +200,12 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
             {
             ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
+            for (int j = 0; j < 1000; j++)
                 KE += Scalar(0.5)*(h_vel.data[j].x*h_vel.data[j].x + h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             }
-            
+
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
@@ -214,23 +214,23 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
     Scalar MSD = Scalar(0);
     Scalar t = Scalar(i) * deltaT;
-    
+
     for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
 
     Scalar D = MSD/(6*t*1000);
-    
+
     cout << "Calculating Diffusion Coefficient " << D << endl;
     cout << "Average Temperature " << AvgT << endl;
-    
+
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 1.0, 5);
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
     }
-    
+
     // Setting Gamma to 0.5
     cout << "Gamma set at 0.5" << endl;
     two_step_bdnvt->setGamma(0, Scalar(0.5));
-    
+
     //Restoring the position of the particles to the origin for simplicity of calculating diffusion
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -242,7 +242,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
         h_pos.data[j].z = 0.0;
         }
     }
-    
+
     AvgT = Scalar(0);
     for (i = 0; i < 50000; i++)
         {
@@ -250,7 +250,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
             {
             ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
+            for (int j = 0; j < 1000; j++)
                 KE += Scalar(0.5)*(h_vel.data[j].x*h_vel.data[j].x + h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
@@ -263,13 +263,13 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
     Scalar MSD = Scalar(0);
     Scalar t = Scalar(i) * deltaT;
-    
+
     for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
     Scalar D = MSD/(6*t*1000);
-    
+
     cout << "Calculating Diffusion Coefficient " << D << endl;
     cout << "Average Temperature " << AvgT << endl;
-    
+
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 2.0, 5);
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
@@ -279,7 +279,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas with gamma set by diameters
 void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    
+
     cout << endl << "Test 2" << endl;
     cout << "Test setting diameter" << endl;
 
@@ -296,7 +296,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    
+
     // setup a simple initial state
     for (int j = 0; j < 1000; j++)
         {
@@ -307,9 +307,9 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
         h_vel.data[j].y = 0.0;
         h_vel.data[j].z = 0.0;
         }
-        
+
     }
-    
+
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(1.0);
     cout << "Temperature set at " << Temp << endl;
@@ -317,7 +317,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
-    
+
     Scalar AvgT = Scalar(0);
     int i;
     Scalar KE;
@@ -327,12 +327,12 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
             {
             ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
+            for (int j = 0; j < 1000; j++)
                 KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             }
-            
+
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
@@ -341,13 +341,13 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
     Scalar MSD = Scalar(0);
     Scalar t = Scalar(i) * deltaT;
-    
+
     for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
     Scalar D = MSD/(6*t*1000);
-    
+
     cout << "Calculating Diffusion Coefficient " << D << endl;
     cout << "Average Temperature " << AvgT << endl;
-    
+
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 1.0, 5);
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
@@ -370,7 +370,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
         h_pos.data[j].z = 0.0;
         }
     }
-    
+
     AvgT = Scalar(0);
     for (i = 0; i < 50000; i++)
         {
@@ -378,7 +378,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
             {
             ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
+            for (int j = 0; j < 1000; j++)
                 KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
@@ -386,20 +386,20 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/100.0);
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
 
     Scalar MSD = Scalar(0);
     Scalar t = Scalar(i) * deltaT;
-    
+
     for (int j = 0; j < 1000; j++) MSD += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
 
     Scalar D = MSD/(6*t*1000);
-    
+
     cout << "Calculating Diffusion Coefficient " << D << endl;
     cout << "Average Temperature " << AvgT << endl;
-    
+
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D, 2.0, 5);
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
@@ -421,7 +421,7 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    
+
     // setup a simple initial state
     for (int j = 0; j < 1000; j++)
         {
@@ -434,31 +434,31 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
         if (j < 500) h_pos.data[j].w = __int_as_scalar(0); //type = 0
         else h_pos.data[j].w = __int_as_scalar(1); // type = 1
         }
-        
+
     }
-    
+
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(1.0);
-    
-    
+
+
     cout << endl << "Test 3" << endl;
     cout << "Creating an ideal gas of 1000 particles" << endl;
     cout << "Temperature set at " << Temp << endl;
-    
+
     shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 268, 0);
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
-    
+
     int i;
     Scalar AvgT = Scalar(0);
     Scalar KE;
-    
+
     // Splitting the Particles in half and giving the two population different gammas..
     cout << "Two Particle Types: Gamma set at 1.0 and 2.0 respectively" << endl;
     two_step_bdnvt->setGamma(0, Scalar(1.0));
     two_step_bdnvt->setGamma(1, Scalar(2.0));
-    
+
     AvgT = Scalar(0);
     for (i = 0; i < 50000; i++)
         {
@@ -466,7 +466,7 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
             {
             ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
+            for (int j = 0; j < 1000; j++)
                 KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
@@ -481,15 +481,15 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
     Scalar MSD1 = Scalar(0);
     Scalar MSD2 = Scalar(0);
     Scalar t = Scalar(i) * deltaT;
-    
+
     for (int j = 0; j < 500; j++) MSD1 += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
     Scalar D1 = MSD1/(6*t*500);
     for (int j = 500; j < 1000; j++) MSD2 += (h_pos.data[j].x*h_pos.data[j].x + h_pos.data[j].y*h_pos.data[j].y + h_pos.data[j].z*h_pos.data[j].z);
     Scalar D2 = MSD2/(6*t*500);
-    
+
     cout << "Calculating Diffusion Coefficient 1 and 2 " << endl << D1 << endl << D2 << endl;
     cout << "Average Temperature " << AvgT << endl;
-    
+
     //Dividing a very large number by a very large number... not great accuracy!
     MY_BOOST_CHECK_CLOSE(D1, 1.0, 8);
     MY_BOOST_CHECK_CLOSE(D2, 0.5, 5);
@@ -510,7 +510,7 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    
+
     // setup a simple initial state
     for (int j = 0; j < 1000; j++)
         {
@@ -521,23 +521,23 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
         h_vel.data[j].y = 0.0;
         h_vel.data[j].z = 0.0;
         }
-        
+
     }
-    
+
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(2.0);
     cout << endl << "Test 4" << endl;
     cout << "Creating 1000 LJ particles" << endl;
     cout << "Temperature set at " << Temp << endl;
-    
+
     shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 358, 0);
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
-    
+
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.3), Scalar(3.0)));
     shared_ptr<PotentialPairLJ> fc3(new PotentialPairLJ(sysdef, nlist));
     fc3->setRcut(0, 0, Scalar(1.3));
-    
+
     Scalar epsilon = Scalar(1.15);
     Scalar sigma = Scalar(1.0);
     Scalar alpha = Scalar(1.0);
@@ -545,39 +545,39 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     fc3->setParams(0,0,make_scalar2(lj1,lj2));
     bdnvt_up->addForceCompute(fc3);
-    
+
     int i;
     Scalar AvgT = Scalar(0);
     //Scalar VarianceE = Scalar(0);
     Scalar KE;
-    
+
     bdnvt_up->prepRun(0);
-    
+
     for (i = 0; i < 50000; i++)
         {
         if (i % 10 == 0)
             {
             ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
+            for (int j = 0; j < 1000; j++)
                 KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             }
-            
+
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/10.0);
-    
+
     cout << "Average Temperature " << AvgT << endl;
-    
+
     MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 1);
-    
+
     // Resetting the Temperature to 1.0
     shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
     cout << "Temperature set at " << T_variant->getValue(0) << endl;
     two_step_bdnvt->setT(T_variant);
-    
+
     AvgT = Scalar(0);
     for (i = 0; i < 50000; i++)
         {
@@ -585,20 +585,20 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
             {
             ArrayHandle< Scalar4 > h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
+            for (int j = 0; j < 1000; j++)
                 KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             }
-            
+
         bdnvt_up->update(i);
         }
     AvgT /= Scalar(50000.0/10.0);
-    
+
     cout << "Average Temperature " << AvgT << endl;
-    
+
     MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
-    
+
     }
 
 
@@ -688,4 +688,3 @@ BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

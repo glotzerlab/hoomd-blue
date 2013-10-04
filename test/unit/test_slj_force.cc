@@ -93,7 +93,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     // thus, this case tests the ability of the force summer to sum more than one force on
     // a particle and ignore a particle outside the radius
     // Also particle 2 would not be within the cutoff of particle 1 if it were not the case that particle 1 has a shifted potential.
-    
+
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
@@ -110,7 +110,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     h_pos.data[2].x = Scalar(2.0*pow(2.0,1.0/6.0)); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     h_diameter.data[0]= Scalar(1.2);
     }
-    
+
     Scalar maxdiam = pdata_3->getMaxDiameter();
     Scalar r_cut = Scalar(1.3);
     Scalar r_alpha = maxdiam/2 - 0.5;
@@ -119,7 +119,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, r_cut_wc, Scalar(3.0)));
     shared_ptr<PotentialPairSLJ> fc_3 = shiftedlj_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, r_cut);
-    
+
     // first test: setup a sigma of 1.0 so that all forces will be 0
     Scalar epsilon = Scalar(1.15);
     Scalar sigma = Scalar(1.0);
@@ -127,10 +127,10 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     Scalar shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     fc_3->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
-    
+
     // compute the forces
     fc_3->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
@@ -144,7 +144,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+0]
                                        +h_virial_1.data[3*pitch+0]
                                        +h_virial_1.data[5*pitch+0]), -0.597520027, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_1.data[1].x, -2.710943702, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol);
@@ -152,7 +152,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+1]
                                        +h_virial_1.data[3*pitch+1]
                                        +h_virial_1.data[5*pitch+1]), -0.597520027, tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].x, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol);
@@ -169,7 +169,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     fc_3->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
     fc_3->compute(1);
-    
+
     {
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
@@ -183,7 +183,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_2.data[0*pitch+0]
                                        +h_virial_2.data[3*pitch+0]
                                        +h_virial_2.data[5*pitch+0]), 5.9633196325, tol);
-    
+
     // center particle should still be a 0 force by symmetry
     MY_BOOST_CHECK_CLOSE(h_force_2.data[1].x,-66.0427, tol);
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].y, 1e-5);
@@ -193,7 +193,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_2.data[0*pitch+1]
                                        +h_virial_2.data[3*pitch+1]
                                        +h_virial_2.data[5*pitch+1]), 23.37985722, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, 93.09822608552962, tol);
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].y, tol);
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].z, tol);
@@ -211,7 +211,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
 
     h_pos.data[2].x = h_pos.data[2].y = h_pos.data[2].z = 0.0;
     h_pos.data[0].x = Scalar(2.0*pow(2.0,1.0/6.0)); h_pos.data[0].y = h_pos.data[0].z = 0.0;
-    
+
     h_tag.data[0] = 2;
     h_tag.data[2] = 0;
     h_rtag.data[0] = 2;
@@ -220,10 +220,10 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
 
     // notify the particle data that we changed the order
     pdata_3->notifyParticleSort();
-    
+
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
-    
+
     {
     GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
@@ -243,7 +243,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
-    
+
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
@@ -269,8 +269,8 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     Scalar r_cut = Scalar(1.3);
     Scalar r_alpha = Scalar(maxdiam/2.0 - 0.5);
     Scalar r_cut_wc = Scalar(r_cut + 2.0 * r_alpha);
-    
-    
+
+
     shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, r_cut_wc, Scalar(3.0)));
     shared_ptr<PotentialPairSLJ> fc_6 = shiftedlj_creator(sysdef_6, nlist_6);
     fc_6->setRcut(0, 0, r_cut);
@@ -279,14 +279,14 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     fc_6->setRcut(1, 1, r_cut);
     fc_6->setRcut(1, 2, r_cut);
     fc_6->setRcut(2, 2, r_cut);
-    
+
     // choose a small sigma so that all interactions are attractive
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(0.5);
     Scalar alpha = Scalar(0.45);
     Scalar shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    
+
     // make life easy: just change epsilon for the different pairs
     fc_6->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
     fc_6->setParams(0,1,make_scalar2(Scalar(2.0)*shiftedlj1,Scalar(2.0)*shiftedlj2));
@@ -294,9 +294,9 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     fc_6->setParams(1,1,make_scalar2(Scalar(4.0)*shiftedlj1,Scalar(4.0)*shiftedlj2));
     fc_6->setParams(1,2,make_scalar2(Scalar(5.0)*shiftedlj1,Scalar(5.0)*shiftedlj2));
     fc_6->setParams(2,2,make_scalar2(Scalar(6.0)*shiftedlj1,Scalar(6.0)*shiftedlj2));
-    
+
     fc_6->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
@@ -310,7 +310,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_4.data[0*pitch+0]
                                        +h_virial_4.data[3*pitch+0]
                                        +h_virial_4.data[5*pitch+0]),-0.223885556, tol);
-    
+
     // particle 1 should be pulled right
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, 1.679141673, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[1].y, 1e-5);
@@ -318,7 +318,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_4.data[0*pitch+1]
                                        +h_virial_4.data[3*pitch+1]
                                        +h_virial_4.data[5*pitch+1]), -0.223885556, tol);
-    
+
     // particle 2 should be pulled down
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].y, -1.77449965121923, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[2].x, tol);
@@ -327,7 +327,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
                                        +h_virial_4.data[3*pitch+2]
                                        +h_virial_4.data[5*pitch+2]), -0.310537439, tol);
 
-    
+
     // particle 3 should be pulled up
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].y, 1.77449965121923, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[3].x, 1e-5);
@@ -335,7 +335,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_4.data[0*pitch+3]
                                        +h_virial_4.data[3*pitch+3]
                                        +h_virial_4.data[5*pitch+3]), -0.310537439, tol);
-    
+
     // particle 4 should be pulled back
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].z, -2.95749941869871, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[4].x, tol);
@@ -343,7 +343,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_4.data[0*pitch+4]
                                        +h_virial_4.data[3*pitch+4]
                                        +h_virial_4.data[5*pitch+4]), -0.640791541, tol);
-    
+
     // particle 3 should be pulled forward
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].z, 2.95749941869871, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[5].x, 1e-5);
@@ -360,7 +360,7 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
                                      boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
-    
+
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.05), Scalar(1.3), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
@@ -373,22 +373,22 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     shared_ptr<PotentialPairSLJ> fc2 = shiftedlj_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
-        
+
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.2);
     Scalar alpha = Scalar(0.45);
     Scalar shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    
+
     // specify the force parameters
     fc1->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
     fc2->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
-    
+
     // compute the forces
     fc1->compute(0);
     fc2->compute(0);
-    
+
     {
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_5 =  fc1->getForceArray();
@@ -400,7 +400,7 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     GPUArray<Scalar>& virial_array_6 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
-    
+
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
@@ -501,4 +501,3 @@ BOOST_AUTO_TEST_CASE( SLJForceGPU_compare )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

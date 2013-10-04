@@ -12,7 +12,7 @@ if (NOT WIN32)
     if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
     add_definitions(-DBOOST_TEST_DYN_LINK)
     endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
-    
+
     if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
     add_definitions(-DBOOST_TEST_DYN_LINK)
     endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
@@ -21,7 +21,7 @@ endif (NOT WIN32)
 ####################################
 ## Setup valgrind options
 if (UNIX AND NOT APPLE)
-find_program(VALGRIND valgrind DOC 
+find_program(VALGRIND valgrind DOC
     "valgrind executable for advanced regression tests")
 endif (UNIX AND NOT APPLE)
 
@@ -64,7 +64,7 @@ set(TEST_LIST
     test_neighborlist
     test_lj_force
     test_table_potential
-    test_bondtable_bond_force    
+    test_bondtable_bond_force
     test_slj_force
     test_gaussian_force
     test_yukawa_force
@@ -115,7 +115,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     endif(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
 
     add_dependencies(test_all ${CUR_TEST})
-    
+
     target_link_libraries(${CUR_TEST} libhoomd ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${CUR_TEST})
 
@@ -134,7 +134,7 @@ endforeach (CUR_TEST)
 foreach (CUR_TEST ${TEST_LIST})
     # add it to the unit test list
     get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
-    
+
     # unfortunately, this needs to be handled differently in visual studio
     if (MSVC)
         add_test(${CUR_TEST} ${EXECUTABLE_OUTPUT_PATH}/${CUR_TEST})

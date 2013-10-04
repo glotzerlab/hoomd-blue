@@ -89,58 +89,58 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // start with a simple simulation box size 10
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(10.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
     h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    
+
     // ********* initialize a cell list *********
     shared_ptr<CellList> cl(new CL(sysdef_3));
     cl->setNominalWidth(Scalar(1.0));
     cl->setRadius(1);
     cl->compute(0);
-    
+
     // verify the dimensions
     uint3 dim = cl->getDim();
     BOOST_CHECK_EQUAL_UINT(dim.x, 10);
     BOOST_CHECK_EQUAL_UINT(dim.y, 10);
     BOOST_CHECK_EQUAL_UINT(dim.z, 10);
-    
+
     // verify the indexers
     Index3D ci = cl->getCellIndexer();
     BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 10*10*10);
     BOOST_CHECK_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 10*10*10);
-    
+
     Index2D cli = cl->getCellListIndexer();
     BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 10*10*10*cl->getNmax());
     BOOST_CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 10*10*10*cl->getNmax());
-    
+
     Index2D adji = cl->getCellAdjIndexer();
     BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 10*10*10*27);
     BOOST_CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 10*10*10*27);
-    
+
     // ********* change the box size and verify the results *********
     pdata_3->setGlobalBoxL(make_scalar3(5.5f, 5.5f, 5.5f));
     cl->compute(0);
-    
+
     // verify the dimensions
     dim = cl->getDim();
     BOOST_CHECK_EQUAL_UINT(dim.x, 5);
     BOOST_CHECK_EQUAL_UINT(dim.y, 5);
     BOOST_CHECK_EQUAL_UINT(dim.z, 5);
-    
+
     // verify the indexers
     ci = cl->getCellIndexer();
     BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 5*5*5);
     BOOST_CHECK_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 5*5*5);
-    
+
     cli = cl->getCellListIndexer();
     BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 5*5*5*cl->getNmax());
     BOOST_CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 5*5*5*cl->getNmax());
-    
+
     adji = cl->getCellAdjIndexer();
     BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 5*5*5*27);
     BOOST_CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*5*5*27);
@@ -148,46 +148,46 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // ********* change the nominal width and verify the reusults *********
     cl->setNominalWidth(Scalar(0.5));
     cl->compute(0);
-    
+
     // verify the dimensions
     dim = cl->getDim();
     BOOST_CHECK_EQUAL_UINT(dim.x, 11);
     BOOST_CHECK_EQUAL_UINT(dim.y, 11);
     BOOST_CHECK_EQUAL_UINT(dim.z, 11);
-    
+
     // verify the indexers
     ci = cl->getCellIndexer();
     BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 11*11*11);
     BOOST_CHECK_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 11*11*11);
-    
+
     cli = cl->getCellListIndexer();
     BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 11*11*11*cl->getNmax());
     BOOST_CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 11*11*11*cl->getNmax());
-    
+
     adji = cl->getCellAdjIndexer();
     BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 11*11*11*27);
     BOOST_CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 11*11*11*27);
-    
+
     // ********* change the box size to a non cube and verify the results *********
     cl->setNominalWidth(Scalar(1.0));
     pdata_3->setGlobalBoxL(make_scalar3(5.5f, 3.0f, 10.5f));
     cl->compute(0);
-    
+
     // verify the dimensions
     dim = cl->getDim();
     BOOST_CHECK_EQUAL_UINT(dim.x, 5);
     BOOST_CHECK_EQUAL_UINT(dim.y, 3);
     BOOST_CHECK_EQUAL_UINT(dim.z, 10);
-    
+
     // verify the indexers
     ci = cl->getCellIndexer();
     BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 5*3*10);
     BOOST_CHECK_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 5*3*10);
-    
+
     cli = cl->getCellListIndexer();
     BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 5*3*10*cl->getNmax());
     BOOST_CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 5*3*10*cl->getNmax());
-    
+
     adji = cl->getCellAdjIndexer();
     BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 5*3*10*27);
     BOOST_CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*3*10*27);
@@ -206,33 +206,33 @@ void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     // start with a simple simulation box size 3
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(3.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
     h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(1.25); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    
+
     // ********* initialize a basic cell list *********
     shared_ptr<CellList> cl(new CL(sysdef_3));
     cl->setNominalWidth(Scalar(1.0));
     cl->setRadius(1);
     cl->compute(0);
-    
+
     // verify the indexer
     Index3D ci = cl->getCellIndexer();
     BOOST_REQUIRE_EQUAL_UINT(ci.getNumElements(), 3*3*3);
-    
+
     Index2D adji = cl->getCellAdjIndexer();
     BOOST_REQUIRE_EQUAL_UINT(adji.getNumElements(), 3*3*3*27);
     BOOST_REQUIRE_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 3*3*3*27);
-    
+
     // verify all the cell adj values
     // note that in a 3x3x3 box, ALL cells should have adj from 0-26
         {
         ArrayHandle<unsigned int> h_cell_adj(cl->getCellAdjArray(), access_location::host, access_mode::read);
-    
+
         for (unsigned int cidx = 0; cidx < ci.getNumElements(); cidx++)
             {
             for (unsigned int offset = 0; offset < 27; offset++)
@@ -242,27 +242,27 @@ void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
                 }
             }
         }
-    
+
     // ********** Test adj array with a radius ***********
     // use a 5x5x5 box with radius 2
     cl->setRadius(2);
     pdata_3->setGlobalBoxL(make_scalar3(5.0f, 5.0f, 5.0f));
-    
+
     cl->compute(0);
-    
+
     // verify the indexer
     ci = cl->getCellIndexer();
     BOOST_REQUIRE_EQUAL_UINT(ci.getNumElements(), 5*5*5);
-    
+
     adji = cl->getCellAdjIndexer();
     BOOST_REQUIRE_EQUAL_UINT(adji.getNumElements(), 5*5*5*125);
     BOOST_REQUIRE_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*5*5*125);
-    
+
     // verify all the cell adj values
     // note that in a 5x5x5 box, ALL cells should have adj from 0-124
         {
         ArrayHandle<unsigned int> h_cell_adj(cl->getCellAdjArray(), access_location::host, access_mode::read);
-    
+
         for (unsigned int cidx = 0; cidx < ci.getNumElements(); cidx++)
             {
             for (unsigned int offset = 0; offset < 125; offset++)
@@ -287,7 +287,7 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     // start with a simple simulation a non-cubic box
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(3, 5, 7), 4, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+
     pdata->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata->setType(0,1);
     pdata->setCharge(0,1.0);
@@ -342,24 +342,24 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     cl->setRadius(1);
     cl->setFlagIndex();
     cl->compute(0);
-    
+
     // verify the indexers
     Index3D ci = cl->getCellIndexer();
     BOOST_REQUIRE_EQUAL_UINT(ci.getNumElements(), 3*5*7);
     BOOST_REQUIRE_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 3*5*7);
-    
+
     Index2D cli = cl->getCellListIndexer();
     BOOST_REQUIRE_EQUAL_UINT(cli.getNumElements(), 3*5*7*cl->getNmax());
     BOOST_REQUIRE_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 3*5*7*cl->getNmax());
     BOOST_REQUIRE_EQUAL_UINT(cl->getTDBArray().getNumElements(), 0);
-    
+
     // verify the cell contents
         {
         Scalar4 val;
-        
+
         ArrayHandle<unsigned int> h_cell_size(cl->getCellSizeArray(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_xyzf(cl->getXYZFArray(), access_location::host, access_mode::read);
-        
+
         // verify cell 2,2,3
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(2,2,3)], 1);
         val = h_xyzf.data[cli(0, ci(2,2,3))];
@@ -374,7 +374,7 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         MY_BOOST_CHECK_SMALL(val.y, tol_small);
         MY_BOOST_CHECK_SMALL(val.z, tol_small);
         BOOST_CHECK_EQUAL(__scalar_as_int(val.w), 2);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,6))];
         MY_BOOST_CHECK_CLOSE(val.x, 0.25f, tol);
@@ -388,12 +388,12 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         MY_BOOST_CHECK_CLOSE(val.y, -2.0f, tol_small);
         MY_BOOST_CHECK_CLOSE(val.z, -3.0f, tol_small);
         BOOST_CHECK_EQUAL(__scalar_as_int(val.w), 7);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(1,2,3))];
-            
+
             // particles can be in any order in the cell list
             bool ok = false;
             if (__scalar_as_int(val.w) == 0)
@@ -410,12 +410,12 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
                 }
             BOOST_CHECK(ok);
             }
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(2,4,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(2,4,3))];
-            
+
             // particles can be in any order in the cell list
             bool ok = false;
             if (__scalar_as_int(val.w) == 3)
@@ -449,9 +449,9 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<unsigned int> h_cell_size(cl->getCellSizeArray(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_xyzf(cl->getXYZFArray(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_tdb(cl->getTDBArray(), access_location::host, access_mode::read);
-        
+
         Scalar4 val;
-        
+
         // verify cell 2,2,3
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(2,2,3)], 1);
         val = h_xyzf.data[cli(0, ci(2,2,3))];
@@ -474,7 +474,7 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         BOOST_CHECK_EQUAL(__scalar_as_int(val.x), 3);
         MY_BOOST_CHECK_CLOSE(val.y, 1.5f, tol);
         BOOST_CHECK_EQUAL(__scalar_as_int(val.z), 0);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,6))];
         MY_BOOST_CHECK_CLOSE(val.x, 0.25f, tol);
@@ -496,13 +496,13 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         BOOST_CHECK_EQUAL(__scalar_as_int(val.x), 0);
         MY_BOOST_CHECK_CLOSE(val.y, 4.0f, tol);
         BOOST_CHECK_EQUAL(__scalar_as_int(val.z), 1);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(1,2,3))];
             Scalar4 val_tdb = h_tdb.data[cli(i, ci(1,2,3))];
-            
+
             // particles can be in any order in the cell list
             bool ok = false;
             if (fabs(val.w - 1.0f) < tol)
@@ -526,13 +526,13 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
                 }
             BOOST_CHECK(ok);
             }
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(2,4,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
             {
             val = h_xyzf.data[cli(i, ci(2,4,3))];
             Scalar4 val_tdb = h_tdb.data[cli(i, ci(2,4,3))];
-            
+
             // particles can be in any order in the cell list
             bool ok = false;
             if (fabs(val.w - 4.0f) < tol)
@@ -571,7 +571,7 @@ BOOST_AUTO_TEST_CASE( CellListGPU_small )
     celllist_small_test<CellListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
-    
+
 //! Validate that the cell list itself can be computed for a large system of particles
 template <class CL>
 void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -589,7 +589,7 @@ void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     cl->setRadius(1);
     cl->setFlagIndex();
     cl->compute(0);
-    
+
     // verify that the sum of the cell sizes adds up to N
     ArrayHandle<unsigned int> h_cell_size(cl->getCellSizeArray(), access_location::host, access_mode::read);
     unsigned int total = 0;
@@ -598,14 +598,14 @@ void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         {
         total += h_cell_size.data[cell];
         }
-    
+
     BOOST_CHECK_EQUAL_UINT(total, N);
-    
+
     // verify that every particle appears once in the cell list
     vector<bool> present(N);
     for (unsigned int p = 0; p < N; p++)
         present[p] = false;
-    
+
     Index2D cli = cl->getCellListIndexer();
     ArrayHandle<Scalar4> h_xyzf(cl->getXYZFArray(), access_location::host, access_mode::read);
 
@@ -617,7 +617,7 @@ void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
             present[p] = true;
             }
         }
-    
+
     for (unsigned int p = 0; p < N; p++)
         BOOST_CHECK(present[p]);
     }
@@ -635,4 +635,3 @@ BOOST_AUTO_TEST_CASE( CellListGPU_large )
     celllist_large_test<CellListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
-

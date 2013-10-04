@@ -542,7 +542,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     pdata->setDomainDecomposition(decomposition);
 
     pdata->initializeFromSnapshot(snap);
-    
+
     // width of ghost layer
     Scalar ghost_layer_width = Scalar(0.1);
     comm->setGhostLayerWidth(ghost_layer_width);
@@ -1377,12 +1377,12 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
 
     // and zero ghost particles
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
-   
+
     // check global number of bonds
     BOOST_CHECK_EQUAL(bdata->getNumBondsGlobal(), 12);
 
     // every domain should have three bonds
-    BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3); 
+    BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
 
     // exchange ghost particles
     comm->migrateParticles();
@@ -1390,8 +1390,8 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     // check that nothing has changed
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
-    BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3); 
-   
+    BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
     // now move particle 0 to box 1
     pdata->setPosition(0, make_scalar3(.3, -0.4, -0.4));
 
@@ -1422,7 +1422,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
                 BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
                 }
- 
+
             break;
         case 1:
             // box 1 should have two particles and 5 bonds
@@ -1651,7 +1651,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[9]],9);
                 BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].x,4);
                 BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].y,6);
- 
+
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[11]],11);
                 BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].x,6);
                 BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].y,7);
@@ -1699,13 +1699,13 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
 
     // move particle back
     pdata->setPosition(0, make_scalar3(-.4, -0.4, -0.4));
-    
+
     comm->migrateParticles();
 
     // check that old state has been restored
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
-    BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3); 
-   
+    BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+
     // swap ptl 0 and 1
     pdata->setPosition(0, make_scalar3(.4, -0.4, -0.4));
     pdata->setPosition(1, make_scalar3(-.4, -0.4, -0.4));
@@ -1735,7 +1735,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
                 BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
                 }
- 
+
             break;
         case 1:
             // box 1 should own three bonds
@@ -2238,7 +2238,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
             ArrayHandle<Scalar4> h_pos_2(pdata_2->getPositions(), access_location::host, access_mode::read);
             for (unsigned int i = 0; i < n; ++i)
                 {
-                bool has_ghost_1 = false, has_ghost_2 = false; 
+                bool has_ghost_1 = false, has_ghost_2 = false;
 
                 if (h_rtag_1.data[i] >= pdata_1->getN() && (h_rtag_1.data[i] < (pdata_1->getN() + pdata_1->getNGhosts())))
                     has_ghost_1 = true;
@@ -2248,7 +2248,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
                 // ghost has to either be present in both systems or not present
                 BOOST_CHECK((! has_ghost_1 && !has_ghost_2) || (has_ghost_1 && has_ghost_2));
-               
+
                 if (has_ghost_1 && has_ghost_2)
                     {
                     #if 0
@@ -2326,7 +2326,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
     pdata->setDomainDecomposition(decomposition);
 
     pdata->initializeFromSnapshot(snap);
-    
+
     // width of ghost layer
     Scalar ghost_layer_width = Scalar(0.1);
     comm->setGhostLayerWidth(ghost_layer_width);
@@ -2371,7 +2371,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
     flags[comm_flag::charge] = 1;
     flags[comm_flag::diameter] = 1;
     comm->setFlags(flags);
-    
+
     // reset numbers of ghosts
     comm->migrateParticles();
 
@@ -2484,7 +2484,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
             }
         }
     }
- 
+
 //! Communicator creator for unit tests
 shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
                                                          shared_ptr<DomainDecomposition> decomposition)

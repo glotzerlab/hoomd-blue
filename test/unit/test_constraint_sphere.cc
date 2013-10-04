@@ -92,14 +92,14 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
     {
     Scalar3 P = make_scalar3(1.0f, 2.0f, 3.0f);
     Scalar r = 10.0f;
-    
+
     // Build a 6 particle system with all particles starting at the 6 "corners" of a sphere centered
     // at P with radius r. Use a huge box so boundary conditions don't come into play
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, BoxDim(1000000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -111,26 +111,26 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
     h_pos.data[4].z = P.z - r;
     h_pos.data[5].z = P.z + r;
     }
-    
+
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(2.0);
-    
+
     // run the particles in a BD simulation with a constraint force applied and verify that the constraint is always
     // satisfied
     shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
     shared_ptr<TwoStepBDNVT> two_step_bdnvt(new TwoStepBDNVT(sysdef, group_all, T_variant, 123, 0));
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
-    
+
     boost::shared_ptr<ConstraintSphere> cs = cs_creator(sysdef, group_all, P, r);
     bdnvt_up->addForceConstraint(cs);
     bdnvt_up->prepRun(0);
-    
+
     for (int i = 0; i < 1000; i++)
         {
         bdnvt_up->update(i);
-        
-        
+
+
         for (unsigned int j = 0; j < 6; j++)
             {
             Scalar3 V;
@@ -138,11 +138,11 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
             V.x = pos.x - P.x;
             V.y = pos.y - P.y;
             V.z = pos.z - P.z;
-            
+
             Scalar current_r = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
             MY_BOOST_CHECK_CLOSE(current_r, r, loose_tol);
             }
-        
+
         }
     }
 
@@ -186,4 +186,3 @@ BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

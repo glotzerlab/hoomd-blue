@@ -127,7 +127,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     const unsigned int npt_flags[] = {orthorhombic, orthorhombic, orthorhombic, all};
     const std::string mode_name[] = {"cubic", "orthorhombic", "tetragonal", "triclinic"};
     unsigned int n_modes = 4;
- 
+
     Scalar tau = .1;
     Scalar tauP = .1;
 
@@ -417,7 +417,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
         fc = shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
         }
 
- 
+
     fc->setRcut(0, 0, Scalar(pow(Scalar(2.0),Scalar(1./6.))));
 
     // setup some values for alpha and sigma

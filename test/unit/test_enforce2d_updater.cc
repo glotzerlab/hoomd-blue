@@ -103,13 +103,13 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-        
+
     Saru saru(11, 21, 33);
 
     // setup a simple initial state
     Scalar tiny = 1e-3;
     for (unsigned int i=0; i<10; i++)
-        for (unsigned int j=0; j<10; j++) 
+        for (unsigned int j=0; j<10; j++)
             {
             unsigned int k = i*10 + j;
             Scalar3 pos;
@@ -123,16 +123,16 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
             vel.z = 0.0;
             pdata->setVelocity(k, vel);
             }
-        
+
     boost::shared_ptr<Variant> T(new VariantConst(1.0));
     shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(2*group_all->getNumMembers()-2);
     shared_ptr<TwoStepNVT> two_step_nvt(new TwoStepNVT(sysdef, group_all, thermo, 0.5, T));
-        
+
     Scalar deltaT = Scalar(0.005);
     shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nvt);
-    
+
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.3)));
     nlist->setStorageMode(NeighborList::half);
 
@@ -144,7 +144,7 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
     Scalar alpha = Scalar(1.0);
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    
+
     // specify the force parameters
     fc->setParams(0,0,make_scalar2(lj1,lj2));
     fc->setRcut(0,0,Scalar(2.5));
@@ -177,10 +177,10 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
 
     //make sure the deviation is large (should be >> tol)
     BOOST_CHECK(total_deviation > tol);
-        
+
     // re-initialize the initial state
     for (unsigned int i=0; i<10; i++)
-        for (unsigned int j=0; j<10; j++) 
+        for (unsigned int j=0; j<10; j++)
             {
             unsigned int k = i*10 + j;
             Scalar3 pos;
@@ -194,11 +194,11 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
             vel.z = 0.0;
             pdata->setVelocity(k,vel);
             }
-            
+
     pdata->notifyParticleSort();
 
     shared_ptr<Enforce2DUpdater> enforce2d = creator(sysdef);
-     
+
     // verify that the atoms never leave the xy plane if contstraint is present:
     for (int t = 0; t < 1000; t++)
         {
@@ -245,7 +245,7 @@ BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
     enforce2d_creator creator = bind(base_class_enforce2d_creator, _1);
    enforce2d_basic_test(creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-    
+
 #ifdef ENABLE_CUDA
 //! boost test case for basic enforce2d tests
 BOOST_AUTO_TEST_CASE( Enforce2DUpdaterGPU_basic )
@@ -254,8 +254,7 @@ BOOST_AUTO_TEST_CASE( Enforce2DUpdaterGPU_basic )
     enforce2d_basic_test(creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
-    
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

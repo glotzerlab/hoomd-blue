@@ -64,7 +64,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     shared_ptr<ParticleData> pdata_2;
     if (exec_conf->getRank() == 0)
         pdata_2 = sysdef_2->getParticleData();
- 
+
     boost::shared_ptr<Communicator> comm;
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
@@ -125,7 +125,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     shared_ptr<VariantConst> T_variant_2;
     shared_ptr<IntegratorTwoStep> nvt_2;
     shared_ptr<ComputeThermo> thermo_2;
-    
+
     if (exec_conf->getRank()==0)
         {
         T_variant_2 = shared_ptr<VariantConst>(new VariantConst(T));
@@ -170,7 +170,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
         thermo_2->setNDOF(ndof);
 
     nvt_1->prepRun(0);
-    
+
     if (exec_conf->getRank() == 0)
         nvt_2->prepRun(0);
 
@@ -181,7 +181,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
         // compare temperatures
         if (exec_conf->getRank() == 0)
             BOOST_CHECK_CLOSE(thermo_1->getTemperature(), thermo_2->getTemperature(), tol_small);
-      
+
 //       if (world->rank() ==0)
 //           std::cout << "step " << i << std::endl;
         Scalar rough_tol = 15.0;
@@ -208,12 +208,12 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
                     MY_BOOST_CHECK_CLOSE(snap_1.vel[j].x, snap_2.vel[j].x, rough_tol);
                     MY_BOOST_CHECK_CLOSE(snap_1.vel[j].y, snap_2.vel[j].y, rough_tol);
                     MY_BOOST_CHECK_CLOSE(snap_1.vel[j].z, snap_2.vel[j].z, rough_tol);
-     
+
                     MY_BOOST_CHECK_CLOSE(snap_1.accel[j].x, snap_2.accel[j].x, rough_tol);
                     MY_BOOST_CHECK_CLOSE(snap_1.accel[j].y, snap_2.accel[j].y, rough_tol);
                     MY_BOOST_CHECK_CLOSE(snap_1.accel[j].z, snap_2.accel[j].z, rough_tol);
                     }
-                } 
+                }
             }
         nvt_1->update(i);
         if (exec_conf->getRank() == 0)

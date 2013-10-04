@@ -87,16 +87,16 @@ typedef boost::function<shared_ptr<ConstExternalFieldDipoleForceCompute> (shared
 
 //! Test the ability of the lj wall force compute to actually calculate forces
 void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
-    { 
+    {
     // this 3 particle test will check proper wall force computation among all 3 axes
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
-    
+
     pdata_3->setPosition(0,make_scalar3(0.0,1.2,0.0));
     pdata_3->setPosition(1,make_scalar3(12.2,-10.0,0.0));
     pdata_3->setPosition(2,make_scalar3(0.0,10.0,-12.9));
 
-    {   
+    {
     ArrayHandle<Scalar4> h_orientation(pdata_3->getOrientationArray());
     eulerToQuat(0.0,0.5*PI, 0.0, h_orientation.data[0]); //dipole along x
     eulerToQuat(0.5*PI,0, 0.0, h_orientation.data[1]); //dipole along y
@@ -104,17 +104,17 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     }
     // create the wall force compute with a default cutoff of 1.0 => all forces should be 0 for the first round
     shared_ptr<ConstExternalFieldDipoleForceCompute> fc_3 = cefd_creator(sysdef_3, Scalar(0.0),Scalar(0.0),Scalar(0.0),Scalar(0.0));
-    
+
     // pick some parameters
     Scalar field_x = 0.0;
     Scalar field_y = 0.0;
     Scalar field_z = 0.0;
     Scalar       p = 1.0;
     fc_3->setParams(field_x,field_y,field_z,p);
-    
+
     // compute the forces
     fc_3->compute(0);
-    
+
     {
     // there are no walls, so all forces should be zero
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
@@ -128,12 +128,12 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
@@ -143,12 +143,12 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     MY_BOOST_CHECK_SMALL(h_torque_1.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_torque_1.data[0].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_torque_1.data[0].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_torque_1.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_torque_1.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_torque_1.data[1].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_torque_1.data[1].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_torque_1.data[2].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_torque_1.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_torque_1.data[2].z, tol_small);
@@ -161,10 +161,10 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     field_z = 10.0;
     p = 1.0;
     fc_3->setParams(field_x,field_y,field_z,p);
-    
+
     // compute the forces again
     fc_3->compute(1);
-    
+
     {
     // they should still be zero
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
@@ -178,12 +178,12 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     MY_BOOST_CHECK_SMALL(h_force_2.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[0].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[0].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].z, tol_small);
@@ -193,19 +193,19 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     MY_BOOST_CHECK_CLOSE(h_torque_2.data[0].y, -field_z, tol);
     MY_BOOST_CHECK_CLOSE(h_torque_2.data[0].z, field_y,tol);
     MY_BOOST_CHECK_SMALL(h_torque_2.data[0].w, tol_small);
-     
+
     MY_BOOST_CHECK_CLOSE(h_torque_2.data[1].x, -field_z, tol);
     MY_BOOST_CHECK_SMALL(h_torque_2.data[1].y, tol_small);
     MY_BOOST_CHECK_CLOSE(h_torque_2.data[1].z, field_x,tol);
     MY_BOOST_CHECK_SMALL(h_torque_2.data[1].w, tol_small);
-    
+
     MY_BOOST_CHECK_CLOSE(h_torque_2.data[2].x, -field_y, tol);
     MY_BOOST_CHECK_CLOSE(h_torque_2.data[2].y, field_x, tol);
     MY_BOOST_CHECK_SMALL(h_torque_2.data[2].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_torque_2.data[2].w, tol_small);
     }
 
-   
+
     }
 
 //! ConstExternalFieldDipoleForceCompute creator for unit tests
@@ -224,4 +224,3 @@ BOOST_AUTO_TEST_CASE( cefd_particle )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-
