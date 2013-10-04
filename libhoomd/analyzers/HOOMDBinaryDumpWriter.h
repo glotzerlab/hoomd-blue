@@ -100,7 +100,7 @@ class HOOMDBinaryDumpWriter : public Analyzer
         ~HOOMDBinaryDumpWriter();
 
         //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);        
+        void analyze(unsigned int timestep);
         //! Writes a file at the current time step
         void writeFile(std::string fname, unsigned int timestep);
         //! Set the alternating mode
@@ -120,4 +120,3 @@ class HOOMDBinaryDumpWriter : public Analyzer
 void export_HOOMDBinaryDumpWriter();
 
 #endif
-

@@ -78,19 +78,19 @@ class PDBDumpWriter : public Analyzer
     public:
         //! Construct the writer
         PDBDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
-        
+
         //! Destructor
         ~PDBDumpWriter();
-        
+
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
-        
+
         //! Set the output bond flag
         void setOutputBond(bool enable)
             {
             m_output_bond = enable;
             }
-            
+
         //! Helper function to write file
         void writeFile(std::string fname);
     private:
@@ -102,4 +102,3 @@ class PDBDumpWriter : public Analyzer
 void export_PDBDumpWriter();
 
 #endif
-

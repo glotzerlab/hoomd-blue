@@ -104,34 +104,34 @@ class Analyzer : boost::noncopyable
         //! Constructs the analyzer and associates it with the ParticleData
         Analyzer(boost::shared_ptr<SystemDefinition> sysdef);
         virtual ~Analyzer() {};
-        
+
         //! Abstract method that performs the analysis
         /*! Derived classes will implement this method to calculate their results
             \param timestep Current time step of the simulation
             */
         virtual void analyze(unsigned int timestep) = 0;
-        
+
         //! Sets the profiler for the analyzer to use
         void setProfiler(boost::shared_ptr<Profiler> prof);
-        
+
         //! Print some basic stats to stdout
         /*! Derived classes can optionally implement this function. A System will
             call all of the Analyzers' printStats functions at the end of a run
-            so the user can see useful information 
+            so the user can see useful information
         */
         virtual void printStats()
             {
             }
-        
+
         //! Reset stat counters
-        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running 
+        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
             counters printed by printStats. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
         virtual void resetStats()
             {
             }
-        
+
         //! Get needed pdata flags
         /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
             fields, they must return the requested fields in getRequestedPDataFlags().
@@ -159,7 +159,7 @@ class Analyzer : boost::noncopyable
 #ifdef ENABLE_MPI
         boost::shared_ptr<Communicator> m_comm;             //!< The communicator to use
 #endif
-        
+
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
@@ -167,4 +167,3 @@ class Analyzer : boost::noncopyable
 void export_Analyzer();
 
 #endif
-

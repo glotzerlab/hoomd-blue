@@ -81,10 +81,10 @@ class MOL2DumpWriter : public Analyzer
 
         //! Destructor
         ~MOL2DumpWriter();
-        
+
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
-        
+
         //! Write the mol2 file
         void writeFile(std::string fname);
     private:
@@ -95,4 +95,3 @@ class MOL2DumpWriter : public Analyzer
 void export_MOL2DumpWriter();
 
 #endif
-

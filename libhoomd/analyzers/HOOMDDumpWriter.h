@@ -139,7 +139,7 @@ class HOOMDDumpWriter : public Analyzer
             m_vizsigma = vizsigma;
             m_vizsigma_set = true;
             }
-        
+
         //! Writes a file at the current time step
         void writeFile(std::string fname, unsigned int timestep);
     private:
@@ -168,4 +168,3 @@ class HOOMDDumpWriter : public Analyzer
 void export_HOOMDDumpWriter();
 
 #endif
-

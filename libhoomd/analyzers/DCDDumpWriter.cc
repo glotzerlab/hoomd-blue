@@ -133,32 +133,32 @@ void DCDDumpWriter::initFileIO()
     if (!m_overwrite && exists(m_fname))
         {
         m_exec_conf->msg->notice(3) << "dump.dcd: Appending to existing DCD file \"" << m_fname << "\"" << endl;
-        
+
         // open the file and get data from the header
         fstream file;
         file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
         file.seekp(NFILE_POS);
-        
+
         m_num_frames_written = read_int(file);
         m_start_timestep = read_int(file);
         unsigned int file_period = read_int(file);
-        
+
         // warn the user if we are now dumping at a different period
         if (file_period != m_period)
             m_exec_conf->msg->warning() << "dump.dcd: appending to a file that has period " << file_period << " that is not the same as the requested period of " << m_period << endl;
-            
+
         m_last_written_step = read_int(file);
-        
+
         // check for errors
         if (!file.good())
             {
             m_exec_conf->msg->error() << "dump.dcd: I/O error while reading DCD header data" << endl;
             throw runtime_error("Error appending to DCD file");
             }
-            
+
         m_appending = true;
         }
-       
+
     m_staging_buffer = new float[m_pdata->getNGlobal()];
     m_is_initialized = true;
     }
@@ -180,7 +180,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Dump DCD");
-   
+
     // take particle data snapshot
     SnapshotParticleData snapshot(m_pdata->getNGlobal());
 
@@ -190,7 +190,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
     // if we are not the root processor, do not perform file I/O
     if (m_comm && !m_exec_conf->isRoot())
         {
-        if (m_prof) m_prof->pop(); 
+        if (m_prof) m_prof->pop();
         return;
         }
 #endif
@@ -200,13 +200,13 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 
     // the file object
     fstream file;
-    
+
     // initialize the file on the first frame written
     if (m_num_frames_written == 0)
         {
         // open the file and truncate it
         file.open(m_fname.c_str(), ios::trunc | ios::out | ios::binary);
-        
+
         // write the file header
         m_start_timestep = timestep;
         write_file_header(file);
@@ -216,29 +216,29 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         if (m_appending && timestep <= m_last_written_step)
             {
             m_exec_conf->msg->warning() << "dump.dcd: not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
-            
+
             if (m_prof)
                 m_prof->pop();
             return;
             }
-            
+
         // open the file and move the file pointer to the end
         file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
-        
+
         // verify the period on subsequent frames
         if ( (timestep - m_start_timestep) % m_period != 0)
             m_exec_conf->msg->warning() << "dump.dcd: writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl;
         }
-        
+
     // write the data for the current time step
     write_frame_header(file);
     write_frame_data(file, snapshot);
-    
+
     // update the header with the number of frames written
     m_num_frames_written++;
     write_updated_header(file, timestep);
     file.close();
-    
+
     if (m_prof)
         m_prof->pop();
     }
@@ -251,7 +251,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
     {
     // the first 4 bytes in the file must be 84
     write_int(file, 84);
-    
+
     // the next 4 bytes in the file must be "CORD"
     char cord_data[] = "CORD";
     file.write(cord_data, 4);
@@ -278,27 +278,27 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
     write_int(file, 84);
     write_int(file, 164);
     write_int(file, 2);
-    
+
     char title_string[81];
     memset(title_string, 0, 81);
     char remarks[] = "Created by HOOMD";
     strncpy(title_string, remarks, 80);
     title_string[79] = '\0';
     file.write(title_string, 80);
-    
+
     char time_str[81];
     memset(time_str, 0, 81);
     time_t cur_time = time(NULL);
     tm *tmbuf=localtime(&cur_time);
     strftime(time_str, 80, "REMARKS Created  %d %B, %Y at %H:%M", tmbuf);
     file.write(time_str, 80);
-    
+
     write_int(file, 164);
     write_int(file, 4);
     unsigned int nparticles = m_group->getNumMembersGlobal();
     write_int(file, nparticles);
     write_int(file, 4);
-    
+
     // check for errors
     if (!file.good())
         {
@@ -326,7 +326,7 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     alpha = dot(vb,vc)/(b*c);
     beta = dot(va,vc)/(a*c);
     gamma = dot(va,vb)/(a*b);
-    
+
     unitcell[0] = a;
     unitcell[2] = b;
     unitcell[5] = c;
@@ -334,11 +334,11 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     unitcell[1] = gamma;
     unitcell[3] = beta;
     unitcell[4] = alpha;
-    
+
     write_int(file, 48);
     file.write((char *)unitcell, 48);
     write_int(file, 48);
-    
+
     // check for errors
     if (!file.good())
         {
@@ -362,11 +362,11 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         m_exec_conf->msg->error() << "dump.dcd: Unwrap of rigid bodies in DCD files is currently not supported in MPI simulations" << endl;
         throw runtime_error("Error writing DCD file");
         }
-#endif        
-  
+#endif
+
     ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(),access_location::host,access_mode::read);
     BoxDim box = m_pdata->getGlobalBox();
-    
+
     unsigned int nparticles = m_group->getNumMembersGlobal();
 
     // Create a tmp copy of the particle data and unwrap particles
@@ -374,7 +374,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        
+
         if (m_unwrap_full)
             {
             tmp_pos[i] = box.shift(tmp_pos[i], snapshot.image[i]);
@@ -388,7 +388,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
             int3 img_diff = make_int3(particle_img.x - body_ix,
                                       particle_img.y - body_iy,
                                       particle_img.z - body_iz);
-            
+
             tmp_pos[i] = box.shift(tmp_pos[i], img_diff);
             }
         }
@@ -396,7 +396,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     // prepare x coords for writing, looping in tag order
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
-        unsigned int i = m_group->getMemberTag(group_idx);        
+        unsigned int i = m_group->getMemberTag(group_idx);
         m_staging_buffer[group_idx] = float(tmp_pos[i].x);
         }
 
@@ -404,7 +404,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
     write_int(file, nparticles * sizeof(float));
-       
+
     // prepare y coords for writing
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
@@ -416,13 +416,13 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
     write_int(file, nparticles * sizeof(float));
-    
+
     // prepare z coords for writing
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
         m_staging_buffer[group_idx] = float(tmp_pos[i].z);
-        
+
         // m_angle set to True turns on a hack where the particle orientation angle is written out to the z component
         // this only works in 2D simulations, obviously
         if (m_angle)
@@ -430,16 +430,16 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
             Scalar s = 1;
             if (snapshot.orientation[i].w < 0)
                 s = -1;
-            
+
             m_staging_buffer[group_idx] = acosf(snapshot.orientation[i].x) * 2 * s;
             }
         }
-    
+
     // write z coords
     write_int(file, nparticles * sizeof(float));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
     write_int(file, nparticles * sizeof(float));
-    
+
     // check for errors
     if (!file.good())
         {
@@ -458,7 +458,7 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timest
     {
     file.seekp(NFILE_POS);
     write_int(file, m_num_frames_written);
-    
+
     file.seekp(NSTEP_POS);
     write_int(file, timestep);
     }
@@ -476,4 +476,3 @@ void export_DCDDumpWriter()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-
