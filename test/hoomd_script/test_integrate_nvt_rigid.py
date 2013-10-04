@@ -15,7 +15,7 @@ class integrate_nvt_rigid_tests (unittest.TestCase):
 
         sysdef.sysdef.getRigidData().initializeData()
         force.constant(fx=0.1, fy=0.1, fz=0.1)
-                
+
     # tests basic creation of the integrater
     def test_basic(self):
         all = group.all();
@@ -51,4 +51,3 @@ class integrate_nvt_rigid_nobody_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

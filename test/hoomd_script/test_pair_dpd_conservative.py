@@ -12,7 +12,7 @@ class pair_dpdc_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # basic test of creation
     def test(self):
         dpdc = pair.dpd_conservative(r_cut=3.0);
@@ -24,16 +24,15 @@ class pair_dpdc_tests (unittest.TestCase):
         dpdc = pair.dpd_conservative(r_cut=3.0);
         dpdc.pair_coeff.set('A', 'A', r_cut=1.0);
         self.assertRaises(RuntimeError, dpdc.update_coeffs);
-                
+
     # test missing coefficients
     def test_missing_AA(self):
         dpdc = pair.dpd_conservative(r_cut=3.0);
         self.assertRaises(RuntimeError, dpdc.update_coeffs);
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

@@ -69,13 +69,13 @@ class particle_data_access_tests (unittest.TestCase):
 
         self.s.particles[0].charge = 5.6;
         self.assertAlmostEqual(5.6, self.s.particles[0].charge, 5)
-        
+
         self.s.particles[0].mass = 7.9;
         self.assertAlmostEqual(7.9, self.s.particles[0].mass, 5)
-        
+
         self.s.particles[0].diameter= 8.7;
         self.assertAlmostEqual(8.7, self.s.particles[0].diameter, 5)
-    
+
         self.s.particles[0].orientation = (1,2,3,5);
         t = self.s.particles[0].orientation;
         self.assertAlmostEqual(1, t[0], 5)
@@ -98,7 +98,7 @@ class bond_data_access_tests (unittest.TestCase):
     # tests bonds
     def test_bonds(self):
         self.assertEqual(0, len(self.s.bonds));
-        
+
         # add some bonds
         b0 = self.s.bonds.add('bondA', 0, 1);
         self.assertEqual(1, len(self.s.bonds));
@@ -106,26 +106,26 @@ class bond_data_access_tests (unittest.TestCase):
         self.assertEqual(2, len(self.s.bonds));
         b2 = self.s.bonds.add('bondB', 50, 20);
         self.assertEqual(3, len(self.s.bonds));
-        
+
         # check that we can get all bond parameters
         for b in self.s.bonds:
             b.typeid
             b.type
             b.a
             b.b
-         
+
         ####################################
-        ## The bond deletion feature is currently disabled   
+        ## The bond deletion feature is currently disabled
         # test deletion by tag
         #self.s.bonds.remove(b1);
         #self.assertEqual(2, len(self.s.bonds));
-        
+
         # test deletion by index (check bond a value to delete the bond with a=0)
         #if self.s.bonds[0].tag == b0:
         #    del self.s.bonds[0];
         #else:
         #    del self.s.bonds[1];
-        
+
         #self.assertEqual(b2, self.s.bonds[0].tag);
         #self.assertEqual(50, self.s.bonds[0].a);
         #self.assertEqual(20, self.s.bonds[0].b);
@@ -134,7 +134,7 @@ class bond_data_access_tests (unittest.TestCase):
     # tests angles
     def test_angles(self):
         self.assertEqual(0, len(self.s.angles));
-        
+
         # add some angles
         b0 = self.s.angles.add('angleA', 0, 1, 2);
         self.assertEqual(1, len(self.s.angles));
@@ -142,7 +142,7 @@ class bond_data_access_tests (unittest.TestCase):
         self.assertEqual(2, len(self.s.angles));
         b2 = self.s.angles.add('angleB', 50, 20, 10);
         self.assertEqual(3, len(self.s.angles));
-        
+
         # check that we can get all bond parameters
         for b in self.s.angles:
             b.tag
@@ -151,17 +151,17 @@ class bond_data_access_tests (unittest.TestCase):
             b.a
             b.b
             b.c
-            
+
         # test deletion by tag
         self.s.angles.remove(b1);
         self.assertEqual(2, len(self.s.angles));
-        
+
         # test deletion by index (check bond a value to delete the bond with a=0)
         if self.s.angles[0].tag == b0:
             del self.s.angles[0];
         else:
             del self.s.angles[1];
-        
+
         self.assertEqual(b2, self.s.angles[0].tag);
         self.assertEqual(50, self.s.angles[0].a);
         self.assertEqual(20, self.s.angles[0].b);
@@ -171,7 +171,7 @@ class bond_data_access_tests (unittest.TestCase):
     # tests dihedrals
     def test_dihedrals(self):
         self.assertEqual(0, len(self.s.dihedrals));
-        
+
         # add some dihedrals
         b0 = self.s.dihedrals.add('dihedralA', 0, 1, 2, 3);
         self.assertEqual(1, len(self.s.dihedrals));
@@ -179,7 +179,7 @@ class bond_data_access_tests (unittest.TestCase):
         self.assertEqual(2, len(self.s.dihedrals));
         b2 = self.s.dihedrals.add('dihedralB', 50, 20, 10, 1);
         self.assertEqual(3, len(self.s.dihedrals));
-        
+
         # check that we can get all bond parameters
         for b in self.s.dihedrals:
             b.tag
@@ -189,17 +189,17 @@ class bond_data_access_tests (unittest.TestCase):
             b.b
             b.c
             b.d
-            
+
         # test deletion by tag
         self.s.dihedrals.remove(b1);
         self.assertEqual(2, len(self.s.dihedrals));
-        
+
         # test deletion by index (check bond a value to delete the bond with a=0)
         if self.s.dihedrals[0].tag == b0:
             del self.s.dihedrals[0];
         else:
             del self.s.dihedrals[1];
-        
+
         self.assertEqual(b2, self.s.dihedrals[0].tag);
         self.assertEqual(50, self.s.dihedrals[0].a);
         self.assertEqual(20, self.s.dihedrals[0].b);
@@ -210,7 +210,7 @@ class bond_data_access_tests (unittest.TestCase):
     # tests impropers
     def test_impropers(self):
         self.assertEqual(0, len(self.s.impropers));
-        
+
         # add some impropers
         b0 = self.s.impropers.add('dihedralA', 0, 1, 2, 3);
         self.assertEqual(1, len(self.s.impropers));
@@ -218,7 +218,7 @@ class bond_data_access_tests (unittest.TestCase):
         self.assertEqual(2, len(self.s.impropers));
         b2 = self.s.impropers.add('dihedralB', 50, 20, 10, 1);
         self.assertEqual(3, len(self.s.impropers));
-        
+
         # check that we can get all bond parameters
         for b in self.s.impropers:
             b.tag
@@ -228,17 +228,17 @@ class bond_data_access_tests (unittest.TestCase):
             b.b
             b.c
             b.d
-            
+
         # test deletion by tag
         self.s.impropers.remove(b1);
         self.assertEqual(2, len(self.s.impropers));
-        
+
         # test deletion by index (check bond a value to delete the bond with a=0)
         if self.s.impropers[0].tag == b0:
             del self.s.impropers[0];
         else:
             del self.s.impropers[1];
-        
+
         self.assertEqual(b2, self.s.impropers[0].tag);
         self.assertEqual(50, self.s.impropers[0].a);
         self.assertEqual(20, self.s.impropers[0].b);
@@ -257,7 +257,7 @@ class pair_access_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # basic test of creation
     def test(self):
         lj = pair.lj(r_cut=3.0);
@@ -268,7 +268,7 @@ class pair_access_tests (unittest.TestCase):
             f = p.energy;
             f = p.virial;
             f = p.torque;
-    
+
     def tearDown(self):
         init.reset();
 
@@ -280,16 +280,16 @@ class body_data_access_tests (unittest.TestCase):
         self.s = init.create_random(N=100, phi_p=0.05);
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
         for p in self.s.particles:
             p.body = p.tag % 50
-        
+
         self.s.sysdef.getRigidData().initializeData()
-    
+
     # test bodies
     def test_bodies(self):
         self.assertEqual(50, len(self.s.bodies));
-    
+
         for b in self.s.bodies:
             # just access values to check that they can be read
             t = b.COM
@@ -306,38 +306,38 @@ class body_data_access_tests (unittest.TestCase):
         self.s.bodies[0].mass = 7.9;
         self.assertAlmostEqual(7.9, self.s.bodies[0].mass, 5)
 
-        self.s.bodies[0].moment_inertia = (4,5,6); 
+        self.s.bodies[0].moment_inertia = (4,5,6);
         t = self.s.bodies[0].moment_inertia;
         self.assertAlmostEqual(4, t[0], 5)
         self.assertAlmostEqual(5, t[1], 5)
         self.assertAlmostEqual(6, t[2], 5)
 
-        self.s.bodies[0].orientation = (0,0,0,1);  
-        t = self.s.bodies[0].orientation; 
-        self.assertAlmostEqual(0, t[0], 5) 
-        self.assertAlmostEqual(0, t[1], 5) 
+        self.s.bodies[0].orientation = (0,0,0,1);
+        t = self.s.bodies[0].orientation;
+        self.assertAlmostEqual(0, t[0], 5)
+        self.assertAlmostEqual(0, t[1], 5)
         self.assertAlmostEqual(0, t[2], 5)
         self.assertAlmostEqual(1, t[3], 5)
 
-        self.s.bodies[0].particle_disp = [(0,0,0),(1,0,0)];   
+        self.s.bodies[0].particle_disp = [(0,0,0),(1,0,0)];
         t = self.s.bodies[0].particle_disp;
-        self.assertAlmostEqual(0, t[0][0], 5)  
-        self.assertAlmostEqual(0, t[0][1], 5)  
-        self.assertAlmostEqual(0, t[0][2], 5) 
+        self.assertAlmostEqual(0, t[0][0], 5)
+        self.assertAlmostEqual(0, t[0][1], 5)
+        self.assertAlmostEqual(0, t[0][2], 5)
         self.assertAlmostEqual(1, t[1][0], 5)
         self.assertAlmostEqual(0, t[1][1], 5)
         self.assertAlmostEqual(0, t[1][2], 5)
 
-        self.s.bodies[0].velocity = (1,2,3);  
-        t = self.s.bodies[0].velocity; 
-        self.assertAlmostEqual(1, t[0], 5) 
-        self.assertAlmostEqual(2, t[1], 5) 
+        self.s.bodies[0].velocity = (1,2,3);
+        t = self.s.bodies[0].velocity;
+        self.assertAlmostEqual(1, t[0], 5)
+        self.assertAlmostEqual(2, t[1], 5)
         self.assertAlmostEqual(3, t[2], 5)
 
-        self.s.bodies[0].angular_momentum = (3,2,1);   
-        t = self.s.bodies[0].angular_momentum;  
-        self.assertAlmostEqual(3, t[0], 5)  
-        self.assertAlmostEqual(2, t[1], 5)  
+        self.s.bodies[0].angular_momentum = (3,2,1);
+        t = self.s.bodies[0].angular_momentum;
+        self.assertAlmostEqual(3, t[0], 5)
+        self.assertAlmostEqual(2, t[1], 5)
         self.assertAlmostEqual(1, t[2], 5)
 
     def tearDown(self):
@@ -346,4 +346,3 @@ class body_data_access_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

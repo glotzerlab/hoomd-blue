@@ -16,17 +16,17 @@ class angle_cgcmm_tests (unittest.TestCase):
         self.box = hoomd.BoxDim(35);
         self.separation=dict(A=0.35, B=0.35)
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-        
+
         angle_data = globals.system_definition.getAngleData();
         angle_data.addAngleType('angleA')
         angle_data.addAngle(hoomd.Angle(0, 0, 1, 2));
         import __main__;
         __main__.sorter.set_params(grid=8)
-    
+
     # test to see that se can create an angle.cgcmm
     def test_create(self):
         angle.cgcmm();
-        
+
     # test setting coefficients
     def test_set_coeff(self):
         cgcmm = angle.cgcmm();
@@ -35,7 +35,7 @@ class angle_cgcmm_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
         run(100);
-        
+
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         cgcmm = angle.cgcmm();
@@ -43,7 +43,7 @@ class angle_cgcmm_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
-    
+
     def tearDown(self):
         init.reset();
 
@@ -51,4 +51,3 @@ class angle_cgcmm_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

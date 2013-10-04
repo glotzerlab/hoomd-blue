@@ -39,30 +39,30 @@ class pair_group_tests (unittest.TestCase):
         all = group.all()
         tags = [(x.tag) for x in all]
         self.assertEqual(tags, list(range(11)))
-    
+
     def test_tags(self):
         one = group.tags(5)
         tags = [(x.tag) for x in one]
         self.assertEqual(tags, [5])
-        
+
         part = group.tags(tag_min=5, tag_max=8)
         tags = [(x.tag) for x in part]
         self.assertEqual(tags, list(range(5,9)))
-    
+
     def test_type(self):
         A = group.type(type='A')
         tags = [(x.tag) for x in A]
         self.assertEqual(tags, [0, 3, 4, 6, 7])
-        
+
         B = group.type(type='B')
         tags = [(x.tag) for x in B]
         self.assertEqual(tags, [1, 2, 5, 8, 9, 10])
-    
+
     def test_cuboid_xmin(self):
         g = group.cuboid(name='test', xmin=None)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, list(range(11)))
-        
+
         g = group.cuboid(name='test', xmin=0.99)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, [1,2,5])
@@ -71,7 +71,7 @@ class pair_group_tests (unittest.TestCase):
         g = group.cuboid(name='test', xmax=None)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, list(range(11)))
-        
+
         g = group.cuboid(name='test', xmax=-0.99)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, [3,4,8])
@@ -80,7 +80,7 @@ class pair_group_tests (unittest.TestCase):
         g = group.cuboid(name='test', ymin=None)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, list(range(11)))
-        
+
         g = group.cuboid(name='test', ymin=0.99)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, [1,2,6])
@@ -89,7 +89,7 @@ class pair_group_tests (unittest.TestCase):
         g = group.cuboid(name='test', ymax=None)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, list(range(11)))
-        
+
         g = group.cuboid(name='test', ymax=-0.99)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, [3,4,9])
@@ -98,7 +98,7 @@ class pair_group_tests (unittest.TestCase):
         g = group.cuboid(name='test', zmin=None)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, list(range(11)))
-        
+
         g = group.cuboid(name='test', zmin=0.99)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, [1,2,7])
@@ -107,7 +107,7 @@ class pair_group_tests (unittest.TestCase):
         g = group.cuboid(name='test', zmax=None)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, list(range(11)))
-        
+
         g = group.cuboid(name='test', zmax=-0.99)
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, [3,4,10])
@@ -120,11 +120,11 @@ class pair_group_tests (unittest.TestCase):
     def test_union(self):
         A = group.type(type='A')
         B = group.type(type='B')
-        
+
         union = group.union(name='test', a=A,b=B)
         tags = [(x.tag) for x in union]
         self.assertEqual(tags, list(range(11)))
-    
+
     def test_intersection(self):
         A = group.type(type='A')
         B = group.type(type='B')
@@ -133,11 +133,11 @@ class pair_group_tests (unittest.TestCase):
         isectAB = group.intersection(name='test', a=A,b=B)
         tags = [(x.tag) for x in isectAB]
         self.assertEqual(tags, [])
-        
+
         isectAall = group.intersection(name='test', a=A,b=all)
         tags = [(x.tag) for x in isectAall]
         self.assertEqual(tags, [0, 3, 4, 6, 7])
-    
+
     def test_difference(self):
         B = group.type(type='B')
         all = group.all();
@@ -152,4 +152,3 @@ class pair_group_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

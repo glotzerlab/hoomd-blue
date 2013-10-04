@@ -12,7 +12,7 @@ class pair_cgcmm_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # basic test of creation
     def test(self):
         cgcmm = pair.cgcmm(r_cut=3.0);
@@ -24,7 +24,7 @@ class pair_cgcmm_tests (unittest.TestCase):
         cgcmm = pair.cgcmm(r_cut=3.0);
         cgcmm.pair_coeff.set('A', 'A', sigma=1.0, alpha=1.0);
         self.assertRaises(RuntimeError, cgcmm.update_coeffs);
-        
+
     # test missing coefficients
     def test_missing_AA(self):
         cgcmm = pair.cgcmm(r_cut=3.0);
@@ -42,4 +42,3 @@ class pair_cgcmm_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

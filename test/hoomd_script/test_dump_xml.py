@@ -20,7 +20,7 @@ class dmp_xml_tests (unittest.TestCase):
     # test variable period
     def test_variable(self):
         dump.xml(filename="dump_xml", period=lambda n: n*100);
-    
+
     # test set_params
     def test_set_params(self):
         xml = dump.xml(filename="dump_xml", period=100);
@@ -33,10 +33,9 @@ class dmp_xml_tests (unittest.TestCase):
         xml.set_params(bond=True);
         xml.set_params(image=True);
         xml.set_params(all=True);
-    
+
     def tearDown(self):
         init.reset();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

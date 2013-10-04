@@ -12,7 +12,7 @@ class pair_yukawa_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # basic test of creation
     def test(self):
         yuk = pair.yukawa(r_cut=3.0);
@@ -24,12 +24,12 @@ class pair_yukawa_tests (unittest.TestCase):
         yuk = pair.yukawa(r_cut=3.0);
         yuk.pair_coeff.set('A', 'A', kappa=1.0);
         self.assertRaises(RuntimeError, yuk.update_coeffs);
-        
+
     # test missing coefficients
     def test_missing_AA(self):
         yuk = pair.yukawa(r_cut=3.0);
         self.assertRaises(RuntimeError, yuk.update_coeffs);
-    
+
     # test set params
     def test_set_params(self):
         yuk = pair.yukawa(r_cut=3.0);
@@ -44,15 +44,14 @@ class pair_yukawa_tests (unittest.TestCase):
         yuk.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
-        
+
         yuk.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

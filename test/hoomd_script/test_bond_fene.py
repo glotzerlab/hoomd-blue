@@ -17,11 +17,11 @@ class bond_fene_tests (unittest.TestCase):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         import __main__;
         __main__.sorter.set_params(grid=8)
-    
+
     # test to see that se can create a force.constant
     def test_create(self):
         bond.fene();
-        
+
     # test setting coefficients
     def test_set_coeff(self):
         fene = bond.fene();
@@ -30,7 +30,7 @@ class bond_fene_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
         run(100);
-        
+
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         fene = bond.fene();
@@ -38,11 +38,10 @@ class bond_fene_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

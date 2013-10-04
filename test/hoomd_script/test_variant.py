@@ -12,7 +12,7 @@ class variant_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # tests creation of the constant variant
     def test_const(self):
         v = variant._constant(5)
@@ -33,7 +33,7 @@ class variant_tests (unittest.TestCase):
     # test the zero option on linear_interp
     def test_linear_interp(self):
         run(1000)
-    
+
         v = variant.linear_interp(points = [(0, 10), (100, 20)], zero='now');
         self.assertEqual(15.0, v.cpp_variant.getValue(1050));
         self.assertEqual(10.0, v.cpp_variant.getValue(1000));
@@ -59,4 +59,3 @@ class variant_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

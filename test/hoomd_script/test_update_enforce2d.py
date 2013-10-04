@@ -18,11 +18,10 @@ class update_enforce2d_tests (unittest.TestCase):
     def test(self):
         update.enforce2d()
         run(100);
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-
