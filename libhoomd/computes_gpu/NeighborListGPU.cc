@@ -207,7 +207,7 @@ bool NeighborListGPU::distanceCheck()
         if (m_pdata->getDomainDecomposition())
             {
             // particle migration will fail in MPI simulations, error out
-            m_exec_conf->msg->error() << "nlist: Too large change in box dimensions."
+            m_exec_conf->msg->error() << "nlist: Too large jump in box dimensions."
                                       << std::endl << std::endl;
             throw std::runtime_error("Error checking displacements");
             }
