@@ -123,7 +123,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
         m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
         throw std::runtime_error("Error initializing ParticleData");
         }
-       
+
     // initialize snapshot with default values
     SnapshotParticleData snap(N);
 
@@ -137,7 +137,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
         name[1] = '\0';
         snap.type_mapping.push_back(string(name));
         }
- 
+
     #ifdef ENABLE_MPI
     // Set up domain decomposition information
     if (decomposition) setDomainDecomposition(decomposition);
@@ -151,7 +151,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     // default constructed shared ptr is null as desired
     m_prof = boost::shared_ptr<Profiler>();
-    
+
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
         m_external_virial[i] = Scalar(0.0);
@@ -205,7 +205,7 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
         m_external_virial[i] = Scalar(0.0);
-       
+
     // default constructed shared ptr is null as desired
     m_prof = boost::shared_ptr<Profiler>();
 
@@ -248,7 +248,7 @@ void ParticleData::setGlobalBox(const BoxDim& box)
         // local box = global box
         m_box = box;
         }
- 
+
     m_boxchange_signal();
     }
 
@@ -339,7 +339,7 @@ unsigned int ParticleData::getTypeByName(const std::string &name) const
         if (m_type_mapping[i] == name)
             return i;
         }
-        
+
     m_exec_conf->msg->error() << "Type " << name << " not found!" << endl;
     throw runtime_error("Error mapping type name");
     return 0;
@@ -352,12 +352,12 @@ unsigned int ParticleData::getTypeByName(const std::string &name) const
 std::string ParticleData::getNameByType(unsigned int type) const
     {
     // check for an invalid request
-    if (type >= getNTypes()) 
+    if (type >= getNTypes())
         {
         m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
-        
+
     // return the name
     return m_type_mapping[type];
     }
@@ -562,10 +562,10 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
         std::vector< std::vector<Scalar4> > orientation_proc;      // Orientations of every processor
         std::vector< std::vector<unsigned int > > tag_proc;         // Global tags of every processor
-        //std::vector< std::vector<InertiaTensor> > inertia_proc;  
+        //std::vector< std::vector<InertiaTensor> > inertia_proc;
         std::vector< unsigned int > N_proc;                        // Number of particles on every processor
 
- 
+
         // resize to number of ranks in communicator
         const MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
         unsigned int size = m_exec_conf->getNRanks();
@@ -592,7 +592,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
                 throw std::runtime_error("Error initializing ParticleData");
                 }
-        
+
             Scalar3 scale = m_global_box.getL() / m_box.getL();
             const Index3D& di = m_decomposition->getDomainIndexer();
 
@@ -612,15 +612,15 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 int k= (unsigned int) (f.z * scale.z);
 
                 // treat particles lying exactly on the boundary
-                if (i == (int) di.getW()) 
+                if (i == (int) di.getW())
                     i--;
-                   
+
                 if (j == (int) di.getH())
                     j--;
 
                 if (k == (int) di.getD())
                     k--;
-            
+
                 unsigned int rank = di(i,j,k);
 
                 assert(rank <= m_exec_conf->getNRanks());
@@ -655,7 +655,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
         setNGlobal(nglobal);
 
-        // Local particle data 
+        // Local particle data
         std::vector<Scalar3> pos;
         std::vector<Scalar3> vel;
         std::vector<Scalar3> accel;
@@ -667,7 +667,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector<unsigned int> body;
         std::vector<Scalar4> orientation;
         std::vector<unsigned int> tag;
- 
+
         // distribute particle data
         scatter_v(pos_proc,pos,root, mpi_comm);
         scatter_v(vel_proc,vel,root, mpi_comm);
@@ -960,7 +960,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.body[tag] = h_body.data[idx];
             snapshot.orientation[tag] = h_orientation.data[idx];
             snapshot.inertia_tensor[tag] = m_inertia_tensor[idx];
-            
+
             // make sure the position stored in the snapshot is within the boundaries
             m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
             }
@@ -1351,7 +1351,7 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
     assert(found);
     return result;
 }
- 
+
 //! Set the current position of a particle
 void ParticleData::setPosition(unsigned int tag, const Scalar3& pos)
     {
@@ -1630,7 +1630,7 @@ bool SnapshotParticleData::validate() const
     // Check that a type mapping exists
     if (type_mapping.size() == 0) return false;
 
-    // Check if all other fields are of equal length==size 
+    // Check if all other fields are of equal length==size
     if (pos.size() != size || vel.size() != size || accel.size() != size || type.size() != size ||
         mass.size() != size || charge.size() != size || diameter.size() != size ||
         image.size() != size || body.size() != size || orientation.size() != size ||
@@ -1660,4 +1660,3 @@ void export_SnapshotParticleData()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

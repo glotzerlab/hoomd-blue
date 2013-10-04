@@ -61,7 +61,7 @@ using namespace boost::python;
 #include "QuaternionMath.h"
 #include "TwoStepNPHRigid.h"
 #include <math.h>
- 
+
 /*! \file TwoStepNPHRigid.cc
     \brief Contains code for the TwoStepNPHRigid class
 */
@@ -94,9 +94,9 @@ TwoStepNPHRigid::TwoStepNPHRigid(boost::shared_ptr<SystemDefinition> sysdef,
 
     if (tauP <= 0.0)
         m_exec_conf->msg->warning() << "integrate.nph_rigid: tauP set less than or equal to 0.0" << endl;
-    
+
     p_freq = 1.0 / tauP;
-    
+
     boltz = 1.0;
     chain = 5;
     order = 3;
@@ -169,7 +169,7 @@ void TwoStepNPHRigid::setRestartIntegratorVariables()
         v.variable[0] = Scalar(0.0);
         v.variable[1] = Scalar(0.0);
         v.variable[2] = Scalar(0.0);
-        
+
         setValidRestart(false);
         }
     else
@@ -178,24 +178,24 @@ void TwoStepNPHRigid::setRestartIntegratorVariables()
     setIntegratorVariables(v);
     }
 
-/*! 
+/*!
 */
 void TwoStepNPHRigid::setup()
     {
     TwoStepNVERigid::setup();
-    
+
     // retrieve integrator variables from restart files
     IntegratorVariables v = getIntegratorVariables();
     eta_b[0] = v.variable[0];
     eta_dot_b[0] = v.variable[1];
     f_eta_b[0] = v.variable[2];
-    
+
     m_thermo_all->compute(0);
     Scalar temperature = 1.0;
 
     Scalar p_target = m_pressure->getValue(0);
     m_curr_P = m_thermo_all->getPressure();
-    // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very 
+    // if it is not valid, assume that the current pressure is the set pressure (this should only happen in very
     // rare circumstances, usually at the start of the simulation before things are initialize)
     if (isnan(m_curr_P))
         m_curr_P = m_pressure->getValue(0);
@@ -216,9 +216,9 @@ void TwoStepNPHRigid::setup()
     Scalar3 L = box.getL();
 
     Scalar vol;   // volume
-    if (dimension == 2) 
+    if (dimension == 2)
         vol = L.x * L.y;
-    else 
+    else
         vol = L.x * L.y * L.z;
 
     // calculate group current temperature
@@ -232,10 +232,10 @@ void TwoStepNPHRigid::setup()
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
-        
+
         akin_t += body_mass_handle.data[body] * (vel_handle.data[body].x * vel_handle.data[body].x +
-                                                 vel_handle.data[body].y * vel_handle.data[body].y +  
-                                                 vel_handle.data[body].z * vel_handle.data[body].z); 
+                                                 vel_handle.data[body].y * vel_handle.data[body].y +
+                                                 vel_handle.data[body].z * vel_handle.data[body].z);
         akin_r += angmom_handle.data[body].x * angvel_handle.data[body].x
                   + angmom_handle.data[body].y * angvel_handle.data[body].y
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
@@ -256,7 +256,7 @@ void TwoStepNPHRigid::setup()
         wdti1[i] = w[i] * m_deltaT / iter;
         wdti2[i] = wdti1[i] / 2.0;
         wdti4[i] = wdti1[i] / 4.0;
-        }        
+        }
 
     // computes the total number of degrees of freedom used for system temperature compute
     ArrayHandle< unsigned int > h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
@@ -266,10 +266,10 @@ void TwoStepNPHRigid::setup()
         if (h_body.data[i] == NO_BODY) non_rigid_count++;
 
     unsigned int rigid_dof = m_sysdef->getRigidData()->getNumDOF();
-    m_dof = dimension * non_rigid_count + rigid_dof; 
-        
+    m_dof = dimension * non_rigid_count + rigid_dof;
+
     }
-    
+
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the Nose-Hoover
      thermostat and Anderson barostat
@@ -281,23 +281,23 @@ void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
         setup();
         m_first_step = false;
         }
-    
+
     // sanity check
     if (m_n_bodies <= 0)
         return;
-        
+
     if (m_prof)
         m_prof->push("NPH rigid step 1");
-    
+
     // get box
     BoxDim box = m_pdata->getBox();
-    
+
     Scalar tmp, akin_t, akin_r, scale, scale_t, scale_r, scale_v;
     Scalar4 mbody, tbody, fquat;
     Scalar dtfm, dt_half;
-    
+
     dt_half = 0.5 * m_deltaT;
-    
+
     akin_t = akin_r = 0.0;
 
     // rigid data handles
@@ -306,19 +306,19 @@ void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-    
+
     ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
-    
+
     ArrayHandle<int3> body_image_handle(m_rigid_data->getBodyImage(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> conjqm_handle(m_rigid_data->getConjqm(), access_location::host, access_mode::readwrite);
-            
+
     // update barostat variables a half step
 
     tmp = -1.0 * dt_half * eta_dot_b[0];
@@ -327,7 +327,7 @@ void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
     epsilon_dot *= scale;
     epsilon += m_deltaT * epsilon_dot;
     dilation = exp(m_deltaT * epsilon_dot);
-    
+
     // update thermostat coupled to barostat
 
     update_nhcb(timestep);
@@ -346,28 +346,28 @@ void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
+
         // step 1.1 - update vcm by 1/2 step
         dtfm = dt_half / body_mass_handle.data[body];
         vel_handle.data[body].x += dtfm * force_handle.data[body].x;
         vel_handle.data[body].y += dtfm * force_handle.data[body].y;
         vel_handle.data[body].z += dtfm * force_handle.data[body].z;
-        
+
         vel_handle.data[body].x *= scale_t;
         vel_handle.data[body].y *= scale_t;
         vel_handle.data[body].z *= scale_t;
-        
+
         tmp = vel_handle.data[body].x * vel_handle.data[body].x + vel_handle.data[body].y * vel_handle.data[body].y +
               vel_handle.data[body].z * vel_handle.data[body].z;
-        akin_t += body_mass_handle.data[body] * tmp;    
-            
+        akin_t += body_mass_handle.data[body] * tmp;
+
         // step 1.2 - update xcm by full step
         com_handle.data[body].x += scale_v * vel_handle.data[body].x;
         com_handle.data[body].y += scale_v * vel_handle.data[body].y;
         com_handle.data[body].z += scale_v * vel_handle.data[body].z;
-        
+
         box.wrap(com_handle.data[body], body_image_handle.data[body]);
-            
+
         // step 1.3 - apply torque (body coords) to quaternion momentum
 
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
@@ -389,7 +389,7 @@ void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
         no_squish_rotate(1, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], m_deltaT);
         no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
         no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
-        
+
         // update the exyz_space
         // transform p back to angmom
         // update angular velocity
@@ -404,22 +404,22 @@ void TwoStepNPHRigid::integrateStepOne(unsigned int timestep)
 
         computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
                                ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
-                               
+
         akin_r += angmom_handle.data[body].x * angvel_handle.data[body].x
                   + angmom_handle.data[body].y * angvel_handle.data[body].y
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
         }
     }
-    
+
     // remap coordinates and box using dilation
 
     remap();
-    
+
     if (m_prof)
         m_prof->pop();
 
     }
-        
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
@@ -428,10 +428,10 @@ void TwoStepNPHRigid::integrateStepTwo(unsigned int timestep)
     // sanity check
     if (m_n_bodies <= 0)
         return;
-        
+
     // compute net forces and torques on rigid bodies from particle forces
     computeForceAndTorque(timestep);
-    
+
     if (m_prof)
         m_prof->push("NPH rigid step 2");
 
@@ -442,9 +442,9 @@ void TwoStepNPHRigid::integrateStepTwo(unsigned int timestep)
     Scalar tmp, scale_t, scale_r, akin_t, akin_r;
     Scalar4 mbody, tbody, fquat;
     Scalar dt_half;
-    
+
     dt_half = 0.5 * m_deltaT;
-    
+
     // rigid data handles
     {
     ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
@@ -453,15 +453,15 @@ void TwoStepNPHRigid::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    
+
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-    
+
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> conjqm_handle(m_rigid_data->getConjqm(), access_location::host, access_mode::readwrite);
-    
+
     // intialize velocity scale for translation and rotation
 
     tmp = -1.0 * dt_half * (onednft * epsilon_dot);
@@ -470,66 +470,66 @@ void TwoStepNPHRigid::integrateStepTwo(unsigned int timestep)
     scale_r = exp(tmp);
 
     akin_t = akin_r = 0.0;
-    
+
     // 2nd step: final integration
     for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
         unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
+
         Scalar dtfm = dt_half / body_mass_handle.data[body];
         vel_handle.data[body].x = scale_t * vel_handle.data[body].x + dtfm * force_handle.data[body].x;
         vel_handle.data[body].y = scale_t * vel_handle.data[body].y + dtfm * force_handle.data[body].y;
         vel_handle.data[body].z = scale_t * vel_handle.data[body].z + dtfm * force_handle.data[body].z;
-        
+
         tmp = vel_handle.data[body].x * vel_handle.data[body].x + vel_handle.data[body].y * vel_handle.data[body].y +
           vel_handle.data[body].z * vel_handle.data[body].z;
-        akin_t += body_mass_handle.data[body] * tmp; 
-    
+        akin_t += body_mass_handle.data[body] * tmp;
+
         // update conjqm, then transform to angmom, set velocity again
         // virial is already setup from initial_integrate
-        
+
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
         quatvec(orientation_handle.data[body], tbody, fquat);
-        
+
         conjqm_handle.data[body].x = scale_r * conjqm_handle.data[body].x + m_deltaT * fquat.x;
         conjqm_handle.data[body].y = scale_r * conjqm_handle.data[body].y + m_deltaT * fquat.y;
         conjqm_handle.data[body].z = scale_r * conjqm_handle.data[body].z + m_deltaT * fquat.z;
         conjqm_handle.data[body].w = scale_r * conjqm_handle.data[body].w + m_deltaT * fquat.w;
-        
+
         invquatvec(orientation_handle.data[body], conjqm_handle.data[body], mbody);
         transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
-        
+
         angmom_handle.data[body].x *= 0.5;
         angmom_handle.data[body].y *= 0.5;
         angmom_handle.data[body].z *= 0.5;
-        
-        computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body], 
+
+        computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
                 ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
-        
+
         akin_r += angmom_handle.data[body].x * angvel_handle.data[body].x
                   + angmom_handle.data[body].y * angvel_handle.data[body].y
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
         }
     }
 
-    // update barostat    
+    // update barostat
 
     Scalar vol;   // volume
-    if (dimension == 2) 
+    if (dimension == 2)
         vol = L.x * L.y;
-    else 
+    else
         vol = L.x * L.y * L.z;
 
     // compute the current thermodynamic properties
     // m_thermo_group->compute(timestep);
     m_thermo_all->compute(timestep);
-        
+
     // compute pressure for the next half time step
     m_curr_P = m_thermo_all->getPressure();
-        
+
     Scalar p_target = m_pressure->getValue(timestep);
 
-    // compute temperature for the next half time step; 
+    // compute temperature for the next half time step;
     m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
     Scalar kt = boltz * 1.0;
     W = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
@@ -542,7 +542,7 @@ void TwoStepNPHRigid::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
 
     }
-  
+
 void export_TwoStepNPHRigid()
     {
     class_<TwoStepNPHRigid, boost::shared_ptr<TwoStepNPHRigid>, bases<TwoStepNVERigid>, boost::noncopyable>
@@ -557,4 +557,3 @@ void export_TwoStepNPHRigid()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

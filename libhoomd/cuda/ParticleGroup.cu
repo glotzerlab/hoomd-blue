@@ -120,4 +120,3 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
 
     return cudaSuccess;
     }
-

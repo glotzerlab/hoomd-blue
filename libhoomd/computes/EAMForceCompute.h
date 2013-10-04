@@ -92,7 +92,7 @@ class EAMForceCompute : public ForceCompute
 
         //! Sets the neighbor list to be used for the EAM force
         virtual void set_neighbor_list(boost::shared_ptr<NeighborList> nlist);
-        
+
         //! Get the r cut value read from the EAM potential file
         virtual Scalar get_r_cut();
 
@@ -129,7 +129,7 @@ class EAMForceCompute : public ForceCompute
         vector<Scalar> derivativeElectronDensity;      //!< array rho'(r)
         vector<Scalar> derivativePairPotential;        //!< array Z'(r)
         vector<Scalar> derivativeEmbeddingFunction;    //!< array F'(rho)
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -138,4 +138,3 @@ class EAMForceCompute : public ForceCompute
 void export_EAMForceCompute();
 
 #endif
-

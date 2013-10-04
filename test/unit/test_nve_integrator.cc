@@ -100,7 +100,7 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_p
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
@@ -119,20 +119,20 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_p
     h_vel.data[1].y = 12.0;
     h_vel.data[1].z = 11.0;
     }
-    
+
     Scalar deltaT = Scalar(0.0001);
     shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef, group_all);
     shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nve);
-    
+
     // also test the ability of the updater to add two force computes together properly
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 1.5, 0.0, 0.0));
     nve_up->addForceCompute(fc1);
     shared_ptr<ConstForceCompute> fc2(new ConstForceCompute(sysdef, 0.0, 2.5, 0.0));
     nve_up->addForceCompute(fc2);
-    
+
     nve_up->prepRun(0);
-    
+
     // verify proper integration compared to x = x0 + v0 t + 1/2 a t^2, v = v0 + a t
     // roundoff errors prevent this from keeping within 0.1% error for long
     for (int i = 0; i < 500; i++)
@@ -140,23 +140,23 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_p
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
-        
+
         Scalar t = Scalar(i) * deltaT;
         MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 0.0 + 3.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
         MY_BOOST_CHECK_CLOSE(h_vel.data[0].x, 3.0 + 1.5 * t, loose_tol);
-        
+
         MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 1.0 + 2.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
         MY_BOOST_CHECK_CLOSE(h_vel.data[0].y, 2.0 + 2.5 * t, loose_tol);
-        
+
         MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, 2.0 + 1.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
         MY_BOOST_CHECK_CLOSE(h_vel.data[0].z, 1.0 + 0 * t, loose_tol);
-        
+
         MY_BOOST_CHECK_CLOSE(h_pos.data[1].x, 10.0 + 13.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
         MY_BOOST_CHECK_CLOSE(h_vel.data[1].x, 13.0 + 1.5 * t, loose_tol);
-        
+
         MY_BOOST_CHECK_CLOSE(h_pos.data[1].y, 11.0 + 12.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
         MY_BOOST_CHECK_CLOSE(h_vel.data[1].y, 12.0 + 2.5 * t, loose_tol);
-        
+
         MY_BOOST_CHECK_CLOSE(h_pos.data[1].z, 12.0 + 11.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
         MY_BOOST_CHECK_CLOSE(h_vel.data[1].z, 11.0 + 0 * t, loose_tol);
         }
@@ -173,11 +173,11 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<E
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    
+
     // setup a simple initial state
     h_pos.data[0].x = 0.0;
     h_pos.data[0].y = 1.0;
@@ -186,31 +186,31 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<E
     h_vel.data[0].y = 0.0;
     h_vel.data[0].z = 0.0;
     }
-    
+
     Scalar deltaT = Scalar(0.0001);
     shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef, group_all);
     shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nve);
-    
+
     // set the limit
     Scalar limit = Scalar(0.1);
     two_step_nve->setLimit(limit);
-    
+
     // create an insanely large force to test the limiting method
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 1e9, 2e9, 3e9));
     nve_up->addForceCompute(fc1);
-    
+
     // expected movement vectors
     Scalar dx = limit / sqrt(14.0);
     Scalar dy = 2.0 * limit / sqrt(14.0);
     Scalar dz = 3.0 * limit / sqrt(14.0);
-    
+
     Scalar vx = limit / sqrt(14.0) / deltaT;
     Scalar vy = 2.0 * limit / sqrt(14.0) / deltaT;
     Scalar vz = 3.0 * limit / sqrt(14.0) / deltaT;
-    
+
     nve_up->prepRun(0);
-    
+
     // verify proper integration compared to x = x0 + dx * i
     nve_up->update(0);
     for (int i = 1; i < 500; i++)
@@ -218,17 +218,17 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<E
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
-        
+
         MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 0.0 + dx * Scalar(i), tol);
         MY_BOOST_CHECK_CLOSE(h_vel.data[0].x, vx, tol);
-        
+
         MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 1.0 + dy * Scalar(i), tol);
         MY_BOOST_CHECK_CLOSE(h_vel.data[0].y, vy, tol);
-        
+
         MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, 2.0 + dz * Scalar(i), tol);
         MY_BOOST_CHECK_CLOSE(h_vel.data[0].z, vz, tol);
         }
-        
+
         nve_up->update(i);
         }
     }
@@ -246,7 +246,7 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, boost::shared_pt
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_6, 0, pdata_6->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_6, selector_all));
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata_6->getVelocities(), access_location::host, access_mode::readwrite);
@@ -263,21 +263,21 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, boost::shared_pt
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  Scalar(29.6);
     h_vel.data[5].z = Scalar(0.6);
     }
-    
+
     Scalar deltaT = 1.0;
     shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef_6, group_all);
     shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef_6, deltaT));
     nve_up->addIntegrationMethod(two_step_nve);
-    
+
     // no forces on these particles
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef_6, 0, 0.0, 0.0));
     nve_up->addForceCompute(fc1);
-    
+
     nve_up->prepRun(0);
-    
+
     // move the particles across the boundary
     nve_up->update(0);
-    
+
     // check that they go to the proper final position
     {
     ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::read);
@@ -303,7 +303,7 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
                               boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
-    
+
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     rand_init.setSeed(12345);
@@ -317,10 +317,10 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
     shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
     shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
-    
+
     shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
     shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
-    
+
     shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
     fc1->setRcut(0, 0, Scalar(3.0));
     shared_ptr<PotentialPairLJ> fc2(new PotentialPairLJ(sysdef2, nlist2));
@@ -332,11 +332,11 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     Scalar alpha = Scalar(0.45);
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    
+
     // specify the force parameters
     fc1->setParams(0,0,make_scalar2(lj1,lj2));
     fc2->setParams(0,0,make_scalar2(lj1,lj2));
-    
+
     shared_ptr<TwoStepNVE> two_step_nve1 = nve_creator1(sysdef1, group_all1);
     shared_ptr<IntegratorTwoStep> nve1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));
     nve1->addIntegrationMethod(two_step_nve1);
@@ -344,13 +344,13 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     shared_ptr<TwoStepNVE> two_step_nve2 = nve_creator2(sysdef2, group_all2);
     shared_ptr<IntegratorTwoStep> nve2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
     nve2->addIntegrationMethod(two_step_nve2);
-    
+
     nve1->addForceCompute(fc1);
     nve2->addForceCompute(fc2);
-    
+
     nve1->prepRun(0);
     nve2->prepRun(0);
-    
+
     // step for only a few time steps and verify that they are the same
     // we can't do much more because these things are chaotic and diverge quickly
     for (int i = 0; i < 5; i++)
@@ -366,23 +366,23 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
 
         Scalar rough_tol = 2.0;
         //cout << arrays1.x[100] << " " << arrays2.x[100] << endl;
-        
+
         // check position, velocity and acceleration
         for (unsigned int j = 0; j < N; j++)
             {
             MY_BOOST_CHECK_CLOSE(h_pos1.data[j].x, h_pos2.data[j].x, rough_tol);
             MY_BOOST_CHECK_CLOSE(h_pos1.data[j].y, h_pos2.data[j].y, rough_tol);
             MY_BOOST_CHECK_CLOSE(h_pos1.data[j].z, h_pos2.data[j].z, rough_tol);
-            
+
             MY_BOOST_CHECK_CLOSE(h_vel1.data[j].x, h_vel2.data[j].x, rough_tol);
             MY_BOOST_CHECK_CLOSE(h_vel1.data[j].y, h_vel2.data[j].y, rough_tol);
             MY_BOOST_CHECK_CLOSE(h_vel1.data[j].z, h_vel2.data[j].z, rough_tol);
-            
+
             MY_BOOST_CHECK_CLOSE(h_accel1.data[j].x, h_accel2.data[j].x, rough_tol);
             MY_BOOST_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
             MY_BOOST_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
             }
-            
+
         }
         nve1->update(i);
         nve2->update(i);
@@ -460,4 +460,3 @@ BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_comparison_tests)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

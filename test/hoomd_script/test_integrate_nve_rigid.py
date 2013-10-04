@@ -15,14 +15,14 @@ class integrate_nve_rigid_tests (unittest.TestCase):
 
         sysdef.sysdef.getRigidData().initializeData()
         force.constant(fx=0.1, fy=0.1, fz=0.1)
-                
+
     # tests basic creation of the integrater
     def test_basic(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve_rigid(all);
         run(1);
-    
+
     def tearDown(self):
         init.reset();
 
@@ -45,4 +45,3 @@ class integrate_nve_rigid_nobody_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

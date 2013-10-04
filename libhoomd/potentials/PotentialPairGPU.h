@@ -73,16 +73,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! Derived from PotentialPair, this class provides exactly the same interface for computing pair potentials and forces.
     In the same way as PotentialPair, this class serves as a shell dealing with all the details common to every pair
     potential calculation while the \a evaluator calculates V(r) in a generic way.
-    
+
     Due to technical limitations, the instantiation of PotentialPairGPU cannot create a CUDA kernel automatically
-    with the \a evaluator. Instead, a .cu file must be written that provides a driver function to call 
-    gpu_compute_pair_forces() instantiated with the same evaluator. (See PotentialPairLJGPU.cu and 
+    with the \a evaluator. Instead, a .cu file must be written that provides a driver function to call
+    gpu_compute_pair_forces() instantiated with the same evaluator. (See PotentialPairLJGPU.cu and
     PotentialPairLJGPU.cuh for an example). That function is then passed into this class as another template parameter
     \a gpu_cgpf
-    
+
     \tparam evaluator EvaluatorPair class used to evaluate V(r) and F(r)/r
     \tparam gpu_cgpf Driver function that calls gpu_compute_pair_forces<evaluator>()
-    
+
     \sa export_PotentialPairGPU()
 */
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
@@ -96,7 +96,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
                          const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPairGPU() {}
-        
+
         //! Set the block size to execute on the GPU
         /*! \param block_size Size of the block to run on the device
             Performance of the code may be dependant on the block size run
@@ -108,7 +108,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
             }
     protected:
         unsigned int m_block_size;  //!< Block size to execute on the GPU
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
 
@@ -123,7 +123,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
         {
-        this->m_exec_conf->msg->error() << "Creating a PotentialPairGPU with no GPU in the execution configuration" 
+        this->m_exec_conf->msg->error() << "Creating a PotentialPairGPU with no GPU in the execution configuration"
                   << std::endl;
         throw std::runtime_error("Error initializing PotentialPairGPU");
         }
@@ -135,39 +135,39 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
-    
+
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
-    
+
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
         {
-        this->m_exec_conf->msg->error() << "PotentialPairGPU cannot handle a half neighborlist" 
+        this->m_exec_conf->msg->error() << "PotentialPairGPU cannot handle a half neighborlist"
                   << std::endl;
         throw std::runtime_error("Error computing forces in PotentialPairGPU");
         }
-        
+
     // access the neighbor list
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
-    
+
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
 
     BoxDim box = this->m_pdata->getBox();
-    
+
     // access parameters
     ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
-    
+
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
-    
+
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
@@ -190,10 +190,10 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]),
              d_params.data);
-    
+
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-   
+
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 
@@ -212,4 +212,3 @@ template < class T, class Base > void export_PotentialPairGPU(const std::string&
 
 #endif // ENABLE_CUDA
 #endif // __POTENTIAL_PAIR_GPU_H__
-

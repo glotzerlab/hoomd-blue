@@ -72,8 +72,8 @@ using namespace boost;
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Controlled temperature
-    \param seed An interger seed for random number generator 
-    \param gamma_diam Flag for using particle diameter-dependent gamma 
+    \param seed An interger seed for random number generator
+    \param gamma_diam Flag for using particle diameter-dependent gamma
 */
 TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                         boost::shared_ptr<ParticleGroup> group,
@@ -95,31 +95,31 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
           method.
 */
 void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
-    {        
+    {
     if (m_first_step)
         {
         setup();
         m_first_step = false;
         }
-    
+
     // sanity check
     if (m_n_bodies <= 0)
         return;
 
     // access to the force and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
+
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "BD NVT rigid step 1");
-    
+
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
-    
+
     // get the rigid data from SystemDefinition
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 
@@ -147,7 +147,7 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.nmax = rigid_data->getNmax();
     d_rdata.local_beg = 0;
     d_rdata.local_num = m_n_bodies;
-    
+
     d_rdata.body_indices = d_body_index_array.data;
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
@@ -177,12 +177,12 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
     }
-        
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
@@ -191,7 +191,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     // sanity check
     if (m_n_bodies <= 0)
         return;
-        
+
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
@@ -199,7 +199,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "BD NVT rigid step 2");
-    
+
     // get the dimensionality of the system
     const Scalar D = Scalar(m_sysdef->getNDimensions());
 
@@ -216,7 +216,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
-    
+
     // get the rigid data from SystemDefinition
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 
@@ -243,7 +243,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.nmax = rigid_data->getNmax();
     d_rdata.local_beg = 0;
     d_rdata.local_num = m_n_bodies;
-    
+
     d_rdata.body_indices = d_body_index_array.data;
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
@@ -270,7 +270,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     args.T = m_T->getValue(timestep);
     args.timestep = timestep;
     args.seed = m_seed;
-    
+
     gpu_bdnvt_force(d_pos.data,
                     d_vel.data,
                     d_diameter.data,
@@ -285,29 +285,29 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     gpu_rigid_force(d_rdata,
                     d_index_array.data,
                     group_size,
                     d_net_force.data,
                     d_net_torque.data,
-                    box, 
+                    box,
                     m_deltaT);
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-                                
+
     // perform the update on the GPU
     gpu_nve_rigid_step_two(d_rdata,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
                            d_net_virial.data,
-                           box, 
+                           box,
                            m_deltaT);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -316,7 +316,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
 void export_TwoStepBDNVTRigidGPU()
     {
     class_<TwoStepBDNVTRigidGPU, boost::shared_ptr<TwoStepBDNVTRigidGPU>, bases<TwoStepBDNVTRigid>, boost::noncopyable>
-        ("TwoStepBDNVTRigidGPU", init< boost::shared_ptr<SystemDefinition>, 
+        ("TwoStepBDNVTRigidGPU", init< boost::shared_ptr<SystemDefinition>,
             boost::shared_ptr<ParticleGroup>,
             boost::shared_ptr<Variant>,
             unsigned int,
@@ -327,4 +327,3 @@ void export_TwoStepBDNVTRigidGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

@@ -93,12 +93,12 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     // of course, the buffer will be set on the neighborlist so that 3 is included in it
     // thus, this case tests the ability of the force summer to sum more than one force on
     // a particle and ignore a particle outside the radius
-    
+
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
-    
+
     pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_3->setPosition(1,make_scalar3(1.0,0.0,0.0));
     pdata_3->setPosition(2,make_scalar3(2.0,0.0,0.0));
@@ -109,19 +109,19 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
     shared_ptr<PotentialPairEwald> fc_3 = ewald_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
-    
+
     // first test: choose a basic set of values
     Scalar kappa = Scalar(0.5);
     fc_3->setParams(0,0,kappa);
-    
+
     // compute the forces
     fc_3->compute(0);
-    
+
     {
     ArrayHandle<Scalar4> h_force(fc_3->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
     unsigned int pitch = fc_3->getVirialArray().getPitch();
-    
+
     MY_BOOST_CHECK_CLOSE(h_force.data[0].x, -0.9188914117, tol);
     MY_BOOST_CHECK_SMALL(h_force.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force.data[0].z, tol_small);
@@ -129,7 +129,7 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     MY_BOOST_CHECK_CLOSE(h_virial.data[0*pitch]
                         +h_virial.data[3*pitch]
                         +h_virial.data[5*pitch], 0.9188914117/2.0, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force.data[1].x, 0.9188914117*2.0, tol);
     MY_BOOST_CHECK_SMALL(h_force.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force.data[1].z, tol_small);
@@ -137,7 +137,7 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
     MY_BOOST_CHECK_SMALL(h_virial.data[0*pitch+1]
                         +h_virial.data[3*pitch+1]
                         +h_virial.data[5*pitch+1], tol_small);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force.data[2].x, -0.9188914117, tol);
     MY_BOOST_CHECK_SMALL(h_force.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force.data[2].z, tol_small);
@@ -146,7 +146,7 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
                         +h_virial.data[3*pitch+2]
                         +h_virial.data[5*pitch+2], -0.9188914117/2.0, tol);
     }
-    
+
     // swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -155,7 +155,7 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
 
     h_pos.data[2].x = h_pos.data[2].y = h_pos.data[2]. z = 0.0;
     h_pos.data[0].x = 2.0; h_pos.data[0].y = h_pos.data[0].z = 0.0;
-    
+
     h_tag.data[0] = 2;
     h_tag.data[2] = 0;
     h_rtag.data[0] = 2;
@@ -164,10 +164,10 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, boost::shared_p
 
     // notify the particle data that we changed the order
     pdata_3->notifyParticleSort();
-    
+
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
-    
+
     {
     ArrayHandle<Scalar4> h_force(fc_3->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
@@ -183,7 +183,7 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
                                   boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
-    
+
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.1), Scalar(1.0), "A");
     boost::shared_ptr<SnapshotSystemData> snap;
@@ -193,23 +193,23 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
     pdata->setFlags(~PDataFlags(0));
 
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
-    
+
     shared_ptr<PotentialPairEwald> fc1 = ewald_creator1(sysdef, nlist);
     shared_ptr<PotentialPairEwald> fc2 = ewald_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
-    
+
     // setup some values for epsilon and sigma
     Scalar kappa = Scalar(0.5);
-    
+
     // specify the force parameters
     fc1->setParams(0,0,kappa);
     fc2->setParams(0,0,kappa);
-    
+
     // compute the forces
     fc1->compute(0);
     fc2->compute(0);
-    
+
     // verify that the forces are identical (within roundoff errors)
     ArrayHandle<Scalar4> h_force1(fc1->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial1(fc1->getVirialArray(), access_location::host, access_mode::read);
@@ -217,14 +217,14 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
     ArrayHandle<Scalar> h_virial2(fc2->getVirialArray(), access_location::host, access_mode::read);
 
     unsigned int pitch = fc1->getVirialArray().getPitch();
-    
+
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
     double deltav2[6];
     for (unsigned int i = 0; i < 6; i++)
         deltav2[i] = 0.0;
-        
+
     for (unsigned int i = 0; i < N; i++)
         {
         deltaf2 += double(h_force1.data[i].x - h_force2.data[i].x) * double(h_force1.data[i].x - h_force2.data[i].x);
@@ -311,4 +311,3 @@ BOOST_AUTO_TEST_CASE( EwaldForceGPU_compare )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

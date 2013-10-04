@@ -11,7 +11,7 @@
 # HOOMD_LIB :           a cached var locating the hoomd library to link to
 #
 # various ENABLE_ flags translated from hoomd_config.h so this plugin build can match the ABI of the installed hoomd
-# 
+#
 # as a convenience (for the intended purpose of this find script), all include directories and definitions needed
 # to compile with all the various libs (boost, python, winsoc, etc...) are set within this script
 
@@ -74,7 +74,7 @@ find_library(HOOMD_LIB
                    ${HOOMD_ROOT}/lib/python2.7/site-packages
              )
 set(CMAKE_FIND_LIBRARY_PREFIXES ${_old_prefixes})
-             
+
 if (HOOMD_LIB)
     message(STATUS "Found HOOMD library: ${HOOMD_LIB}")
     mark_as_advanced(HOOMD_LIB)
@@ -108,7 +108,7 @@ foreach(_line ${_hoomd_config_h_lines})
             set(${_var} ON CACHE BOOL "Imported setting from hoomd_config.h, it matches the setting used to build HOOMD" FORCE)
         endif (NOT ${_var} MATCHES "HOOMD_CONFIG_H")
     endif (${_line} MATCHES "^#define .*$")
-    
+
     # if this line is an #undef VARIABLE
     if (${_line} MATCHES "#undef .*")
         string(REGEX REPLACE "/. #undef (.*) ./" "\\1" _var ${_line})

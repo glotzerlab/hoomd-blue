@@ -81,10 +81,10 @@ class ConstForceCompute : public ForceCompute
 
         //! Set the force to a new value
         void setForce(Scalar fx, Scalar fy, Scalar fz);
-        
+
         //! Set the force for an individual particle
         void setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz);
-        
+
         //! Set force for a particle group
         void setGroupForce(boost::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
 
@@ -103,11 +103,10 @@ class ConstForceCompute : public ForceCompute
         Scalar m_fz; //!< Constant force in z-direction
 
         //! Group of particles to apply force to
-        boost::shared_ptr<ParticleGroup> m_group; 
+        boost::shared_ptr<ParticleGroup> m_group;
     };
 
 //! Exports the ConstForceComputeClass to python
 void export_ConstForceCompute();
 
 #endif
-

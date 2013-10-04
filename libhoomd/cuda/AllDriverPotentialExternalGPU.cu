@@ -62,5 +62,3 @@ cudaError_t gpu_compute_periodic_forces(const external_potential_args_t& potenti
     {
     return gpu_compute_external_forces<EvaluatorExternalPeriodic>(potential_args, d_params);
     }
-
-

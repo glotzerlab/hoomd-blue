@@ -97,7 +97,7 @@ std::string getExePath()
     char *realbuf = realpath(buf, result_buf);
     result = std::string(realbuf);
     free(realbuf);
-    
+
     #elif __linux__
     #ifdef PATH_MAX
     const unsigned int path_max=PATH_MAX;
@@ -114,7 +114,7 @@ std::string getExePath()
         throw std::runtime_error("Unable to determine executable path");
 
     result = std::string(buf);
-    
+
     #elif WIN32
     #error Not implemented
     // see the above link for a howto on implementing this. Not a high priority to do so because windows is deprecated
@@ -131,4 +131,3 @@ std::string getExePath()
     return boost::filesystem::path(result).parent_path().native_file_string();
     #endif
     }
-

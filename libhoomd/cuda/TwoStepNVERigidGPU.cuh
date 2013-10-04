@@ -74,7 +74,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
                              unsigned int group_size,
                              Scalar4 *d_net_force,
                              Scalar *d_net_virial,
-                             const BoxDim& box, 
+                             const BoxDim& box,
                              Scalar deltaT);
 
 //! Kernel driver for the force and torque computes
@@ -83,8 +83,7 @@ cudaError_t gpu_rigid_force( const gpu_rigid_data_arrays& rigid_data,
                              unsigned int group_size,
                              Scalar4 *d_net_force,
                              Scalar4 *d_net_torque,
-                             const BoxDim& box, 
+                             const BoxDim& box,
                              Scalar deltaT);
 
 #endif //__TWO_STEP_NVE_RIGID_GPU_CUH__
-

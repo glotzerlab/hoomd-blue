@@ -95,7 +95,7 @@ Enforce2DUpdater::~Enforce2DUpdater()
 void Enforce2DUpdater::update(unsigned int timestep)
     {
     if (m_prof) m_prof->push("Enforce2D");
-    
+
     assert(m_pdata);
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
@@ -122,4 +122,3 @@ void export_Enforce2DUpdater()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

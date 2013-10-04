@@ -112,19 +112,19 @@ class PPPMForceCompute : public ForceCompute
         PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
                          boost::shared_ptr<NeighborList> nlist,
                          boost::shared_ptr<ParticleGroup> group);
-       
+
         //! Destructor
         ~PPPMForceCompute();
-        
+
         //! Set the parameters
         virtual void setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut);
-        
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-        
+
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
         //! Notification of a box size change
         void slotBoxChanged()
             {
@@ -205,4 +205,3 @@ void export_PPPMForceCompute();
 
 
 #endif
-

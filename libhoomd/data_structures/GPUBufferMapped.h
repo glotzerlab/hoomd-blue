@@ -89,11 +89,11 @@ template<class T> class GPUBufferMapped : public GPUArray<T>
         GPUBufferMapped();
         //! Constructs a GPUBufferMapped attached to a GPU
         GPUBufferMapped(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
-        //! Constructs a two-dimensional GPUBufferMapped 
+        //! Constructs a two-dimensional GPUBufferMapped
         GPUBufferMapped(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Frees memory
         ~GPUBufferMapped() { }
-        
+
         //! Get a pointer to the data on the host
         inline T* getHostPointer();
 
@@ -113,7 +113,7 @@ template<class T> class GPUBufferMapped : public GPUArray<T>
             return this->d_data;
             }
 #endif
- 
+
     };
 
 //******************************************
@@ -130,7 +130,7 @@ template<class T> GPUBufferMapped<T>::GPUBufferMapped()
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
 template<class T> GPUBufferMapped<T>::GPUBufferMapped(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
-    GPUArray<T>(width, height, exec_conf, true) 
+    GPUArray<T>(width, height, exec_conf, true)
     {
     }
 
@@ -150,7 +150,7 @@ template<class T> T* GPUBufferMapped<T>::getHostPointer()
         // synch to wait for kernels
         cudaDeviceSynchronize();
         }
-#endif    
+#endif
 
     // return pointer to data
     return this->h_data;
@@ -166,7 +166,7 @@ template<class T> const T* GPUBufferMapped<T>::getHostPointer() const
         // synch to wait for kernels
         cudaDeviceSynchronize();
         }
-#endif    
+#endif
 
     // return pointer to data
     return this->h_data;
@@ -174,4 +174,3 @@ template<class T> const T* GPUBufferMapped<T>::getHostPointer() const
 
 #endif  // __GPU_BUFFER_MAPPED_H__
 #endif  // ENABLE_CUDA
-

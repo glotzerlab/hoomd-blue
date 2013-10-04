@@ -112,10 +112,10 @@ ParticleSelectorTag::ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sys
     // make a quick check on the sanity of the input data
     if (m_tag_max < m_tag_min)
         m_exec_conf->msg->warning() << "group: max < min specified when selecting particle tags" << endl;
-    
+
     if (m_tag_max >= m_pdata->getNGlobal())
         {
-        m_exec_conf->msg->error() << "Cannot select particles with tags larger than the number of particles " 
+        m_exec_conf->msg->error() << "Cannot select particles with tags larger than the number of particles "
              << endl;
         throw runtime_error("Error selecting particles");
         }
@@ -145,7 +145,7 @@ ParticleSelectorType::ParticleSelectorType(boost::shared_ptr<SystemDefinition> s
     // make a quick check on the sanity of the input data
     if (m_typ_max < m_typ_min)
         m_exec_conf->msg->warning() << "group: max < min specified when selecting particle types" << endl;
-    
+
     if (m_typ_max >= m_pdata->getNTypes())
         m_exec_conf->msg->warning() << "group: Requesting the selection of a non-existant particle type" << endl;
     }
@@ -209,7 +209,7 @@ ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinitio
 
 /*! \param tag Tag of the particle to check
     \returns true if the type of particle \a tag is in the cuboid
-    
+
     Evaluation is performed by \a m_min.x <= x < \a m_max.x so that multiple cuboids stacked next to each other
     do not have overlapping sets of particles.
 */
@@ -276,7 +276,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
 
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
-    
+
     // connect the rebuildIndexList method to be called whenever the particles are sorted, or added to or deleted from the local domain
     m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildIndexList, this));
 
@@ -365,7 +365,7 @@ Scalar ParticleGroup::getTotalMass() const
         }
     return total_mass;
     }
-    
+
 /*! \returns The center of mass of the group, in unwrapped coordinates
     \note This method aquires the ParticleData internally
 */
@@ -375,10 +375,10 @@ Scalar3 ParticleGroup::getCenterOfMass() const
     ArrayHandle< Scalar4 > h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle< int3 > h_image(m_pdata->getImages(), access_location::host, access_mode::read);
-    
+
     // grab the box dimensions
     BoxDim box = m_pdata->getBox();
-    
+
     // loop  through all indices in the group and compute the weighted average of the positions
     Scalar total_mass = 0.0;
     Scalar3 center_of_mass = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -434,14 +434,14 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         std::copy(h_members_a.data,
                   h_members_a.data + a->getNumMembersGlobal(),
-                  ii);          
+                  ii);
         }
 
 
 
     // create the new particle group
     boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
-    
+
     // return the newly created group
     return new_group;
     }
@@ -480,12 +480,12 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_
         insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
         std::copy(h_members_a.data,
                   h_members_a.data + a->getNumMembersGlobal(),
-                  ii);          
+                  ii);
         }
 
     // create the new particle group
     boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
-    
+
     // return the newly created group
     return new_group;
     }
@@ -524,7 +524,7 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_pt
 
     // create the new particle group
     boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
-    
+
     // return the newly created group
     return new_group;
     }
@@ -630,18 +630,18 @@ void export_ParticleGroup()
             ("ParticleSelector", init< boost::shared_ptr<SystemDefinition> >())
             .def("isSelected", &ParticleSelector::isSelected)
             ;
-    
+
     class_<ParticleSelectorTag, boost::shared_ptr<ParticleSelectorTag>, bases<ParticleSelector>, boost::noncopyable>
         ("ParticleSelectorTag", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
         ;
-        
+
     class_<ParticleSelectorType, boost::shared_ptr<ParticleSelectorType>, bases<ParticleSelector>, boost::noncopyable>
         ("ParticleSelectorType", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
         ;
 
     class_<ParticleSelectorRigid, boost::shared_ptr<ParticleSelectorRigid>, bases<ParticleSelector>, boost::noncopyable>
         ("ParticleSelectorRigid", init< boost::shared_ptr<SystemDefinition>, bool >())
-        ;    
+        ;
 
     class_<ParticleSelectorCuboid, boost::shared_ptr<ParticleSelectorCuboid>, bases<ParticleSelector>, boost::noncopyable>
         ("ParticleSelectorCuboid", init< boost::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
@@ -651,4 +651,3 @@ void export_ParticleGroup()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

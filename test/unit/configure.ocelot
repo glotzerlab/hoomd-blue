@@ -1,7 +1,7 @@
 {
     ocelot: "ocelot-refactored",
     version: "1.0.65",
-    trace: { 
+    trace: {
         enabled: true,
         database: "traces/database.trace",
         memory: false,

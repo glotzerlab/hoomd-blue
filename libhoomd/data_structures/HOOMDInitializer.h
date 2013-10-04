@@ -96,7 +96,7 @@ class SnapshotSystemData;
 
     \ingroup data_structs
 */
-class HOOMDInitializer 
+class HOOMDInitializer
     {
     public:
         //! Loads in the file and parses the data
@@ -105,7 +105,7 @@ class HOOMDInitializer
 
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
-        
+
         //! Sets the timestep of the simulation
         virtual void setTimeStep(unsigned int ts);
 
@@ -131,7 +131,7 @@ class HOOMDInitializer
             Scalar y;   //!< y-component
             Scalar z;   //!< z-component
             };
-            
+
         //! simple integer vec for storing particle data
         struct vec_int
             {
@@ -151,10 +151,10 @@ class HOOMDInitializer
             int y;  //!< y-component
             int z;  //!< z-component
             };
-            
+
         //! Access the read particle positions
         const std::vector< vec >& getPos() { return m_pos_array; }
-        
+
         //! Access the read images
         const std::vector< vec_int >& getImage() { return m_image_array; }
 
@@ -193,7 +193,7 @@ class HOOMDInitializer
         void parseOrientationNode(const XMLNode& node);
         //! Parse moment inertia node
         void parseMomentInertiaNode(const XMLNode& node);
-        
+
         //! Helper function for identifying the particle type id
         unsigned int getTypeId(const std::string& name);
         //! Helper function for identifying the bond type id
@@ -204,12 +204,12 @@ class HOOMDInitializer
         unsigned int getDihedralTypeId(const std::string& name);
         //! Helper function for identifying the improper type id
         unsigned int getImproperTypeId(const std::string& name);
-        
+
         std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map; //!< Map for dispatching parsers based on node type
-        
+
         BoxDim m_box;   //!< Simulation box read from the file
         bool m_box_read;    //!< Stores the box we read in
-        
+
         unsigned int m_num_dimensions;              //!< number of spatial dimensions
         std::vector< vec > m_pos_array;             //!< positions of all particles loaded
         std::vector< vec_int > m_image_array;       //!< images of all particles loaded
@@ -225,13 +225,13 @@ class HOOMDInitializer
         std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
         std::vector< Dihedral > m_impropers;        //!< Improper read in from the file
         unsigned int m_timestep;                    //!< The time stamp
-        
+
         std::vector<std::string> m_type_mapping;          //!< The created mapping between particle types and ids
         std::vector<std::string> m_bond_type_mapping;     //!< The created mapping between bond types and ids
         std::vector<std::string> m_angle_type_mapping;    //!< The created mapping between angle types and ids
         std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
-        
+
         std::vector<Scalar4> m_orientation;             //!< Orientation of each particle
         std::vector<InertiaTensor> m_moment_inertia;    //!< Inertia tensor for each particle
 
@@ -242,6 +242,3 @@ class HOOMDInitializer
 void export_HOOMDInitializer();
 
 #endif
-
-
-

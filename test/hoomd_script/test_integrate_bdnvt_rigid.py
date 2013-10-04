@@ -15,7 +15,7 @@ class integrate_bdnvt_rigid_tests (unittest.TestCase):
 
         sysdef.sysdef.getRigidData().initializeData()
         force.constant(fx=0.1, fy=0.1, fz=0.1)
-                
+
     # tests basic creation of the integrater
     def test_basic(self):
         all = group.all();
@@ -41,7 +41,7 @@ class integrate_bdnvt_rigid_tests (unittest.TestCase):
         bd = integrate.bdnvt_rigid(all, T=1.2);
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
-    
+
     def tearDown(self):
         init.reset();
 
@@ -64,4 +64,3 @@ class integrate_bdnvt_rigid_nobody_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

@@ -151,4 +151,3 @@ class MSDAnalyzer : public Analyzer
 void export_MSDAnalyzer();
 
 #endif
-

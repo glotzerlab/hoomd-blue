@@ -106,10 +106,10 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
-    
+
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Table pair");
-    
+
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
@@ -117,23 +117,23 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
         m_exec_conf->msg->error() << "TablePotentialGPU cannot handle a half neighborlist" << endl;
         throw runtime_error("Error computing forces in TablePotentialGPU");
         }
-        
+
     // access the neighbor list
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
-    
+
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
-    
+
     // access the table data
     ArrayHandle<Scalar2> d_tables(m_tables, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
-     
+
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
- 
+
     // run the kernel on all GPUs in parallel
     gpu_compute_table_forces(d_force.data,
                              d_virial.data,
@@ -150,10 +150,10 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
                              m_ntypes,
                              m_table_width,
                              m_block_size);
-    
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     if (m_prof) m_prof->pop(exec_conf);
     }
 
@@ -172,4 +172,3 @@ void export_TablePotentialGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

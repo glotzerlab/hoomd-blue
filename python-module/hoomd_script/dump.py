@@ -53,8 +53,8 @@
 ## \package hoomd_script.dump
 # \brief Commands that %dump particles to files
 #
-# Commands in the dump package write the system state out to a file every 
-# \a period time steps. Check the documentation for details on which file format 
+# Commands in the dump package write the system state out to a file every
+# \a period time steps. Check the documentation for details on which file format
 # each command writes.
 
 import hoomd;
@@ -66,7 +66,7 @@ from hoomd_script import group as hs_group;
 
 ## Writes simulation snapshots in the HOOMD XML format
 #
-# Every \a period time steps, a new file will be created. The state of the 
+# Every \a period time steps, a new file will be created. The state of the
 # particles at that time step is written to the file in the HOOMD XML format.
 # All values are written in native HOOMD-blue units, see \ref page_units for more information.
 #
@@ -88,9 +88,9 @@ class xml(analyze._analyzer):
     # xml = dump.xml(filename="test.xml", vis=True)
     # \endcode
     #
-    # If period is set, a new file will be created every \a period steps. The time step at which 
-    # the file is created is added to the file name in a fixed width format to allow files to easily 
-    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file 
+    # If period is set, a new file will be created every \a period steps. The time step at which
+    # the file is created is added to the file name in a fixed width format to allow files to easily
+    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file
     # \c particles.0000000000.xml
     #
     # By default, only particle positions are output to the dump files. This can be changed
@@ -102,16 +102,16 @@ class xml(analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None, time_step=None, **params):
         util.print_status_line();
-    
+
         # initialize base class
         analyze._analyzer.__init__(self);
-        
+
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.system_definition, filename);
         util._disable_status_lines = True;
         self.set_params(**params);
         util._disable_status_lines = False;
-        
+
         if period is not None:
             self.setupAnalyzer(period);
             self.enabled = True;
@@ -140,8 +140,8 @@ class xml(analyze._analyzer):
     # \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
     # \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
     # \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
-    # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml 
-    # \param charge (if set) Set to True/False to enable/disable the output of particle charge in the xml 
+    # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml
+    # \param charge (if set) Set to True/False to enable/disable the output of particle charge in the xml
     # \param orientation (if set) Set to True/False to enable/disable the output of paritle orientations in the xml file
     # \param vizsigma (if set) Set to a floating point value to include as vizsigma in the xml file
     #
@@ -180,7 +180,7 @@ class xml(analyze._analyzer):
                    vizsigma=None):
         util.print_status_line();
         self.check_initialization();
-        
+
         if all:
             position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
             acceleration = charge = body = orientation = True;
@@ -196,46 +196,46 @@ class xml(analyze._analyzer):
 
         if velocity is not None:
             self.cpp_analyzer.setOutputVelocity(velocity);
-            
+
         if mass is not None:
             self.cpp_analyzer.setOutputMass(mass);
-            
+
         if diameter is not None:
             self.cpp_analyzer.setOutputDiameter(diameter);
-            
+
         if type is not None:
             self.cpp_analyzer.setOutputType(type);
-        
+
         if body is not None:
             self.cpp_analyzer.setOutputBody(body);
-        
+
         if wall is not None:
             self.cpp_analyzer.setOutputWall(wall);
-            
+
         if bond is not None:
             self.cpp_analyzer.setOutputBond(bond);
 
         if angle is not None:
             self.cpp_analyzer.setOutputAngle(angle);
-            
+
         if dihedral is not None:
             self.cpp_analyzer.setOutputDihedral(dihedral);
-            
+
         if improper is not None:
             self.cpp_analyzer.setOutputImproper(improper);
-        
+
         if acceleration is not None:
             self.cpp_analyzer.setOutputAccel(acceleration);
-            
+
         if charge is not None:
             self.cpp_analyzer.setOutputCharge(charge);
-        
+
         if orientation is not None:
             self.cpp_analyzer.setOutputOrientation(orientation);
 
         if vizsigma is not None:
             self.cpp_analyzer.setVizSigma(vizsigma);
-        
+
     ## Write a file at the current time step
     #
     # \param filename File name to write to
@@ -260,15 +260,15 @@ class xml(analyze._analyzer):
     def write(self, filename, time_step = None):
         util.print_status_line();
         self.check_initialization();
-        
+
         if time_step is None:
             time_step = globals.system.getCurrentTimeStep()
-        
+
         self.cpp_analyzer.writeFile(filename, time_step);
 
 ## Writes simulation snapshots in a binary format
 #
-# Every \a period time steps, a new file will be created. The state of the 
+# Every \a period time steps, a new file will be created. The state of the
 # particles at that time step is written to the file in a binary format.
 #
 # \warning init.read_bin is deprecated. It currently maintains all of its old functionality, but there are a number
@@ -286,7 +286,7 @@ class bin(analyze._analyzer):
     # \param file1 (optional) First alternating file name to write
     # \param file2 (optional) Second alternating file name to write
     # \param compress Set to False to disable gzip compression
-    # 
+    #
     # \b Examples:
     # \code
     # dump.bin(file1="restart.1.bin.gz", file2="restart.2.bin.gz", period=1e5)
@@ -295,9 +295,9 @@ class bin(analyze._analyzer):
     # bin = dump.bin()
     # \endcode
     #
-    # If period is set, a new file will be created every \a period steps. The time step at which 
-    # the file is created is added to the file name in a fixed width format to allow files to easily 
-    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file 
+    # If period is set, a new file will be created every \a period steps. The time step at which
+    # the file is created is added to the file name in a fixed width format to allow files to easily
+    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file
     # \c particles.0000000000.bin (.gz if \a compress = True)
     #
     # If \a compress is True (the default), output will be gzip compressed for a significant savings. init.read_bin()
@@ -333,7 +333,7 @@ class bin(analyze._analyzer):
     def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True):
         util.print_status_line();
         globals.msg.warning("dump.bin is deprecated and will be removed in the next release");
-  
+
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
             if globals.system_definition.getParticleData().getDomainDecomposition():
@@ -342,11 +342,11 @@ class bin(analyze._analyzer):
 
         # initialize base class
         analyze._analyzer.__init__(self);
-        
+
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.HOOMDBinaryDumpWriter(globals.system_definition, filename);
         self.cpp_analyzer.enableCompression(compress)
-        
+
         # handle the alternation setting
         # first, check that they are both set
         if (file1 is not None and file2 is None) or (file2 is not None and file1 is None):
@@ -357,10 +357,10 @@ class bin(analyze._analyzer):
             if period is None:
                 globals.msg.warning("Alternating file output set for dump.bin, but period is not set.\n");
                 globals.msg.warning("No output will be written.\n");
-        
+
         globals.msg.warning("dump.bin does not support triclinic boxes.\n");
         globals.msg.warning("dump.bin is deprecated and will be replaced in v1.1.0\n");
-        
+
         if period is not None:
             self.setupAnalyzer(period);
             self.enabled = True;
@@ -391,18 +391,18 @@ class bin(analyze._analyzer):
     def write(self, filename):
         util.print_status_line();
         self.check_initialization();
-        
+
         self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
 
 ## Writes a simulation snapshot in the MOL2 format
 #
-# Every \a period time steps, a new file will be created. The state of the 
+# Every \a period time steps, a new file will be created. The state of the
 # particles at that time step is written to the file in the MOL2 format.
 #
 # Particle positions are written directly in distance units, see \ref page_units for more information.
 #
-# The intended usage is to use write() to generate a single structure file that 
-# can be used by VMD for reading in particle names and %bond topology Use in 
+# The intended usage is to use write() to generate a single structure file that
+# can be used by VMD for reading in particle names and %bond topology Use in
 # conjunction with dump.dcd for reading the full simulation trajectory into VMD.
 # \MPI_NOT_SUPPORTED
 class mol2(analyze._analyzer):
@@ -410,7 +410,7 @@ class mol2(analyze._analyzer):
     #
     # \param filename (optional) Base of the file name
     # \param period (optional) Number of time steps between file dumps
-    # 
+    #
     # \b Examples:
     # \code
     # dump.mol2(filename="atoms.dump", period=1000)
@@ -418,9 +418,9 @@ class mol2(analyze._analyzer):
     # mol2 = dump.mol2()
     # \endcode
     #
-    # If period is set, a new file will be created every \a period steps. The time step at which 
-    # the file is created is added to the file name in a fixed width format to allow files to easily 
-    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file 
+    # If period is set, a new file will be created every \a period steps. The time step at which
+    # the file is created is added to the file name in a fixed width format to allow files to easily
+    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file
     # \c particles.0000000000.mol2
     #
     # If \a period is not specified, then no periodic updates will occur. Instead, the file
@@ -438,10 +438,10 @@ class mol2(analyze._analyzer):
 
         # initialize base class
         analyze._analyzer.__init__(self);
-        
+
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.system_definition, filename);
-        
+
         if period is not None:
             self.setupAnalyzer(period);
             self.enabled = True;
@@ -452,7 +452,7 @@ class mol2(analyze._analyzer):
             util._disable_status_lines = False;
         else:
             self.enabled = False;
-                
+
     ## Write a file at the current time step
     #
     # \param filename File name to write to
@@ -472,13 +472,13 @@ class mol2(analyze._analyzer):
     def write(self, filename):
         util.print_status_line();
         self.check_initialization();
-        
+
         self.cpp_analyzer.writeFile(filename);
 
-    
+
 ## Writes simulation snapshots in the DCD format
 #
-# Every \a period time steps a new simulation snapshot is written to the 
+# Every \a period time steps a new simulation snapshot is written to the
 # specified file in the DCD file format. DCD only stores particle positions
 # but is decently space efficient and extremely fast to read and write. VMD
 # can load 100's of MiB of trajectory data in mere seconds.
@@ -490,7 +490,7 @@ class mol2(analyze._analyzer):
 #
 # Due to constraints of the DCD file format, once you stop writing to
 # a file via disable(), you cannot continue writing to the same file,
-# nor can you change the period of the %dump at any time. Either of these tasks 
+# nor can you change the period of the %dump at any time. Either of these tasks
 # can be performed by creating a new %dump file with the needed settings.
 #
 # \MPI_SUPPORTED
@@ -509,14 +509,14 @@ class dcd(analyze._analyzer):
     #        unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
     #        some particles may be written just outside it. \a unwrap_rigid is ignored if \a unwrap_full is True.
     # \param angle_z When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
-    # 
+    #
     # \b Examples:
     # \code
     # dump.dcd(filename="trajectory.dcd", period=1000)
     # dcd = dump.dcd(filename"data/dump.dcd", period=1000)
     # \endcode
     #
-    # \warning 
+    # \warning
     # When you use dump.dcd to append to an existing dcd file
     # - The period must be the same or the time data in the file will not be consistent.
     # - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
@@ -525,45 +525,45 @@ class dcd(analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False):
         util.print_status_line();
-        
+
         # initialize base class
         analyze._analyzer.__init__(self);
-        
+
         # create the c++ mirror class
         reported_period = period;
         try:
             reported_period = int(period);
         except TypeError:
             reported_period = 1;
-            
+
         if group is None:
             util._disable_status_lines = True;
             group = hs_group.all();
             util._disable_status_lines = False;
-            
+
         self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
         self.cpp_analyzer.setAngleZ(angle_z);
         self.setupAnalyzer(period);
-    
+
     def enable(self):
         util.print_status_line();
-        
+
         if self.enabled == False:
             globals.msg.error("you cannot re-enable DCD output after it has been disabled\n");
             raise RuntimeError('Error enabling updater');
-    
+
     def set_period(self, period):
         util.print_status_line();
-        
+
         globals.msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
 
 ## Writes simulation snapshots in the PBD format
 #
-# Every \a period time steps, a new file will be created. The state of the 
+# Every \a period time steps, a new file will be created. The state of the
 # particles at that time step is written to the file in the PDB format.
 #
 # Particle positions are written directly in distance units, see \ref page_units for more information.
@@ -581,9 +581,9 @@ class pdb(analyze._analyzer):
     # pdb = dump.pdb()
     # \endcode
     #
-    # If \a period is specified, a new file will be created every \a period steps. The time step 
-    # at which the file is created is added to the file name in a fixed width format to allow 
-    # files to easily be read in order. I.e. the write at time step 0 with \c filename="particles" produces 
+    # If \a period is specified, a new file will be created every \a period steps. The time step
+    # at which the file is created is added to the file name in a fixed width format to allow
+    # files to easily be read in order. I.e. the write at time step 0 with \c filename="particles" produces
     # the file \c particles.0000000000.pdb
     #
     # By default, only particle positions are output to the dump files. This can be changed
@@ -605,10 +605,10 @@ class pdb(analyze._analyzer):
 
         # initialize base class
         analyze._analyzer.__init__(self);
-        
+
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.PDBDumpWriter(globals.system_definition, filename);
-        
+
         if period is not None:
             self.setupAnalyzer(period);
             self.enabled = True;
@@ -619,7 +619,7 @@ class pdb(analyze._analyzer):
             util._disable_status_lines = False;
         else:
             self.enabled = False;
-    
+
     ## Change pdb write parameters
     #
     # \param bond (if set) Set to True/False to enable/disable the output of bonds in the mol2 file
@@ -636,10 +636,10 @@ class pdb(analyze._analyzer):
     def set_params(self, bond=None):
         util.print_status_line();
         self.check_initialization();
-            
+
         if bond is not None:
             self.cpp_analyzer.setOutputBond(bond);
-    
+
     ## Write a file at the current time step
     #
     # \param filename File name to write
@@ -659,6 +659,5 @@ class pdb(analyze._analyzer):
     def write(self, filename):
         util.print_status_line();
         self.check_initialization();
-        
-        self.cpp_analyzer.writeFile(filename);
 
+        self.cpp_analyzer.writeFile(filename);

@@ -201,4 +201,3 @@ void export_Berendsen()
         .def("setTau", &TwoStepBerendsen::setTau)
         ;
     }
-

@@ -99,22 +99,22 @@ class ForceCompute : public Compute
     public:
         //! Constructs the compute
         ForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
-        
+
         //! Destructor
         virtual ~ForceCompute();
-        
+
         //! Store the timestep size
         virtual void setDeltaT(Scalar dt)
             {
             m_deltaT = dt;
             }
-        
+
         //! Computes the forces
         virtual void compute(unsigned int timestep);
 
         //! Benchmark the force compute
         virtual double benchmark(unsigned int num_iters);
-        
+
         //! Total the potential energy
         Scalar calcEnergySum();
 
@@ -129,25 +129,25 @@ class ForceCompute : public Compute
 
         //! Easy access to the energy on a single particle
         Scalar getEnergy(unsigned int tag);
-        
+
         //! Get the array of computed forces
         GPUArray<Scalar4>& getForceArray()
             {
             return m_force;
             }
-        
+
         //! Get the array of computed virials
         GPUArray<Scalar>& getVirialArray()
             {
             return m_virial;
             }
-        
+
         //! Get the array of computed torques
         GPUArray<Scalar4>& getTorqueArray()
             {
             return m_torque;
             }
-       
+
         //! Get the contribution to the external virial
         Scalar getExternalVirial(unsigned int dir)
             {
@@ -163,12 +163,12 @@ class ForceCompute : public Compute
             CommFlags flags(0);
             flags[comm_flag::position] = 1;
             return flags;
-            } 
+            }
         #endif
 
     protected:
         bool m_particles_sorted;    //!< Flag set to true when particles are resorted in memory
- 
+
         //! Helper function called when particles are sorted
         /*! setParticlesSorted() is passed as a slot to the particle sort signal.
             It is used to flag \c m_particles_sorted so that a second call to compute
@@ -188,9 +188,9 @@ class ForceCompute : public Compute
 
         //! Re-allocates the force and virial partial data
         void reallocateThreadPartial();
-        
+
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
-                            
+
         GPUArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
 
         /*! per-particle virial, a 2D GPUArray with width=number
@@ -203,7 +203,7 @@ class ForceCompute : public Compute
         unsigned int m_virial_pitch;    //!< The pitch of the 2D virial array
         GPUArray<Scalar4> m_torque;    //!< per-particle torque
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
-                
+
         Scalar4* m_fdata_partial;  //!< Stores partial force/pe for each CPU thread
         Scalar*  m_virial_partial; //!< Stores partial virial data summed for each CPU thread
         Scalar4* m_torque_partial; //!< Stores partial torque data
@@ -213,7 +213,7 @@ class ForceCompute : public Compute
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
 
         //! Connection to the signal notifying when particles are resorted
-        boost::signals::connection m_sort_connection;   
+        boost::signals::connection m_sort_connection;
 
         //! Connection to the signal notifying when maximum number of particles changes
         boost::signals::connection m_max_particle_num_change_connection;
@@ -234,4 +234,3 @@ void export_ForceCompute();
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

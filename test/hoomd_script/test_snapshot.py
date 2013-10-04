@@ -9,7 +9,7 @@ import os
 class init_create_snapshot (unittest.TestCase):
     def setUp(self):
         pass
-    
+
     # test taking a snapshot and re-initializing
     def test(self):
         system = init.create_random(N=100, phi_p=0.05);
@@ -34,11 +34,10 @@ class init_create_snapshot (unittest.TestCase):
         snapshot = system.take_snapshot(rigid_bodies=True)
         snapshot = system.take_snapshot(integrators=True)
         del system
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

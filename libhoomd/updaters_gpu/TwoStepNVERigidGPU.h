@@ -65,7 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Integrates part of the system forward in two steps in the NVE ensemble on the GPU
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface, runs on the GPU
-    
+
     \ingroup updaters
 */
 class TwoStepNVERigidGPU : public TwoStepNVERigid
@@ -74,10 +74,10 @@ class TwoStepNVERigidGPU : public TwoStepNVERigid
         //! Constructs the integration method and associates it with the system
         TwoStepNVERigidGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
         virtual ~TwoStepNVERigidGPU() {};
-        
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
-        
+
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
     };
@@ -86,4 +86,3 @@ class TwoStepNVERigidGPU : public TwoStepNVERigid
 void export_TwoStepNVERigidGPU();
 
 #endif // #ifndef __TWO_STEP_NVE_RIGID_GPU_H__
-

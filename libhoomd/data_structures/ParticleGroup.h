@@ -69,18 +69,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Utility class to select particles based on given conditions
 /*! \b Overview
-    
+
     In order to flexibly specify the particles that belong to a given ParticleGroup, it will simple take a
     ParticleSelector as a parameter in its constructor. The selector will provide a true/false membership test that will
     be applied to each particle tag, selecting those that belong in the group. As it is specified via a virtual class,
     the group definition can be expanded to include any concievable selection criteria.
-    
+
     <b>Implementation details</b>
     So that an infinite range of selection criteria can be applied (i.e. particles with mass > 2.0, or all particles
     bonded to particle j, ...) the selector will get a reference to the SystemDefinition on construction, along with
     any parameters to specify the selection criteria. Then, a simple isSelected() test is provided that will acquire the
     needed data and will return true if that particle meets the criteria.
-    
+
     The base class isSelected() method will simply reject all particles. Derived classes will implement specific
     selection semantics.
 */
@@ -160,12 +160,12 @@ class ParticleSelectorRigid : public ParticleSelector
 
 //! Describes a group of particles
 /*! \b Overview
-    
+
     Some computations in HOOMD need to only be performed on certain groups of particles. ParticleGroup facilitates
     that by providing a flexible interface for choosing these groups that can be used by any other class in HOOMD.
-    
+
     The following common use-cases are expected and the design is tuned to make these optimal.
-     - Iterate through all particles indices in the group, and the order of iteration doesn't matter, except for 
+     - Iterate through all particles indices in the group, and the order of iteration doesn't matter, except for
        performance.
      - Iterate through all particle tags in the group, in a well-defined order that does not change (namely, a sorted
        tag order is required)
@@ -178,7 +178,7 @@ class ParticleSelectorRigid : public ParticleSelector
     may require a drastically different design to allow for efficient access.
 
     In many use-cases, ParticleGroup may be accessed many times within inner loops. Thus, it must not aquire any
-    ParticleData arrays within most of the get() calls as the caller must be allowed to leave their ParticleData 
+    ParticleData arrays within most of the get() calls as the caller must be allowed to leave their ParticleData
     aquired. Thus, all get() methods must return values from internal cached variables only. Those methods that
     absolutely require the particle data be released before they are called will be documented as such.
 
@@ -188,9 +188,9 @@ class ParticleSelectorRigid : public ParticleSelector
     in a sorted tag order. This list can be accessed directly via getMemberTag() to meet the 2nd use case listed above.
     In order to iterate through all particles in the group in a cache-efficient manner, an auxilliary list is stored
     that lists all particle <i>indicies</i> that belong to the group. This list must be updated on every particle sort.
-    Thirdly, a dynamic bitset is used to store one bit per particle for efficient O(1) tests if a given particle is in 
+    Thirdly, a dynamic bitset is used to store one bit per particle for efficient O(1) tests if a given particle is in
     the group.
-    
+
     Finally, the common use case on the GPU using groups will include running one thread per particle in the group.
     For that it needs a list of indices of all the particles in the group. To facilitates this, the list of indices
     in the group will be stored in a GPUArray.
@@ -214,11 +214,11 @@ class ParticleGroup
 
         //! Destructor
         ~ParticleGroup();
-        
+
         // @}
         //! \name Accessor methods
         // @{
-                
+
         //! Get the number of members in the group
         /*! \returns The number of particles that belong to this group
         */
@@ -226,7 +226,7 @@ class ParticleGroup
             {
             return (unsigned int)m_member_tags.getNumElements();
             }
-            
+
         //! Get the number of members that are present on the local processor
         /*! \returns The number of particles on the local processor that belong to this group
         */
@@ -245,7 +245,7 @@ class ParticleGroup
             ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
             return h_member_tags.data[i];
             }
-            
+
         //! Get a member index from the group
         /*! \param j Value from 0 to getNumMembers()-1 of the group member to get
             \returns Index of the member at position \a j
@@ -270,7 +270,7 @@ class ParticleGroup
             ArrayHandle<unsigned char> h_handle(m_is_member, access_location::host, access_mode::read);
             return h_handle.data[idx] == 1;
             }
-        
+
         //! Direct access to the index list
         /*! \returns A GPUArray for directly accessing the index list, intended for use in using groups on the GPU
             \note The caller \b must \b not write to or change the array.
@@ -283,7 +283,7 @@ class ParticleGroup
         // @}
         //! \name Analysis methods
         // @{
-        
+
         //! Compute the total mass of the group
         Scalar getTotalMass() const;
         //! Compute the center of mass of the group
@@ -292,7 +292,7 @@ class ParticleGroup
         // @}
         //! \name Combination methods
         // @{
-            
+
         //! Make a new particle group from a union of two
         static boost::shared_ptr<ParticleGroup> groupUnion(boost::shared_ptr<ParticleGroup> a,
                                                            boost::shared_ptr<ParticleGroup> b);
@@ -302,7 +302,7 @@ class ParticleGroup
         //! Make a new particle group from an difference
         static boost::shared_ptr<ParticleGroup> groupDifference(boost::shared_ptr<ParticleGroup> a,
                                                                 boost::shared_ptr<ParticleGroup> b);
-        
+
         // @}
 
     private:
@@ -337,4 +337,3 @@ class ParticleGroup
 void export_ParticleGroup();
 
 #endif
-

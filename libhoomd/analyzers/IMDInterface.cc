@@ -122,55 +122,55 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
 void IMDInterface::initConnection()
     {
     int err = 0;
-    
+
     // start by initializing memory
     m_tmp_coords = new float[m_pdata->getNGlobal() * 3];
-    
+
     // intialize the listening socket
     vmdsock_init();
     m_listen_sock = vmdsock_create();
-    
+
     // check for errors
     if (m_listen_sock == NULL)
         {
         m_exec_conf->msg->error() << "analyze.imd: Unable to create listening socket" << endl;
         throw runtime_error("Error initializing IMDInterface");
         }
-        
+
     // bind the socket and start listening for connections on that port
     m_connected_sock = NULL;
     err = vmdsock_bind(m_listen_sock, m_port);
-    
+
     if (err == -1)
         {
         m_exec_conf->msg->error() << "analyze.imd: Unable to bind listening socket" << endl;
         throw runtime_error("Error initializing IMDInterface");
         }
-        
+
     err = vmdsock_listen(m_listen_sock);
-    
+
     if (err == -1)
         {
         m_exec_conf->msg->error() << "analyze.imd: Unable to listen on listening socket" << endl;
         throw runtime_error("Error initializing IMDInterface");
         }
-        
+
     m_exec_conf->msg->notice(2) << "analyze.imd: listening on port " << m_port << endl;
-    
+
     m_is_initialized = true;
     }
 
 IMDInterface::~IMDInterface()
     {
     m_exec_conf->msg->notice(5) << "Destroying IMDInterface" << endl;
- 
+
     if (m_is_initialized)
         {
         // free all used memory
         delete[] m_tmp_coords;
         vmdsock_destroy(m_connected_sock);
         vmdsock_destroy(m_listen_sock);
-        
+
         m_tmp_coords = NULL;
         m_connected_sock = NULL;
         m_listen_sock = NULL;
@@ -187,11 +187,11 @@ void IMDInterface::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("IMD");
-  
+
 #ifdef ENABLE_MPI
     bool is_root = true;
     if (m_comm)
-        is_root = m_exec_conf->isRoot(); 
+        is_root = m_exec_conf->isRoot();
 
     if (is_root && ! m_is_initialized)
         initConnection();
@@ -203,13 +203,13 @@ void IMDInterface::analyze(unsigned int timestep)
 #endif
         {
         m_count++;
-        
+
         do
             {
             // establish a connection if one has not been made
             if (m_connected_sock == NULL)
                 establishConnectionAttempt();
-            
+
             // dispatch incoming commands
             if (m_connected_sock)
                 {
@@ -219,7 +219,7 @@ void IMDInterface::analyze(unsigned int timestep)
                     }
                     while (m_connected_sock && messagesAvailable());
                 }
-            
+
             // quit if cntrl-C was pressed
             if (g_sigint_recvd)
                 {
@@ -228,7 +228,7 @@ void IMDInterface::analyze(unsigned int timestep)
                 }
             }
             while (m_paused);
-        } 
+        }
 
 #ifdef ENABLE_MPI
     unsigned char send_coords = 0;
@@ -246,7 +246,7 @@ void IMDInterface::analyze(unsigned int timestep)
     // send data when active, connected, and the rate matches
     if (m_connected_sock && m_active && (m_trate == 0 || m_count % m_trate == 0))
         sendCoords(timestep);
-#endif    
+#endif
 
     if (m_prof)
         m_prof->pop();
@@ -257,12 +257,12 @@ void IMDInterface::analyze(unsigned int timestep)
 void IMDInterface::dispatch()
     {
     assert(m_connected_sock != NULL);
-    
+
     // wait for messages, but only when paused
     int timeout = 0;
     if (m_paused)
         timeout = 5;
-    
+
     // begin by checking to see if any commands have been received
     int length;
     int res = vmdsock_selread(m_connected_sock, timeout);
@@ -316,7 +316,7 @@ void IMDInterface::dispatch()
 bool IMDInterface::messagesAvailable()
     {
     int res = vmdsock_selread(m_connected_sock, 0);
-    
+
     if (res == -1)
         {
         m_exec_conf->msg->notice(3) << "analyze.imd: connection appears to have been terminated" << endl;
@@ -358,9 +358,9 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
     // mdcomm is not currently handled
     shared_array<int32> indices(new int32[n]);
     shared_array<float> forces(new float[3*n]);
-    
+
     int err = imd_recv_mdcomm(m_connected_sock, n, &indices[0], &forces[0]);
-    
+
     if (err)
         {
         m_exec_conf->msg->error() << "analyze.imd: Error receiving mdcomm data, disconnecting" << endl;
@@ -374,7 +374,7 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
         m_exec_conf->msg->warning() << "analyze.imd: mdcomm currently not supported in MPI simulations." << endl;
         }
 #endif
-   
+
     if (m_force)
         {
         ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -393,7 +393,7 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
         m_exec_conf->msg->warning() << "analyze.imd: Receiving forces over IMD, but no force was given to analyze.imd. Doing nothing" << endl;
         }
     }
-    
+
 void IMDInterface::processIMD_TRATE(int rate)
     {
     m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_TRATE, setting trate to " << rate << endl;
@@ -434,7 +434,7 @@ void IMDInterface::processDeadConnection()
 
 /*! \pre \a m_connected_sock is not connected
     \pre \a m_listen_sock is listening
-    
+
     \a m_listen_sock is checked for any incoming connections. If an incoming connection is found, a handshake is made
     and \a m_connected_sock is set. If no connection is established, \a m_connected_sock is set to NULL.
 */
@@ -442,12 +442,12 @@ void IMDInterface::establishConnectionAttempt()
     {
     assert(m_listen_sock != NULL);
     assert(m_connected_sock == NULL);
-    
+
     // wait for messages, but only when paused
     int timeout = 0;
     if (m_paused)
         timeout = 5;
-    
+
     // check to see if there is an incoming connection
     if (vmdsock_selread(m_listen_sock, timeout) > 0)
         {
@@ -484,7 +484,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
 #endif
 
     assert(m_connected_sock != NULL);
-    
+
     // setup and send the energies structure
     IMDEnergies energies;
     energies.tstep = timestep;
@@ -497,7 +497,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
     energies.Eangle = 0.0f;
     energies.Edihe = 0.0f;
     energies.Eimpr = 0.0f;
-    
+
     int err = imd_send_energies(m_connected_sock, &energies);
     if (err)
         {
@@ -505,7 +505,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
         processDeadConnection();
         return;
         }
-        
+
     // copy the particle data to the holding array and send it
     for (unsigned int tag = 0; tag < m_pdata->getNGlobal(); tag++)
         {
@@ -514,7 +514,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
         m_tmp_coords[tag*3 + 2] = float(snapshot.pos[tag].z);
         }
     err = imd_send_fcoords(m_connected_sock, m_pdata->getNGlobal(), m_tmp_coords);
-    
+
     if (err)
         {
         m_exec_conf->msg->error() << "analyze.imd: I/O error while sending coordinates, disconnecting" << endl;
@@ -533,4 +533,3 @@ void export_IMDInterface()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

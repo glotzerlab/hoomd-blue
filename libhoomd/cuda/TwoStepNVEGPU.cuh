@@ -85,4 +85,3 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                              bool zero_force);
 
 #endif //__TWO_STEP_NVE_GPU_CUH__
-

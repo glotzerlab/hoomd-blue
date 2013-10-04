@@ -21,7 +21,7 @@ class constraint_sphere_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.005);
         integrate.bdnvt(group=all, T=1.2);
         run(10);
-    
+
     def test_error(self):
         all = group.all()
         self.assertRaises(RuntimeError, constrain.sphere, group=all, P=(0,0,0), r=10)
@@ -32,4 +32,3 @@ class constraint_sphere_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

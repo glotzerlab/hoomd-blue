@@ -79,7 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param d_rigid_com Body center of mass
     \param d_rigid_vel Body velocity
     \param d_rigid_angvel Body angular velocity
-    \param d_rigid_image Body image 
+    \param d_rigid_image Body image
     \param d_rigid_particle_dis Position of a particle in the body frame
     \param d_rigid_particle_orientation Orientation of a particle in the body frame
     \param nmax Maximum number of particles per body
@@ -194,32 +194,32 @@ cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
                                    Scalar4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
-                                   const BoxDim& box, 
+                                   const BoxDim& box,
                                    bool set_x)
     {
-    
+
     assert(d_pos);
     assert(d_vel);
     assert(d_pdata_orientation);
     assert(d_image);
     assert(d_group_members);
-    
-    assert(rigid_data.particle_offset);    
+
+    assert(rigid_data.particle_offset);
     assert(d_body);
-    assert(rigid_data.orientation);    
+    assert(rigid_data.orientation);
     assert(rigid_data.com);
     assert(rigid_data.vel);
-    assert(rigid_data.angvel);    
+    assert(rigid_data.angvel);
     assert(rigid_data.body_image);
     assert(rigid_data.particle_pos);
-    assert(rigid_data.particle_orientation); 
-    
+    assert(rigid_data.particle_orientation);
+
     unsigned int nmax = rigid_data.nmax;
 
     unsigned int block_size = 192;
     dim3 particle_grid(group_size/block_size+1, 1, 1);
     dim3 particle_threads(block_size, 1, 1);
-    
+
     if (set_x)
         gpu_rigid_setRV_kernel<true><<< particle_grid, particle_threads >>>(d_pos,
                                                                         d_vel,
@@ -255,7 +255,7 @@ cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
                                                                         rigid_data.particle_pos,
                                                                         rigid_data.particle_orientation,
                                                                         nmax,
-                                                                        box);                                                                   
+                                                                        box);
         return cudaSuccess;
 }
 
@@ -273,7 +273,7 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
     unsigned int pidx = blockIdx.x * blockDim.x + threadIdx.x;
     if (pidx >= N)
         return;
-    
+
     if (d_body[pidx] != NO_BODY)
         {
         // calculate the virial from the position and velocity from the previous step
@@ -321,11 +321,11 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
     assert(d_oldpos);
     assert(d_oldvel);
     assert(d_vel);
-    
+
     unsigned int block_size = 192;
     dim3 particle_grid(N/block_size+1, 1, 1);
     dim3 particle_threads(block_size, 1, 1);
-    
+
     gpu_compute_virial_correction_end_kernel<<<particle_grid, particle_threads>>>(d_net_virial,
                                                                                   virial_pitch,
                                                                                   d_net_force,
@@ -338,4 +338,3 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
 
     return cudaSuccess;
     }
-

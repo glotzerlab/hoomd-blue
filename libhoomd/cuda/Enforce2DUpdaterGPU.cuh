@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file Enforce2DUpdaterGPU.cuh
-    \brief Declares GPU kernel code for constraining particles to the xy plane on the 
+    \brief Declares GPU kernel code for constraining particles to the xy plane on the
             GPU. Used by Enforce2DUpdaterGPU.
 */
 
@@ -67,4 +67,3 @@ cudaError_t gpu_enforce2d(const unsigned int N,
                           Scalar3 *d_accel);
 
 #endif
-

@@ -59,13 +59,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern "C"
     {
-    
+
 //! Adds one to every value in an array of ints
     cudaError_t gpu_add_one(int *d_data, unsigned int num);
 //! Fills out the data array with a test pattern
     cudaError_t gpu_fill_test_pattern(int *d_data, unsigned int num);
-    
+
     }
 
 #endif
-

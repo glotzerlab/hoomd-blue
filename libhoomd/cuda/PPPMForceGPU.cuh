@@ -89,7 +89,7 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
                                     Scalar *GPU_green_hat,
                                     Scalar3 *E_field,
                                     unsigned int *d_group_members,
-                                    unsigned int group_size,    
+                                    unsigned int group_size,
                                     int block_size);
 
 
@@ -142,4 +142,3 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
                            unsigned int group_size,
                            int block_size);
 #endif
-

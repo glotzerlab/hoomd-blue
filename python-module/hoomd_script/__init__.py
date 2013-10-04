@@ -58,32 +58,32 @@ from hoomd_script import globals;
 
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API
-# 
-# hoomd_script provides a very high level user interface for executing 
+#
+# hoomd_script provides a very high level user interface for executing
 # simulations using HOOMD. This python module is designed to be imported
 # into python with "from hoomd_script import *"
 
 ## \internal
-# \brief Internal python variable 
-__all__ = [ "analyze", 
-            "bond", 
+# \brief Internal python variable
+__all__ = [ "analyze",
+            "bond",
             "benchmark",
-            "angle", 
-            "dihedral", 
-            "improper", 
-            "dump", 
+            "angle",
+            "dihedral",
+            "improper",
+            "dump",
             "force",
             "external",
             "constrain",
-            "globals", 
-            "group", 
-            "init", 
-            "integrate", 
+            "globals",
+            "group",
+            "init",
+            "integrate",
             "option",
-            "pair", 
-            "update", 
+            "pair",
+            "update",
             "wall",
-            "variant", 
+            "variant",
             "run",
             "run_upto",
             "get_step",
@@ -137,17 +137,17 @@ def get_hoomd_script_version():
 # run(10000, callback_period=100, callback=py_cb)
 # \endcode
 #
-# Execute the run() command to advance the simulation forward in time. 
-# During the run, all previously specified \ref analyze "analyzers", 
+# Execute the run() command to advance the simulation forward in time.
+# During the run, all previously specified \ref analyze "analyzers",
 # \ref dump "dumps", \ref update "updaters" and the \ref integrate "integrators"
 # are executed at the specified regular periods.
-# 
+#
 # After run() completes, you may change parameters of the simulation (i.e. temperature)
 # and continue the simulation by executing run() again. Time steps are added
 # cumulatively, so calling run(1000) and then run(2000) would run the simulation
 # up to time step 3000.
 #
-# run() cannot be executed before the system is \ref init "initialized". In most 
+# run() cannot be executed before the system is \ref init "initialized". In most
 # cases, it also doesn't make sense to execute run() until after pair forces, bond forces,
 # and an \ref integrate "integrator" have been created.
 #
@@ -186,7 +186,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     if not init.is_initialized():
         globals.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
-        
+
     if globals.integrator is None:
         globals.msg.warning("Starting a run without an integrator set");
     else:
@@ -194,15 +194,15 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         globals.integrator.update_methods();
         globals.integrator.update_thermos();
 
-    # if rigid bodies, setxv  
+    # if rigid bodies, setxv
     if len(data.system_data(globals.system_definition).bodies) > 0:
         data.system_data(globals.system_definition).bodies.updateRV()
-      
+
     for logger in globals.loggers:
         logger.update_quantities();
     globals.system.enableProfiler(profile);
     globals.system.enableQuietRun(quiet);
-    
+
     if globals.neighbor_list:
         globals.neighbor_list.update_rcut();
         globals.neighbor_list.update_exclusions_defaults();
@@ -244,17 +244,17 @@ def run_upto(step, **keywords):
     if not init.is_initialized():
         globals.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
-    
+
     # determine the number of steps to run
     step = int(step);
     cur_step = globals.system.getCurrentTimeStep();
-    
+
     if cur_step >= step:
         globals.msg.warning("Requesting run up to a time step that has already passed, doing nothing\n");
         return;
-    
+
     n_steps = step - cur_step;
-    
+
     util._disable_status_lines = True;
     run(n_steps, **keywords);
     util._disable_status_lines = False;

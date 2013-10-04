@@ -74,7 +74,7 @@ class ForceConstraint : public ForceCompute
     public:
         //! Constructs the compute
         ForceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
-        
+
         //! Return the number of DOF removed by this constraint
         /*! The base class ForceConstraint returns 0, derived classes should override
         */
@@ -82,9 +82,9 @@ class ForceConstraint : public ForceCompute
             {
             return 0;
             }
-        
+
     protected:
-    
+
         //! Compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -93,4 +93,3 @@ class ForceConstraint : public ForceCompute
 void export_ForceConstraint();
 
 #endif
-

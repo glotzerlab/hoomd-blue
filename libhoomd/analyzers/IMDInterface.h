@@ -87,17 +87,17 @@ class IMDInterface : public Analyzer
                      unsigned int rate=1,
                      boost::shared_ptr<ConstForceCompute> force = boost::shared_ptr<ConstForceCompute>(),
                      float force_scale=1.0);
-        
+
         //! Destructor
         ~IMDInterface();
-        
+
         //! Handle connection requests and send current positions if connected
         void analyze(unsigned int timestep);
     private:
         void *m_listen_sock;    //!< Socket we are listening on
         void *m_connected_sock; //!< Socket to transmit/receive data
         float *m_tmp_coords;    //!< Temporary holding location for coordinate data
-        
+
         bool m_active;          //!< True if we have received a go command
         bool m_paused;          //!< True if we are paused
         unsigned int m_trate;   //!< Transmission rate
@@ -105,10 +105,10 @@ class IMDInterface : public Analyzer
 
         bool m_is_initialized;  //!< True if the interface has been initialized
         int m_port;             //!< Port to listen on
-        
+
         boost::shared_ptr<ConstForceCompute> m_force;   //!< Force for applying IMD forces
         float m_force_scale;                            //!< Factor by which to scale all IMD forces
-        
+
         //! Helper function that reads message headers and dispatches them to the relevant process functions
         void dispatch();
         //! Helper function to determine of messages are still available
@@ -129,7 +129,7 @@ class IMDInterface : public Analyzer
         void processIMD_IOERROR();
         //! Process a dead connection
         void processDeadConnection();
-        
+
         //! Helper function to establish a connection
         void establishConnectionAttempt();
         //! Helper function to send current data to VMD
@@ -143,4 +143,3 @@ class IMDInterface : public Analyzer
 void export_IMDInterface();
 
 #endif
-

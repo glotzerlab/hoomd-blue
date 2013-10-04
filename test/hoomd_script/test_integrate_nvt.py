@@ -13,14 +13,14 @@ class integrate_nvt_tests (unittest.TestCase):
         force.constant(fx=0.1, fy=0.1, fz=0.1)
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # tests basic creation of the dump
     def test(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nvt(all, T=1.2, tau=0.5);
         run(100);
-    
+
     # test set_params
     def test_set_params(self):
         all = group.all();
@@ -34,10 +34,9 @@ class integrate_nvt_tests (unittest.TestCase):
         mode = integrate.mode_standard(dt=0.005);
         nvt = integrate.nvt(group=empty, T=1.0, tau=0.5)
         run(1);
-    
+
     def tearDown(self):
         init.reset();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

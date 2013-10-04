@@ -100,13 +100,13 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
         m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
         throw runtime_error("Error initializing NeighborList");
         }
-        
+
     if (m_r_buff < 0.0)
         {
         m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error initializing NeighborList");
         }
-        
+
     // initialize values
     m_last_updated_tstep = 0;
     m_last_checked_tstep = 0;
@@ -115,7 +115,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_Nmax = 0;
     m_exclusions_set = false;
 
- 
+
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getL();
     m_last_L_local = m_pdata->getBox().getL();
@@ -134,7 +134,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // allocate m_last_pos
     GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), exec_conf);
     m_last_pos.swap(last_pos);
-   
+
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
     GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
@@ -146,7 +146,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_ex_list_idx.swap(ex_list_idx);
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), 1);
     m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), 1);
-    
+
     m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
 
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&NeighborList::reallocate, this));
@@ -194,7 +194,7 @@ void NeighborList::compute(unsigned int timestep)
     // skip if we shouldn't compute this step
     if (!shouldCompute(timestep) && !m_force_update)
         return;
-        
+
     if (m_prof) m_prof->push("Neighbor");
 
     // update the exclusion data if this is a forced update
@@ -221,10 +221,10 @@ void NeighborList::compute(unsigned int timestep)
                 resetConditions();
                 }
             } while (overflowed);
-        
+
         if (m_exclusions_set)
             filterNlist();
-        
+
         setLastUpdatedPos();
         }
 
@@ -243,7 +243,7 @@ double NeighborList::benchmark(unsigned int num_iters)
     forceUpdate();
     compute(0);
     buildNlist(0);
-    
+
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
@@ -251,18 +251,18 @@ double NeighborList::benchmark(unsigned int num_iters)
         CHECK_CUDA_ERROR();
         }
 #endif
-    
+
     // benchmark
     uint64_t start_time = t.getTime();
     for (unsigned int i = 0; i < num_iters; i++)
         buildNlist(0);
-        
+
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
-    
+
     // convert the run time to milliseconds
     return double(total_time_ns) / 1e6 / double(num_iters);
     }
@@ -276,14 +276,14 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
     {
     m_r_cut = r_cut;
     m_r_buff = r_buff;
-    
+
     // check for two sensless errors the user could make
     if (m_r_cut < 0.0)
         {
         m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
-        
+
     if (m_r_buff < 0.0)
         {
         m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
@@ -318,7 +318,7 @@ Scalar NeighborList::estimateNNeigh()
     Scalar3 L = box.getL();
     Scalar vol = L.x * L.y * L.z;
     Scalar n_dens = Scalar(m_pdata->getN()) / vol;
-    
+
     // calculate the average number of neighbors by multiplying by the volume
     // within the cutoff
     Scalar r_max = m_r_cut + m_r_buff;
@@ -336,28 +336,28 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     {
     assert(tag1 < m_pdata->getNGlobal());
     assert(tag2 < m_pdata->getNGlobal());
-    
+
     m_exclusions_set = true;
 
     // don't add an exclusion twice
     if (isExcluded(tag1, tag2))
         return;
-    
+
     // this is clunky, but needed due to the fact that we cannot have an array handle in scope when
     // calling grow exclusion list
     bool grow = false;
         {
         // access arrays
         ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::readwrite);
-    
+
         // grow the list if necessary
         if (h_n_ex_tag.data[tag1] == m_ex_list_indexer.getH())
             grow = true;
-        
+
         if (h_n_ex_tag.data[tag2] == m_ex_list_indexer.getH())
             grow = true;
         }
-        
+
     if (grow)
         growExclusionList();
 
@@ -365,20 +365,20 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         // access arrays
         ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::readwrite);
-    
+
         // add tag2 to tag1's exculsion list
         unsigned int pos1 = h_n_ex_tag.data[tag1];
         assert(pos1 < m_ex_list_indexer.getH());
         h_ex_list_tag.data[m_ex_list_indexer_tag(tag1,pos1)] = tag2;
         h_n_ex_tag.data[tag1]++;
-        
+
         // add tag1 to tag2's exclusion list
         unsigned int pos2 = h_n_ex_tag.data[tag2];
         assert(pos2 < m_ex_list_indexer.getH());
         h_ex_list_tag.data[m_ex_list_indexer_tag(tag2,pos2)] = tag1;
         h_n_ex_tag.data[tag2]++;
         }
-    
+
     forceUpdate();
     }
 
@@ -415,7 +415,7 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
                       &count,
                       1,
                       MPI_INT,
-                      MPI_SUM, 
+                      MPI_SUM,
                       m_exec_conf->getMPICommunicator());
         }
     #endif
@@ -430,23 +430,23 @@ void NeighborList::countExclusions()
     unsigned int MAX_COUNT_EXCLUDED = 16;
     unsigned int excluded_count[MAX_COUNT_EXCLUDED+2];
     unsigned int num_excluded, max_num_excluded;
-    
+
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
-    
+
     max_num_excluded = 0;
     for (unsigned int c=0; c <= MAX_COUNT_EXCLUDED+1; ++c)
         excluded_count[c] = 0;
-        
+
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         num_excluded = h_n_ex_tag.data[i];
-        
+
         if (num_excluded > max_num_excluded)
             max_num_excluded = num_excluded;
-        
+
         if (num_excluded > MAX_COUNT_EXCLUDED)
             num_excluded = MAX_COUNT_EXCLUDED + 1;
-        
+
         excluded_count[num_excluded] += 1;
         }
 
@@ -472,7 +472,7 @@ void NeighborList::countExclusions()
         m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: yes" << endl;
     else
         m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: no" << endl;
-        
+
     if (!m_filter_body && m_sysdef->getRigidData()->getNumBodies() > 0)
         {
         m_exec_conf->msg->warning() << "Disabling the body exclusion will cause rigid bodies to behave erratically" << endl
@@ -520,7 +520,7 @@ void NeighborList::addExclusionsFromBonds()
 void NeighborList::addExclusionsFromAngles()
     {
     boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
-    
+
     // for each bond
     for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
         {
@@ -535,7 +535,7 @@ void NeighborList::addExclusionsFromAngles()
 void NeighborList::addExclusionsFromDihedrals()
     {
     boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
-    
+
     // for each bond
     for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
         {
@@ -552,17 +552,17 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
     assert(tag1 < m_pdata->getNGlobal());
     assert(tag2 < m_pdata->getNGlobal());
-        
+
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::read);
-    
+
     unsigned int n_ex = h_n_ex_tag.data[tag1];
     for (unsigned int i = 0; i < n_ex; i++)
         {
         if (h_ex_list_tag.data[m_ex_list_indexer_tag(tag1,i)] == tag2)
             return true;
         }
-    
+
     return false;
     }
 
@@ -579,46 +579,46 @@ void NeighborList::addOneThreeExclusionsFromTopology()
     const unsigned int myNAtoms = m_pdata->getN();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNumBonds();
-    
+
     if (nBonds == 0)
         {
         m_exec_conf->msg->warning() << "nlist: No bonds defined while trying to add topology derived 1-3 exclusions" << endl;
         return;
         }
-        
+
     // build a per atom list with all bonding partners from the list of bonds.
     unsigned int *localBondList = new unsigned int[MAXNBONDS*myNAtoms];
     memset((void *)localBondList,0,sizeof(unsigned int)*MAXNBONDS*myNAtoms);
-    
+
     for (unsigned int i = 0; i < nBonds; i++)
         {
         // loop over all bonds and make a 1D exlcusion map
         Bond bondi = bond_data->getBond(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
-        
+
         // next, incrememt the number of bonds, and update the tags
         const unsigned int nBondsA = ++localBondList[tagA*MAXNBONDS];
         const unsigned int nBondsB = ++localBondList[tagB*MAXNBONDS];
-        
+
         if (nBondsA >= MAXNBONDS)
             {
             m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA << endl;
             m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
-            
+
         if (nBondsB >= MAXNBONDS)
             {
             m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB << endl;
             m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
-            
+
         localBondList[tagA*MAXNBONDS + nBondsA] = tagB;
         localBondList[tagB*MAXNBONDS + nBondsB] = tagA;
         }
-        
+
     // now loop over the atoms and build exclusions if we have more than
     // one bonding partner, i.e. we are in the center of an angle.
     for (unsigned int i = 0; i < myNAtoms; i++)
@@ -626,7 +626,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
         // now, loop over all atoms, and find those in the middle of an angle
         const unsigned int iAtom = i*MAXNBONDS;
         const unsigned int nBonds = localBondList[iAtom];
-        
+
         if (nBonds > 1) // need at least two bonds
             {
             for (unsigned int j = 1; j < nBonds; ++j)
@@ -655,68 +655,68 @@ void NeighborList::addOneFourExclusionsFromTopology()
     const unsigned int myNAtoms = m_pdata->getN();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNumBonds();
-    
+
     if (nBonds == 0)
         {
         m_exec_conf->msg->warning() << "nlist: No bonds defined while trying to add topology derived 1-4 exclusions" << endl;
         return;
         }
-        
+
     // allocate and clear data.
     unsigned int *localBondList = new unsigned int[MAXNBONDS*myNAtoms];
     memset((void *)localBondList,0,sizeof(unsigned int)*MAXNBONDS*myNAtoms);
-    
+
     for (unsigned int i = 0; i < nBonds; i++)
         {
         // loop over all bonds and make a 1D exlcusion map
         Bond bondi = bond_data->getBond(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
-        
+
         // next, incrememt the number of bonds, and update the tags
         const unsigned int nBondsA = ++localBondList[tagA*MAXNBONDS];
         const unsigned int nBondsB = ++localBondList[tagB*MAXNBONDS];
-        
+
         if (nBondsA >= MAXNBONDS)
             {
             m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagA << endl;
             m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
-            
+
         if (nBondsB >= MAXNBONDS)
             {
             m_exec_conf->msg->error() << "nlist: Too many bonds to process exclusions for particle with tag: " << tagB << endl;
             m_exec_conf->msg->error() << "Maximum allowed is currently: " << MAXNBONDS-1 << endl;
             throw runtime_error("Error setting up toplogical exclusions in NeighborList");
             }
-            
+
         localBondList[tagA*MAXNBONDS + nBondsA] = tagB;
         localBondList[tagB*MAXNBONDS + nBondsB] = tagA;
         }
-        
+
     //  loop over all bonds
     for (unsigned int i = 0; i < nBonds; i++)
         {
         Bond bondi = bond_data->getBond(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
-        
+
         const unsigned int nBondsA = localBondList[tagA*MAXNBONDS];
         const unsigned int nBondsB = localBondList[tagB*MAXNBONDS];
-        
+
         for (unsigned int j = 1; j <= nBondsA; j++)
             {
             const unsigned int tagJ = localBondList[tagA*MAXNBONDS+j];
             if (tagJ == tagB) // skip the bond in the middle of the dihedral
                 continue;
-                
+
             for (unsigned int k = 1; k <= nBondsB; k++)
                 {
                 const unsigned int tagK = localBondList[tagB*MAXNBONDS+k];
                 if (tagK == tagA) // skip the bond in the middle of the dihedral
                     continue;
-                    
+
                 addExclusion(tagJ,tagK);
                 }
             }
@@ -740,18 +740,18 @@ bool NeighborList::distanceCheck()
 
     // sanity check
     assert(h_pos.data);
-    
+
     // profile
     if (m_prof) m_prof->push("Dist check");
-    
+
     // temporary storage for the result
     bool result = false;
-    
+
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
 
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
-    
+
     // get current global box lengths
     Scalar3 L_g = m_pdata->getGlobalBox().getL();
 
@@ -777,7 +777,7 @@ bool NeighborList::distanceCheck()
     boundary_check = m_pdata->getDomainDecomposition();
     #endif
 
-    // the change of the global box size should not exceed the local box size 
+    // the change of the global box size should not exceed the local box size
     Scalar3 del_L = L_g - m_last_L;
     if ( fabs(del_L.x) >= m_last_L_local.x ||
          fabs(del_L.y) >= m_last_L_local.y ||
@@ -807,9 +807,9 @@ bool NeighborList::distanceCheck()
         Scalar3 dx = make_scalar3(h_pos.data[i].x - lambda.x*h_last_pos.data[i].x,
                                   h_pos.data[i].y - lambda.y*h_last_pos.data[i].y,
                                   h_pos.data[i].z - lambda.z*h_last_pos.data[i].z);
-        
+
         dx = box.minImage(dx);
-        
+
         if (dot(dx, dx) >= maxsq)
             {
             result = true;
@@ -858,17 +858,17 @@ void NeighborList::setLastUpdatedPos()
 
     // sanity check
     assert(h_pos.data);
-    
+
     // profile
     if (m_prof) m_prof->push("Dist check");
-    
+
     // update the last position arrays
     ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         h_last_pos.data[i] = make_scalar4(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z, Scalar(0.0));
         }
-   
+
     // update last box length
     m_last_L = m_pdata->getGlobalBox().getL();
     m_last_L_local = m_pdata->getBox().getL();
@@ -910,7 +910,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     bool dangerous = false;
     if (m_dist_check && (m_every > 1 && timestep == (m_last_updated_tstep + m_every)))
         dangerous = true;
-        
+
     // if the update has been forced, the result defaults to true
     if (m_force_update)
         {
@@ -918,7 +918,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
         m_force_update = false;
         m_forced_updates += 1;
         m_last_updated_tstep = timestep;
-        
+
         // when an update is forced, there is no way to tell if the build
         // is dangerous or not: filter out the false positive errors
         dangerous = false;
@@ -937,7 +937,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
             {
             result = distanceCheck();
             }
-        
+
         if (result)
             {
             // record update histogram - but only if the period is positive
@@ -953,14 +953,14 @@ bool NeighborList::needsUpdating(unsigned int timestep)
             m_updates += 1;
             }
         }
-        
+
     // warn the user if this is a dangerous build
     if (result && dangerous)
         {
         m_exec_conf->msg->notice(2) << "nlist: Dangerous neighborlist build occured. Continuing this simulation may produce incorrect results and/or program crashes. Decrease the neighborlist check_period and rerun." << endl;
         m_dangerous_updates += 1;
         }
-       
+
     m_last_check_result = result;
     return result;
     }
@@ -1011,7 +1011,7 @@ void NeighborList::resetStats()
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
         m_update_periods[i] = 0;
     }
-    
+
 unsigned int NeighborList::getSmallestRebuild()
     {
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
@@ -1031,10 +1031,10 @@ void NeighborList::buildNlist(unsigned int timestep)
     {
     // sanity check
     assert(m_pdata);
-    
+
     // start up the profile
     if (m_prof) m_prof->push("Build list");
-    
+
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
@@ -1048,20 +1048,20 @@ void NeighborList::buildNlist(unsigned int timestep)
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getNearestPlaneDistance();
-    
+
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
     // add d_max - 1.0, if diameter filtering is not already taking care of it
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
-    
+
     if (L.x <= rmax * 2.0 || L.y <= rmax * 2.0 || L.z <= rmax * 2.0)
         {
         m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
         throw runtime_error("Error updating neighborlist bins");
         }
-        
+
     // access the nlist data
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
@@ -1070,7 +1070,7 @@ void NeighborList::buildNlist(unsigned int timestep)
 
     // start by clearing the entire list
     memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
-    
+
     // now we can loop over all particles in n^2 fashion and build the list
 #pragma omp parallel for schedule(dynamic, 100)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -1078,7 +1078,7 @@ void NeighborList::buildNlist(unsigned int timestep)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         Scalar di = h_diameter.data[i];
         unsigned int bodyi = h_body.data[i];
-        
+
         // for each other particle with i < j, including ghost particles
         for (unsigned int j = i + 1; j < m_pdata->getN() + m_pdata->getNGhosts(); j++)
             {
@@ -1087,7 +1087,7 @@ void NeighborList::buildNlist(unsigned int timestep)
             Scalar3 dx = pj - pi;
 
             dx = box.minImage(dx);
-            
+
             bool excluded = false;
             if (m_filter_body && bodyi != NO_BODY)
                 excluded = (bodyi == h_body.data[j]);
@@ -1115,9 +1115,9 @@ void NeighborList::buildNlist(unsigned int timestep)
                             h_nlist.data[m_nlist_indexer(i, posi)] = j;
                         else
                             conditions = max(conditions, h_n_neigh.data[i]+1);
-                        
+
                         h_n_neigh.data[i]++;
-                       
+
                         unsigned int posj = h_n_neigh.data[j];
                         if (posj < m_Nmax)
                             h_nlist.data[m_nlist_indexer(j, posj)] = i;
@@ -1130,18 +1130,18 @@ void NeighborList::buildNlist(unsigned int timestep)
                 else
                     {
                     unsigned int pos = h_n_neigh.data[i];
-                    
+
                     if (pos < m_Nmax)
                         h_nlist.data[m_nlist_indexer(i, pos)] = j;
                     else
                         conditions = max(conditions, h_n_neigh.data[i]+1);
-                    
+
                     h_n_neigh.data[i]++;
                     }
                 }
             }
         }
-   
+
     // write out conditions
     m_conditions.resetFlags(conditions);
 
@@ -1172,7 +1172,7 @@ void NeighborList::updateExListIdx()
         // copy the number of exclusions over
         unsigned int n = h_n_ex_tag.data[tag];
         h_n_ex_idx.data[idx] = n;
-        
+
         // construct the exclusion list
         for (unsigned int offset = 0; offset < n; offset++)
             {
@@ -1183,7 +1183,7 @@ void NeighborList::updateExListIdx()
             h_ex_list_idx.data[m_ex_list_indexer(idx, offset)] = ex_idx;
             }
         }
-    
+
     if (m_prof)
         m_prof->pop();
     }
@@ -1194,26 +1194,26 @@ void NeighborList::filterNlist()
     {
     if (m_prof)
         m_prof->push("filter");
-    
+
     // access data
-    
+
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::readwrite);
-    
+
     // for each particle's neighbor list
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
         unsigned int n_neigh = h_n_neigh.data[idx];
         unsigned int n_ex = h_n_ex_idx.data[idx];
         unsigned int new_n_neigh = 0;
-        
+
         // loop over the list, regenerating it as we go
         for (unsigned int cur_neigh_idx = 0; cur_neigh_idx < n_neigh; cur_neigh_idx++)
             {
             unsigned int cur_neigh = h_nlist.data[m_nlist_indexer(idx, cur_neigh_idx)];
-            
+
             // test if excluded
             bool excluded = false;
             for (unsigned int cur_ex_idx = 0; cur_ex_idx < n_ex; cur_ex_idx++)
@@ -1225,7 +1225,7 @@ void NeighborList::filterNlist()
                     break;
                     }
                 }
-            
+
             // add it back to the list if it is not excluded
             if (!excluded)
                 {
@@ -1233,7 +1233,7 @@ void NeighborList::filterNlist()
                 new_n_neigh++;
                 }
             }
-        
+
         // update the number of neighbors
         h_n_neigh.data[idx] = new_n_neigh;
         }
@@ -1294,7 +1294,7 @@ void NeighborList::growExclusionList()
     // update the indexers
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), new_height);
     m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), new_height);
-    
+
     // we didn't copy data for the new idx list, force an update so it will be correct
     forceUpdate();
     }
@@ -1333,7 +1333,7 @@ bool NeighborList::peekUpdate(unsigned int timestep)
 
     if (m_prof) m_prof->pop();
 
-    return result; 
+    return result;
     }
 #endif
 
@@ -1343,7 +1343,7 @@ void export_NeighborList()
     .def(vector_indexing_suite<std::vector<unsigned int> >())
     .def("push_back", &std::vector<unsigned int>::push_back)
     ;
-    
+
     scope in_nlist = class_<NeighborList, boost::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
                      ("NeighborList", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("setRCut", &NeighborList::setRCut)
@@ -1371,10 +1371,9 @@ void export_NeighborList()
                      .def("setCommunicator", &NeighborList::setCommunicator)
 #endif
                      ;
-                     
+
     enum_<NeighborList::storageMode>("storageMode")
     .value("half", NeighborList::half)
     .value("full", NeighborList::full)
     ;
     }
-

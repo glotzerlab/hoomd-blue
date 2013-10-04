@@ -84,7 +84,7 @@ class _constraint_force:
     ## \internal
     # \brief Constructs the constraint force
     #
-    # \param name name of the constraint force instance 
+    # \param name name of the constraint force instance
     #
     # Initializes the cpp_force to None.
     # If specified, assigns a name to the instance
@@ -94,17 +94,17 @@ class _constraint_force:
         if not init.is_initialized():
             globals.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating constraint force');
-        
+
         self.cpp_force = None;
 
         # increment the id counter
         id = _constraint_force.cur_id;
         _constraint_force.cur_id += 1;
-        
+
         self.force_name = "constraint_force%d" % (id);
         self.enabled = True;
         globals.constraint_forces.append(self);
-        
+
         # create force data iterator
         self.forces = data.force_data(self);
 
@@ -115,7 +115,7 @@ class _constraint_force:
     ## \var cpp_force
     # \internal
     # \brief Stores the C++ side ForceCompute managed by this class
-    
+
     ## \var force_name
     # \internal
     # \brief The Force's name as it is assigned to the System
@@ -127,7 +127,7 @@ class _constraint_force:
         if self.cpp_force is None:
             globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
-        
+
 
     ## Disables the force
     #
@@ -137,11 +137,11 @@ class _constraint_force:
     # \endcode
     #
     # Executing the disable command will remove the force from the simulation.
-    # Any run() command executed after disabling a force will not calculate or 
+    # Any run() command executed after disabling a force will not calculate or
     # use the force during the simulation. A disabled force can be re-enabled
     # with enable()
     #
-    # To use this command, you must have saved the force in a variable, as 
+    # To use this command, you must have saved the force in a variable, as
     # shown in this example:
     # \code
     # force = constrain.some_force()
@@ -151,14 +151,14 @@ class _constraint_force:
     def disable(self):
         util.print_status_line();
         self.check_initialization();
-            
+
         # check if we are already disabled
         if not self.enabled:
             globals.msg.warning("Ignoring command to disable a force that is already disabled");
             return;
-        
+
         self.enabled = False;
-        
+
         # remove the compute from the system
         globals.system.removeCompute(self.force_name);
 
@@ -170,15 +170,15 @@ class _constraint_force:
     # t = force.benchmark(n = 100)
     # \endcode
     #
-    # The value returned by benchmark() is the average time to perform the force 
+    # The value returned by benchmark() is the average time to perform the force
     # computation, in milliseconds. The benchmark is performed by taking the current
     # positions of all particles in the simulation and repeatedly calculating the forces
-    # on them. Thus, you can benchmark different situations as you need to by simply 
+    # on them. Thus, you can benchmark different situations as you need to by simply
     # running a simulation to achieve the desired state before running benchmark().
     #
     # \note
-    # There is, however, one subtle side effect. If the benchmark() command is run 
-    # directly after the particle data is initialized with an init command, then the 
+    # There is, however, one subtle side effect. If the benchmark() command is run
+    # directly after the particle data is initialized with an init command, then the
     # results of the benchmark will not be typical of the time needed during the actual
     # simulation. Particles are not reordered to improve cache performance until at least
     # one time step is performed. Executing run(1) before the benchmark will solve this problem.
@@ -192,7 +192,7 @@ class _constraint_force:
     # \endcode
     def benchmark(self, n):
         self.check_initialization();
-        
+
         # run the benchmark
         return self.cpp_force.benchmark(int(n))
 
@@ -207,17 +207,17 @@ class _constraint_force:
     def enable(self):
         util.print_status_line();
         self.check_initialization();
-            
+
         # check if we are already disabled
         if self.enabled:
             globals.msg.warning("Ignoring command to enable a force that is already enabled");
             return;
-        
+
         # add the compute back to the system
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         self.enabled = True;
-        
+
 # set default counter
 _constraint_force.cur_id = 0;
 
@@ -249,7 +249,7 @@ class sphere(_constraint_force):
 
         # initialize the base class
         _constraint_force.__init__(self);
-        
+
         # create the c++ mirror class
         P = hoomd.make_scalar3(P[0], P[1], P[2]);
         if not globals.exec_conf.isCUDAEnabled():
@@ -258,5 +258,3 @@ class sphere(_constraint_force):
             self.cpp_force = hoomd.ConstraintSphereGPU(globals.system_definition, group.cpp_group, P, r);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-
-

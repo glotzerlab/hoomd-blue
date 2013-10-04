@@ -79,25 +79,25 @@ class HarmonicImproperForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
-        
+
         //! Destructor
         virtual ~HarmonicImproperForceCompute();
-        
+
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar chi);
-        
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-        
+
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
     protected:
         Scalar *m_K;    //!< K parameter for multiple improper tyes
         Scalar *m_chi;  //!< Chi parameter for multiple impropers
-        
+
         boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data to use in computing impropers
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -106,4 +106,3 @@ class HarmonicImproperForceCompute : public ForceCompute
 void export_HarmonicImproperForceCompute();
 
 #endif
-

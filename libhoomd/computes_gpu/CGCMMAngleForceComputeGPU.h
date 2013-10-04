@@ -91,7 +91,7 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
         CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         ~CGCMMAngleForceComputeGPU();
-        
+
         //! Sets the block size to run on the device
         /*! \param block_size Block size to set
         */
@@ -99,18 +99,18 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
             {
             m_block_size = block_size;
             }
-            
+
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma);
-        
+
     protected:
         int m_block_size;               //!< Block size to run calculation on
         GPUArray<Scalar2> m_params;      //!< k, t0 Parameters stored on the GPU
-        
+
         // below are just for the CG-CMM angle potential
         GPUArray<Scalar2>  m_CGCMMsr;    //!< GPU copy of the angle's epsilon/sigma/rcut (esr)
         GPUArray<Scalar4>  m_CGCMMepow;  //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -123,4 +123,3 @@ void export_CGCMMAngleForceComputeGPU();
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

@@ -144,4 +144,3 @@ void export_PotentialExternalGPU(const std::string& name)
     }
 
 #endif
-

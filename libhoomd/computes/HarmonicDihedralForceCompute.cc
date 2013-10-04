@@ -77,26 +77,26 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
+HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing HarmonicDihedralForceCompute" << endl;
 
     // access the dihedral data for later use
     m_dihedral_data = m_sysdef->getDihedralData();
-    
+
     // check for some silly errors a user could make
     if (m_dihedral_data->getNDihedralTypes() == 0)
         {
         m_exec_conf->msg->error() << "dihedral.harmonic: No dihedral types specified" << endl;
         throw runtime_error("Error initializing HarmonicDihedralForceCompute");
         }
-        
+
     // allocate the parameters
     m_K = new Scalar[m_dihedral_data->getNDihedralTypes()];
     m_sign = new Scalar[m_dihedral_data->getNDihedralTypes()];
     m_multi = new Scalar[m_dihedral_data->getNDihedralTypes()];
-    
+
     }
 
 HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
@@ -126,11 +126,11 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
         m_exec_conf->msg->error() << "dihedral.harmonic: Invalid dihedral type specified" << endl;
         throw runtime_error("Error setting parameters in HarmonicDihedralForceCompute");
         }
-        
+
     m_K[type] = K;
     m_sign[type] = (Scalar)sign;
     m_multi[type] = (Scalar)multiplicity;
-    
+
     // check for some silly errors a user could make
     if (K <= 0)
         m_exec_conf->msg->warning() << "dihedral.harmonic: specified K <= 0" << endl;
@@ -171,7 +171,7 @@ Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, un
 void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
     {
     if (m_prof) m_prof->push("Harmonic Dihedral");
-    
+
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -189,9 +189,9 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
     assert(h_virial.data);
     assert(h_pos.data);
     assert(h_rtag.data);
-    
+
     unsigned int virial_pitch = m_virial.getPitch();
-    
+
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
 
@@ -205,7 +205,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         assert(dihedral.b < m_pdata->getN());
         assert(dihedral.c < m_pdata->getN());
         assert(dihedral.d < m_pdata->getN());
-        
+
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints
         unsigned int idx_a = h_rtag.data[dihedral.a];
@@ -216,73 +216,73 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         assert(idx_b < m_pdata->getN());
         assert(idx_c < m_pdata->getN());
         assert(idx_d < m_pdata->getN());
-        
+
         // calculate d\vec{r}
         Scalar3 dab;
         dab.x = h_pos.data[idx_a].x - h_pos.data[idx_b].x;
         dab.y = h_pos.data[idx_a].y - h_pos.data[idx_b].y;
         dab.z = h_pos.data[idx_a].z - h_pos.data[idx_b].z;
-        
+
         Scalar3 dcb;
         dcb.x = h_pos.data[idx_c].x - h_pos.data[idx_b].x;
         dcb.y = h_pos.data[idx_c].y - h_pos.data[idx_b].y;
         dcb.z = h_pos.data[idx_c].z - h_pos.data[idx_b].z;
-        
+
         Scalar3 ddc;
         ddc.x = h_pos.data[idx_d].x - h_pos.data[idx_c].x;
         ddc.y = h_pos.data[idx_d].y - h_pos.data[idx_c].y;
         ddc.z = h_pos.data[idx_d].z - h_pos.data[idx_c].z;
-        
+
         // apply periodic boundary conditions
         dab = box.minImage(dab);
         dcb = box.minImage(dcb);
         ddc = box.minImage(ddc);
-        
+
         Scalar3 dcbm;
         dcbm.x = -dcb.x;
         dcbm.y = -dcb.y;
         dcbm.z = -dcb.z;
 
         dcbm = box.minImage(dcbm);
-        
+
         Scalar aax = dab.y*dcbm.z - dab.z*dcbm.y;
         Scalar aay = dab.z*dcbm.x - dab.x*dcbm.z;
         Scalar aaz = dab.x*dcbm.y - dab.y*dcbm.x;
-        
+
         Scalar bbx = ddc.y*dcbm.z - ddc.z*dcbm.y;
         Scalar bby = ddc.z*dcbm.x - ddc.x*dcbm.z;
         Scalar bbz = ddc.x*dcbm.y - ddc.y*dcbm.x;
-        
+
         Scalar raasq = aax*aax + aay*aay + aaz*aaz;
         Scalar rbbsq = bbx*bbx + bby*bby + bbz*bbz;
         Scalar rgsq = dcbm.x*dcbm.x + dcbm.y*dcbm.y + dcbm.z*dcbm.z;
         Scalar rg = sqrt(rgsq);
-        
+
         Scalar rginv, raa2inv, rbb2inv;
         rginv = raa2inv = rbb2inv = Scalar(0.0);
         if (rg > Scalar(0.0)) rginv = Scalar(1.0)/rg;
         if (raasq > Scalar(0.0)) raa2inv = Scalar(1.0)/raasq;
         if (rbbsq > Scalar(0.0)) rbb2inv = Scalar(1.0)/rbbsq;
         Scalar rabinv = sqrt(raa2inv*rbb2inv);
-        
+
         Scalar c_abcd = (aax*bbx + aay*bby + aaz*bbz)*rabinv;
         Scalar s_abcd = rg*rabinv*(aax*ddc.x + aay*ddc.y + aaz*ddc.z);
-        
+
         if (c_abcd > 1.0) c_abcd = 1.0;
         if (c_abcd < -1.0) c_abcd = -1.0;
-        
+
         int multi = (int)m_multi[dihedral.type];
         Scalar p = Scalar(1.0);
         Scalar dfab = Scalar(0.0);
         Scalar ddfab;
-        
+
         for (int j = 0; j < multi; j++)
             {
             ddfab = p*c_abcd - dfab*s_abcd;
             dfab = p*s_abcd + dfab*c_abcd;
             p = ddfab;
             }
-            
+
 /////////////////////////
 // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
 /////////////////////////
@@ -292,22 +292,22 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         dfab = dfab*sign;
         dfab *= (Scalar)-multi;
         p += Scalar(1.0);
-        
+
         if (multi == 0)
             {
             p =  Scalar(1.0) + sign;
             dfab = Scalar(0.0);
             }
-            
-            
+
+
         Scalar fg = dab.x*dcbm.x + dab.y*dcbm.y + dab.z*dcbm.z;
         Scalar hg = ddc.x*dcbm.x + ddc.y*dcbm.y + ddc.z*dcbm.z;
-        
+
         Scalar fga = fg*raa2inv*rginv;
         Scalar hgb = hg*rbb2inv*rginv;
         Scalar gaa = -raa2inv*rg;
         Scalar gbb = rbb2inv*rg;
-        
+
         Scalar dtfx = gaa*aax;
         Scalar dtfy = gaa*aay;
         Scalar dtfz = gaa*aaz;
@@ -317,30 +317,30 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar dthx = gbb*bbx;
         Scalar dthy = gbb*bby;
         Scalar dthz = gbb*bbz;
-        
+
 //      Scalar df = -m_K[dihedral.type] * dfab;
         Scalar df = -m_K[dihedral.type] * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
-        
+
         Scalar sx2 = df*dtgx;
         Scalar sy2 = df*dtgy;
         Scalar sz2 = df*dtgz;
-        
+
         Scalar ffax = df*dtfx;
         Scalar ffay= df*dtfy;
         Scalar ffaz = df*dtfz;
-        
+
         Scalar ffbx = sx2 - ffax;
         Scalar ffby = sy2 - ffay;
         Scalar ffbz = sz2 - ffaz;
-        
+
         Scalar ffdx = df*dthx;
         Scalar ffdy = df*dthy;
         Scalar ffdz = df*dthz;
-        
+
         Scalar ffcx = -sx2 - ffdx;
         Scalar ffcy = -sy2 - ffdy;
         Scalar ffcz = -sz2 - ffdz;
-        
+
         // Now, apply the force to each individual atom a,b,c,d
         // and accumlate the energy/virial
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
@@ -356,36 +356,36 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         dihedral_virial[3] = (1./4.)*(dab.y*ffay + dcb.y*ffcy + (ddc.y+dcb.y)*ffdy);
         dihedral_virial[4] = (1./4.)*(dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
         dihedral_virial[5] = (1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
-       
-        h_force.data[idx_a].x += ffax; 
-        h_force.data[idx_a].y += ffay; 
-        h_force.data[idx_a].z += ffaz; 
-        h_force.data[idx_a].w += dihedral_eng; 
+
+        h_force.data[idx_a].x += ffax;
+        h_force.data[idx_a].y += ffay;
+        h_force.data[idx_a].z += ffaz;
+        h_force.data[idx_a].w += dihedral_eng;
         for (int k = 0; k < 6; k++)
            h_virial.data[virial_pitch*k+idx_a]  += dihedral_virial[k];
 
-        h_force.data[idx_b].x += ffbx; 
-        h_force.data[idx_b].y += ffby; 
-        h_force.data[idx_b].z += ffbz; 
-        h_force.data[idx_b].w += dihedral_eng; 
+        h_force.data[idx_b].x += ffbx;
+        h_force.data[idx_b].y += ffby;
+        h_force.data[idx_b].z += ffbz;
+        h_force.data[idx_b].w += dihedral_eng;
         for (int k = 0; k < 6; k++)
            h_virial.data[virial_pitch*k+idx_b]  += dihedral_virial[k];
 
-        h_force.data[idx_c].x += ffcx; 
-        h_force.data[idx_c].y += ffcy; 
-        h_force.data[idx_c].z += ffcz; 
-        h_force.data[idx_c].w += dihedral_eng; 
+        h_force.data[idx_c].x += ffcx;
+        h_force.data[idx_c].y += ffcy;
+        h_force.data[idx_c].z += ffcz;
+        h_force.data[idx_c].w += dihedral_eng;
         for (int k = 0; k < 6; k++)
            h_virial.data[virial_pitch*k+idx_c]  += dihedral_virial[k];
 
-        h_force.data[idx_d].x += ffdx; 
-        h_force.data[idx_d].y += ffdy; 
-        h_force.data[idx_d].z += ffdz; 
-        h_force.data[idx_d].w += dihedral_eng; 
+        h_force.data[idx_d].x += ffdx;
+        h_force.data[idx_d].y += ffdy;
+        h_force.data[idx_d].z += ffdz;
+        h_force.data[idx_d].w += dihedral_eng;
         for (int k = 0; k < 6; k++)
            h_virial.data[virial_pitch*k+idx_d]  += dihedral_virial[k];
        }
-        
+
     if (m_prof) m_prof->pop();
     }
 
@@ -400,4 +400,3 @@ void export_HarmonicDihedralForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

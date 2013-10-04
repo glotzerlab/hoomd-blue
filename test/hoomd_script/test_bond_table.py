@@ -17,31 +17,30 @@ class bond_table_tests (unittest.TestCase):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         import __main__;
         __main__.sorter.set_params(grid=8)
-    
+
     # basic test of creation
     def test(self):
         btable = bond.table(width=1000);
         btable.bond_coeff.set('polymer', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
         btable.update_coeffs();
-        
+
     # test missing coefficients
     def test_set_missing_coeff(self):
         btable = bond.table(width=1000);
         btable.bond_coeff.set('polymer', rmin=0.0, rmax=1.0);
-        self.assertRaises(RuntimeError, btable.update_coeffs);    
-        
+        self.assertRaises(RuntimeError, btable.update_coeffs);
+
     # test more missing coefficients
     def test_missing_all(self):
         btable = bond.table(width=1000);
         self.assertRaises(RuntimeError, btable.update_coeffs);
-                
-        
-    # Add tests to check for runtime errors        
-    
+
+
+    # Add tests to check for runtime errors
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

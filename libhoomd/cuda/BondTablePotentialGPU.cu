@@ -106,7 +106,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
                                      unsigned int *d_flags)
     {
 
-    
+
     // read in params for easy and fast access in the kernel
     extern __shared__ Scalar4 s_params[];
     for (unsigned int cur_offset = 0; cur_offset < n_bond_type; cur_offset += blockDim.x)
@@ -173,7 +173,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
 
             // compute index into the table and read in values
             unsigned int value_i = floor(value_f);
-            
+
             Scalar2 VF0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_bond_type));
             Scalar2 VF1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i+1, cur_bond_type));
             // unpack the data

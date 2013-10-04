@@ -88,7 +88,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    
+
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(0.9,0.0,0.0));
     pdata_2->setFlags(~PDataFlags(0));
@@ -96,12 +96,12 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // create the bond force compute to check
     shared_ptr<PotentialBondHarmonic> fc_2 = bf_creator(sysdef_2);
     fc_2->setParams(0, make_scalar2(1.5, 0.75));
-    
+
     // compute the force and check the results
     fc_2->compute(0);
     GPUArray<Scalar4>& force_array_1 =  fc_2->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
-    
+
     {
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
@@ -122,7 +122,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // add a bond and check again
     sysdef_2->getBondData()->addBond(Bond(0, 0,1));
     fc_2->compute(1);
-    
+
     {
     // this time there should be a force
     GPUArray<Scalar4>& force_array_2 =  fc_2->getForceArray();
@@ -137,7 +137,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_2.data[0*pitch+0]
                                        +h_virial_2.data[3*pitch+0]
                                        +h_virial_2.data[5*pitch+0]), -0.03375, tol);
-    
+
     // check that the two forces are negatives of each other
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, -h_force_2.data[1].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].y, -h_force_2.data[1].y, tol);
@@ -166,7 +166,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     pdata_2->notifyParticleSort();
     // recompute at the same timestep, the forces should still be updated
     fc_2->compute(1);
-    
+
     {
     // this time there should be a force
     GPUArray<Scalar4>& force_array_3 =  fc_2->getForceArray();
@@ -180,9 +180,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // check r=r_0 behavior
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(0.75,0.0,0.0));
-    
+
     fc_2->compute(2);
-    
+
     {
     // the force should be zero
     GPUArray<Scalar4>& force_array_4 =  fc_2->getForceArray();
@@ -202,7 +202,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
-    
+
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
     pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
     pdata_6->setPosition(2, make_scalar3(0.0,-19.6,0.0));
@@ -214,13 +214,13 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     fc_6->setParams(0, make_scalar2( 1.5, 0.75));
     fc_6->setParams(1, make_scalar2(2.0*1.5, 0.75));
     fc_6->setParams(2, make_scalar2(1.5, 0.5));
-    
+
     sysdef_6->getBondData()->addBond(Bond(0, 0,1));
     sysdef_6->getBondData()->addBond(Bond(1, 2,3));
     sysdef_6->getBondData()->addBond(Bond(2, 4,5));
-    
+
     fc_6->compute(0);
-    
+
     {
     // check that the forces are correctly computed
     GPUArray<Scalar4>& force_array_5 =  fc_6->getForceArray();
@@ -235,7 +235,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_5.data[0*pitch+0]
                                        +h_virial_5.data[3*pitch+0]
                                        +h_virial_5.data[5*pitch+0]), -0.01, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, 0.075, tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_5.data[1].z, tol_small);
@@ -243,7 +243,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_5.data[0*pitch+1]
                                        +h_virial_5.data[3*pitch+1]
                                        +h_virial_5.data[5*pitch+1]), -0.01, tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_5.data[2].x, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[2].y, -0.075 * 2.0, tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[2].z, tol_small);
@@ -251,7 +251,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_5.data[0*pitch+2]
                                        +h_virial_5.data[3*pitch+2]
                                        +h_virial_5.data[5*pitch+2]), -0.02, tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_5.data[3].x, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].y, 0.075 * 2.0, tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[3].z, tol_small);
@@ -259,7 +259,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_5.data[0*pitch+3]
                                        +h_virial_5.data[3*pitch+3]
                                        +h_virial_5.data[5*pitch+3]), -0.02, tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_5.data[4].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_5.data[4].y, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[4].z, -0.45, tol);
@@ -267,7 +267,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_5.data[0*pitch+4]
                                        +h_virial_5.data[3*pitch+4]
                                        +h_virial_5.data[5*pitch+4]), -0.06, tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_5.data[5].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_5.data[5].y, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[5].z, 0.45, tol);
@@ -283,7 +283,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
     pdata_4->setFlags(~PDataFlags(0));
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(pdata_4->getTags(), access_location::host, access_mode::readwrite);
@@ -312,9 +312,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     sysdef_4->getBondData()->addBond(Bond(0, 2,3));
     sysdef_4->getBondData()->addBond(Bond(0, 2,0));
     sysdef_4->getBondData()->addBond(Bond(0, 0,1));
-    
+
     fc_4->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_6 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_6 =  fc_4->getVirialArray();
@@ -329,7 +329,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_6.data[0*pitch+1]
                                        +h_virial_6.data[3*pitch+1]
                                        +h_virial_6.data[5*pitch+1]), 0.1875, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_6.data[3].x, 1.125, tol);
     MY_BOOST_CHECK_SMALL(h_force_6.data[3].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_6.data[3].z, tol_small);
@@ -337,7 +337,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_6.data[0*pitch+3]
                                        +h_virial_6.data[3*pitch+3]
                                        +h_virial_6.data[5*pitch+3]), 0.1875, tol);
-    
+
     // the bottom left particle should have a force pulling down and to the left
     MY_BOOST_CHECK_CLOSE(h_force_6.data[0].x, -1.125, tol);
     MY_BOOST_CHECK_CLOSE(h_force_6.data[0].y, -1.125, tol);
@@ -346,7 +346,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_6.data[0*pitch+0]
                                        +h_virial_6.data[3*pitch+0]
                                        +h_virial_6.data[5*pitch+0]), 0.375, tol);
-    
+
     // and the top left particle should have a force pulling up and to the left
     MY_BOOST_CHECK_CLOSE(h_force_6.data[2].x, -1.125, tol);
     MY_BOOST_CHECK_CLOSE(h_force_6.data[2].y, 1.125, tol);
@@ -362,7 +362,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
 void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
-    
+
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
@@ -371,22 +371,22 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-    
+
     shared_ptr<PotentialBondHarmonic> fc1 = bf_creator1(sysdef);
     shared_ptr<PotentialBondHarmonic> fc2 = bf_creator2(sysdef);
     fc1->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
     fc2->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
-    
+
     // add bonds
     for (unsigned int i = 0; i < N-1; i++)
         {
         sysdef->getBondData()->addBond(Bond(0, i, i+1));
         }
-        
+
     // compute the forces
     fc1->compute(0);
     fc2->compute(0);
-    
+
     // verify that the forces are identical (within roundoff errors)
     {
     GPUArray<Scalar4>& force_array_7 =  fc1->getForceArray();
@@ -398,7 +398,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     GPUArray<Scalar>& virial_array_8 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_8(virial_array_8,access_location::host,access_mode::read);
-    
+
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
@@ -442,7 +442,7 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(0.9,0.0,0.0));
-    
+
     // Create the ConstForceCompute and check that it works properly
     ConstForceCompute fc(sysdef_2, Scalar(-1.3), Scalar(2.5), Scalar(45.67));
     {
@@ -458,7 +458,7 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     MY_BOOST_CHECK_SMALL(h_virial_9.data[0*pitch+0]
                         +h_virial_9.data[3*pitch+0]
                         +h_virial_9.data[5*pitch+0], tol_small);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_9.data[1].x, -1.3, tol);
     MY_BOOST_CHECK_CLOSE(h_force_9.data[1].y, 2.5, tol);
     MY_BOOST_CHECK_CLOSE(h_force_9.data[1].z, 45.67, tol);
@@ -483,7 +483,7 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     MY_BOOST_CHECK_SMALL(h_virial_10.data[0*pitch+0]
                         +h_virial_10.data[3*pitch+0]
                         +h_virial_10.data[5*pitch+0], tol_small);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_10.data[1].x, 67.54, tol);
     MY_BOOST_CHECK_CLOSE(h_force_10.data[1].y, 22.1, tol);
     MY_BOOST_CHECK_CLOSE(h_force_10.data[1].z, -1.4, tol);
@@ -542,4 +542,3 @@ BOOST_AUTO_TEST_CASE( ConstForceCompute_basic )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

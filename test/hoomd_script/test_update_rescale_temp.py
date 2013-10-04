@@ -22,7 +22,7 @@ class update_rescale_temp_tests (unittest.TestCase):
     def test_variable(self):
         update.rescale_temp(T=1.0, period=lambda n: n*10)
         run(100);
-    
+
     # test enable/disable
     def test_enable_disable(self):
         upd = update.rescale_temp(T=1.0)
@@ -34,7 +34,7 @@ class update_rescale_temp_tests (unittest.TestCase):
         self.assert_(upd.enabled);
         upd.enable();
         self.assert_(upd.enabled);
-        
+
     # test set_period
     def test_set_period(self):
         upd = update.rescale_temp(T=1.0)
@@ -44,16 +44,15 @@ class update_rescale_temp_tests (unittest.TestCase):
         upd.set_period(50);
         self.assertEqual(50, upd.prev_period);
         upd.enable();
-        
+
     # test set_params
     def test_set_params(self):
         upd = update.rescale_temp(T=1.0);
         upd.set_params(T=1.2);
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

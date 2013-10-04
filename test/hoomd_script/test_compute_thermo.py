@@ -18,11 +18,10 @@ class compute_thermo_tests (unittest.TestCase):
         typeA = group.type(name='typeA', type='A')
         compute.thermo(group=typeA);
         run(100);
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

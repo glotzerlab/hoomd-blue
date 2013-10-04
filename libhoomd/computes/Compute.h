@@ -108,7 +108,7 @@ class Compute : boost::noncopyable
         //! Constructs the compute and associates it with the ParticleData
         Compute(boost::shared_ptr<SystemDefinition> sysdef);
         virtual ~Compute() {};
-        
+
         //! Abstract method that performs the computation
         /*! \param timestep Current time step
             Derived classes will implement this method to calculate their results
@@ -117,48 +117,48 @@ class Compute : boost::noncopyable
 
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
-        
+
         //! Print some basic stats to stdout
         /*! Derived classes can optionally implement this function. A System will
             call all of the Compute's printStats functions at the end of a run
-            so the user can see useful information 
+            so the user can see useful information
         */
         virtual void printStats()
             {
             }
-            
+
         //! Reset stat counters
-        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running 
+        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
             counters printed by printStats. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
         virtual void resetStats()
             {
             }
-            
+
         //! Sets the profiler for the compute to use
         void setProfiler(boost::shared_ptr<Profiler> prof);
-        
+
         //! Returns a list of log quantities this compute calculates
         /*! The base class implementation just returns an empty vector. Derived classes should override
             this behavior and return a list of quantities that they log.
-        
+
             See Logger for more information on what this is about.
         */
         virtual std::vector< std::string > getProvidedLogQuantities()
             {
             return std::vector< std::string >();
             }
-            
+
         //! Calculates the requested log value and returns it
         /*! \param quantity Name of the log quantity to get
             \param timestep Current time step of the simulation
-        
+
             The base class just returns 0. Derived classes should override this behavior and return
             the calculated value for the given quantity. Only quantities listed in
             the return value getProvidedLogQuantities() will be requested from
             getLogValue().
-        
+
             See Logger for more information on what this is about.
         */
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
@@ -195,7 +195,7 @@ class Compute : boost::noncopyable
         // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
         // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
         // merge conflicts.
-        bool m_inside_thread;           //!< True if we are called from within a worker thread 
+        bool m_inside_thread;           //!< True if we are called from within a worker thread
         unsigned int m_thread_id;       //!< In multi-threading, this stores the thread ID from which the force compute was called
 
         //! Simple method for testing if the computation should be run or not
@@ -206,7 +206,7 @@ class Compute : boost::noncopyable
         bool m_force_compute;           //!< true if calculation is enforced
 
         bool m_mutex;                   //!< Mutex to protect against simultaneous updates of the same compute
-       
+
         //! The python export needs to be a friend to export shouldCompute()
         friend void export_Compute();
     };
@@ -215,4 +215,3 @@ class Compute : boost::noncopyable
 void export_Compute();
 
 #endif
-

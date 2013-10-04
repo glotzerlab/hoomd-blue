@@ -66,14 +66,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Integrates part of the system forward in two steps in the NVT ensemble (via brownian dynamics)
 /*! Implements velocity-verlet NVE integration with additional brownian dynamics forces through the
     IntegrationMethodTwoStep interface, runs on the GPU.
-    
+
     This class must inherit from TwoStepBDNVT so that it has that interface. However, is based off of the NVE
     integration base routines. Rather than doing some evil multiple inheritance here, the integrateStepOne() from
     TwoStepNVEGPU will simply be duplicated here.
-    
+
     In order to implement integrateStepTwo with the added BD forces, integrateStepTwo needs is reimplemened for
     BDNVT.
-    
+
     \ingroup updaters
 */
 class TwoStepBDNVTGPU : public TwoStepBDNVT
@@ -87,22 +87,21 @@ class TwoStepBDNVTGPU : public TwoStepBDNVT
                         bool gamma_diam,
                         const std::string& suffix = std::string(""));
         virtual ~TwoStepBDNVTGPU() {};
-        
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
-        
+
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
-      
+
     protected:
         unsigned int m_block_size;              //!< block size for partial sum memory
         unsigned int m_num_blocks;              //!< number of memory blocks reserved for partial sum memory
         GPUArray<Scalar> m_partial_sum1;         //!< memory space for partial sum over bd energy transfers
-        GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers          
+        GPUArray<Scalar> m_sum;                  //!< memory space for sum over bd energy transfers
     };
 
 //! Exports the TwoStepBDNVTGPU class to python
 void export_TwoStepBDNVTGPU();
 
 #endif // #ifndef __TWO_STEP_BDNVT_GPU_H__
-

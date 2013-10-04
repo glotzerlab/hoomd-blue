@@ -92,19 +92,19 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
     h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 3.25;
     }
-    
+
     // test construction of the neighborlist
     shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 3.0, 0.25));
     nlist_2->compute(1);
-    
+
     // with the given radius, there should be no neighbors: check that
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
-        
+
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
         }
-    
+
     // adjust the radius to include the particles and see if we get some now
     nlist_2->setRCut(5.5, 0.5);
     nlist_2->compute(2);
@@ -114,13 +114,13 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_2->getNListIndexer();
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
         // since this is a half list, only 0 stores 1 as a neighbor
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
         }
-        
+
     // change to full mode to check that
     nlist_2->setStorageMode(NeighborList::full);
     nlist_2->compute(3);
@@ -128,24 +128,24 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_2->getNListIndexer();
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
 
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
         }
-    
-    
+
+
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
-    
+
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -156,7 +156,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = Scalar(-29.6);
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  Scalar(29.6);
     }
-    
+
     shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->compute(0);
@@ -165,27 +165,27 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_6->getNListIndexer();
-        
+
         BOOST_REQUIRE(nli.getW() >= 6);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 3);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[3], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,0)], 2);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[4], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,0)], 5);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[5], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(5,0)], 4);
         }
-    
+
     // swap the order of the particles around to look for subtle directional bugs
     {
     ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
@@ -197,34 +197,34 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z = Scalar(-29.6);
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z =  Scalar(29.6);
     }
-    
+
     // verify the neighbor list
     nlist_6->compute(1);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_6->getNListIndexer();
-        
+
         BOOST_REQUIRE(nli.getW() >= 6);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 3);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[3], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,0)], 2);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[4], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,0)], 5);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[5], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(5,0)], 4);
         }
-    
+
     // one last test, we should check that more than one neighbor can be generated
     {
     ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
@@ -236,13 +236,13 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  0;
     }
-    
+
     nlist_6->compute(20);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_6->getNListIndexer();
-        
+
         BOOST_REQUIRE(nli.getW() >= 6);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 3);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
@@ -257,7 +257,7 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
     {
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    
+
     // lets make this test simple: put all 6 particles on top of each other and
     // see if the exclusion code can ignore 4 of the particles
     {
@@ -277,23 +277,23 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
     nlist_6->addExclusion(0,2);
     nlist_6->addExclusion(0,3);
     nlist_6->addExclusion(0,4);
-    
+
     nlist_6->compute(0);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_6->getNListIndexer();
-        
+
         BOOST_REQUIRE(nli.getW() >= 6);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 5);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 2);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,1)], 3);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,2)], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,3)], 5);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,1)], 3);
@@ -305,7 +305,7 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,1)], 2);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,2)], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,3)], 5);
-    
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[4], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,0)], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,1)], 2);
@@ -327,7 +327,7 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
     {
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    
+
     // lets make this test simple: put all 6 particles on top of each other and
     // see if the exclusion code can ignore 4 of the particles
     {
@@ -341,20 +341,20 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0; h_body.data[4] = 1;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z = 0; h_body.data[5] = NO_BODY;
     }
-    
+
     // this test uses rigid bodies, initialize them
     sysdef_6->getRigidData()->initializeData();
 
     shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setFilterBody(true);
     nlist_6->setStorageMode(NeighborList::full);
-    
+
     nlist_6->compute(0);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_6->getNListIndexer();
-        
+
         BOOST_REQUIRE(nli.getW() >= 6);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 5);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
@@ -362,13 +362,13 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,2)], 3);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,3)], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,4)], 5);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,0)], 0);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,1)], 2);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,2)], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(1,3)], 5);
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 0);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,1)], 1);
@@ -380,7 +380,7 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,1)], 2);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,2)], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(3,3)], 5);
-    
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[4], 4);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,0)], 0);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(4,1)], 1);
@@ -414,7 +414,7 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
     h_pos.data[1].x = 0; h_pos.data[1].y = 0; h_pos.data[1].z = -3.0; h_diameter.data[1] = 1.0;
     h_pos.data[3].x = 0; h_pos.data[3].y = 2.51; h_pos.data[3].z = 0; h_diameter.data[3] = 0;
     }
-    
+
     // test construction of the neighborlist
     shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
     nlist_2->compute(1);
@@ -423,22 +423,22 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
     // with the given settings, there should be no neighbors: check that
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
-        
+
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
         BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 0);
         }
-    
+
     // set a test maximum diameter of 2.0
     nlist_2->setMaximumDiameter(2.0);
     nlist_2->compute(2);
-    
+
     // 0 and 1 should be neighbors now, as well as 0 and 2
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_2->getNListIndexer();
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 3);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,1)], 2);
@@ -450,17 +450,17 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 0);
         }
-    
+
     // bump it up to 3.0
     nlist_2->setMaximumDiameter(3.0);
     nlist_2->compute(3);
-    
+
     // should be the same as above
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_2->getNListIndexer();
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 3);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,1)], 2);
@@ -474,7 +474,7 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,0)], 0);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(2,1)], 3);
         }
-    
+
     // enable diameter filtering and verify the result is still correct
     nlist_2->setFilterDiameter(true);
     nlist_2->compute(4);
@@ -484,7 +484,7 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
         ArrayHandle<unsigned int> h_n_neigh(nlist_2->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_2->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist_2->getNListIndexer();
-        
+
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 2);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,0)], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[nli(0,1)], 2);
@@ -506,55 +506,55 @@ void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec
     boost::shared_ptr<SnapshotSystemData> snap = init.getSnapshot();
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+
     shared_ptr<NeighborList> nlist1(new NLA(sysdef, Scalar(3.0), Scalar(0.4)));
     nlist1->setStorageMode(NeighborList::full);
-    
+
     shared_ptr<NeighborList> nlist2(new NLB(sysdef, Scalar(3.0), Scalar(0.4)));
     nlist2->setStorageMode(NeighborList::full);
-    
+
     // setup some exclusions: try to fill out all four exclusions for each particle
     for (unsigned int i=0; i < pdata->getN()-2; i++)
         {
         nlist1->addExclusion(i,i+1);
         nlist1->addExclusion(i,i+2);
-        
+
         nlist2->addExclusion(i,i+1);
         nlist2->addExclusion(i,i+2);
         }
-        
+
     // compute each of the lists
     nlist1->compute(0);
     nlist2->compute(0);
-    
+
     // verify that both new ones match the basic
     ArrayHandle<unsigned int> h_n_neigh1(nlist1->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist1(nlist1->getNListArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_neigh2(nlist2->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist2(nlist2->getNListArray(), access_location::host, access_mode::read);
     Index2D nli = nlist1->getNListIndexer();
-    
+
     // temporary vectors for holding the lists: they will be sorted for comparison
     std::vector<unsigned int> tmp_list1;
     std::vector<unsigned int> tmp_list2;
-    
+
     // check to make sure that every neighbor matches
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
         BOOST_REQUIRE_EQUAL(h_n_neigh1.data[i], h_n_neigh2.data[i]);
-        
+
         tmp_list1.resize(h_n_neigh1.data[i]);
         tmp_list2.resize(h_n_neigh1.data[i]);
-        
+
         for (unsigned int j = 0; j < h_n_neigh1.data[i]; j++)
             {
             tmp_list1[j] = h_nlist1.data[nli(i,j)];
             tmp_list2[j] = h_nlist2.data[nli(i,j)];
             }
-        
+
         sort(tmp_list1.begin(), tmp_list1.end());
         sort(tmp_list2.begin(), tmp_list2.end());
-        
+
         for (unsigned int j = 0; j < tmp_list1.size(); j++)
             {
             BOOST_CHECK_EQUAL(tmp_list1[j], tmp_list2[j]);
@@ -571,17 +571,17 @@ void neighborlist_large_ex_tests(boost::shared_ptr<ExecutionConfiguration> exec_
     boost::shared_ptr<SnapshotSystemData> snap = init.getSnapshot();
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+
     shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(8.0), Scalar(0.4)));
     nlist->setStorageMode(NeighborList::full);
-    
+
     // add every single neighbor as an exclusion
     nlist->compute(0);
         {
         ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(), access_location::host, access_mode::read);
         Index2D nli = nlist->getNListIndexer();
-        
+
         for (unsigned int i = 0; i < pdata->getN(); i++)
             {
             for (unsigned int neigh = 0; neigh < h_n_neigh.data[i]; neigh++)
@@ -591,13 +591,13 @@ void neighborlist_large_ex_tests(boost::shared_ptr<ExecutionConfiguration> exec_
                 }
             }
         }
-    
+
     // compute the nlist again
     nlist->compute(0);
-    
+
     // verify that there are now 0 neighbors for each particle
     ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
-    
+
     // check to make sure that every neighbor matches
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
@@ -735,7 +735,3 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-
-
-
-

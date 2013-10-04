@@ -9,7 +9,7 @@ import os
 class init_create_random_tests (unittest.TestCase):
     def setUp(self):
         print
-    
+
     # tests that mode settings work properly
     def test_mode(self):
         option.set_mode('gpu');
@@ -20,9 +20,9 @@ class init_create_random_tests (unittest.TestCase):
 
         option.set_mode(None);
         self.assert_(globals.options.mode is None);
-        
+
         self.assertRaises(RuntimeError, option.set_mode, 'foo');
-    
+
     def test_gpu(self):
         option.set_gpu(1);
         self.assert_(globals.options.gpu == 1);
@@ -79,4 +79,3 @@ class init_create_random_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

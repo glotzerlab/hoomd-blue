@@ -64,7 +64,7 @@ from hoomd_script import init;
 
 ## Defines a group of particles
 #
-# group should not be created directly in hoomd_script code. The following methods can be used to create particle 
+# group should not be created directly in hoomd_script code. The following methods can be used to create particle
 # groups.
 # - group.all()
 # - group.cuboid()
@@ -89,13 +89,13 @@ from hoomd_script import init;
 #
 # \b Examples:
 # \code
-# # create a group containing all particles in group A and those with 
+# # create a group containing all particles in group A and those with
 # # tags 100-199
 # groupA = group.type('A')
 # group100_199 = group.tags(100, 199);
 # group_combined = group.union(name="combined", a=groupA, b=group100_199);
 #
-# # create a group containing all particles in group A that also have 
+# # create a group containing all particles in group A that also have
 # # tags 100-199
 # group_combined2 = group.intersection(name="combined2", a=groupA, b=group100_199);
 #
@@ -119,7 +119,7 @@ from hoomd_script import init;
 # \endcode
 #
 # For more information and examples on accessing the %data in this way, see hoomd_script.data.
-# 
+#
 class group:
     ## \internal
     # \brief group iterator
@@ -132,24 +132,24 @@ class group:
         def __next__(self):
             if self.index == len(self.data):
                 raise StopIteration;
-            
+
             result = self.data[self.index];
             self.index += 1;
             return result;
-        
+
         # support python2
         next = __next__;
-    
+
     ## \internal
     # \brief Creates a group
-    # 
+    #
     # \param name Name of the group
     # \param cpp_group an instance of hoomd.ParticleData that defines the group
     def __init__(self, name, cpp_group):
         # initialize the group
         self.name = name;
         self.cpp_group = cpp_group;
-    
+
     ## \internal
     # \brief Get a particle_proxy reference to the i'th particle in the group
     # \param i Index of the particle in the group to get
@@ -158,7 +158,7 @@ class group:
             raise IndexError;
         tag = self.cpp_group.getMemberTag(i);
         return data.particle_data_proxy(globals.system_definition.getParticleData(), tag);
-    
+
     def __setitem__(self, i, p):
         raise RuntimeError('__setitem__ not implemented');
 
@@ -184,12 +184,12 @@ class group:
 
 ## Groups all particles
 #
-# Creates a particle group from all particles in the simulation. The group can then be used by other hoomd_script 
+# Creates a particle group from all particles in the simulation. The group can then be used by other hoomd_script
 # commands (such as analyze.msd) to specify which particles should be operated on.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
-# 
+#
 # \b Examples:
 # \code
 # all = group.all()
@@ -201,7 +201,7 @@ def all():
     if not init.is_initialized():
         globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
-    
+
     # the all group is special: when the first one is created, it is cached in globals and future calls to group.all()
     # return the cached version
     if globals.group_all is not None:
@@ -209,9 +209,9 @@ def all():
         if len(globals.group_all) != expected_N:
             globals.msg.error("globals.group_all does not appear to be the group of all particles!\n");
             raise RuntimeError('Error creating group');
-        
+
         return globals.group_all;
-    
+
     # choose the tag range
     tag_min = 0;
     tag_max = globals.system_definition.getParticleData().getNGlobal()-1;
@@ -260,12 +260,12 @@ def all():
 # \endcode
 def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None):
     util.print_status_line();
-    
+
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
-    
+
     # handle the optional arguments
     box = globals.system_definition.getParticleData().getGlobalBox();
     if xmin is None:
@@ -280,7 +280,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
         zmin = box.getLo().z - 0.5;
     if zmax is None:
         zmax = box.getHi().z + 0.5;
-    
+
     ll = hoomd.Scalar3();
     ur = hoomd.Scalar3();
     ll.x = float(xmin);
@@ -289,7 +289,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     ur.x = float(xmax);
     ur.y = float(ymax);
     ur.z = float(zmax);
-    
+
     # create the group
     selector = hoomd.ParticleSelectorCuboid(globals.system_definition, ll, ur);
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
@@ -308,7 +308,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
 #
 # The group is always named 'nonrigid'.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
 #
 # \b Examples:
@@ -317,7 +317,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
 # \endcode
 def nonrigid():
     util.print_status_line();
-    
+
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot create a group before initialization\n");
@@ -342,7 +342,7 @@ def nonrigid():
 #
 # The group is always named 'rigid'.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
 #
 # \b Examples:
@@ -351,7 +351,7 @@ def nonrigid():
 # \endcode
 def rigid():
     util.print_status_line();
-    
+
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot create a group before initialization\n");
@@ -375,7 +375,7 @@ def rigid():
 # \param name User-assigned name for this group. If a name is not specified, a default one will be generated.
 #
 # The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
-# added to the group. 
+# added to the group.
 #
 # Creates a particle group from particles that match the given tag range. The group can then be used by other
 # hoomd_script commands
@@ -383,7 +383,7 @@ def rigid():
 #
 # Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
-# 
+#
 # \b Examples:
 # \code
 # half1 = group.tags(name="first-half", tag_min=0, tag_max=999)
@@ -391,12 +391,12 @@ def rigid():
 # \endcode
 def tags(tag_min, tag_max=None, name=None):
     util.print_status_line();
-    
+
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
-    
+
     # handle the optional argument
     if tag_max is not None:
         if name is None:
@@ -428,7 +428,7 @@ def tags(tag_min, tag_max=None, name=None):
 #
 # Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
-# 
+#
 # \b Examples:
 # \code
 # a = group.tag_list(name="a", tags = [0, 12, 18, 205])
@@ -436,12 +436,12 @@ def tags(tag_min, tag_max=None, name=None):
 # \endcode
 def tag_list(name, tags):
     util.print_status_line();
-    
+
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
-    
+
     # build a vector of the tags
     cpp_list = hoomd.std_vector_uint();
     for t in tags:
@@ -463,11 +463,11 @@ def tag_list(name, tags):
 #
 # Group membership is \b static and determined at the time the group is created. Changing a particle type at a later
 # time will not update the group.
-# 
-# Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script 
+#
+# Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script
 # commands (such as analyze.msd) to specify which particles should be operated on.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
 #
 # \b Examples:
@@ -477,7 +477,7 @@ def tag_list(name, tags):
 # \endcode
 def type(type, name=None):
     util.print_status_line();
-    
+
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot create a group before initialization\n");
@@ -491,7 +491,7 @@ def type(type, name=None):
     type_list = [];
     for i in range(0,ntypes):
         type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-    
+
     if type not in type_list:
         globals.msg.warning(str(type) + " does not exist in the system, creating an empty group\n");
         cpp_list = hoomd.std_vector_uint();
@@ -500,7 +500,7 @@ def type(type, name=None):
         type_id = globals.system_definition.getParticleData().getTypeByName(type);
         selector = hoomd.ParticleSelectorType(globals.system_definition, type_id, type_id);
         cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
-    
+
     # notify the user of the created group
     globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
 
@@ -516,7 +516,7 @@ def type(type, name=None):
 #
 # Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
-# 
+#
 # \b Examples:
 # \code
 # a = group.charged()
@@ -524,12 +524,12 @@ def type(type, name=None):
 # \endcode
 def charged(name='charged'):
     util.print_status_line();
-    
+
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
-    
+
     util._disable_status_lines = True;
 
     # determine the group of particles that are charged
@@ -539,7 +539,7 @@ def charged(name='charged'):
     for i in range(0,len(pdata)):
         if pdata[i].charge != 0.0:
             charged_tags.append(i);
-    
+
     retval = tag_list(name, charged_tags);
     util._disable_status_lines = False;
 
@@ -617,4 +617,3 @@ def union(name, a, b):
     return group(name, new_cpp_group);
 
 # @}
-

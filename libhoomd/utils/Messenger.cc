@@ -91,7 +91,7 @@ Messenger::Messenger()
 #endif
 
     // preliminarily initialize rank and partiton
-    #ifdef ENABLE_MPI 
+    #ifdef ENABLE_MPI
     setRank(ExecutionConfiguration::guessRank(),0);
     #else
     setRank(0,0);
@@ -241,7 +241,7 @@ void Messenger::openSharedFile()
     m_warning_stream = m_file.get();
     m_notice_stream = m_file.get();
     }
-#endif 
+#endif
 
 /*! Any open file is closed. stdout is opened again for notices and stderr for warnings and errors.
 */
@@ -261,7 +261,7 @@ mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
     : m_mpi_comm(mpi_comm),  m_file_open(false)
     {
     assert(m_mpi_comm);
-   
+
     unsigned int len = filename.size();
     char cfilename[len+1];
     filename.copy(cfilename,len);

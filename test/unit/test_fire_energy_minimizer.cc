@@ -100,13 +100,13 @@ void randpts(vector<Scalar>& x, vector<Scalar>& y, vector<Scalar>& z, unsigned i
     {
     unsigned int i = 0;
     Scalar cut = rmin*rmin;
-    
+
     while(i < N)
         {
         Scalar xi = rand()/(Scalar(RAND_MAX)) * box - 0.5 * box;
         Scalar yi = rand()/(Scalar(RAND_MAX)) * box - 0.5 * box;
         Scalar zi = rand()/(Scalar(RAND_MAX)) * box - 0.5 * box;
-        
+
         int overlap = 0;
         for(unsigned int j=0; j<i; j++)
             {
@@ -123,7 +123,7 @@ void randpts(vector<Scalar>& x, vector<Scalar>& y, vector<Scalar>& z, unsigned i
                 break;
                 }
             }
-        
+
         if(!overlap)
             {
             x[i] = xi;
@@ -411,9 +411,9 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     const unsigned int N = 260;
     Scalar rho(Scalar(1.2));
     Scalar L = Scalar(pow((double)(N/rho), 1.0/3.0));
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 2, 0, 0, 0, 0, exec_conf));    
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 2, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::potential_energy] = 1;
@@ -427,17 +427,17 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
             pdata->setType(i,0);
         else
             pdata->setType(i,1);
-        }    
-    
+        }
+
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
+
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
     shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(2.5));
     fc->setRcut(0, 1, Scalar(2.5));
     fc->setRcut(1, 1, Scalar(2.5));
-    
+
    // setup some values for alpha and sigma
     Scalar epsilon00 = Scalar(1.0);
     Scalar sigma00 = Scalar(1.0);
@@ -452,7 +452,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     Scalar lj012 = alpha * Scalar(4.0) * epsilon01 * pow(sigma01,Scalar(6.0));
     Scalar lj111 = Scalar(4.0) * epsilon11 * pow(sigma11,Scalar(12.0));
     Scalar lj112 = alpha * Scalar(4.0) * epsilon11 * pow(sigma11,Scalar(6.0));
-     
+
     // specify the force parameters
     fc->setParams(0,0,make_scalar2(lj001,lj002));
     fc->setRcut(0,0,2.5);
@@ -467,43 +467,43 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     fire->addForceCompute(fc);
     fire->setMinSteps(10);
     fire->prepRun(0);
-    
+
     int max_step = 1000;
     for (int i = 1; i<=max_step; i++) {
         fire->update(i);
         if (fire->hasConverged())  {break;}
         }
-    
+
     ComputeThermo ct(sysdef, group_all);
     ct.compute(max_step);
     MY_BOOST_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
-    
+
     fire->reset();
 
     for (unsigned int i=0; i<N; i++)
         {
         Scalar3 pos = make_scalar3(x_blj[i*3 + 0],x_blj[i*3 + 1],x_blj[i*3 + 2]);
         pdata->setPosition(i,pos);
-        }    
+        }
 
     for (int i = max_step+1; i<=2*max_step; i++)
         fire->update(i);
-    
+
     ct.compute(max_step+1);
     MY_BOOST_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
 
     //cerr << fire->computePotentialEnergy(max_step)/Scalar(N) << endl;
-    
+
     }
-    
+
 void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 2;
     //Scalar rho(1.2);
     Scalar L = Scalar(20);
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 1, 0, 0, 0, 0, exec_conf));    
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::potential_energy] = 1;
@@ -513,7 +513,7 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     pdata->setType(0,0);
     pdata->setPosition(1,make_scalar3(2.0,0.0,0.0));
     pdata->setType(1,0);
-    
+
     shared_ptr<ParticleSelector> selector_one(new ParticleSelectorTag(sysdef, 1, 1));
     shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
 
@@ -521,14 +521,14 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(3.0));
 
-    
+
    // setup some values for alpha and sigma
     Scalar epsilon00 = Scalar(1.0);
     Scalar sigma00 = Scalar(1.0);
     Scalar alpha = Scalar(1.0);
     Scalar lj001 = Scalar(4.0) * epsilon00 * pow(sigma00,Scalar(12.0));
     Scalar lj002 = alpha * Scalar(4.0) * epsilon00 * pow(sigma00,Scalar(6.0));
-   
+
     // specify the force parameters
     fc->setParams(0,0,make_scalar2(lj001,lj002));
     fc->setRcut(0,0,3.0);
@@ -540,10 +540,10 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     fire->setEtol(Scalar(1e-7));
     fire->setMinSteps(10);
     fire->prepRun(0);
-    
+
     int max_step = 100;
     Scalar diff = Scalar(0.0);
-    
+
     for (int i = 1; i<=max_step; i++)
         {
         fire->update(i);
@@ -555,8 +555,8 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
         }
 
     MY_BOOST_CHECK_SMALL(diff, 0.001);
-            
-    }    
+
+    }
 
 //! Sees if a single particle's trajectory is being calculated correctly
 BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_twoparticle_test )
@@ -587,4 +587,3 @@ BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_smallsystem_test )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

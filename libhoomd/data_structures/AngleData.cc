@@ -90,18 +90,18 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
 
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&AngleData::setDirty, this));
-    
+
     // offer a default type mapping
     for (unsigned int i = 0; i < n_angle_types; i++)
         {
         char suffix[2];
         suffix[0] = 'A' + i;
         suffix[1] = '\0';
-        
+
         string name = string("angle") + string(suffix);
         m_angle_type_mapping.push_back(name);
         }
-        
+
     // allocate memory for the GPU angle table
     allocateAngleTable(1);
     }
@@ -124,13 +124,13 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, const SnapshotAngleD
 
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&AngleData::setDirty, this));
-    
+
     // allocate memory for the GPU angle table
     allocateAngleTable(1);
 
     // initialize from snapshot
     initializeFromSnapshot(snapshot);
-    } 
+    }
 
 AngleData::~AngleData()
     {
@@ -167,7 +167,7 @@ unsigned int AngleData::addAngle(const Angle& angle)
              << angle.c << endl;
         throw runtime_error("Error adding angle");
         }
-        
+
     if (angle.a == angle.b || angle.a == angle.c || angle.b == angle.c )
         {
         m_exec_conf->msg->error() << "Particle cannot included in an angle twice! "
@@ -176,7 +176,7 @@ unsigned int AngleData::addAngle(const Angle& angle)
              << angle.c << endl;
         throw runtime_error("Error adding angle");
         }
-        
+
     // check that the type is within bouds
     if (angle.type+1 > m_angle_type_mapping.size())
         {
@@ -294,7 +294,7 @@ unsigned int AngleData::getTypeByName(const std::string &name)
         if (m_angle_type_mapping[i] == name)
             return i;
         }
-        
+
     m_exec_conf->msg->error() << "Angle type " << name << " not found!" << endl;
     throw runtime_error("Error mapping type name");
     return 0;
@@ -312,7 +312,7 @@ std::string AngleData::getNameByType(unsigned int type)
         m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
-        
+
     // return the name
     return m_angle_type_mapping[type];
     }
@@ -340,7 +340,7 @@ const GPUArray<uint4>& AngleData::getGPUAngleList()
 
 
 #ifdef ENABLE_CUDA
-    
+
 /*! Update GPU angle table (GPU version)
 
     \post The angle tag data added via addAngle() is translated to angles based
@@ -350,7 +350,7 @@ const GPUArray<uint4>& AngleData::getGPUAngleList()
 void AngleData::updateAngleTableGPU()
     {
     unsigned int max_angle_num;
-    
+
         {
         ArrayHandle<uint3> d_angles(m_angles, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
@@ -489,7 +489,7 @@ void AngleData::allocateAngleTable(int height)
     // make sure the arrays have been deallocated
     assert(m_n_angles.isNull());
 
-    
+
     // allocate device memory
     GPUArray<uint4> gpu_anglelist(m_pdata->getN(), height, exec_conf);
     m_gpu_anglelist.swap(gpu_anglelist);
@@ -538,7 +538,7 @@ void AngleData::initializeFromSnapshot(const SnapshotAngleData& snapshot)
     m_angle_rtag.clear();
 
     m_angle_type_mapping =  snapshot.type_mapping;
-    
+
     for (unsigned int angle_idx = 0; angle_idx < snapshot.angles.size(); angle_idx++)
         {
         Angle angle(snapshot.type_id[angle_idx], snapshot.angles[angle_idx].x, snapshot.angles[angle_idx].y, snapshot.angles[angle_idx].z);
@@ -563,7 +563,7 @@ void export_AngleData()
     .def("initializeFromSnapshot", &AngleData::initializeFromSnapshot)
     .def("addAngleType", &AngleData::addAngleType)
     ;
-    
+
     class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())
     .def_readwrite("a", &Angle::a)
     .def_readwrite("b", &Angle::b)
@@ -582,4 +582,3 @@ void export_AngleData()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

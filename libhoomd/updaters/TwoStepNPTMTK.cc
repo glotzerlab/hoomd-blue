@@ -75,7 +75,7 @@ const Scalar g_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/45.0), Scalar(2.0/945.0),
 //! Coefficients of h(x) = (-1/sinh^2(x)+1/x^2) = a_0 + a_2 * x^2 + a_4 * x^4 + a_6 * x^6 + a_8 * x^8 + a_10 * x^10
 const Scalar h_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/15.0), Scalar(2.0/189.0), Scalar(-1.0/675.0),
                           Scalar(2.0/10395.0), Scalar(-1382.0/58046625.0)};
- 
+
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
@@ -107,7 +107,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
 
     if (flags == 0)
-        m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified." 
+        m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
                                     << endl;
 
     bool twod = m_sysdef->getNDimensions()==2;
@@ -298,13 +298,13 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
         }
 
     global_box.setTiltFactors(xy, xz, yz);
-  
+
     // set global box
     m_pdata->setGlobalBox(global_box);
 
     m_V = global_box.getVolume(twod);  // volume
 
-    // Get new (local) box 
+    // Get new (local) box
     BoxDim box = m_pdata->getBox();
 
         {
@@ -589,14 +589,14 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
         {
         h_v += h_coeff[i] * term_v;
         h_r += h_coeff[i] * term_r;
-        
+
         term_v = term_v * arg_v * arg_v;
         term_r = term_r * arg_r * arg_r;
         }
 
     // Calculate matrix exponentials for upper triangular barostat matrix
     /* These are approximations accurate up to and including delta_t^2.
-       They are fully time reversible  */   
+       They are fully time reversible  */
 
     // Matrix exp. for velocity update
     m_mat_exp_v[0] = exp_v_fac_2.x;                                                  // xx
@@ -633,7 +633,7 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
     // Matrix exp. for position update
     m_mat_exp_r[0] = exp_r_fac_2.x;                                                    // xx
     m_mat_exp_r[1] = m_deltaT*Scalar(1.0/2.0)*nuxy*(exp_r_fac_2.x + exp_r_fac_2.y);    // xy
-    m_mat_exp_r[2] = m_deltaT*Scalar(1.0/2.0)*nuxz*(exp_r_fac_2.x + exp_r_fac_2.z)  
+    m_mat_exp_r[2] = m_deltaT*Scalar(1.0/2.0)*nuxz*(exp_r_fac_2.x + exp_r_fac_2.z)
                      +m_deltaT*m_deltaT*Scalar(1.0/8.0)*nuxy*nuyz
                       *(exp_r_fac_2.x + Scalar(2.0)*exp_r_fac_2.y + exp_r_fac_2.z);    // xz
     m_mat_exp_r[3] = exp_r_fac_2.y;                                                    // yy
@@ -648,7 +648,7 @@ void TwoStepNPTMTK::updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scal
     m_mat_exp_r_int[0] = m_deltaT*exp_r_fac.x*f_r.x;                                   // xx
     m_mat_exp_r_int[1] = m_deltaT*m_deltaT*nuxy*Scalar(1.0/4.0)
                          *(exp_r_fac.x*f_r.x*(Scalar(1.0)+g_r.x)
-                          +exp_r_fac.y*f_r.y*(Scalar(1.0)+g_r.y));                      // xy  
+                          +exp_r_fac.y*f_r.y*(Scalar(1.0)+g_r.y));                      // xy
     m_mat_exp_r_int[2] = m_deltaT*m_deltaT*nuxz*Scalar(1.0/4.0)
                          *(exp_r_fac.x*f_r.x*(Scalar(1.0)+g_r.x)
                           +exp_r_fac.z*f_r.z*(Scalar(1.0)+g_r.z))
@@ -697,7 +697,7 @@ void TwoStepNPTMTK::advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Sc
         P_diag.y = Scalar(1.0/2.0)*(P.yy + P.zz);
         P_diag.z = Scalar(1.0/2.0)*(P.yy + P.zz);
         }
-    else if (m_couple == couple_xyz) 
+    else if (m_couple == couple_xyz)
         {
         Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
         P_diag.x = P_diag.y = P_diag.z = P_iso;
@@ -744,7 +744,7 @@ void export_TwoStepNPTMTK()
     .value("couple_yz", TwoStepNPTMTK::couple_yz)
     .value("couple_xyz", TwoStepNPTMTK::couple_xyz)
     ;
-    
+
     enum_<TwoStepNPTMTK::baroFlags>("baroFlags")
     .value("baro_x", TwoStepNPTMTK::baro_x)
     .value("baro_y", TwoStepNPTMTK::baro_y)

@@ -78,7 +78,7 @@ class ZeroMomentumUpdater : public Updater
         //! Constructor
         ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef);
         virtual ~ZeroMomentumUpdater();
-        
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
     };
@@ -87,4 +87,3 @@ class ZeroMomentumUpdater : public Updater
 void export_ZeroMomentumUpdater();
 
 #endif
-

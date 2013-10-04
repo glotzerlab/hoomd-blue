@@ -84,10 +84,10 @@ class EvaluatorConstraintSphere
             : P(_P), r(_r)
             {
             }
-        
+
         //! Evaluate the closest point on the sphere
         /*! \param U unconstrained point
-            
+
             \return Nearest point on the sphere
         */
         DEVICE Scalar3 evalClosest(const Scalar3& U)
@@ -97,16 +97,16 @@ class EvaluatorConstraintSphere
             V.x = U.x - P.x;
             V.y = U.y - P.y;
             V.z = U.z - P.z;
-            
+
             // compute 1/magnitude of V
             Scalar magVinv = fast::rsqrt(V.x*V.x + V.y*V.y + V.z*V.z);
-            
+
             // compute Vhat, the unit vector pointing in the direction of V
             Scalar3 Vhat;
             Vhat.x = magVinv * V.x;
             Vhat.y = magVinv * V.y;
             Vhat.z = magVinv * V.z;
-            
+
             // compute resulting constrained point
             Scalar3 C;
 #if(NVCC && __CUDA_ARCH__ < 200)
@@ -121,7 +121,7 @@ class EvaluatorConstraintSphere
 
             return C;
             }
-        
+
     protected:
         Scalar3 P;      //!< Position of the sphere
         Scalar r;       //!< radius of the sphere
@@ -129,4 +129,3 @@ class EvaluatorConstraintSphere
 
 
 #endif // __PAIR_EVALUATOR_LJ_H__
-

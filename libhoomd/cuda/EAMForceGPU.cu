@@ -288,7 +288,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         fzi += dx.z * pairForce;
         m_pe += pair_eng * Scalar(0.5);
         }
-    
+
     force.x = fxi;
     force.y = fyi;
     force.z = fzi;
@@ -384,4 +384,3 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     }
 
 // vim:syntax=cpp
-

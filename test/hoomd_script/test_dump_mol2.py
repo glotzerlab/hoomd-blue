@@ -18,16 +18,15 @@ class dmp_mol2_tests (unittest.TestCase):
         dump.mol2(filename="dump_mol2", period=100);
         run(101)
         os.remove("dump_mol2.0000000000.mol2")
-    
+
     # tests variable periods
     def test_variable(self):
         dump.mol2(filename="dump_mol2", period=lambda n: n*100);
         run(100);
         os.remove("dump_mol2.0000000000.mol2")
-    
+
     def tearDown(self):
         init.reset();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

@@ -69,7 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __TEMPRESCALEUPDATER_H__
 
 //! Updates particle velocities to set a temperature
-/*! This updater computes the current temperature of the system and then scales the velocities in order to set the 
+/*! This updater computes the current temperature of the system and then scales the velocities in order to set the
     temperature.
 
     \ingroup updaters
@@ -84,13 +84,13 @@ class TempRescaleUpdater : public Updater
 
         //! Destructor
         ~TempRescaleUpdater();
-        
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
-        
+
         //! Change the temperature set point
         void setT(boost::shared_ptr<Variant> T);
-        
+
     private:
         boost::shared_ptr<ComputeThermo> m_thermo;  //!< Computes the temperature
         boost::shared_ptr<Variant> m_tset;          //!< Temperature set point
@@ -100,4 +100,3 @@ class TempRescaleUpdater : public Updater
 void export_TempRescaleUpdater();
 
 #endif
-

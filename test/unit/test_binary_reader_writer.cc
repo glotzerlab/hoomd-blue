@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     {
     // start by creating a single particle system: see it the correct file is written
     Scalar Lx(2.5), Ly(4.5), Lz(12.1);
-    
+
     BoxDim box(Lx,Ly, Lz);
     int n_atom = 4;
     int n_types = 2;
@@ -93,11 +93,11 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     int n_angle_types = 1;
     int n_dihedral_types = 1;
     int n_improper_types = 1;
-   
+
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(n_atom, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
-    
+
     // set recognizable values for the particle
     Scalar x0(1.1), y1(2.1234567890123456), z3(-5.76);
     int ix3 = -1, iy1=-5, iz2=6;
@@ -124,9 +124,9 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     h_vel.data[1].z = vz1;
 
     h_vel.data[2].w = mass2;
-    
+
     h_diameter.data[3] = diameter3;
-    
+
     h_pos.data[1].w = __int_as_scalar(type1);
     }
 
@@ -145,35 +145,35 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     idata->setIntegratorVariables(i0, iv0);
     unsigned int i1 = idata->registerIntegrator();
     idata->setIntegratorVariables(i1, iv1);
-    
+
     // add a couple walls for fun
     sysdef1->getWallData()->addWall(Wall(1,0,0, 0,1,0));
     sysdef1->getWallData()->addWall(Wall(0,1,0, 0,0,1));
     sysdef1->getWallData()->addWall(Wall(0,0,1, 1,0,0));
-    
+
     // add a few bonds too
     sysdef1->getBondData()->addBond(Bond(0, 0, 1));
     sysdef1->getBondData()->addBond(Bond(1, 1, 0));
-    
+
     // and angles as well
     sysdef1->getAngleData()->addAngle(Angle(0, 0, 1, 2));
     sysdef1->getAngleData()->addAngle(Angle(0, 1, 2, 0));
-    
+
     // and a dihedral
     sysdef1->getDihedralData()->addDihedral(Dihedral(0, 0, 1, 2, 3));
-    
+
     // and an improper
     sysdef1->getImproperData()->addDihedral(Dihedral(0, 3, 2, 1, 0));
-    
+
     // create the writer
     shared_ptr<HOOMDBinaryDumpWriter> writer(new HOOMDBinaryDumpWriter(sysdef1, "test"));
-    
+
     remove_all("test.0000000000.bin");
     BOOST_REQUIRE(!exists("test.0000000000.bin"));
-    
+
     // write the first output
     writer->analyze(0);
-        
+
     // make sure the file was created
     BOOST_REQUIRE(exists("test.0000000000.bin"));
 
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     snapshot = init.getSnapshot();
     shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snapshot, exec_conf));
     shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
-    
+
     BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)0);
     BOOST_CHECK_EQUAL(pdata1->getN(), (unsigned int)n_atom);
     BOOST_CHECK_EQUAL(pdata2->getN(), (unsigned int)n_atom);
@@ -241,17 +241,17 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_CHECK_EQUAL(iv2_0.variable[0], var1);
     BOOST_CHECK_EQUAL(iv2_0.variable[1], var2);
     BOOST_CHECK_EQUAL(iv2_1.variable[0], var3);
-    
+
     //
     // create the writer
     shared_ptr<HOOMDBinaryDumpWriter> writer2(new HOOMDBinaryDumpWriter(sysdef1, "test"));
-    
+
     remove_all("test.0000000010.bin");
     BOOST_REQUIRE(!exists("test.0000000010.bin"));
-    
+
     // write the first output
     writer->analyze(10);
-        
+
     // make sure the file was created
     BOOST_REQUIRE(exists("test.0000000010.bin"));
 
@@ -260,7 +260,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     snapshot2 = init3.getSnapshot();
     shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(snapshot2, exec_conf));
     shared_ptr<ParticleData> pdata3 = sysdef3->getParticleData();
-    
+
     BOOST_CHECK_EQUAL(init3.getTimeStep(), (unsigned int)10);
 
     {
@@ -278,8 +278,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     remove_all("test.0000000000.bin");
     remove_all("test.0000000010.bin");
     }
-    
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

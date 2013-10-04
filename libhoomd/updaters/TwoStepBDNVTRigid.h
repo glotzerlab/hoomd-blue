@@ -72,31 +72,31 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Integrates part of the system forward in two steps in the NVE ensemble with Langevin thermostat
 /*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
- 
+
  \ingroup updaters
 */
 class TwoStepBDNVTRigid : public TwoStepNVERigid
     {
     public:
         //! Constructor
-        TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef, 
+        TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                           boost::shared_ptr<ParticleGroup> group,
                           boost::shared_ptr<Variant> T,
                           unsigned int seed,
                           bool gamma_diam);
         virtual ~TwoStepBDNVTRigid();
-        
+
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
 
-        //! Performs the second step 
-        virtual void integrateStepTwo(unsigned int timestep);        
+        //! Performs the second step
+        virtual void integrateStepTwo(unsigned int timestep);
 
     protected:
         boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
         unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
         bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
-        
+
         GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
     };
 
@@ -104,4 +104,3 @@ class TwoStepBDNVTRigid : public TwoStepNVERigid
 void export_TwoStepBDNVTRigid();
 
 #endif
-

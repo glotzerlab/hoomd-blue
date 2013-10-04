@@ -67,16 +67,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Integrates the system forward one step with possibly multiple methods
 /*! See IntegrationMethodTwoStep for most of the design notes regarding group integration. IntegratorTwoStep merely
     implements most of the things discussed there.
-    
+
     Notable design elements:
     - setDeltaT results in deltaT being set on all current integration methods
     - to ensure that new methods also get set, addIntegrationMethod() also calls setDeltaT on the method
     - to interface with the python script, a removeAllIntegrationMethods() method is provided to clear the list so they
       can be cleared and re-added from hoomd_script's internal list
-    
+
     To ensure that the user does not make a mistake and specify more than one method operating on a single particle,
     the particle groups are checked for intersections whenever a new method is added in addIntegrationMethod()
-    
+
     \ingroup updaters
 */
 class IntegratorTwoStep : public Integrator
@@ -84,31 +84,31 @@ class IntegratorTwoStep : public Integrator
     public:
         //! Constructor
         IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
-        
+
         //! Destructor
         virtual ~IntegratorTwoStep();
-        
+
         //! Sets the profiler for the compute to use
         virtual void setProfiler(boost::shared_ptr<Profiler> prof);
-        
+
         //! Returns a list of log quantities this integrator calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-                
+
         //! Returns logged values
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-                
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
-        
+
         //! Change the timestep
         virtual void setDeltaT(Scalar deltaT);
-        
+
         //! Add a new integration method to the list that will be run
         virtual void addIntegrationMethod(boost::shared_ptr<IntegrationMethodTwoStep> new_method);
-        
+
         //! Remove all integration methods
         virtual void removeAllIntegrationMethods();
-        
+
         //! Get the number of degrees of freedom granted to a given group
         virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group);
 
@@ -129,15 +129,14 @@ class IntegratorTwoStep : public Integrator
         bool isValidRestart();
 
         std::vector< boost::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
-        
+
         bool m_first_step;      //!< True before the first call to update()
         bool m_prepared;        //!< True if preprun has been called
         bool m_gave_warning;    //!< True if a warning has been given about no methods added
-    
+
     };
 
 //! Exports the IntegratorTwoStep class to python
 void export_IntegratorTwoStep();
 
 #endif // #ifndef __INTEGRATOR_TWO_STEP_H__
-

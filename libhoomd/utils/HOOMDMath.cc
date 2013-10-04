@@ -112,7 +112,7 @@ void export_hoomd_math_functions()
         .def_readwrite("z", &int4::w)
         ;
 
-    
+
     def("make_scalar2", &make_scalar2);
     def("make_scalar3", &make_scalar3);
     def("make_scalar4", &make_scalar4);
@@ -128,4 +128,3 @@ void export_hoomd_math_functions()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

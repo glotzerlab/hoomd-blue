@@ -104,7 +104,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf, decomposition));
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
     m_wall_data = boost::shared_ptr<WallData>(new WallData());
-    
+
     m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
     m_rigid_data->initializeData();
 
@@ -115,7 +115,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
     }
 
 /*! Evaluates the snapshot and initializes the respective *Data classes using
-   its contents (box dimensions and sub-snapshots) 
+   its contents (box dimensions and sub-snapshots)
     \param snapshot Snapshot to use
     \param exec_conf Execution configuration to run on
     \param decomposition (optional) The domain decomposition layout
@@ -130,7 +130,7 @@ SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> s
                  snapshot->global_box,
                  exec_conf,
                  decomposition));
- 
+
     #ifdef ENABLE_MPI
     // in MPI simulations, broadcast dimensionality from rank zero
     if (m_particle_data->getDomainDecomposition())
@@ -138,32 +138,32 @@ SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> s
     #endif
 
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot->bond_data));
-   
+
     m_wall_data = boost::shared_ptr<WallData>(new WallData(snapshot->wall_data));
-    
+
     m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
-    
+
     // the follwing calls may cause confusion, but their tasks are completely different
     // This makes sure that the rigid bodies are initialized correctly based on the particle data (body flags)
     // It computes relevant static data, i.e. body mass, body size, inertia of momentia, particle pos, and particle indices.
     m_rigid_data->initializeData();
-    
-    // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta and body images; 
+
+    // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta and body images;
     // otherwise, nothing is done here.
     if (snapshot->rigid_data.size) m_rigid_data->initializeFromSnapshot(snapshot->rigid_data);
-        
+
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, snapshot->angle_data));
-    
+
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->dihedral_data));
-    
+
     m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->improper_data));
 
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
     }
 
-/*! Sets the dimensionality of the system.  When quantities involving the dof of 
+/*! Sets the dimensionality of the system.  When quantities involving the dof of
     the system are computed, such as T, P, etc., the dimensionality is needed.
-    Therefore, the dimensionality must be set before any temperature/pressure 
+    Therefore, the dimensionality must be set before any temperature/pressure
     computes, thermostats/barostats, etc. are added to the system.
     \param n_dimensions Number of dimensions
 */
@@ -285,10 +285,10 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr<SnapshotSystemDa
     if (snapshot->has_particle_data)
         {
         m_particle_data->setGlobalBox(snapshot->global_box);
-    
+
         m_particle_data->initializeFromSnapshot(snapshot->particle_data);
         }
-   
+
     if (snapshot->has_bond_data)
         m_bond_data->initializeFromSnapshot(snapshot->bond_data);
 
@@ -356,4 +356,3 @@ void export_SystemDefinition()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

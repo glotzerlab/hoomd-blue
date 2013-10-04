@@ -134,7 +134,7 @@ void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
         // that means recipe for cross product is
         // [(zz-yw),(xw-zy),(yy-xz)]
         // cf. usual [(yz-zy),(zx-xz),(xy-yx)]
-            
+
         // also field.w stores magnitude of dipole moment, so, here we go
 
         // reuse temp to compute the torque
@@ -158,4 +158,3 @@ void export_ConstExternalFieldDipoleForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

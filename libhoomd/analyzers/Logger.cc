@@ -111,7 +111,7 @@ void Logger::openOutputFiles()
         m_file.open(m_filename.c_str(), ios_base::out);
         m_appending = false;
         }
-        
+
     if (!m_file.good())
         {
         m_exec_conf->msg->error() << "analyze.log: Error opening log file " << m_filename << endl;
@@ -132,7 +132,7 @@ Logger::~Logger()
 void Logger::registerCompute(boost::shared_ptr<Compute> compute)
     {
     vector< string > provided_quantities = compute->getProvidedLogQuantities();
-    
+
     // loop over all log quantities
     for (unsigned int i = 0; i < provided_quantities.size(); i++)
         {
@@ -153,7 +153,7 @@ void Logger::registerCompute(boost::shared_ptr<Compute> compute)
 void Logger::registerUpdater(boost::shared_ptr<Updater> updater)
     {
     vector< string > provided_quantities = updater->getProvidedLogQuantities();
-    
+
     // loop over all log quantities
     for (unsigned int i = 0; i < provided_quantities.size(); i++)
         {
@@ -184,7 +184,7 @@ void Logger::removeAll()
 void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
     {
     m_logged_quantities = quantities;
-    
+
     // prepare or adjust storage for caching the logger properties.
     cached_timestep = -1;
     cached_quantities.resize(quantities.size());
@@ -207,23 +207,23 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
         {
         // write out the header prefix
         m_file << m_header_prefix;
-        
+
         // timestep is always output
         m_file << "timestep";
         }
-        
+
     if (quantities.size() == 0)
         {
         m_exec_conf->msg->warning() << "analyze.log: No quantities specified for logging" << endl;
         return;
         }
-        
+
     // only write the header if this is a new file
     if (!m_appending)
         {
         // only print the delimiter after the timestep if there are more quantities logged
         m_file << m_delimiter;
-        
+
         // write all but the last of the quantities separated by the delimiter
         for (unsigned int i = 0; i < quantities.size()-1; i++)
             m_file << quantities[i] << m_delimiter;
@@ -249,7 +249,7 @@ void Logger::setDelimiter(const std::string& delimiter)
 void Logger::analyze(unsigned int timestep)
     {
     if (m_prof) m_prof->push("Log");
-    
+
     // update info in cache for later use and for immediate output.
     for (unsigned int i = 0; i < m_logged_quantities.size(); i++)
         cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
@@ -267,29 +267,29 @@ void Logger::analyze(unsigned int timestep)
     // The timestep is always output
     m_file << setprecision(10) << timestep;
     cached_timestep = timestep;
-    
+
     // quit now if there is nothing to log
     if (m_logged_quantities.size() == 0)
         {
         return;
         }
-        
+
     // only print the delimiter after the timestep if there are more quantities logged
     m_file << m_delimiter;
-       
+
     // write all but the last of the quantities separated by the delimiter
     for (unsigned int i = 0; i < m_logged_quantities.size()-1; i++)
         m_file << setprecision(10) << cached_quantities[i] << m_delimiter;
     // write the last one with no delimiter after it
     m_file << setprecision(10) << cached_quantities[m_logged_quantities.size()-1] << endl;
     m_file.flush();
-    
+
     if (!m_file.good())
         {
         m_exec_conf->msg->error() << "analyze.log: I/O error while writing log file" << endl;
         throw runtime_error("Error writting log file");
         }
-        
+
     if (m_prof) m_prof->pop();
     }
 
@@ -302,12 +302,12 @@ Scalar Logger::getCachedQuantity(const std::string &quantity)
         {
         return Scalar(cached_timestep);
         }
-        
+
     // check to see if the quantity exists in the compute list
     for (unsigned int i = 0; i < m_logged_quantities.size(); i++)
         if (m_logged_quantities[i] == quantity)
             return cached_quantities[i];
-            
+
     m_exec_conf->msg->warning() << "analyze.log: Log quantity " << quantity << " is not registered, returning a value of 0" << endl;
     return Scalar(0.0);
     }
@@ -360,4 +360,3 @@ void export_Logger()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

@@ -82,7 +82,7 @@ scalar2_tex_t improper_params_tex;
     \param pitch Pitch of 2D dihedral list
     \param n_dihedrals_list List of numbers of dihedrals per atom
 */
-extern "C" __global__ 
+extern "C" __global__
 void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
                                                  Scalar* d_virial,
                                                  const unsigned int virial_pitch,
@@ -168,7 +168,7 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
             pos_b = y_pos;
             pos_c = z_pos;
             }
-            
+
         // calculate dr for a-b,c-b,and a-c
         Scalar3 dab = pos_a - pos_b;
         Scalar3 dcb = pos_c - pos_b;
@@ -348,4 +348,3 @@ cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
 
     return cudaSuccess;
     }
-

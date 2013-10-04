@@ -129,7 +129,7 @@ __device__ Scalar gpu_sinc(Scalar x)
 #ifndef SINGLE_PRECISION
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
-    
+
     \param address Address to write the double to
     \param val Value to add to address
 */
@@ -179,11 +179,11 @@ extern "C" __global__
 void assign_charges_to_grid_kernel(const unsigned int N,
                                    const Scalar4 *d_pos,
                                    const Scalar *d_charge,
-                                   BoxDim box, 
-                                   CUFFTCOMPLEX *rho_real_space, 
-                                   int Nx, 
-                                   int Ny, 
-                                   int Nz, 
+                                   BoxDim box,
+                                   CUFFTCOMPLEX *rho_real_space,
+                                   int Nx,
+                                   int Ny,
+                                   int Nz,
                                    int order,
                                    unsigned int *d_group_members,
                                    unsigned int group_size)
@@ -201,7 +201,7 @@ void assign_charges_to_grid_kernel(const unsigned int N,
             Scalar3 posi = make_scalar3(postypei.x,postypei.y,postypei.z);
             //calculate dx, dy, dz for the charge density grid:
             Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
-        
+
             //normalize position to gridsize:
             Scalar3 pos_frac = box.makeFraction(posi);
             pos_frac.x *= (Scalar)Nx;
@@ -209,30 +209,30 @@ void assign_charges_to_grid_kernel(const unsigned int N,
             pos_frac.z *= (Scalar)Nz;
 
             Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
-            int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
-    
+            int nlower, nupper, mx, my, mz, nxi, nyi, nzi;
+
             nlower = -(order-1)/2;
             nupper = order/2;
-    
-            if (order % 2) 
+
+            if (order % 2)
                 {
                 shift =Scalar(0.5);
                 shiftone = Scalar(0.0);
                 }
-            else 
+            else
                 {
                 shift = Scalar(0.0);
                 shiftone = Scalar(0.5);
                 }
-        
+
             nxi = __scalar2int_rd(pos_frac.x + shift);
             nyi = __scalar2int_rd(pos_frac.y + shift);
             nzi = __scalar2int_rd(pos_frac.z + shift);
-    
+
             dx = shiftone+(Scalar)nxi-pos_frac.x;
             dy = shiftone+(Scalar)nyi-pos_frac.y;
             dz = shiftone+(Scalar)nzi-pos_frac.z;
-    
+
             int n,m,l,k;
             Scalar result;
             int mult_fact = 2*order+1;
@@ -274,52 +274,52 @@ void assign_charges_to_grid_kernel(const unsigned int N,
 
 //! The developer has chosen not to document this function
 extern "C" __global__
-void combined_green_e_kernel(CUFFTCOMPLEX* E_x, 
-                             CUFFTCOMPLEX* E_y, 
-                             CUFFTCOMPLEX* E_z, 
-                             Scalar3* k_vec, 
-                             CUFFTCOMPLEX* rho, 
-                             int Nx, 
-                             int Ny, 
-                             int Nz, 
+void combined_green_e_kernel(CUFFTCOMPLEX* E_x,
+                             CUFFTCOMPLEX* E_y,
+                             CUFFTCOMPLEX* E_z,
+                             Scalar3* k_vec,
+                             CUFFTCOMPLEX* rho,
+                             int Nx,
+                             int Ny,
+                             int Nz,
                              Scalar* green_function)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  
+
     if(idx < Nx * Ny * Nz)
         {
         Scalar3 k_vec_local = k_vec[idx];
         CUFFTCOMPLEX E_x_local, E_y_local, E_z_local;
         Scalar scale_times_green = green_function[idx] / ((Scalar)(Nx*Ny*Nz));
         CUFFTCOMPLEX rho_local = rho[idx];
-    
+
         rho_local.x *= scale_times_green;
         rho_local.y *= scale_times_green;
-      
+
         E_x_local.x = k_vec_local.x * rho_local.y;
         E_x_local.y = -k_vec_local.x * rho_local.x;
-    
+
         E_y_local.x = k_vec_local.y * rho_local.y;
         E_y_local.y = -k_vec_local.y * rho_local.x;
-    
+
         E_z_local.x = k_vec_local.z * rho_local.y;
         E_z_local.y = -k_vec_local.z * rho_local.x;
-    
-    
+
+
         E_x[idx] = E_x_local;
         E_y[idx] = E_y_local;
-        E_z[idx] = E_z_local;   
+        E_z[idx] = E_z_local;
         }
     }
 
 
 //! The developer has chosen not to document this function
-__global__ void set_gpu_field_kernel(CUFFTCOMPLEX* E_x, 
-                                     CUFFTCOMPLEX* E_y, 
-                                     CUFFTCOMPLEX* E_z, 
-                                     Scalar3* Electric_field, 
-                                     int Nx, 
-                                     int Ny, 
+__global__ void set_gpu_field_kernel(CUFFTCOMPLEX* E_x,
+                                     CUFFTCOMPLEX* E_y,
+                                     CUFFTCOMPLEX* E_z,
+                                     Scalar3* Electric_field,
+                                     int Nx,
+                                     int Ny,
                                      int Nz)
     {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -329,7 +329,7 @@ __global__ void set_gpu_field_kernel(CUFFTCOMPLEX* E_x,
         local_field.x = E_x[tid].x;
         local_field.y = E_y[tid].x;
         local_field.z = E_z[tid].x;
-      
+
         Electric_field[tid] = local_field;
         }
     }
@@ -337,7 +337,7 @@ __global__ void set_gpu_field_kernel(CUFFTCOMPLEX* E_x,
 //! The developer has chosen not to document this function
 __global__
 void zero_forces(Scalar4 *d_force, Scalar *d_virial, const unsigned int virial_pitch, const unsigned int N)
-    {  
+    {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N)
@@ -349,7 +349,7 @@ void zero_forces(Scalar4 *d_force, Scalar *d_virial, const unsigned int virial_p
     }
 
 //! The developer has chosen not to document this function
-extern "C" __global__ 
+extern "C" __global__
 void calculate_forces_kernel(Scalar4 *d_force,
                              const unsigned int N,
                              const Scalar4 *d_pos,
@@ -362,7 +362,7 @@ void calculate_forces_kernel(Scalar4 *d_force,
                              int order,
                              unsigned int *d_group_members,
                              unsigned int group_size)
-    {  
+    {
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (group_idx < group_size)
@@ -373,10 +373,10 @@ void calculate_forces_kernel(Scalar4 *d_force,
 
         if(fabs(qi) > Scalar(0.0)) {
             Scalar4 posi = texFetchScalar4(d_pos, pdata_pos_tex, idx);
-    
+
             //calculate dx, dy, dz for the charge density grid:
             Scalar V_cell = box.getVolume()/(Scalar)(Nx*Ny*Nz);
-        
+
             //normalize position to gridsize:
             Scalar3 pos_frac = box.makeFraction(make_scalar3(posi.x, posi.y, posi.z));
             pos_frac.x *= (Scalar)Nx;
@@ -384,35 +384,35 @@ void calculate_forces_kernel(Scalar4 *d_force,
             pos_frac.z *= (Scalar)Nz;
 
             Scalar shift, shiftone, x0, y0, z0, dx, dy, dz;
-            int nlower, nupper, mx, my, mz, nxi, nyi, nzi; 
-    
+            int nlower, nupper, mx, my, mz, nxi, nyi, nzi;
+
             nlower = -(order-1)/2;
             nupper = order/2;
-    
+
             Scalar4 local_force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-            if(order % 2) 
+            if(order % 2)
                 {
                 shift =Scalar(0.5);
                 shiftone = Scalar(0.0);
                 }
-            else 
+            else
                 {
                 shift = Scalar(0.0);
                 shiftone = Scalar(0.5);
                 }
-            
+
             nxi = __scalar2int_rd(pos_frac.x + shift);
             nyi = __scalar2int_rd(pos_frac.y + shift);
             nzi = __scalar2int_rd(pos_frac.z + shift);
-    
+
             dx = shiftone+(Scalar)nxi-pos_frac.x;
             dy = shiftone+(Scalar)nyi-pos_frac.y;
             dz = shiftone+(Scalar)nzi-pos_frac.z;
- 
+
             int n,m,l,k;
             Scalar result;
             int mult_fact = 2*order+1;
-    
+
             for (n = nlower; n <= nupper; n++) {
                 mx = n+nxi;
                 if(mx >= Nx) mx -= Nx;
@@ -452,7 +452,7 @@ void calculate_forces_kernel(Scalar4 *d_force,
             d_force[idx] = local_force;
             }
         }
-    } 
+    }
 
 
 cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
@@ -477,7 +477,7 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
                                     unsigned int group_size,
                                     int block_size)
     {
-    
+
     cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
 
     // setup the grid to run the kernel with one thread per particle in the group
@@ -487,7 +487,7 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     // setup the grid to run the kernel with one thread per particle in the group
     dim3 P_grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 P_threads(block_size, 1, 1);
-    
+
     // setup the grid to run the kernel with one thread per grid point
     dim3 N_grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 N_threads(block_size, 1, 1);
@@ -509,15 +509,15 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     assign_charges_to_grid_kernel <<< P_grid, P_threads >>> (N,
                                                              d_pos,
                                                              d_charge,
-                                                             box, 
-                                                             GPU_rho_real_space, 
-                                                             Nx, 
-                                                             Ny, 
-                                                             Nz, 
-                                                             order, 
+                                                             box,
+                                                             GPU_rho_real_space,
+                                                             Nx,
+                                                             Ny,
+                                                             Nz,
+                                                             order,
                                                              d_group_members,
                                                              group_size);
-    cudaThreadSynchronize();    
+    cudaThreadSynchronize();
 
     // FFT
 
@@ -525,14 +525,14 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     cudaThreadSynchronize();
 
     // multiply Green's function to get E field, one thread per grid point
-    combined_green_e_kernel <<< N_grid, N_threads >>> (GPU_E_x, 
-                                                       GPU_E_y, 
-                                                       GPU_E_z, 
-                                                       GPU_k_vec, 
-                                                       GPU_rho_real_space, 
-                                                       Nx, 
-                                                       Ny, 
-                                                       Nz, 
+    combined_green_e_kernel <<< N_grid, N_threads >>> (GPU_E_x,
+                                                       GPU_E_y,
+                                                       GPU_E_z,
+                                                       GPU_k_vec,
+                                                       GPU_rho_real_space,
+                                                       Nx,
+                                                       Ny,
+                                                       Nz,
                                                        GPU_green_hat);
     cudaThreadSynchronize();
 
@@ -552,9 +552,9 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
                                                       d_charge,
                                                       box,
                                                       E_field,
-                                                      Nx, 
-                                                      Ny, 
-                                                      Nz, 
+                                                      Nx,
+                                                      Ny,
+                                                      Nz,
                                                       order,
                                                       d_group_members,
                                                       group_size);
@@ -563,8 +563,8 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
         }
 
 //! The developer has chosen not to document this function
-__global__ void calculate_thermo_quantities_kernel(CUFFTCOMPLEX* rho, 
-                                                   Scalar* green_function, 
+__global__ void calculate_thermo_quantities_kernel(CUFFTCOMPLEX* rho,
+                                                   Scalar* green_function,
                                                    Scalar* energy_sum,
                                                    Scalar* v_xx,
                                                    Scalar* v_xy,
@@ -573,12 +573,12 @@ __global__ void calculate_thermo_quantities_kernel(CUFFTCOMPLEX* rho,
                                                    Scalar* v_yz,
                                                    Scalar* v_zz,
                                                    Scalar* vg,
-                                                   int Nx, 
-                                                   int Ny, 
+                                                   int Nx,
+                                                   int Ny,
                                                    int Nz)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  
+
     if(idx < Nx * Ny * Nz)
         {
 
@@ -614,14 +614,14 @@ template<class T>
 struct SharedMemory  //!< Used to speed up the sum over grid points, in this case "T" is a placeholder for the data type
     {
         //! used to get shared memory for data type T*
-        __device__ inline operator       T*() 
+        __device__ inline operator       T*()
             {
             extern __shared__ T __smem[];
             return (T*)__smem;
             }
 
         //! used to get shared memory for data type T
-        __device__ inline operator const T() const 
+        __device__ inline operator const T() const
             {
             extern __shared__ T __smem[];
             return (T*)__smem;
@@ -640,25 +640,25 @@ reduce6(T *g_idata, T *g_odata, unsigned int n)
     unsigned int idx = threadIdx.x;
     unsigned int i = blockIdx.x*blockSize*2 + threadIdx.x;
     unsigned int gridSize = blockSize*2*gridDim.x;
-    
+
     T mySum;
     mySum = Scalar(0.0);
 
-    // we reduce multiple elements per thread.  The number is determined by the 
+    // we reduce multiple elements per thread.  The number is determined by the
     // number of active thread blocks (via gridDim).  More blocks will result
     // in a larger gridSize and therefore fewer elements per thread
     while (i < n)
-        {         
+        {
         mySum += g_idata[i];
         // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
         if (nIsPow2 || i + blockSize < n) {
-            mySum += g_idata[i+blockSize];  
+            mySum += g_idata[i+blockSize];
             }
         i += gridSize;
 
-        } 
+        }
 
-    // each thread puts its local sum into shared memory 
+    // each thread puts its local sum into shared memory
     sdata[idx] = mySum;
     __syncthreads();
 
@@ -667,7 +667,7 @@ reduce6(T *g_idata, T *g_odata, unsigned int n)
     if (blockSize >= 512) { if (idx < 256) { sdata[idx] = mySum = mySum + sdata[idx + 256]; } __syncthreads(); }
     if (blockSize >= 256) { if (idx < 128) { sdata[idx] = mySum = mySum + sdata[idx + 128]; } __syncthreads(); }
     if (blockSize >= 128) { if (idx <  64) { sdata[idx] = mySum = mySum + sdata[idx + 64]; } __syncthreads(); }
-    
+
 #ifndef __DEVICE_EMULATION__
     if (idx < 32)
 #endif
@@ -683,8 +683,8 @@ reduce6(T *g_idata, T *g_odata, unsigned int n)
         if (blockSize >=   4) { smem[idx] = mySum = mySum + smem[idx + 2]; EMUSYNC; }
         if (blockSize >=   2) { smem[idx] = mySum = mySum + smem[idx + 1]; EMUSYNC; }
         }
-    
-    // write result for this block to global mem 
+
+    // write result for this block to global mem
     if (idx == 0) {
         g_odata[blockIdx.x] = sdata[0];
         }
@@ -697,7 +697,7 @@ template <class T> void reduce(int size, int threads, int blocks, T *d_idata, T 
     dim3 dimBlock(threads, 1, 1);
     dim3 dimGrid(blocks, 1, 1);
 
-    // when there is only one warp per block, we need to allocate two warps 
+    // when there is only one warp per block, we need to allocate two warps
     // worth of shared memory so that we don't index shared memory out of bounds
     int smemSize = (threads <= 32) ? 2 * threads * sizeof(T) : threads * sizeof(T);
 
@@ -765,7 +765,7 @@ void gpu_compute_pppm_thermo(int Nx,
                              Scalar *GPU_vg,
                              Scalar *GPU_green_hat,
                              Scalar *o_data,
-                             Scalar *energy_sum, 
+                             Scalar *energy_sum,
                              Scalar *v_xx,
                              Scalar *v_xy,
                              Scalar *v_xz,
@@ -790,9 +790,9 @@ void gpu_compute_pppm_thermo(int Nx,
                                                                   v_yy,
                                                                   v_yz,
                                                                   v_zz,
-                                                                  GPU_vg, 
-                                                                  Nx, 
-                                                                  Ny, 
+                                                                  GPU_vg,
+                                                                  Nx,
+                                                                  Ny,
                                                                   Nz);
 
 
@@ -871,21 +871,21 @@ Scalar Scalar_reduce(Scalar* i_data, Scalar* o_data, int n) {
 }
 
 //! The developer has chosen not to document this function
-__global__ void reset_kvec_green_hat_kernel(BoxDim box, 
+__global__ void reset_kvec_green_hat_kernel(BoxDim box,
                                             Scalar3 b1,
                                             Scalar3 b2,
                                             Scalar3 b3,
-                                            int Nx, 
-                                            int Ny, 
-                                            int Nz, 
-                                            int order, 
-                                            Scalar kappa, 
-                                            Scalar3* kvec_array, 
-                                            Scalar* green_hat, 
-                                            Scalar* vg, 
-                                            int nbx, 
-                                            int nby, 
-                                            int nbz, 
+                                            int Nx,
+                                            int Ny,
+                                            int Nz,
+                                            int order,
+                                            Scalar kappa,
+                                            Scalar3* kvec_array,
+                                            Scalar* green_hat,
+                                            Scalar* vg,
+                                            int nbx,
+                                            int nby,
+                                            int nbz,
                                             Scalar* gf_b)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -989,7 +989,7 @@ __global__ void reset_kvec_green_hat_kernel(BoxDim box,
                         dot2 = dot(kn,kn);
                         arg_gauss = Scalar(0.25)*dot2/kappa2;
                         gauss = fast::exp(-arg_gauss);
- 
+
                         W = wx*wy*wz;
                         sum1 += (dot1/dot2) * gauss * W*W;
                         }
@@ -1044,7 +1044,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                                           const unsigned int *d_n_neigh,
                                           const unsigned int *d_nlist,
                                           const Index2D nli,
-                                          Scalar kappa,  
+                                          Scalar kappa,
                                           unsigned int *d_group_members,
                                           unsigned int group_size)
     {
@@ -1101,7 +1101,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     Scalar qiqj = qi * qj;
                     Scalar erffac = erf(kappa * r) / r;
                     Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * kappa * kappa) * kappa / (sqrtpi * rsq) + erffac / rsq);
-                    Scalar pair_eng = qiqj * erffac; 
+                    Scalar pair_eng = qiqj * erffac;
 
                     Scalar force_div2r = Scalar(0.5) * force_divr;
                     virial[0] += dx.x * dx.x * force_div2r;
@@ -1174,9 +1174,8 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
                                                       d_n_ex,
                                                       d_exlist,
                                                       nex,
-                                                      kappa, 
+                                                      kappa,
                                                       d_group_members,
                                                       group_size);
     return cudaSuccess;
     }
-

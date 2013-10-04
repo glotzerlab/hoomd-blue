@@ -118,14 +118,14 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
-    
+
     // if there are available GPUs, initialize them. Otherwise, default to running on the CPU
     int dev_count = getNumCapableGPUs();
-    
+
     if (dev_count > 0)
         {
         exec_mode = GPU;
-       
+
         // if we are not running in compute exclusive mode, use
         // local MPI rank as preferred GPU id
         int gpu_id_hint = m_system_compute_exclusive ? -1 : guessLocalRank();
@@ -133,7 +133,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
         }
     else
         exec_mode = CPU;
-        
+
 #else
     exec_mode=CPU;
 #endif
@@ -174,7 +174,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
-   
+
 #ifdef ENABLE_MPI
     m_rank = guessRank();
 #else
@@ -184,7 +184,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
-    
+
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
         initializeGPU(gpu_id, min_cpu);
@@ -216,7 +216,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
         cudaDeviceReset();
         }
     #endif
- 
+
     #ifdef ENABLE_MPI
     // enable Messenger to gracefully finish any MPI-IO
     msg->unsetMPICommunicator();
@@ -267,7 +267,7 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
         m_partition = rank / n_ranks;
 
         // Split the communicator
-        MPI_Comm new_comm; 
+        MPI_Comm new_comm;
         MPI_Comm_split(m_mpi_comm, m_partition, rank, &new_comm);
 
         // update communicator
@@ -305,12 +305,12 @@ std::string ExecutionConfiguration::getGPUName() const
 std::string ExecutionConfiguration::getComputeCapabilityAsString() const
     {
     ostringstream s;
-    
+
     if (exec_mode == GPU)
         {
         s << dev_prop.major << "." << dev_prop.minor;
         }
-        
+
     return s.str();
     }
 
@@ -320,15 +320,15 @@ std::string ExecutionConfiguration::getComputeCapabilityAsString() const
 unsigned int ExecutionConfiguration::getComputeCapability() const
     {
     unsigned int result = 0;
-    
+
     if (exec_mode == GPU)
         {
         result = dev_prop.major * 100 + dev_prop.minor * 10;
         }
-        
+
     return result;
     }
-    
+
 void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line) const
     {
     // if there was an error
@@ -337,16 +337,16 @@ void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, 
         // remove HOOMD_SOURCE_DIR from the front of the file
         if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
             file += strlen(HOOMD_SOURCE_DIR);
-        
+
         // print an error message
-        msg->error() << "***Error! " << string(cudaGetErrorString(err)) << " before " 
+        msg->error() << "***Error! " << string(cudaGetErrorString(err)) << " before "
                      << file << ":" << line << endl;
 
         // throw an error exception
         throw(runtime_error("CUDA Error"));
         }
     }
-    
+
 void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line) const
     {
     cudaThreadSynchronize();
@@ -364,14 +364,14 @@ void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line)
     application.
 */
 void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
-    {        
+    {
     int capable_count = getNumCapableGPUs();
     if (capable_count == 0)
         {
         msg->error() << "No capable GPUs were found!" << endl;
         throw runtime_error("Error initializing execution configuration");
         }
-        
+
     // setup the flags
     int flags = 0;
     if (min_cpu)
@@ -379,36 +379,36 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         if (CUDART_VERSION < 2020)
             msg->warning() << "--minimize-cpu-usage will have no effect because this hoomd was built " << endl;
             msg->warning() << "against a version of CUDA prior to 2.2" << endl;
-                 
+
         flags |= cudaDeviceBlockingSync;
         }
     else
         {
         flags |= cudaDeviceScheduleSpin;
         }
-        
+
     if (gpu_id < -1)
         {
         msg->error() << "***Error! The specified GPU id (" << gpu_id << ") is invalid." << endl;
         throw runtime_error("Error initializing execution configuration");
         }
-        
+
     if (gpu_id >= (int)getNumTotalGPUs())
         {
         msg->error() << "***Error! The specified GPU id (" << gpu_id << ") is not present in the system." << endl;
         msg->error() << "CUDA reports only " << getNumTotalGPUs() << endl;
         throw runtime_error("Error initializing execution configuration");
         }
-        
+
     if (!isGPUAvailable(gpu_id))
         {
         msg->error() << "***Error! The specified GPU id (" << gpu_id << ") is not available for executing HOOMD." << endl;
         throw runtime_error("Error initializing execution configuration");
         }
-    
+
     cudaSetDeviceFlags(flags | cudaDeviceMapHost);
     cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
-   
+
     if (gpu_id != -1)
         {
         cudaSetDevice(gpu_id);
@@ -426,10 +426,10 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
 void ExecutionConfiguration::printGPUStats()
     {
     msg->notice(1) << "HOOMD-blue is running on the following GPU(s):" << endl;
-            
+
     // build a status line
     ostringstream s;
-    
+
     // start with the device ID and name
     int dev;
     cudaGetDevice(&dev);
@@ -437,25 +437,25 @@ void ExecutionConfiguration::printGPUStats()
     s << " Rank " << getRank();
     s << " [" << dev << "]";
     s << setw(22) << dev_prop.name;
-    
+
     // then print the SM count and version
     s << setw(4) << dev_prop.multiProcessorCount << " SM_" << dev_prop.major << "." << dev_prop.minor;
-    
+
     // and the clock rate
     float ghz = float(dev_prop.clockRate)/1e6;
     s.precision(3);
     s.fill('0');
     s << " @ " << setw(4) << ghz << " GHz";
     s.fill(' ');
-    
+
     // and the total amount of memory
     int mib = int(float(dev_prop.totalGlobalMem) / float(1024*1024));
     s << ", " << setw(4) << mib << " MiB DRAM";
-        
+
     // follow up with some flags to signify device features
     if (dev_prop.kernelExecTimeoutEnabled)
         s << ", DIS";
-         
+
     s << std::endl;
     // We print this information in rank order
     msg->collectiveNoticeStr(1,s.str());
@@ -506,7 +506,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         msg->warning() << "NVIDIA driver not installed or is too old, ignoring any GPUs in the system." << endl;
         return;
         }
-        
+
     // next, check to see if the driver is capable of running the version of CUDART that HOOMD was compiled against
     if (driverVersion < CUDART_VERSION)
         {
@@ -514,7 +514,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         int driver_minor = (driverVersion - driver_major * 1000) / 10;
         int cudart_major = CUDART_VERSION / 1000;
         int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
-        
+
         msg->warning() << "The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
              << driver_minor << ", but HOOMD was built against CUDA " << cudart_major << "." << cudart_minor << endl;
         msg->warning() << "Ignoring any GPUs in the system." << endl;
@@ -529,11 +529,11 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         msg->error() << "Error calling cudaGetDeviceCount()" << endl;
         throw runtime_error("Error initializing execution configuration");
         }
-        
+
     // initialize variables
     int n_exclusive_gpus = 0;
     m_gpu_available.resize(dev_count);
-    
+
     // loop through each GPU and check it's properties
     for (int dev = 0; dev < dev_count; dev++)
         {
@@ -545,10 +545,10 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             msg->error() << "Error calling cudaGetDeviceProperties()" << endl;
             throw runtime_error("Error initializing execution configuration");
             }
-            
+
         // start by assuming that the device is available, it will be excluded later if it is not
         m_gpu_available[dev] = true;
-        
+
         // exclude the device emulation device
         if (prop.major == 9999 && prop.minor == 9999)
             {
@@ -556,7 +556,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             msg->notice(2) << "GPU id " << dev << " is not available for computation because "
                            << "it is an emulated device" << endl;
             }
-            
+
         // exclude a GPU if it's compute version is not high enough
         int compoundComputeVer = prop.minor + prop.major * 10;
         if (m_gpu_available[dev] && compoundComputeVer < CUDA_ARCH)
@@ -564,14 +564,14 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             m_gpu_available[dev] = false;
             msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
                            << "it's compute capability is not high enough" << endl;
-                 
+
             int min_major = CUDA_ARCH/10;
             int min_minor = CUDA_ARCH - min_major*10;
-            
+
             msg->notice(2) << "This build of hoomd was compiled for a minimum capability of of " << min_major << "."
                            << min_minor << " but the GPU is only " << prop.major << "." << prop.minor << endl;
             }
-            
+
         // ignore the display gpu if that was requested
         if (m_gpu_available[dev] && ignore_display && prop.kernelExecTimeoutEnabled)
             {
@@ -579,7 +579,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
                            << "it appears to be attached to a display" << endl;
             }
-            
+
         // exclude a gpu if it is compute-prohibited
         if (m_gpu_available[dev] && prop.computeMode == cudaComputeModeProhibited)
             {
@@ -587,13 +587,13 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             msg->notice(2) << "Notice: GPU id " << dev << " is not available for computation because "
                            << "it is set in the compute-prohibited mode" << endl;
             }
-            
+
         // count the number of compute-exclusive gpus
         if (m_gpu_available[dev] &&
             (prop.computeMode == cudaComputeModeExclusive || prop.computeMode == cudaComputeModeExclusiveProcess))
             n_exclusive_gpus++;
         }
-        
+
     std::vector<gpu_elem> gpu_priorities;
     for (int dev = 0; dev < dev_count; dev++)
         {
@@ -606,7 +606,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
                 msg->error() << "***Error! Error calling cudaGetDeviceProperties()" << endl;
                 throw runtime_error("Error initializing execution configuration");
                 }
-                
+
             // calculate a simple priority: multiprocessors * clock = speed, then subtract a bit if the device is
             // attached to a display
             float priority = float(prop.clockRate * prop.multiProcessorCount) / float(1e7);
@@ -618,11 +618,11 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 
             if (prop.kernelExecTimeoutEnabled)
                 priority -= 0.1f;
-            
+
             gpu_priorities.push_back(gpu_elem(priority, dev));
             }
         }
-        
+
     // sort the GPUs based on priority
     sort(gpu_priorities.begin(), gpu_priorities.end());
     // add the prioritized GPUs to the list
@@ -630,7 +630,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         {
         m_gpu_list.push_back(gpu_priorities[i].gpu_id);
         }
-        
+
     // the system is fully compute-exclusive if all capable GPUs are compute-exclusive
     if (n_exclusive_gpus == getNumCapableGPUs())
         m_system_compute_exclusive = true;
@@ -652,7 +652,7 @@ bool ExecutionConfiguration::isGPUAvailable(int gpu_id)
         return true;
     if ((unsigned int)gpu_id >= m_gpu_available.size())
         return false;
-        
+
     return m_gpu_available[gpu_id];
     }
 
@@ -733,7 +733,7 @@ void ExecutionConfiguration::setupStats()
     #else
     n_cpu = 1;
     #endif
-    
+
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         {
@@ -751,7 +751,7 @@ void ExecutionConfiguration::setupStats()
         #endif
         }
     #endif
-    
+
     if (exec_mode == CPU)
         {
         #ifdef ENABLE_OPENMP
@@ -770,7 +770,7 @@ unsigned int ExecutionConfiguration::getNRanks() const
     MPI_Comm_size(m_mpi_comm, &size);
     return size;
     }
-#endif 
+#endif
 
 void export_ExecutionConfiguration()
     {
@@ -779,7 +779,7 @@ void export_ExecutionConfiguration()
 #ifdef ENABLE_MPI
                          .def(init< bool, bool, boost::shared_ptr<Messenger>, bool>())
                          .def(init< bool, bool, boost::shared_ptr<Messenger>, bool, unsigned int >())
-#endif 
+#endif
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
 #ifdef ENABLE_MPI
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, bool >())
@@ -803,7 +803,7 @@ void export_ExecutionConfiguration()
                          .staticmethod("guessLocalRank")
 #endif
                          ;
-                         
+
     enum_<ExecutionConfiguration::executionMode>("executionMode")
     .value("GPU", ExecutionConfiguration::GPU)
     .value("CPU", ExecutionConfiguration::CPU)

@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Arrays of the rigid data as it resides on the GPU
-/*! 
+/*!
     All the pointers in this structure are allocated on the device.
 
    \ingroup gpu_data_structs
@@ -71,11 +71,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct gpu_rigid_data_arrays
     {
     unsigned int n_bodies;  //!< Number of rigid bodies in the rigid body arrays
-    unsigned int n_group_bodies;   //!< Number of rigid bodies in the body group 
+    unsigned int n_group_bodies;   //!< Number of rigid bodies in the body group
     unsigned int nmax;      //!< Maximum number of particles in a rigid body
     unsigned int local_beg; //!< Index of the first body local to this GPU
     unsigned int local_num; //!< Number of particles local to this GPU
-    
+
     unsigned int *body_indices; //!< Body indices
     Scalar  *body_mass;      //!< Body mass
     Scalar4 *moment_inertia; //!< Body principle moments in \c x, \c y, \c z, nothing in \c w
@@ -88,15 +88,15 @@ struct gpu_rigid_data_arrays
     Scalar4 *force;          //!< Body force in \c x, \c y, \c z, nothing in \c w
     Scalar4 *torque;         //!< Body torque in \c x, \c y, \c z, nothing in \c w
     Scalar *virial;          //!< Virial contribution from the first integration part
-    Scalar4 *conjqm;         //!< Conjugate quaternion momentum 
+    Scalar4 *conjqm;         //!< Conjugate quaternion momentum
     unsigned int *particle_offset; //!< Per particle array listing the index offset in its body
-    
+
     Scalar4 *particle_orientation;   //!< Particle orientation relative to the body frame
     Scalar4 *particle_pos;           //!< Particle relative position to the body frame
     Scalar4 *particle_oldpos;        //!< Particle position from the previous step
     Scalar4 *particle_oldvel;        //!< Particle velocity from the previous step
     unsigned int *particle_indices; //!< Particle indices: actual particle index in the particle data arrays
-    unsigned int *particle_tags;    //!< Particle tags   
+    unsigned int *particle_tags;    //!< Particle tags
     };
 
 
@@ -109,7 +109,7 @@ cudaError_t gpu_rigid_setRV(Scalar4 *d_pos,
                                    Scalar4 *d_pdata_orientation,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
-                                   const BoxDim& box, 
+                                   const BoxDim& box,
                                    bool set_x);
 
 //! Computes the virial correction from the rigid body constraints
@@ -125,4 +125,3 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
 
 
 #endif
-

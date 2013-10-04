@@ -76,7 +76,7 @@ using namespace boost::python;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
-#endif 
+#endif
 
 using namespace std;
 using namespace boost;
@@ -87,9 +87,9 @@ using namespace boost;
     \note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
-        : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), 
-        m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), 
-        m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false), 
+        : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true),
+        m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false),
+        m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false),
         m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_body(false),
         m_output_charge(false), m_output_orientation(false), m_output_moment_inertia(false), m_vizsigma_set(false)
     {
@@ -234,19 +234,19 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     // open the file for writing
     ofstream f(fname.c_str());
-    
+
     if (!f.good())
         {
         m_exec_conf->msg->error() << "dump.xml: Unable to open dump file for writing: " << fname << endl;
         throw runtime_error("Error writting hoomd_xml dump file");
         }
- 
+
     BoxDim box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
     Scalar xy = box.getTiltFactorXY();
     Scalar xz = box.getTiltFactorXZ();
     Scalar yz = box.getTiltFactorYZ();
-    
+
     f.precision(13);
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
     f << "<hoomd_xml version=\"1.5\">" << "\n";
@@ -258,7 +258,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f << ">" << "\n";
     f << "<box " << "lx=\"" << L.x << "\" ly=\""<< L.y << "\" lz=\""<< L.z
       << "\" xy=\"" << xy << "\" xz=\"" << xz << "\" yz=\"" << yz << "\"/>" << "\n";
-    
+
     f.precision(12);
 
     // If the position flag is true output the position of all particles to the file
@@ -268,9 +268,9 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
             Scalar3 pos = snapshot.pos[j];
-            
+
             f << pos.x << " " << pos.y << " "<< pos.z << "\n";
-            
+
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
@@ -279,17 +279,17 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             }
         f <<"</position>" << "\n";
         }
-        
+
     // If the image flag is true, output the image of each particle to the file
     if (m_output_image)
         {
         f << "<image num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            int3 image = snapshot.image[j]; 
-           
+            int3 image = snapshot.image[j];
+
             f << image.x << " " << image.y << " "<< image.z << "\n";
-            
+
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
@@ -298,12 +298,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             }
         f <<"</image>" << "\n";
         }
-        
+
     // If the velocity flag is true output the velocity of all particles to the file
     if (m_output_velocity)
         {
         f <<"<velocity num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        
+
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
             Scalar3 vel = snapshot.vel[j];
@@ -314,7 +314,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
-            
+
         f <<"</velocity>" << "\n";
         }
 
@@ -322,7 +322,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_accel)
         {
         f <<"<acceleration num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        
+
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
             Scalar3 accel = snapshot.accel[j];
@@ -334,15 +334,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
-            
+
         f <<"</acceleration>" << "\n";
         }
-        
+
     // If the mass flag is true output the mass of all particles to the file
     if (m_output_mass)
         {
         f <<"<mass num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        
+
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
             Scalar mass = snapshot.mass[j];
@@ -354,15 +354,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
-            
+
         f <<"</mass>" << "\n";
         }
-        
+
     // If the diameter flag is true output the mass of all particles to the file
     if (m_output_diameter)
         {
         f <<"<diameter num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        
+
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
             Scalar diameter = snapshot.diameter[j];
@@ -373,10 +373,10 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
-            
+
         f <<"</diameter>" << "\n";
         }
-        
+
     // If the Type flag is true output the types of all particles to an xml file
     if  (m_output_type)
         {
@@ -388,7 +388,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             }
         f <<"</type>" << "\n";
         }
-    
+
     // If the body flag is true output the bodies of all particles to an xml file
     if  (m_output_body)
         {
@@ -402,12 +402,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 out = -1;
             else
                 out = (int)body;
-            
+
             f << out << "\n";
             }
         f <<"</body>" << "\n";
         }
-        
+
     // if the bond flag is true, output the bonds to the xml file
     if (m_output_bond)
         {
@@ -421,32 +421,32 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             unsigned int bond_type = bdata_snapshot.type_id[i];
             f << bond_data->getNameByType(bond_type) << " " << bond.x << " " << bond.y << "\n";
             }
-            
+
         f << "</bond>" << "\n";
         }
-        
+
     // if the angle flag is true, output the angles to the xml file
     if (m_output_angle)
         {
         f << "<angle num=\"" << m_sysdef->getAngleData()->getNumAngles() << "\">" << "\n";
         shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
-        
+
         // loop over all angles and write them out
         for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
             {
             Angle angle = angle_data->getAngle(i);
             f << angle_data->getNameByType(angle.type) << " " << angle.a  << " " << angle.b << " " << angle.c << "\n";
             }
-            
+
         f << "</angle>" << "\n";
         }
-        
+
     // if dihedral is true, write out dihedrals to the xml file
     if (m_output_dihedral)
         {
         f << "<dihedral num=\"" << m_sysdef->getDihedralData()->getNumDihedrals() << "\">" << "\n";
         shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
-        
+
         // loop over all angles and write them out
         for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
             {
@@ -454,16 +454,16 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             f << dihedral_data->getNameByType(dihedral.type) << " " << dihedral.a  << " " << dihedral.b << " "
             << dihedral.c << " " << dihedral.d << "\n";
             }
-            
+
         f << "</dihedral>" << "\n";
         }
-        
+
     // if improper is true, write out impropers to the xml file
     if (m_output_improper)
         {
         f << "<improper num=\"" << m_sysdef->getImproperData()->getNumDihedrals() << "\">" << "\n";
         shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
-        
+
         // loop over all angles and write them out
         for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
             {
@@ -471,16 +471,16 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             f << improper_data->getNameByType(dihedral.type) << " " << dihedral.a  << " " << dihedral.b << " "
             << dihedral.c << " " << dihedral.d << "\n";
             }
-            
+
         f << "</improper>" << "\n";
         }
-        
+
     // if the wall flag is true, output the walls to the xml file
     if (m_output_wall)
         {
         f << "<wall>" << "\n";
         shared_ptr<WallData> wall_data = m_sysdef->getWallData();
-        
+
         // loop over all walls and write them out
         for (unsigned int i = 0; i < wall_data->getNumWalls(); i++)
             {
@@ -490,12 +490,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             }
         f << "</wall>" << "\n";
         }
-        
+
     // If the charge flag is true output the mass of all particles to the file
     if (m_output_charge)
         {
         f <<"<charge num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        
+
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
             Scalar charge = snapshot.charge[j];
@@ -506,7 +506,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
                 throw runtime_error("Error writting HOOMD dump file");
                 }
             }
-            
+
         f <<"</charge>" << "\n";
         }
 
@@ -514,7 +514,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_orientation)
         {
         f << "<orientation num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        
+
         for (unsigned int j = 0; j < m_pdata->getN(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
@@ -533,7 +533,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_moment_inertia)
         {
         f << "<moment_inertia num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
-        
+
         for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
             {
             // inertia tensors are stored by tag
@@ -541,7 +541,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             for (unsigned int c = 0; c < 5; c++)
                 f << I.components[c] << " ";
             f << I.components[5] << "\n";
-            
+
             if (!f.good())
                 {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
@@ -553,15 +553,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     f << "</configuration>" << "\n";
     f << "</hoomd_xml>" << "\n";
-    
+
     if (!f.good())
         {
                 m_exec_conf->msg->error() << "dump.xml: I/O error while writing HOOMD dump file" << endl;
         throw runtime_error("Error writting HOOMD dump file");
         }
-        
+
     f.close();
-    
+
     }
 
 /*! \param timestep Current time step of the simulation
@@ -571,10 +571,10 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Dump XML");
-        
+
     ostringstream full_fname;
     string filetype = ".xml";
-    
+
     // Generate a filename with the timestep padded to ten zeros
     full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
     writeFile(full_fname.str(), timestep);
@@ -610,4 +610,3 @@ void export_HOOMDDumpWriter()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

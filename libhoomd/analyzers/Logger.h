@@ -105,25 +105,25 @@ class Logger : public Analyzer
 
         //! Registers a compute
         void registerCompute(boost::shared_ptr<Compute> compute);
-        
+
         //! Registers an updater
         void registerUpdater(boost::shared_ptr<Updater> updater);
-        
+
         //! Clears all registered computes and updaters
         void removeAll();
-        
+
         //! Selects which quantities to log
         void setLoggedQuantities(const std::vector< std::string >& quantities);
-        
+
         //! Sets the delimiter to use between fields
         void setDelimiter(const std::string& delimiter);
-        
+
         //! Query the last logged value for a given quantity
         Scalar getCachedQuantity(const std::string& quantity="timestep");
-        
+
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
-        
+
         //! Get needed pdata flags
         /*! Logger may potentially log any of the optional quantities, enable all of the bits.
         */
@@ -173,4 +173,3 @@ class Logger : public Analyzer
 void export_Logger();
 
 #endif
-

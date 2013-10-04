@@ -110,10 +110,10 @@ class TablePotential : public ForceCompute
                        boost::shared_ptr<NeighborList> nlist,
                        unsigned int table_width,
                        const std::string& log_suffix="");
-                       
+
         //! Destructor
         virtual ~TablePotential();
-        
+
         //! Set the table for a given type pair
         virtual void setTable(unsigned int typ1,
                               unsigned int typ2,
@@ -121,13 +121,13 @@ class TablePotential : public ForceCompute
                               const std::vector<Scalar> &F,
                               Scalar rmin,
                               Scalar rmax);
-                              
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-        
+
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         unsigned int m_table_width;                 //!< Width of the tables in memory
@@ -135,7 +135,7 @@ class TablePotential : public ForceCompute
         GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables
         GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table
         std::string m_log_name;                     //!< Cached log name
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -144,4 +144,3 @@ class TablePotential : public ForceCompute
 void export_TablePotential();
 
 #endif
-

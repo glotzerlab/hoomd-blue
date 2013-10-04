@@ -96,11 +96,11 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    
+
     if (m_prof) m_prof->push(exec_conf, "ConstraintSphere");
-    
+
     assert(m_pdata);
-    
+
     // access the particle data arrays
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
@@ -128,10 +128,10 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
                                          m_r,
                                          m_deltaT,
                                          m_block_size);
-    
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-   
+
     if (m_prof)
         m_prof->pop(exec_conf);
     }
@@ -150,4 +150,3 @@ void export_ConstraintSphereGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

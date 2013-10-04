@@ -67,15 +67,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface
-    
+
     Integrator variables mapping:
      - [0] -> xi
      - [1] -> eta
-    
+
     The instantaneous temperature of the system is computed with the provided ComputeThermo. Correct dynamics require
     that the thermo computes the temperature of the assigned group and with D*N-D degrees of freedom. TwoStepNVT does
     not check for these conditions.
-    
+
     \ingroup updaters
 */
 class TwoStepNVT : public IntegrationMethodTwoStep
@@ -89,7 +89,7 @@ class TwoStepNVT : public IntegrationMethodTwoStep
                    boost::shared_ptr<Variant> T,
                    const std::string& suffix = std::string(""));
         virtual ~TwoStepNVT();
-        
+
         //! Update the temperature
         /*! \param T New temperature to set
         */
@@ -97,7 +97,7 @@ class TwoStepNVT : public IntegrationMethodTwoStep
             {
             m_T = T;
             }
-        
+
         //! Update the tau value
         /*! \param tau New time constant to set
         */
@@ -117,19 +117,19 @@ class TwoStepNVT : public IntegrationMethodTwoStep
 
         //! Returns a list of log quantities this integrator calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-        
+
         //! Returns logged values
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
-        
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
-        
+
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
-    
+
     protected:
         boost::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
-        
+
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         std::string m_log_name;         //!< Name of the reservior quantity that we log
@@ -140,4 +140,3 @@ class TwoStepNVT : public IntegrationMethodTwoStep
 void export_TwoStepNVT();
 
 #endif // #ifndef __TWO_STEP_NVT_H__
-

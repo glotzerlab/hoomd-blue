@@ -107,7 +107,7 @@ class VariantConst : public Variant
             {
             return m_val;
             }
-            
+
     private:
         double m_val;       //!< The value
     };
@@ -127,7 +127,7 @@ class VariantLinear : public Variant
         virtual double getValue(unsigned int timestep);
         //! Sets a point in the interpolation
         void setPoint(unsigned int timestep, double val);
-        
+
     private:
         std::map<unsigned int, double> m_values;    //!< Values to interpoloate
         std::map<unsigned int, double>::iterator    m_a,    //!< First point in the pair to interpolate
@@ -138,4 +138,3 @@ class VariantLinear : public Variant
 void export_Variant();
 
 #endif
-

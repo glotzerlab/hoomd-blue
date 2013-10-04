@@ -13,7 +13,7 @@ class integrate_nph_tests (unittest.TestCase):
         force.constant(fx=0.1, fy=0.1, fz=0.1)
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # tests basic creation of the integrator
     def test(self):
         all = group.all();
@@ -62,11 +62,10 @@ class integrate_nph_tests (unittest.TestCase):
         mode = integrate.mode_standard(dt=0.005);
         nve = integrate.nph(group=empty, P=1.0, tau=0.5, tauP=0.5)
         run(1);
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

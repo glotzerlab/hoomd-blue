@@ -87,7 +87,7 @@ class DummyAnalyzer : public Analyzer
                 : Analyzer(sysdef), m_name(name)
             {
             }
-            
+
         //! Just prints our name and the current time step
         void analyze(unsigned int timestep)
             {
@@ -112,7 +112,7 @@ class DummyUpdater : public Integrator
                 : Integrator(sysdef, 0.0), m_name(name)
             {
             }
-            
+
         //! Just prints our name and the current time step
         void update(unsigned int timestep)
             {
@@ -136,7 +136,7 @@ class DummyCompute : public Compute
                 : Compute(sysdef), m_name(name)
             {
             }
-            
+
         //! Just prints our name and the current time step
         void compute(unsigned int timestep)
             {
@@ -155,18 +155,18 @@ class DummyCompute : public Compute
 BOOST_AUTO_TEST_CASE( getter_setter_tests )
     {
     boost::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
-    
+
     cout << "Running getter_setter_tests, expect error messages to be printed to the screen as this tests error checking in System" << endl;
-    
+
     // create two analyzers to test adding
     boost::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
     boost::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
-    
+
     // add them both to a System
     System sys(sysdef, 0);
     sys.addAnalyzer(analyzer1, "analyzer1", 10);
     sys.addAnalyzer(analyzer2, "analyzer2", 105);
-    
+
     // test adding another of the same name
     bool except = false;
     try
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     // check the get method
     BOOST_CHECK_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
     BOOST_CHECK_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     // test the get and set period functions
     BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)105);
     BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)10);
@@ -206,12 +206,12 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     sys.setAnalyzerPeriod("analyzer1", 15);
     sys.setAnalyzerPeriod("analyzer2", 8);
     BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)8);
     BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)15);
-    
+
     // remove the analyzers 1 by one and make sure they don't exist
     sys.removeAnalyzer("analyzer1");
     BOOST_CHECK_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     sys.removeAnalyzer("analyzer2");
     except = false;
     try
@@ -237,16 +237,16 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     // ************ Updaters
     // create two updaters to test adding
     boost::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
     boost::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
-    
+
     // add them both to a System
     sys.addUpdater(updater1, "updater1", 10);
     sys.addUpdater(updater2, "updater2", 105);
-    
+
     // test adding another of the same name
     except = false;
     try
@@ -258,7 +258,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     // check the get method
     BOOST_CHECK_EQUAL(sys.getUpdater("updater1"), updater1);
     BOOST_CHECK_EQUAL(sys.getUpdater("updater2"), updater2);
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     // test the get and set period functions
     BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)105);
     BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)10);
@@ -286,12 +286,12 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     sys.setUpdaterPeriod("updater1", 15);
     sys.setUpdaterPeriod("updater2", 8);
     BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)8);
     BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)15);
-    
+
     // remove the updaters 1 by one and make sure they don't exist
     sys.removeUpdater("updater1");
     BOOST_CHECK_EQUAL(sys.getUpdater("updater2"), updater2);
@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     sys.removeUpdater("updater2");
     except = false;
     try
@@ -317,16 +317,16 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     // ********* Computes
     // create two updaters to test adding
     boost::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
     boost::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
-    
+
     // add them both to a System
     sys.addCompute(compute1, "compute1");
     sys.addCompute(compute2, "compute2");
-    
+
     // test adding another of the same name
     except = false;
     try
@@ -338,7 +338,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     // check the get method
     BOOST_CHECK_EQUAL(sys.getCompute("compute1"), compute1);
     BOOST_CHECK_EQUAL(sys.getCompute("compute2"), compute2);
@@ -352,7 +352,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     // remove the computes 1 by one and make sure they don't exist
     sys.removeCompute("compute1");
     BOOST_CHECK_EQUAL(sys.getCompute("compute2"), compute2);
@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     sys.removeCompute("compute2");
     except = false;
     try
@@ -378,11 +378,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         except = true;
         }
     BOOST_CHECK(except);
-    
+
     // ************ Integrator
     boost::shared_ptr< Integrator > integrator1(new DummyUpdater(sysdef, "integrator1"));
     boost::shared_ptr< Integrator > integrator2(new DummyUpdater(sysdef, "integrator2"));
-    
+
     sys.setIntegrator(integrator1);
     BOOST_CHECK_EQUAL(sys.getIntegrator(), integrator1);
     sys.setIntegrator(integrator2);
@@ -460,4 +460,3 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

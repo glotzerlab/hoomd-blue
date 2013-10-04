@@ -83,7 +83,7 @@ using namespace boost::python;
     \param spacing Separation between particles
     \param type_name Name of the particle type to create
 */
-SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, const std::string &type_name) 
+SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, const std::string &type_name)
     : m_M(M), m_spacing(spacing), box(M * spacing), m_type_name(type_name)
     {
     }
@@ -92,14 +92,14 @@ SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, c
 boost::shared_ptr<SnapshotSystemData> SimpleCubicInitializer::getSnapshot() const
     {
     boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
-    snapshot->global_box = box; 
+    snapshot->global_box = box;
 
     SnapshotParticleData& pdata = snapshot->particle_data;
     unsigned int num_particles = m_M * m_M * m_M;
     pdata.resize(num_particles);
 
     Scalar3 lo = box.getLo();
-    
+
     // just do a simple triple for loop to fill the space
     unsigned int c = 0;
     for (unsigned int k = 0; k < m_M; k++)
@@ -129,7 +129,7 @@ boost::shared_ptr<SnapshotSystemData> SimpleCubicInitializer::getSnapshot() cons
     \param type_name Name of the particle type to create
     \note assumes particles have a diameter of 1
 */
-RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist, const std::string &type_name) 
+RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist, const std::string &type_name)
     : m_N(N), m_phi_p(phi_p), m_min_dist(min_dist), m_type_name(type_name)
     {
     // sanity checks
@@ -148,7 +148,7 @@ RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_di
         cerr << endl << "***Error! RandomInitializer: min_dist <= 0 doesn't make sense" << endl << endl;
         throw runtime_error("Error initializing RandomInitializer");
         }
-        
+
     Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
     m_box = BoxDim(L);
     }
@@ -204,19 +204,19 @@ boost::shared_ptr<SnapshotSystemData> RandomInitializer::getSnapshot() const
                         dx += L;
                     if (dx > L/Scalar(2.0))
                         dx -= L;
-                        
+
                     Scalar dy = pdata.pos[j].y - y;
                     if (dy < -L/Scalar(2.0))
                         dy += L;
                     if (dy > L/Scalar(2.0))
                         dy -= L;
-                        
+
                     Scalar dz = pdata.pos[j].z - z;
                     if (dz < -L/Scalar(2.0))
                         dz += L;
                     if (dz > L/Scalar(2.0))
                         dz -= L;
-                        
+
                     Scalar dr2 = dx*dx + dy*dy + dz*dz;
                     if (dr2 <= m_min_dist * m_min_dist)
                         done = false;
@@ -225,7 +225,7 @@ boost::shared_ptr<SnapshotSystemData> RandomInitializer::getSnapshot() const
             tries++;
             if (tries > m_N*100)
                 {
-                cerr << endl 
+                cerr << endl
                      << "***Error! RandomInitializer: Unable to find location for particle after trying many times"
                      << endl << endl;
                 throw runtime_error("Unable to init system in RandomInitializer");
@@ -275,7 +275,7 @@ boost::shared_ptr<SnapshotSystemData> RandomInitializerWithWalls::getSnapshot() 
     // the real box dimensions need to be increased by m_wall_buffer*2
     Scalar L = m_real_box.getL().x + m_wall_buffer*2;
     BoxDim box(L);
-    
+
     snapshot->global_box = box;
 
     /*
@@ -328,4 +328,3 @@ void export_RandomInitializerWithWalls()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

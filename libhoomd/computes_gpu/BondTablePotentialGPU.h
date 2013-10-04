@@ -95,4 +95,3 @@ class BondTablePotentialGPU : public BondTablePotential
 void export_BondTablePotentialGPU();
 
 #endif
-

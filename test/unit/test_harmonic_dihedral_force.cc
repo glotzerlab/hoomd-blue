@@ -91,7 +91,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     pdata_4->setPosition(1,make_scalar3(1.0,1.0,1.0));
     pdata_4->setPosition(2,make_scalar3(6.0,-7.0,8.0));
     pdata_4->setPosition(3,make_scalar3(9.0,50.0,11.0));
-    
+
     /*
         printf(" Particle 1: x = %f  y = %f  z = %f \n", h_pos.data[0].x, h_pos.data[0].y, h_pos.data[0].z);
         printf(" Particle 2: x = %f  y = %f  z = %f \n", h_pos.data[1].x, h_pos.data[1].y, h_pos.data[1].z);
@@ -99,21 +99,21 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
         printf(" Particle 4: x = %f  y = %f  z = %f \n", h_pos.data[3].x, h_pos.data[3].y, h_pos.data[3].z);
         printf("\n");
     */
-    
+
     // create the dihedral force compute to check
     shared_ptr<HarmonicDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
     fc_4->setParams(0, Scalar(30.0), -1, 3); // type=0, K=30.0,sign=-1,multiplicity=3
-    
+
     // compute the force and check the results
     fc_4->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_1 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_4->getVirialArray();
     unsigned int pitch = 0;
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    
+
     // check that the force is correct, it should be 0 since we haven't created any dihedrals yet
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol);
@@ -130,7 +130,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     // add an dihedrals and check again
     sysdef_4->getDihedralData()->addDihedral(Dihedral(0,0,1,2,3)); // add type 0 dihedral bewtween atoms 0-1-2-3
     fc_4->compute(1);
-    
+
     {
     // this time there should be a force
     GPUArray<Scalar4>& force_array_2 =  fc_4->getForceArray();
@@ -145,7 +145,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+0]
                         +h_virial_2.data[3*pitch+0]
                         +h_virial_2.data[5*pitch+0], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_2.data[1].x, -0.5*0.522868, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[1].y, -0.5*0.525225, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[1].z, -0.5*0.226780, tol);
@@ -153,7 +153,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+1]
                         +h_virial_2.data[3*pitch+1]
                         +h_virial_2.data[5*pitch+1], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, 0.5*0.445003, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].y, -0.5*0.328375, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].z, -0.5*0.693145, tol);
@@ -161,7 +161,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+2]
                         +h_virial_2.data[3*pitch+2]
                         +h_virial_2.data[5*pitch+2], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_2.data[3].x, 0.5*0.195986, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[3].y, -0.5*0.002780, loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[3].z, -0.5*0.143167, tol);
@@ -176,9 +176,9 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
      FORCE 2: fx = -0.522868  fy = -0.525225  fz = -0.226780
      FORCE 3: fx = 0.445003  fy = -0.328375  fz = -0.693145
      FORCE 4: fx = 0.195986  fy = -0.002780  fz = -0.143167
-    
+
     */
-    
+
     // rearrange the two particles in memory and see if they are properly updated
     {
     ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
@@ -201,14 +201,14 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     pdata_4->notifyParticleSort();
     // recompute at the same timestep, the forces should still be updated
     fc_4->compute(1);
-    
+
     {
     GPUArray<Scalar4>& force_array_3 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_4->getVirialArray();
     unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -0.5*0.118121, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, 0.5*0.856380, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, 0.5*1.063092, tol);
@@ -216,7 +216,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+1]
                         +h_virial_3.data[3*pitch+1]
                         +h_virial_3.data[5*pitch+1], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, -0.5*0.522868, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].y, -0.5*0.525225, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].z, -0.5*0.226780, tol);
@@ -225,7 +225,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
                         +h_virial_3.data[3*pitch+0]
                         +h_virial_3.data[5*pitch+0], tol);
     }
-    
+
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -251,12 +251,12 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     shared_ptr<HarmonicDihedralForceCompute> fc_8 = tf_creator(sysdef_8);
     fc_8->setParams(0, 50.0, -1, 3);
     fc_8->setParams(1, 30.0,  1, 4);
-    
+
     sysdef_8->getDihedralData()->addDihedral(Dihedral(0, 0,1,2,3));
     sysdef_8->getDihedralData()->addDihedral(Dihedral(1, 4,5,6,7));
-    
+
     fc_8->compute(0);
-    
+
     {
     // check that the forces are correctly computed
     GPUArray<Scalar4>& force_array_4 =  fc_8->getForceArray();
@@ -264,7 +264,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     unsigned int pitch = virial_array_4.getPitch();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_4.data[0].x, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[0].y, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[0].z, 0.5*10.504562,tol);
@@ -272,7 +272,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+0]
                         +h_virial_4.data[3*pitch+0]
                         +h_virial_4.data[5*pitch+0], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, -0.5*5.724548, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].y, 0.5*2.667751,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].z, 0.5*5.650116,tol); // 5.650116
@@ -280,7 +280,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+1]
                         +h_virial_4.data[3*pitch+1]
                         +h_virial_4.data[5*pitch+1], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].x, 0.5*10.384811,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].y, -0.5*4.839524, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].z, -0.5*22.843740,tol); //
@@ -288,7 +288,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+2]
                         +h_virial_4.data[3*pitch+2]
                         +h_virial_4.data[5*pitch+2], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].x, -0.5*4.660264,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].y, 0.5*2.171773, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].z, 0.5*6.689062,tol); //
@@ -296,7 +296,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+3]
                         +h_virial_4.data[3*pitch+3]
                         +h_virial_4.data[5*pitch+3], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].x, 0.5*2.949620,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].y, -0.5*2.949620,tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[4].z, tol);
@@ -304,7 +304,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+4]
                         +h_virial_4.data[3*pitch+4]
                         +h_virial_4.data[5*pitch+4], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].x, 0.5*3.698439,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].y, -0.5*3.698439,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].z, -0.5*14.245843,tol);
@@ -312,7 +312,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+5]
                         +h_virial_4.data[3*pitch+5]
                         +h_virial_4.data[5*pitch+5], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[6].x, 0.5*6.648058,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[6].y, -0.5*6.648058,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[6].z, -0.5*14.245843,tol);
@@ -320,7 +320,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+6]
                         +h_virial_4.data[3*pitch+6]
                         +h_virial_4.data[5*pitch+6], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[7].x, -0.5*13.296117,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[7].y, 0.5*13.296117,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[7].z, 0.5*28.491686,tol);
@@ -329,13 +329,13 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
                         +h_virial_4.data[3*pitch+7]
                         +h_virial_4.data[5*pitch+7], tol);
     }
-    
+
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
     shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, 0, exec_conf));
     shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata_5->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(pdata_5->getTags(), access_location::host, access_mode::readwrite);
@@ -356,23 +356,23 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     h_rtag.data[h_tag.data[2]] = 2;
     h_rtag.data[h_tag.data[3]] = 3;
     }
-    
+
     // build the dihedral force compute and try it out
     shared_ptr<HarmonicDihedralForceCompute> fc_5 = tf_creator(sysdef_5);
     fc_5->setParams(0, 15.0, -1, 4);
-    
+
     sysdef_5->getDihedralData()->addDihedral(Dihedral(0, 0,1,2,3));
     sysdef_5->getDihedralData()->addDihedral(Dihedral(0, 1,2,3,4));
-    
+
     fc_5->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_5 =  fc_5->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc_5->getVirialArray();
     unsigned int pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[0].x, -0.5*1.400442, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[0].y, -0.5*1.251086,tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[0].z, 0.5*3.152951,tol);
@@ -380,7 +380,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+0]
                         +h_virial_5.data[3*pitch+0]
                         +h_virial_5.data[5*pitch+0], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, 0.5*1.719594, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].y, -0.5*3.301620,tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].z, 0.5*5.293722,tol);
@@ -388,7 +388,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+1]
                         +h_virial_5.data[3*pitch+1]
                         +h_virial_5.data[5*pitch+1], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[2].x, 0.5*1.153410, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[2].y, 0.5*1.044598,tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[2].z, -0.5*4.094823,tol);
@@ -396,7 +396,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+2]
                         +h_virial_5.data[3*pitch+2]
                         +h_virial_5.data[5*pitch+2], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].x, -0.5*0.581728, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].y, 0.5*1.797707,tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].z, -0.5*4.582985,tol);
@@ -404,7 +404,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+3]
                         +h_virial_5.data[3*pitch+3]
                         +h_virial_5.data[5*pitch+3], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[4].x, -0.5*0.890834, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[4].y, 0.5*1.710401,tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[4].z, 0.5*0.231135,tol);
@@ -421,29 +421,29 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
                                      boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
-    
+
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
     snap->dihedral_data.type_mapping.push_back("A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    
+
     shared_ptr<HarmonicDihedralForceCompute> fc1 = tf_creator1(sysdef);
     shared_ptr<HarmonicDihedralForceCompute> fc2 = tf_creator2(sysdef);
     fc1->setParams(0, Scalar(3.0), -1, 3);
     fc2->setParams(0, Scalar(3.0), -1, 3);
-    
+
     // add dihedrals
     for (unsigned int i = 0; i < N-3; i++)
         {
         sysdef->getDihedralData()->addDihedral(Dihedral(0, i, i+1,i+2, i+3));
         }
-        
+
     // compute the forces
     fc1->compute(0);
     fc2->compute(0);
-    
+
     // verify that the forces are identical (within roundoff errors)
     {
     GPUArray<Scalar4>& force_array_7 =  fc1->getForceArray();
@@ -455,14 +455,14 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     GPUArray<Scalar>& virial_array_8 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_8(force_array_8,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_8(virial_array_8,access_location::host,access_mode::read);
-    
+
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
     double deltav2[6];
     for (unsigned int i = 0; i < 6; i++)
         deltav2[i] = 0.0;
-        
+
     for (unsigned int i = 0; i < N; i++)
         {
         deltaf2 += double(h_force_8.data[i].x - h_force_7.data[i].x) * double(h_force_8.data[i].x - h_force_7.data[i].x);
@@ -487,7 +487,7 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
     BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
     BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
-    }   
+    }
     }
 
 //! HarmonicDihedralForceCompute creator for dihedral_force_basic_tests()
@@ -533,10 +533,9 @@ BOOST_AUTO_TEST_CASE( HarmonicDihedralForceComputeGPU_compare )
 BOOST_AUTO_TEST_CASE( HarmonicDihedralForce_MultiGPU_compare)
     {
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-    
+
     dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
     dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1);
     dihedral_force_comparison_tests(tf_creator, tf_creator_gpu, exec_conf);
     }
 #endif
-

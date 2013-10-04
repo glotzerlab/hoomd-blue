@@ -93,7 +93,7 @@ class EvaluatorConstraint
             U.y = X.y + V.y * deltaT + F.y * dtsqdivm;
             U.z = X.z + V.z * deltaT + F.z * dtsqdivm;
             }
-        
+
         //! Evaluate the unconstrained position update U
         /*! \returns The unconstrained position update U
         */
@@ -101,7 +101,7 @@ class EvaluatorConstraint
             {
             return U;
             }
-        
+
         //! Evaluate the additional constraint force
         /*! \param FC output parameter where the computed force is written
             \param virial array of six scalars the computed virial tensor is written
@@ -115,7 +115,7 @@ class EvaluatorConstraint
             FC.x = (C.x - U.x) * moverdtsq;
             FC.y = (C.y - U.y) * moverdtsq;
             FC.z = (C.z - U.z) * moverdtsq;
-            
+
             // compute virial
             virial[0] = FC.x * X.x;
             virial[1] = Scalar(1./2.)*(FC.y * X.x + FC.x * X.y);
@@ -124,7 +124,7 @@ class EvaluatorConstraint
             virial[4] = Scalar(1./2.)*(FC.z * X.y + FC.y * X.z);
             virial[5] = FC.z * X.z;
             }
-        
+
     protected:
         Scalar3 U;      //!< Unconstrained position update
         Scalar3 X;      //!< Current particle position
@@ -135,4 +135,3 @@ class EvaluatorConstraint
 
 
 #endif // __PAIR_EVALUATOR_LJ_H__
-

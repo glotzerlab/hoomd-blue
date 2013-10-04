@@ -88,7 +88,7 @@ using namespace boost::iostreams;
 static void write_string(ostream &f, const string& str)
     {
     unsigned int len = (unsigned int)str.size();
-    f.write((char*)&len, sizeof(unsigned int)); 
+    f.write((char*)&len, sizeof(unsigned int));
     if (len != 0)
         f.write(str.c_str(), len*sizeof(char));
     }
@@ -119,7 +119,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     bool gz_ext = false;
     if (ext == string(".gz"))
          gz_ext = true;
-         
+
     if (!gz_ext && m_enable_compression)
         {
         m_exec_conf->msg->warning() << "dump.bin: Writing compressed binary file without a .gz extension." << endl;
@@ -138,13 +138,13 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f.push(gzip_compressor());
     #endif
     f.push(file_sink(fname.c_str(), ios::out | ios::binary));
-    
+
     if (!f.good())
         {
         m_exec_conf->msg->error() << "dump.bin: Unable to open dump file for writing: " << fname << endl;
         throw runtime_error("Error writing hoomd binary dump file");
         }
-    
+
     // write a magic number identifying the file format
     unsigned int magic = 0x444d4f48;
     f.write((char*)&magic, sizeof(unsigned int));
@@ -166,14 +166,14 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     BoxDim box = m_pdata->getBox();
     Scalar3 L = box.getL();
     unsigned int dimensions = m_sysdef->getNDimensions();
-    
+
     //write out the timestep, dimensions, and box
     f.write((char*)&timestep, sizeof(unsigned int));
     f.write((char*)&dimensions, sizeof(unsigned int));
     f.write((char*)&L.x, sizeof(Scalar));
     f.write((char*)&L.y, sizeof(Scalar));
     f.write((char*)&L.z, sizeof(Scalar));
-    
+
     //write out particle data
     unsigned int np = m_pdata->getN();
     f.write((char*)&np, sizeof(unsigned int));
@@ -208,7 +208,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f.write((char*)h_diameter.data, np*sizeof(Scalar));
     f.write((char*)h_charge.data, np*sizeof(Scalar));
     f.write((char*)h_body.data, np*sizeof(unsigned int));
-    
+
     //write out types and type mapping
     unsigned int ntypes = m_pdata->getNTypes();
     f.write((char*)&ntypes, sizeof(unsigned int));
@@ -225,7 +225,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         m_exec_conf->msg->error() << "dump.bin: I/O error writing HOOMD dump file" << endl;
         throw runtime_error("Error writing HOOMD dump file");
         }
-    
+
     //Output the integrator states to the binary file
     {
     shared_ptr<IntegratorData> integrator_data = m_sysdef->getIntegratorData();
@@ -245,7 +245,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
             }
         }
     }
-    
+
     // Output the bonds to the binary file
     {
     //write out type mapping
@@ -260,7 +260,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     unsigned int nb = m_sysdef->getBondData()->getNumBonds();
     f.write((char*)&nb, sizeof(unsigned int));
     shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    
+
     // loop over all bonds and write them out
     for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
         {
@@ -270,7 +270,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f.write((char*)&bond.b, sizeof(unsigned int));
         }
     }
-        
+
     // Output the angles to the binary file
     {
     //write out type mapping
@@ -281,24 +281,24 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         std::string name = m_sysdef->getAngleData()->getNameByType(i);
         write_string(f, name);
         }
-    
+
     unsigned int na = m_sysdef->getAngleData()->getNumAngles();
     f.write((char*)&na, sizeof(unsigned int));
 
     shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
-    
+
     // loop over all angles and write them out
     for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
         {
         Angle angle = angle_data->getAngle(i);
-        
+
         f.write((char*)&angle.type, sizeof(unsigned int));
         f.write((char*)&angle.a, sizeof(unsigned int));
         f.write((char*)&angle.b, sizeof(unsigned int));
         f.write((char*)&angle.c, sizeof(unsigned int));
-        }            
+        }
     }
-        
+
     // Write out dihedrals to the binary file
     {
     //write out type mapping
@@ -309,12 +309,12 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         std::string name = m_sysdef->getDihedralData()->getNameByType(i);
         write_string(f, name);
         }
-        
+
     unsigned int nd = m_sysdef->getDihedralData()->getNumDihedrals();
     f.write((char*)&nd, sizeof(unsigned int));
 
     shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
-    
+
     // loop over all angles and write them out
     for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
         {
@@ -325,9 +325,9 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f.write((char*)&dihedral.b, sizeof(unsigned int));
         f.write((char*)&dihedral.c, sizeof(unsigned int));
         f.write((char*)&dihedral.d, sizeof(unsigned int));
-        }            
+        }
     }
-        
+
     // Write out impropers to the binary file
     {
     ntypes = m_sysdef->getImproperData()->getNDihedralTypes();
@@ -340,34 +340,34 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     unsigned int ni = m_sysdef->getImproperData()->getNumDihedrals();
     f.write((char*)&ni, sizeof(unsigned int));
-            
+
     shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
-    
+
     // loop over all angles and write them out
     for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
         {
         Dihedral dihedral = improper_data->getDihedral(i);
-        
+
         f.write((char*)&dihedral.type, sizeof(unsigned int));
         f.write((char*)&dihedral.a, sizeof(unsigned int));
         f.write((char*)&dihedral.b, sizeof(unsigned int));
         f.write((char*)&dihedral.c, sizeof(unsigned int));
         f.write((char*)&dihedral.d, sizeof(unsigned int));
-        }            
+        }
     }
-        
+
     // Output the walls to the binary file
     {
     shared_ptr<WallData> wall_data = m_sysdef->getWallData();
 
     unsigned int nw = wall_data->getNumWalls();
     f.write((char*)&nw, sizeof(unsigned int));
-    
+
     // loop over all walls and write them out
     for (unsigned int i = 0; i < nw; i++)
         {
         Wall wall = wall_data->getWall(i);
-        
+
         f.write((char*)&(wall.origin_x), sizeof(Scalar));
         f.write((char*)&(wall.origin_y), sizeof(Scalar));
         f.write((char*)&(wall.origin_z), sizeof(Scalar));
@@ -376,19 +376,19 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f.write((char*)&(wall.normal_z), sizeof(Scalar));
         }
     }
-    
+
     // Output the rigid bodies to the binary file
     {
     shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
-    
+
     unsigned int n_bodies = rigid_data->getNumBodies();
     f.write((char*)&n_bodies, sizeof(unsigned int));
-    
+
     if (n_bodies <= 0)
         {
         return;
         }
-    
+
     // We don't need to write forces, torques and orientation/quaternions because as the rigid bodies are constructed
     // from restart files, the orientation is recalculated for the moment of inertia- using the old one will cause mismatches in angular velocities.
     // Below are the minimal data required for a smooth restart with rigid bodies, assuming that RigidData::initializeData() already invoked.
@@ -397,37 +397,37 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::host, access_mode::read);
     ArrayHandle<int3> body_image_handle(rigid_data->getBodyImage(), access_location::host, access_mode::read);
-    
+
     for (unsigned int body = 0; body < n_bodies; body++)
         {
         f.write((char*)&(com_handle.data[body].x), sizeof(Scalar));
         f.write((char*)&(com_handle.data[body].y), sizeof(Scalar));
         f.write((char*)&(com_handle.data[body].z), sizeof(Scalar));
         f.write((char*)&(com_handle.data[body].w), sizeof(Scalar));
-        
+
         f.write((char*)&(vel_handle.data[body].x), sizeof(Scalar));
         f.write((char*)&(vel_handle.data[body].y), sizeof(Scalar));
         f.write((char*)&(vel_handle.data[body].z), sizeof(Scalar));
         f.write((char*)&(vel_handle.data[body].w), sizeof(Scalar));
-        
+
         f.write((char*)&(angmom_handle.data[body].x), sizeof(Scalar));
         f.write((char*)&(angmom_handle.data[body].y), sizeof(Scalar));
         f.write((char*)&(angmom_handle.data[body].z), sizeof(Scalar));
         f.write((char*)&(angmom_handle.data[body].w), sizeof(Scalar));
-        
+
         f.write((char*)&(body_image_handle.data[body].x), sizeof(int));
         f.write((char*)&(body_image_handle.data[body].y), sizeof(int));
         f.write((char*)&(body_image_handle.data[body].z), sizeof(int));
-        
+
         }
-    }    
-                
+    }
+
     if (!f.good())
         {
         m_exec_conf->msg->error() << "dump.bin: I/O error writing HOOMD dump file" << endl;
         throw runtime_error("Error writing HOOMD dump file");
         }
-        
+
     }
 
 /*! \param timestep Current time step of the simulation
@@ -437,14 +437,14 @@ void HOOMDBinaryDumpWriter::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Dump BIN");
-    
+
     if (!m_alternating)
         {
         ostringstream full_fname;
         string filetype = ".bin";
         if (m_enable_compression)
             filetype += ".gz";
-        
+
         // Generate a filename with the timestep padded to ten zeros
         full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
         writeFile(full_fname.str(), timestep);
@@ -479,7 +479,7 @@ void HOOMDBinaryDumpWriter::setAlternatingWrites(const std::string& fname1, cons
     m_fname1 = fname1;
     m_fname2 = fname2;
     }
-    
+
 /* \param enable_compression Set to true to enable compression, falst to disable it
 */
 void HOOMDBinaryDumpWriter::enableCompression(bool enable_compression)
@@ -509,4 +509,3 @@ void export_HOOMDBinaryDumpWriter()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

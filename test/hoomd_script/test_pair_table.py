@@ -12,7 +12,7 @@ class pair_table_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # basic test of creation
     def test(self):
         table = pair.table(width=1000);
@@ -24,7 +24,7 @@ class pair_table_tests (unittest.TestCase):
         table = pair.table(width=1000);
         table.pair_coeff.set('A', 'A', rmin=0.0, rmax=1.0);
         self.assertRaises(RuntimeError, table.update_coeffs);
-        
+
     # test missing coefficients
     def test_missing_AA(self):
         table = pair.table(width=1000);
@@ -37,7 +37,7 @@ class pair_table_tests (unittest.TestCase):
         table.update_coeffs();
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(1.0, globals.neighbor_list.r_cut);
-        
+
         table.pair_coeff.set('A', 'A', rmax = 2.5)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
@@ -48,4 +48,3 @@ class pair_table_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

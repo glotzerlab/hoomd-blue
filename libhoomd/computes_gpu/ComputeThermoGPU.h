@@ -87,4 +87,3 @@ class ComputeThermoGPU : public ComputeThermo
 void export_ComputeThermoGPU();
 
 #endif
-

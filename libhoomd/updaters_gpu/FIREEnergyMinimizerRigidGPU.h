@@ -67,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
-    
+
     \ingroup updaters
 */
 class FIREEnergyMinimizerRigidGPU : public FIREEnergyMinimizerRigid
@@ -78,18 +78,18 @@ class FIREEnergyMinimizerRigidGPU : public FIREEnergyMinimizerRigid
 
         //! Destroys the minimizer
         virtual ~FIREEnergyMinimizerRigidGPU() {}
-        
+
         //! Resets the minimizer
         virtual void reset();
 
         //! Iterates forward one step
         virtual void update(unsigned int);
-        
+
     protected:
         GPUArray<Scalar> m_sum_pe;                  //!< memory space for the sum over potential energy
         GPUArray<Scalar> m_sum_Pt;                 //!< memory space for the sum over P, vsq, fsq
-        GPUArray<Scalar> m_sum_Pr;                 //!< memory space for the sum over P, wsq, tsq 
-        
+        GPUArray<Scalar> m_sum_Pr;                 //!< memory space for the sum over P, wsq, tsq
+
         unsigned int m_block_size;                //!< block size for partial sum memory
         unsigned int m_num_blocks;                //!< number of memory blocks reserved for partial sum memory
         GPUArray<Scalar> m_partial_sum_pe;         //!< memory space for partial sum over P
@@ -101,4 +101,3 @@ class FIREEnergyMinimizerRigidGPU : public FIREEnergyMinimizerRigid
 void export_FIREEnergyMinimizerRigidGPU();
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_RIGID_GPU_H__
-

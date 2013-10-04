@@ -66,9 +66,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Neighbor list build on the GPU
 /*! Implements the O(N) neighbor list build on the GPU using a cell list.
-    
+
     GPU kernel methods are defined in NeighborListGPUBinned.cuh and defined in NeighborListGPUBinned.cu.
-    
+
     \ingroup computes
 */
 class NeighborListGPUBinned : public NeighborListGPU
@@ -79,25 +79,25 @@ class NeighborListGPUBinned : public NeighborListGPU
                               Scalar r_cut,
                               Scalar r_buff,
                               boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
-        
+
         //! Destructor
         virtual ~NeighborListGPUBinned();
-        
+
         //! Change the cuttoff radius
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
-    
+
         //! Set the block size
         void setBlockSize(unsigned int block_size)
             {
             m_block_size = block_size;
             }
-        
+
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
 
         //! Enable/disable body filtering
         virtual void setFilterBody(bool filter_body);
-        
+
         //! Enable/disable diameter filtering
         virtual void setFilterDiameter(bool filter_diameter);
 
@@ -112,10 +112,10 @@ class NeighborListGPUBinned : public NeighborListGPU
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
-        
+
         //! Test if the cuda arrays need reallocation
         bool needReallocateCudaArrays();
-        
+
         //! Updates the cudaArray allocations
         void allocateCudaArrays();
 
@@ -125,4 +125,3 @@ class NeighborListGPUBinned : public NeighborListGPU
 void export_NeighborListGPUBinned();
 
 #endif
-

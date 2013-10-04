@@ -17,15 +17,14 @@ class update_zero_momentum_tests (unittest.TestCase):
     def test(self):
         update.zero_momentum()
         run(100);
-    
+
     # test variable periods
     def test_variable(self):
         update.zero_momentum(period = lambda n: n*100);
         run(100);
-    
+
     def tearDown(self):
         init.reset();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

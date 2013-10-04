@@ -73,7 +73,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     // create a default cell list if one was not specified
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
-    
+
     m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     m_cl->setRadius(1);
     m_cl->setComputeTDB(false);
@@ -81,7 +81,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
 
     gpu_setup_compute_nlist_binned();
     CHECK_CUDA_ERROR();
-    
+
     // default to 0 last allocated quantities
     m_last_dim = make_uint3(0,0,0);
     m_last_cell_Nmax = 0;
@@ -89,7 +89,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     dca_cell_xyzf = NULL;
     dca_cell_tdb = NULL;
     m_block_size = 64;
-    
+
     // When running on compute 1.x, textures are allocated with the height equal to the number of cells
     // limit the number of cells to the maximum texture dimension
     if (exec_conf->getComputeCapability() < 200)
@@ -107,21 +107,21 @@ NeighborListGPUBinned::~NeighborListGPUBinned()
         cudaFreeArray(dca_cell_xyzf);
     if (dca_cell_tdb != NULL)
         cudaFreeArray(dca_cell_tdb);
-    
+
     CHECK_CUDA_ERROR();
     }
 
 void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborListGPU::setRCut(r_cut, r_buff);
-    
+
     m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     }
 
 void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
     {
     NeighborListGPU::setMaximumDiameter(d_max);
-    
+
     // need to update the cell list settings appropriately
     m_cl->setNominalWidth(m_r_cut + m_r_buff + m_d_max - Scalar(1.0));
     }
@@ -129,7 +129,7 @@ void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
 void NeighborListGPUBinned::setFilterBody(bool filter_body)
     {
     NeighborListGPU::setFilterBody(filter_body);
-    
+
     // need to update the cell list settings appropriately
     if (m_filter_body || m_filter_diameter)
         m_cl->setComputeTDB(true);
@@ -140,7 +140,7 @@ void NeighborListGPUBinned::setFilterBody(bool filter_body)
 void NeighborListGPUBinned::setFilterDiameter(bool filter_diameter)
     {
     NeighborListGPU::setFilterDiameter(filter_diameter);
-    
+
     // need to update the cell list settings appropriately
     if (m_filter_body || m_filter_diameter)
         m_cl->setComputeTDB(true);
@@ -155,9 +155,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
         throw runtime_error("Error computing neighbor list");
         }
-   
+
     m_cl->compute(timestep);
-    
+
     // check that at least 3x3x3 cells are computed
     uint3 dim = m_cl->getDim();
     if (dim.x < 3 || dim.y < 3 || (m_sysdef->getNDimensions() != 2 && dim.z < 3))
@@ -175,7 +175,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-    
+
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(), access_location::device, access_mode::read);
@@ -224,7 +224,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         m_exec_conf->msg->error() << "NeighborListGPUBinned doesn't work in double precision on compute 1.x" << endl;
         throw runtime_error("Error computing neighbor list");
         #endif
-        
+
         unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
 
         // upate the cuda array allocations (note, this is smart enough to not reallocate when there has been no change)
@@ -239,12 +239,12 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         cudaMemcpyToArray(dca_cell_xyzf, 0, 0, d_cell_xyzf.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
         if (m_filter_body || m_filter_diameter)
             cudaMemcpyToArray(dca_cell_tdb, 0, 0, d_cell_tdb.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
-        
+
         if (m_prof) m_prof->pop(exec_conf);
-        
+
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-            
+
         gpu_compute_nlist_binned_1x(d_nlist.data,
                                     d_n_neigh.data,
                                     d_last_pos.data,
@@ -281,7 +281,7 @@ bool NeighborListGPUBinned::needReallocateCudaArrays()
     // quit now if the dimensions are the same as the last allocation
     uint3 cur_dim = m_cl->getDim();
     unsigned int cur_cell_Nmax = m_cl->getNmax();
-    
+
     if (cur_dim.x == m_last_dim.x &&
         cur_dim.y == m_last_dim.y &&
         cur_dim.z == m_last_dim.z &&
@@ -303,10 +303,10 @@ void NeighborListGPUBinned::allocateCudaArrays()
     // quit now if the dimensions are the same as the last allocation
     uint3 cur_dim = m_cl->getDim();
     unsigned int cur_cell_Nmax = m_cl->getNmax();
-    
+
     m_last_dim = cur_dim;
     m_last_cell_Nmax = cur_cell_Nmax;
-    
+
     // free the old arrays
     if (dca_cell_adj != NULL)
         cudaFreeArray(dca_cell_adj);
@@ -314,18 +314,18 @@ void NeighborListGPUBinned::allocateCudaArrays()
         cudaFreeArray(dca_cell_xyzf);
     if (dca_cell_tdb != NULL)
         cudaFreeArray(dca_cell_tdb);
-    
+
     CHECK_CUDA_ERROR();
-    
+
     // allocate the new ones
     unsigned int ncell = cur_dim.x * cur_dim.y * cur_dim.z;
-    
+
     cudaChannelFormatDesc xyzf_desc = cudaCreateChannelDesc< Scalar4 >();
     cudaMallocArray(&dca_cell_xyzf, &xyzf_desc, cur_cell_Nmax, ncell);
     cudaMallocArray(&dca_cell_tdb, &xyzf_desc, cur_cell_Nmax, ncell);
     cudaChannelFormatDesc adj_desc = cudaCreateChannelDesc< unsigned int >();
     cudaMallocArray(&dca_cell_adj, &adj_desc, 27, ncell);
-    
+
     CHECK_CUDA_ERROR();
     }
 
@@ -336,4 +336,3 @@ void export_NeighborListGPUBinned()
                     .def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
                      ;
     }
-

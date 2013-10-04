@@ -31,10 +31,10 @@ class pair_max_rcut_tests (unittest.TestCase):
         lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=3.0)
         lj.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0, r_cut=2.5)
         lj.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=3.1)
-        
+
         globals.neighbor_list.update_rcut()
         self.assertAlmostEqual(3.1, globals.neighbor_list.r_cut);
-        
+
         gauss = pair.gauss(r_cut=1.0)
         gauss.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=1.0)
         gauss.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0, r_cut=2.0)
@@ -53,4 +53,3 @@ class pair_max_rcut_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

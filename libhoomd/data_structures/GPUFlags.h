@@ -97,21 +97,21 @@ template<class T> class GPUFlags
         GPUFlags(boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Frees memory
         ~GPUFlags();
-        
+
         //! Copy constructor
         GPUFlags(const GPUFlags& from);
         //! = operator
         GPUFlags& operator=(const GPUFlags& rhs);
-        
+
         //! Swap the pointers in two GPUFlags
         inline void swap(GPUFlags& from);
-        
+
         //! Test if the GPUFlags is NULL
         bool isNull() const
             {
             return (h_data == NULL);
             }
-            
+
         //! Read the flags on the host
         inline const T readFlags();
 
@@ -125,23 +125,23 @@ template<class T> class GPUFlags
             return d_data;
             }
 #endif
-    
+
     private:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
         bool m_mapped;          //!< Set to true when using host mapped memory
-        
+
 #ifdef ENABLE_CUDA
         mutable T* d_data;      //!< Pointer to allocated device memory
 #endif
         mutable T* h_data;      //!< Pointer to allocated host memory
-        
+
         //! Helper function to allocate memory
         inline void allocate();
         //! Helper function to free memory
         inline void deallocate();
         //! Helper function to clear memory
         inline void memclear();
-        
+
     };
 
 //******************************************
@@ -166,15 +166,15 @@ template<class T> GPUFlags<T>::GPUFlags(boost::shared_ptr<const ExecutionConfigu
 #endif
         h_data(NULL)
     {
-#ifdef ENABLE_CUDA 
-    // set mapping if requested and supported 
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->dev_prop.canMapHostMemory) 
-        m_mapped = true; 
-    else 
-        m_mapped = false; 
-#else 
-    m_mapped = false; 
-#endif 
+#ifdef ENABLE_CUDA
+    // set mapping if requested and supported
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->dev_prop.canMapHostMemory)
+        m_mapped = true;
+    else
+        m_mapped = false;
+#else
+    m_mapped = false;
+#endif
 
     // allocate and clear memory
     allocate();
@@ -195,7 +195,7 @@ template<class T> GPUFlags<T>::GPUFlags(const GPUFlags& from) : m_exec_conf(from
     // allocate and clear new memory the same size as the data in from
     allocate();
     memclear();
-    
+
     // copy over the data to the new GPUFlags
     this->resetFlags(from.readFlags);
     }
@@ -206,19 +206,19 @@ template<class T> GPUFlags<T>& GPUFlags<T>::operator=(const GPUFlags& rhs)
         {
         // free current memory
         deallocate();
-        
+
         // copy over basic elements
         m_mapped = rhs.m_mapped;
         m_exec_conf = rhs.m_exec_conf;
-        
+
         // allocate and clear new memory the same size as the data in rhs
         allocate();
         memclear();
-        
+
         // copy over the data to the new GPUFlags
         this->resetFlags(rhs.readFlags());
         }
-        
+
     return *this;
     }
 
@@ -313,7 +313,7 @@ template<class T> void GPUFlags<T>::deallocate()
     // don't do anything if the pointers have not been allocated
     if (h_data == NULL)
         return;
-        
+
     // free memory
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
@@ -340,7 +340,7 @@ template<class T> void GPUFlags<T>::deallocate()
 #else
     delete h_data;
 #endif
-        
+
     // set pointers to NULL
     h_data = NULL;
 #ifdef ENABLE_CUDA
@@ -356,9 +356,9 @@ template<class T> void GPUFlags<T>::memclear()
     // don't do anything if nothing is allocated
     if (h_data == NULL)
         return;
-        
+
     assert(h_data);
-    
+
 #ifdef ENABLE_CUDA
     // wait for the device to catch up
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && m_mapped)
@@ -399,7 +399,7 @@ template<class T> const T GPUFlags<T>::readFlags()
             cudaMemcpy(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost);
             }
         }
-#endif    
+#endif
 
     // return value of flags
     return *h_data;
@@ -413,7 +413,7 @@ template<class T> const T GPUFlags<T>::readFlags()
 template<class T> void GPUFlags<T>::resetFlags(const T flags)
     {
     if (m_mapped)
-        { 
+        {
 #ifdef ENABLE_CUDA
         // synch to wait for kernels
         cudaThreadSynchronize();
@@ -436,4 +436,3 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
     }
 
 #endif
-

@@ -70,12 +70,12 @@ struct gpu_npt_rigid_data
     unsigned int nf_r;      //!< Rotational degrees of freedom
     unsigned int dimension; //!< System dimension
     Scalar4* new_box;        //!< New box size
-    Scalar    dilation;      //!< Box size change 
-                                                          
+    Scalar    dilation;      //!< Box size change
+
     Scalar  eta_dot_t0;      //!< Thermostat translational velocity
     Scalar  eta_dot_r0;      //!< Thermostat rotational velocity
     Scalar  epsilon_dot;     //!< Barostat velocity
-        
+
     Scalar *partial_Ksum_t;  //!< NBlocks elements, each is a partial sum of m*v^2
     Scalar *partial_Ksum_r;  //!< NBlocks elements, each is a partial sum of L*w^2
     Scalar *Ksum_t;          //!< fully reduced Ksum_t on one GPU
@@ -87,7 +87,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    Scalar4 *d_net_force,
-                                   const BoxDim& box, 
+                                   const BoxDim& box,
                                    const gpu_npt_rigid_data &npt_rdata,
                                    Scalar deltaT);
 
@@ -97,7 +97,7 @@ cudaError_t gpu_npt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
                                     unsigned int group_size,
                                     Scalar4 *d_net_force,
                                     Scalar *d_net_virial,
-                                    const BoxDim& box, 
+                                    const BoxDim& box,
                                     const gpu_npt_rigid_data &npt_rdata,
                                     Scalar deltaT);
 
@@ -105,4 +105,3 @@ cudaError_t gpu_npt_rigid_step_two( const gpu_rigid_data_arrays& rigid_data,
 cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
 
 #endif // __TWO_STEP_NPT_RIGID_CUH__
-

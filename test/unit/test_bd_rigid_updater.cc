@@ -118,16 +118,16 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     unsigned int body_size = 5;
     unsigned int natomtypes = 2;
     unsigned int nbondtypes = 1;
-    
+
     unsigned int N = nbodies * nparticlesperbuildingblock;
     Scalar box_length = 24.0814;
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), natomtypes, nbondtypes, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+
     BoxDim box = pdata->getBox();
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
-    
+
     // setup a simple initial state
     unsigned int ibody = 0;
     unsigned int iparticle = 0;
@@ -137,12 +137,12 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     Scalar xspacing = 7.0f;
     Scalar yspacing = 1.0f;
     Scalar zspacing = 2.0f;
-    
+
     BuildingBlock buildingBlock;
-    buildingBlock.spacing_x = 6.0; 
+    buildingBlock.spacing_x = 6.0;
     buildingBlock.spacing_y = 6.0;
     buildingBlock.spacing_z = 2.0;
-   
+
     AtomInfo atomi;
     int num_atoms = 5;
     for (int atom_n = 0; atom_n < num_atoms; atom_n++)
@@ -156,8 +156,8 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         atomi.type = 1;
         atomi.mass = 1.0;
         buildingBlock.atoms.push_back(atomi);
-        }     
-                
+        }
+
     nparticlesperbuildingblock = buildingBlock.atoms.size();
     nbondsperbuildingblock = buildingBlock.bonds.size();
 
@@ -168,13 +168,13 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     Scalar KE = Scalar(0.0);
     Scalar PE = Scalar(0.0);
     Scalar AvgT = Scalar(0);
-    
-    
+
+
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::readwrite);
-    
+
     // initialize bodies in a cubic lattice with some velocity profile
     for (unsigned int i = 0; i < nbodies; i++)
         {
@@ -187,60 +187,60 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
             h_vel.data[iparticle].x = random->d();
             h_vel.data[iparticle].y = random->d();
             h_vel.data[iparticle].z = random->d();
-            
+
             KE += Scalar(0.5) * (h_vel.data[iparticle].x*h_vel.data[iparticle].x + h_vel.data[iparticle].y*h_vel.data[iparticle].y + h_vel.data[iparticle].z*h_vel.data[iparticle].z);
-            
+
             h_pos.data[iparticle].w = __int_as_scalar(buildingBlock.atoms[j].type);
-                    
+
             if (buildingBlock.atoms[j].body > 0)
                 h_body.data[iparticle] = ibody;
-                        
+
             unsigned int head = i * nparticlesperbuildingblock;
             for (unsigned int j = 0; j < nbondsperbuildingblock; j++)
                 {
                 unsigned int particlei = head + buildingBlock.bonds[j].localidxi;
                 unsigned int particlej = head + buildingBlock.bonds[j].localidxj;
-                    
+
                 sysdef->getBondData()->addBond(Bond(0, particlei, particlej));
                 }
-                                
+
             iparticle++;
             }
-            
+
         x0 += xspacing;
         if (x0 + xspacing >= hi.x)
             {
             x0 = lo.x + 0.01;
-            
+
             y0 += yspacing;
             if (y0 + yspacing >= hi.y)
                 {
                 y0 = lo.y + 0.01;
-                
+
                 z0 += zspacing;
                 if (z0 + zspacing >= hi.z)
                     z0 = lo.z + 0.01;
                 }
             }
-            
+
         ibody++;
         }
-        
+
     assert(iparticle == N);
-    
+
     }
-    
+
     shared_ptr<RigidData> rdata = sysdef->getRigidData();
     // Initialize rigid bodies
     rdata->initializeData();
-    
+
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    
+
     Scalar deltaT = Scalar(0.005);
     boost::shared_ptr<Variant> T_variant(new VariantConst(temperature));
     shared_ptr<TwoStepBDNVTRigid> two_step_bdnvt = shared_ptr<TwoStepBDNVTRigid>(new BDRigid(sysdef, group_all, T_variant, 453034, false));
-        
+
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
@@ -249,47 +249,47 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     fc->setRcut(0, 0, Scalar(1.122));
     fc->setRcut(0, 1, Scalar(1.122));
     fc->setRcut(1, 1, Scalar(1.122));
-    
+
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
     Scalar alpha = Scalar(1.0);
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma, Scalar(12.0));
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
-    
+
     // specify the force parameters
     fc->setParams(0,0,make_scalar2(lj1,lj2));
     fc->setParams(0,1,make_scalar2(lj1,lj2));
     fc->setParams(1,1,make_scalar2(lj1,lj2));
-    
+
     bdnvt_up->addForceCompute(fc);
-      
+
     unsigned int nrigid_dof, nnonrigid_dof;
     Scalar current_temp;
-    
+
     unsigned int start_step = 0;
     unsigned int steps = 6000;
     unsigned int sampling = 100;
     unsigned int averaging_delay = 2000;
-    
+
 
     // CALLING SET RV
-    rdata->setRV(true);       
-        
+    rdata->setRV(true);
+
     nrigid_dof = rdata->getNumDOF();
     nnonrigid_dof = 3 * (N - body_size * nbodies);
-        
+
     // Production: turn on LJ interactions between rods
     fc->setRcut(1, 1, Scalar(2.5));
-    
+
     bdnvt_up->prepRun(0);
 
- 
+
     for (unsigned int i = start_step; i <= start_step + steps; i++)
         {
-        
+
         bdnvt_up->update(i);
-        
+
         if (i % sampling == 0)
             {
 
@@ -298,15 +298,15 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
             for (unsigned int j = 0; j < N; j++)
                 KE += Scalar(0.5) * (h_vel.data[j].x*h_vel.data[j].x +h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z);
             PE = fc->calcEnergySum();
-            
+
             current_temp = 2.0 * KE / (nrigid_dof + nnonrigid_dof);
             if (i > averaging_delay)
                 AvgT += current_temp;
-            
+
             }
         }
 
-    AvgT /= Scalar((steps-averaging_delay)/sampling);    
+    AvgT /= Scalar((steps-averaging_delay)/sampling);
     //Test to see if the temperature has equilibrated to where its been set. Use a wide window because the test simulation is short.
     MY_BOOST_CHECK_CLOSE(AvgT, 1.4, 5);
     }

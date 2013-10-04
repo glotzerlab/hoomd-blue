@@ -90,7 +90,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
                             boost::shared_ptr<ParticleGroup> group);
         //! Destructor
         ~PPPMForceComputeGPU();
-        
+
         //! Sets the block size to run on the device
         /*! \param block_size Block size to set
          */
@@ -98,7 +98,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
             {
             m_block_size = block_size;
             }
-            
+
         //! Set the parameters
         virtual void setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut);
 
@@ -106,7 +106,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
 
     protected:
         int m_block_size;                    //!< Block size to run calculation on
-        cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU                   
+        cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU
         bool m_first_run;                    //!< True if this is the first run
 
         //! Actually compute the forces

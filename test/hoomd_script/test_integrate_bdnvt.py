@@ -13,7 +13,7 @@ class integrate_bdnvt_tests (unittest.TestCase):
         force.constant(fx=0.1, fy=0.1, fz=0.1)
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # tests basic creation of the integration method
     def test(self):
         all = group.all();
@@ -33,7 +33,7 @@ class integrate_bdnvt_tests (unittest.TestCase):
         bd = integrate.bdnvt(all, T=1.2, gamma_diam=True,tally=True);
         run(100);
         bd.disable();
-    
+
     # test set_params
     def test_set_params(self):
         all = group.all();
@@ -61,4 +61,3 @@ class integrate_bdnvt_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

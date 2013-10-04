@@ -86,13 +86,13 @@ class BoxResizeUpdater : public Updater
 
         //! Destructor
         virtual ~BoxResizeUpdater();
-        
+
         //! Sets parameter flags
         void setParams(bool scale_particles);
-        
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
-        
+
     private:
         boost::shared_ptr<Variant> m_Lx;    //!< Box Lx vs time
         boost::shared_ptr<Variant> m_Ly;    //!< Box Ly vs time
@@ -107,4 +107,3 @@ class BoxResizeUpdater : public Updater
 void export_BoxResizeUpdater();
 
 #endif
-

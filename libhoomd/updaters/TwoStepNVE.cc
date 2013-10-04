@@ -79,7 +79,7 @@ TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
         {
         // set a named, but otherwise blank set of integrator variables
         IntegratorVariables v = getIntegratorVariables();
-        
+
         if (!restartInfoTestValid(v, "nve", 0))
             {
             v.type = "nve";
@@ -104,7 +104,7 @@ TwoStepNVE::~TwoStepNVE()
     a distance larger than the limit in a single time step
 */
 void TwoStepNVE::setLimit(Scalar limit)
-    {    
+    {
     m_limit = true;
     m_limit_val = limit;
     }
@@ -125,11 +125,11 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    
+
     // profile this step
     if (m_prof)
         m_prof->push("NVE step 1");
-    
+
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -142,11 +142,11 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
         unsigned int j = m_group->getMemberIndex(group_idx);
         if (m_zero_force)
             h_accel.data[j].x = h_accel.data[j].y = h_accel.data[j].z = 0.0;
-        
+
         Scalar dx = h_vel.data[j].x*m_deltaT + Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT*m_deltaT;
         Scalar dy = h_vel.data[j].y*m_deltaT + Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT*m_deltaT;
         Scalar dz = h_vel.data[j].z*m_deltaT + Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT*m_deltaT;
-        
+
         // limit the movement of the particles
         if (m_limit)
             {
@@ -158,11 +158,11 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 dz = dz / len * m_limit_val;
                 }
             }
-            
+
         h_pos.data[j].x += dx;
         h_pos.data[j].y += dy;
         h_pos.data[j].z += dz;
-        
+
         h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
@@ -183,7 +183,7 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
     }
-        
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
@@ -194,7 +194,7 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
         return;
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
+
     // profile this step
     if (m_prof)
         m_prof->push("NVE step 2");
@@ -203,12 +203,12 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-    
+
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        
+
         if (m_zero_force)
             {
             h_accel.data[j].x = h_accel.data[j].y = h_accel.data[j].z = 0.0;
@@ -221,12 +221,12 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
             h_accel.data[j].y = h_net_force.data[j].y*minv;
             h_accel.data[j].z = h_net_force.data[j].z*minv;
             }
-        
+
         // then, update the velocity
         h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
-        
+
         // limit the movement of the particles
         if (m_limit)
             {
@@ -239,7 +239,7 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
                 }
             }
         }
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop();
@@ -258,4 +258,3 @@ void export_TwoStepNVE()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

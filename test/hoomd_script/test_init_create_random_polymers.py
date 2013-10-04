@@ -14,22 +14,22 @@ class init_create_random_polymer_tests (unittest.TestCase):
         self.polymers = [self.polymer1, self.polymer2]
         self.box = hoomd.BoxDim(35);
         self.separation=dict(A=0.35, B=0.35)
-    
+
     # tests basic creation of the random initializer
     def test(self):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
-    
+
     # checks for an error if initialized twice
     def test_create_random_inittwice(self):
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-        self.assertRaises(RuntimeError, 
+        self.assertRaises(RuntimeError,
                           init.create_random_polymers,
                           box=self.box,
                           polymers=self.polymers,
                           separation=self.separation);
-    
+
     # checks that invalid arguments are detected
     def test_bad_polymers(self):
         self.assertRaises(RuntimeError,
@@ -52,7 +52,7 @@ class init_create_random_polymer_tests (unittest.TestCase):
                           box=self.box,
                           polymers="polymers",
                           separation=self.separation);
-        
+
         bad_polymer1 = dict(bond_len=1.2, bond="linear", count=10)
         bad_polymer2 = dict(type=['B']*4, bond="linear", count=10)
         bad_polymer3 = dict(bond_len=1.2, type=['B']*4, count=10)
@@ -77,7 +77,7 @@ class init_create_random_polymer_tests (unittest.TestCase):
                           box=self.box,
                           polymers=[bad_polymer4],
                           separation=self.separation);
-        
+
     def test_bad_separation(self):
         bad_separation1 = dict(A=0.35)
         bad_separation2 = dict(B=0.35)
@@ -97,11 +97,10 @@ class init_create_random_polymer_tests (unittest.TestCase):
                           box=self.box,
                           polymers=self.polymers,
                           separation=bad_separation3);
-        
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

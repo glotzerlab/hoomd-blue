@@ -65,38 +65,37 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Integrates part of the system forward in two steps in the NVT ensemble on the GPU
 /*! Implements velocity-verlet NVT integration through the IntegrationMethodTwoStep interface, runs on the GPU
-    
+
     \ingroup updaters
 */
 class TwoStepNVTRigidGPU : public TwoStepNVTRigid
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef, 
+        TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                             boost::shared_ptr<ParticleGroup> group,
-                            boost::shared_ptr<ComputeThermo> thermo,  
+                            boost::shared_ptr<ComputeThermo> thermo,
                             boost::shared_ptr<Variant> T,
                             Scalar tau=10.0,
                             bool skip_restart=false);
-                            
+
         virtual ~TwoStepNVTRigidGPU() {};
-        
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
-        
+
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
-    
+
     protected:
         GPUArray<Scalar> m_partial_Ksum_t;  //!< Translational kinetic energy per body
         GPUArray<Scalar> m_partial_Ksum_r;  //!< Rotational kinetic energy per body
-        GPUArray<Scalar> m_Ksum_t;          //!< Translational kinetic energy 
+        GPUArray<Scalar> m_Ksum_t;          //!< Translational kinetic energy
         GPUArray<Scalar> m_Ksum_r;          //!< Rotational kinetic energy
-    
+
     };
 
 //! Exports the TwoStepNVTRigidGPU class to python
 void export_TwoStepNVTRigidGPU();
 
 #endif // #ifndef __TWO_STEP_NVT_RIGID_GPU_H__
-

@@ -106,19 +106,19 @@ class ComputeThermo : public Compute
 
         //! Destructor
         virtual ~ComputeThermo();
-        
+
         //! Compute the temperature
         virtual void compute(unsigned int timestep);
-        
+
         //! Change the number of degrees of freedom
         void setNDOF(unsigned int ndof);
-        
+
         //! Get the number of degrees of freedom
         unsigned int getNDOF()
             {
             return m_ndof;
             }
-            
+
         //! Returns the temperature last computed by compute()
         /*! \returns Instantaneous temperature of the system
         */
@@ -127,7 +127,7 @@ class ComputeThermo : public Compute
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::temperature];
             }
-        
+
         //! Returns the pressure last computed by compute()
         /*! \returns Instantaneous pressure of the system
         */
@@ -146,7 +146,7 @@ class ComputeThermo : public Compute
                 return std::numeric_limits<Scalar>::quiet_NaN();
                 }
             }
-        
+
         //! Returns the kinetic energy last computed by compute()
         /*! \returns Instantaneous kinetic energy of the system
         */
@@ -155,7 +155,7 @@ class ComputeThermo : public Compute
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::kinetic_energy];
             }
-        
+
         //! Returns the potential energy last computed by compute()
         /*! \returns Instantaneous potential energy of the system, or NaN if the energy is not valid
         */
@@ -232,4 +232,3 @@ class ComputeThermo : public Compute
 void export_ComputeThermo();
 
 #endif
-

@@ -84,7 +84,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     {
     assert(m_pdata);
     assert(m_pdata->getMaxN() > 0);
-    
+
     // allocate data on the host
     unsigned int max_num_particles = m_pdata->getMaxN();
     GPUArray<Scalar4>  force(max_num_particles,exec_conf);
@@ -98,7 +98,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     m_fdata_partial = NULL;
     m_virial_partial = NULL;
     m_torque_partial = NULL;
-  
+
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
 
@@ -173,7 +173,7 @@ ForceCompute::~ForceCompute()
 */
 Scalar ForceCompute::calcEnergySum()
     {
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);   
+    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
     // always perform the sum in double precision for better accuracy
     // this is cheating and is really just a temporary hack to get logging up and running
     // the potential accuracy loss in simulations needs to be evaluated here and a proper
@@ -205,7 +205,7 @@ void ForceCompute::compute(unsigned int timestep)
     // skip if we shouldn't compute this step
     if (!m_particles_sorted && !shouldCompute(timestep))
         return;
-        
+
     computeForces(timestep);
     m_particles_sorted = false;
     }
@@ -221,7 +221,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
     ClockSource t;
     // warm up run
     computeForces(0);
-    
+
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
@@ -229,18 +229,18 @@ double ForceCompute::benchmark(unsigned int num_iters)
         CHECK_CUDA_ERROR();
         }
 #endif
-    
+
     // benchmark
     uint64_t start_time = t.getTime();
     for (unsigned int i = 0; i < num_iters; i++)
         computeForces(0);
-        
+
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
-    
+
     // convert the run time to milliseconds
     return double(total_time_ns) / 1e6 / double(num_iters);
     }
@@ -347,7 +347,7 @@ class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
         ForceComputeWrap(shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef) { }
     protected:
         //! Calls the overidden ForceCompute::computeForces()
-        /*! \param timestep parameter to pass on to the overidden method 
+        /*! \param timestep parameter to pass on to the overidden method
          */
         void computeForces(unsigned int timestep)
             {
@@ -369,4 +369,3 @@ void export_ForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

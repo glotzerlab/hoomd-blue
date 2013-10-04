@@ -67,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
-    
+
     \ingroup updaters
 */
 class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
@@ -78,16 +78,16 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
 
         //! Destroys the minimizer
         virtual ~FIREEnergyMinimizerGPU() {}
-        
+
         //! Resets the minimizer
         virtual void reset();
 
         //! Iterates forward one step
         virtual void update(unsigned int);
-        
+
     protected:
         //! Creates the underlying NVE integrator
-        virtual void createIntegrator();  
+        virtual void createIntegrator();
         unsigned int m_nparticles;              //!< number of particles in the system
         unsigned int m_block_size;              //!< block size for partial sum memory
         unsigned int m_num_blocks;              //!< number of memory blocks reserved for partial sum memory
@@ -95,8 +95,8 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
         GPUArray<Scalar> m_partial_sum2;         //!< memory space for partial sum over vsq
         GPUArray<Scalar> m_partial_sum3;         //!< memory space for partial sum over asq
         GPUArray<Scalar> m_sum;                  //!< memory space for sum over vsq
-        GPUArray<Scalar> m_sum3;                 //!< memory space for the sum over P, vsq, asq 
-        
+        GPUArray<Scalar> m_sum3;                 //!< memory space for the sum over P, vsq, asq
+
     private:
 
     };
@@ -105,4 +105,3 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
 void export_FIREEnergyMinimizerGPU();
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_GPU_H__
-

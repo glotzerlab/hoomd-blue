@@ -163,10 +163,10 @@ struct CScalar
 /*! This moment of interia is stored per particle. Because there are no per-particle body update steps in the
     design of hoomd, these values are never read or used except at initialization. Thus, a simple descriptive
     structure is used instead of an advanced and complicated GPUArray strided data array.
-    
+
     The member variable components stores the 6 components of an upper-trianglar moment of inertia tensor.
     The components are, in order, Ixx, Ixy, Ixz, Iyy, Iyz, Izz.
-    
+
     They are initialized to 0 and left that way if not specified in an initialization file.
 */
 struct InertiaTensor
@@ -176,7 +176,7 @@ struct InertiaTensor
         for (unsigned int i = 0; i < 6; i++)
             components[i] = Scalar(0.0);
         }
-    
+
     //! Set the components of the tensor
     void set(Scalar c0, Scalar c1, Scalar c2, Scalar c3, Scalar c4, Scalar c5)
         {
@@ -187,7 +187,7 @@ struct InertiaTensor
         components[4] = c4;
         components[5] = c5;
         }
-    
+
     Scalar components[6];   //!< Stores the components of the inertia tensor
     };
 
@@ -199,7 +199,7 @@ const unsigned int NOT_LOCAL = 0xffffffff;
 
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
- * - Initializing the ParticleData 
+ * - Initializing the ParticleData
  * - inside an Analyzer to iterate over the current ParticleData
  *
  * Initializing the ParticleData is accomplished by first filling the particle data arrays with default values
@@ -262,11 +262,11 @@ struct SnapshotParticleData {
     where \c i runs from 0 to <code>getN()</code>.
 
     Velocities and other properties can be accessed in a similar manner.
-    
+
     \note Position and type are combined into a single Scalar4 quantity. x,y,z specifies the position and w specifies
     the type. Use __scalar_as_int() / __int_as_scalar() (or __int_as_float() / __float_as_int()) to extract / set
     this integer that is masquerading as a scalar.
-    
+
     \note Velocity and mass are combined into a single Scalar4 quantity. x,y,z specifies the velocity and w specifies
     the mass.
 
@@ -286,29 +286,29 @@ struct SnapshotParticleData {
     Some fields in ParticleData are not computed and assigned by default because they require additional processing
     time. PDataFlags is a bitset that lists which flags (enumerated in pdata_flag) are enable/disabled. Computes should
     call getFlags() and compute the requested quantities whenever the corresponding flag is set. Updaters and Analyzers
-    can request flags be computed via their getRequestedPDataFlags() methods. A particular updater or analyzer should 
+    can request flags be computed via their getRequestedPDataFlags() methods. A particular updater or analyzer should
     return a bitset PDataFlags with only the bits set for the flags that it needs. During a run, System will query
     the updaters and analyzers that are to be executed on the current step. All of the flag requests are combined
     with the binary or operation into a single set of flag requests. System::run() then sets the flags by calling
     setPDataFlags so that the computes produce the requested values during that step.
-    
+
     These fields are:
      - pdata_flag::isotropic_virial - specify that the net_virial should be/is computed (getNetVirial)
-     - pdata_flag::potential_energy - specify that the potential energy .w component stored in the net force array 
+     - pdata_flag::potential_energy - specify that the potential energy .w component stored in the net force array
        (getNetForce) is valid
      - pdata_flag::pressure_tensor - specify that the full virial tensor is valid
-       
+
     If these flags are not set, these arrays can still be read but their values may be incorrect.
-    
+
     If any computation is unable to supply the appropriate values (i.e. rigid body virial can not be computed
     until the second step of the simulation), then it should remove the flag to signify that the values are not valid.
     Any analyzer/updater that expects the value to be set should check the flags that are actually set.
-    
+
     \note Particles are not checked if their position is actually inside the local box. In fact, when using spatial domain decomposition,
     particles may temporarily move outside the boundaries.
 
     \ingroup data_structs
-    
+
     ## Parallel simulations
 
     In a parallel (or domain decompositon) simulation, the ParticleData may either correspond to the global state of the
@@ -349,28 +349,28 @@ struct SnapshotParticleData {
     must be part of a composite body (stored and handled by RigidData) (there can be single-particle bodies,
     of course) where integration methods like NVERigid will handle updating the degrees of freedom of the composite
     body and then set the constrained position, velocity, and orientation of the constituent particles.
-    
+
     To enable correct initialization of the composite body moment of inertia, each particle is also assigned
     an individual moment of inertia which is summed up correctly to determine the composite body's total moment of
     inertia. As such, the initial particle moment of inertias are only ever used during initialization and do not
     need to be stored in an efficient GPU data structure. Nor does the inertia tensor data need to be resorted,
     so it will always remain in tag order.
-    
+
     Access the orientation quaternion of each particle with the GPUArray gotten from getOrientationArray(), the net
     torque with getTorqueArray(). Individual inertia tensor values can be accessed with getInertiaTensor() and
     setInertiaTensor()
-    
+
     ## Origin shifting
-    
-    Parallel MC simulations randomly translate all particles by a fixed vector at periodic intervals. This motion 
+
+    Parallel MC simulations randomly translate all particles by a fixed vector at periodic intervals. This motion
     is not physical, it is merely the easiest way to shift the origin of the cell list / domain decomposition
     boundaries. Analysis routines (i.e. MSD) and movies are complicated by the random motion of all particles.
-    
+
     ParticleData can track this origin and subtract it from all particles. This subtraction is done when taking a
     snapshot. Putting the subtraction there naturally puts the correction there for all analysis routines and file I/O
     while leaving the shifted particles in place for computes, updaters, and integrators. On the restoration from
     a snapshot, the origin needs to be cleared.
-    
+
     Two routines support this: translateOrigin() and resetOrigin(). The position of the origin is tracked by
     ParticleData internally. translateOrigin() moves it by a given vector. resetOrigin() zeroes it. TODO: This might
     not be sufficient for simulations where the box size changes. We'll see in testing.
@@ -386,7 +386,7 @@ class ParticleData : boost::noncopyable
                      boost::shared_ptr<DomainDecomposition> decomposition
                         = boost::shared_ptr<DomainDecomposition>()
                      );
-        
+
         //! Construct using a ParticleDataSnapshot
         ParticleData(const SnapshotParticleData& snapshot,
                      const BoxDim& global_box,
@@ -394,14 +394,14 @@ class ParticleData : boost::noncopyable
                      boost::shared_ptr<DomainDecomposition> decomposition
                         = boost::shared_ptr<DomainDecomposition>()
                      );
- 
+
         //! Destructor
         virtual ~ParticleData();
-        
+
         //! Get the simulation box
         const BoxDim& getBox() const;
 
-        //! Set the global simulation box 
+        //! Set the global simulation box
         void setGlobalBox(const BoxDim &box);
 
         //! Set the global simulation box Lengths
@@ -413,13 +413,13 @@ class ParticleData : boost::noncopyable
 
         //! Get the global simulation box
         const BoxDim& getGlobalBox() const;
-         
+
         //! Access the execution configuration
         boost::shared_ptr<const ExecutionConfiguration> getExecConf() const
             {
             return m_exec_conf;
             }
-            
+
         //! Get the number of particles
         /*! \return Number of particles in the box
         */
@@ -482,7 +482,7 @@ class ParticleData : boost::noncopyable
             {
             return m_o_image;
             }
-            
+
         //! Get the maximum diameter of the particle set
         /*! \return Maximum Diameter Value
         */
@@ -493,13 +493,13 @@ class ParticleData : boost::noncopyable
             for (unsigned int i = 0; i < m_nparticles; i++) if (h_diameter.data[i] > maxdiam) maxdiam = h_diameter.data[i];
             return maxdiam;
             }
-            
+
         //! Return positions and types
         const GPUArray< Scalar4 >& getPositions() const { return m_pos; }
 
         //! Return velocities and masses
         const GPUArray< Scalar4 >& getVelocities() const { return m_vel; }
-        
+
         //! Return accelerations
         const GPUArray< Scalar3 >& getAccelerations() const { return m_accel; }
 
@@ -528,13 +528,13 @@ class ParticleData : boost::noncopyable
             {
             m_prof=prof;
             }
-            
+
         //! Connects a function to be called every time the particles are rearranged in memory
         boost::signals::connection connectParticleSort(const boost::function<void ()> &func);
-        
+
         //! Notify listeners that the particles have been rearranged in memory
         void notifyParticleSort();
-        
+
         //! Connects a function to be called every time the box size is changed
         boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
 
@@ -552,16 +552,16 @@ class ParticleData : boost::noncopyable
 
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type) const;
-        
+
         //! Get the net force array
         const GPUArray< Scalar4 >& getNetForce() const { return m_net_force; }
-        
+
         //! Get the net virial array
         const GPUArray< Scalar >& getNetVirial() const { return m_net_virial; }
-        
+
         //! Get the net torque array
         const GPUArray< Scalar4 >& getNetTorqueArray() const { return m_net_torque; }
-        
+
         //! Get the orientation array
         const GPUArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
 
@@ -665,17 +665,17 @@ class ParticleData : boost::noncopyable
             {
             m_inertia_tensor[tag] = tensor;
             }
-            
+
         //! Get the particle data flags
         PDataFlags getFlags() { return m_flags; }
-        
+
         //! Set the particle data flags
         /*! \note Setting the flags does not make the requested quantities immediately available. Only after the next
             set of compute() calls will the requested values be computed. The System class talks to the various
             analyzers and updaters to determine the value of the flags for any given time step.
         */
         void setFlags(const PDataFlags& flags) { m_flags = flags; }
-       
+
         //! Set the external contribution to the virial
         void setExternalVirial(unsigned int i, Scalar v)
             {
@@ -730,7 +730,7 @@ class ParticleData : boost::noncopyable
             return m_decomposition;
             }
 #endif
-            
+
         //! Translate the box origin
         /*! \param a vector to apply in the translation
         */
@@ -740,7 +740,7 @@ class ParticleData : boost::noncopyable
             // wrap the origin back into the box to prevent it from getting too large
             m_global_box.wrap(m_origin, m_o_image);
             }
-        
+
         //! Rest the box origin
         /*! \post The origin is 0,0,0
         */
@@ -757,9 +757,9 @@ class ParticleData : boost::noncopyable
 #ifdef ENABLE_MPI
         boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition data
 #endif
-        
+
         std::vector<std::string> m_type_mapping;    //!< Mapping between particle type indices and names
-        
+
         boost::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
         boost::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
         boost::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
@@ -782,7 +782,7 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_body;              //!< rigid body ids
 
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
-        
+
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
         GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)
         GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
@@ -792,10 +792,10 @@ class ParticleData : boost::noncopyable
         Scalar m_external_virial[6];                 //!< External potential contribution to the virial
         const float m_resize_factor;                 //!< The numerical factor with which the particle data arrays are resized
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
-        
+
         Scalar3 m_origin;                            //!< Tracks the position of the origin of the coordinate system
         int3 m_o_image;                              //!< Tracks the origin image
-        
+
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
 
@@ -819,4 +819,3 @@ void export_SnapshotParticleData();
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

@@ -91,7 +91,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
         HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         ~HarmonicImproperForceComputeGPU();
-        
+
         //! Sets the block size to run on the device
         /*! \param block_size Block size to set
         */
@@ -99,14 +99,14 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
             {
             m_block_size = block_size;
             }
-            
+
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar chi);
-        
+
     protected:
         int m_block_size;               //!< Block size to run calculation on
         GPUArray<Scalar2>  m_params;     //!< Parameters stored on the GPU (k,chi)
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -119,4 +119,3 @@ void export_HarmonicImproperForceComputeGPU();
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

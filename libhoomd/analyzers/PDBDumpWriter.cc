@@ -107,10 +107,10 @@ void PDBDumpWriter::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Dump PDB");
-    
+
     ostringstream full_fname;
     string filetype = ".pdb";
-    
+
     // Generate a filename with the timestep padded to ten zeros
     full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
     // then write the file
@@ -129,25 +129,25 @@ void PDBDumpWriter::writeFile(std::string fname)
     // open the file for writing
     ofstream f(fname.c_str());
     f.exceptions ( ifstream::eofbit | ifstream::failbit | ifstream::badbit );
-    
+
     if (!f.good())
         {
         m_exec_conf->msg->error() << "dump.pdb: Unable to open file for writing: " << fname << endl;
         throw runtime_error("Error writting pdb dump file");
         }
-        
+
     // acquire the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-    
+
     // get the box dimensions
     BoxDim box = m_pdata->getBox();
 
     // start writing the heinous PDB format
     const int linesize = 82;
     char buf[linesize];
-    
+
     // output the box dimensions
     Scalar a,b,c,alpha,beta,gamma;
     Scalar3 va = box.getLatticeVector(0);
@@ -159,16 +159,16 @@ void PDBDumpWriter::writeFile(std::string fname)
     alpha = 90.0 - asin(dot(vb,vc)/(b*c)) * 90.0 / M_PI_2;
     beta = 90.0 - asin(dot(va,vc)/(a*c)) * 90.0 / M_PI_2;
     gamma = 90.0 - asin(dot(va,vb)/(a*b)) * 90.0 / M_PI_2;
-    
+
     snprintf(buf, linesize, "CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f P 1           1\n", a,b,c, alpha, beta, gamma);
     f << buf;
-    
+
     // write out all the atoms
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         int i;
         i= h_rtag.data[j];
-        
+
         // first check that everything will fit into the PDB output
         if (h_pos.data[i].x < -999.9994f || h_pos.data[i].x > 9999.9994f || h_pos.data[i].y < -999.9994f || h_pos.data[i].y > 9999.9994f || h_pos.data[i].z < -999.9994f || h_pos.data[i].z > 9999.9994f)
             {
@@ -182,13 +182,13 @@ void PDBDumpWriter::writeFile(std::string fname)
             m_exec_conf->msg->error() << "dump.pdb: Type " << type_name << " is too long for PDB writing" << endl;
             throw runtime_error("Error writing PDB file");
             }
-            
+
         // start preparing the stuff to write (copied from VMD's molfile plugin)
         char indexbuf[32];
         char residbuf[32];
         char segnamebuf[5];
         char altlocchar;
-        
+
         /* XXX                                                          */
         /* if the atom or residue indices exceed the legal PDB spec, we */
         /* start emitting asterisks or hexadecimal strings rather than  */
@@ -208,7 +208,7 @@ void PDBDumpWriter::writeFile(std::string fname)
             {
             sprintf(indexbuf, "*****");
             }
-            
+
         /*if (resid < 10000) {
         sprintf(residbuf, "%4d", resid);
         } else if (resid < 65536) {
@@ -217,20 +217,20 @@ void PDBDumpWriter::writeFile(std::string fname)
         sprintf(residbuf, "****");
         }*/
         sprintf(residbuf, "%4d", 1);
-        
+
         //altlocchar = altloc[0];
         //if (altlocchar == '\0') {
         altlocchar = ' ';
         //}
-        
+
         /* make sure the segname does not overflow the format */
         sprintf(segnamebuf, "SEG ");
-        
+
         snprintf(buf, linesize, "%-6s%5s %4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %-4s%2s\n", "ATOM  ", indexbuf, type_name.c_str(), altlocchar, "RES", ' ',
                  residbuf, ' ', h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z, 0.0f, 0.0f, segnamebuf, "  ");
         f << buf;
         }
-        
+
     if (m_output_bond)
         {
         // error check: pdb files cannot contain bonds with 100,000 or more atom records
@@ -239,7 +239,7 @@ void PDBDumpWriter::writeFile(std::string fname)
             m_exec_conf->msg->error() << "dump.pdb: PDB files with bonds cannot hold more than 99,999 atoms!" << endl;
             throw runtime_error("Error dumping PDB file");
             }
-            
+
         // grab the bond data
         shared_ptr<BondData> bond_data = m_sysdef->getBondData();
         for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
@@ -249,7 +249,7 @@ void PDBDumpWriter::writeFile(std::string fname)
             f << buf;
             }
         }
-        
+
     }
 
 void export_PDBDumpWriter()
@@ -264,4 +264,3 @@ void export_PDBDumpWriter()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

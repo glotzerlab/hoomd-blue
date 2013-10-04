@@ -75,19 +75,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! <b>General Overview</b>
 
     See EvaluatorPairLJ
-    
+
     <b>Gauss specifics</b>
-    
+
     EvaluatorPairGauss evaluates the function:
     \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right] \f]
-    
-    The Gaussian potential does not need diameter or charge. Two parameters are specified and stored in a Scalar2. 
+
+    The Gaussian potential does not need diameter or charge. Two parameters are specified and stored in a Scalar2.
     \a epsilon is placed in \a params.x and \a sigma is in \a params.y.
-    
+
     These are related to the standard lj parameters sigma and epsilon by:
     - \a epsilon = \f$ \varepsilon \f$
     - \a sigma = \f$ \sigma \f$
-    
+
 */
 class EvaluatorPairGauss
     {
@@ -104,7 +104,7 @@ class EvaluatorPairGauss
             : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.x), sigma(_params.y)
             {
             }
-        
+
         //! Gauss doesn't use diameter
         DEVICE static bool needsDiameter() { return false; }
         //! Accept the optional diameter values
@@ -120,14 +120,14 @@ class EvaluatorPairGauss
             \param qj Charge of particle j
         */
         DEVICE void setCharge(Scalar qi, Scalar qj) { }
-        
+
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
-            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
+            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
                   in PotentialPair.
-            
+
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
@@ -138,7 +138,7 @@ class EvaluatorPairGauss
                 Scalar sigma_sq = sigma*sigma;
                 Scalar r_over_sigma_sq = rsq / sigma_sq;
                 Scalar exp_val = fast::exp(-Scalar(1.0)/Scalar(2.0) * r_over_sigma_sq);
-                
+
                 force_divr = epsilon / sigma_sq * exp_val;
                 pair_eng = epsilon * exp_val;
 
@@ -151,7 +151,7 @@ class EvaluatorPairGauss
             else
                 return false;
             }
-        
+
         #ifndef NVCC
         //! Get the name of this potential
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
@@ -172,4 +172,3 @@ class EvaluatorPairGauss
 
 
 #endif // __PAIR_EVALUATOR_GAUSS_H__
-

@@ -17,7 +17,7 @@ class charge_pppm_tests (unittest.TestCase):
 
         for i in range(50,100):
             s.particles[i].charge = 1;
-    
+
     # basic test of creation and param setting
     def test(self):
         all = group.all()
@@ -35,20 +35,19 @@ class charge_pppm_tests (unittest.TestCase):
         #integrate.mode_standard(dt=0.005);
         #integrate.nve(all);
         #self.assertRaises(RuntimeError, run, 100);
-    
+
     ## test enable/disable
     #def test_enable_disable(self):
         #all = group.all()
         #c = charge.pppm(all);
         #c.set_params(Nx=16, Ny=16, Nz=16, order=4, rcut=2.0);
-        
+
         #c.disable(log=True);
         #c.enable();
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

@@ -90,28 +90,28 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     Some classes with either setting, full or half, but they are faster with the half setting. However,
     others may require that the neighbor list storage mode is set to full.
-    
+
     <b>Data access:</b>
-    
+
     Up to Nmax neighbors can be stored for each particle. Data is stored in a 2D matrix array in memory. Each element
     in the matrix stores the index of the neighbor with the highest bits reserved for flags. An indexer for accessing
     elements can be gotten with getNlistIndexer() and the array itself can be accessed with getNlistArray().
 
     The number of neighbors for each particle is stored in an auxilliary array accessed with getNNeighArray().
-    
+
      - <code>jf = nlist[nlist_indexer(i,n)]</code> is the index of neighbor \a n of particle \a i, where \a n can vary from
        0 to <code>n_neigh[i] - 1</code>
-    
+
     \a jf includes flags in the highest bits. The format and use of these flags are yet to be determined.
-    
+
     \b Filtering:
-    
+
     By default, a neighbor list includes all particles within a single cutoff distance r_cut. Various filters can be
     applied to remove unwanted neighbors from the list.
      - setFilterBody() prevents two particles of the same body from being neighbors
      - setFilterRcutType() enables individual r_cut values for each pair of particle types
      - setFilterDiameter() enables slj type diameter filtering (TODO: need to specify exactly what this does)
-    
+
     \b Algorithms:
 
     This base class supplys a dumb O(N^2) algorithm for generating this list. It is very
@@ -130,26 +130,26 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     a different sequence of calls may be generated with nlist builds at different times. To work around this problem
     setEvery takes a dist_check parameter. When dist_check=True, the above described behavior is followed. When
     dist_check is false, the nlist is built exactly m_every steps. This is intended for use in profiling only.
-    
+
     \b Exclusions:
-    
+
     Exclusions are stored in \a ex_list, a data structure similar in structure to \a nlist, except this time exclusions
     are stored. User-specified exclusions are stored by tag and translated to indices whenever a particle sort occurs
     (updateExListIdx()). If any exclusions are set, filterNlist() is called after buildNlist(). filterNlist() loops
     through the neighbor list and removes any particles that are excluded. This allows an arbitrary number of exclusions
     to be processed without slowing the performance of the buildNlist() step itself.
-    
+
     <b>Overvlow handling:</b>
     For easy support of derived GPU classes to implement overvlow detectio the overflow condition is storeed in the
     GPUArray \a d_conditions.
-    
+
      - 0: Maximum nlist size (implementations are free to write to this element only in overflow conditions if they
           choose.)
      - Further indices may be added to handle other conditions at a later time.
 
-    Condition flags are to be set during the buildNlist() call and will be checked by compute() which will then 
+    Condition flags are to be set during the buildNlist() call and will be checked by compute() which will then
     take the appropriate action.
-    
+
     \ingroup computes
 */
 class NeighborList : public Compute
@@ -161,19 +161,19 @@ class NeighborList : public Compute
             half,   //!< Only neighbors i,j are stored where i < j
             full    //!< All neighbors are stored
             };
-        
+
         //! Constructs the compute
         NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
-        
+
         //! Destructor
         virtual ~NeighborList();
-        
+
         //! \name Set parameters
         // @{
-        
+
         //! Change the cuttoff radius
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
-        
+
         //! Change how many timesteps before checking to see if the list should be rebuilt
         /*! \param every Number of time steps to wait before beignning to check if particles have moved a sufficient distance
                    to require a neighbor list upate.
@@ -185,7 +185,7 @@ class NeighborList : public Compute
             m_dist_check = dist_check;
             forceUpdate();
             }
-        
+
         //! Set the storage mode
         /*! \param mode Storage mode to set
             - half only stores neighbors where i < j
@@ -199,40 +199,40 @@ class NeighborList : public Compute
             m_storage_mode = mode;
             forceUpdate();
             }
-        
+
         // @}
         //! \name Get properties
         // @{
-        
+
         //! Get the storage mode
         storageMode getStorageMode()
             {
             return m_storage_mode;
             }
-        
+
         // @}
         //! \name Statistics
         // @{
-        
+
         //! Print statistics on the neighborlist
         virtual void printStats();
-        
+
         //! Clear the count of updates the neighborlist has performed
         virtual void resetStats();
 
         //! Gets the shortest rebuild period this nlist has experienced since a call to resetStats
         unsigned int getSmallestRebuild();
-        
+
         // @}
         //! \name Get data
         // @{
-        
+
         //! Get the number of neighbors array
         const GPUArray<unsigned int>& getNNeighArray()
             {
             return m_n_neigh;
             }
-       
+
         //! Get the neighbor list
         const GPUArray<unsigned int>& getNListArray()
             {
@@ -244,7 +244,7 @@ class NeighborList : public Compute
             {
             return m_n_ex_idx;
             }
-        
+
          //! Get the exclusion list
          const GPUArray<unsigned int>& getExListArray()
             {
@@ -259,7 +259,7 @@ class NeighborList : public Compute
             {
             return m_nlist_indexer;
             }
-        
+
         const Index2D& getExListIndexer()
             {
             return m_ex_list_indexer;
@@ -287,16 +287,16 @@ class NeighborList : public Compute
         // @}
         //! \name Handle exclusions
         // @{
-        
+
         //! Exclude a pair of particles from being added to the neighbor list
         void addExclusion(unsigned int tag1, unsigned int tag2);
-        
+
         //! Clear all existing exclusions
         void clearExclusions();
-        
+
         //! Collect some statistics on exclusions.
         void countExclusions();
-       
+
         //! Get number of exclusions involving n particles
         /*! \param n Size of the exclusion
          * \returns Number of excluded particles
@@ -305,22 +305,22 @@ class NeighborList : public Compute
 
         //! Add an exclusion for every bond in the ParticleData
         void addExclusionsFromBonds();
-        
+
         //! Add exclusions from angles
         void addExclusionsFromAngles();
-        
+
         //! Add exclusions from dihedrals
         void addExclusionsFromDihedrals();
-        
+
         //! Test if an exclusion has been made
         bool isExcluded(unsigned int tag1, unsigned int tag2);
-        
+
         //! Add an exclusion for every 1,3 pair
         void addOneThreeExclusionsFromTopology();
-        
+
         //! Add an exclusion for every 1,4 pair
         void addOneFourExclusionsFromTopology();
-        
+
         //! Enable/disable body filtering
         virtual void setFilterBody(bool filter_body)
             {
@@ -331,26 +331,26 @@ class NeighborList : public Compute
                 forceUpdate();
                 }
             }
-        
+
         //! Test if body filtering is set
         virtual bool getFilterBody()
             {
             return m_filter_body;
             }
-        
+
         //! Enable/disable diameter filtering
         virtual void setFilterDiameter(bool filter_diameter)
             {
             m_filter_diameter = filter_diameter;
             forceUpdate();
             }
-        
+
         //! Test if diameter filtering is set
         virtual bool getFilterDiameter()
             {
             return m_filter_diameter;
             }
-        
+
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max)
             {
@@ -368,27 +368,27 @@ class NeighborList : public Compute
 #endif
             forceUpdate();
             }
-        
+
         // @}
-        
+
         //! Computes the NeighborList if it needs updating
         void compute(unsigned int timestep);
-        
+
         //! Benchmark the neighbor list
         virtual double benchmark(unsigned int num_iters);
-        
+
         //! Forces a full update of the list on the next call to compute()
         void forceUpdate()
             {
                 m_force_update = true;
             }
-        
+
         //! Get the number of updates
         virtual unsigned int getNumUpdates()
             {
             return m_updates + m_forced_updates;
             }
-            
+
 
 #ifdef ENABLE_MPI
         //! Set the communicator to use
@@ -409,7 +409,7 @@ class NeighborList : public Compute
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
         bool m_filter_diameter;     //!< Set to true if particles are to be filtered by diameter (slj style)
         storageMode m_storage_mode; //!< The storage mode
-        
+
         Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list
         GPUArray<unsigned int> m_nlist;      //!< Neighbor list data
         GPUArray<unsigned int> m_n_neigh;    //!< Number of neighbors for each particle
@@ -418,7 +418,7 @@ class NeighborList : public Compute
         Scalar3 m_last_L_local;              //!< Local Box lengths at last update
         unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist
         GPUFlags<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
-        
+
         GPUArray<unsigned int> m_ex_list_tag;  //!< List of excluded particles referenced by tag
         GPUArray<unsigned int> m_ex_list_idx;  //!< List of excluded particles referenced by index
         GPUArray<unsigned int> m_n_ex_tag;     //!< Number of exclusions for a given particle tag
@@ -435,16 +435,16 @@ class NeighborList : public Compute
 
         //! Performs the distance check
         virtual bool distanceCheck();
-        
+
         //! Updates the previous position table for use in the next distance check
         virtual void setLastUpdatedPos();
-        
+
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
-        
+
         //! Updates the idx exlcusion list
         virtual void updateExListIdx();
-        
+
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
 
@@ -454,7 +454,7 @@ class NeighborList : public Compute
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)
-        
+
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_last_checked_tstep; //!< Track the last time step we have checked
         bool m_last_check_result;          //!< Last result of rebuild check
@@ -469,11 +469,11 @@ class NeighborList : public Compute
 
         //! Allocate the nlist array
         void allocateNlist();
-        
+
         //! Check the status of the conditions
         bool checkConditions();
 
-        //! Read back the conditions 
+        //! Read back the conditions
         virtual unsigned int readConditions();
 
         //! Resets the condition status
@@ -487,4 +487,3 @@ class NeighborList : public Compute
 void export_NeighborList();
 
 #endif
-

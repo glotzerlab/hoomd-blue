@@ -78,26 +78,26 @@ class LJWallForceCompute :  public ForceCompute
         virtual ~LJWallForceCompute();
         //! Sets force parameters
         virtual void setParams(unsigned int typ, Scalar lj1, Scalar lj2);
-        
+
         //! Sets a new cuttoff
         /*! \param r_cut New cuttoff to set */
         void setRCut(Scalar r_cut)
             {
             m_r_cut = r_cut;
             }
-            
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-        
+
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
     protected:
         //! Computes forces
         virtual void computeForces(unsigned int timestep);
-        
+
         Scalar m_r_cut;         //!< Cuttoff distance beyond which the force is set to 0
-        
+
         Scalar * __restrict__ m_lj1;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
         Scalar * __restrict__ m_lj2;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
     };
@@ -106,4 +106,3 @@ class LJWallForceCompute :  public ForceCompute
 void export_LJWallForceCompute();
 
 #endif
-

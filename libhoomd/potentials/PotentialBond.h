@@ -222,7 +222,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
- 
+
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
 
@@ -364,4 +364,3 @@ template < class T > void export_PotentialBond(const std::string& name)
     }
 
 #endif
-

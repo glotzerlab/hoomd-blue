@@ -103,35 +103,35 @@ class GeneratedParticles
             std::string type;   //!< Particle's type name
             unsigned int type_id;   //!< Particle's type id
             };
-            
+
         //! Constructor
         GeneratedParticles(boost::shared_ptr<const ExecutionConfiguration> exec_conf, unsigned int n_particles, const BoxDim& box, const std::map< std::string, Scalar >& radii);
         //! Empty constructor
         /*! Included so that GeneratedParticles can be stored in a vector.
         */
         GeneratedParticles() { }
-        
+
         //! Check if a particle can be placed while obeying the separation radii
         bool canPlace(const particle& p);
-        
+
         //! Place a particle
         void place(const particle& p, unsigned int idx);
-        
+
         //! Undo the placement of a particle
         void undoPlace(unsigned int idx);
-        
+
         //! Get the box
         const BoxDim& getBox()
             {
             return m_box;
             }
-            
+
         //! Add a bond
         void addBond(unsigned int a, unsigned int b, const std::string& type="");
-        
+
     private:
         friend class RandomGenerator;
-       
+
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         std::vector<particle> m_particles;                  //!< The generated particles
         BoxDim m_box;                                       //!< Box the particles are in
@@ -140,7 +140,7 @@ class GeneratedParticles
         int m_My;       //!< Number of bins in the y direction
         int m_Mz;       //!< Number of bins in the z direction
         std::map< std::string, Scalar > m_radii;    //!< Separation radii accessed by particle type
-        
+
         //! Structure representing a single bond
         struct bond
             {
@@ -148,7 +148,7 @@ class GeneratedParticles
             bond() : tag_a(0), tag_b(0), type(""), type_id(0)
                 {
                 }
-                
+
             //! Construct a bond between two particles
             /*! \param a tag of the first particle in the bond
                 \param b tag of the second particle in the bond
@@ -162,7 +162,7 @@ class GeneratedParticles
             std::string type;       //!< Type of the bond
             unsigned int type_id;   //!< Type id of the bond (assigned in RandomGenerator::generate())
             };
-            
+
         std::vector< bond > m_bonds;    //!< Bonds read in from the file
     };
 
@@ -178,18 +178,18 @@ class ParticleGenerator
     public:
         //! Destructor
         virtual ~ParticleGenerator() {}
-        
+
         //! Returns the number of particles that will be generated
         /*! Derived classes must implement this method so that RandomGenerator
             can properly allocate the space for the particles.
-        
+
             The value returned by this function cannot vary from call to call
             for a particular instance of ParticleGenerator. Once instantiated,
             a ParticleGenerator must always generate the same number of particles
             each time it is called.
         */
         virtual unsigned int getNumToGenerate()=0;
-        
+
         //! Actually generate the requested particles
         /*! \param particles Place generated particles here after a GeneratedParticles::canPlace() check
             \param rnd Random number generator to use
@@ -211,16 +211,16 @@ class PolymerParticleGenerator : public ParticleGenerator
     public:
         //! Constructor
         PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf, Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts);
-        
+
         //! Returns the number of particles in each polymer
         virtual unsigned int getNumToGenerate()
             {
             return (unsigned int)m_types.size();
             }
-            
+
         //! Generates a single polymer
         virtual void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx);
-        
+
     private:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration for messaging
         Scalar m_bond_len;                  //!< Bond length
@@ -229,10 +229,10 @@ class PolymerParticleGenerator : public ParticleGenerator
         std::vector<unsigned int> m_bond_b; //!< Second particle in the bond pair
         std::vector<string> m_bond_type;    //!< Type name of the bond
         unsigned int m_max_attempts;        //!< Number of attemps to make for each particle placement
-        
+
         //! helper function to place particles recursively
         bool generateNextParticle(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int i, unsigned int start_idx, const GeneratedParticles::particle& prev_particle);
-        
+
     };
 
 
@@ -267,19 +267,19 @@ class RandomGenerator
 
         //! Empty Destructor
         virtual ~RandomGenerator() { }
-        
+
         //! initializes a snapshot with the particle data
         virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
 
         //! Sets the separation radius for a particle
         void setSeparationRadius(string type, Scalar radius);
-        
+
         //! Adds a generator
         void addGenerator(unsigned int repeat, boost::shared_ptr<ParticleGenerator> generator);
-        
+
         //! Place the particles
         void generate();
-       
+
     private:
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         BoxDim m_box;                                       //!< Precalculated box
@@ -290,7 +290,7 @@ class RandomGenerator
         std::vector< unsigned int > m_generator_repeat;     //!< Repeat count for each generator
         std::vector<std::string> m_type_mapping;            //!< The created mapping between particle types and ids
         std::vector<std::string> m_bond_type_mapping;       //!< The created mapping between bond types and ids
-        
+
         //! Helper function for identifying the particle type id
         unsigned int getTypeId(const std::string& name);
         //! Helper function for identifying the bond type id
@@ -301,4 +301,3 @@ class RandomGenerator
 void export_RandomGenerator();
 
 #endif
-

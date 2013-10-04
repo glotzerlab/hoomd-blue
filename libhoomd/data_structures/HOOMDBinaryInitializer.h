@@ -106,7 +106,7 @@ class HOOMDBinaryInitializer
 
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
-        
+
         //! Sets the timestep of the simulation
         virtual void setTimeStep(unsigned int ts);
 
@@ -115,12 +115,12 @@ class HOOMDBinaryInitializer
 
     private:
         //! Helper function to read the input file
-        void readFile(const std::string &fname);        
+        void readFile(const std::string &fname);
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
         BoxDim m_box;   //!< Simulation box read from the file
-        
+
         std::vector< unsigned int > m_tag_array;     //!< tags of all particles loaded
         std::vector< unsigned int > m_rtag_array;    //!< inverse tags of all particles loaded
 
@@ -137,7 +137,7 @@ class HOOMDBinaryInitializer
         std::vector< int > m_ix_array;              //!< x image of all particles loaded
         std::vector< int > m_iy_array;              //!< y image of all particles loaded
         std::vector< int > m_iz_array;              //!< z image of all particles loaded
-        
+
         std::vector< Scalar > m_mass_array;         //!< masses of all particles loaded
         std::vector< Scalar > m_diameter_array;     //!< diameters of all particles loaded
         std::vector< unsigned int > m_type_array;   //!< type values for all particles loaded
@@ -148,17 +148,17 @@ class HOOMDBinaryInitializer
         std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
         std::vector< Dihedral > m_impropers;        //!< Improper read in from the file
         std::vector< unsigned int > m_body_array;   //!< Body flag of the particles loaded
-        
+
         unsigned int m_timestep;                    //!< The time stamp
         unsigned int m_num_dimensions;              //!< Number of dimensions
         std::vector<IntegratorVariables> m_integrator_variables; //!< Integrator variables read in from file
-        
+
         std::vector<std::string> m_type_mapping;          //!< The created mapping between particle types and ids
         std::vector<std::string> m_bond_type_mapping;     //!< The created mapping between bond types and ids
         std::vector<std::string> m_angle_type_mapping;    //!< The created mapping between angle types and ids
         std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
-        
+
         std::vector< Scalar4 > m_com;                    //!< n_bodies length 1D array of center of mass positions
         std::vector< Scalar4 > m_vel;                    //!< n_bodies length 1D array of body velocities
         std::vector< Scalar4 > m_angmom;                 //!< n_bodies length 1D array of angular momenta in the space frame
@@ -169,6 +169,3 @@ class HOOMDBinaryInitializer
 void export_HOOMDBinaryInitializer();
 
 #endif
-
-
-

@@ -80,22 +80,22 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
         m_exec_conf->msg->error() << "Creating a CGCMMAngleForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing CGCMMAngleForceComputeGPU");
         }
-        
+
     prefact[0] = Scalar(0.0);
     prefact[1] = Scalar(6.75);
     prefact[2] = Scalar(2.59807621135332);
     prefact[3] = Scalar(4.0);
-    
+
     cgPow1[0]  = Scalar(0.0);
     cgPow1[1]  = Scalar(9.0);
     cgPow1[2]  = Scalar(12.0);
     cgPow1[3]  = Scalar(12.0);
-    
+
     cgPow2[0]  = Scalar(0.0);
     cgPow2[1]  = Scalar(6.0);
     cgPow2[2]  = Scalar(4.0);
     cgPow2[3]  = Scalar(6.0);
-    
+
     // allocate and zero device memory
     GPUArray<Scalar2> params (m_CGCMMAngle_data->getNAngleTypes(),exec_conf);
     m_params.swap(params);
@@ -122,13 +122,13 @@ CGCMMAngleForceComputeGPU::~CGCMMAngleForceComputeGPU()
 void CGCMMAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma)
     {
     CGCMMAngleForceCompute::setParams(type, K, t_0, cg_type, eps, sigma);
-    
+
     const Scalar myPow1 = cgPow1[cg_type];
     const Scalar myPow2 = cgPow2[cg_type];
     const Scalar myPref = prefact[cg_type];
-    
+
     Scalar my_rcut = sigma*exp(Scalar(1.0)/(myPow1-myPow2)*log(myPow1/myPow2));
-   
+
     ArrayHandle<Scalar2> h_params(m_params, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar2> h_CGCMMsr(m_CGCMMsr, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_CGCMMepow(m_CGCMMepow, access_location::host, access_mode::readwrite);
@@ -149,12 +149,12 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     {
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "CGCMM Angle");
-    
+
     // the angle table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
     BoxDim box = m_pdata->getBox();
-   
+
     //Not necessary - force and virial are zeroed in the kernel
     //m_force.memclear();
     //m_virial.memclear();
@@ -183,10 +183,10 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
                                    d_CGCMMepow.data,
                                    m_CGCMMAngle_data->getNAngleTypes(),
                                    m_block_size);
-    
+
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-   
+
     if (m_prof) m_prof->pop(exec_conf);
     }
 
@@ -197,4 +197,3 @@ void export_CGCMMAngleForceComputeGPU()
     .def("setBlockSize", &CGCMMAngleForceComputeGPU::setBlockSize)
     ;
     }
-

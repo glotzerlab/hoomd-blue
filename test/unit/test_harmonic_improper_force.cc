@@ -93,19 +93,19 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     h_pos.data[0].x = Scalar(10.0); // put atom a at (10,1,2)
     h_pos.data[0].y = Scalar(1.0);
     h_pos.data[0].z = Scalar(2.0);
-    
+
     h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = Scalar(1.0); // put atom b at (1,1,1)
-    
-    
+
+
     h_pos.data[2].x = Scalar(6.0); // put atom c at (6,-7,8)
     h_pos.data[2].y = Scalar(-7.0);
     h_pos.data[2].z = Scalar(8.0);
-    
+
     h_pos.data[3].x = Scalar(9.0); // put atom d at (9,50,11)
     h_pos.data[3].y = Scalar(50.0);
     h_pos.data[3].z = Scalar(11.0);
     }
-    
+
     /*
         printf(" Particle 1: x = %f  y = %f  z = %f \n", h_pos.data[0].x, h_pos.data[0].y, h_pos.data[0].z);
         printf(" Particle 2: x = %f  y = %f  z = %f \n", h_pos.data[1].x, h_pos.data[1].y, h_pos.data[1].z);
@@ -113,21 +113,21 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
         printf(" Particle 4: x = %f  y = %f  z = %f \n", h_pos.data[3].x, h_pos.data[3].y, h_pos.data[3].z);
         printf("\n");
     */
-    
+
     // create the improper force compute to check
     shared_ptr<HarmonicImproperForceCompute> fc_4 = tf_creator(sysdef_4);
     fc_4->setParams(0, Scalar(2.0), Scalar(1.570796)); // type=0, K=2.0,chi=pi/2
-    
+
     // compute the force and check the results
     fc_4->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_1 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_4->getVirialArray();
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    
+
     // check that the force is correct, it should be 0 since we haven't created any impropers yet
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol);
@@ -150,9 +150,9 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
      FORCE 3: fx = -0.092712  fy = 0.068413  fz = 0.144409
      FORCE 4: fx = -0.040832  fy = 0.000579  fz = 0.029827
      Energy: 1 = 0.158927  2 = 0.158927  3 = 0.158927 4 = 0.158927
-    
+
     */
-    
+
     {
     // this time there should be a force
     GPUArray<Scalar4>& force_array_2 =  fc_4->getForceArray();
@@ -167,7 +167,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+0]
                         +h_virial_2.data[3*pitch+0]
                         +h_virial_2.data[5*pitch+0], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_2.data[1].x, 0.5*0.108934, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[1].y, 0.5*0.109425 , tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[1].z, 0.5*0.047247, tol);
@@ -175,7 +175,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+1]
                         +h_virial_2.data[3*pitch+1]
                         +h_virial_2.data[5*pitch+1], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, -0.5*0.092712, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].y, 0.5*0.068413, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[2].z, 0.5*0.144409, tol);
@@ -183,7 +183,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_2.data[0*pitch+2]
                         +h_virial_2.data[3*pitch+2]
                         +h_virial_2.data[5*pitch+2], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_2.data[3].x, -0.5*0.040832, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[3].y, 0.5*0.000579173, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[3].z, 0.5*0.029827416, tol);
@@ -210,19 +210,19 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     h_rtag.data[0] = 1;
     h_rtag.data[1] = 0;
     }
-    
+
     // notify that we made the sort
     pdata_4->notifyParticleSort();
     // recompute at the same timestep, the forces should still be updated
     fc_4->compute(1);
-    
+
     {
     GPUArray<Scalar4>& force_array_3 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_4->getVirialArray();
     unsigned int pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, 0.5*0.0246093274, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, -0.5*0.178418, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, -0.5*0.221484, tol);
@@ -230,7 +230,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_3.data[0*pitch+1]
                         +h_virial_3.data[3*pitch+1]
                         +h_virial_3.data[5*pitch+1], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, 0.5*0.108934, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].y, 0.5*0.109425 , tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].z, 0.5*0.047247, tol);
@@ -239,7 +239,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
                         +h_virial_3.data[3*pitch+0]
                         +h_virial_3.data[5*pitch+0], tol);
     }
-    
+
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -260,14 +260,14 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     h_pos.data[6].x = 3; h_pos.data[6].y = 3; h_pos.data[6].z =  Scalar(29.6);
     h_pos.data[7].x = 3; h_pos.data[7].y = 0; h_pos.data[7].z =  Scalar(31.0);
     }
-    
+
     shared_ptr<HarmonicImproperForceCompute> fc_8 = tf_creator(sysdef_8);
     fc_8->setParams(0, Scalar(2.0), Scalar(1.578));
     fc_8->setParams(1, Scalar(4.0), Scalar(1.444));
-    
+
     sysdef_8->getImproperData()->addDihedral(Dihedral(0, 0,1,2,3));
     sysdef_8->getImproperData()->addDihedral(Dihedral(1, 4,5,6,7));
-    
+
     fc_8->compute(0);
 
     {
@@ -283,10 +283,10 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
      FORCE 3: fx = 0.272530  fy = -0.127004  fz = -0.599490
      FORCE 4: fx = -0.122300  fy = 0.056994  fz = 0.175541
      Energy: 1 = 0.412477  2 = 0.412477  3 = 0.412477 4 = 0.412477
-    
+
      Virial: 1 = -0.000001  2 = -0.000001  3 = -0.000001 4 = -0.000001
     */
-    
+
     MY_BOOST_CHECK_SMALL(h_force_4.data[0].x, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[0].y, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[0].z, 0.5*0.275672,tol);
@@ -294,7 +294,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+0]
                         +h_virial_4.data[3*pitch+0]
                         +h_virial_4.data[5*pitch+0], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, -0.5*0.150230, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].y, 0.5*0.070010,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].z, 0.5*0.148276,tol);
@@ -302,7 +302,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+1]
                         +h_virial_4.data[3*pitch+1]
                         +h_virial_4.data[5*pitch+1], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].x, 0.5*0.272530,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].y, -0.5*0.127004, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].z, -0.5*0.599490,tol);
@@ -310,7 +310,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+2]
                         +h_virial_4.data[3*pitch+2]
                         +h_virial_4.data[5*pitch+2], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].x, -0.5*0.122300,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].y, 0.5*0.056994, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].z, 0.5*0.175541,tol);
@@ -318,7 +318,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+3]
                         +h_virial_4.data[3*pitch+3]
                         +h_virial_4.data[5*pitch+3], tol);
-    
+
     /*
      FORCE 1: fx = -0.000000  fy = 0.000000  fz = 0.275672
      FORCE 2: fx = -0.150230  fy = 0.070010  fz = 0.148276
@@ -330,7 +330,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
      FORCE 8: fx = 0.559709  fy = -0.559709  fz = -1.199376
      Energy: 1 = 0.412477  2 = 0.412477  3 = 0.412477 4 = 0.412477
      Energy: 5 = 0.208441  6 = 0.208441  7 = 0.208441 8 = 0.208441
-    
+
     */
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].x, -0.5*0.124166,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].y, 0.5*0.124166,tol);
@@ -339,7 +339,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+4]
                         +h_virial_4.data[3*pitch+4]
                         +h_virial_4.data[5*pitch+4], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].x, -0.5*0.155688,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].y, 0.5*0.155688,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].z, 0.5*0.599688,tol);
@@ -347,7 +347,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+5]
                         +h_virial_4.data[3*pitch+5]
                         +h_virial_4.data[5*pitch+5], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[6].x, -0.5*0.279854,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[6].y, 0.5*0.279854,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[6].z, 0.5*0.599688,tol);
@@ -355,7 +355,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*pitch+6]
                         +h_virial_4.data[3*pitch+6]
                         +h_virial_4.data[5*pitch+6], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[7].x, 0.5*0.559709,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[7].y, -0.5*0.559709,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[7].z, -0.5*1.199376,tol);
@@ -365,13 +365,13 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
                         +h_virial_4.data[5*pitch+7], tol);
 
     }
-    
+
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
     shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 0, 1, exec_conf));
     shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata_5->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(pdata_5->getTags(), access_location::host, access_mode::readwrite);
@@ -392,23 +392,23 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     h_rtag.data[h_tag.data[2]] = 2;
     h_rtag.data[h_tag.data[3]] = 3;
     }
-    
+
     // build the improper force compute and try it out
     shared_ptr<HarmonicImproperForceCompute> fc_5 = tf_creator(sysdef_5);
     fc_5->setParams(0, Scalar(5.0), Scalar(1.33333));
-    
+
     sysdef_5->getImproperData()->addDihedral(Dihedral(0, 0,1,2,3));
     sysdef_5->getImproperData()->addDihedral(Dihedral(0, 1,2,3,4));
-    
+
     fc_5->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_5 =  fc_5->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc_5->getVirialArray();
     unsigned int pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[0].x, 0.5*0.304428, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[0].y, 0.5*0.0141169504,loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[0].z, -0.5*0.504949928,tol);
@@ -416,7 +416,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+0]
                         +h_virial_5.data[3*pitch+0]
                         +h_virial_5.data[5*pitch+0], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, -0.5*0.00688943266, loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].y, 0.5*0.013229,loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].z, -0.5*0.274493,loose_tol);
@@ -424,7 +424,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+1]
                         +h_virial_5.data[3*pitch+1]
                         +h_virial_5.data[5*pitch+1], tol);
-    
+
     /*
      FORCE 1: fx = 0.304428  fy = 0.014121  fz = -0.504956
      FORCE 2: fx = -0.006890  fy = 0.013229  fz = -0.274493
@@ -432,9 +432,9 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
      FORCE 4: fx = -0.035541  fy = -0.035200  fz = 0.134787
      FORCE 5: fx = -0.086752  fy = 0.166564  fz = 0.022509
      Energy: 1 = 1.285859  2 = 1.285859  3 = 0.888413 4 = 1.285859
-    
+
      Energy: 5 = 0.397447
-    
+
     */
     MY_BOOST_CHECK_CLOSE(h_force_5.data[2].x, -0.5*0.175244, loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[2].y, -0.5*0.158713,loose_tol);
@@ -443,7 +443,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+2]
                         +h_virial_5.data[3*pitch+2]
                         +h_virial_5.data[5*pitch+2], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].x, -0.5*0.035541, loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].y, -0.5*0.035200,loose_tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].z, 0.5*0.134787,loose_tol);
@@ -451,7 +451,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*pitch+3]
                         +h_virial_5.data[3*pitch+3]
                         +h_virial_5.data[5*pitch+3], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[4].x, -0.5*0.086752, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[4].y, 0.5*0.166564,tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[4].z, 0.5*0.022509,loose_tol);
@@ -474,29 +474,29 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
     // INTERESTING NOTE: the code will depending on the number of ramdom particles
     // even 1000 will make the code blow up, 500 is used for safety... hope it works!
     const unsigned int N = 500;
-    
+
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
     snap->improper_data.type_mapping.push_back("A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    
+
     shared_ptr<HarmonicImproperForceCompute> fc1 = tf_creator1(sysdef);
     shared_ptr<HarmonicImproperForceCompute> fc2 = tf_creator2(sysdef);
     fc1->setParams(0, Scalar(2.0), Scalar(3.0));
     fc2->setParams(0, Scalar(2.0), Scalar(3.0));
-    
+
     // add improperrs
     for (unsigned int i = 0; i < N-3; i++)
         {
         sysdef->getImproperData()->addDihedral(Dihedral(0, i, i+1,i+2, i+3));
         }
-        
+
     // compute the forces
     fc1->compute(0);
     fc2->compute(0);
-    
+
     {
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_6 =  fc1->getForceArray();
@@ -507,11 +507,11 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
     GPUArray<Scalar>& virial_array_7 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
-    
+
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
-        
+
     for (unsigned int i = 0; i < N; i++)
         {
         deltaf2 += double(h_force_7.data[i].x - h_force_6.data[i].x) * double(h_force_7.data[i].x - h_force_6.data[i].x);
@@ -568,4 +568,3 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForceComputeGPU_compare )
     }
 
 #endif
-

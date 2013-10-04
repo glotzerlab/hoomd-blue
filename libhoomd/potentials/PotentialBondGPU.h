@@ -215,4 +215,3 @@ template < class T, class Base > void export_PotentialBondGPU(const std::string&
 
 #endif // ENABLE_CUDA
 #endif // __POTENTIAL_PAIR_GPU_H__
-

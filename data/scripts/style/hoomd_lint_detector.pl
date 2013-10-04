@@ -30,7 +30,7 @@ sub process_file_astyle
         my $parser = Text::Diff::Parser->new($diffs);
         $parser->simplify();
         my $total_changes = 0;
-        foreach my $change ( $parser->changes ) 
+        foreach my $change ( $parser->changes )
                 {
                 $total_changes += $change->size;
                 }
@@ -54,12 +54,13 @@ sub process_file_lines
     my $fullpath = $_[1];
     # for checking the final newline
     my $last_line;
-    
+
     # open the file
     open(FILE, "< $fname") or die "can't open $fname: $!";
-    
+
     # initialize counters to 0
     my $tab_count = 0;
+    my $eol_whitespace_count = 0;
     my $line_count = 0;
     my $overlength_count = 0;
     my $has_doxygen_file = 0;
@@ -70,6 +71,8 @@ sub process_file_lines
         {
         $tab_count += tr/\t//;
         $last_line = $_ if eof;
+        chomp();
+        $eol_whitespace_count += /(\s*)$/ && length($1);
 
         if (length($_) > $max_line_len)
             {
@@ -95,6 +98,10 @@ sub process_file_lines
         {
         $message .= "tabs:                $tab_count\n";
         }
+    if ($eol_whitespace_count > 0)
+        {
+        $message .= "EOL whitespace:      $eol_whitespace_count\n";
+        }
     if ($overlength_count > $overlength_threshold)
         {
         $message .= "lines overlength:    $overlength_count\n";
@@ -107,7 +114,7 @@ sub process_file_lines
         {
         $message .= "missing doxygen \\package\n";
         }
-    
+
     #if (not $last_line =~ /^\n/)
     #    {
     #    $message .= "end of file newline: missing\n";
@@ -116,34 +123,34 @@ sub process_file_lines
     return ($message, $line_count);
     }
 
-sub wanted 
+sub wanted
     {
-    my $fname = $_;    
-    
+    my $fname = $_;
+
     # skip processing if this file is in the extern directory
     if ($File::Find::name =~ /\/extern\//)
         {
         return;
         }
-    
+
     # skip processing if this file is in the build
     if ($File::Find::name =~ /\/build\//)
         {
         return;
         }
-    
+
     # skip processing if this file is in the microbenchmarks directory
     if ($File::Find::name =~ /\/microbenchmarks\//)
         {
         return;
         }
-    
+
     # skip processing if this file is in the share directory
     if ($File::Find::name =~ /\/share\//)
         {
         return;
         }
-    
+
     if (/\.cc$/ or /\.h$/ or /\.cu$/ or /\.cuh$/ or /\.py$/)
         {
         my $full_message = "";

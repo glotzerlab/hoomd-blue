@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE( Index3D_2 )
     BOOST_CHECK_EQUAL(a(0,1,1), (unsigned int)6);
     BOOST_CHECK_EQUAL(a(1,1,1), (unsigned int)7);
     }
-    
+
 //! boost test case for 4x3x2 Index3D
 BOOST_AUTO_TEST_CASE( Index3D_432 )
     {
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE( Index2D_20 )
     {
     Index2D a(20);
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)20*20);
-    
+
     for (unsigned int i=0; i < 20; i++)
         for (unsigned int j=0; j < 20; j++)
             {
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_20 )
     {
     Index2DUpperTriangular a(20);
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)20*21/2);
-    
+
     unsigned int cur_idx = 0;
     for (unsigned int i=0; i < 20; i++)
         for (unsigned int j=i; j < 20; j++)
@@ -215,4 +215,3 @@ BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_20 )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

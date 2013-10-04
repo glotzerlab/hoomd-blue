@@ -71,11 +71,11 @@ extern "C" void sigint_handler(int sig)
     // ignore if we didn't get SIGINT
     if (sig != SIGINT)
         return;
-        
+
     // call the previous signal handler, but only if it is well defined
     if (prev_sigint_handler && prev_sigint_handler != SIG_ERR && prev_sigint_handler != SIG_DFL && prev_sigint_handler != SIG_IGN)
         prev_sigint_handler(sig);
-        
+
     // set the global
     g_sigint_recvd = 1;
     }
@@ -88,13 +88,13 @@ void InstallSIGINTHandler()
     {
     void (*retval)(int) = NULL;
     retval = signal(SIGINT, sigint_handler);
-    
+
     if (retval == SIG_ERR)
         {
         cerr << "Error setting signal handler" << endl;
         return;
         }
-        
+
     // set the previous signal handler, but only if it is not the same as the
     // one we just set. That would make for a fun infinite loop!
     if (retval != sigint_handler)
@@ -102,4 +102,3 @@ void InstallSIGINTHandler()
     else
         prev_sigint_handler = NULL;
     }
-

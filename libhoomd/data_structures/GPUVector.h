@@ -87,7 +87,7 @@ template<class T> class GPUVector : public GPUArray<T>
 
         //! Constructs an empty GPUVector
         GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf);
- 
+
         //! Constructs a GPUVector
         GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
 
@@ -319,4 +319,3 @@ template<class T> T * GPUVector<T>::acquireHost(const access_mode::Enum mode) co
     }
 
 #endif
-

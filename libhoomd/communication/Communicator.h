@@ -114,7 +114,7 @@ class ParticleData;
    1) buffers originating from 'corner' regions
    2) buffers originating from 'edge' regions
    3) buffers originating from 'face' regions
-  
+
    Received data in a buffer is always contiguously stored and appended to existing local data in the above order.
 
    \note: These tables are currently not used by the base class
@@ -331,7 +331,7 @@ class Communicator
         /*! \note Flags will be available after the next call to communicate().
          */
         void setFlags(const CommFlags& flags) { m_flags = flags; }
-        
+
         //@}
 
         //! \name communication methods
@@ -344,7 +344,7 @@ class Communicator
         void communicate(unsigned int timestep);
 
         //@}
-        
+
         //! Force particle migration
         void forceMigrate()
             {
@@ -393,7 +393,7 @@ class Communicator
 
         //! \name Enumerations
         //@{
-        
+
         //! Enumeration of the faces of the simulation box
         /*! Their order determines the communication pattern, these must be three pairs
             of opposite directions.
@@ -418,7 +418,7 @@ class Communicator
             send_up = 16,
             send_down = 32
             };
-        
+
         enum edgeEnum
             {
             edge_east_north = 0 ,
@@ -434,7 +434,7 @@ class Communicator
             edge_south_up,
             edge_south_down
             };
-        
+
         enum cornerEnum
             {
             corner_east_north_up = 0,
@@ -446,9 +446,9 @@ class Communicator
             corner_west_south_up,
             corner_west_south_down
             };
- 
+
         //@}
-        
+
     protected:
 
         //! Returns true if we are communicating particles along a given direction
@@ -468,7 +468,7 @@ class Communicator
             if ((dir==4 || dir == 5) && di.getD() == 1)
                 res = false;
 
-            return res; 
+            return res;
             }
 
         //! Helper function to update the shifted box for ghost particle PBC

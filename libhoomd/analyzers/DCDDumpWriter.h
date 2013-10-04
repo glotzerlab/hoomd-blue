@@ -100,13 +100,13 @@ class DCDDumpWriter : public Analyzer
                       unsigned int period,
                       boost::shared_ptr<ParticleGroup> group,
                       bool overwrite=false);
-        
+
         //! Destructor
         ~DCDDumpWriter();
-        
+
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
-        
+
         //! Set whether coordinates should be written out wrapped or unwrapped.
         void setUnwrapFull(bool enable)
             {
@@ -118,7 +118,7 @@ class DCDDumpWriter : public Analyzer
             {
             m_unwrap_rigid = enable;
             }
-        
+
         //! Set whether the z-component should be overwritten by the orientation angle
         void setAngleZ(bool enable)
             {
@@ -142,9 +142,9 @@ class DCDDumpWriter : public Analyzer
         bool m_is_initialized;              //!< True if file IO has been initialized
 
         float *m_staging_buffer;            //!< Buffer for staging particle positions in tag order
-        
+
         // helper functions
-        
+
         //! Initalizes the file header
         void write_file_header(std::fstream &file);
         //! Writes the frame header
@@ -155,11 +155,10 @@ class DCDDumpWriter : public Analyzer
         void write_updated_header(std::fstream &file, unsigned int timestep);
         //! Initializes the output file for writing
         void initFileIO();
-        
+
     };
 
 //! Exports the DCDDumpWriter class to python
 void export_DCDDumpWriter();
 
 #endif
-

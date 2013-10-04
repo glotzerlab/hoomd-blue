@@ -92,11 +92,11 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     assert(group_size <= m_pdata->getN());
     if (group_size == 0)
         return;
-    
+
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVE step 1");
-    
+
     // access all the needed data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -126,7 +126,7 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->pop(exec_conf);
     }
-        
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
@@ -136,9 +136,9 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     assert(group_size <= m_pdata->getN());
     if (group_size == 0)
         return;
-    
+
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
+
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVE step 2");
@@ -162,7 +162,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -178,4 +178,3 @@ void export_TwoStepNVEGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

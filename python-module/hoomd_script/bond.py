@@ -65,12 +65,12 @@ import sys;
 ## \package hoomd_script.bond
 # \brief Commands that specify %bond forces
 #
-# Bonds add forces between specified pairs of particles and are typically used to 
+# Bonds add forces between specified pairs of particles and are typically used to
 # model chemical bonds. Bonds between particles are set when an input XML file is read
 # (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
 #
-# By themselves, bonds that have been specified in an input file do nothing. Only when you 
-# specify a bond force (i.e. bond.harmonic), are forces actually calculated between the 
+# By themselves, bonds that have been specified in an input file do nothing. Only when you
+# specify a bond force (i.e. bond.harmonic), are forces actually calculated between the
 # listed particles.
 
 ## Defines %bond coefficients
@@ -289,7 +289,7 @@ class _bond(force._force):
 ## Harmonic %bond force
 #
 # The command bond.harmonic specifies a %harmonic potential energy between every bonded %bond of particles
-# in the simulation. 
+# in the simulation.
 # \f[ V(r) = \frac{1}{2} k \left( r - r_0 \right)^2 \f]
 # where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.
 #
@@ -321,7 +321,7 @@ class harmonic(_bond):
         if globals.system_definition.getBondData().getNumBonds() == 0:
             globals.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialBondHarmonic(globals.system_definition,self.name);
@@ -340,7 +340,7 @@ class harmonic(_bond):
     def set_coeff(self, type, **coeffs):
         globals.msg.warning("Syntax bond.harmonic.set_coeff deprecated.\n");
         self.bond_coeff.set(type,**coeffs)
-        
+
     def process_coeff(self, coeff):
         k = coeff['k'];
         r0 = coeff['r0'];
@@ -352,7 +352,7 @@ class harmonic(_bond):
 ## FENE %bond force
 #
 # The command bond.fene specifies a %fene potential energy between every bonded %bond of particles
-# in the simulation. 
+# in the simulation.
 # \f[ V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r - \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)\f]
 # where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond,
 # \f$ \Delta = (d_i + d_j)/2 - 1 \f$, \f$ d_i \f$ is the diameter of particle \f$ i \f$, and
@@ -367,7 +367,7 @@ class harmonic(_bond):
 # - \f$ \varepsilon \f$ - repulsive %force strength (in energy units)
 # - \f$ \sigma \f$ - repulsive %force interaction distance (in distance units)
 #
-# Coefficients \f$ k \f$, \f$ r_0 \f$, \f$ \varepsilon \f$ and \f$ \sigma \f$  must be set for 
+# Coefficients \f$ k \f$, \f$ r_0 \f$, \f$ \varepsilon \f$ and \f$ \sigma \f$  must be set for
 # each type of %bond in the simulation using
 # \link bond.coeff.set bond_coeff.set()\endlink.
 # \note For compatibility with older versions of HOOMD-blue, the syntax set_coeff() is also supported.
@@ -385,15 +385,15 @@ class fene(_bond):
     # \endcode
     def __init__(self, name=None):
         util.print_status_line();
-        
+
         # check that some bonds are defined
         if globals.system_definition.getBondData().getNumBonds() == 0:
             globals.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
-        
+
         # initialize the base class
         _bond.__init__(self, name);
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialBondFENE(globals.system_definition,self.name);
@@ -431,7 +431,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 
 ## Tabulated %bond %force
 #
-# The command bond.table specifies that a tabulated  %bond %force should be added to everybonded %bond of particles 
+# The command bond.table specifies that a tabulated  %bond %force should be added to everybonded %bond of particles
 # in the simulation.
 #
 # The %force \f$ \vec{F}\f$ is (in force units)
@@ -442,13 +442,13 @@ def _table_eval(r, rmin, rmax, V, F, width):
 # \f{eqnarray*}
 #            = & V_{\mathrm{user}}(r) & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
 # \f}
-# ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.  Care should be taken to 
+# ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.  Care should be taken to
 # define the range of the bond so that it is not possible for the distance between two bonded particles to be outside the
 # specified range.  On the CPU, this will throw an error.  On the GPU, this will throw an error if error checking is enabled.
 #
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between 
+# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between
 # \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
+# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
 #
 # The following coefficients must be set per unique %pair of particle types.
 # - \f$ F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ - evaluated by `func` (see example)
@@ -457,8 +457,8 @@ def _table_eval(r, rmin, rmax, V, F, width):
 # - \f$ r_{\mathrm{max}} \f$ - `rmax` (in distance units)
 #
 # The table *width* is set once when bond.table is specified (see table.__init__())
-# There are two ways to specify the other parameters. 
-# 
+# There are two ways to specify the other parameters.
+#
 # \par Example: Set table from a given function
 # When you have a functional form for V and F, you can enter that
 # directly into python. bond.table will evaluate the given function over \a width points between \a rmin and \a rmax
@@ -490,7 +490,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 # ~~~~~~~~~~~~~
 #
 #
-# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does 
+# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
 # not diverge near r=0, then a setting of \c rmin=0 is valid.
 #
 # \note Coefficients for all bond types in the simulation must be
@@ -530,7 +530,7 @@ class table(force._force):
             self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.table')); 
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -584,7 +584,7 @@ class table(force._force):
             self.update_bond_table(i, func, rmin, rmax, coeff);
 
     ## Set a bond pair interaction from a file
-    # \param bondname Name of bond 
+    # \param bondname Name of bond
     # \param filename Name of the file to read
     #
     # The provided file specifies V and F at equally spaced r values.

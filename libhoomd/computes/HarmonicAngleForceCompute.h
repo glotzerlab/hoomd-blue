@@ -79,25 +79,25 @@ class HarmonicAngleForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         HarmonicAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
-        
+
         //! Destructor
         virtual ~HarmonicAngleForceCompute();
-        
+
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0);
-        
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
-        
+
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
     protected:
         Scalar* m_K;    //!< K parameter for multiple angle tyes
         Scalar* m_t_0;  //!< r_0 parameter for multiple angle types
-        
+
         boost::shared_ptr<AngleData> m_angle_data;  //!< Angle data to use in computing angles
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -106,4 +106,3 @@ class HarmonicAngleForceCompute : public ForceCompute
 void export_HarmonicAngleForceCompute();
 
 #endif
-

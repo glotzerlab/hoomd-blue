@@ -81,22 +81,22 @@ LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysde
         m_exec_conf->msg->error() << "wall.lj: Negative r_cut doesn't make sense." << endl;
         throw runtime_error("Error initializing LJWallForceCompute");
         }
-        
+
     // initialize the number of types value
     unsigned int ntypes = m_pdata->getNTypes();
     assert(ntypes > 0);
-    
+
     // allocate data for lj1 and lj2
     m_lj1 = new Scalar[ntypes];
     m_lj2 = new Scalar[ntypes];
-    
+
     assert(m_lj1);
     assert(m_lj2);
-    
+
     //initialize parameters to 0
     memset((void*)m_lj1, 0,sizeof(Scalar)*ntypes);
     memset((void*)m_lj2, 0,sizeof(Scalar)*ntypes);
-    
+
     }
 
 /*! Frees used memory
@@ -127,7 +127,7 @@ void LJWallForceCompute::setParams(unsigned int typ, Scalar lj1, Scalar lj2)
         m_exec_conf->msg->error() << "wall.lj: Trying to set params for a non existant type! " << typ << endl;
         throw runtime_error("Error setting params in LJWallForceCompute");
         }
-        
+
     // set the parameters
     m_lj1[typ] = lj1;
     m_lj2[typ] = lj2;
@@ -161,18 +161,18 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
     {
     // start the profile for this compute
     if (m_prof) m_prof->push("LJ wall");
-    
+
     // get numparticle var for easier access
     unsigned int numParticles = m_pdata->getN();
     boost::shared_ptr<WallData> wall_data = m_sysdef->getWallData();
     unsigned int numWalls = wall_data->getNumWalls();
-    
+
     // precalculate r_cut squqred
     Scalar r_cut_sq = m_r_cut * m_r_cut;
-    
+
     // precalculate box lengths for use in the periodic imaging
     BoxDim box = m_pdata->getBox();
-    
+
     // access the particle data
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
@@ -186,8 +186,8 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
-    
-   
+
+
     // here we go, main calc loop
     // loop over every particle in the sim,
     // calculate forces and store them in  m_force
@@ -197,38 +197,38 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
         // storage in each iteration, initialized to 0 from which the force will be computed
         Scalar3 f = make_scalar3(0, 0, 0);
         Scalar pe = 0.0;
-        
+
         // Grab particle data from all the arrays for this loop
         Scalar px = h_pos.data[i].x;
         Scalar py = h_pos.data[i].y;
         Scalar pz = h_pos.data[i].z;
         unsigned int type = __scalar_as_int(h_pos.data[i].w);
-        
+
         // for each wall that exists in the simulation
         // calculate the force that it exerts on a particle
         // the sum of the forces from each wall is the resulting force
         for (unsigned int cur_wall_idx = 0; cur_wall_idx < numWalls; cur_wall_idx++)
             {
             const Wall& cur_wall = wall_data->getWall(cur_wall_idx);
-            
+
             // calculate distance from point to plane
             // http://mathworld.wolfram.com/Point-PlaneDistance.html
             Scalar distFromWall = cur_wall.normal_x * (px - cur_wall.origin_x)
                                   + cur_wall.normal_y * (py - cur_wall.origin_y)
                                   + cur_wall.normal_z * (pz - cur_wall.origin_z);
-                                  
+
             // use the distance to create a vector pointing from the plane to the particle
             Scalar3 dx = make_scalar3(cur_wall.normal_x * distFromWall,
                                       cur_wall.normal_y * distFromWall,
                                       cur_wall.normal_z * distFromWall);
-            
+
             // continue with the evaluation of the LJ force copied from LJForceCompute
             // apply periodic boundary conditions
             dx = box.minImage(dx);
-            
+
             // start computing the force
             Scalar rsq = dot(dx,dx);
-            
+
             // only compute the force if the particles are closer than the cuttoff
             if (rsq < r_cut_sq)
                 {
@@ -238,19 +238,19 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
                 Scalar forcelj = r6inv * (Scalar(12.0)*m_lj1[type]*r6inv - Scalar(6.0)*m_lj2[type]);
                 Scalar fforce = forcelj * r2inv;
                 Scalar tmp_eng = r6inv * (m_lj1[type]*r6inv - m_lj2[type]);
-                
+
                 // accumulate the force vector
                 f += dx * fforce;
                 pe += tmp_eng;
                 }
             }
-            
+
         h_force.data[i].x = f.x;
         h_force.data[i].y = f.y;
         h_force.data[i].z = f.z;
         h_force.data[i].w = pe;
         }
-     
+
     if (m_prof) m_prof->pop();
     }
 
@@ -265,4 +265,3 @@ void export_LJWallForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

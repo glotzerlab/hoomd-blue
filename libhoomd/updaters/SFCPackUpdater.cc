@@ -82,10 +82,10 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
 
     // perform lots of sanity checks
     assert(m_pdata);
-    
+
     m_sort_order.resize(m_pdata->getMaxN());
     m_particle_bins.resize(m_pdata->getMaxN());
-    
+
     // set the default grid
     // Grid dimension must always be a power of 2 and determines the memory usage for m_traversal_order
     // To prevent massive overruns of the memory, always use 256 for 3d and 4096 for 2d
@@ -123,18 +123,18 @@ SFCPackUpdater::~SFCPackUpdater()
 void SFCPackUpdater::update(unsigned int timestep)
     {
     if (m_prof) m_prof->push("SFCPack");
-    
+
     // figure out the sort order we need to apply
     if (m_sysdef->getNDimensions() == 2)
         getSortedOrder2D();
     else
         getSortedOrder3D();
-    
+
     // apply that sort order to the particles
     applySortOrder();
 
     m_pdata->notifyParticleSort();
-    
+
     if (m_prof) m_prof->pop();
     }
 
@@ -154,19 +154,19 @@ void SFCPackUpdater::applySortOrder()
 
     // construct a temporary holding array for the sorted data
     Scalar4 *scal4_tmp = new Scalar4[m_pdata->getN()];
-    
+
     // sort positions and types
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         scal4_tmp[i] = h_pos.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_pos.data[i] = scal4_tmp[i];
-        
+
     // sort velocities and mass
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         scal4_tmp[i] = h_vel.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_vel.data[i] = scal4_tmp[i];
-        
+
     Scalar3 *scal3_tmp = new Scalar3[m_pdata->getN()];
     // sort accelerations
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -180,13 +180,13 @@ void SFCPackUpdater::applySortOrder()
         scal_tmp[i] = h_charge.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_charge.data[i] = scal_tmp[i];
-        
+
     // sort diameter
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         scal_tmp[i] = h_diameter.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_diameter.data[i] = scal_tmp[i];
-    
+
     // in case anyone access it from frame to frame, sort the net virial
         {
         ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
@@ -204,7 +204,7 @@ void SFCPackUpdater::applySortOrder()
     // sort net force, net torque, and orientation
         {
         ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
-        
+
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             scal4_tmp[i] = h_net_force.data[m_sort_order[i]];
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -213,7 +213,7 @@ void SFCPackUpdater::applySortOrder()
 
         {
         ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
-        
+
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             scal4_tmp[i] = h_net_torque.data[m_sort_order[i]];
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -222,7 +222,7 @@ void SFCPackUpdater::applySortOrder()
 
         {
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-        
+
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             scal4_tmp[i] = h_orientation.data[m_sort_order[i]];
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -235,14 +235,14 @@ void SFCPackUpdater::applySortOrder()
         int3_tmp[i] = h_image.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_image.data[i] = int3_tmp[i];
-        
+
     // sort body
     unsigned int *uint_tmp = new unsigned int[m_pdata->getN()];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         uint_tmp[i] = h_body.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_body.data[i] = uint_tmp[i];
-    
+
     // sort global tag
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         uint_tmp[i] = h_tag.data[m_sort_order[i]];
@@ -260,7 +260,7 @@ void SFCPackUpdater::applySortOrder()
     delete[] scal3_tmp;
     delete[] uint_tmp;
     delete[] int3_tmp;
-    
+
     }
 
 //! x walking table for the hilbert curve
@@ -440,7 +440,7 @@ static void generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned 
         {
         // handle arbitrary case, split the box into 8 sub boxes
         w = w / 2;
-        
+
         // we ned to handle each sub box in the order defined by cell order
         for (int m = 0; m < 8; m++)
             {
@@ -448,7 +448,7 @@ static void generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned 
             int ic = i + w * istep[cur_cell];
             int jc = j + w * jstep[cur_cell];
             int kc = k + w * kstep[cur_cell];
-            
+
             unsigned int child_cell_order[8];
             permute(child_cell_order, cell_order, m);
             generateTraversalOrder(ic,jc,kc,w,Mx, child_cell_order, traversal_order);
@@ -461,10 +461,10 @@ void SFCPackUpdater::getSortedOrder2D()
     // start by checking the saneness of some member variables
     assert(m_pdata);
     assert(m_sort_order.size() >= m_pdata->getN());
-    
+
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
-    
+
     // put the particles in the bins
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -487,7 +487,7 @@ void SFCPackUpdater::getSortedOrder2D()
 
     // sort the tuples
     sort(m_particle_bins.begin(), m_particle_bins.begin() + m_pdata->getN());
-    
+
     // translate the sorted order
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
@@ -500,10 +500,10 @@ void SFCPackUpdater::getSortedOrder3D()
     // start by checking the saneness of some member variables
     assert(m_pdata);
     assert(m_sort_order.size() >= m_pdata->getN());
-    
+
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
-    
+
     // reallocate memory arrays if m_grid changed
     // also regenerate the traversal order
     if (m_last_grid != m_grid || m_last_dim != 3)
@@ -522,13 +522,13 @@ void SFCPackUpdater::getSortedOrder3D()
         m_traversal_order.resize(m_grid*m_grid*m_grid);
         vector< unsigned int > reverse_order(m_grid*m_grid*m_grid);
         reverse_order.clear();
-        
+
         // we need to start the hilbert curve with a seed order 0,1,2,3,4,5,6,7
         unsigned int cell_order[8];
         for (unsigned int i = 0; i < 8; i++)
             cell_order[i] = i;
         generateTraversalOrder(0,0,0, m_grid, m_grid, cell_order, reverse_order);
-        
+
         for (unsigned int i = 0; i < m_grid*m_grid*m_grid; i++)
             m_traversal_order[reverse_order[i]] = i;
 
@@ -539,11 +539,11 @@ void SFCPackUpdater::getSortedOrder3D()
         // store the last system dimension computed so we can be mindful if that ever changes
         m_last_dim = m_sysdef->getNDimensions();
         }
-        
+
     // sanity checks
     assert(m_particle_bins.size() >= m_pdata->getN());
     assert(m_traversal_order.size() == m_grid*m_grid*m_grid);
-    
+
     // put the particles in the bins
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
@@ -561,17 +561,17 @@ void SFCPackUpdater::getSortedOrder3D()
 
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(m_traversal_order[bin], n);
         }
-    
+
     // sort the tuples
     sort(m_particle_bins.begin(), m_particle_bins.begin() + m_pdata->getN());
-    
+
     // translate the sorted order
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
         m_sort_order[j] = m_particle_bins[j].second;
         }
     }
-        
+
 void SFCPackUpdater::writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order)
     {
     m_exec_conf->msg->notice(2) << "sorter: Writing space filling curve traversal order to " << fname << endl;
@@ -613,4 +613,3 @@ void export_SFCPackUpdater()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

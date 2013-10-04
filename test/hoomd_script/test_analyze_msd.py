@@ -22,17 +22,17 @@ class analyze_msd_tests (unittest.TestCase):
     def test_variable(self):
         analyze.msd(period = lambda n: n*10, filename="test.log", groups=[group.all()]);
         run(100);
-    
+
     # test error if no groups defined
     def test_no_gropus(self):
         self.assertRaises(RuntimeError, analyze.msd, period=10, filename="test.log", groups=[]);
-    
+
     # test set_params
     def test_set_params(self):
         ana = analyze.msd(period = 10, filename="test.log", groups=[group.all()]);
         ana.set_params(delimiter = ' ');
         run(100);
-    
+
     def tearDown(self):
         init.reset();
         if comm.get_rank() == 0:
@@ -40,4 +40,3 @@ class analyze_msd_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

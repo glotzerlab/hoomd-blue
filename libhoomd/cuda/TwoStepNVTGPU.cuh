@@ -83,4 +83,3 @@ cudaError_t gpu_nvt_step_two(Scalar4 *d_vel,
                              Scalar deltaT);
 
 #endif //__TWO_STEP_NVT_GPU_CUH__
-

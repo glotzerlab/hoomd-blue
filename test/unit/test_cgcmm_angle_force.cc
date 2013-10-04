@@ -90,14 +90,14 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     pdata_3->setPosition(0,make_scalar3(-1.23,2.0,0.1)); // put atom a at (-1,0,0.1)
     pdata_3->setPosition(1,make_scalar3(1.0,1.0,1.0)); // put atom b at (0,0,0)
     pdata_3->setPosition(2,make_scalar3(1.0,0.0,0.5)); // put atom c at (1,0,0.5)
-    
+
     // create the angle force compute to check
     shared_ptr<CGCMMAngleForceCompute> fc_3 = af_creator(sysdef_3);
     fc_3->setParams(0, 1.0, 0.785398, 1, 1.0, 2.0); // type=0, K=1.0,theta_0=pi/4=0.785398, cg_type=1, eps=2.0, sigma=1.0
-    
+
     // compute the force and check the results
     fc_3->compute(0);
-    
+
     {
     //New Force data access pattern
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
@@ -121,7 +121,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     // add an angle and check again
     sysdef_3->getAngleData()->addAngle(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
     fc_3->compute(1);
-    
+
     {
     // this time there should be a force
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
@@ -136,7 +136,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
                          +h_virial_2.data[3*virial_array_2.getPitch()]
                          +h_virial_2.data[5*virial_array_2.getPitch()], tol);
     }
-    
+
     // rearrange the two particles in memory and see if they are properly updated
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -160,13 +160,13 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     pdata_3->notifyParticleSort();
     // recompute at the same timestep, the forces should still be updated
     fc_3->compute(1);
-    
+
     {
     GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -0.0616840, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].y, -0.3134695, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].z, -0.195460, tol);
@@ -176,7 +176,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
                          +h_virial_3.data[5*virial_array_3.getPitch()+1], tol);
     }
     //pdata_3->release();
-    
+
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -186,31 +186,31 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     unsigned int num_angles_to_test = 2;
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    
+
     pdata_6->setPosition(0,make_scalar3(-9.6, 0.0, 0.0));
     pdata_6->setPosition(1,make_scalar3( 9.6, 0.0, 0.0));
     pdata_6->setPosition(2,make_scalar3( 0.0, -19.6, 0.0));
     pdata_6->setPosition(3,make_scalar3( 0.0, 19.6, 0.0));
     pdata_6->setPosition(4,make_scalar3( 0.0, 0.0, -29.6));
     pdata_6->setPosition(5,make_scalar3( 0.0, 0.0,  29.6));
-    
+
     shared_ptr<CGCMMAngleForceCompute> fc_6 = af_creator(sysdef_6);
     fc_6->setParams(0, 1.0, 0.785398, 1, 1.0, 2.0);
     fc_6->setParams(1, 2.0, 1.46, 2, 1.0, 2.0);
-    
+
     sysdef_6->getAngleData()->addAngle(Angle(0, 0,1,2));
     sysdef_6->getAngleData()->addAngle(Angle(1, 3,4,5));
-    
+
     fc_6->compute(0);
-    
+
     {
     // check that the forces are correctly computed
     GPUArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
     GPUArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
-    
-    
+
+
     MY_BOOST_CHECK_SMALL(h_force_4.data[0].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[0].y, -1.5510634,tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[0].z, tol);
@@ -218,7 +218,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+0]
                          +h_virial_4.data[3*virial_array_4.getPitch()+0]
                          +h_virial_4.data[5*virial_array_4.getPitch()+0], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].x, -0.0510595, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[1].y, 1.5760721,tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[1].z, tol);
@@ -226,7 +226,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+1]
                          +h_virial_4.data[3*virial_array_4.getPitch()+1]
                          +h_virial_4.data[5*virial_array_4.getPitch()+1], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].x, 0.0510595,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[2].y, -0.0250087, tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[2].z, tol);
@@ -234,7 +234,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+2]
                          +h_virial_4.data[3*virial_array_4.getPitch()+2]
                          +h_virial_4.data[5*virial_array_4.getPitch()+2], tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_4.data[3].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].y, 0.0515151, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[3].z, -0.03411135,tol);
@@ -242,7 +242,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+3]
                          +h_virial_4.data[3*virial_array_4.getPitch()+3]
                          +h_virial_4.data[5*virial_array_4.getPitch()+3], tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_4.data[4].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].y, -2.793305,tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[4].z, 0.0341109, tol);
@@ -250,7 +250,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_4.data[0*virial_array_4.getPitch()+4]
                          +h_virial_4.data[3*virial_array_4.getPitch()+4]
                          +h_virial_4.data[5*virial_array_4.getPitch()+4], tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_4.data[5].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_4.data[5].y, 2.74178982,tol);
     MY_BOOST_CHECK_SMALL(h_force_4.data[5].z, tol);
@@ -268,7 +268,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     // and 2) That two forces can add to the same particle
     shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 3, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
-    
+
     // make a square of particles
     {
     ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
@@ -288,7 +288,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     h_rtag.data[h_tag.data[2]] = 2;
     h_rtag.data[h_tag.data[3]] = 3;
     }
-    
+
     // build the angle force compute and try it out
     shared_ptr<CGCMMAngleForceCompute> fc_4 = af_creator(sysdef_4);
 //  fc_4->setParams(0, 1.5, 1.75, 2, 1.0, 2.0);
@@ -299,15 +299,15 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     sysdef_4->getAngleData()->addAngle(Angle(0, 0,1,2));
     sysdef_4->getAngleData()->addAngle(Angle(1, 1,2,3));
     sysdef_4->getAngleData()->addAngle(Angle(0, 0,1,3));
-    
+
     fc_4->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_5 =  fc_4->getForceArray();
     GPUArray<Scalar>& virial_array_5 =  fc_4->getVirialArray();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[0].x, -3.531810,tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[0].y, -3.531810, tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[0].z, tol);
@@ -315,7 +315,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+0]
                          +h_virial_5.data[3*virial_array_5.getPitch()+0]
                          +h_virial_5.data[5*virial_array_5.getPitch()+0], tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].x, -0.785398,tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[1].y, 7.063621,tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[1].z, tol);
@@ -323,8 +323,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+1]
                          +h_virial_5.data[3*virial_array_5.getPitch()+1]
                          +h_virial_5.data[5*virial_array_5.getPitch()+1], tol);
-    
-    
+
+
     MY_BOOST_CHECK_SMALL(h_force_5.data[2].x, tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[2].y, -0.785399,tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[2].z, tol);
@@ -332,8 +332,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     MY_BOOST_CHECK_SMALL(h_virial_5.data[0*virial_array_5.getPitch()+2]
                          +h_virial_5.data[3*virial_array_5.getPitch()+2]
                          +h_virial_5.data[5*virial_array_5.getPitch()+2], tol);
-    
-    
+
+
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].x, 4.317209,tol);
     MY_BOOST_CHECK_CLOSE(h_force_5.data[3].y, -2.746412,tol);
     MY_BOOST_CHECK_SMALL(h_force_5.data[3].z, tol);
@@ -352,29 +352,29 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
 void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_angleforce_creator af_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
-    
+
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the angle forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
     snap->angle_data.type_mapping.push_back("A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    
+
     shared_ptr<CGCMMAngleForceCompute> fc1 = af_creator1(sysdef);
     shared_ptr<CGCMMAngleForceCompute> fc2 = af_creator2(sysdef);
     fc1->setParams(0, Scalar(1.0), Scalar(1.348), 1, Scalar(1.0), Scalar(0.05));
     fc2->setParams(0, Scalar(1.0), Scalar(1.348), 1, Scalar(1.0), Scalar(0.05));
-    
+
     // add angles
     for (unsigned int i = 0; i < N-2; i++)
         {
         sysdef->getAngleData()->addAngle(Angle(0, i, i+1,i+2));
         }
-        
+
     // compute the forces
     fc1->compute(0);
     fc2->compute(0);
-    
+
     {
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_6 =  fc1->getForceArray();
@@ -385,11 +385,11 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
     GPUArray<Scalar>& virial_array_7 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
-    
+
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
-        
+
     for (unsigned int i = 0; i < N; i++)
         {
         deltaf2 += double(h_force_7.data[i].x - h_force_6.data[i].x) * double(h_force_7.data[i].x - h_force_6.data[i].x);
@@ -448,4 +448,3 @@ BOOST_AUTO_TEST_CASE( CGCMMAngleForceComputeGPU_compare )
     }
 
 #endif
-

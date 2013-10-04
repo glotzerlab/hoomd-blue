@@ -92,7 +92,7 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     // of course, the buffer will be set on the neighborlist so that 3 is included in it
     // thus, this case tests the ability of the force summer to sum more than one force on
     // a particle and ignore a particle outside the radius
-    
+
     // periodic boundary conditions will be handeled in another test
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
@@ -108,16 +108,16 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
     shared_ptr<PotentialPairMorse> fc_3 = morse_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
-    
+
     // first test: choose a basic set of values
     Scalar D0 = Scalar(1.0);
     Scalar alpha = Scalar(3.0);
     Scalar r0 = Scalar(0.9);
     fc_3->setParams(0,0,make_scalar4(D0,alpha,r0,Scalar(0.0)));
-    
+
     // compute the forces
     fc_3->compute(0);
-    
+
     {
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
@@ -127,12 +127,12 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, -0.9328248052694093/2.0, tol);
-      
+
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, -0.9328248052694093, tol);
-      
+
     MY_BOOST_CHECK_CLOSE(h_force_1.data[2].x, -1.1520395075261485, tol);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
@@ -147,19 +147,19 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
 
     h_pos.data[2].x = h_pos.data[2].y = h_pos.data[2].z = 0.0;
     h_pos.data[0].x = Scalar(2.0); h_pos.data[0].y = h_pos.data[0].z = 0.0;
-    
+
     h_tag.data[0] = 2;
     h_tag.data[2] = 0;
     h_rtag.data[0] = 2;
     h_rtag.data[2] = 0;
     }
-    
+
     // notify the particle data that we changed the order
     pdata_3->notifyParticleSort();
-    
+
     // recompute the forces at the same timestep, they should be updated
     fc_3->compute(1);
-    
+
     {
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
@@ -176,7 +176,7 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
                                   boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
-    
+
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.1), Scalar(1.0), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
@@ -184,25 +184,25 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
     shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
-    
+
     shared_ptr<PotentialPairMorse> fc1 = morse_creator1(sysdef, nlist);
     shared_ptr<PotentialPairMorse> fc2 = morse_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
-    
+
     // setup some values for epsilon and sigma
     Scalar D0 = Scalar(1.0);
     Scalar alpha = Scalar(1.0);
     Scalar r0 = Scalar(1.0);
-    
+
     // specify the force parameters
     fc1->setParams(0,0,make_scalar4(D0,alpha,r0,Scalar(0.0)));
     fc2->setParams(0,0,make_scalar4(D0,alpha,r0,Scalar(0.0)));
-    
+
     // compute the forces
     fc1->compute(0);
     fc2->compute(0);
-    
+
     {
     // verify that the forces are identical (within roundoff errors)
     GPUArray<Scalar4>& force_array_3 =  fc1->getForceArray();
@@ -214,14 +214,14 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     GPUArray<Scalar>& virial_array_4 =  fc2->getVirialArray();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
-    
+
     // compare average deviation between the two computes
     double deltaf2 = 0.0;
     double deltape2 = 0.0;
     double deltav2[6];
     for (unsigned int j = 0; j < 6; j++)
         deltav2[j] = 0.0;
-        
+
     for (unsigned int i = 0; i < N; i++)
         {
         deltaf2 += double(h_force_4.data[i].x - h_force_3.data[i].x) * double(h_force_4.data[i].x - h_force_3.data[i].x);
@@ -298,4 +298,3 @@ BOOST_AUTO_TEST_CASE( MorseForceGPU_compare )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

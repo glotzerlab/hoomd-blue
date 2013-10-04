@@ -95,7 +95,7 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
     {
     assert(fc);
     m_forces.push_back(fc);
-    fc->setDeltaT(m_deltaT);      
+    fc->setDeltaT(m_deltaT);
     }
 
 /*! \param fc ForceConstraint to add
@@ -122,13 +122,13 @@ void Integrator::setDeltaT(Scalar deltaT)
     {
     if (m_deltaT <= 0.0)
         m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
-        
+
     for (unsigned int i=0; i < m_forces.size(); i++)
-        m_forces[i]->setDeltaT(deltaT);    
+        m_forces[i]->setDeltaT(deltaT);
 
     for (unsigned int i=0; i < m_constraint_forces.size(); i++)
         m_constraint_forces[i]->setDeltaT(deltaT);
-   
+
      m_deltaT = deltaT;
     }
 
@@ -145,7 +145,7 @@ unsigned int Integrator::getNDOFRemoved()
     {
     // start counting at 0
     unsigned int n = 0;
-    
+
     // loop through all constraint forces
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_compute;
     for (force_compute = m_constraint_forces.begin(); force_compute != m_constraint_forces.end(); ++force_compute)
@@ -275,18 +275,18 @@ void Integrator::computeAccelerations(unsigned int timestep)
 
     // compute the net forces
     computeNetForce(timestep);
-    
+
     if (m_prof)
         {
         m_prof->push("Integrate");
         m_prof->push("Sum accel");
         }
-    
+
     // now, get our own access to the arrays and calculate the accelerations
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
-    
+
     // now, add up the accelerations
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
@@ -295,7 +295,7 @@ void Integrator::computeAccelerations(unsigned int timestep)
         h_accel.data[j].y = h_net_force.data[j].y*minv;
         h_accel.data[j].z = h_net_force.data[j].z*minv;
         }
-    
+
     if (m_prof)
         {
         m_prof->pop();
@@ -324,9 +324,9 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
         p_tot_y += mass*(double)h_vel.data[i].y;
         p_tot_z += mass*(double)h_vel.data[i].z;
         }
-        
+
     double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z) / Scalar(m_pdata->getN());
-    
+
     // done!
     return Scalar(p_tot);
     }
@@ -347,7 +347,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->push("Integrate");
         m_prof->push("Net force");
         }
-    
+
     Scalar external_virial[6];
         {
         // access the net force and virial arrays
@@ -357,7 +357,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::overwrite);
-        
+
         // start by zeroing the net force and virial arrays
         memset((void *)h_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
         memset((void *)h_net_virial.data, 0, sizeof(Scalar)*net_virial.getNumElements());
@@ -365,7 +365,7 @@ void Integrator::computeNetForce(unsigned int timestep)
 
         for (unsigned int i = 0; i < 6; ++i)
            external_virial[i] = Scalar(0.0);
-        
+
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
         unsigned int net_virial_pitch = net_virial.getPitch();
@@ -392,7 +392,7 @@ void Integrator::computeNetForce(unsigned int timestep)
                 h_net_force.data[j].y += h_force.data[j].y;
                 h_net_force.data[j].z += h_force.data[j].z;
                 h_net_force.data[j].w += h_force.data[j].w;
-                
+
                 h_net_torque.data[j].x += h_torque.data[j].x;
                 h_net_torque.data[j].y += h_torque.data[j].y;
                 h_net_torque.data[j].z += h_torque.data[j].z;
@@ -408,7 +408,7 @@ void Integrator::computeNetForce(unsigned int timestep)
                 external_virial[k] += (*force_compute)->getExternalVirial(k);
             }
         }
-   
+
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
@@ -427,13 +427,13 @@ void Integrator::computeNetForce(unsigned int timestep)
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
-    
+
     if (m_prof)
         {
         m_prof->push("Integrate");
         m_prof->push("Net force");
         }
-    
+
         {
         // access the net force and virial arrays
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -456,7 +456,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             unsigned int virial_pitch = h_virial_array.getPitch();
 
-       
+
             for (unsigned int j = 0; j < nparticles; j++)
                 {
                 h_net_force.data[j].x += h_force.data[j].x;
@@ -470,7 +470,7 @@ void Integrator::computeNetForce(unsigned int timestep)
                 external_virial[k] += (*force_constraint)->getExternalVirial(k);
             }
         }
-    
+
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
@@ -493,7 +493,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_exec_conf->msg->error() << "Cannot compute net force on the GPU if CUDA is disabled" << endl;
         throw runtime_error("Error computing accelerations");
         }
- 
+
     // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
 
@@ -505,7 +505,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->push("Integrate");
         m_prof->push(exec_conf, "Net force");
         }
-    
+
     Scalar external_virial[6];
         {
         // access the net force and virial arrays
@@ -525,7 +525,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
         // zero external virial
         for (unsigned int i = 0; i < 6; ++i)
-            external_virial[i] = Scalar(0.0); 
+            external_virial[i] = Scalar(0.0);
 
         // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
         // will do that
@@ -539,7 +539,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-        
+
         // now, add up the accelerations
         // sum all the forces into the net force
         // perform the sum in groups of 6 to avoid kernel launch and memory access overheads
@@ -558,7 +558,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             force_list.v0 = d_virial0.data;
             force_list.vpitch0 = d_virial_array0.getPitch();
             force_list.t0 = d_torque0.data;
-            
+
             if (cur_force+1 < m_forces.size())
                 {
                 const GPUArray<Scalar4>& d_force_array1 = m_forces[cur_force+1]->getForceArray();
@@ -624,10 +624,10 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 force_list.vpitch5 = d_virial_array5.getPitch();
                 force_list.t5 = d_torque5.data;
                 }
-            
+
             // clear on the first iteration only
             bool clear = (cur_force == 0);
-            
+
             // access flags
             PDataFlags flags = this->m_pdata->getFlags();
 
@@ -644,7 +644,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 CHECK_CUDA_ERROR();
             }
         }
-   
+
     // add up external virials
     for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force ++)
         for (unsigned int k = 0; k < 6; k++)
@@ -658,22 +658,22 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->pop(exec_conf);
         m_prof->pop(exec_conf);
         }
-    
+
     // return early if there are no constraint forces
     if (m_constraint_forces.size() == 0)
         return;
-    
+
     // compute all the constraint forces next
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
-    
+
     if (m_prof)
         {
         m_prof->push("Integrate");
         m_prof->push(exec_conf, "Net force");
         }
-    
+
         {
         // access the net force and virial arrays
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -705,7 +705,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             force_list.t0=d_torque0.data;
             force_list.v0 = d_virial0.data;
             force_list.vpitch0 = d_virial_array0.getPitch();
-            
+
             if (cur_force+1 < m_constraint_forces.size())
                 {
                 const GPUArray<Scalar4>& d_force_array1 = m_constraint_forces[cur_force+1]->getForceArray();
@@ -771,13 +771,13 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 force_list.v5 = d_virial5.data;
                 force_list.vpitch5 = d_virial_array5.getPitch();
                 }
-            
+
             // clear only on the first iteration AND if there are zero forces
             bool clear = (cur_force == 0) && (m_forces.size() == 0);
 
             // access flags
             PDataFlags flags = this->m_pdata->getFlags();
-            
+
             gpu_integrator_sum_net_force(d_net_force.data,
                                          d_net_virial.data,
                                          net_virial.getPitch(),
@@ -786,7 +786,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          nparticles,
                                          clear,
                                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]);
-            
+
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
@@ -800,7 +800,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
-    
+
     if (m_prof)
         {
         m_prof->pop(exec_conf);
@@ -818,11 +818,11 @@ void Integrator::update(unsigned int timestep)
 
 /*! prepRun() is to be called at the very beginning of each run, before any analyzers are called, but after the full
     simulation is defined. It allows the integrator to perform any one-off setup tasks and update net_force and
-    net_virial, if needed. 
-    
+    net_virial, if needed.
+
     Specifically, updated net_force and net_virial in this call is a must for logged quantities to properly carry
     over in restarted jobs.
-    
+
     The base class does nothing, it is up to derived classes to implement the correct behavior.
 */
 void Integrator::prepRun(unsigned int timestep)
@@ -832,7 +832,7 @@ void Integrator::prepRun(unsigned int timestep)
 #ifdef ENABLE_MPI
 /*! \param tstep Time step for which to determine the flags
 
-    The flags needed are determiend by peeking to \a tstep and then using bitwise or 
+    The flags needed are determiend by peeking to \a tstep and then using bitwise or
     to combine the flags from all ForceComputes
 */
 CommFlags Integrator::determineFlags(unsigned int timestep)
@@ -848,7 +848,7 @@ CommFlags Integrator::determineFlags(unsigned int timestep)
     std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         flags |= (*force_constraint)->getRequestedCommFlags(timestep);
- 
+
     return flags;
     }
 #endif
@@ -868,4 +868,3 @@ void export_Integrator()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

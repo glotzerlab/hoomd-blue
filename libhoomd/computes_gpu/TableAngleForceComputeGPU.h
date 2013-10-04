@@ -95,4 +95,3 @@ class TableAngleForceComputeGPU : public TableAngleForceCompute
 void export_TableAngleForceComputeGPU();
 
 #endif
-

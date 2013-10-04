@@ -64,4 +64,3 @@ cudaError_t gpu_compute_periodic_forces(const external_potential_args_t& potenti
                                       const Scalar4 *d_params);
 
 #endif
-

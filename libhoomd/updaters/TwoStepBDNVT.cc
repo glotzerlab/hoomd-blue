@@ -88,7 +88,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
 
     // Hash the User's Seed to make it less likely to be a low positive integer
     m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;
-    
+
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
 
@@ -109,7 +109,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.getNumElements(); i++)
         h_gamma.data[i] = Scalar(1.0);
-    
+
     m_log_name = string("bdnvt_reservoir_energy") + suffix;
     }
 
@@ -134,7 +134,7 @@ void TwoStepBDNVT::setGamma(unsigned int typ, Scalar gamma)
         m_exec_conf->msg->error() << "intergae.bdnvt: Trying to set gamma for a non existant type! " << typ << endl;
         throw runtime_error("Error setting params in TwoStepBDNVT");
         }
-        
+
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     h_gamma.data[typ] = gamma;
     }
@@ -156,13 +156,13 @@ std::vector< std::string > TwoStepBDNVT::getProvidedLogQuantities()
 
 Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
     {
-    if (m_tally && quantity == m_log_name)  
+    if (m_tally && quantity == m_log_name)
         {
         my_quantity_flag = true;
         return m_reservoir_energy+m_extra_energy_overdeltaT*m_deltaT;
         }
     else
-        return Scalar(0);     
+        return Scalar(0);
     }
 
 /*! \param timestep Current time step
@@ -179,12 +179,12 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         return;
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
-    
+
+
     // profile this step
     if (m_prof)
         m_prof->push("NVE step 2");
-    
+
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
@@ -193,29 +193,29 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    
+
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
     const Scalar D = Scalar(m_sysdef->getNDimensions());
-    
+
     // initialize the RNG
     Saru saru(m_seed, timestep);
-    
+
     // energy transferred over this time step
     Scalar bd_energy_transfer = 0;
-    
+
     // a(t+deltaT) gets modified with the bd forces
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        
+
         // first, calculate the BD forces
         // Generate three random numbers
         Scalar rx = saru.d(-1,1);
         Scalar ry = saru.d(-1,1);
         Scalar rz =  saru.d(-1,1);
-        
+
         Scalar gamma;
         if (m_gamma_diam)
             gamma = h_diameter.data[j];
@@ -224,30 +224,30 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
             gamma = h_gamma.data[type];
             }
-        
+
         // compute the bd force
         Scalar coeff = sqrt(Scalar(6.0) *gamma*currentTemp/m_deltaT);
         Scalar bd_fx = rx*coeff - gamma*h_vel.data[j].x;
         Scalar bd_fy = ry*coeff - gamma*h_vel.data[j].y;
         Scalar bd_fz = rz*coeff - gamma*h_vel.data[j].z;
-        
+
         if (D < 3.0)
             bd_fz = Scalar(0.0);
-        
+
         // then, calculate acceleration from the net force
         Scalar minv = Scalar(1.0) / h_vel.data[j].w;
         h_accel.data[j].x = (h_net_force.data[j].x + bd_fx)*minv;
         h_accel.data[j].y = (h_net_force.data[j].y + bd_fy)*minv;
         h_accel.data[j].z = (h_net_force.data[j].z + bd_fz)*minv;
-        
+
         // then, update the velocity
         h_vel.data[j].x += Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT;
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
-        
+
         // tally the energy transfer from the bd thermal reservor to the particles
         if (m_tally) bd_energy_transfer += bd_fx * h_vel.data[j].x + bd_fy * h_vel.data[j].y + bd_fz * h_vel.data[j].z;
-        
+
         // limit the movement of the particles
         if (m_limit)
             {
@@ -260,20 +260,20 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
                 }
             }
         }
-    
-    // update energy reservoir        
+
+    // update energy reservoir
     if (m_tally) {
         #ifdef ENABLE_MPI
         if (m_comm)
             {
-            MPI_Allreduce(MPI_IN_PLACE, &bd_energy_transfer, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator()); 
-            } 
+            MPI_Allreduce(MPI_IN_PLACE, &bd_energy_transfer, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            }
         #endif
         m_reservoir_energy -= bd_energy_transfer*m_deltaT;
         m_extra_energy_overdeltaT = 0.5*bd_energy_transfer;
-        
+
        }
-        
+
     // done profiling
     if (m_prof)
         m_prof->pop();
@@ -298,4 +298,3 @@ void export_TwoStepBDNVT()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

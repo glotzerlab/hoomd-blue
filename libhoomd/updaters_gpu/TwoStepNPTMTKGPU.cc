@@ -252,7 +252,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
         xz = c.x/c.z;
         yz = c.y/c.z;
         }
-    global_box.setTiltFactors(xy, xz, yz); 
+    global_box.setTiltFactors(xy, xz, yz);
 
     // set global box
     m_pdata->setGlobalBox(global_box);
@@ -329,7 +329,7 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         // recalulate temperature
         ArrayHandle<Scalar> d_temperature(m_temperature, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
-        
+
         // update number of blocks to current group size
         m_num_blocks = m_group->getNumMembers() / m_reduction_block_size + 1;
 

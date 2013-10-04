@@ -71,17 +71,17 @@ class SnapshotSystemData;
     between particles. This initializer only generates a single particle type.
     \ingroup data_structs
 */
-class SimpleCubicInitializer 
+class SimpleCubicInitializer
     {
     public:
         //! Set the parameters
         SimpleCubicInitializer(unsigned int M, Scalar spacing, const std::string &type_name);
         //! Empty Destructor
         virtual ~SimpleCubicInitializer() { }
-        
+
         //! initializes a snapshot with the particle data
         virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
-        
+
     private:
         unsigned int m_M;   //!< Number of particles wide to make the box
         Scalar m_spacing;   //!< Spacing between particles
@@ -94,20 +94,20 @@ class SimpleCubicInitializer
     placed too close together. This initializer only generates a single particle
     type.
 */
-class RandomInitializer 
+class RandomInitializer
     {
     public:
         //! Set the parameters
         RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist, const std::string &type_name);
         //! Empty Destructor
         virtual ~RandomInitializer() { }
-        
+
         //! initializes a snapshot with the particle data
         virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
-        
+
         //! Sets the random seed to use in the generation
         void setSeed(unsigned int seed);
-        
+
     protected:
         unsigned int m_N;           //!< Number of particles to generate
         Scalar m_phi_p;             //!< Packing fraction to generate the particles at
@@ -131,11 +131,11 @@ class RandomInitializerWithWalls : public RandomInitializer
 
         //! initializes a snapshot with the particle data
         virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
- 
+
     protected:
         Scalar m_wall_buffer;   //!< Buffer distance between the wall and the edge of the box
         BoxDim m_real_box;      //!< Stores the actual dimensions of the box where the walls are defined
-        
+
     };
 
 //! Exports the SimpleCubicInitializer class to python
@@ -146,4 +146,3 @@ void export_RandomInitializer();
 void export_RandomInitializerWithWalls();
 
 #endif
-

@@ -93,10 +93,10 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     h_pos.data[1].x = Scalar(12.2); h_pos.data[1].y = Scalar(-10.0); h_pos.data[1].z = 0.0; // particle to test wall at pos 10,0,0
     h_pos.data[2].x = 0.0; h_pos.data[2].y = Scalar(10.0); h_pos.data[2].z = Scalar(-12.9); // particle to test wall at pos 0,0,-10
     }
-    
+
     // create the wall force compute with a default cuttoff of 1.0 => all forces should be 0 for the first round
     shared_ptr<LJWallForceCompute> fc_3 = ljwall_creator(sysdef_3, Scalar(1.0));
-    
+
     // pick some parameters
     Scalar epsilon = Scalar(1.15);
     Scalar sigma = Scalar(1.0);
@@ -104,10 +104,10 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     fc_3->setParams(0,lj1,lj2);
-    
+
     // compute the forces
     fc_3->compute(0);
-    
+
     {
     // there are no walls, so all forces should be zero
     GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
@@ -118,12 +118,12 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[1].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
@@ -134,10 +134,10 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     sysdef_3->getWallData()->addWall(Wall(0.0, 0.0, 0.0, 0.0, 1.0, 0.0));
     sysdef_3->getWallData()->addWall(Wall(10.0, 0.0, 0.0, 1.0, 0.0, 0.0));
     sysdef_3->getWallData()->addWall(Wall(0.0, 0.0, -10.0, 0.0, 0.0, 1.0));
-    
+
     // compute the forces again
     fc_3->compute(1);
-    
+
     {
     // they should still be zero
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
@@ -148,12 +148,12 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     MY_BOOST_CHECK_SMALL(h_force_2.data[0].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[0].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[0].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].z, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[1].w, tol_small);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_2.data[2].z, tol_small);
@@ -163,7 +163,7 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     // increase the cuttoff to check the actual force computation
     fc_3->setRCut(3.0);
     fc_3->compute(2);
-    
+
     {
     GPUArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
@@ -173,12 +173,12 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].y, -2.54344734, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[0].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[0].w, -1.0246100807205, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -0.108697879, tol);
     MY_BOOST_CHECK_SMALL(h_force_3.data[1].y, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[1].z, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[1].w, -0.04021378505, tol);
-    
+
     MY_BOOST_CHECK_SMALL(h_force_3.data[2].x, tol_small);
     MY_BOOST_CHECK_SMALL(h_force_3.data[2].y, tol_small);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[2].z, 0.0159463169, tol);
@@ -202,4 +202,3 @@ BOOST_AUTO_TEST_CASE( LJWallForce_particle )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

@@ -57,7 +57,7 @@
 # into two parts, one part computed in real space and on in Fourier space. You don't need to worry about this
 # implementation detail, however, as charge commands in hoomd automatically initialize and configure both the long
 # and short range parts.
-# 
+#
 # Only one method of computing charged interactions should be used at a time. Otherwise, they would add together and
 # produce incorrect results.
 #
@@ -124,7 +124,7 @@ class pppm(force._force):
             if globals.system_definition.getParticleData().getDomainDecomposition():
                 globals.msg.error("charge.pppm is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error initializing PPPM.")
-       
+
         # initialize the base class
         force._force.__init__(self);
         # create the c++ mirror class
@@ -136,34 +136,34 @@ class pppm(force._force):
             self.cpp_force = hoomd.PPPMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
         else:
             self.cpp_force = hoomd.PPPMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, group.cpp_group);
-        
+
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # error check flag - must be set to true by set_params in order for the run() to commence
         self.params_set = False;
-        
+
         # initialize the short range part of electrostatics
         util._disable_status_lines = True;
         self.ewald = pair.ewald(r_cut = 0.0);
         util._disable_status_lines = False;
-    
+
     # overrride disable and enable to work with both of the forces
     def disable(self, log=False):
         util.print_status_line();
-        
+
         util._disable_status_lines = True;
         force._force.disable(self, log);
         self.ewald.disable(log);
         util._disable_status_lines = False;
-    
+
     def enable(self):
         util.print_status_line();
-        
+
         util._disable_status_lines = True;
         force._force.enable(self);
         self.ewald.enable();
         util._disable_status_lines = False;
-    
+
     ## Sets the PPPM parameters
     #
     # \param Nx - Number of grid points in x direction
@@ -182,7 +182,7 @@ class pppm(force._force):
     # pppm.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=2.0)
     # \endcode
     # Note that the Fourier transforms are much faster for number of grid points of the form 2^N
-    # The parameters for PPPM  must be set 
+    # The parameters for PPPM  must be set
     # before the run() can be started.
     def set_params(self, Nx, Ny, Nz, order, rcut):
         util.print_status_line();
@@ -213,7 +213,7 @@ class pppm(force._force):
         gew2 = 10.0/hmin
         kappa = gew2
         fmid = diffpr(hx, hy, hz, Lx, Ly, Lz, N, order, kappa, q2, rcut)
-   
+
         if f*fmid >= 0.0:
             globals.msg.error("f*fmid >= 0.0\n");
             raise RuntimeError("Cannot compute PPPM");
@@ -237,7 +237,7 @@ class pppm(force._force):
             if ncount > 10000.0:
                 globals.msg.error("kappa not converging\n");
                 raise RuntimeError("Cannot compute PPPM");
-        
+
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
@@ -256,7 +256,7 @@ class pppm(force._force):
         if not self.params_set:
             globals.msg.error("Coefficients for PPPM are not set. Call set_coeff prior to run()\n");
             raise RuntimeError("Error initializing run");
-        
+
         if globals.neighbor_list.cpp_nlist.getFilterDiameter():
             globals.msg.warning("Neighbor diameter filtering is enabled, PPPM may not correct for all excluded interactions\n");
 
@@ -309,5 +309,3 @@ def rms(h, prd, N, order, kappa, q2):
         sum += acons[order][m]*pow(h*kappa, 2.0*m)
     value = q2*pow(h*kappa,order)*sqrt(kappa*prd*sqrt(2.0*math.pi)*sum/N)/prd/prd
     return value
-
-

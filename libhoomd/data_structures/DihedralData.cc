@@ -75,7 +75,7 @@ using namespace std;
 /*! \param pdata ParticleData these dihedrals refer into
     \param n_dihedral_types Number of dihedral types in the list
 */
-DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types) 
+DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types)
     :  m_dihedrals_dirty(false),
        m_pdata(pdata),
        exec_conf(m_pdata->getExecConf()),
@@ -90,18 +90,18 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
 
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&DihedralData::setDirty, this));
-    
+
     // offer a default type mapping
     for (unsigned int i = 0; i < n_dihedral_types; i++)
         {
         char suffix[2];
         suffix[0] = 'A' + i;
         suffix[1] = '\0';
-        
+
         string name = string("dihedral") + string(suffix);
         m_dihedral_type_mapping.push_back(name);
         }
-        
+
     // allocate memory for the GPU dihedral table
     allocateDihedralTable(1);
     }
@@ -109,7 +109,7 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
 /*! \param pdata ParticleData these dihedrals refer into
     \param snapshot Snapshot to initialize DihedralData from
 */
-DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, const SnapshotDihedralData& snapshot) 
+DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, const SnapshotDihedralData& snapshot)
     :  m_dihedrals_dirty(false),
        m_pdata(pdata),
        exec_conf(m_pdata->getExecConf()),
@@ -124,7 +124,7 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, const Snapshot
 
     // attach to the signal for notifications of particle sorts
     m_sort_connection = m_pdata->connectParticleSort(bind(&DihedralData::setDirty, this));
-    
+
     // allocate memory for the GPU dihedral table
     allocateDihedralTable(1);
 
@@ -165,13 +165,13 @@ unsigned int DihedralData::addDihedral(const Dihedral& dihedral)
         m_exec_conf->msg->error() << "Particle tag out of bounds when attempting to add dihedral/improper: " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl;
         throw runtime_error("Error adding dihedral/improper");
         }
-        
+
     if (dihedral.a == dihedral.b || dihedral.a == dihedral.c || dihedral.b == dihedral.c || dihedral.a == dihedral.d || dihedral.b == dihedral.d || dihedral.c == dihedral.d )
         {
         m_exec_conf->msg->error() << "Particle cannot included in an dihedral/improper twice! " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl;
         throw runtime_error("Error adding dihedral/improper");
         }
-        
+
     // check that the type is within bouds
     if (dihedral.type+1 > getNDihedralTypes())
         {
@@ -288,7 +288,7 @@ unsigned int DihedralData::getTypeByName(const std::string &name)
         if (m_dihedral_type_mapping[i] == name)
             return i;
         }
-        
+
     m_exec_conf->msg->error() << "Dihedral/Improper type " << name << " not found!" << endl;
     throw runtime_error("Error mapping type name");
     return 0;
@@ -301,12 +301,12 @@ unsigned int DihedralData::getTypeByName(const std::string &name)
 std::string DihedralData::getNameByType(unsigned int type)
     {
     // check for an invalid request
-    if (type >= getNDihedralTypes()) 
+    if (type >= getNDihedralTypes())
         {
         m_exec_conf->msg->error() << "Requesting type name for non-existant type " << type << endl;
         throw runtime_error("Error mapping type name");
         }
-        
+
     // return the name
     return m_dihedral_type_mapping[type];
     }
@@ -518,7 +518,7 @@ void DihedralData::allocateDihedralTable(int height)
     assert(m_gpu_dihedral_list.isNull());
     assert(m_dihedrals_ABCD.isNull());
     assert(m_n_dihedrals.isNull());
-    
+
     GPUArray<uint4> gpu_dihedral_list(m_pdata->getN(), height, exec_conf);
     m_gpu_dihedral_list.swap(gpu_dihedral_list);
 
@@ -608,7 +608,7 @@ void export_DihedralData()
     .def("initializeFromSnapshot", &DihedralData::initializeFromSnapshot)
     .def("addDihedralType", &DihedralData::addDihedralType)
     ;
-    
+
     class_<Dihedral>("Dihedral", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
     .def_readwrite("a", &Dihedral::a)
     .def_readwrite("b", &Dihedral::b)
@@ -628,4 +628,3 @@ void export_DihedralData()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

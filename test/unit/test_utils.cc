@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(Profiler_test)
     BOOST_CHECK(p.getChildElapsedTime() == 0);
     BOOST_CHECK(p.getTotalFlopCount() == 0);
     BOOST_CHECK(p.getTotalMemByteCount() == 0);
-    
+
     // build up a tree and test its getTotal members
     p.m_elapsed_time = 1;
     p.m_flop_count = 2;
@@ -141,28 +141,28 @@ BOOST_AUTO_TEST_CASE(Profiler_test)
     BOOST_CHECK(p.getChildElapsedTime() == 0);
     BOOST_CHECK(p.getTotalFlopCount() == 2);
     BOOST_CHECK(p.getTotalMemByteCount() == 3);
-    
+
     p.m_children["A"].m_elapsed_time = 4;
     p.m_children["A"].m_flop_count = 5;
     p.m_children["A"].m_mem_byte_count = 6;
     BOOST_CHECK(p.getChildElapsedTime() == 4);
     BOOST_CHECK(p.getTotalFlopCount() == 7);
     BOOST_CHECK(p.getTotalMemByteCount() == 9);
-    
+
     p.m_children["B"].m_elapsed_time = 7;
     p.m_children["B"].m_flop_count = 8;
     p.m_children["B"].m_mem_byte_count = 9;
     BOOST_CHECK(p.getChildElapsedTime() == 4+7);
     BOOST_CHECK(p.getTotalFlopCount() == 7+8);
     BOOST_CHECK(p.getTotalMemByteCount() == 9+9);
-    
+
     p.m_children["A"].m_children["C"].m_elapsed_time = 10;
     p.m_children["A"].m_children["C"].m_flop_count = 11;
     p.m_children["A"].m_children["C"].m_mem_byte_count = 12;
     BOOST_CHECK(p.getChildElapsedTime() == 4+7);
     BOOST_CHECK(p.getTotalFlopCount() == 7+8+11);
     BOOST_CHECK(p.getTotalMemByteCount() == 9+9+12);
-    
+
     Profiler prof("Main");
     prof.push("Loading");
     Sleep(500);
@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(Profiler_test)
     prof.push("Neighbor");
     Sleep(1000);
     prof.pop(int64_t(1e6), int64_t(1e6));
-    
+
     prof.push("Pair");
     prof.push("Load");
     Sleep(1000);
@@ -182,9 +182,9 @@ BOOST_AUTO_TEST_CASE(Profiler_test)
     Sleep(1000);
     prof.pop(int64_t(100), int64_t(1e9));
     prof.pop();
-    
+
     std::cout << prof;
-    
+
     // This code attempts to reproduce the problem found in ticket #50
     Profiler prof2("test");
     prof2.push("test1");
@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(Profiler_test)
     Sleep(000);
     prof2.pop(100, 100);
     std::cout << prof2;
-    
+
     }
 
 //! perform some simple checks on the variant types
@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test2)
     VariantLinear v;
     v.setPoint(500, 10.0);
     v.setPoint(1000, 20.0);
-    
+
     BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
     BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
     BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
@@ -261,7 +261,7 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test3)
     v.setPoint(500, 10.0);
     v.setPoint(1000, 20.0);
     v.setPoint(2000, 50.0);
-    
+
     BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
     BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
     BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
@@ -278,7 +278,7 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test3)
     BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
     BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
     BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
-    
+
     // mix up the order to make sure it works no matter what
     BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
     BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
@@ -293,4 +293,3 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test3)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

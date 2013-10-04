@@ -138,7 +138,7 @@ class RigidData
         RigidData(boost::shared_ptr<ParticleData> particle_data);
         //! Destructor
         ~RigidData();
-        
+
         //! Get the number of bodies in the rigid data
         unsigned int getNumBodies() const
             {
@@ -154,10 +154,10 @@ class RigidData
             {
             return m_ndof;
             }
-        
+
         //! Set the body angular momentum for a rigid body
         void setAngMom(unsigned int body, Scalar3 angmom);
-                    
+
         //! \name getter methods (static data)
         //@{
         //! Get the m_moment_inertial
@@ -216,7 +216,7 @@ class RigidData
             return m_particle_offset;
             }
         //@}
-        
+
         //! \name getter methods (integrated data)
         //@{
         //! Get m_com
@@ -283,14 +283,14 @@ class RigidData
         const GPUArray<unsigned int>& getAllIndexRigid()
             {
             return m_rigid_particle_indices;
-            }                    
+            }
 
          //! Get m_rigid_particle_index
         unsigned int getNumIndexRigid()
             {
             return m_num_particles;
             }
-            
+
          //! Get the number of particles of a body
         unsigned int getBodyNSize(unsigned int body)
             {
@@ -298,7 +298,7 @@ class RigidData
             ArrayHandle<unsigned int> size_handle(m_body_size, access_location::host, access_mode::read);
             unsigned int result = size_handle.data[body];
             return result;
-            }    
+            }
          //! Get the mass of a body
         Scalar getMass(unsigned int body)
             {
@@ -306,14 +306,14 @@ class RigidData
             ArrayHandle<Scalar> mass_handle(m_body_mass, access_location::host, access_mode::read);
             Scalar result = mass_handle.data[body];
             return result;
-            }    
+            }
         //! set the mass of a body
         void setMass(unsigned int body, const Scalar mass)
             {
             assert(body >= 0 && body < getNumBodies());
             ArrayHandle<Scalar> mass_handle(m_body_mass, access_location::host, access_mode::readwrite);
             mass_handle.data[body] = mass;
-            }                     
+            }
         //! Get the particle tags of a body
         unsigned int getParticleTag(unsigned int body, unsigned int index)
             {
@@ -323,7 +323,7 @@ class RigidData
             unsigned int tags_pitch = m_particle_tags.getPitch();
             unsigned int result = tags.data[body*tags_pitch + index];
             return result;
-            }       
+            }
         //! Get the particle displacement relative to COM of a body
         Scalar3 getParticleDisp(unsigned int body, unsigned int index)
             {
@@ -334,7 +334,7 @@ class RigidData
             unsigned int idx = body * particle_pos_pitch + index;
             Scalar3 result = make_scalar3(pos.data[idx].x, pos.data[idx].y, pos.data[idx].z) ;
             return result;
-            } 
+            }
         //! Set the particle displacement relative to COM of a body
         void setParticleDisp(unsigned int body, unsigned int index, const Scalar3& new_pos)
             {
@@ -346,7 +346,7 @@ class RigidData
             pos.data[idx].x= new_pos.x;
             pos.data[idx].y= new_pos.y;
             pos.data[idx].z= new_pos.z;
-            }            
+            }
         //! Get the current COM of a body
         Scalar3 getBodyCOM(unsigned int body)
             {
@@ -354,7 +354,7 @@ class RigidData
             ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::read);
             Scalar3 result = make_scalar3(com_handle.data[body].x, com_handle.data[body].y, com_handle.data[body].z);
             return result;
-            }    
+            }
         //! Set the current COM of a body
         void setBodyCOM(unsigned int body,const Scalar3& pos)
             {
@@ -371,7 +371,7 @@ class RigidData
             ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::read);
             Scalar3 result = make_scalar3(vel_handle.data[body].x, vel_handle.data[body].y, vel_handle.data[body].z);
             return result;
-            }   
+            }
          //! Set the current velocity of a body's COM
         void setBodyVel(unsigned int body, const Scalar3& vel)
             {
@@ -380,7 +380,7 @@ class RigidData
             vel_handle.data[body].x = vel.x;
             vel_handle.data[body].y = vel.y;
             vel_handle.data[body].z = vel.z;
-            }            
+            }
          //! Get the current orientation (quaternion) of a body
         Scalar4 getBodyOrientation(unsigned int body)
             {
@@ -388,13 +388,13 @@ class RigidData
             ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::read);
             Scalar4 result = make_scalar4(orientation_handle.data[body].x, orientation_handle.data[body].y, orientation_handle.data[body].z, orientation_handle.data[body].w);
             return result;
-            } 
+            }
         //! Set the current orientation (quaternion) of a body
         void setBodyOrientation(unsigned int body, const Scalar4& in_quat)
             {
             assert(body >= 0 && body < getNumBodies());
             ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::readwrite);
-            
+
             Scalar4 quat = in_quat;
             // Normalize
             Scalar norm = 1.0 / sqrt(quat.x * quat.x + quat.y * quat.y + quat.z * quat.z + quat.w * quat.w);
@@ -402,12 +402,12 @@ class RigidData
             quat.y *= norm;
             quat.z *= norm;
             quat.w *= norm;
-                        
+
             orientation_handle.data[body].x = quat.x;
             orientation_handle.data[body].y = quat.y;
             orientation_handle.data[body].z = quat.z;
-            orientation_handle.data[body].w = quat.w;            
-            }            
+            orientation_handle.data[body].w = quat.w;
+            }
          //! Get the current angular momentum of a body
         Scalar3 getBodyAngMom(unsigned int body)
             {
@@ -415,7 +415,7 @@ class RigidData
             ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::host, access_mode::read);
             Scalar3 result = make_scalar3(angmom_handle.data[body].x, angmom_handle.data[body].y, angmom_handle.data[body].z);
             return result;
-            }           
+            }
          //! Get the diagonalized moment of inertia of a body
         Scalar3 getBodyMomInertia(unsigned int body)
             {
@@ -423,7 +423,7 @@ class RigidData
             ArrayHandle<Scalar4> mom_inertia_handle(m_moment_inertia, access_location::host, access_mode::read);
             Scalar3 result = make_scalar3(mom_inertia_handle.data[body].x, mom_inertia_handle.data[body].y, mom_inertia_handle.data[body].z);
             return result;
-            }    
+            }
          //! set the diagonalized moment of inertia of a body
         void setBodyMomInertia(unsigned int body, const Scalar3& mom)
             {
@@ -431,8 +431,8 @@ class RigidData
             ArrayHandle<Scalar4> mom_inertia_handle(m_moment_inertia, access_location::host, access_mode::readwrite);
             mom_inertia_handle.data[body].x= mom.x;
             mom_inertia_handle.data[body].y= mom.y;
-            mom_inertia_handle.data[body].z= mom.z;           
-            }                                
+            mom_inertia_handle.data[body].z= mom.z;
+            }
         //! Get the current net force on a body
         Scalar3 getBodyNetForce(unsigned int body)
             {
@@ -450,26 +450,26 @@ class RigidData
             return result;
             }
         //@}
-        
+
         //! Update x and v of rigid body data and virial
         void setRV(bool set_x);
 
         //! Performs steps needed to compute the rigid body virial correction at the start of the step
         void computeVirialCorrectionStart();
-        
+
         //! Performs steps needed to compute the rigid body virial correction at the end of the step
         void computeVirialCorrectionEnd(Scalar deltaT);
 
         //! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.
         void initializeData();
-        
+
         //! Compute the axes from quaternion, used when reading from restart files
         void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space);
 
         //! Functions used to diagonalize the inertia tensor for moment inertia and principle axes
         int diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors);
         void rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Scalar tau);
-        
+
         //! Initialize from a snapshot
         void initializeFromSnapshot(const SnapshotRigidData& snapshot);
 
@@ -480,7 +480,7 @@ class RigidData
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data with which this RigidData is associated
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
-        
+
         //! \name static data members (set on initialization)
         //@{
         unsigned int m_n_bodies;                    //!< Number of rigid bodies in the data structure
@@ -496,7 +496,7 @@ class RigidData
         GPUArray<unsigned int> m_particle_indices;  //!< n_max by n_bodies 2D array listing particle indices belonging to bodies (updated when particles are resorted)
         GPUArray<unsigned int> m_particle_offset;   //!< n_particles by 1 array listing the offset of each particle in its body
         //@}
-        
+
         //! \name dynamic data members (updated via integration)
         //@{
         GPUArray<Scalar4> m_com;            //!< n_bodies length 1D array of center of mass positions
@@ -508,23 +508,23 @@ class RigidData
         GPUArray<Scalar4> m_ex_space;       //!< n_bodies length 1D array of the x axis of the body frame in the space frame
         GPUArray<Scalar4> m_ey_space;       //!< n_bodies length 1D array of the y axis of the body frame in the space frame
         GPUArray<Scalar4> m_ez_space;       //!< n_bodies length 1D array of the z axis of the body frame in the space frame
-        GPUArray<int3> m_body_image;        //!< n_bodies length 1D array of the body image 
-        
+        GPUArray<int3> m_body_image;        //!< n_bodies length 1D array of the body image
+
         // Body forces and torques are stored here instead of the rigid body integrator because of GPU implementation
         // since the body forces and torques in the shared memory of thread blocks become invalid after the kernel finishes.
         GPUArray<Scalar4> m_force;          //!< n_bodies length 1D array of the body force
         GPUArray<Scalar4> m_torque;         //!< n_bodies length 1D array of the body torque
-        
+
         GPUArray<Scalar4> m_particle_oldpos;        //!< nparticles long array storing the old position of the particles (for virial computation)
         GPUArray<Scalar4> m_particle_oldvel;        //!< npartilces long array storing the old velocity of the particles (for virial computation)
 
         GPUArray<unsigned int> m_rigid_particle_indices; //!< All particle indices that are in rigid bodies, only needed for GPU code
         unsigned int m_num_particles;                    //!< length of m_rigid_particle_indices
         //@}
-        
+
         //! Recalculate the cached indices from the stored tags after a particle sort
         void recalcIndices();
-        
+
         //! Compute quaternion from the axes
         void quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);
 
@@ -533,7 +533,7 @@ class RigidData
 
         //! Performs steps needed to compute the rigid body virial correction at the start of the step on the CPU
         void computeVirialCorrectionStartCPU();
-        
+
         //! Performs steps needed to compute the rigid body virial correction at the end of the step on the CPU
         void computeVirialCorrectionEndCPU(Scalar deltaT);
 
@@ -556,4 +556,3 @@ void export_SnapshotRigidData();
 void export_RigidData();
 
 #endif
-

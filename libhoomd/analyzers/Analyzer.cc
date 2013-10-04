@@ -97,7 +97,7 @@ class AnalyzerWrap: public Analyzer, public wrapper<Analyzer>
         /*! \param sysdef parameter to forward to the base class constructor
         */
         AnalyzerWrap(boost::shared_ptr<SystemDefinition> sysdef) : Analyzer(sysdef) { }
-        
+
         //! Hanldes pure virtual Analyzer::analyze()
         /*! \param timestep parameter to forward to Analyzer::analyze()
         */
@@ -119,4 +119,3 @@ void export_Analyzer()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

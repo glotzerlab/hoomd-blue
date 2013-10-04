@@ -61,7 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 scalar4_tex_t cell_xyzf_1d_tex;
 
 //! Kernel call for generating neighbor list on the GPU
-/*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering. 
+/*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \param d_nlist Neighbor list data structure to write
     \param d_n_neigh Number of neighbors to write
     \param d_last_updated_pos Particle positions at this update are written to this array
@@ -82,7 +82,7 @@ scalar4_tex_t cell_xyzf_1d_tex;
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
     \param ghost_width Width of ghost cell layer
-    
+
     \note optimized for Fermi
 */
 template<unsigned char flags>
@@ -105,7 +105,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     const BoxDim box,
                                                     const Scalar r_maxsq,
                                                     const Scalar r_max,
-                                                    const Scalar3 ghost_width) 
+                                                    const Scalar3 ghost_width)
     {
     bool filter_body = flags & 1;
     bool filter_diameter = flags & 2;
@@ -155,12 +155,12 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
         {
         int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
         unsigned int size = d_cell_size[neigh_cell];
-    
+
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
             {
             Scalar4 cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
-            
+
             Scalar4 cur_tdb = make_scalar4(0, 0, 0, 0);
             if (filter_diameter || filter_body)
                 cur_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
@@ -182,7 +182,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
             Scalar drsq = dot(dx,dx);
 
             bool excluded = (my_pidx == cur_neigh);
- 
+
             if (filter_body && my_body != 0xffffffff)
                 excluded = excluded | (my_body == neigh_body);
 
@@ -374,7 +374,7 @@ texture<Scalar4, 2, cudaReadModeElementType> cell_tdb_tex;
     \param r_maxsq The maximum radius for which to include particles as neighbors, squared
     \param r_max The maximum radius for which to include particles as neighbors
     \param ghost_width Width of ghost cell layer
-    
+
     \note optimized for compute 1.x devices
 */
 template<unsigned char filter_flags>
@@ -528,19 +528,19 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
     // don't compile the 1x nlist kernel in double precision builds
     #ifdef SINGLE_PRECISION
     int n_blocks = (int)ceil(double(N)/double(block_size));
-    
+
     cudaError_t err = cudaBindTextureToArray(cell_adj_tex, dca_cell_adj);
     if (err != cudaSuccess)
         return err;
-    
+
     err = cudaBindTextureToArray(cell_xyzf_tex, dca_cell_xyzf);
     if (err != cudaSuccess)
         return err;
-    
+
     err = cudaBindTextureToArray(cell_tdb_tex, dca_cell_tdb);
     if (err != cudaSuccess)
         return err;
-    
+
     err = cudaBindTexture(0, cell_size_tex, d_cell_size, sizeof(unsigned int)*ci.getNumElements());
     if (err != cudaSuccess)
         return err;
@@ -614,7 +614,7 @@ cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
                                                                         ghost_width );
         }
     #endif // #ifdef SINGLE_PRECISION
-    
+
     return cudaSuccess;
     }
 
@@ -636,4 +636,3 @@ cudaError_t gpu_setup_compute_nlist_binned()
     error = cudaFuncSetCacheConfig(gpu_compute_nlist_binned_new_kernel<3>, cudaFuncCachePreferL1);
     return error;
     }
-

@@ -68,7 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param lambda Diagonal deformation tensor (for orthorhombic boundaries)
     \param checkn
     \tparam check_bounds True if we are checking for displacements larger than the box length
-    
+
     gpu_nlist_needs_update_check_new_kernel() executes one thread per particle. Every particle's current position is
     compared to its last position. If the particle has moved a distance more than sqrt(\a maxshiftsq), then *d_result
     is set to \a ncheck.
@@ -154,15 +154,15 @@ const unsigned int FILTER_BATCH_SIZE = 4;
     \param exli Indexer for indexing into d_ex_list
     \param N Number of particles
     \param ex_start Start filtering the nlist from exclusion number \a ex_start
-    
+
     gpu_nlist_filter_kernel() processes the neighbor list \a d_nlist and removes any entries that are excluded. To allow
     for an arbitrary large number of exclusions, these are processed in batch sizes of FILTER_BATCH_SIZE. The kernel
-    must be called multiple times in order to fully remove all exclusions from the nlist. 
-    
+    must be called multiple times in order to fully remove all exclusions from the nlist.
+
     \note The driver gpu_nlist_filter properly makes as many calls as are necessary, it only needs to be called once.
-    
+
     \b Implementation
-    
+
     One thread is run for each particle. Exclusions \a ex_start, \a ex_start + 1, ... are loaded in for that particle
     (or the thread returns if there are no exlusions past that point). The thread then loops over the neighbor list,
     comparing each entry to the list of exclusions. If the entry is not excluded, it is written back out. \a d_n_neigh
@@ -179,22 +179,22 @@ __global__ void gpu_nlist_filter_kernel(unsigned int *d_n_neigh,
     {
     // compute the particle index this thread operates on
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    
+
     // quit now if this thread is processing past the end of the particle list
     if (idx >= N)
         return;
-    
+
     const unsigned int n_neigh = d_n_neigh[idx];
     const unsigned int n_ex = d_n_ex[idx];
     unsigned int new_n_neigh = 0;
-    
+
     // quit now if the ex_start flag is past the end of n_ex
     if (ex_start >= n_ex)
         return;
-    
+
     // count the number of exclusions to process in this thread
     const unsigned int n_ex_process = n_ex - ex_start;
-    
+
     // load the exclusion list into "local" memory - fully unrolled loops should dump this into registers
     unsigned int l_ex_list[FILTER_BATCH_SIZE];
     #pragma unroll
@@ -205,12 +205,12 @@ __global__ void gpu_nlist_filter_kernel(unsigned int *d_n_neigh,
         else
             l_ex_list[cur_ex_idx] = 0xffffffff;
         }
-    
+
     // loop over the list, regenerating it as we go
     for (unsigned int cur_neigh_idx = 0; cur_neigh_idx < n_neigh; cur_neigh_idx++)
         {
         unsigned int cur_neigh = d_nlist[nli(idx, cur_neigh_idx)];
-        
+
         // test if excluded
         bool excluded = false;
         #pragma unroll
@@ -219,7 +219,7 @@ __global__ void gpu_nlist_filter_kernel(unsigned int *d_n_neigh,
             if (cur_neigh == l_ex_list[cur_ex_idx])
                 excluded = true;
             }
-        
+
         // add it back to the list if it is not excluded
         if (!excluded)
             {
@@ -228,7 +228,7 @@ __global__ void gpu_nlist_filter_kernel(unsigned int *d_n_neigh,
             new_n_neigh++;
             }
         }
-    
+
     // update the number of neighbors
     d_n_neigh[idx] = new_n_neigh;
     }
@@ -244,7 +244,7 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
     {
     // determine parameters for kernel launch
     int n_blocks = (int)ceil(double(N)/double(block_size));
-    
+
     // split the processing of the full exclusion list up into a number of batches
     unsigned int n_batches = (unsigned int)ceil(double(exli.getH())/double(FILTER_BATCH_SIZE));
     unsigned int ex_start = 0;
@@ -258,10 +258,10 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
                                                           exli,
                                                           N,
                                                           ex_start);
-        
+
         ex_start += FILTER_BATCH_SIZE;
         }
-    
+
     return cudaSuccess;
     }
 
@@ -340,7 +340,7 @@ void gpu_compute_nlist_nsq_kernel(unsigned int *d_nlist,
         // the block might extend that far)
         int end_offset= NLIST_BLOCK_SIZE;
         end_offset = min(end_offset, N + n_ghost - start);
-        
+
         if (pidx < N)
             {
             for (int cur_offset = 0; cur_offset < end_offset; cur_offset++)
@@ -465,7 +465,7 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
     int block_size = NLIST_BLOCK_SIZE;
     dim3 grid( (N/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     // run the kernel
     gpu_compute_nlist_nsq_kernel<<< grid, threads >>>(d_nlist,
                                                       d_n_neigh,
@@ -480,4 +480,3 @@ cudaError_t gpu_compute_nlist_nsq(unsigned int *d_nlist,
 
     return cudaSuccess;
     }
-

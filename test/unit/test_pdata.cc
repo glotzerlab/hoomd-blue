@@ -78,7 +78,7 @@ using namespace boost;
 BOOST_AUTO_TEST_CASE( BoxDim_basic_test )
     {
     Scalar tol = Scalar(1e-6);
-    
+
     // test default constructor
     BoxDim a;
     MY_BOOST_CHECK_CLOSE(a.getLo().x,0.0, tol);
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE( BoxDim_basic_test )
     MY_BOOST_CHECK_CLOSE(a.getHi().x,0.0, tol);
     MY_BOOST_CHECK_CLOSE(a.getHi().y,0.0, tol);
     MY_BOOST_CHECK_CLOSE(a.getHi().z,0.0, tol);
-    
+
     BoxDim b(10.0);
     MY_BOOST_CHECK_CLOSE(b.getLo().x,-5.0, tol);
     MY_BOOST_CHECK_CLOSE(b.getLo().y,-5.0, tol);
@@ -278,7 +278,7 @@ BOOST_AUTO_TEST_CASE( BoxDim_functionality_test1 )
 BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
     {
     BoxDim b(5.0);
-    
+
     Scalar tol = Scalar(1e-4);
 
     Scalar xy = 1.0;
@@ -292,7 +292,7 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
 
     Scalar3 f = make_scalar3(.5,.6,.7);
     Scalar3 L = b.getL();
-    
+
     Scalar3 pos;
     pos.x = b.getLo().x + f.x * L.x + xy * L.y * (f.y-Scalar(0.5)) + xz * L.z * (f.z-Scalar(0.5));
     pos.y = b.getLo().y + f.y * L.y + yz * L.z * (f.z-Scalar(0.5));
@@ -316,7 +316,7 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
 
     // along x coordinate
     Scalar3 dx = make_scalar3(3.0,1.0,2.0);
-    Scalar3 dx2 = b.minImage(dx);   
+    Scalar3 dx2 = b.minImage(dx);
 
     MY_BOOST_CHECK_CLOSE(dx2.x, -2.0, tol);
     MY_BOOST_CHECK_CLOSE(dx2.y, 1.0, tol);
@@ -401,7 +401,7 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
     // along y direction
     pos = make_scalar3(1.0,4.0,1.5);
     img = make_int3(0,0,0);
-    
+
     b.wrap(pos, img);
     MY_BOOST_CHECK_CLOSE(pos.x, -4.0,tol);
     MY_BOOST_CHECK_CLOSE(pos.y, -1.0,tol);
@@ -426,7 +426,7 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
     // along x direction
     pos = make_scalar3(4.2,1.5, 1.0);
     img = make_int3(0,0,0);
-    
+
     b.wrap(pos, img);
     MY_BOOST_CHECK_CLOSE(pos.x, -0.8, tol);
     MY_BOOST_CHECK_CLOSE(pos.y, 1.5, tol);
@@ -455,9 +455,9 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     BoxDim box(10.0, 30.0, 50.0);
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     ParticleData a(1, box, 1, exec_conf);
-    
+
     Scalar tol = Scalar(1e-6);
-    
+
     // make sure the box is working
     const BoxDim& c = a.getBox();
     MY_BOOST_CHECK_CLOSE(c.getLo().x,-5.0, tol);
@@ -466,7 +466,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     MY_BOOST_CHECK_CLOSE(c.getHi().x,5.0, tol);
     MY_BOOST_CHECK_CLOSE(c.getHi().y,15.0, tol);
     MY_BOOST_CHECK_CLOSE(c.getHi().z,25.0, tol);
-    
+
     a.setGlobalBoxL(make_scalar3(5.0, 5.0, 5.0));
     const BoxDim& d = a.getBox();
     MY_BOOST_CHECK_CLOSE(d.getLo().x,-2.5, tol);
@@ -475,10 +475,10 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     MY_BOOST_CHECK_CLOSE(d.getHi().x,2.5, tol);
     MY_BOOST_CHECK_CLOSE(d.getHi().y,2.5, tol);
     MY_BOOST_CHECK_CLOSE(d.getHi().z,2.5, tol);
-    
+
     // make sure that getN is working
     BOOST_CHECK(a.getN() == 1);
-    
+
     // Test the ability to acquire data
     {
     ArrayHandle<Scalar4> h_pos(a.getPositions(), access_location::host, access_mode::readwrite);
@@ -522,7 +522,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     BOOST_CHECK(h_rtag.data[0] == 0);
     BOOST_CHECK(h_tag.data[0] == 0);
     BOOST_CHECK(h_body.data[0] == NO_BODY);
-    
+
     // set some new values for testing
     h_pos.data[0].x = 1.0;
     h_pos.data[0].y = 2.0;
@@ -541,9 +541,9 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     h_image.data[0].z = 29;
     h_pos.data[0].w = __int_as_scalar(1); //type
     h_body.data[0] = 0;
-    
+
     }
-    
+
     // make sure when the data is re-acquired, the values read properly
     {
     ArrayHandle<Scalar4> h_pos(a.getPositions(), access_location::host, access_mode::read);
@@ -635,7 +635,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
         BOOST_CHECK(h_tag.data[i] == i);
         BOOST_CHECK(h_body.data[i] == NO_BODY);
         }
-        
+
     }
     }
 
@@ -643,7 +643,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     {
     Scalar tol = Scalar(1e-6);
-    
+
     // make a simple one-particle box
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     SimpleCubicInitializer one(1, 2.0, "ABC");
@@ -658,15 +658,15 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, -1.0, tol);
     MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, -1.0, tol);
     }
-    
+
     BOOST_CHECK_EQUAL(one_data.getNameByType(0), "ABC");
     BOOST_CHECK_EQUAL(one_data.getTypeByName("ABC"), (unsigned int)0);
-    
+
     // now try an 8-particle one
     SimpleCubicInitializer eight(2, 2.0, "A");
     boost::shared_ptr<SnapshotSystemData> snapshot_eight = eight.getSnapshot();
     ParticleData eight_data(snapshot_eight->particle_data, snapshot_eight->global_box, exec_conf);
-    
+
     BOOST_CHECK(eight_data.getN() == 8);
     {
     ArrayHandle<Scalar4> h_pos(eight_data.getPositions(), access_location::host, access_mode::read);
@@ -682,7 +682,7 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     MY_BOOST_CHECK_CLOSE(h_pos.data[3].x, 0.0, tol);
     MY_BOOST_CHECK_CLOSE(h_pos.data[3].y, 0.0, tol);
     MY_BOOST_CHECK_CLOSE(h_pos.data[3].z, -2.0, tol);
-    
+
     MY_BOOST_CHECK_CLOSE(h_pos.data[4].x, -2.0, tol);
     MY_BOOST_CHECK_CLOSE(h_pos.data[4].y, -2.0, tol);
     MY_BOOST_CHECK_CLOSE(h_pos.data[4].z, 0.0, tol);
@@ -707,13 +707,13 @@ BOOST_AUTO_TEST_CASE( Random_test )
     RandomInitializer rand_init(500, Scalar(0.4), min_dist, "ABC");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
     ParticleData pdata(snap->particle_data, snap->global_box, exec_conf);
-    
+
     BOOST_CHECK_EQUAL(pdata.getNameByType(0), "ABC");
     BOOST_CHECK_EQUAL(pdata.getTypeByName("ABC"), (unsigned int)0);
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata.getPositions(), access_location::host, access_mode::read);
-    
+
     // check that the distances between particles are OK
     BoxDim box = pdata.getBox();
     Scalar L = box.getL().x;
@@ -722,36 +722,36 @@ BOOST_AUTO_TEST_CASE( Random_test )
         BOOST_CHECK(h_pos.data[i].x <= box.getHi().x && h_pos.data[i].x >= box.getLo().x);
         BOOST_CHECK(h_pos.data[i].y <= box.getHi().y && h_pos.data[i].y >= box.getLo().y);
         BOOST_CHECK(h_pos.data[i].z <= box.getHi().z && h_pos.data[i].z >= box.getLo().z);
-        
+
         for (unsigned int j = 0; j < pdata.getN(); j++)
             {
             if (i == j)
                 continue;
-                
+
             Scalar dx = h_pos.data[j].x - h_pos.data[i].x;
             Scalar dy = h_pos.data[j].y - h_pos.data[i].y;
             Scalar dz = h_pos.data[j].z - h_pos.data[i].z;
-            
+
             if (dx < -L/Scalar(2.0))
                 dx += L;
             if (dx > L/Scalar(2.0))
                 dx -= L;
-                
+
             if (dy < -L/Scalar(2.0))
                 dy += L;
             if (dy > L/Scalar(2.0))
                 dy -= L;
-                
+
             if (dz < -L/Scalar(2.0))
                 dz += L;
             if (dz > L/Scalar(2.0))
                 dz -= L;
-                
+
             Scalar dr2 = dx*dx + dy*dy + dz*dz;
             BOOST_CHECK(dr2 >= min_dist*min_dist);
             }
         }
-        
+
     }
     }
 
@@ -790,4 +790,3 @@ BOOST_AUTO_TEST_CASE( Generator_test )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

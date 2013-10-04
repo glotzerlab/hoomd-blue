@@ -25,7 +25,7 @@ A B C
 </configuration>
 </hoomd_xml>
 ''');
-        
+
 
     # tests basic creation of the random initializer
     def test(self):
@@ -33,19 +33,19 @@ A B C
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
         self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
-    
+
     # tests creation with a few more arugments specified
     def test_moreargs(self):
         init.read_xml('test.xml', time_step=100);
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
         self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
-        
+
     # checks for an error if initialized twice
     def test_inittwice(self):
         init.read_xml('test.xml');
         self.assertRaises(RuntimeError, init.read_xml, 'test.xml');
-    
+
     def tearDown(self):
         if (comm.get_rank()==0):
             os.remove("test.xml");
@@ -53,4 +53,3 @@ A B C
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

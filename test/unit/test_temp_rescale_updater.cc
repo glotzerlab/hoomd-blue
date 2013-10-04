@@ -96,12 +96,12 @@ BOOST_AUTO_TEST_CASE( ComputeThermo_basic )
     h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
     h_vel.data[1].x = 4.0; h_vel.data[1].y = 5.0; h_vel.data[1].z = 6.0;
     }
-    
+
     // construct a TempCompute and see that everything is set properly
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
-    
+
     // check that we can actually compute temperature
     tc->setNDOF(3*pdata->getN());
     tc->compute(0);
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
     // create a simple particle data to test with
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
@@ -125,12 +125,12 @@ BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
     h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
     h_vel.data[1].x = 4.0; h_vel.data[1].y = 5.0; h_vel.data[1].z = 6.0;
     }
-    
+
     // construct a TempCompute and see that everything is set properly
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     shared_ptr<ComputeThermoGPU> tc(new ComputeThermoGPU(sysdef, group_all));
-    
+
     // check that we can actually compute temperature
     tc->setNDOF(3*pdata->getN());
     tc->compute(0);
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     // create a simple particle data to test with
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
@@ -153,24 +153,24 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
     h_vel.data[1].x = 4.0; h_vel.data[1].y = 5.0; h_vel.data[1].z = 6.0;
     }
-    
+
     // construct a Computethermo for the updater
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
-    
-    
+
+
     // variant T for the rescaler
     shared_ptr<VariantConst> T_variant(new VariantConst(1.2));
-    
+
     // construct the updater and make sure everything is set properly
     shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, T_variant));
-    
+
     // run the updater and check the new temperature
     rescaler->update(0);
     tc->compute(1);
     MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 1.2, tol);
-    
+
     // check that the setT method works
     shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
     rescaler->setT(T_variant2);
@@ -184,69 +184,69 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_rigid )
     {
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(1000.0), 4));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    
+
     // set the first 4 particles to be free particles (position doesn't matter, but set it anyways)
     pdata->setPosition(0, make_scalar3(0,0,0));
     pdata->setPosition(1, make_scalar3(1,1,1));
     pdata->setPosition(2, make_scalar3(2,2,2));
     pdata->setPosition(3, make_scalar3(3,3,3));
-    
+
     pdata->setBody(0, -1);
     pdata->setBody(1, -1);
     pdata->setBody(2, -1);
     pdata->setBody(3, -1);
-    
+
     // pick some random velocities and masses to make life interesting
     pdata->setMass(0, 1.5);
     pdata->setMass(1, 8.5);
     pdata->setMass(2, 2.5);
     pdata->setMass(3, 0.5);
-    
+
     pdata->setVelocity(0, make_scalar3(-1.0, 4.0, 8.0));
     pdata->setVelocity(1, make_scalar3(-3.2, -1.5, -9.2));
     pdata->setVelocity(2, make_scalar3(2.1, 1.1, -4.5));
     pdata->setVelocity(3, make_scalar3(-3.2, 8.7, 4.9));
-    
+
     // now, set up the other 4 particles as 2 dimers
     pdata->setPosition(4, make_scalar3(-1,0,0));
     pdata->setPosition(5, make_scalar3(-2,0,0));
     pdata->setPosition(6, make_scalar3(1,1,0));
     pdata->setPosition(7, make_scalar3(1,2,0));
-    
+
     pdata->setBody(4, 0);
     pdata->setBody(5, 0);
     pdata->setBody(6, 1);
     pdata->setBody(7, 1);
-    
+
     shared_ptr<RigidData> rdata = sysdef->getRigidData();
     // Initialize rigid bodies
     rdata->initializeData();
-    
+
     // give them an initial COM velocity and angular momentum
     rdata->setBodyVel(0, make_scalar3(1.0, 8.0, -3.0));
     rdata->setBodyVel(1, make_scalar3(2.0, 12.0, -2.0));
-    
+
     rdata->setAngMom(0, make_scalar3(0.5, 2.3, 1.4));
     rdata->setAngMom(1, make_scalar3(8.2, 3.1, 6.4));
-    
+
     rdata->setRV(false);
-    
+
     // construct a Computethermo for the updater
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
-    
+
     // variant T for the rescaler
     shared_ptr<VariantConst> T_variant(new VariantConst(1.2));
-    
+
     // construct the updater and make sure everything is set properly
     shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, T_variant));
-    
+
     // run the updater and check the new temperature
     rescaler->update(0);
     tc->compute(1);
     MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 1.2, tol);
-    
+
     // check that the setT method works
     shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
     rescaler->setT(T_variant2);
@@ -258,4 +258,3 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_rigid )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

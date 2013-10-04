@@ -107,7 +107,7 @@ scalar4_tex_t pdata_pos_tex;
 #ifndef SINGLE_PRECISION
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
-    
+
     \param address Address to write the double to
     \param val Value to add to address
 */
@@ -638,4 +638,3 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
 #endif
 
 #endif // __POTENTIAL_TERSOFF_GPU_CUH__
-

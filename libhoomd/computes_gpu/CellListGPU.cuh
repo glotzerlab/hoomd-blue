@@ -108,4 +108,3 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const Scalar3& ghost_width);
 
 #endif
-

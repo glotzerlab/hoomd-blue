@@ -78,7 +78,7 @@ if (BUILD_TESTING)
     if (ENABLE_TEST_ALL)
         set(_default_test_all ALL)
     endif (ENABLE_TEST_ALL)
-    # setup convenience targets that prevent tests from always being built    
+    # setup convenience targets that prevent tests from always being built
     add_custom_target(test_all ${_default_test_all})
     add_dependencies(test_all hoomd)
     add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})

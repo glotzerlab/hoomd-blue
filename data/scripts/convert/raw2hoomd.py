@@ -15,8 +15,8 @@ parser.add_option("--type", dest="type", help="Particle type (default A)")
 
 if not options.outfile:
     parser.error("You must specify an output file");
-    
-# Does NOT specify the dimension of the simulation, just the raw coordinates    
+
+# Does NOT specify the dimension of the simulation, just the raw coordinates
 if not options.dimension:
     dim = 3
 else:
@@ -32,9 +32,9 @@ f = file(options.outfile, 'w');
 
 for fname in args:
     print "Reading", fname
-    
+
     coordfile = open(fname,'r');
-    
+
     f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
     f.write("<hoomd_xml version=\"1.2\">\n")
     f.write("<!-- positions derived from raw coordinates file ")
@@ -50,27 +50,27 @@ for fname in args:
     miny = 0;
     maxz = 0;
     minz = 0;
-    
+
     floatcount = 0;
     for line in coordfile:
     # Parse the line into floats
         for val in line.split():
             fv = float(val);
-        
+
             if (floatcount ==0):
                 if fv > maxx: maxx = fv;
                 if fv < minx: minx = fv;
-                
+
             if (floatcount ==1):
                 if fv > maxy: maxy = fv;
                 if fv < miny: miny = fv;
-   
+
             if (floatcount ==2):
                 if fv > maxz: maxz = fv;
-                if fv < minz: minz = fv;                             
-        
+                if fv < minz: minz = fv;
+
             if floatcount < dim - 1:
-                f.write("%f "% fv)                                
+                f.write("%f "% fv)
                 floatcount = floatcount+1;
             else:
                 f.write("%f"% fv)
@@ -79,12 +79,12 @@ for fname in args:
                 f.write("\n");
                 floatcount = 0;
                 pcount = pcount + 1;
-                
+
     if floatcount != 0:
         raise ValueError("Wrong number of coordinates in file\n");
-        
+
     f.write("</position>\n")
-    
+
     # Determine Simulation Box
     if not options.box:
         lx = max(2*(maxx-minx + (maxx + minx)/2), 10)
@@ -95,20 +95,20 @@ for fname in args:
         lx = float(boxvals[0])
         ly = float(boxvals[1])
         lz = float(boxvals[2])
-    
-    f.write("<box lx=\"%f\" ly=\"%f\" lz=\"%f\"/>\n"%(lx,ly,lz));    
+
+    f.write("<box lx=\"%f\" ly=\"%f\" lz=\"%f\"/>\n"%(lx,ly,lz));
 
     # Write out Type
     f.write("<type>\n")
-    
+
     if not options.type:
         ptype = 'A'
     else:
         ptype = options.type
-        
-    for i in xrange(0,pcount): 
+
+    for i in xrange(0,pcount):
         f.write("%s\n"%ptype);
-        
+
     f.write("</type>\n")
 
     # End File

@@ -533,4 +533,3 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
 #endif
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_CUH__
-

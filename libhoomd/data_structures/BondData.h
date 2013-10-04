@@ -181,10 +181,10 @@ class BondData : boost::noncopyable
 
         //! Constructs a BondData from a snapshot
         BondData(boost::shared_ptr<ParticleData> pdata, const SnapshotBondData& snapshot);
-        
+
         //! Destructor
         ~BondData();
-        
+
         //! Add a bond to the list
         unsigned int addBond(const Bond& bond);
 
@@ -215,7 +215,7 @@ class BondData : boost::noncopyable
             {
             return m_num_bonds_global;
             }
-            
+
         //! Get a given bond
         /*! \param i Bond to access
         */
@@ -240,10 +240,10 @@ class BondData : boost::noncopyable
             {
             return m_bond_type_mapping.size();
             }
-            
+
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name);
-        
+
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
 
@@ -295,7 +295,7 @@ class BondData : boost::noncopyable
             checkUpdateBondList();
             return m_gpu_bondlist;
             }
-       
+
         //! Takes a snapshot of the current bond data
         void takeSnapshot(SnapshotBondData& snapshot);
 
@@ -323,12 +323,12 @@ class BondData : boost::noncopyable
         std::stack<unsigned int> m_deleted_tags;        //!< Stack for deleted bond tags
         GPUVector<unsigned int> m_bond_rtag;            //!< Map to support lookup of bonds by tag
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
-        
+
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to maximum particle number change signal
         boost::signals::connection m_ghost_particle_num_change_connection; //!< Connection to ghost particle number change signal
 
-    
+
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
 
         //! Helper function to set the dirty flag when particles are resorted
@@ -339,7 +339,7 @@ class BondData : boost::noncopyable
             {
             m_bonds_dirty = true;
             }
-            
+
         GPUArray<uint2> m_gpu_bondlist;         //!< List of bonds on the GPU
         GPUArray<unsigned int> m_n_bonds;       //!< Array of the number of bonds
 #ifdef ENABLE_CUDA
@@ -352,7 +352,7 @@ class BondData : boost::noncopyable
         GPUArray<unsigned int> m_n_fetch_bond;  //!< Temporary counter for filling the bond table
         GPUVector<unsigned char> m_recv_bond_active;   //!< Per-bond flag for buffers (1= bond is retained, 0 = duplicate)
         bool m_buffers_initialized;             //!< True if internal buffers have been initialized
-#endif 
+#endif
         unsigned int m_num_bonds_global;        //!< Total number of bonds on all processors
 
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
@@ -383,4 +383,3 @@ class BondData : boost::noncopyable
 void export_BondData();
 
 #endif
-

@@ -62,21 +62,21 @@ import sys;
 ## \package hoomd_script.improper
 # \brief Commands that specify %improper forces
 #
-# Impropers add forces between specified quadruplets of particles and are typically used to 
+# Impropers add forces between specified quadruplets of particles and are typically used to
 # model rotation about chemical bonds without having bonds to connect the atoms. Their most
 # common use is to keep structural elements flat, i.e. model the effect of conjugated
 # double bonds, like in benzene rings and its derivatives.
 # Impropers between particles are set when an input XML file is read
 # (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
 #
-# By themselves, impropers that have been specified in an input file do nothing. Only when you 
-# specify an improper force (i.e. improper.harmonic), are forces actually calculated between the 
+# By themselves, impropers that have been specified in an input file do nothing. Only when you
+# specify an improper force (i.e. improper.harmonic), are forces actually calculated between the
 # listed particles.
 
 ## Harmonic %improper force
 #
 # The command improper.harmonic specifies a %harmonic improper potential energy between every quadruplet of particles
-# in the simulation. 
+# in the simulation.
 # \f[ V(r) = \frac{1}{2}k \left( \chi - \chi_{0}  \right )^2 \f]
 # where \f$ \chi \f$ is angle between two sides of the improper
 #
@@ -103,10 +103,10 @@ class harmonic(force._force):
         if globals.system_definition.getImproperData().getNumDihedrals() == 0:
             globals.msg.error("No impropers are defined.\n");
             raise RuntimeError("Error creating improper forces");
-        
+
         # initialize the base class
         force._force.__init__(self);
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.system_definition);
@@ -115,10 +115,10 @@ class harmonic(force._force):
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('improper.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
         # variable for tracking which improper type coefficients have been set
         self.improper_types_set = [];
-    
+
     ## Sets the %harmonic %improper coefficients for a particular %improper type
     #
     # \param improper_type Improper type to set coefficients for
@@ -136,28 +136,27 @@ class harmonic(force._force):
     # harmonic.set_coeff('hdyro-bond', k=20.0, chi=1.57)
     # \endcode
     #
-    # The coefficients for every %improper type in the simulation must be set 
+    # The coefficients for every %improper type in the simulation must be set
     # before the run() can be started.
     def set_coeff(self, improper_type, k, chi):
         util.print_status_line();
-        
+
         # set the parameters for the appropriate type
         self.cpp_force.setParams(globals.system_definition.getImproperData().getTypeByName(improper_type), k, chi);
-        
+
         # track which particle types we have set
         if not improper_type in self.improper_types_set:
             self.improper_types_set.append(improper_type);
-        
+
     def update_coeffs(self):
         # get a list of all improper types in the simulation
         ntypes = globals.system_definition.getImproperData().getNDihedralTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getImproperData().getNameByType(i));
-            
+
         # check to see if all particle types have been set
         for cur_type in type_list:
             if not cur_type in self.improper_types_set:
                 globals.msg.error(str(cur_type) + " coefficients missing in improper.harmonic\n");
                 raise RuntimeError("Error updating coefficients");
-

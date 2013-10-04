@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 /*! \file FIREEnergyMinimizerRigidGPU.cu
-    \brief Defines GPU kernel code for one performing one FIRE energy 
+    \brief Defines GPU kernel code for one performing one FIRE energy
     minimization iteration on the GPU. Used by FIREEnergyMinimizerRigidGPU.
 */
 
@@ -84,7 +84,7 @@ scalar4_tex_t net_force_tex;
 
 //! Shared memory used in reducing sums
 extern __shared__ Scalar fire_sdata[];
-    
+
 #pragma mark ZERO_VELOCITY_KERNEL
 
 //! The kernel function to zeros velocities, called by gpu_fire_rigid_zero_v()
@@ -93,19 +93,19 @@ extern __shared__ Scalar fire_sdata[];
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Number of rigid bodies
 */
-extern "C" __global__ void gpu_fire_rigid_zero_v_kernel(Scalar4* rdata_vel, 
+extern "C" __global__ void gpu_fire_rigid_zero_v_kernel(Scalar4* rdata_vel,
                                                 Scalar4* rdata_angmom,
                                                 unsigned int n_group_bodies,
                                                 unsigned int n_bodies)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx < n_group_bodies)
         {
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
         Scalar4 vel = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
         Scalar4 angmom = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        
+
         if (idx_body < n_bodies)
             {
             rdata_vel[idx_body] = vel;
@@ -124,20 +124,20 @@ cudaError_t gpu_fire_rigid_zero_v(gpu_rigid_data_arrays rdata)
     {
     unsigned int n_group_bodies = rdata.n_group_bodies;
     unsigned int n_bodies = rdata.n_bodies;
-    
+
     // setup the grid to run the kernel
     unsigned int block_size = 256;
     unsigned int num_blocks = n_group_bodies / block_size + 1;
     dim3 grid(num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rdata.body_indices, sizeof(Scalar) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
-        
+
     // run the kernel
     gpu_fire_rigid_zero_v_kernel<<< grid, threads >>>(rdata.vel, rdata.angmom, n_group_bodies, n_bodies);
-    
+
     return cudaSuccess;
     }
 
@@ -150,23 +150,23 @@ cudaError_t gpu_fire_rigid_zero_v(gpu_rigid_data_arrays rdata)
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Number of rigid bodies
 */
-extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt, 
+extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
                                                             Scalar4* rdata_force,
                                                             Scalar4* rdata_vel,
-                                                            unsigned int n_group_bodies, 
+                                                            unsigned int n_group_bodies,
                                                             unsigned int n_bodies)
     {
     unsigned int idx_global = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     Scalar* body_Pt = fire_sdata;
     Scalar* body_vsq = &fire_sdata[blockDim.x];
     Scalar* body_fsq = &fire_sdata[2*blockDim.x];
-    
+
     Scalar4 force, vel;
     Scalar Pt = Scalar(0.0);
     Scalar vsq = Scalar(0.0);
     Scalar fsq = Scalar(0.0);
-    
+
     // sum up the values via a sliding window
     for (int start = 0; start < n_group_bodies; start += blockDim.x)
         {
@@ -176,7 +176,7 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
             Scalar Ptrans = Scalar(0.0);
             Scalar v2 = Scalar(0.0);
             Scalar f2 = 0.0;
-            
+
             if (idx_body < n_bodies)
                 {
                 force = texFetchScalar4(rdata_force, rigid_data_force_tex, idx_body);
@@ -185,7 +185,7 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
                 v2 = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z;
                 f2 = force.x * force.x + force.y * force.y + force.z * force.z;
                 }
-            
+
             body_Pt[threadIdx.x] = Ptrans;
             body_vsq[threadIdx.x] = v2;
             body_fsq[threadIdx.x] = f2;
@@ -196,9 +196,9 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
             body_vsq[threadIdx.x] = Scalar(0.0);
             body_fsq[threadIdx.x] = Scalar(0.0);
             }
-        
+
         __syncthreads();
-        
+
         // reduce the sum within a block
         int offset = blockDim.x >> 1;
         while (offset > 0)
@@ -212,15 +212,15 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
             offset >>= 1;
             __syncthreads();
             }
-            
+
         // everybody sums up to the local variables
         Pt += body_Pt[0];
         vsq += body_vsq[0];
         fsq += body_fsq[0];
         }
-        
+
     __syncthreads();
-    
+
     // only one thread write to the global memory
     if (idx_global == 0)
         {
@@ -229,7 +229,7 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
         d_sum_Pt[2] = fsq;
         }
     }
-    
+
 /*! Kernel function to simultaneously compute the partial sum over Pr, wsq and tsq for the FIRE algorithm
     \param d_sum_Pr Array to hold the sum over Pr (t*w), w2 and t2
     \param n_group_bodies Number of rigid bodies in my group
@@ -237,23 +237,23 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(Scalar* d_sum_Pt,
     \param rdata_torque The developer has chosen not to document this variable
     \param rdata_angvel The developer has chosen not to document this variable
 */
-extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr, 
+extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr,
                                                             Scalar4* rdata_torque,
                                                             Scalar4* rdata_angvel,
-                                                            unsigned int n_group_bodies, 
+                                                            unsigned int n_group_bodies,
                                                             unsigned int n_bodies)
     {
     unsigned int idx_global = blockDim.x * blockIdx.x + threadIdx.x;
-    
+
     Scalar* body_Pr = fire_sdata;
     Scalar* body_wsq = &fire_sdata[blockDim.x];
     Scalar* body_tsq = &fire_sdata[2*blockDim.x];
-    
+
     Scalar4 torque, angvel;
     Scalar Pr = Scalar(0.0);
     Scalar wsq = Scalar(0.0);
     Scalar tsq = Scalar(0.0);
-    
+
     // sum up the values via a sliding window
     for (unsigned int start = 0; start < n_group_bodies; start += blockDim.x)
         {
@@ -263,7 +263,7 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr,
             Scalar Prot = Scalar(0.0);
             Scalar w2 = Scalar(0.0);
             Scalar t2 = Scalar(0.0);
-            
+
             if (idx_body < n_bodies)
                 {
                 torque = texFetchScalar4(rdata_torque, rigid_data_torque_tex, idx_body);
@@ -272,7 +272,7 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr,
                 w2 = angvel.x * angvel.x + angvel.y * angvel.y + angvel.z * angvel.z;
                 t2 = torque.x * torque.x + torque.y * torque.y + torque.z * torque.z;
                 }
-            
+
             body_Pr[threadIdx.x] = Prot;
             body_wsq[threadIdx.x] = w2;
             body_tsq[threadIdx.x] = t2;
@@ -283,9 +283,9 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr,
             body_wsq[threadIdx.x] = Scalar(0.0);
             body_tsq[threadIdx.x] = Scalar(0.0);
             }
-        
+
         __syncthreads();
-        
+
         // reduce the sum within a block
         int offset = blockDim.x >> 1;
         while (offset > 0)
@@ -299,15 +299,15 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr,
             offset >>= 1;
             __syncthreads();
             }
-            
+
         // everybody sums up to the local variables
         Pr += body_Pr[0];
         wsq += body_wsq[0];
         tsq += body_tsq[0];
         }
-        
+
     __syncthreads();
-    
+
     // only one thread write to the global memory
     if (idx_global == 0)
         {
@@ -323,17 +323,17 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(Scalar* d_sum_Pr,
     \param d_sum_Pt Array to hold the sum over Pt
     \param d_sum_Pr Array to hold the sum over Pr
 */
-cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata, 
-                                        Scalar* d_sum_Pt, 
+cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
+                                        Scalar* d_sum_Pt,
                                         Scalar* d_sum_Pr)
     {
     unsigned int n_bodies = rdata.n_bodies;
     unsigned int n_group_bodies = rdata.n_group_bodies;
-    
+
     cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rdata.body_indices, sizeof(Scalar) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
-        
+
     error = cudaBindTexture(0, rigid_data_vel_tex, rdata.vel, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -341,11 +341,11 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
     error = cudaBindTexture(0, rigid_data_angvel_tex, rdata.angvel, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
-        
+
     error = cudaBindTexture(0, rigid_data_force_tex, rdata.force, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
-    
+
     error = cudaBindTexture(0, rigid_data_torque_tex, rdata.torque, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -354,13 +354,13 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
     unsigned int block_size = 128;
     dim3 grid( 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     // run the kernels
     gpu_fire_rigid_reduce_Pt_kernel<<< grid, threads, 3 * block_size * sizeof(Scalar) >>>(d_sum_Pt, rdata.force, rdata.vel, n_group_bodies, n_bodies);
-   
+
     gpu_fire_rigid_reduce_Pr_kernel<<< grid, threads, 3 * block_size * sizeof(Scalar) >>>(d_sum_Pr, rdata.torque, rdata.angvel, n_group_bodies, n_bodies);
 
-    
+
     return cudaSuccess;
     }
 
@@ -369,7 +369,7 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
 
 //! Kernel function to update the velocties used by the FIRE algorithm
 /*! \param rdata_vel Body velocities to be updated
-    \param rdata_angmom Angular momenta to be updated 
+    \param rdata_angmom Angular momenta to be updated
     \param rdata_force The developer has chosen not to document this variable
     \param rdata_torque The developer has chosen not to document this variable
     \param alpha Alpha coupling parameter used by the FIRE algorithm
@@ -379,11 +379,11 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
     \param n_bodies Number of rigid bodies
     \param local_beg Starting body index in this card
 */
-extern "C" __global__ void gpu_fire_rigid_update_v_kernel(Scalar4* rdata_vel, 
+extern "C" __global__ void gpu_fire_rigid_update_v_kernel(Scalar4* rdata_vel,
                                                         Scalar4* rdata_angmom,
                                                         Scalar4* rdata_force,
                                                         Scalar4* rdata_torque,
-                                                        Scalar alpha, 
+                                                        Scalar alpha,
                                                         Scalar factor_t,
                                                         Scalar factor_r,
                                                         unsigned int n_group_bodies,
@@ -391,28 +391,28 @@ extern "C" __global__ void gpu_fire_rigid_update_v_kernel(Scalar4* rdata_vel,
                                                         unsigned int local_beg)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x + local_beg;
-    
+
     if (group_idx < n_group_bodies)
         {
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
         if (idx_body < n_bodies)
-            {        
+            {
             // read the body data (MEM TRANSFER: 32 bytes)
             Scalar4 vel = texFetchScalar4(rdata_vel, rigid_data_vel_tex, idx_body);
             Scalar4 angmom = texFetchScalar4(rdata_angmom, rigid_data_angmom_tex, idx_body);
             Scalar4 force = texFetchScalar4(rdata_force, rigid_data_force_tex, idx_body);
             Scalar4 torque = texFetchScalar4(rdata_torque, rigid_data_torque_tex, idx_body);
-            
+
             Scalar4 vel2;
             vel2.x = vel.x * (Scalar(1.0) - alpha) + force.x * factor_t;
             vel2.y = vel.y * (Scalar(1.0) - alpha) + force.y * factor_t;
             vel2.z = vel.z * (Scalar(1.0) - alpha) + force.z * factor_t;
-            
+
             Scalar4 angmom2;
             angmom2.x = angmom.x * (Scalar(1.0) - alpha) + torque.x * factor_r;
             angmom2.y = angmom.y * (Scalar(1.0) - alpha) + torque.y * factor_r;
-            angmom2.z = angmom.z * (Scalar(1.0) - alpha) + torque.z * factor_r;                
-            
+            angmom2.z = angmom.z * (Scalar(1.0) - alpha) + torque.z * factor_r;
+
             // write out the results (MEM_TRANSFER: 32 bytes)
             rdata_vel[idx_body] = vel2;
             rdata_angmom[idx_body] = angmom2;
@@ -426,25 +426,25 @@ extern "C" __global__ void gpu_fire_rigid_update_v_kernel(Scalar4* rdata_vel,
     \param factor_r factor equal to alpha*wnorm/tnorm
     This function is a driver for gpu_fire_rigid_update_v_kernel(), see it for details.
 */
-cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata, 
-                                                    Scalar alpha, 
+cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
+                                                    Scalar alpha,
                                                     Scalar factor_t,
                                                     Scalar factor_r)
     {
     unsigned int n_bodies = rdata.n_bodies;
     unsigned int n_group_bodies = rdata.n_group_bodies;
     unsigned int local_beg = rdata.local_beg;
-    
+
     // setup the grid to run the kernel
     unsigned int block_size = 256;
     unsigned int num_blocks = n_group_bodies / block_size + 1;
     dim3 grid(num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rdata.body_indices, sizeof(Scalar) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
-        
+
     error = cudaBindTexture(0, rigid_data_vel_tex, rdata.vel, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -456,23 +456,22 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
     error = cudaBindTexture(0, rigid_data_force_tex, rdata.force, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
         return error;
-    
+
     error = cudaBindTexture(0, rigid_data_torque_tex, rdata.torque, sizeof(Scalar4) * n_bodies);
     if (error != cudaSuccess)
     return error;
-        
+
     // run the kernel
     gpu_fire_rigid_update_v_kernel<<< grid, threads >>>(rdata.vel,
                                                     rdata.angmom,
                                                     rdata.force,
                                                     rdata.torque,
-                                                    alpha, 
+                                                    alpha,
                                                     factor_t,
                                                     factor_r,
                                                     n_group_bodies,
                                                     n_bodies,
                                                     local_beg);
-    
+
     return cudaSuccess;
     }
-

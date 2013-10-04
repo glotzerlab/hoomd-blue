@@ -1136,7 +1136,7 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    
+
     // setup a simple initial state
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -1160,19 +1160,19 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
     two_step_nvt->setXi(Scalar(1.0));
     nvt_up->addIntegrationMethod(two_step_nvt);
     thermo->setNDOF(3);
-    
+
     // see what happens with a constant force
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 0.0, 0.0, 0.75));
     nvt_up->addForceCompute(fc1);
-    
+
     nvt_up->prepRun(0);
-    
+
     // integrate through time and compare to the reference
     for (int i = 0; i < 2000; i++)
         {
         MY_BOOST_CHECK_CLOSE(pdata->getPosition(0).z, q_reference[i], tol);
         MY_BOOST_CHECK_CLOSE(pdata->getVelocity(0).z, p_reference[i], tol);
-        
+
         nvt_up->update(i);
         }
     }
@@ -1181,7 +1181,7 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
 void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
-    
+
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap;
@@ -1200,42 +1200,42 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
 
     shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
     shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
-    
+
     shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
     fc1->setRcut(0, 0, Scalar(3.0));
     shared_ptr<PotentialPairLJ> fc2(new PotentialPairLJ(sysdef2, nlist2));
     fc2->setRcut(0, 0, Scalar(3.0));
 
-    
+
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.2);
     Scalar alpha = Scalar(0.45);
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    
+
     // specify the force parameters
     fc1->setParams(0,0,make_scalar2(lj1,lj2));
     fc2->setParams(0,0,make_scalar2(lj1,lj2));
-    
+
     shared_ptr<IntegratorTwoStep> nvt1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));
     shared_ptr<ComputeThermo> thermo1(new ComputeThermo(sysdef1, group_all1));
     thermo1->setNDOF(3*N-3);
     shared_ptr<TwoStepNVT> two_step_nvt1 = nvt_creator1(sysdef1, group_all1, thermo1, Scalar(0.5), Scalar(1.2));
     nvt1->addIntegrationMethod(two_step_nvt1);
-    
+
     shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
     shared_ptr<ComputeThermo> thermo2(new ComputeThermo(sysdef2, group_all2));
     thermo2->setNDOF(3*N-3);
     shared_ptr<TwoStepNVT> two_step_nvt2 = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
     nvt2->addIntegrationMethod(two_step_nvt2);
-    
+
     nvt1->addForceCompute(fc1);
     nvt2->addForceCompute(fc2);
-    
+
     nvt1->prepRun(0);
     nvt2->prepRun(0);
-    
+
     // step for 3 time steps and verify that they are the same
     // we can't do much more because these things are chaotic and diverge quickly
     for (int i = 0; i < 5; i++)
@@ -1247,10 +1247,10 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
         ArrayHandle<Scalar4> h_pos2(pdata2->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel2(pdata2->getVelocities(), access_location::host, access_mode::read);
         ArrayHandle<Scalar3> h_accel2(pdata2->getAccelerations(), access_location::host, access_mode::read);
-        
+
         //cout << arrays1.x[100] << " " << arrays2.x[100] << endl;
         Scalar rough_tol = 2.0;
-        
+
         // check position, velocity and acceleration
         for (unsigned int j = 0; j < N; j++)
             {
@@ -1266,7 +1266,7 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
             MY_BOOST_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
             MY_BOOST_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
             }
-            
+
         }
         nvt1->update(i);
         nvt2->update(i);
@@ -1300,4 +1300,3 @@ BOOST_AUTO_TEST_CASE( TwoStepNVTGPU_comparison_tests)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

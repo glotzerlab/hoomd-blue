@@ -93,25 +93,25 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
         setup();
         m_first_step = false;
         }
-    
+
     // sanity check
     if (m_n_bodies <= 0)
         return;
-    
+
     // access to the force and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
+
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVE rigid step 1");
-    
+
     // access all the needed data
     BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
-    
+
     // get the rigid data from SystemDefinition
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 
@@ -131,7 +131,7 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
 
     ArrayHandle<Scalar4> particle_oldpos_handle(rigid_data->getParticleOldPos(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> particle_oldvel_handle(rigid_data->getParticleOldVel(), access_location::device, access_mode::readwrite);
-    
+
     ArrayHandle<unsigned int> d_particle_offset(rigid_data->getParticleOffset(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_particle_orientation(rigid_data->getParticleOrientation(), access_location::device, access_mode::readwrite);
 
@@ -141,7 +141,7 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.nmax = rigid_data->getNmax();
     d_rdata.local_beg = 0;
     d_rdata.local_num = m_n_bodies;
-    
+
     d_rdata.body_indices = d_body_index_array.data;
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
@@ -160,7 +160,7 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
     d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
-    
+
     // perform the update on the GPU
     gpu_nve_rigid_step_one(d_rdata,
                            d_index_array.data,
@@ -171,12 +171,12 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
     }
-        
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
@@ -185,7 +185,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     // sanity check
     if (m_n_bodies <= 0)
         return;
-    
+
     // access to the force and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
@@ -194,7 +194,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVE rigid step 2");
-    
+
     BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
@@ -202,7 +202,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
-    
+
     // get the rigid data from SystemDefinition
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 
@@ -223,14 +223,14 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<unsigned int> d_particle_offset(rigid_data->getParticleOffset(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_particle_orientation(rigid_data->getParticleOrientation(), access_location::device, access_mode::read);
-    
+
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
     d_rdata.nmax = rigid_data->getNmax();
     d_rdata.local_beg = 0;
     d_rdata.local_num = m_n_bodies;
-    
+
     d_rdata.body_indices = d_body_index_array.data;
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
@@ -248,27 +248,27 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_oldvel = particle_oldvel_handle.data;
     d_rdata.particle_offset = d_particle_offset.data;
     d_rdata.particle_orientation = d_particle_orientation.data;
-    
+
     gpu_rigid_force(d_rdata,
                     d_index_array.data,
                     group_size,
                     d_net_force.data,
                     d_net_torque.data,
-                    box, 
+                    box,
                     m_deltaT);
-                                
+
     // perform the update on the GPU
     gpu_nve_rigid_step_two(d_rdata,
                            d_index_array.data,
                            group_size,
                            d_net_force.data,
                            d_net_virial.data,
-                           box, 
+                           box,
                            m_deltaT);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-   
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -284,4 +284,3 @@ void export_TwoStepNVERigidGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

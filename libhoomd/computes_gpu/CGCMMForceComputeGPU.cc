@@ -75,9 +75,9 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
     \param r_cut Cuttoff radius beyond which the force is 0
-    
+
     \post memory is allocated and all parameters ljX are set to 0.0
-    
+
     \note The CGCMMForceComputeGPU does not own the Neighborlist, the caller should
     delete the neighborlist when done.
 */
@@ -152,7 +152,7 @@ void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scala
         m_exec_conf->msg->error() << "pair.cgccm: Trying to set params for a non existant type! " << typ1 << "," << typ2 << endl;
         throw runtime_error("CGCMMForceComputeGpu::setParams argument error");
         }
-    
+
     ArrayHandle<Scalar4> h_coeffs(m_coeffs, access_location::host, access_mode::readwrite);
     // set coeffs in both symmetric positions in the matrix
     h_coeffs.data[typ1*m_pdata->getNTypes() + typ2] = make_scalar4(lj12, lj9, lj6, lj4);
@@ -170,10 +170,10 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
-    
+
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "CGCMM pair");
-    
+
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
@@ -181,18 +181,18 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
         m_exec_conf->msg->error() << "CGCMMForceComputeGPU cannot handle a half neighborlist" << endl;
         throw runtime_error("Error computing forces in CGCMMForceComputeGPU");
         }
-        
+
     // access the neighbor list, which just selects the neighborlist into the device's memory, copying
     // it there if needed
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_coeffs(m_coeffs, access_location::device, access_mode::read);
     Index2D nli = this->m_nlist->getNListIndexer();
-    
+
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
-    
+
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
@@ -212,7 +212,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
                              m_block_size);
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     Scalar avg_neigh = m_nlist->estimateNNeigh();
     int64_t n_calc = int64_t(avg_neigh * m_pdata->getN());
     int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 20) + n_calc * (4 + 16);
@@ -231,4 +231,3 @@ void export_CGCMMForceComputeGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

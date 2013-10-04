@@ -170,13 +170,13 @@ class DihedralData : boost::noncopyable
     public:
         //! Constructs an empty list with no dihedrals
         DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types = 0);
-        
+
         //! Constructs a DihedralData from a snapshot
         DihedralData(boost::shared_ptr<ParticleData> pdata, const SnapshotDihedralData& snapshot);
 
         //! Destructor
         ~DihedralData();
-        
+
         //! Add a dihedral to the list
         unsigned int addDihedral(const Dihedral& dihedral);
 
@@ -191,7 +191,7 @@ class DihedralData : boost::noncopyable
 
         //! Remove a dihedral identified by its unique tag from the list
         void removeDihedral(unsigned int tag);
-        
+
         //! Get the number of dihedrals
         /*! \return Number of dihedrals present
         */
@@ -199,7 +199,7 @@ class DihedralData : boost::noncopyable
             {
             return (unsigned int)m_dihedrals.size();
             }
-            
+
         //! Get access to a dihedral
         /*! \param i Dihedral to access
         */
@@ -217,7 +217,7 @@ class DihedralData : boost::noncopyable
         //! Get tag given an id
         unsigned int getDihedralTag(unsigned int id) const;
 
-            
+
         //! Get the number of dihedral types
         /*! \return Number of dihedral types in the list of dihedrals
         */
@@ -225,10 +225,10 @@ class DihedralData : boost::noncopyable
             {
             return m_dihedral_type_mapping.size();
             }
-            
+
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name);
-        
+
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
 
@@ -273,7 +273,7 @@ class DihedralData : boost::noncopyable
 
         //! Initialize the angle data from a snapshot
         void initializeFromSnapshot(const SnapshotDihedralData& snapshot);
-        
+
     private:
         bool m_dihedrals_dirty;                             //!< True if the dihedral list has been changed
         boost::shared_ptr<ParticleData> m_pdata;            //!< Particle Data these dihedrals belong to
@@ -284,7 +284,7 @@ class DihedralData : boost::noncopyable
         std::stack<unsigned int> m_deleted_tags;            //!< Stack for deleted dihedral tags
         GPUVector<unsigned int> m_dihedral_rtag;            //!< Map to support lookup of dihedrals by tag
         std::vector<std::string> m_dihedral_type_mapping;   //!< Mapping between dihedral type indices and names
-        
+
         boost::signals::connection m_sort_connection;       //!< Connection to the resort signal from ParticleData
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
@@ -297,7 +297,7 @@ class DihedralData : boost::noncopyable
             {
             m_dihedrals_dirty = true;
             }
-            
+
         GPUArray<uint4> m_gpu_dihedral_list;                    //!< List of dihedrals on the GPU (3atoms of a,b,c, or d, plus the type)
         GPUArray<uint1> m_dihedrals_ABCD;                        //!< List of atom positions in the dihedral
         GPUArray<unsigned int> m_n_dihedrals;                    //!< Number of dihedrals
@@ -312,11 +312,10 @@ class DihedralData : boost::noncopyable
 
         //! Helper function to allocate the dihedral table
         void allocateDihedralTable(int height);
-        
+
     };
 
 //! Exports DihedralData to python
 void export_DihedralData();
 
 #endif
-

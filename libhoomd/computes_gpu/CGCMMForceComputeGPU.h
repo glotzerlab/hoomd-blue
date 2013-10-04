@@ -78,20 +78,20 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
     public:
         //! Constructs the compute
         CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
-        
+
         //! Destructor
         virtual ~CGCMMForceComputeGPU();
-        
+
         //! Set the parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj12, Scalar lj9, Scalar lj6, Scalar lj4);
-        
+
         //! Sets the block size to run at
         void setBlockSize(int block_size);
-        
+
     protected:
         GPUArray<Scalar4>  m_coeffs;     //!< Coefficients for the force
         int m_block_size;               //!< The block size to run on the GPU
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -100,4 +100,3 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
 void export_CGCMMForceComputeGPU();
 
 #endif
-

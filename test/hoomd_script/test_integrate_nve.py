@@ -13,21 +13,21 @@ class integrate_nve_tests (unittest.TestCase):
         force.constant(fx=0.1, fy=0.1, fz=0.1)
         import __main__;
         __main__.sorter.set_params(grid=8)
-                
+
     # tests basic creation of the dump
     def test(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
         run(100);
-    
+
     # tests creation of the method with options
     def test(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all, limit=0.01, zero_force=True);
         run(100);
-    
+
     # test set_params
     def test_set_params(self):
         all = group.all();
@@ -44,11 +44,10 @@ class integrate_nve_tests (unittest.TestCase):
         mode = integrate.mode_standard(dt=0.005);
         nve = integrate.nve(group=empty)
         run(1);
-    
+
     def tearDown(self):
         init.reset();
 
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

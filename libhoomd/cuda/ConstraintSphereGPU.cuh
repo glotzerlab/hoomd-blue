@@ -76,4 +76,3 @@ cudaError_t gpu_compute_constraint_sphere_forces(Scalar4* d_force,
                                                  unsigned int block_size);
 
 #endif
-

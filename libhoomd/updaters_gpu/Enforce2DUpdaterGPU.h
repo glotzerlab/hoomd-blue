@@ -77,14 +77,13 @@ class Enforce2DUpdaterGPU : public Enforce2DUpdater
     public:
         //! Constructor
         Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef);
-        
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
-        
+
     };
 
 //! Exports the Enforce2DUpdaterGPU class to python
 void export_Enforce2DUpdaterGPU();
 
 #endif
-

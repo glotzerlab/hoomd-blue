@@ -13,7 +13,7 @@ class integrate_npt_tests (unittest.TestCase):
         force.constant(fx=0.1, fy=0.1, fz=0.1)
         import __main__;
         __main__.sorter.set_params(grid=8)
-        
+
     # tests basic creation of the integrator
     def test(self):
         all = group.all();
@@ -69,4 +69,3 @@ class integrate_npt_tests (unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

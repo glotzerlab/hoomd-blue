@@ -55,7 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ParticleData.cuh"
-#include "DihedralData.cuh" 
+#include "DihedralData.cuh"
 #include "Index1D.h"
 #include "HOOMDMath.h"
 
@@ -70,7 +70,7 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
                                      const Scalar4 *d_pos,
                                      const BoxDim &box,
                                      const uint4 *dlist,
-                                     const uint1 *dihedral_ABCD,          
+                                     const uint1 *dihedral_ABCD,
                                      const unsigned int pitch,
                                      const unsigned int *n_dihedrals_list,
                                      const Scalar2 *d_tables,
@@ -79,4 +79,3 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
                                      const unsigned int block_size);
 
 #endif
-

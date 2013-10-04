@@ -100,7 +100,7 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
                                      const Scalar4 *device_pos,
                                      const BoxDim box,
                                      const uint4 *dlist,
-                                     const uint1 *dihedral_ABCD,    
+                                     const uint1 *dihedral_ABCD,
                                      const unsigned int pitch,
                                      const unsigned int *n_dihedrals_list,
                                      const Scalar2 *d_tables,
@@ -122,11 +122,11 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
     Scalar4 idx_postype = device_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
     Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
     Scalar3 pos_a,pos_b,pos_c, pos_d; // allocate space for the a,b,c, and d atom in the a-b-c-d set
-   
+
 
     // initialize the force to 0
     Scalar4 force_idx = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
-        
+
     // initialize the virial tensor to 0
     Scalar virial_idx[6];
     for (unsigned int i = 0; i < 6; i++)
@@ -198,14 +198,14 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         Scalar sb1 = 1.0 / (dab.x*dab.x + dab.y*dab.y + dab.z*dab.z);
         Scalar sb2 = 1.0 / (dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z);
         Scalar sb3 = 1.0 / (ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z);
-            
+
         Scalar rb1 = sqrt(sb1);
         Scalar rb3 = sqrt(sb3);
-            
+
         Scalar c0 = (dab.x*ddc.x + dab.y*ddc.y + dab.z*ddc.z) * rb1*rb3;
 
         // 1st and 2nd angle
-            
+
         Scalar b1mag2 = dab.x*dab.x + dab.y*dab.y + dab.z*dab.z;
         Scalar b1mag = sqrt(b1mag2);
         Scalar b2mag2 = dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z;
@@ -239,10 +239,10 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         Scalar s2 = sc2 * sc2;
         Scalar s12 = sc1 * sc2;
         Scalar c = (c0 + c1mag*c2mag) * s12;
-      
+
         if (c > 1.0f) c = 1.0f;
         if (c < -1.0f) c = -1.0f;
-        
+
         //phi
         Scalar phi = acosf(c);
         // precomputed term
@@ -264,9 +264,9 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         // interpolate to get V and T;
         Scalar V = V0 + f * (V1 - V0);
         Scalar T = T0 + f * (T1 - T0);
-        
-        
-        Scalar a = T; 
+
+
+        Scalar a = T;
         c = c * a;
         s12 = s12 * a;
         Scalar a11 = c*sb1*s1;
@@ -279,29 +279,29 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         Scalar sx2  = a12*dab.x + a22*dcb.x + a23*ddc.x;
         Scalar sy2  = a12*dab.y + a22*dcb.y + a23*ddc.y;
         Scalar sz2  = a12*dab.z + a22*dcb.z + a23*ddc.z;
-        
+
         Scalar ffax = a11*dab.x + a12*dcb.x + a13*ddc.x;
         Scalar ffay = a11*dab.y + a12*dcb.y + a13*ddc.y;
         Scalar ffaz = a11*dab.z + a12*dcb.z + a13*ddc.z;
-        
+
         Scalar ffbx = -sx2 - ffax;
         Scalar ffby = -sy2 - ffay;
         Scalar ffbz = -sz2 - ffaz;
-        
+
         Scalar ffdx = a13*dab.x + a23*dcb.x + a33*ddc.x;
         Scalar ffdy = a13*dab.y + a23*dcb.y + a33*ddc.y;
         Scalar ffdz = a13*dab.z + a23*dcb.z + a33*ddc.z;
-        
+
         Scalar ffcx = sx2 - ffdx;
         Scalar ffcy = sy2 - ffdy;
         Scalar ffcz = sz2 - ffdz;
 
         // Now, apply the force to each individual atom a,b,c,d
         // and accumlate the energy/virial
-        
+
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
-        Scalar dihedral_eng = V*Scalar(1.0f/4.0f); 
-        
+        Scalar dihedral_eng = V*Scalar(1.0f/4.0f);
+
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // symmetrized version of virial tensor
         Scalar dihedral_virial[6];
@@ -363,7 +363,7 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
     \param n_dihedrals_list List of numbers of dihedrals stored on the GPU
     \param n_dihedral_type number of dihedral types
     \param d_tables Tables of the potential and force
-    \param table_width Number of points in each table    
+    \param table_width Number of points in each table
     \param table_value indexer helper
     \param block_size Block size at which to run the kernel
 
@@ -376,7 +376,7 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
                                      const Scalar4 *device_pos,
                                      const BoxDim &box,
                                      const uint4 *dlist,
-                                     const uint1 *dihedral_ABCD,    
+                                     const uint1 *dihedral_ABCD,
                                      const unsigned int pitch,
                                      const unsigned int *n_dihedrals_list,
                                      const Scalar2 *d_tables,
@@ -400,7 +400,7 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
         return error;
 
     Scalar delta_phi = M_PI/(table_width - 1.0f);
-    
+
     gpu_compute_table_dihedral_forces_kernel<<< grid, threads>>>
             (d_force,
              d_virial,

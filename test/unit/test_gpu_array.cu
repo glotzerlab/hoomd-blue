@@ -65,7 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __global__ void gpu_add_one_kernel(int *d_data, unsigned int num)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (idx < num)
         d_data[idx] = d_data[idx] + 1;
     }
@@ -78,13 +78,13 @@ __global__ void gpu_add_one_kernel(int *d_data, unsigned int num)
 extern "C" cudaError_t gpu_add_one(int *d_data, unsigned int num)
     {
     unsigned int block_size = 256;
-    
+
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)num / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     gpu_add_one_kernel<<<grid, threads>>>(d_data, num);
-    
+
     cudaThreadSynchronize();
     return cudaGetLastError();
     }
@@ -98,7 +98,7 @@ extern "C" cudaError_t gpu_add_one(int *d_data, unsigned int num)
 __global__ void gpu_fill_test_pattern_kernel(int *d_data, unsigned int num)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (idx < num)
         d_data[idx] = idx*idx;
     }
@@ -111,14 +111,13 @@ __global__ void gpu_fill_test_pattern_kernel(int *d_data, unsigned int num)
 extern "C" cudaError_t gpu_fill_test_pattern(int *d_data, unsigned int num)
     {
     unsigned int block_size = 256;
-    
+
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)num / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     gpu_fill_test_pattern_kernel<<<grid, threads>>>(d_data, num);
-    
+
     cudaThreadSynchronize();
     return cudaGetLastError();
     }
-

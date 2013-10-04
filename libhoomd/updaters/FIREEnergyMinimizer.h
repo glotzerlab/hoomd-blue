@@ -67,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
-    
+
     \ingroup updaters
 */
 class FIREEnergyMinimizer : public IntegratorTwoStep
@@ -76,7 +76,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         //! Constructs the minimizer and associates it with the system
         FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition>,  boost::shared_ptr<ParticleGroup>, Scalar, bool=true);
         virtual ~FIREEnergyMinimizer();
-        
+
         //! Reset the minimization
         virtual void reset();
 
@@ -90,39 +90,39 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         bool hasConverged() const {return m_converged;}
 
         //! Set the minimum number of steps for which the search direction must be bad before finding a new direction
-        /*! \param nmin is the new nmin to set 
+        /*! \param nmin is the new nmin to set
         */
         void setNmin(unsigned int nmin) {m_nmin = nmin;}
-        
+
         //! Set the fractional increase in the timestep upon a valid search direction
         void setFinc(Scalar finc);
-        
+
         //! Set the fractional increase in the timestep upon a valid search direction
         void setFdec(Scalar fdec);
-        
-        //! Set the relative strength of the coupling between the "f dot v" vs the "v" term 
+
+        //! Set the relative strength of the coupling between the "f dot v" vs the "v" term
         void setAlphaStart(Scalar alpha0);
 
-        //! Set the fractional decrease in alpha upon finding a valid search direction 
+        //! Set the fractional decrease in alpha upon finding a valid search direction
         void setFalpha(Scalar falpha);
-        
-        //! Set the stopping criterion based on the total force on all particles in the system  
+
+        //! Set the stopping criterion based on the total force on all particles in the system
         /*! \param ftol is the new force tolerance to set
         */
         void setFtol(Scalar ftol) {m_ftol = ftol;}
 
-        //! Set the stopping criterion based on the change in energy between successive iterations  
+        //! Set the stopping criterion based on the change in energy between successive iterations
         /*! \param etol is the new energy tolerance to set
         */
         void setEtol(Scalar etol) {m_etol = etol;}
 
-        //! Set the a minimum number of steps before the other stopping criteria will be evaluated 
+        //! Set the a minimum number of steps before the other stopping criteria will be evaluated
         /*! \param steps is the minimum number of steps (attempts) that will be made
         */
         void setMinSteps(unsigned int steps) {m_run_minsteps = steps;}
-        
+
         //! Access the group
-        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }        
+        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }
 
         //! Get needed pdata flags
         /*! FIREEnergyMinimzer needs the potential energy, so its flag is set
@@ -135,17 +135,17 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
             }
 
     protected:
-        //! Function to create the underlying integrator 
-        //virtual void createIntegrator(); 
+        //! Function to create the underlying integrator
+        //virtual void createIntegrator();
         const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
-        unsigned int m_nmin;                //!< minimum number of consecutive successful search directions before modifying alpha 
-        unsigned int m_n_since_negative;    //!< counts the number of consecutive successful search directions 
-        unsigned int m_n_since_start;       //!< counts the number of consecutvie search attempts 
+        unsigned int m_nmin;                //!< minimum number of consecutive successful search directions before modifying alpha
+        unsigned int m_n_since_negative;    //!< counts the number of consecutive successful search directions
+        unsigned int m_n_since_start;       //!< counts the number of consecutvie search attempts
         Scalar m_finc;                      //!< fractional increase in timestep upon successful seach
         Scalar m_fdec;                      //!< fractional decrease in timestep upon unsuccessful seach
-        Scalar m_alpha;                     //!< relative coupling strength between alpha  
-        Scalar m_alpha_start;               //!< starting value of alpha 
-        Scalar m_falpha;                    //!< fraction to rescale alpha on successful search direction 
+        Scalar m_alpha;                     //!< relative coupling strength between alpha
+        Scalar m_alpha_start;               //!< starting value of alpha
+        Scalar m_falpha;                    //!< fraction to rescale alpha on successful search direction
         Scalar m_ftol;                      //!< stopping tolerance based on total force
         Scalar m_etol;                      //!< stopping tolerance based on the chance in energy
         Scalar m_old_energy;                //!< energy from the previous iteration
@@ -163,4 +163,3 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
 void export_FIREEnergyMinimizer();
 
 #endif // #ifndef __FIRE_ENERGY_MINIMIZER_H__
-

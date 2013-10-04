@@ -73,12 +73,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param denominv Intermediate variable computed on the host and used in the NVT integration step
     \param deltaT Amount of real time to step forward in one time step
 
-    
+
     Take the first half step forward in the NVT integration.
-    
+
     See gpu_nve_step_one_kernel() for some performance notes on how to handle the group data reads efficiently.
 */
-extern "C" __global__ 
+extern "C" __global__
 void gpu_nvt_step_one_kernel(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
@@ -146,7 +146,7 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
     // setup the grid to run the kernel
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-   
+
     // run the kernel
     gpu_nvt_step_one_kernel<<< grid, threads, block_size * sizeof(Scalar) >>>(d_pos,
                                                                              d_vel,
@@ -169,7 +169,7 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
     \param Xi current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
 */
-extern "C" __global__ 
+extern "C" __global__
 void gpu_nvt_step_two_kernel(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
@@ -180,7 +180,7 @@ void gpu_nvt_step_two_kernel(Scalar4 *d_vel,
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
@@ -195,11 +195,11 @@ void gpu_nvt_step_two_kernel(Scalar4 *d_vel,
         accel.x /= mass;
         accel.y /= mass;
         accel.z /= mass;
-        
+
         vel.x += (Scalar(1.0)/Scalar(2.0)) * deltaT * (accel.x - Xi * vel.x);
         vel.y += (Scalar(1.0)/Scalar(2.0)) * deltaT * (accel.y - Xi * vel.y);
         vel.z += (Scalar(1.0)/Scalar(2.0)) * deltaT * (accel.z - Xi * vel.z);
-        
+
         // write out data
         d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
@@ -228,12 +228,11 @@ cudaError_t gpu_nvt_step_two(Scalar4 *d_vel,
     // setup the grid to run the kernel
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-    
+
     // run the kernel
     gpu_nvt_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_group_members, group_size, d_net_force, Xi, deltaT);
-    
+
     return cudaSuccess;
     }
 
 // vim:syntax=cpp
-

@@ -63,7 +63,7 @@ using namespace boost::python;
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #include "HOOMDMPI.h"
-#endif 
+#endif
 
 /*! \file TwoStepNVT.h
     \brief Contains code for the TwoStepNVT class
@@ -88,7 +88,7 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
 
     if (m_tau <= 0.0)
         m_exec_conf->msg->warning() << "integrate.nvt: tau set less than 0.0 in NVTUpdater" << endl;
-    
+
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
 
@@ -128,7 +128,7 @@ std::vector< std::string > TwoStepNVT::getProvidedLogQuantities()
 
 Scalar TwoStepNVT::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
     {
-    if (quantity == m_log_name)  
+    if (quantity == m_log_name)
         {
         my_quantity_flag = true;
         Scalar g = m_thermo->getNDOF();
@@ -138,7 +138,7 @@ Scalar TwoStepNVT::getLogValue(const std::string& quantity, unsigned int timeste
         return g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
         }
     else
-        return Scalar(0);     
+        return Scalar(0);
     }
 
 /*! \param timestep Current time step
@@ -150,7 +150,7 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    
+
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 1");
@@ -164,21 +164,21 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
 
     // precompute loop invariant quantities
     Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * xi);
-    
+
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        
+
         h_vel.data[j].x = (h_vel.data[j].x + Scalar(1.0/2.0)*h_accel.data[j].x*m_deltaT) * denominv;
         h_pos.data[j].x += m_deltaT * h_vel.data[j].x;
-        
+
         h_vel.data[j].y = (h_vel.data[j].y + Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT) * denominv;
         h_pos.data[j].y += m_deltaT * h_vel.data[j].y;
 
         h_vel.data[j].z = (h_vel.data[j].z + Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT) * denominv;
         h_pos.data[j].z += m_deltaT * h_vel.data[j].z;
         }
-    
+
     // particles may have been moved slightly outside the box by the above steps, wrap them back into place
     const BoxDim& box = m_pdata->getBox();
 
@@ -190,12 +190,12 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         // wrap the particles around the box
         box.wrap(h_pos.data[j], h_image.data[j]);
         }
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop();
     }
-        
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
@@ -204,14 +204,14 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    
+
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
-    
+
     // compute the current thermodynamic properties
     m_thermo->compute(timestep+1);
-    
+
     // next, update the state variables Xi and eta
     Scalar xi_prev = xi;
     Scalar curr_T = m_thermo->getTemperature();
@@ -227,9 +227,9 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
         }
 #endif
 
-    
+
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    
+
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 2");
@@ -238,27 +238,27 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-    
+
     // perform second half step of Nose-Hoover integration
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        
+
         // first, calculate acceleration from the net force
         Scalar minv = Scalar(1.0) / h_vel.data[j].w;
         h_accel.data[j].x = h_net_force.data[j].x*minv;
         h_accel.data[j].y = h_net_force.data[j].y*minv;
         h_accel.data[j].z = h_net_force.data[j].z*minv;
-        
+
         // then, update the velocity
         h_vel.data[j].x += Scalar(1.0/2.0) * m_deltaT * (h_accel.data[j].x - xi * h_vel.data[j].x);
         h_vel.data[j].y += Scalar(1.0/2.0) * m_deltaT * (h_accel.data[j].y - xi * h_vel.data[j].y);
         h_vel.data[j].z += Scalar(1.0/2.0) * m_deltaT * (h_accel.data[j].z - xi * h_vel.data[j].z);
         }
-    
+
     setIntegratorVariables(v);
 
-    
+
     // done profiling
     if (m_prof)
         m_prof->pop();
@@ -282,4 +282,3 @@ void export_TwoStepNVT()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

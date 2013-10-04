@@ -90,11 +90,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
     PotentialPair computes standard pair potentials (and forces) between all particle pairs in the simulation. It
-    employs the use of a neighbor list to limit the number of computations done to only those particles with the 
+    employs the use of a neighbor list to limit the number of computations done to only those particles with the
     cuttoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
     by an evaluator class (e.g. EvaluatorPairLJ) which is passed in as a template parameter so the compuations
     are performed as efficiently as possible.
-    
+
     PotentialPair handles most of the gory internal details common to all standard pair potentials.
      - A cuttoff radius to be specified per particle type pair
      - The energy can be globally shifted to 0 at the cuttoff
@@ -102,7 +102,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      - Per type pair parameters are stored and a set method is provided
      - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
-    
+
     A note on the design of XPLOR switching:
     We need to be able to handle smooth XPLOR switching in systems of mixed LJ/WCA particles. There are three modes to
     enable all of the various use-cases:
@@ -112,24 +112,24 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        XPLOR switching will be applied to the unshifted potential. When r_on is greather than r_cut, the energy will
        be shifted. In this manner, a valid r_on value can be given for the LJ interactions and r_on > r_cut can be set
        for WCA (which will then be shifted).
-    
+
     XPLOR switching gets significantly more complicated for all pair potentials when shifted potentials are used. Thus,
     the combination of XPLOR switching + shifted potentials will not be supported to avoid slowing down the calculation
     for everyone.
-    
+
     <b>Implementation details</b>
-    
+
     rcutsq, ronsq, and the params are stored per particle type pair. It wastes a little bit of space, but benchmarks
     show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
     and indexing with Index2DUpperTriangular. All of these values are stored in GPUArray
     for easy access on the GPU by a derived class. The type of the parameters is defined by \a param_type in the
     potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
     element of the parameters.
-    
+
     For profiling and logging, PotentialPair needs to know the name of the potential. For now, that will be queried from
     the evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
     independantly.
-    
+
     \sa export_PotentialPair()
 */
 template < class evaluator >
@@ -138,7 +138,7 @@ class PotentialPair : public ForceCompute
     public:
         //! Param type from evaluator
         typedef typename evaluator::param_type param_type;
-    
+
         //! Construct the pair potential
         PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
                       boost::shared_ptr<NeighborList> nlist,
@@ -152,12 +152,12 @@ class PotentialPair : public ForceCompute
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
         //! Set ron for a single type pair
         virtual void setRon(unsigned int typ1, unsigned int typ2, Scalar ron);
-        
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
         //! Shifting modes that can be applied to the energy
         enum energyShiftMode
             {
@@ -165,7 +165,7 @@ class PotentialPair : public ForceCompute
             shift,
             xplor
             };
-        
+
         //! Set the mode to use for shifting the energy
         void setShiftMode(energyShiftMode mode)
             {
@@ -186,7 +186,7 @@ class PotentialPair : public ForceCompute
         GPUArray<param_type> m_params;              //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -205,14 +205,14 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
 
     assert(m_pdata);
     assert(m_nlist);
-    
+
     GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
     m_rcutsq.swap(rcutsq);
     GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), exec_conf);
     m_ronsq.swap(ronsq);
     GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
     m_params.swap(params);
-    
+
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
@@ -242,7 +242,7 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
         }
-    
+
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
@@ -263,7 +263,7 @@ void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, S
                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
         }
-    
+
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
     h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
     h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
@@ -284,7 +284,7 @@ void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Sc
                   << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
         }
-    
+
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
     h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
@@ -315,7 +315,7 @@ Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, unsi
         }
     else
         {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" 
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity"
                   << std::endl;
         throw std::runtime_error("Error getting log value");
         }
@@ -331,14 +331,14 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
-    
+
     // start the profile for this compute
     if (m_prof) m_prof->push(m_prof_name);
-    
+
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
-    
+
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
@@ -358,7 +358,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-    
+
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
 
@@ -383,7 +383,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         // sanity check
         assert(typei < m_pdata->getNTypes());
-        
+
         // access diameter and charge (if needed)
         Scalar di = Scalar(0.0);
         Scalar qi = Scalar(0.0);
@@ -391,7 +391,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             di = h_diameter.data[i];
         if (evaluator::needsCharge())
             qi = h_charge.data[i];
-        
+
         // initialize current particle force, potential energy, and virial to 0
         Scalar3 fi = make_scalar3(0, 0, 0);
         Scalar pei = 0.0;
@@ -401,7 +401,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
         Scalar virialyyi = 0.0;
         Scalar virialyzi = 0.0;
         Scalar virialzzi = 0.0;
-        
+
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
@@ -409,15 +409,15 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[nli(i, k)];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
-            
+
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
             Scalar3 dx = pi - pj;
-            
+
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < m_pdata->getNTypes());
-            
+
             // access diameter and charge (if needed)
             Scalar dj = Scalar(0.0);
             Scalar qj = Scalar(0.0);
@@ -425,13 +425,13 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                 dj = h_diameter.data[j];
             if (evaluator::needsCharge())
                 qj = h_charge.data[j];
-            
+
             // apply periodic boundary conditions
             dx = box.minImage(dx);
-                
+
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dot(dx, dx);
-            
+
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
             param_type param = h_params.data[typpair_idx];
@@ -439,7 +439,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             Scalar ronsq = Scalar(0.0);
             if (m_shift_mode == xplor)
                 ronsq = h_ronsq.data[typpair_idx];
-            
+
             // design specifies that energies are shifted if
             // 1) shift mode is set to shift
             // or 2) shift mode is explor and ron > rcut
@@ -451,7 +451,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                 if (ronsq > rcutsq)
                     energy_shift = true;
                 }
-            
+
             // compute the force and potential energy
             Scalar force_divr = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
@@ -460,9 +460,9 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                 eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
-            
+
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-            
+
             if (evaluated)
                 {
                 // modify the potential for xplor shifting
@@ -473,16 +473,16 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                         // Implement XPLOR smoothing (FLOPS: 16)
                         Scalar old_pair_eng = pair_eng;
                         Scalar old_force_divr = force_divr;
-                        
+
                         // calculate 1.0 / (xplor denominator)
                         Scalar xplor_denom_inv =
                             Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-                        
+
                         Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
                         Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
                                    (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
                         Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-                        
+
                         // make modifications to the old pair energy and force
                         pair_eng = old_pair_eng * s;
                         // note: I'm not sure why the minus sign needs to be there: my notes have a +
@@ -505,7 +505,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                     virialyzi += force_div2r*dx.y*dx.z;
                     virialzzi += force_div2r*dx.z*dx.z;
                     }
-                
+
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
                 // only add force to local particles
                 if (third_law && j < m_pdata->getN())
@@ -527,7 +527,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                     }
                 }
             }
-            
+
         // finally, increment the force, potential energy and virial for particle i
         unsigned int mem_idx = m_index_thread_partial(i,tid);
         m_fdata_partial[mem_idx].x += fi.x;
@@ -545,7 +545,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             }
         }
 #pragma omp barrier
-    
+
     // now that the partial sums are complete, sum up the results in parallel
 #pragma omp for
     for (int i = 0; i < (int) m_pdata->getN(); i++)
@@ -596,7 +596,7 @@ CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timeste
     flags |= ForceCompute::getRequestedCommFlags(timestep);
 
     return flags;
-    } 
+    }
 #endif
 
 //! Export this pair potential to python
@@ -605,7 +605,7 @@ CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timeste
 */
 template < class T > void export_PotentialPair(const std::string& name)
     {
-    boost::python::scope in_pair = 
+    boost::python::scope in_pair =
         boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
                   (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
                   .def("setParams", &T::setParams)
@@ -613,7 +613,7 @@ template < class T > void export_PotentialPair(const std::string& name)
                   .def("setRon", &T::setRon)
                   .def("setShiftMode", &T::setShiftMode)
                   ;
-                  
+
     boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")
         .value("no_shift", T::no_shift)
         .value("shift", T::shift)
@@ -626,4 +626,3 @@ template < class T > void export_PotentialPair(const std::string& name)
 #endif
 
 #endif // __POTENTIAL_PAIR_H__
-

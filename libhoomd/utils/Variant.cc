@@ -93,28 +93,28 @@ double VariantLinear::getValue(unsigned int timestep)
         timestep = 0;
     else
         timestep -= m_offset;
-        
+
     // handle the degenerate case that the variant is empty
     if (m_values.empty())
         {
         cerr << endl << "***Error! No points specified to VariantLinear" << endl << endl;
         throw runtime_error("Error getting variant value");
         }
-        
+
     // handle the degernate case that there is only one value in the variant
     if (m_values.size() == 1)
         return m_values.begin()->second;
-        
+
     // handle beginning case
     if (timestep < m_values.begin()->first)
         return m_values.begin()->second;
-        
+
     // handle end case
     map<unsigned int, double>::iterator last = m_values.end();
     --last;
     if (timestep >= last->first)
         return last->second;
-        
+
     // handle middle case
     // check to see if the cache is still correct
     bool cache_ok = m_a != m_values.end() && m_b != m_values.end() && timestep >= m_a->first && timestep < m_b->first;
@@ -122,21 +122,21 @@ double VariantLinear::getValue(unsigned int timestep)
         {
         // reload the cached iterators
         m_a = m_values.upper_bound(timestep);
-        
+
         m_b = m_a;
         --m_a;
         assert(m_a != m_values.end());
         assert(m_b != m_values.end());
         }
-        
+
     // interpolate
     unsigned int ta = m_a->first;
     unsigned int tb = m_b->first;
     assert(tb > ta);
-    
+
     double va = m_a->second;
     double vb = m_b->second;
-    
+
     assert(timestep >= ta && timestep < tb);
     double f = double((timestep - ta)) / double((tb - ta));
     return (1.0 - f) * va + f * vb;
@@ -147,9 +147,9 @@ void export_Variant()
     class_<Variant, boost::shared_ptr<Variant> >("Variant", init< >())
     .def("getValue", &Variant::getValue)
     .def("setOffset", &Variant::setOffset);
-    
+
     class_<VariantConst, boost::shared_ptr<VariantConst>, bases<Variant> >("VariantConst", init< double >());
-    
+
     class_<VariantLinear, boost::shared_ptr<VariantLinear>, bases<Variant> >("VariantLinear", init< >())
     .def("setPoint", &VariantLinear::setPoint);
     }
@@ -157,4 +157,3 @@ void export_Variant()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
-#define INVALID_INDEX 0xffffffff 
+#define INVALID_INDEX 0xffffffff
 
 #pragma mark RIGID_STEP_ONE_KERNEL
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
@@ -84,15 +84,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param d_rigid_group Body indices
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param deltaT Timestep 
+    \param deltaT Timestep
     \param box Box dimensions for periodic boundary condition handling
 */
-extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(Scalar4* rdata_com, 
-                                                        Scalar4* rdata_vel, 
-                                                        Scalar4* rdata_angmom, 
+extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(Scalar4* rdata_com,
+                                                        Scalar4* rdata_vel,
+                                                        Scalar4* rdata_angmom,
                                                         Scalar4* rdata_angvel,
-                                                        Scalar4* rdata_orientation, 
-                                                        int3* rdata_body_image, 
+                                                        Scalar4* rdata_orientation,
+                                                        int3* rdata_body_image,
                                                         Scalar4* rdata_conjqm,
                                                         Scalar *d_rigid_mass,
                                                         Scalar4 *d_rigid_mi,
@@ -100,8 +100,8 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(Scalar4* rdata_com
                                                         Scalar4 *d_rigid_torque,
                                                         unsigned int *d_rigid_group,
                                                         unsigned int n_group_bodies,
-                                                        unsigned int n_bodies, 
-                                                        BoxDim box, 
+                                                        unsigned int n_bodies,
+                                                        BoxDim box,
                                                         Scalar deltaT)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -179,7 +179,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    Scalar4 *d_net_force,
-                                   const BoxDim& box, 
+                                   const BoxDim& box,
                                    Scalar deltaT)
     {
     assert(d_net_force);
@@ -196,33 +196,33 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_rigid_data_arrays& rigid_data,
     assert(rigid_data.force);
     assert(rigid_data.torque);
     assert(rigid_data.body_indices);
-     
+
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
-    
+
     // setup the grid to run the kernel for rigid bodies
     int block_size = 64;
     int n_blocks = n_group_bodies / block_size + 1;
     dim3 body_grid(n_blocks, 1, 1);
     dim3 body_threads(block_size, 1, 1);
-    
-    gpu_nve_rigid_step_one_body_kernel<<< body_grid, body_threads >>>(rigid_data.com, 
-                                                           rigid_data.vel, 
-                                                           rigid_data.angmom, 
+
+    gpu_nve_rigid_step_one_body_kernel<<< body_grid, body_threads >>>(rigid_data.com,
+                                                           rigid_data.vel,
+                                                           rigid_data.angmom,
                                                            rigid_data.angvel,
-                                                           rigid_data.orientation, 
-                                                           rigid_data.body_image, 
+                                                           rigid_data.orientation,
+                                                           rigid_data.body_image,
                                                            rigid_data.conjqm,
                                                            rigid_data.body_mass,
                                                            rigid_data.moment_inertia,
                                                            rigid_data.force,
                                                            rigid_data.torque,
                                                            rigid_data.body_indices,
-                                                           n_group_bodies, 
-                                                           n_bodies, 
+                                                           n_group_bodies,
+                                                           n_bodies,
                                                            box,
                                                            deltaT);
-    
+
 
     return cudaSuccess;
     }
@@ -248,36 +248,36 @@ extern __shared__ Scalar3 sum[];
     \param thread_mask Block size minus 1, used for idenifying the first thread in the block
     \param n_bodies_per_block Number of bodies per block
     \param box Box dimensions for periodic boundary condition handling
-    
+
     Compute the force and torque sum on all bodies in the system from their constituent particles. n_bodies_per_block
     bodies are handled within each block of execution on the GPU. The reason for this is to decrease
     over-parallelism and use the GPU cores more effectively when bodies are smaller than the block size. Otherwise,
     small bodies leave many threads in the block idle with nothing to do.
-    
+
     On start, the properties common to each body are read in, computed, and stored in shared memory for all the threads
     working on that body to access. Then, the threads loop over all particles that are part of the body with
     a sliding window. Each loop of the window computes the force and torque for block_size/n_bodies_per_block particles
     in as many threads in parallel. These quantities are summed over enough windows to cover the whole body.
-    
+
     The block_size/n_bodies_per_block partial sums are stored in shared memory. Then n_bodies_per_block partial
     reductions are performed in parallel using all threads to sum the total force and torque on each body. This looks
     just like a normal reduction, except that it terminates at a certain level in the tree. To make the math
     for the partial reduction work out, block_size must be a power of 2 as must n_bodies_per_block.
-    
+
     Performance testing on GF100 with many different bodies of different sizes ranging from 4-256 particles per body
     has found that the optimum block size for most bodies is 64 threads. Performance increases for all body sizes
     as n_bodies_per_block is increased, but only up to 8. n_bodies_per_block=16 slows performance significantly.
     Based on these performance results, this kernel is hardcoded to handle only 1,2,4,8 n_bodies_per_block
     with a power of 2 block size (hardcoded to 64 in the kernel launch).
-    
+
     However, there is one issue to the n_bodies_per_block parallelism reduction. If the reduction results in too few
     blocks, performance can actually be reduced. For example, if there are only 64 bodies running at the "most optimal"
     n_bodies_per_block=8 results in only 8 blocks on the GPU! That isn't even enough to heat up all 15 SMs on GF100.
     Even though n_bodies_per_block=1 is not fully optimal per block, running 64 slow blocks in parallel is faster than
-    running 8 fast blocks in parallel. Testing on GF100 determines that 60 blocks is the dividing line (makes sense - 
+    running 8 fast blocks in parallel. Testing on GF100 determines that 60 blocks is the dividing line (makes sense -
     that's 4 blocks active on each SM).
 */
-extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force, 
+extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
                                                  Scalar4* rdata_torque,
                                                  unsigned int *d_rigid_group,
                                                  Scalar4* d_rigid_orientation,
@@ -286,8 +286,8 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
                                                  Scalar4* d_rigid_particle_dis,
                                                  Scalar4* d_net_force,
                                                  Scalar4* d_net_torque,
-                                                 unsigned int n_group_bodies, 
-                                                 unsigned int n_bodies, 
+                                                 unsigned int n_group_bodies,
+                                                 unsigned int n_bodies,
                                                  unsigned int nmax,
                                                  unsigned int window_size,
                                                  unsigned int thread_mask,
@@ -297,11 +297,11 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
     // determine which body (0 ... n_bodies_per_block-1) this thread is working on
     // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
     unsigned int m = threadIdx.x / (blockDim.x / n_bodies_per_block);
-    
+
     // body_force and body_torque are each shared memory arrays with 1 element per threads
     Scalar3 *body_force = sum;
     Scalar3 *body_torque = &sum[blockDim.x];
-    
+
     // store ex_space, ey_space, ez_space, and the body index in shared memory. Up to 8 bodies per block can
     // be handled.
     __shared__ Scalar4 ex_space[8], ey_space[8], ez_space[8];
@@ -310,7 +310,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
     // each thread makes partial sums of force and torque of all the particles that this thread loops over
     Scalar3 sum_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
     Scalar3 sum_torque = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-    
+
     // thread_mask is a bitmask that masks out the high bits in threadIdx.x.
     // threadIdx.x & thread_mask is an index from 0 to block_size/n_bodies_per_block-1 and determines what offset
     // this thread is to use when accessing the particles in the body
@@ -329,28 +329,28 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
             idx_body[m] =-1;
             }
         }
-    
+
     __syncthreads();
-    
+
     // compute the number of windows that we need to loop over
     unsigned int n_windows = nmax / window_size + 1;
-        
+
     // slide the window throughout the block
     for (unsigned int start = 0; start < n_windows; start++)
         {
         Scalar4 fi = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
         Scalar4 ti = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        
+
         // determine the index with this body that this particle should handle
         unsigned int k = start * window_size + (threadIdx.x & thread_mask);
-        
+
         // if that index is in the body we are actually handling a real body
         if (k < nmax && idx_body[m] != -1)
             {
             // determine the particle idx of the particle
             int localidx = idx_body[m] * nmax + k;
             unsigned int pidx = d_rigid_particle_idx[localidx];
-            
+
             // if this particle is actually in the body
             if (pidx != INVALID_INDEX)
                 {
@@ -365,18 +365,18 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
                 sum_force.x += fi.x;
                 sum_force.y += fi.y;
                 sum_force.z += fi.z;
-                
+
                 // This might require more calculations but more stable
                 // particularly when rigid bodies are bigger than half the box
                 Scalar3 ri;
-                ri.x = ex_space[m].x * particle_pos.x + ey_space[m].x * particle_pos.y 
+                ri.x = ex_space[m].x * particle_pos.x + ey_space[m].x * particle_pos.y
                         + ez_space[m].x * particle_pos.z;
-                ri.y = ex_space[m].y * particle_pos.x + ey_space[m].y * particle_pos.y 
+                ri.y = ex_space[m].y * particle_pos.x + ey_space[m].y * particle_pos.y
                         + ez_space[m].y * particle_pos.z;
-                ri.z = ex_space[m].z * particle_pos.x + ey_space[m].z * particle_pos.y 
+                ri.z = ex_space[m].z * particle_pos.x + ey_space[m].z * particle_pos.y
                         + ez_space[m].z * particle_pos.z;
 
-                //need to update here     
+                //need to update here
                 // tally the torque in the per thread counter
                 sum_torque.x += ri.y * fi.z - ri.z * fi.y + ti.x;
                 sum_torque.y += ri.z * fi.x - ri.x * fi.z + ti.y;
@@ -386,11 +386,11 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
         }
 
     __syncthreads();
-    
+
     // put the partial sums into shared memory
     body_force[threadIdx.x] = sum_force;
     body_torque[threadIdx.x] = sum_torque;
-   
+
     // perform a set of partial reductions. Each block_size/n_bodies_per_block threads performs a sum reduction
     // just within its own group
     unsigned int offset = window_size >> 1;
@@ -401,17 +401,17 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
             body_force[threadIdx.x].x += body_force[threadIdx.x + offset].x;
             body_force[threadIdx.x].y += body_force[threadIdx.x + offset].y;
             body_force[threadIdx.x].z += body_force[threadIdx.x + offset].z;
-            
+
             body_torque[threadIdx.x].x += body_torque[threadIdx.x + offset].x;
             body_torque[threadIdx.x].y += body_torque[threadIdx.x + offset].y;
             body_torque[threadIdx.x].z += body_torque[threadIdx.x + offset].z;
             }
-            
+
         offset >>= 1;
-        
+
         __syncthreads();
         }
-    
+
     // thread 0 within this body writes out the total force and torque for the body
     if ((threadIdx.x & thread_mask) == 0 && idx_body[m] != -1)
         {
@@ -431,7 +431,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(Scalar4* rdata_force,
 */
 cudaError_t gpu_rigid_force(const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
-                                   unsigned int group_size, 
+                                   unsigned int group_size,
                                    Scalar4 *d_net_force,
                                    Scalar4 *d_net_torque,
                                    const BoxDim& box,
@@ -440,7 +440,7 @@ cudaError_t gpu_rigid_force(const gpu_rigid_data_arrays& rigid_data,
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
     unsigned int nmax = rigid_data.nmax;
-    
+
     unsigned int n_bodies_per_block;
     unsigned int target_num_blocks = 60;
     if (n_group_bodies / 8 >= target_num_blocks)
@@ -457,11 +457,11 @@ cudaError_t gpu_rigid_force(const gpu_rigid_data_arrays& rigid_data,
     unsigned int block_size = 64;
     unsigned int window_size = block_size / n_bodies_per_block;
     unsigned int thread_mask = window_size - 1;
-    
+
     dim3 force_grid(n_group_bodies / n_bodies_per_block + 1, 1, 1);
     dim3 force_threads(block_size, 1, 1);
 
-    gpu_rigid_force_sliding_kernel<<< force_grid, force_threads, 2 * block_size * sizeof(Scalar3) >>>(rigid_data.force, 
+    gpu_rigid_force_sliding_kernel<<< force_grid, force_threads, 2 * block_size * sizeof(Scalar3) >>>(rigid_data.force,
                                                                                             rigid_data.torque,
                                                                                             rigid_data.body_indices,
                                                                                             rigid_data.orientation,
@@ -478,9 +478,9 @@ cudaError_t gpu_rigid_force(const gpu_rigid_data_arrays& rigid_data,
                                                                                             n_bodies_per_block,
                                                                                             box);
 
-                                                
-                                                 
-                                                 
+
+
+
 
     return cudaSuccess;
     }
@@ -499,11 +499,11 @@ cudaError_t gpu_rigid_force(const gpu_rigid_data_arrays& rigid_data,
     \param d_rigid_group Body indices
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
-    \param deltaT Timestep 
+    \param deltaT Timestep
     \param box Box dimensions for periodic boundary condition handling
 */
-extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(Scalar4* rdata_vel, 
-                                                         Scalar4* rdata_angmom, 
+extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(Scalar4* rdata_vel,
+                                                         Scalar4* rdata_angmom,
                                                          Scalar4* rdata_angvel,
                                                          Scalar4* rdata_orientation,
                                                          Scalar4* rdata_conjqm,
@@ -513,21 +513,21 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(Scalar4* rdata_vel
                                                          Scalar4 *d_rigid_torque,
                                                          unsigned int *d_rigid_group,
                                                          unsigned int n_group_bodies,
-                                                         unsigned int n_bodies, 
-                                                         BoxDim box, 
+                                                         unsigned int n_bodies,
+                                                         BoxDim box,
                                                          Scalar deltaT)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx >= n_group_bodies)
         return;
-    
+
     Scalar body_mass;
     Scalar4 moment_inertia, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque;
     Scalar dt_half = Scalar(0.5) * deltaT;
-    
+
     unsigned int idx_body = d_rigid_group[group_idx];
-    
+
     // Update body velocity and angmom
     // update the velocity
     body_mass = d_rigid_mass[idx_body];
@@ -537,9 +537,9 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(Scalar4* rdata_vel
     torque = d_rigid_torque[idx_body];
     moment_inertia = d_rigid_mi[idx_body];
     orientation = rdata_orientation[idx_body];
-    
+
     exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
-        
+
     Scalar dtfm = dt_half / body_mass;
     Scalar4 vel2;
     vel2.x = vel.x + dtfm * force.x;
@@ -553,11 +553,11 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(Scalar4* rdata_vel
     angmom2.y = angmom.y + dt_half * torque.y;
     angmom2.z = angmom.z + dt_half * torque.z;
     angmom2.w = Scalar(0.0);
-    
-    // update angular velocity        
+
+    // update angular velocity
     Scalar4 angvel2;
     computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel2);
-    
+
     // write out results
     rdata_vel[idx_body] = vel2;
     rdata_angmom[idx_body] = angmom2;
@@ -583,13 +583,13 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int n_group_bodies = rigid_data.n_group_bodies;
-    
+
     unsigned int block_size = 64;
     unsigned int n_blocks = n_group_bodies / block_size + 1;
     dim3 body_grid(n_blocks, 1, 1);
     dim3 body_threads(block_size, 1, 1);
-    gpu_nve_rigid_step_two_body_kernel<<< body_grid, body_threads >>>(rigid_data.vel, 
-                                                                      rigid_data.angmom, 
+    gpu_nve_rigid_step_two_body_kernel<<< body_grid, body_threads >>>(rigid_data.vel,
+                                                                      rigid_data.angmom,
                                                                       rigid_data.angvel,
                                                                       rigid_data.orientation,
                                                                       rigid_data.conjqm,
@@ -599,10 +599,9 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_rigid_data_arrays& rigid_data,
                                                                       rigid_data.torque,
                                                                       rigid_data.body_indices,
                                                                       n_group_bodies,
-                                                                      n_bodies, 
-                                                                      box, 
+                                                                      n_bodies,
+                                                                      box,
                                                                       deltaT);
-    
+
     return cudaSuccess;
     }
-

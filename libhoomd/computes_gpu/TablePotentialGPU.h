@@ -78,16 +78,16 @@ class TablePotentialGPU : public TablePotential
                           boost::shared_ptr<NeighborList> nlist,
                           unsigned int table_width,
                           const std::string& log_suffix="");
-                          
+
         //! Destructor
         virtual ~TablePotentialGPU() { }
-        
+
         //! Set the block size
         void setBlockSize(int block_size);
-        
+
     private:
         int m_block_size;   //!< the block size
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -96,4 +96,3 @@ class TablePotentialGPU : public TablePotential
 void export_TablePotentialGPU();
 
 #endif
-

@@ -124,14 +124,14 @@ void BoxResizeUpdater::update(unsigned int timestep)
     Scalar xy = m_xy->getValue(timestep);
     Scalar xz = m_xz->getValue(timestep);
     Scalar yz = m_yz->getValue(timestep);
-    
+
     // check if the current box size is the same
     BoxDim curBox = m_pdata->getGlobalBox();
     Scalar3 curL = curBox.getL();
     Scalar curxy = curBox.getTiltFactorXY();
     Scalar curxz = curBox.getTiltFactorXZ();
     Scalar curyz = curBox.getTiltFactorYZ();
-    
+
     // copy and setL + setTiltFactors instead of creating a new box
     BoxDim newBox = curBox;
     newBox.setL(make_scalar3(Lx, Ly, Lz));
@@ -166,13 +166,13 @@ void BoxResizeUpdater::update(unsigned int timestep)
                 h_pos.data[i].y = scaled_pos.y;
                 h_pos.data[i].z = scaled_pos.z;
                 }
-                
+
             // also rescale rigid body COMs
             unsigned int n_bodies = rigid_data->getNumBodies();
             if (n_bodies > 0)
                 {
                 ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-                
+
                 for (unsigned int body = 0; body < n_bodies; body++)
                     {
                     // obtain scaled coordinates in the old global box
@@ -185,23 +185,23 @@ void BoxResizeUpdater::update(unsigned int timestep)
                     com_handle.data[body].z = scaled_cm.z;
                     }
                 }
-                
+
             }
-        else 
+        else
             {
             // otherwise, we need to ensure that the particles are still in the (local) box
             // move the particles to be inside the new box
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-          
+
             const BoxDim& local_box = m_pdata->getBox();
-             
+
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 // intentionally scale both rigid body and free particles, this may waste a few cycles but it enables
                 // the debug inBox checks to be left as is (otherwise, setRV cannot fixup rigid body positions without
                 // failing the check)
-                
+
                 // need to update the image if we move particles from one side of the box to the other
                 local_box.wrap(h_pos.data[i], h_image.data[i]);
                 }
@@ -212,7 +212,7 @@ void BoxResizeUpdater::update(unsigned int timestep)
                 {
                 ArrayHandle<Scalar4> h_body_com(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
                 ArrayHandle<int3> h_body_image(rigid_data->getBodyImage(), access_location::host, access_mode::readwrite);
-                
+
                 for (unsigned int body = 0; body < n_bodies; body++)
                     {
                     // need to update the image if we move particles from one side of the box to the other
@@ -227,7 +227,7 @@ void BoxResizeUpdater::update(unsigned int timestep)
         // update the body particle positions to reflect the new rigid body positions
         rigid_data->setRV(true);
         }
-        
+
     if (m_prof) m_prof->pop();
     }
 
@@ -247,4 +247,3 @@ void export_BoxResizeUpdater()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

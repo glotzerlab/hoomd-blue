@@ -79,4 +79,3 @@ cudaError_t gpu_create_dihedraltable(uint4 *d_gpu_dihedraltable,
                                   const unsigned int N);
 
 #endif
-

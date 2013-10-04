@@ -82,13 +82,13 @@ class _compute:
         if not init.is_initialized():
             globals.msg.error("Cannot create compute before initialization\n");
             raise RuntimeError('Error creating compute');
-        
+
         self.cpp_compute = None;
 
         # increment the id counter
         id = _compute.cur_id;
         _compute.cur_id += 1;
-        
+
         self.compute_name = "compute%d" % (id);
         self.enabled = True;
 
@@ -99,7 +99,7 @@ class _compute:
     ## \var cpp_compute
     # \internal
     # \brief Stores the C++ side Compute managed by this class
-    
+
     ## \var compute_name
     # \internal
     # \brief The Compute's name as it is assigned to the System
@@ -124,7 +124,7 @@ class _compute:
     #
     # A disabled %compute can be re-enabled with enable()
     #
-    # To use this command, you must have saved the %compute in a variable, as 
+    # To use this command, you must have saved the %compute in a variable, as
     # shown in this example:
     # \code
     # c = compute.some_compute()
@@ -134,12 +134,12 @@ class _compute:
     def disable(self):
         util.print_status_line();
         self.check_initialization();
-        
+
         # check if we are already disabled
         if not self.enabled:
             globals.msg.warning("Ignoring command to disable a compute that is already disabled");
             return;
-        
+
         globals.system.removeCompute(self.compute_name);
         self.enabled = False;
 
@@ -154,15 +154,15 @@ class _compute:
     def enable(self):
         util.print_status_line();
         self.check_initialization();
-        
+
         # check if we are already disabled
         if self.enabled:
             globals.msg.warning("Ignoring command to enable a compute that is already enabled");
             return;
-            
+
         globals.system.addCompute(self.cpp_compute, self.compute_name);
         self.enabled = True;
-        
+
 # set default counter
 _compute.cur_id = 0;
 
@@ -189,14 +189,14 @@ _compute.cur_id = 0;
 #  - <b>temperature</b><i>_groupname</i> - \f$ T \f$ - instantaneous thermal energy of the group (in energy units). Calculated as
 #    \f$ T = 2 \cdot \frac{K}{N_{\mathrm{dof}}} \f$
 #  - <b>pressure</b><i>_groupname</i> - \f$ P \f$ - instantaneous pressure of the group (in pressure units). Calculated as
-#    \f$ P = (\frac{2}{3} \cdot K + \frac{1}{3}\cdot W)/V \f$ in 3D, where \f$ V \f$ is the volume of the simulation box and 
+#    \f$ P = (\frac{2}{3} \cdot K + \frac{1}{3}\cdot W)/V \f$ in 3D, where \f$ V \f$ is the volume of the simulation box and
 #    \f$ W = \frac{1}{2} \sum_{i}\sum_{j \ne i} \vec{F}_{ij} \cdot \vec{r_{ij}} \f$. In 2D simulations,
 #    \f$ P = (K + \frac{1}{2}\cdot W)/A \f$ where \f$ A \f$ is the area
 #    of the simulation box.
 #  - <b>pressure_xx</b><i>_groupname</i>, <b>pressure_xy</b><i>_groupname</i>, <b>pressure_xz</b><i>_groupname</i>,
-#    <b>pressure_yy</b><i>_groupname</i>, <b>pressure_yz</b><i>_groupname</i>, <b>pressure_zz</b><i>_groupname</i> - 
+#    <b>pressure_yy</b><i>_groupname</i>, <b>pressure_yz</b><i>_groupname</i>, <b>pressure_zz</b><i>_groupname</i> -
 #    instantaneous pressure tensor of the group (in pressure units).
-#    \f[ P_{ij} = \left[  \sum_{k\in[0..N)} m_k v_{k,i} v_{k,j} + 
+#    \f[ P_{ij} = \left[  \sum_{k\in[0..N)} m_k v_{k,i} v_{k,j} +
 #                           \sum_{k\in[0..N)} \sum_{l > k} \frac{1}{2} \left(\vec{r}_{kl,i} \vec{F}_{kl,j} + \vec{r}_{kl,j} \vec{F}_{kl, i} \right) \right]/V \f]
 #
 # \sa analyze.log
@@ -213,21 +213,21 @@ class thermo(_compute):
     #
     def __init__(self, group):
         util.print_status_line();
-        
+
         # initialize base class
         _compute.__init__(self);
-        
+
         suffix = '';
         if group.name != 'all':
             suffix = '_' + group.name;
-        
+
         # warn user if an existing compute thermo already uses this group or name
         for t in globals.thermos:
             if t.group is group:
                 globals.msg.warning("compute.thermo already specified for this group");
             elif t.group.name == group.name:
                 globals.msg.warning("compute.thermo already specified for a group with name " + str(group.name) + "\n");
-        
+
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             self.cpp_compute = hoomd.ComputeThermo(globals.system_definition, group.cpp_group, suffix);
@@ -245,16 +245,15 @@ class thermo(_compute):
 # \brief Returns the previously created compute.thermo with the same group, if created. Otherwise, creates a new
 # compute.thermo
 def _get_unique_thermo(group):
-    
+
     # first check the globals for an existing compute.thermo
     for t in globals.thermos:
         # if we find a match, return it
         if t.group is group:
             return t;
-    
+
     # if we get here, there were no matches: create a new one
     util._disable_status_lines = True;
     res = thermo(group);
     util._disable_status_lines = False;
     return res;
-

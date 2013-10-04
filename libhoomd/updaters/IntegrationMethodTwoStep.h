@@ -78,17 +78,17 @@ class Communicator;
     - Update position and velocity (w/ current accel)
     - Sum accelerations at the current position
     - Update position and velocity again (w/ newly calculated accel)
-    
+
     It is also sometimes desierable to run part of the system with one integration method (i.e. NVE) and part with
     another (NPT). Or part of the system with an integrator and the other part none at all. To facilitate this, the
     IntegrationMethodTwoStep is being created. It is a generic class, of which sub classes (TwoStepNVT, TwoStepNVE, ...)
     will implement the specific two step integration method. A single integrator, IntegratorTwoStep, can contain
     several two step integration methods. It calls the first step on all of them, then calculates the forces, and then
     calls the second step on all methods. In this way, the entire system will be integrated forward correctly.
-    
+
     This design is chosen so that a single integration method is only applied to a group of particles. To enforce this
     design constraint, the group is specified in the constructor to the base class method.
-    
+
     However, some care needs to be put into thinking about the computation of the net force / accelerations. Prior to
     implementing IntegrationMethodTwoStep, Integrators on the CPU have the net force and acceleration summed in
     Integrator::computeAccelerations. While the GPU ones only compute the forces in that call, and sum the net force
@@ -97,33 +97,33 @@ class Communicator;
     the net force / acceleration would probably not be calculated properly. To avoid this problem, a net force and
     virial will summed within Integrator::computeNetForce() / Integrator::computeNetForceGPU() which is called at the
     proper time in IntegratorTwoStep() (and presumably other integration routines).
-        
+
     One small note: each IntegrationTwoStep will have a deltaT. The value of this will be set by the integrator when
     Integrator::setDeltaT is called to ensure that all integration methods have the same delta t set.
-    
+
     <b>Integrator variables</b>
-    
+
     Integrator variables are registered and tracked, if needed, through the IntegratorData interface. Because of the
     need for valid restart tracking (see below), \b all integrators register even if they do not need to save state
     information.
-    
+
     Furthermore, the base class IntegratorTwoStep needs to know whether or not it should recalculate the "first step"
     accelerations. Accelerations are saved in the restart file, so if a restart is valid for all of the integration
     methods, it should skip that step. To facilitate this, derived classes should call setValidRestart(true) if they
     have valid restart information.
-    
+
     <b>Thermodynamic properties</b>
-    
+
     Thermodynamic properties on given groups are computed by ComputeThermo. See the documentation of ComputeThermo for
     its design and logging capabilities. To compute temperature properly, ComputeThermo needs the number of degrees of
     freedom. Only the Integrator can know that as it is the integrator that grants degrees of freedom to the particles.
     hoomd_script will break the dependancy requirement. At the start of every run, hoomd_script will ask for an updated
     NDOF for every ComputeThermo group and set it.
-    
+
     For IntegratorTwoStep, each IntegrationMethodTwoStep will compute its own contribution to the degrees of freedom
-    for each particle in the group. IntegratorTwoStep will sum the contributions to get the total. At that point, 
+    for each particle in the group. IntegratorTwoStep will sum the contributions to get the total. At that point,
     D will be deducted from the total to get the COM motion constraint correct.
-    
+
     <b>Design requirements</b>
     Due to the nature of allowing multiple integration methods to run at once, some strict guidlines need to be laid
     down.
@@ -135,13 +135,13 @@ class Communicator;
        forward for the second half step
     -# each integration method only applies these operations to the particles contained within its group (exceptions
        are allowed when box rescaling is needed)
-    
+
     <b>Design items still left to do:</b>
-    
-    Interaction with logger: perhaps the integrator should forward log value queries on to the integration method? 
+
+    Interaction with logger: perhaps the integrator should forward log value queries on to the integration method?
     each method could be given a user name so that they are logged in user-controlled columns. This provides a window
     into the interally computed state variables logging per method.
-    
+
     \ingroup updaters
 */
 class IntegrationMethodTwoStep : boost::noncopyable
@@ -151,59 +151,59 @@ class IntegrationMethodTwoStep : boost::noncopyable
         IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<ParticleGroup> group);
         virtual ~IntegrationMethodTwoStep() {};
-        
+
         //! Abstract method that performs the first step of the integration
         /*! \param timestep Current time step
         */
         virtual void integrateStepOne(unsigned int timestep) {}
-        
+
         //! Abstract method that performs the second step of the integration
         /*! \param timestep Current time step
         */
         virtual void integrateStepTwo(unsigned int timestep)
             {
             }
-        
+
         //! Sets the profiler for the integration method to use
         void setProfiler(boost::shared_ptr<Profiler> prof);
-        
+
         //! Returns a list of log quantities this compute calculates
         /*! The base class implementation just returns an empty vector. Derived classes should override
             this behavior and return a list of quantities that they log.
-        
+
             See Logger for more information on what this is about.
         */
         virtual std::vector< std::string > getProvidedLogQuantities()
             {
             return std::vector< std::string >();
             }
-            
+
         //! Calculates the requested log value and returns it
         /*! \param quantity Name of the log quantity to get
             \param timestep Current time step of the simulation
             \param my_quantity_flag Returns true if this method tracks this quantity
-        
+
             The base class just returns 0. Derived classes should override this behavior and return
             the calculated value for the given quantity. Only quantities listed in
             the return value getProvidedLogQuantities() will be requested from
             getLogValue().
-        
+
             See Logger for more information on what this is about.
         */
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep,  bool &my_quantity_flag)
             {
             return Scalar(0.0);
             }
-                    
+
         //! Change the timestep
         void setDeltaT(Scalar deltaT);
-        
+
         //! Access the group
         boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }
-        
+
         //! Get whether this restart was valid
         bool isValidRestart() { return m_valid_restart; }
-        
+
         //! Get the number of degrees of freedom granted to a given group
         virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> query_group);
 
@@ -241,7 +241,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
         // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
         // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
         // merge conflicts.
-        
+
         //! helper function to get the integrator variables from the particle data
         const IntegratorVariables& getIntegratorVariables()
             {
@@ -252,11 +252,11 @@ class IntegrationMethodTwoStep : boost::noncopyable
         void setIntegratorVariables(const IntegratorVariables& variables)
             {
             m_sysdef->getIntegratorData()->setIntegratorVariables(m_integrator_id, variables);
-            }            
+            }
 
-        //! helper function to check if the restart information (if applicable) is useable 
+        //! helper function to check if the restart information (if applicable) is useable
         bool restartInfoTestValid(IntegratorVariables& v, std::string type, unsigned int nvariables);
-        
+
         //! Set whether this restart is valid
         void setValidRestart(bool b) { m_valid_restart = b; }
 
@@ -274,4 +274,3 @@ class IntegrationMethodTwoStep : boost::noncopyable
 void export_IntegrationMethodTwoStep();
 
 #endif // #ifndef __INTEGRATION_METHOD_TWO_STEP_H__
-
