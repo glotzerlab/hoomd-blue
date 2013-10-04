@@ -601,6 +601,7 @@ void export_HOOMDBinaryInitializer()
     class_< HOOMDBinaryInitializer >("HOOMDBinaryInitializer",
         init<boost::shared_ptr<const ExecutionConfiguration>, const string&>())
         // virtual methods from ParticleDataInitializer are inherited
+        .def("getSnapshot", &HOOMDBinaryInitializer::getSnapshot)
         .def("getTimeStep", &HOOMDBinaryInitializer::getTimeStep)
         .def("setTimeStep", &HOOMDBinaryInitializer::setTimeStep)
         ;

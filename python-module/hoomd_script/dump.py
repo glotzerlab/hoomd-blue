@@ -271,6 +271,11 @@ class xml(analyze._analyzer):
 # Every \a period time steps, a new file will be created. The state of the 
 # particles at that time step is written to the file in a binary format.
 #
+# \warning init.read_bin is deprecated. It currently maintains all of its old functionality, but there are a number
+#          of new features in HOOMD-blue that it does not support.
+#              * Triclinic boxes
+#              * MPI
+#
 # \sa init.read_bin
 # \MPI_NOT_SUPPORTED
 class bin(analyze._analyzer):
@@ -327,6 +332,7 @@ class bin(analyze._analyzer):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True):
         util.print_status_line();
+        globals.msg.warning("dump.bin is deprecated and will be removed in the next release");
   
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):

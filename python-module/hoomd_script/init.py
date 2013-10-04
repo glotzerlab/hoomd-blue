@@ -297,9 +297,14 @@ def read_xml(filename, time_step = None):
 # The result of init.read_bin can be saved in a variable and later used to read and/or change particle properties
 # later in the script. See hoomd_script.data for more information.
 #
+# \warning init.read_bin is deprecated. It currently maintains all of its old functionality, but there are a number
+#          of new features in HOOMD-blue that it does not support.
+#              * Triclinic boxes
+#
 # \sa dump.bin
-def read_bin(filename):
+def read_bin(filename, time_step = None):
     util.print_status_line();
+    globals.msg.warning("init.read_bin is deprecated and will be removed in the next release");
     
     # initialize GPU/CPU execution configuration and MPI early
     my_exec_conf = _create_exec_conf();
