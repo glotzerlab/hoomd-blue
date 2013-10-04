@@ -81,4 +81,3 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 std::string getExePath();
 
 #endif
-

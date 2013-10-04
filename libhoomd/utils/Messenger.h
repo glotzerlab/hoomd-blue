@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMPI.h"
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/categories.hpp>
-#endif 
+#endif
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
@@ -95,7 +95,7 @@ class mpi_io
         virtual ~mpi_io() { };
 
         //! Close the log file
-        void close(); 
+        void close();
 
         //! \return true if file is open
         bool is_open()
@@ -156,7 +156,7 @@ class mpi_io
     \b HOOMD specific
 
     One global Messenger will be initialized in python and passed to the ExecutionConfiguration. From there, all C++
-    classes can print messages via commands like m_exec_conf->msg->notice(1) << "blah". Maybe a macro NOTICE() to 
+    classes can print messages via commands like m_exec_conf->msg->notice(1) << "blah". Maybe a macro NOTICE() to
     simplify the typing??? Need to debate that.
 
     The following notice levels will be used:
@@ -216,7 +216,7 @@ class Messenger
 
             \param rank This processor's rank
 
-         */ 
+         */
         void setRank(unsigned int rank, unsigned int partition)
             {
             // prefix all messages with rank information

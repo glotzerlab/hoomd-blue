@@ -85,7 +85,7 @@ std::string ClockSource::formatHMS(int64_t t)
     int minutes = int(t / (int64_t(60) * int64_t(1000000000)));
     t -= minutes * int64_t(60) * int64_t(1000000000);
     int seconds = int(t / int64_t(1000000000));
-    
+
     // format the string
     ostringstream str;
     str <<  setfill('0') << setw(2) << hours << ":" << setw(2) << minutes << ":" << setw(2) << seconds;
@@ -102,4 +102,3 @@ void export_ClockSource()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

@@ -111,7 +111,7 @@ namespace boost
             ar & s.z;
             }
 
- 
+
         //! Serialization of int3
         template<class Archive>
         void serialize(Archive & ar, int3 & i, const unsigned int version)
@@ -128,7 +128,7 @@ namespace boost
             ar & u.x;
             ar & u.y;
             }
- 
+
         //! serialization of uint3
         template<class Archive>
         void serialize(Archive & ar, uint3 & u, const unsigned int version)
@@ -168,7 +168,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
 
         // serialize object
         ar << val;
-        
+
         // do not forget to flush stream
         s.flush();
 
@@ -193,7 +193,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
     ar >> val;
 
     delete[] buf;
-    } 
+    }
 
 //! Wrapper around MPI_Scatterv that scatters a vector of serializable objects
 template<typename T>
@@ -245,7 +245,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
     MPI_Scatter(send_counts, 1, MPI_INT, &recv_count, 1, MPI_INT, root, mpi_comm);
 
     // allocate receive buffer
-    char *rbuf = new char[recv_count]; 
+    char *rbuf = new char[recv_count];
 
     // scatter actual data
     MPI_Scatterv(sbuf, send_counts, displs, MPI_BYTE, rbuf, recv_count, MPI_BYTE, root, mpi_comm);
@@ -265,7 +265,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
         delete[] sbuf;
         }
     delete[] rbuf;
-    } 
+    }
 
 //! Wrapper around MPI_Gatherv
 template<typename T>
@@ -336,8 +336,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
         }
 
     delete[] sbuf;
-    } 
+    }
 
 #endif // ENABLE_MPI
 #endif // __HOOMD_MATH_H__
-

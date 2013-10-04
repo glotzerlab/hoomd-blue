@@ -97,7 +97,7 @@ __inline int gettimeofday(struct timeval *tv, struct timezone *tz)
     LARGE_INTEGER   li;
     __int64         t;
     static int      tzflag;
-    
+
     if (tv)
         {
         GetSystemTimeAsFileTime(&ft);
@@ -109,7 +109,7 @@ __inline int gettimeofday(struct timeval *tv, struct timezone *tz)
         tv->tv_sec  = (long)(t / 1000000);
         tv->tv_usec = (long)(t % 1000000);
         }
-        
+
     // lets just ignore the whole timezone thing
     /*if (tz)
         {
@@ -121,7 +121,7 @@ __inline int gettimeofday(struct timeval *tv, struct timezone *tz)
         tz->tz_minuteswest = _timezone / 60;
         tz->tz_dsttime = _daylight;
         }*/
-    
+
     return 0;
     }
 
@@ -156,7 +156,7 @@ class ClockSource
         ClockSource();
         //! Get the current time in nanoseconds
         int64_t getTime() const;
-        
+
         //! Formats a given time value to HH:MM:SS
         static std::string formatHMS(int64_t t);
     private:
@@ -170,12 +170,9 @@ inline int64_t ClockSource::getTime() const
     {
     timeval t;
     gettimeofday(&t, NULL);
-    
+
     int64_t nsec = int64_t(t.tv_sec) * int64_t(1000000000) + int64_t(t.tv_usec)*int64_t(1000);
     return nsec - m_start_time;
     }
 
 #endif
-
-
-

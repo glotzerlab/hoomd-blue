@@ -105,14 +105,14 @@ class ProfileDataElem
         //! Constructs an element with zeroed counters
         ProfileDataElem() : m_start_time(0), m_elapsed_time(0), m_flop_count(0), m_mem_byte_count(0)
             {}
-            
+
         //! Returns the total elapsed time of this nodes children
         int64_t getChildElapsedTime() const;
         //! Returns the total flop count of this node + children
         int64_t getTotalFlopCount() const;
         //! Returns the total memory byte count of this node + children
         int64_t getTotalMemByteCount() const;
-        
+
         //! Output helper function
         void output(std::ostream &o, const std::string &name, int tab_level, int64_t total_time, int name_width) const;
         //! Another output helper function
@@ -123,9 +123,9 @@ class ProfileDataElem
                          double flops,
                          double bytes,
                          unsigned int name_width) const;
-        
+
         std::map<std::string, ProfileDataElem> m_children; //!< Child nodes of this profile
-        
+
         int64_t m_start_time;   //!< The start time of the most recent timed event
         int64_t m_elapsed_time; //!< A running total of elapsed running time
         int64_t m_flop_count;   //!< A running total of floating point operations
@@ -166,21 +166,21 @@ class Profiler
         void push(const std::string& name);
         //! Pops back up to the next super-category
         void pop(uint64_t flop_count = 0, uint64_t byte_count = 0);
-        
+
         //! Pushes a new sub-category into the current category & syncs the GPUs
         void push(boost::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name);
         //! Pops back up to the next super-category & syncs the GPUs
         void pop(boost::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count = 0, uint64_t byte_count = 0);
-        
+
     private:
         ClockSource m_clk;  //!< Clock to provide timing information
         std::string m_name; //!< The name of this profile
         ProfileDataElem m_root; //!< The root profile element
         std::stack<ProfileDataElem *> m_stack;  //!< A stack of data elements for the push/pop structure
-        
+
         //! Output helper function
         void output(std::ostream &o);
-        
+
         //! friend operator to enable stream output
         friend std::ostream& operator<<(std::ostream &o, Profiler& prof);
     };
@@ -216,15 +216,15 @@ inline void Profiler::push(const std::string& name)
     {
     // sanity checks
     assert(!m_stack.empty());
-    
+
     // pushing a new record on to the stack involves taking a time sample
     int64_t t = m_clk.getTime();
-    
+
     ProfileDataElem *cur = m_stack.top();
-    
+
     // then creating (or accessing) the named sample and setting the start time
     cur->m_children[name].m_start_time = t;
-    
+
     // and updating the stack
     m_stack.push(&cur->m_children[name]);
 
@@ -242,24 +242,23 @@ inline void Profiler::pop(uint64_t flop_count, uint64_t byte_count)
     // sanity checks
     assert(!m_stack.empty());
     assert(!(m_stack.top() == &m_root));
-    
+
     // popping up a level in the profile stack involves taking a time sample
     int64_t t = m_clk.getTime();
-    
+
     // then increasing the elapsed time for the current item
     ProfileDataElem *cur = m_stack.top();
 #ifdef VTRACE
     VT_USER_END_ID(cur->m_vt_id);
 #endif
     cur->m_elapsed_time += t - cur->m_start_time;
-    
+
     // and increasing the flop and mem counters
     cur->m_flop_count += flop_count;
     cur->m_mem_byte_count += byte_count;
-    
+
     // and finally popping the stack so that the next pop will access the correct element
     m_stack.pop();
     }
 
 #endif
-

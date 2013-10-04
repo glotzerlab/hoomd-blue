@@ -429,4 +429,3 @@ inline HOSTDEVICE double acos(double x)
 #undef HOSTDEVICE
 
 #endif // __HOOMD_MATH_H__
-

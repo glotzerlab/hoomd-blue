@@ -55,11 +55,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \file TextureTools.h
     \brief Utilities for working with textures
-    
+
     TextureTools.h exists to aid in defining Scalar textures which may be either float or double. It aims to simplify
     code that reads from these textures so that the amount of conditional code is simplified to be entirely within
     this header.
-    
+
     Planning for the future (__ldg), the fetch methods will also take in a pointer to the memory. That way, the initial
     work done to convert the texture loads over to the single/double will also make it easy to change over to __ldg
     in a single spot.
@@ -68,17 +68,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 
 #ifdef NVCC
-    
+
 #ifdef SINGLE_PRECISION
-    
+
 typedef texture<Scalar, 1, cudaReadModeElementType> scalar_tex_t;
 typedef texture<Scalar2, 1, cudaReadModeElementType> scalar2_tex_t;
 typedef texture<Scalar4, 1, cudaReadModeElementType> scalar4_tex_t;
-    
+
 //! Fetch a Scalar value from texture memory.
 /*! This function should be called whenever a CUDA kernel wants to retrieve a
     Scalar value from texture memory.
-    
+
     \param ptr Pointer to bound memory
     \param tex_ref Texture in which the desired values are stored.
     \param ii Index at which to look.
@@ -118,7 +118,7 @@ __device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, texture<Scalar4, 1
 typedef texture<int2, 1, cudaReadModeElementType> scalar_tex_t;
 typedef texture<int4, 1, cudaReadModeElementType> scalar2_tex_t;
 typedef texture<int4, 1, cudaReadModeElementType> scalar4_tex_t;
-    
+
 //! Fetch a Scalar value from texture memory.
 /*! This function should be called whenever a CUDA kernel wants to retrieve a
     Scalar value from texture memory.
@@ -172,4 +172,3 @@ __device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, texture<int4, 1> t
 
 
 #endif // __HOOMD_MATH_H__
-

@@ -74,7 +74,7 @@ int64_t ProfileDataElem::getChildElapsedTime() const
     {
     // start counting the elapsed time from our time
     int64_t total = 0;
-    
+
     // for each of the children
     map<string, ProfileDataElem>::const_iterator i;
     for (i = m_children.begin(); i != m_children.end(); ++i)
@@ -82,7 +82,7 @@ int64_t ProfileDataElem::getChildElapsedTime() const
         // add their time
         total += (*i).second.m_elapsed_time;
         }
-        
+
     // return the total
     return total;
     }
@@ -90,7 +90,7 @@ int64_t ProfileDataElem::getTotalFlopCount() const
     {
     // start counting the elapsed time from our time
     int64_t total = m_flop_count;
-    
+
     // for each of the children
     map<string, ProfileDataElem>::const_iterator i;
     for (i = m_children.begin(); i != m_children.end(); ++i)
@@ -98,7 +98,7 @@ int64_t ProfileDataElem::getTotalFlopCount() const
         // add their time
         total += (*i).second.getTotalFlopCount();
         }
-        
+
     // return the total
     return total;
     }
@@ -106,7 +106,7 @@ int64_t ProfileDataElem::getTotalMemByteCount() const
     {
     // start counting the elapsed time from our time
     int64_t total = m_mem_byte_count;
-    
+
     // for each of the children
     map<string, ProfileDataElem>::const_iterator i;
     for (i = m_children.begin(); i != m_children.end(); ++i)
@@ -114,7 +114,7 @@ int64_t ProfileDataElem::getTotalMemByteCount() const
         // add their time
         total += (*i).second.getTotalMemByteCount();
         }
-        
+
     // return the total
     return total;
     }
@@ -133,7 +133,7 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
     string tabs = "";
     for (int i = 0; i < tab_level; i++)
         tabs += "        ";
-        
+
     o << tabs;
     // start with an overview
     // initial tests determined that having a parent node calculate the avg gflops of its
@@ -147,9 +147,9 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
         flops = double(getTotalFlopCount())/sec;
         bytes = double(getTotalMemByteCount())/sec;
         }
-        
+
     output_line(o, name, sec, perc, flops, bytes, name_width);
-    
+
     // start by determining the name width
     map<string, ProfileDataElem>::const_iterator i;
 
@@ -161,13 +161,13 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
         if (child_width > child_max_width)
             child_max_width = child_width;
         }
-        
+
     // output each of the children
     for (i = m_children.begin(); i != m_children.end(); ++i)
         {
         (*i).second.output(o, (*i).first, tab_level+1, total_time, child_max_width);
         }
-        
+
     // output an "Self" item to account for time actually spent in this data elem
     if (m_children.size() > 0)
         {
@@ -175,7 +175,7 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
         double perc = double(m_elapsed_time - getChildElapsedTime())/double(total_time) * 100.0;
         double flops = double(m_flop_count)/sec;
         double bytes = double(m_mem_byte_count)/sec;
-        
+
         // don't print Self unless perc is significant
         if (perc >= 0.1)
             {
@@ -185,7 +185,7 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
         }
     }
 
-void ProfileDataElem::output_line(std::ostream &o, 
+void ProfileDataElem::output_line(std::ostream &o,
                                   const std::string &name,
                                   double sec,
                                   double perc,
@@ -194,22 +194,22 @@ void ProfileDataElem::output_line(std::ostream &o,
                                   unsigned int name_width) const
     {
     o << setiosflags(ios::fixed);
-    
+
     o << name << ": ";
     assert(name_width >= name.size());
     for (unsigned int i = 0; i < name_width - name.size(); i++)
         o << " ";
-        
+
     o << setw(7) << setprecision(1) << sec << "s";
     o << " | " << setprecision(1) << setw(3) << perc << "% ";
-    
+
     //If sec is zero, the values to be printed are garbage.  Thus, we skip it all together.
     if (sec == 0)
         {
         o << "n/a" << endl;
         return;
         }
-        
+
     o << setprecision(2);
     // output flops with intelligent units
     if (flops > 0)
@@ -222,7 +222,7 @@ void ProfileDataElem::output_line(std::ostream &o,
         else
             o << flops/1e9 << " GFLOP/s ";
         }
-        
+
     //output bytes/s with intelligent units
     if (bytes > 0)
         {
@@ -234,7 +234,7 @@ void ProfileDataElem::output_line(std::ostream &o,
         else
             o << bytes/1e9 << " GiB/s ";
         }
-        
+
     o << endl;
     }
 
@@ -245,7 +245,7 @@ Profiler::Profiler(const std::string& name) : m_name(name)
     {
     // push the root onto the top of the stack so that it is the default
     m_stack.push(&m_root);
-    
+
     // record the start of this profile
     m_root.m_start_time = m_clk.getTime();
     }
@@ -257,10 +257,10 @@ void Profiler::output(std::ostream &o)
         {
         o << "***Warning! Outputting a profile with incomplete samples" << endl;
         }
-        
+
     // outputting a profile implicitly calls for a time sample
     m_root.m_elapsed_time = m_clk.getTime() - m_root.m_start_time;
-    
+
     // startup the recursive output process
     m_root.output(o, m_name, 0, m_root.m_elapsed_time, (int)m_name.size());
     }
@@ -271,7 +271,7 @@ void Profiler::output(std::ostream &o)
 std::ostream& operator<<(ostream &o, Profiler& prof)
     {
     prof.output(o);
-    
+
     return o;
     }
 
@@ -297,4 +297,3 @@ void export_Profiler()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-
