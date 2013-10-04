@@ -110,22 +110,22 @@ string find_hoomd_script()
         string hoomd_script_dir = string(getenv("HOOMD_PYTHON_DIR"));
         search_paths.push_back(hoomd_script_dir);
         }
-    
+
     list<path>::iterator cur_path;
     for (cur_path = search_paths.begin(); cur_path != search_paths.end(); ++cur_path)
         {
         if (exists(*cur_path / "hoomd_script" / "__init__.py"))
             return cur_path->native_file_string();
         }
-        
-    cerr << endl 
+
+    cerr << endl
          << "***Error! HOOMD python-module directory not found. Check your HOOMD directory structure." << endl;
     cerr << "Searched for hoomd_script in:" << endl;
     for (cur_path = search_paths.begin(); cur_path != search_paths.end(); ++cur_path)
         {
         cerr << cur_path->native_file_string() << endl;
         }
-    
+
     return "";
     }
 
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
     PyImport_AppendInittab(module_name, &inithoomd);
 #endif
     Py_Initialize();
-    
+
     // Need to inject the hoomd module path and the plugins dir into sys.path
     string python_cmds("import sys\n");
     string hoomd_script_dir = find_hoomd_script();
@@ -157,16 +157,16 @@ int main(int argc, char **argv)
         {
         python_cmds += string("sys.path.insert(0, r\"") + hoomd_script_dir + string("\")\n");
         }
-    
+
     if (getenv("HOOMD_PLUGINS_DIR"))
         {
         string hoomd_plugins_dir = string(getenv("HOOMD_PLUGINS_DIR"));
         python_cmds += string("sys.path.insert(0, r\"") + hoomd_plugins_dir + string("\")\n");
         cout << "Notice: Using hoomd plugins in " << hoomd_plugins_dir << endl;
         }
-        
+
     PyRun_SimpleString(python_cmds.c_str());
-       
+
 #if PY_MAJOR_VERSION >= 3
     setlocale(LC_ALL,NULL);
     wchar_t **argv_w;
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
         }
     int retval = Py_Main(argc, argv_w);
 #else
-    int retval = Py_Main(argc, argv);  
+    int retval = Py_Main(argc, argv);
 #endif
 
     // trying to clean up python's messy memory leaks
@@ -189,4 +189,3 @@ int main(int argc, char **argv)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

@@ -115,7 +115,7 @@ void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string
     // sanity check
     assert(analyzer);
     assert(period != 0);
-    
+
     // first check that the name is unique
     vector<analyzer_item>::iterator i;
     for (i = m_analyzers.begin(); i != m_analyzers.end(); ++i)
@@ -126,7 +126,7 @@ void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string
             throw runtime_error("System: cannot add Analyzer");
             }
         }
-        
+
     // if we get here, we can add it
     m_analyzers.push_back(analyzer_item(analyzer, name, period, m_cur_tstep));
     }
@@ -145,7 +145,7 @@ std::vector<System::analyzer_item>::iterator System::findAnalyzerItem(const std:
             return i;
             }
         }
-        
+
     m_exec_conf->msg->error() << "Analyzer " << name << " not found" << endl;
     throw runtime_error("System: cannot find Analyzer");
     // dummy return
@@ -177,7 +177,7 @@ void System::setAnalyzerPeriod(const std::string& name, unsigned int period)
     {
     // sanity check
     assert(period != 0);
-    
+
     vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
     i->setPeriod(period, m_cur_tstep);
     }
@@ -217,7 +217,7 @@ std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::s
             return i;
             }
         }
-        
+
     m_exec_conf->msg->error() << "Updater " << name << " not found" << endl;
     throw runtime_error("System: cannot find Updater");
     // dummy return
@@ -240,7 +240,7 @@ void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& n
     // sanity check
     assert(updater);
     assert(period != 0);
-    
+
     // first check that the name is unique
     vector<updater_item>::iterator i;
     for (i = m_updaters.begin(); i != m_updaters.end(); ++i)
@@ -251,7 +251,7 @@ void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& n
             throw runtime_error("System: cannot add Updater");
             }
         }
-        
+
     // if we get here, we can add it
     m_updaters.push_back(updater_item(updater, name, period, m_cur_tstep));
     }
@@ -281,7 +281,7 @@ void System::setUpdaterPeriod(const std::string& name, unsigned int period)
     {
     // sanity check
     assert(period != 0);
-    
+
     vector<System::updater_item>::iterator i = findUpdaterItem(name);
     i->setPeriod(period, m_cur_tstep);
     }
@@ -318,7 +318,7 @@ void System::addCompute(boost::shared_ptr<Compute> compute, const std::string& n
     {
     // sanity check
     assert(compute);
-    
+
     // check if the name is unique
     map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
     if (i == m_computes.end())
@@ -412,7 +412,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
-    
+
     // initialize the last status time
     int64_t initial_time = m_clk.getTime();
     m_last_status_time = initial_time;
@@ -453,7 +453,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
     else
         m_integrator->prepRun(m_cur_tstep);
-    
+
     // handle time steps
     for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
         {
@@ -496,14 +496,14 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 break;
                 }
             }
-        
+
         if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
             {
             if (!m_quiet_run)
                 generateStatusLine();
             m_last_status_time = cur_time;
             m_last_status_tstep = m_cur_tstep;
-            
+
             // check for any CUDA errors
             #ifdef ENABLE_CUDA
             if (m_exec_conf->isCUDAEnabled())
@@ -512,7 +512,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 }
             #endif
             }
-            
+
         // execute analyzers
         vector<analyzer_item>::iterator analyzer;
         for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
@@ -520,7 +520,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             if (analyzer->shouldExecute(m_cur_tstep))
                 analyzer->m_analyzer->analyze(m_cur_tstep);
             }
-            
+
         // execute updaters
         vector<updater_item>::iterator updater;
         for (updater =  m_updaters.begin(); updater != m_updaters.end(); ++updater)
@@ -528,15 +528,15 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             if (updater->shouldExecute(m_cur_tstep))
                 updater->m_updater->update(m_cur_tstep);
             }
-        
+
         // look ahead to the next time step and see which analyzers and updaters will be executed
         // or together all of their requested PDataFlags to determine the flags to set for this time step
         m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep+1));
-        
+
         // execute the integrator
         if (m_integrator)
             m_integrator->update(m_cur_tstep);
-            
+
         // quit if cntrl-C was pressed
         if (g_sigint_recvd)
             {
@@ -549,13 +549,13 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     if (!m_quiet_run)
         generateStatusLine();
     m_last_status_tstep = m_cur_tstep;
-    
+
     // execute python callback, if present and needed
     if (callback && (cb_frequency == 0))
         {
         callback(m_cur_tstep);
         }
-        
+
     // calculate averate TPS
     Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
 
@@ -569,14 +569,14 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
     if (!m_quiet_run)
         m_exec_conf->msg->notice(1) << "Average TPS: " << m_last_TPS << endl;
-    
+
     // write out the profile data
     if (m_profiler)
         m_exec_conf->msg->notice(1) << *m_profiler;
-        
+
     if (!m_quiet_run)
         printStats();
-        
+
     }
 
 /*! \param enable Set to true to enable profiling during calls to run()
@@ -594,12 +594,12 @@ void System::registerLogger(boost::shared_ptr<Logger> logger)
     // set the profiler on everything
     if (m_integrator)
         logger->registerUpdater(m_integrator);
-        
+
     // updaters
     vector<updater_item>::iterator updater;
     for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
         logger->registerUpdater(updater->m_updater);
-        
+
     // computes
     map< string, boost::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
@@ -621,23 +621,23 @@ void System::setupProfiling()
         m_profiler = boost::shared_ptr<Profiler>(new Profiler("Simulation"));
     else
         m_profiler = boost::shared_ptr<Profiler>();
-        
+
     // set the profiler on everything
     if (m_integrator)
         m_integrator->setProfiler(m_profiler);
     m_sysdef->getParticleData()->setProfiler(m_profiler);
     m_sysdef->getBondData()->setProfiler(m_profiler);
-    
+
     // analyzers
     vector<analyzer_item>::iterator analyzer;
     for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
         analyzer->m_analyzer->setProfiler(m_profiler);
-        
+
     // updaters
     vector<updater_item>::iterator updater;
     for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
         updater->m_updater->setProfiler(m_profiler);
-        
+
     // computes
     map< string, boost::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
@@ -656,17 +656,17 @@ void System::printStats()
     // print the stats for everything
     if (m_integrator)
         m_integrator->printStats();
-    
+
     // analyzers
     vector<analyzer_item>::iterator analyzer;
     for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
       analyzer->m_analyzer->printStats();
-    
+
     // updaters
     vector<updater_item>::iterator updater;
     for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
         updater->m_updater->printStats();
-    
+
     // computes
     map< string, boost::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
@@ -677,17 +677,17 @@ void System::resetStats()
     {
     if (m_integrator)
         m_integrator->resetStats();
-    
+
     // analyzers
     vector<analyzer_item>::iterator analyzer;
     for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
       analyzer->m_analyzer->resetStats();
-    
+
     // updaters
     vector<updater_item>::iterator updater;
     for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
         updater->m_updater->resetStats();
-    
+
     // computes
     map< string, boost::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
@@ -701,17 +701,17 @@ void System::generateStatusLine()
     // current timestep / end time step
     // time steps per second
     // ETA
-    
+
     // elapsed time
     int64_t cur_time = m_clk.getTime();
     string t_elap = ClockSource::formatHMS(cur_time);
-    
+
     // time steps per second
     Scalar TPS = Scalar(m_cur_tstep - m_last_status_tstep) / Scalar(cur_time - m_last_status_time) * Scalar(1e9);
-    
+
     // estimated time to go (base on current TPS)
     string ETA = ClockSource::formatHMS(int64_t((m_end_tstep - m_cur_tstep) / TPS * Scalar(1e9)));
-    
+
     // write the line
     m_exec_conf->msg->notice(1) << "Time " << t_elap << " | Step " << m_cur_tstep << " / " << m_end_tstep << " | TPS " << TPS << " | ETA " << ETA << endl;
     }
@@ -726,7 +726,7 @@ PDataFlags System::determineFlags(unsigned int tstep)
     PDataFlags flags(0);
     if (m_integrator)
         flags = m_integrator->getRequestedPDataFlags();
-    
+
     vector<analyzer_item>::iterator analyzer;
     for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
         {
@@ -740,7 +740,7 @@ PDataFlags System::determineFlags(unsigned int tstep)
         if (updater->peekExecute(tstep))
             flags |= updater->m_updater->getRequestedPDataFlags();
         }
-        
+
     return flags;
     }
 
@@ -753,27 +753,27 @@ void export_System()
     .def("setAnalyzerPeriod", &System::setAnalyzerPeriod)
     .def("setAnalyzerPeriodVariable", &System::setAnalyzerPeriodVariable)
     .def("getAnalyzerPeriod", &System::getAnalyzerPeriod)
-    
+
     .def("addUpdater", &System::addUpdater)
     .def("removeUpdater", &System::removeUpdater)
     .def("getUpdater", &System::getUpdater)
     .def("setUpdaterPeriod", &System::setUpdaterPeriod)
     .def("setUpdaterPeriodVariable", &System::setUpdaterPeriodVariable)
     .def("getUpdaterPeriod", &System::getUpdaterPeriod)
-    
+
     .def("addCompute", &System::addCompute)
     .def("removeCompute", &System::removeCompute)
     .def("getCompute", &System::getCompute)
-    
+
     .def("setIntegrator", &System::setIntegrator)
     .def("getIntegrator", &System::getIntegrator)
-    
+
     .def("registerLogger", &System::registerLogger)
     .def("setStatsPeriod", &System::setStatsPeriod)
     .def("enableProfiler", &System::enableProfiler)
     .def("enableQuietRun", &System::enableQuietRun)
     .def("run", &System::run)
-    
+
     .def("getLastTPS", &System::getLastTPS)
     .def("getCurrentTimeStep", &System::getCurrentTimeStep)
 #ifdef ENABLE_MPI
@@ -786,4 +786,3 @@ void export_System()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-
