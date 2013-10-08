@@ -531,10 +531,12 @@ void CellList::computeCellList()
         // record its bin
         unsigned int bin = ci(ib, jb, kb);
 
-        // local particles should be in a valid cell
-        if (n < m_pdata->getN() && bin >= ci.getNumElements())
+        // all particles should be in a valid cell
+        if (ib >= (int)m_dim.x || jb >= (int)m_dim.y || kb >= (int)m_dim.z)
             {
-            conditions.z = n+1;
+            // but ghost particles that are out of range should not produce an error
+            if (n < m_pdata->getN())
+                conditions.z = n+1;
             continue;
             }
 
