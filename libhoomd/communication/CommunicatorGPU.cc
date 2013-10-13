@@ -1031,7 +1031,7 @@ void CommunicatorGPU::migrateParticles()
     unsigned int old_nparticles = m_pdata->getN();
 
     // allocate memory for particles that will be received
-    m_pdata->addParticles(n_tot_recv_ptls);
+    //m_pdata->addParticles(n_tot_recv_ptls);
 
         {
         // Finally insert new particles into array and remove the ones that are to be deleted
@@ -1073,7 +1073,7 @@ void CommunicatorGPU::migrateParticles()
             CHECK_CUDA_ERROR();
         }
 
-    m_pdata->removeParticles(n_remove_ptls);
+    //m_pdata->removeParticles(n_remove_ptls);
 
     /*
      * Communicate bonds

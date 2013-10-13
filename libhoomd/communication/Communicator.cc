@@ -102,9 +102,8 @@ struct select_particle_migrate : public std::unary_function<const unsigned int, 
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
         Scalar3 f = box.makeFraction(pos);
 
-        // we return true if the particle stays in our box,
-        // false otherwise
-        return !((dir == 0 && f.x >= Scalar(1.0)) ||  // send east
+        // return true if the particle stays leaves the box
+        return ((dir == 0 && f.x >= Scalar(1.0)) ||  // send east
                 (dir == 1 && f.x < Scalar(0.0))  ||  // send west
                 (dir == 2 && f.y >= Scalar(1.0)) ||  // send north
                 (dir == 3 && f.y < Scalar(0.0))  ||  // send south
@@ -118,14 +117,12 @@ struct select_particle_migrate : public std::unary_function<const unsigned int, 
 struct select_bond_migrate : public std::unary_function<const uint2, bool>
     {
     const unsigned int *h_rtag;       //!< Array of particle reverse lookup tags
-    const unsigned int max_ptl_local; //!< Maximum number of particles that stay in the local domain
 
     //! Constructor
     /*!
      */
-    select_bond_migrate(const unsigned int *_h_rtag,
-                        const unsigned int _max_ptl_local)
-        : h_rtag(_h_rtag), max_ptl_local(_max_ptl_local)
+    select_bond_migrate(const unsigned int *_h_rtag)
+        : h_rtag(_h_rtag)
         {
         }
 
@@ -138,20 +135,8 @@ struct select_bond_migrate : public std::unary_function<const uint2, bool>
         unsigned int idx_a = h_rtag[bond.x];
         unsigned int idx_b = h_rtag[bond.y];
 
-        bool remove_ptl_a = true;
-        bool remove_ptl_b = true;
-
-        bool ptl_a_local = (idx_a != NOT_LOCAL);
-        bool ptl_b_local = (idx_b != NOT_LOCAL);
-
-        if (ptl_a_local)
-            remove_ptl_a = (idx_a >= max_ptl_local);
-
-        if (ptl_b_local)
-            remove_ptl_b = (idx_b >= max_ptl_local);
-
         // if one of the particles leaves the domain, send bond with it
-        return ((ptl_a_local && remove_ptl_a) || (ptl_b_local && remove_ptl_b));
+        return (idx_a == STAGED || idx_b == STAGED);
         }
 
      };
@@ -160,14 +145,12 @@ struct select_bond_migrate : public std::unary_function<const uint2, bool>
 struct select_bond_remove : public std::unary_function<const uint2, bool>
     {
     const unsigned int *h_rtag;       //!< Array of particle reverse lookup tags
-    const unsigned int max_ptl_local; //!< Maximum number of particles that stay in the local domain
 
     //! Constructor
     /*!
      */
-    select_bond_remove(const unsigned int *_h_rtag,
-                        const unsigned int _max_ptl_local)
-        : h_rtag(_h_rtag), max_ptl_local(_max_ptl_local)
+    select_bond_remove(const unsigned int *_h_rtag)
+        : h_rtag(_h_rtag)
         {
         }
 
@@ -180,20 +163,9 @@ struct select_bond_remove : public std::unary_function<const uint2, bool>
         unsigned int idx_a = h_rtag[bond.x];
         unsigned int idx_b = h_rtag[bond.y];
 
-        bool remove_ptl_a = true;
-        bool remove_ptl_b = true;
-
-        bool ptl_a_local = (idx_a != NOT_LOCAL);
-        bool ptl_b_local = (idx_b != NOT_LOCAL);
-
-        if (ptl_a_local)
-            remove_ptl_a = (idx_a >= max_ptl_local);
-
-        if (ptl_b_local)
-            remove_ptl_b = (idx_b >= max_ptl_local);
-
         // if no particle is local anymore, remove bond
-        return (remove_ptl_a && remove_ptl_b);
+        return ((idx_a == NOT_LOCAL || idx_a == STAGED) &&
+                (idx_b == NOT_LOCAL || idx_b == STAGED));
         }
 
      };
@@ -209,8 +181,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_decomposition(decomposition),
             m_is_communicating(false),
             m_force_migrate(false),
-            m_sendbuf(m_exec_conf),
-            m_recvbuf(m_exec_conf),
             m_pos_copybuf(m_exec_conf),
             m_charge_copybuf(m_exec_conf),
             m_diameter_copybuf(m_exec_conf),
@@ -234,8 +204,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         {
         m_is_at_boundary[dir] = m_decomposition->isAtBoundary(dir) ? 1 : 0;
         }
-
-    m_packed_size = sizeof(pdata_element);
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
@@ -449,8 +417,8 @@ void Communicator::migrateParticles()
 
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
-    // wipe out reverse-lookup tag -> idx for old ghost atoms
         {
+        // wipe out reverse-lookup tag -> idx for old ghost atoms
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
         for (unsigned int i = 0; i < m_pdata->getNGhosts(); i++)
@@ -463,7 +431,6 @@ void Communicator::migrateParticles()
     //  reset ghost particle number
     m_pdata->removeAllGhostParticles();
 
-
     // get box dimensions
     const BoxDim& box = m_pdata->getBox();
 
@@ -472,108 +439,30 @@ void Communicator::migrateParticles()
         {
         if (! isCommunicating(dir) ) continue;
 
-        if (m_prof)
-            m_prof->push("remove ptls");
-
         unsigned int n_send_ptls = 0;
         unsigned int n_send_bonds = 0;
         unsigned int n_remove_bonds = 0;
 
             {
-            // first remove all particles from our domain that are going to be sent in the current direction
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
-            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
 
-            /* Reorder particles.
-               Particles that stay in our domain come first, followed by the particles that are sent to a
-               neighboring processor.
-             */
+            // mark all particles which have left the box for sending (rtag=STAGED)
+            unsigned int N = m_pdata->getN();
+            select_particle_migrate pred(box, dir, h_pos.data);
 
-            // Fill key vector with indices 0...N-1
-            std::vector<unsigned int> sort_keys(m_pdata->getN());
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                sort_keys[i] = i;
+            for (unsigned int idx = 0; idx < N; ++idx)
+                {
+                assert(h_tag.data[idx] < m_pdata->getNGlobal());
+                unsigned int tag = h_tag.data[idx];
 
-            // partition the keys according to the particle positions corresponding to the indices
-            std::vector<unsigned int>::iterator sort_keys_middle;
-            sort_keys_middle = std::stable_partition(sort_keys.begin(),
-                                                 sort_keys.begin() + m_pdata->getN(),
-                                                 select_particle_migrate(box, dir, h_pos.data));
-
-            n_send_ptls = (sort_keys.begin() + m_pdata->getN()) - sort_keys_middle;
-
-            // reorder the particle data
-            if (scal4_tmp.size() < m_pdata->getN())
-                scal4_tmp.resize(m_pdata->getN());
-
-            if (scal3_tmp.size() < m_pdata->getN())
-                scal3_tmp.resize(m_pdata->getN());
-
-            if (scal_tmp.size() < m_pdata->getN())
-                scal_tmp.resize(m_pdata->getN());
-
-            if (uint_tmp.size() < m_pdata->getN())
-                uint_tmp.resize(m_pdata->getN());
-
-            if (int3_tmp.size() < m_pdata->getN())
-                int3_tmp.resize(m_pdata->getN());
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                scal4_tmp[i] = h_pos.data[sort_keys[i]];
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_pos.data[i] = scal4_tmp[i];
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                scal4_tmp[i] = h_vel.data[sort_keys[i]];
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_vel.data[i] = scal4_tmp[i];
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                scal3_tmp[i] = h_accel.data[sort_keys[i]];
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_accel.data[i] = scal3_tmp[i];
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                scal_tmp[i] = h_charge.data[sort_keys[i]];
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_charge.data[i] = scal_tmp[i];
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                scal_tmp[i] = h_diameter.data[sort_keys[i]];
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_diameter.data[i] = scal_tmp[i];
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                int3_tmp[i] = h_image.data[sort_keys[i]];
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_image.data[i] = int3_tmp[i];
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                scal4_tmp[i] = h_orientation.data[sort_keys[i]];
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_orientation.data[i] = scal4_tmp[i];
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                uint_tmp[i] = h_body.data[sort_keys[i]];
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_body.data[i] = uint_tmp[i];
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                uint_tmp[i] = h_tag.data[sort_keys[i]];
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_tag.data[i] = uint_tmp[i];
-
-            // update reverse lookup tags
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_rtag.data[h_tag.data[i]] = i;
+                if (pred(idx))
+                    {
+                    h_rtag.data[tag] = STAGED;
+                    n_send_ptls++;
+                    }
+                }
             }
 
         boost::shared_ptr<BondData> bdata(m_sysdef->getBondData());
@@ -583,14 +472,14 @@ void Communicator::migrateParticles()
             /*
              * Select bonds for sending.
              */
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags());
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-            ArrayHandle<uint2> h_bonds(bdata->getBondTable());
-            ArrayHandle<unsigned int> h_bond_type(bdata->getBondTypes());
-            ArrayHandle<unsigned int> h_bond_tag(bdata->getBondTags());
-            ArrayHandle<unsigned int> h_bond_rtag(bdata->getBondRTags());
+            ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_bond_type(bdata->getBondTypes(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_bond_tag(bdata->getBondTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_bond_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
 
-            select_bond_migrate migrate_pred(h_rtag.data, m_pdata->getN()-n_send_ptls);
+            select_bond_migrate migrate_pred(h_rtag.data);
             n_send_bonds = std::count_if(h_bonds.data,
                                          h_bonds.data+bdata->getNumBonds(),
                                          migrate_pred);
@@ -618,7 +507,7 @@ void Communicator::migrateParticles()
             ArrayHandle<bond_element> h_bond_send_buf(m_bond_send_buf, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_bond_remove_mask(m_bond_remove_mask, access_location::host, access_mode::readwrite);
 
-            select_bond_remove remove_pred(h_rtag.data, m_pdata->getN() - n_send_ptls);
+            select_bond_remove remove_pred(h_rtag.data);
             for (unsigned int bond_idx = 0; bond_idx < bdata->getNumBonds(); ++bond_idx)
                 {
                 uint2 bond = h_bonds.data[bond_idx];
@@ -638,53 +527,12 @@ void Communicator::migrateParticles()
                     }
                 }
             }
-        // remove particles from local data that are being sent
-        m_pdata->removeParticles(n_send_ptls);
-
 
         // resize send buffer
-        m_sendbuf.resize(n_send_ptls*m_packed_size);
+        m_sendbuf.resize(n_send_ptls);
 
-            {
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
-
-            ArrayHandle<char> h_sendbuf(m_sendbuf, access_location::host, access_mode::overwrite);
-
-            for (unsigned int i = 0;  i<  n_send_ptls; i++)
-                {
-                unsigned int idx = m_pdata->getN() + i;
-
-                // pack particle data
-                pdata_element p;
-                p.pos = h_pos.data[idx];
-                p.vel = h_vel.data[idx];
-                p.accel = h_accel.data[idx];
-                p.charge = h_charge.data[idx];
-                p.diameter = h_diameter.data[idx];
-                p.image = h_image.data[idx];
-                p.body = h_body.data[idx];
-                p.orientation = h_orientation.data[idx];
-                p.tag = h_tag.data[idx];
-
-                // Reset the global rtag for the particle we are sending to indicate it is no longer local
-                assert(h_rtag.data[h_tag.data[idx]] < m_pdata->getN() + n_send_ptls);
-                h_rtag.data[h_tag.data[idx]] = NOT_LOCAL;
-
-                ( (pdata_element *) h_sendbuf.data)[i] = p;
-                }
-            }
-        if (m_prof)
-            m_prof->pop();
+        // fill send buffer
+        m_pdata->retrieveParticles(m_sendbuf);
 
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
@@ -704,79 +552,35 @@ void Communicator::migrateParticles()
         MPI_Request reqs[2];
         MPI_Status status[2];
 
-        MPI_Isend(&n_send_ptls, sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[0]);
-        MPI_Irecv(&n_recv_ptls, sizeof(unsigned int), MPI_BYTE, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
+        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & reqs[0]);
+        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
         MPI_Waitall(2, reqs, status);
 
         // Resize receive buffer
-        m_recvbuf.resize(n_recv_ptls*m_packed_size);
+        m_recvbuf.resize(n_recv_ptls);
 
-            {
-            ArrayHandle<char> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
-            ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
-            // exchange actual particle data
-            MPI_Isend(h_sendbuf.data, n_send_ptls*m_packed_size, MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[0]);
-            MPI_Irecv(h_recvbuf.data, n_recv_ptls*m_packed_size, MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & reqs[1]);
-            MPI_Waitall(2, reqs, status);
-            }
+        // exchange actual particle data
+        MPI_Isend(&m_sendbuf.front(), n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[0]);
+        MPI_Irecv(&m_recvbuf.front(), n_recv_ptls*sizeof(pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & reqs[1]);
+        MPI_Waitall(2, reqs, status);
 
         if (m_prof)
             m_prof->pop();
 
         const BoxDim shifted_box = getShiftedBox();
 
+        // wrap received particles across a global boundary back into global box
+        for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
             {
-            // wrap received particles across a global boundary back into global box
-            ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
-            for (unsigned int idx = 0; idx < n_recv_ptls; idx++)
-                {
-                pdata_element& p = ((pdata_element *) h_recvbuf.data)[idx];
-                Scalar4& postype = p.pos;
-                int3& image = p.image;
+            pdata_element& p = m_recvbuf[idx];
+            Scalar4& postype = p.pos;
+            int3& image = p.image;
 
-                shifted_box.wrap(postype, image);
-                }
+            shifted_box.wrap(postype, image);
             }
 
-        // start index for atoms to be added
-        unsigned int add_idx = m_pdata->getN();
-
-        // allocate memory for received particles
-        m_pdata->addParticles(n_recv_ptls);
-
-            {
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
-            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
-
-            ArrayHandle<char> h_recvbuf(m_recvbuf, access_location::host, access_mode::read);
-            for (unsigned int i = 0; i < n_recv_ptls; i++)
-                {
-                pdata_element& p =  ((pdata_element *) h_recvbuf.data)[i];
-
-                // copy particle coordinates to domain
-                h_pos.data[add_idx] = p.pos;
-                h_vel.data[add_idx] = p.vel;
-                h_accel.data[add_idx] = p.accel;
-                h_charge.data[add_idx] = p.charge;
-                h_diameter.data[add_idx] = p.diameter;
-                h_image.data[add_idx] = p.image;
-                h_body.data[add_idx] = p.body;
-                h_orientation.data[add_idx] = p.orientation;
-                h_tag.data[add_idx] = p.tag;
-
-                assert(h_rtag.data[h_tag.data[add_idx]] == NOT_LOCAL);
-                h_rtag.data[h_tag.data[add_idx]] = add_idx;
-                add_idx++;
-                }
-            }
+        // remove particles that were sent and fill particle data with received particles
+        m_pdata->updateParticles(m_recvbuf);
 
         /*
          *  Bond communication
@@ -831,9 +635,6 @@ void Communicator::migrateParticles()
             } // end bond communication
 
         } // end dir loop
-
-    // notify ParticleData that addition / removal of particles is complete
-    m_pdata->notifyParticleSort();
 
     if (m_prof)
         m_prof->pop();

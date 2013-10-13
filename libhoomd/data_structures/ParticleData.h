@@ -117,8 +117,6 @@ using namespace std;
 // Forward declaration of Profiler
 class Profiler;
 
-class SnapshotBondData;
-
 class WallData;
 
 // Forward declaration of AngleData
@@ -194,8 +192,13 @@ struct InertiaTensor
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
 
-//! Sentinal value in \a r_tag to signify that this particle is not currently present on the local processor
+//! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
+
+#ifdef ENABLE_MPI
+//! Sentinel value in \a r_tag to signify that the particle is to be removed from the local processor
+const unsigned int STAGED = 0xfffffffe;
+#endif
 
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
@@ -247,6 +250,22 @@ struct SnapshotParticleData {
 
     unsigned int size;              //!< number of particles in this snapshot
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
+    };
+
+//! Structure to store packed particle data
+/* pdata_element is used for compact storage of particle data, mainly for communication.
+ */
+struct pdata_element
+    {
+    Scalar4 pos;               //!< Position
+    Scalar4 vel;               //!< Velocity
+    Scalar3 accel;             //!< Acceleration
+    Scalar charge;             //!< Charge
+    Scalar diameter;           //!< Diameter
+    int3 image;                //!< Image
+    unsigned int body;         //!< Body id
+    Scalar4 orientation;       //!< Orientation
+    unsigned int tag;          //!< global tag
     };
 
 //! Manages all of the data arrays for the particles
@@ -318,8 +337,7 @@ struct SnapshotParticleData {
 
     During the simulation particles may enter or leave the box, therefore the number of \a local particles may change.
     To account for this, the size of the particle data arrays is dynamically updated using amortized doubling of the array sizes. To add particles to
-    the domain, the addParticles() method is called, and the arrays are resized if necessary. Conversely, if particles are removed,
-    the removeParticles() method is called.
+    the domain, the resize() method is called, and the arrays are resized if necessary.
 
     In addition, since many other classes maintain internal arrays with data for every particle (such as neighbor lists etc.), these
     arrays need to be resized, too, if the particle number changes. Everytime the particle data arrays are reallocated, a
@@ -699,12 +717,6 @@ class ParticleData : boost::noncopyable
         //! Take a snapshot
         void takeSnapshot(SnapshotParticleData &snapshot);
 
-        //! Remove particles from the local particle data
-        void removeParticles(const unsigned int n);
-
-        //! Add a number of particles to the local particle data
-        void addParticles(const unsigned int n);
-
         //! Add ghost particles at the end of the local particle data
         void addGhostParticles(const unsigned int nghosts);
 
@@ -729,7 +741,27 @@ class ParticleData : boost::noncopyable
             {
             return m_decomposition;
             }
-#endif
+
+        //! Pack particle data into a buffer
+        /*! \param out Buffer into which particle data is packed
+         *
+         *  Packs all particles for which rtag==STAGED into a buffer, and mark them
+         *  for removal (rtag = NOT_LOCAL)
+         *
+         *  The buffer has to be large enough to accomodate all the selected particles, i.e.
+         *  at most getN()*sizeof(pdata_element). The particles are stored in the buffer
+         *  in the order in which they occur in the particle data (i.e. in index order).
+         */
+        void retrieveParticles(std::vector<pdata_element>& out);
+
+        //! Remove particles from local domain and add new particle data
+        /*! \param in List of particle data elements to fill the particle data with
+         *
+         * Particles marked with the rtag==NOT_LOCAL are removed
+         */
+        void updateParticles(const std::vector<pdata_element>& in);
+
+#endif // ENABLE_MPI
 
         //! Translate the box origin
         /*! \param a vector to apply in the translation

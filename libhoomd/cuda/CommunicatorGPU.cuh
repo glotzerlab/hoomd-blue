@@ -112,20 +112,6 @@ enum gpu_corner_flags
     };
 #endif
 
-//! Buffer element for sending particle data
-struct pdata_element_gpu
-    {
-    Scalar4 pos;               //!< Position
-    Scalar4 vel;               //!< Velocity
-    Scalar3 accel;             //!< Acceleration
-    Scalar charge;             //!< Charge
-    Scalar diameter;           //!< Diameter
-    int3 image;                //!< Image
-    unsigned int body;         //!< Body id
-    Scalar4 orientation;       //!< Orientation
-    unsigned int tag;          //!< global tag
-    };
-
 unsigned int gpu_pdata_element_size();
 
 //! Allocate temporary device memory for reordering particles

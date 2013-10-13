@@ -67,4 +67,20 @@ const unsigned int NO_BODY = 0xffffffff;
 const unsigned int NOT_LOCAL = 0xffffffff;
 #endif
 
+//! Compact particle data storage on the GPU
+struct pdata_element_gpu
+    {
+    Scalar4 pos;               //!< Position
+    Scalar4 vel;               //!< Velocity
+    Scalar3 accel;             //!< Acceleration
+    Scalar charge;             //!< Charge
+    Scalar diameter;           //!< Diameter
+    int3 image;                //!< Image
+    unsigned int body;         //!< Body id
+    Scalar4 orientation;       //!< Orientation
+    unsigned int tag;          //!< global tag
+    };
+
+unsigned gpu_pdata_element_size();
+
 #endif

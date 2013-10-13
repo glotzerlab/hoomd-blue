@@ -149,20 +149,6 @@ extern unsigned int edge_plan_lookup[];
 //! Lookup from face to plan
 extern unsigned int face_plan_lookup[];
 
-//! Structure to store packed particle data
-struct pdata_element
-    {
-    Scalar4 pos;               //!< Position
-    Scalar4 vel;               //!< Velocity
-    Scalar3 accel;             //!< Acceleration
-    Scalar charge;             //!< Charge
-    Scalar diameter;           //!< Diameter
-    int3 image;               //!< Image
-    unsigned int body;        //!< Body id
-    Scalar4 orientation;       //!< Orientation
-    unsigned int tag;  //!< global tag
-    };
-
 //! Optional flags to enable communication of certain ParticleData fields for ghost particles
 struct comm_flag
     {
@@ -486,11 +472,7 @@ class Communicator
 
         unsigned int m_is_at_boundary[6];      //!< Array of flags indicating whether this box lies at a global boundary
 
-        GPUVector<char> m_sendbuf;             //!< Buffer for particles that are sent
-        GPUVector<char> m_recvbuf;             //!< Buffer for particles that are received
-        GPUArray<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
-        GPUArray<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
-        GPUArray<unsigned int> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
+       GPUArray<unsigned int> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
@@ -504,7 +486,6 @@ class Communicator
         unsigned int m_num_recv_ghosts[6];       //!< Number of ghosts received per direction
 
         BoxDim m_global_box;                     //!< Global simulation box
-        unsigned int m_packed_size;              //!< Size of packed particle data element in bytes
         Scalar m_r_ghost;                        //!< Width of ghost layer
         Scalar m_r_buff;                         //!< Width of skin layer
         const float m_resize_factor;                //!< Factor used for amortized array resizing
@@ -518,7 +499,13 @@ class Communicator
 
         CommFlags m_flags;                       //!< The ghost communication flags
 
+        GPUArray<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
+        GPUArray<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
+
     private:
+        std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent
+        std::vector<pdata_element> m_recvbuf;  //!< Buffer for particles that are received
+
         std::vector<Scalar4> scal4_tmp;          //!< Temporary list used to apply the sort order to the particle data
         std::vector<Scalar3> scal3_tmp;          //!< Temporary list used to apply the sort order to the particle data
         std::vector<Scalar> scal_tmp;            //!< Temporary list used to apply the sort order to the particle data

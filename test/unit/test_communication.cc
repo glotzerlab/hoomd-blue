@@ -2537,7 +2537,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
     }
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_CUDAA
 
 //! Tests particle distribution on GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
