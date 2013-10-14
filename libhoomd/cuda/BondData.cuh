@@ -110,11 +110,6 @@ unsigned int gpu_bdata_count_rtag_staged(const unsigned int num_bonds,
     const unsigned int *d_bond_tag,
     const unsigned int *d_bond_rtag);
 
-//! Count particles marked for removal
-unsigned int gpu_bdata_count_rtag_removed(const unsigned int num_bonds,
-    const unsigned int *d_bond_tag,
-    const unsigned int *d_bond_rtag);
-
 //! Pack bonds on the GPU
 void gpu_pack_bonds(unsigned int num_bonds,
                     const unsigned int *d_bond_tag,

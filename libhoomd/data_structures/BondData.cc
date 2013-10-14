@@ -776,24 +776,6 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
     }
 
 #ifdef ENABLE_MPI
-//! A combined iterator for filtering bonds
-typedef boost::zip_iterator< boost::tuple < uint2 *,
-                                            unsigned int *,
-                                            unsigned int *,
-                                            unsigned int *
-                                          >
-                            > zipiter;
-
-//! A predicate to select bonds according to a remove mask
-struct remove_pred
-    {
-    //! Returns true if the remove flag is set for a bond
-    bool operator() (zipiter::reference const x) const
-        {
-        return x.get<3>();
-        }
-    };
-
 //! Pack bond data into a buffer
 void BondData::retrieveBonds(GPUVector<bond_element>& out)
     {
@@ -940,23 +922,6 @@ struct bond_unique
 void BondData::addRemoveBonds(const GPUVector<bond_element>& in)
     {
     unsigned int num_add_bonds = in.size();
-    unsigned int num_remove_bonds = 0;
-
-        {
-        // access bond data tags and rtags
-        ArrayHandle<unsigned int> h_bond_tag(getBondTags(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_bond_rtag(getBondRTags(), access_location::host, access_mode::read);
-
-        unsigned int n_bonds = getNumBonds();
-
-        // count bounds to be removed
-        for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
-            {
-            unsigned int bond_tag = h_bond_tag.data[bond_idx];
-            assert(bond_tag < getNumBondsGlobal());
-            if (h_bond_rtag.data[bond_tag] == BOND_NOT_LOCAL) num_remove_bonds++;
-            }
-        }
 
     // old number of bonds
     unsigned int old_n_bonds = getNumBonds();
@@ -1056,8 +1021,6 @@ void BondData::retrieveBondsGPU(GPUVector<bond_element>& out)
     // access output vector
     ArrayHandle<bond_element> d_out(out, access_location::device, access_mode::overwrite);
 
-    n_pack_bonds = 0;
-
     // pack bonds on GPU
     gpu_pack_bonds(n_bonds, d_bond_tag.data, d_bonds.data, d_bond_type.data, d_bond_rtag.data, d_out.data);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1068,23 +1031,6 @@ void BondData::retrieveBondsGPU(GPUVector<bond_element>& out)
 void BondData::addRemoveBondsGPU(const GPUVector<bond_element>& in)
     {
     unsigned int num_add_bonds = in.size();
-    unsigned int num_remove_bonds = 0;
-
-        {
-        // access bond data tags and rtags
-        ArrayHandle<unsigned int> d_bond_tag(getBondTags(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_bond_rtag(getBondRTags(), access_location::device, access_mode::read);
-
-        unsigned int n_bonds = getNumBonds();
-
-        // count number of bonds to be removed
-        num_remove_bonds = gpu_bdata_count_rtag_removed(
-            n_bonds,
-            d_bond_tag.data,
-            d_bond_rtag.data);
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        }
 
     // old number of bonds
     unsigned int old_n_bonds = getNumBonds();
@@ -1110,8 +1056,8 @@ void BondData::addRemoveBondsGPU(const GPUVector<bond_element>& in)
         ArrayHandle<bond_element> d_in(in, access_location::device, access_mode::read);
 
         // add new bonds, omitting duplicates, and remove bonds marked for deletion
-        unsigned int num_added_bonds = gpu_bdata_add_remove_bonds(
-            getNumBonds(),
+        new_n_bonds = gpu_bdata_add_remove_bonds(
+            old_n_bonds,
             num_add_bonds,
             d_bond_tag.data,
             d_bonds.data,
@@ -1120,9 +1066,6 @@ void BondData::addRemoveBondsGPU(const GPUVector<bond_element>& in)
             d_in.data);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
-
-        // new bond number, taking into account the bonds that were added and not duplicates
-        new_n_bonds += num_added_bonds - num_add_bonds - num_remove_bonds;
         }
 
     // due to removed bonds and duplicates, the new array size may be smaller

@@ -587,7 +587,7 @@ void CommunicatorGPU::migrateParticles()
         if (bdata->getNumBondsGlobal())
             {
             // fill send buffer for bond data
-            bdata->retrieveBonds(m_bond_send_buf);
+            bdata->retrieveBondsGPU(m_bond_send_buf);
 
             unsigned int n_send_bonds = m_bond_send_buf.size();
             unsigned int n_recv_bonds;
@@ -627,7 +627,7 @@ void CommunicatorGPU::migrateParticles()
                 }
 
             // unpack data and remove bonds that have left the domain
-            bdata->addRemoveBonds(m_bond_recv_buf);
+            bdata->addRemoveBondsGPU(m_bond_recv_buf);
             } // end bond communication
 
         } // end dir loop

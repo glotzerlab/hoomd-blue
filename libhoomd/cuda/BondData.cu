@@ -313,7 +313,7 @@ struct bond_element_select_gpu : public thrust::unary_function<bond_element, boo
         {
         unsigned int rtag = d_bond_rtag[b.tag];
 
-        return (rtag = BOND_STAGED || rtag == BOND_SPLIT);
+        return (rtag == BOND_STAGED || rtag == BOND_SPLIT);
         }
 
     const unsigned int *d_bond_rtag; //!< The reverse-lookup tag array
@@ -380,7 +380,10 @@ void gpu_pack_bonds(unsigned int num_bonds,
         );
 
     // set up transform iterator to compact particle data into records
-    thrust::transform_iterator<to_bond_element_gpu, bdata_zip_gpu_const> bdata_transform(bdata_begin);
+    thrust::transform_iterator<to_bond_element_gpu, bdata_zip_gpu_const> bdata_transform(
+        bdata_begin,
+        to_bond_element_gpu()
+        );
 
     // compact selected particle elements into output array
     thrust::copy_if(bdata_transform, bdata_transform+num_bonds, out_ptr, bond_element_select_gpu(d_bond_rtag));
@@ -395,25 +398,6 @@ void gpu_pack_bonds(unsigned int num_bonds,
 
     // set all BOND_STAGED tags to BOND_NOT_LOCAL
     thrust::replace_if(bond_rtag_prm, bond_rtag_prm + num_bonds, bond_rtag_compare_gpu(BOND_STAGED), BOND_NOT_LOCAL);
-    }
-
-/*! \param num_bonds Number of local bonds
-    \param d_bond_tag Device array of bond tag
-    \param d_bond_rtag Device array for the reverse-lookup of bond tags
- */
-unsigned int gpu_bdata_count_rtag_removed(const unsigned int num_bonds,
-    const unsigned int *d_bond_tag,
-    const unsigned int *d_bond_rtag)
-    {
-    thrust::device_ptr<const unsigned int> bond_tag_ptr(d_bond_tag);
-    thrust::device_ptr<const unsigned int> bond_rtag_ptr(d_bond_rtag);
-
-    // set up permutation iterator to point into rtags
-    thrust::permutation_iterator<
-        thrust::device_ptr<const unsigned int>, thrust::device_ptr<const unsigned int> >
-        bond_rtag_prm(bond_rtag_ptr, bond_tag_ptr);
-
-    return thrust::count_if(bond_rtag_prm, bond_rtag_prm + num_bonds, bond_rtag_compare_gpu(BOND_NOT_LOCAL));
     }
 
 //! A predicate to check if the bond doesn't already exist
@@ -445,7 +429,7 @@ struct bond_unique_gpu
     \param d_bond_type Device array of bond types
     \param d_in Device input array of packed bond data
 
-    \returns number of bonds added
+    \returns new local number of bonds
  */
 unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
                             const unsigned int num_add_bonds,
@@ -489,11 +473,9 @@ unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
         to_bdata_tuple_gpu());
 
     // add new bonds at the end, omitting duplicates
-    unsigned int num_added_bonds =
-        thrust::copy_if(in_transform, in_transform + num_add_bonds, new_bdata_end, bond_unique_gpu(d_bond_rtag)) -
-         new_bdata_end;
+    new_bdata_end = thrust::copy_if(in_transform, in_transform + num_add_bonds, new_bdata_end, bond_unique_gpu(d_bond_rtag));
 
-    unsigned int new_n_bonds = new_bdata_end - bdata_begin + num_added_bonds;
+    unsigned int new_n_bonds = new_bdata_end - bdata_begin;
 
     // recompute bond rtags
     thrust::counting_iterator<unsigned int> idx(0);
