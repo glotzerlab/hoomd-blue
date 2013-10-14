@@ -475,9 +475,6 @@ void CommunicatorGPU::migrateParticles()
         {
         if (! isCommunicating(dir) ) continue;
 
-        unsigned int n_send_bonds = 0;
-        unsigned int n_remove_bonds = 0;
-
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
@@ -502,53 +499,21 @@ void CommunicatorGPU::migrateParticles()
 
         if (bdata->getNumBondsGlobal())
             {
+            // Access reverse-lookup table for particle tags
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-            ArrayHandle<uint2> d_bonds(bdata->getBondTable(), access_location::device, access_mode::read);
-
-            n_send_bonds = gpu_count_send_bonds( bdata->getNumBonds(), d_bonds.data, d_rtag.data);
-            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-
-            // resize send buffer
-            m_bond_send_buf.resize(n_send_bonds);
-
-            // resize remove mask
-            m_bond_remove_mask.resize(bdata->getNumBonds());
 
             // Access bond data
-            ArrayHandle<unsigned int> d_bond_type(bdata->getBondTypes(), access_location::device, access_mode::read);
+            ArrayHandle<uint2> d_bonds(bdata->getBondTable(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_bond_rtag(bdata->getBondRTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_bond_tag(bdata->getBondTags(), access_location::device, access_mode::read);
-            ArrayHandle<bond_element> d_bond_send_buf(m_bond_send_buf, access_location::device, access_mode::overwrite);
 
             // pack bond data
-            gpu_pack_bond_data(bdata->getNumBonds(),
-                               d_bonds.data,
-                               d_bond_tag.data,
-                               d_bond_type.data,
-                               d_rtag.data,
-                               d_bond_send_buf.data);
+            gpu_select_bonds(bdata->getNumBonds(),
+                             d_bonds.data,
+                             d_bond_tag.data,
+                             d_bond_rtag.data,
+                             d_rtag.data);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-            }
-
-       // NOTE: this is currently running on the host and will be rewritten
-       if (bdata->getNumBondsGlobal())
-            {
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-            ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-
-            ArrayHandle<unsigned int> h_bond_remove_mask(m_bond_remove_mask, access_location::host, access_mode::overwrite);
-            for (unsigned int bond_idx = 0; bond_idx < bdata->getNumBonds(); ++bond_idx)
-                {
-                uint2 bond = h_bonds.data[bond_idx];
-
-                unsigned int idx_a = h_rtag.data[bond.x];
-                unsigned int idx_b = h_rtag.data[bond.y];
-
-                bool remove = ((idx_a == NOT_LOCAL || idx_a == STAGED) && (idx_b == NOT_LOCAL || idx_b == STAGED));
-
-                if (remove) n_remove_bonds++;
-
-                h_bond_remove_mask.data[bond_idx] = remove ? 1 : 0;
-                }
             }
 
         // fill send buffer
@@ -621,6 +586,10 @@ void CommunicatorGPU::migrateParticles()
 
         if (bdata->getNumBondsGlobal())
             {
+            // fill send buffer for bond data
+            bdata->retrieveBonds(m_bond_send_buf);
+
+            unsigned int n_send_bonds = m_bond_send_buf.size();
             unsigned int n_recv_bonds;
 
             // exchange size of messages
@@ -657,11 +626,8 @@ void CommunicatorGPU::migrateParticles()
                 MPI_Waitall(2, reqs, status);
                 }
 
-            // unpack data
-            bdata->unpackRemoveBonds(n_recv_bonds,
-                                     n_remove_bonds,
-                                     m_bond_recv_buf,
-                                     m_bond_remove_mask);
+            // unpack data and remove bonds that have left the domain
+            bdata->addRemoveBonds(m_bond_recv_buf);
             } // end bond communication
 
         } // end dir loop

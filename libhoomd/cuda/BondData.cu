@@ -59,11 +59,20 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
+#ifdef ENABLE_MPI
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/functional.h>
+#include <thrust/device_ptr.h>
+#include <thrust/copy.h>
+#include <thrust/count.h>
+#include <thrust/remove.h>
+#endif
+
 /*! \file BondData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bond table
 */
-
-#define MAX(i,j) (i > j ? i : j)
 
 //! Kernel to find the maximum number of angles per particle
 __global__ void gpu_find_max_bond_number_kernel(const uint2 *bonds,
@@ -216,225 +225,280 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
     return cudaSuccess;
     }
 
-//! Kernel to mark duplicate received bonds
-__global__ void gpu_mark_recv_bond_duplicates_kernel(const unsigned int n_bonds,
-                                         const bond_element *recv_bonds,
-                                         unsigned int *bond_remove_mask,
-                                         const unsigned int n_recv_bonds,
-                                         unsigned int *bond_rtag,
-                                         unsigned char *recv_bond_active,
-                                         unsigned int *n_duplicate_recv_bonds)
+#ifdef ENABLE_MPI
+//! A predicate to select bond rtags by value (BOND_STAGED or BOND_SPLIT)
+struct bond_rtag_select_send_gpu
     {
-    unsigned int recv_idx = blockIdx.x *blockDim.x + threadIdx.x;
-
-    if (recv_idx >= n_recv_bonds) return;
-
-    const bond_element& el = recv_bonds[recv_idx];
-    unsigned int tag = el.tag;
-
-    // stage the bond
-    unsigned int rtag = atomicMin(&bond_rtag[tag], (unsigned int) BOND_NOT_LOCAL-1);
-
-    bool duplicate = false;
-
-    if (rtag != BOND_NOT_LOCAL)
+    //! Returns true if the remove flag is set for a particle
+    __device__ bool operator() (const unsigned int bond_rtag) const
         {
-        bool remove = false;
-        if (rtag < n_bonds)
-            remove = bond_remove_mask[rtag];
+        return (bond_rtag == BOND_STAGED || bond_rtag == BOND_SPLIT);
+        }
+    };
 
-        // if the bond is a duplicate of a local bond which is not removed, mark it
-        if (! remove)
-            {
-            duplicate = true;
-            atomicInc(n_duplicate_recv_bonds, 0xffffffff);
-            }
+//! A predicate to select bond rtags by value (BOND_STAGED)
+struct bond_rtag_compare_gpu
+    {
+    unsigned int compare;  //! Value to compare to
+
+    //! Constructor
+    bond_rtag_compare_gpu(unsigned int _compare)
+        : compare(_compare)
+        { }
+
+    //! Returns true if the remove flag is set for a particle
+    __device__ bool operator() (const unsigned int bond_rtag) const
+        {
+        return (bond_rtag == compare);
+        }
+    };
+
+
+/*! \param num_bonds Number of local bonds
+    \param d_bond_tag Device array of bond tag
+    \param d_bond_rtag Device array for the reverse-lookup of bond tags
+ */
+unsigned int gpu_bdata_count_rtag_staged(const unsigned int num_bonds,
+    const unsigned int *d_bond_tag,
+    const unsigned int *d_bond_rtag)
+    {
+    thrust::device_ptr<const unsigned int> bond_tag_ptr(d_bond_tag);
+    thrust::device_ptr<const unsigned int> bond_rtag_ptr(d_bond_rtag);
+
+    // set up permutation iterator to point into rtags
+    thrust::permutation_iterator<
+        thrust::device_ptr<const unsigned int>, thrust::device_ptr<const unsigned int> >
+        bond_rtag_prm(bond_rtag_ptr, bond_tag_ptr);
+
+    return thrust::count_if(bond_rtag_prm, bond_rtag_prm + num_bonds, bond_rtag_select_send_gpu());
+    }
+
+//! A tuple of bond data pointers
+typedef thrust::tuple <
+    thrust::device_ptr<unsigned int>,  // tag
+    thrust::device_ptr<uint2>,         // bond
+    thrust::device_ptr<unsigned int>   // type
+    > bdata_it_tuple_gpu;
+
+//! A tuple of bond data pointers (const version)
+typedef thrust::tuple <
+    thrust::device_ptr<const unsigned int>,  // tag
+    thrust::device_ptr<const uint2>,         // bond
+    thrust::device_ptr<const unsigned int>   // type
+    > bdata_it_tuple_gpu_const;
+
+//! A zip iterator for filtering particle data
+typedef thrust::zip_iterator<bdata_it_tuple_gpu> bdata_zip_gpu;
+
+//! A zip iterator for filtering particle data (const version)
+typedef thrust::zip_iterator<bdata_it_tuple_gpu_const> bdata_zip_gpu_const;
+
+//! A tuple of bond data fields
+typedef thrust::tuple <
+    const unsigned int,  // tag
+    const uint2,         // bond
+    const unsigned int   // type
+    > bdata_tuple_gpu;
+
+//! A predicate to select bonds by rtag (BOND_STAGED or BOND_SPLIT)
+struct bond_element_select_gpu : public thrust::unary_function<bond_element, bool>
+    {
+    //! Constructor
+    bond_element_select_gpu(const unsigned int *_d_bond_rtag)
+        : d_bond_rtag(_d_bond_rtag)
+        { }
+
+    //! Returns true if the send flag is set for a particle
+    __device__ bool operator() (bond_element const b) const
+        {
+        unsigned int rtag = d_bond_rtag[b.tag];
+
+        return (rtag = BOND_STAGED || rtag == BOND_SPLIT);
         }
 
-    recv_bond_active[recv_idx] = duplicate ? 0 : 1;
-    }
+    const unsigned int *d_bond_rtag; //!< The reverse-lookup tag array
+    };
 
-//! Mark duplicate bonds received
-/*! \param n_bonds Number of bonds in local bond table
-    \param d_recv_bonds Buffer of received bonds
-    \param d_bond_remove_mask Flags for every local bond to indicate removal
-    \param n_recv_bonds Number of bonds received
-    \param d_bond_rtag Bond tag->idx lookup
-    \param d_recv_bond_active Per-received bond flag, 1 if unique, 0 if duplicate (return values)
-    \param d_n_duplicate_recv_bonds Number of duplicates found (return value)
- */
-void gpu_mark_recv_bond_duplicates(const unsigned int n_bonds,
-                                   const bond_element *d_recv_bonds,
-                                   unsigned int *d_bond_remove_mask,
-                                   const unsigned int n_recv_bonds,
-                                   unsigned int *d_bond_rtag,
-                                   unsigned char *d_recv_bond_active,
-                                   unsigned int *d_n_duplicate_recv_bonds)
+//! A converter from bond_element to a tuple of bond data entries
+struct to_bdata_tuple_gpu : public thrust::unary_function<const bond_element, const bdata_tuple_gpu>
     {
-    cudaMemsetAsync(d_n_duplicate_recv_bonds, 0, sizeof(unsigned int));
-
-    unsigned int block_size = 512;
-
-    gpu_mark_recv_bond_duplicates_kernel<<<n_recv_bonds/block_size+1,block_size>>>(
-        n_bonds,
-        d_recv_bonds,
-        d_bond_remove_mask,
-        n_recv_bonds,
-        d_bond_rtag,
-        d_recv_bond_active,
-        d_n_duplicate_recv_bonds);
-    }
-
-//! Kernel to backfill the local bond table with received bonds and remove non-local bonds
-__global__ void gpu_fill_bondtable_kernel(const unsigned int old_n_bonds,
-                                               const unsigned int n_recv_bonds,
-                                               const unsigned int n_unique_recv_bonds,
-                                               const unsigned int n_remove_bonds,
-                                               const unsigned int *remove_mask,
-                                               const unsigned char *recv_bond_active,
-                                               const bond_element *recv_buf,
-                                               uint2 *bonds,
-                                               unsigned int *bond_type,
-                                               unsigned int *bond_tag,
-                                               unsigned int *bond_rtag,
-                                               unsigned int *n_fetch_bond)
-    {
-    unsigned int bond_idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    unsigned int new_nbonds = old_n_bonds - n_remove_bonds + n_unique_recv_bonds;
-
-    if (bond_idx >= old_n_bonds + n_unique_recv_bonds) return;
-
-    bool replace = true;
-
-    if (bond_idx < old_n_bonds)
+    __device__ const bdata_tuple_gpu operator() (const bond_element b)
         {
-        replace = remove_mask[bond_idx];
-
-        // reset rtag
-        if (replace) bond_rtag[bond_tag[bond_idx]] = BOND_NOT_LOCAL;
+        return thrust::make_tuple(
+            b.tag,
+            b.bond,
+            b.type
+            );
         }
+    };
 
-    if (replace && bond_idx < new_nbonds)
+//! A converter from a tuple of bond entries to a bond_element
+struct to_bond_element_gpu : public thrust::unary_function<const bdata_tuple_gpu,const bond_element>
+    {
+    __device__ const bond_element operator() (const bdata_tuple_gpu t)
         {
-        // try to atomically fetch a bond from the received list, ignore duplicates
-        bool active = false;
-        unsigned int n;
-        while (!active)
-            {
-            n = atomicInc(n_fetch_bond, 0xffffffff);
-            if (n < n_recv_bonds)
-                active = recv_bond_active[n];
-            else
-                active = true;
-            }
+        bond_element b;
 
-        if (n < n_recv_bonds)
-            {
-            // copy over receive buffer data
-            const bond_element &el= recv_buf[n];
+        b.tag = thrust::get<0>(t);
+        b.bond = thrust::get<1>(t);
+        b.type = thrust::get<2>(t);
 
-            bonds[bond_idx] = el.bond;
-            bond_type[bond_idx] = el.type;
-            bond_tag[bond_idx] = el.tag;
-            }
-        else
-            {
-            unsigned int fetch_idx = new_nbonds + (n - n_recv_bonds);
-            bool remove = remove_mask[fetch_idx];
+        return b;
+        }
+    };
 
-            // we should not normally read past the end of the array, if the number
-            // of removed particles correctly reflects the number of remove flags set
-            while (remove) {
-                // reset rtags as we go
-                bond_rtag[bond_tag[fetch_idx]] = BOND_NOT_LOCAL;
-
-                n = atomicInc(n_fetch_bond, 0xffffffff);
-
-                fetch_idx = new_nbonds + (n - n_recv_bonds);
-                remove = remove_mask[fetch_idx];
-                };
-
-            // backfill with a bond from the end
-            bonds[bond_idx] = bonds[fetch_idx];
-            bond_type[bond_idx] = bond_type[fetch_idx];
-            bond_tag[bond_idx] = bond_tag[fetch_idx];
-            }
-         } // if replace
-    }
-
-//! Backfill local bond table with received bonds and remove non-local bonds
-/*! \param old_n_bonds Current size of bond table
-    \param n_recv_bonds Size of bond receive buffer
-    \param n_unique_recv_bonds Number of unique received bonds
-    \param n_remove_bonds Number of bonds to be removed from local bond table
-    \param d_remove_mask Flag for every bond, 1 if bond is to be removed, 0 otherwise
-    \param d_recv_bond_active Flag for every received bond, 1 if unique, 0 if duplicate
-    \param d_recv_buf Buffer of received bonds
-    \param d_bonds Local bond table
-    \param d_bond_type Local list of bond types
-    \param d_bond_tag Local list of bond tags
-    \param d_bond_rtag Bond tag->idx lookup table
-    \param d_n_fetch_bond Temporary counter for backfilling of bonds
-*/
-void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
-                             const unsigned int n_recv_bonds,
-                             const unsigned int n_unique_recv_bonds,
-                             const unsigned int n_remove_bonds,
-                             const unsigned int *d_remove_mask,
-                             const unsigned char *d_recv_bond_active,
-                             const bond_element *d_recv_buf,
-                             uint2 *d_bonds,
-                             unsigned int *d_bond_type,
-                             unsigned int *d_bond_tag,
-                             unsigned int *d_bond_rtag,
-                             unsigned int *d_n_fetch_bond)
-    {
-    unsigned int block_size = 512;
-
-    cudaMemsetAsync(d_n_fetch_bond, 0, sizeof(unsigned int));
-
-    unsigned int end = old_n_bonds + n_unique_recv_bonds;
-
-    gpu_fill_bondtable_kernel<<<end/block_size+1,block_size>>>(
-        old_n_bonds,
-        n_recv_bonds,
-        n_unique_recv_bonds,
-        n_remove_bonds,
-        d_remove_mask,
-        d_recv_bond_active,
-        d_recv_buf,
-        d_bonds,
-        d_bond_type,
-        d_bond_tag,
-        d_bond_rtag,
-        d_n_fetch_bond);
-    }
-
-//! Kernel to update reverse-lookup tags for bonds
-__global__ void gpu_update_bond_rtags_kernel(unsigned int *bond_rtag,
-                                      const unsigned int *bond_tag,
-                                      const unsigned int num_bonds)
-    {
-    unsigned int bond_idx = blockIdx.x*blockDim.x + threadIdx.x;
-
-    if (bond_idx >= num_bonds) return;
-
-    bond_rtag[bond_tag[bond_idx]] = bond_idx;
-    }
-
-//! Update the bond tag ->idx lookup table
-/*! \param d_bond_rtag Reverse-lookup table
-    \param d_bond_tag Local list of bond tags
-    \param num_bonds Number of local bonds
+//! Pack bonds on the GPU
+/*! \param num_bonds Number of local bonds
+    \param d_bond_tag Device array of bond tags
+    \param d_bonds Device array of bonds (.x == particle a tag, .y == particle b tag)
+    \param d_bond_type Device array of bond types
+    \param d_bond_rtag Reverse-lookup table for bond tags
+    \param d_out Device array for output (packed data)
  */
-void gpu_update_bond_rtags(unsigned int *d_bond_rtag,
-                           const unsigned int *d_bond_tag,
-                           const unsigned int num_bonds)
+void gpu_pack_bonds(unsigned int num_bonds,
+                    const unsigned int *d_bond_tag,
+                    const uint2 *d_bonds,
+                    const unsigned int *d_bond_type,
+                    unsigned int *d_bond_rtag,
+                    bond_element *d_out)
     {
-    unsigned int block_size = 512;
+    // wrap device arrays into thrust ptr
+    thrust::device_ptr<const unsigned int> bond_tag_ptr(d_bond_tag);
+    thrust::device_ptr<const uint2> bonds_ptr(d_bonds);
+    thrust::device_ptr<const unsigned int> bond_type_ptr(d_bond_type);
 
-    gpu_update_bond_rtags_kernel<<<num_bonds/block_size+1, block_size>>>(d_bond_rtag,
-                                                                         d_bond_tag,
-                                                                         num_bonds);
+    // wrap output array
+    thrust::device_ptr<bond_element> out_ptr(d_out);
+
+    // Construct zip iterator
+    bdata_zip_gpu_const bdata_begin(
+       thrust::make_tuple(
+            bond_tag_ptr,
+            bonds_ptr,
+            bond_type_ptr
+            )
+        );
+
+    // set up transform iterator to compact particle data into records
+    thrust::transform_iterator<to_bond_element_gpu, bdata_zip_gpu_const> bdata_transform(bdata_begin);
+
+    // compact selected particle elements into output array
+    thrust::copy_if(bdata_transform, bdata_transform+num_bonds, out_ptr, bond_element_select_gpu(d_bond_rtag));
+
+    // wrap bond rtag array
+    thrust::device_ptr<unsigned int> bond_rtag_ptr(d_bond_rtag);
+
+    // set up permutation iterator to point into rtags
+    thrust::permutation_iterator<
+        thrust::device_ptr<unsigned int>, thrust::device_ptr<const unsigned int> >
+         bond_rtag_prm(bond_rtag_ptr, bond_tag_ptr);
+
+    // set all BOND_STAGED tags to BOND_NOT_LOCAL
+    thrust::replace_if(bond_rtag_prm, bond_rtag_prm + num_bonds, bond_rtag_compare_gpu(BOND_STAGED), BOND_NOT_LOCAL);
     }
+
+/*! \param num_bonds Number of local bonds
+    \param d_bond_tag Device array of bond tag
+    \param d_bond_rtag Device array for the reverse-lookup of bond tags
+ */
+unsigned int gpu_bdata_count_rtag_removed(const unsigned int num_bonds,
+    const unsigned int *d_bond_tag,
+    const unsigned int *d_bond_rtag)
+    {
+    thrust::device_ptr<const unsigned int> bond_tag_ptr(d_bond_tag);
+    thrust::device_ptr<const unsigned int> bond_rtag_ptr(d_bond_rtag);
+
+    // set up permutation iterator to point into rtags
+    thrust::permutation_iterator<
+        thrust::device_ptr<const unsigned int>, thrust::device_ptr<const unsigned int> >
+        bond_rtag_prm(bond_rtag_ptr, bond_tag_ptr);
+
+    return thrust::count_if(bond_rtag_prm, bond_rtag_prm + num_bonds, bond_rtag_compare_gpu(BOND_NOT_LOCAL));
+    }
+
+//! A predicate to check if the bond doesn't already exist
+struct bond_unique_gpu
+    {
+    const unsigned int *d_bond_rtag;      //!< Bond reverse-lookup table on device
+
+    //! Constructor
+    /*! \param _d_bond_rtag Pointer to reverse-lookup table
+     */
+    bond_unique_gpu(const unsigned int *_d_bond_rtag)
+        : d_bond_rtag(_d_bond_rtag)
+        { }
+
+    //! Return true if bond is unique
+    __device__ bool operator() (const bdata_tuple_gpu t) const
+        {
+        unsigned int bond_tag = t.get<0>();
+
+        unsigned int bond_rtag = d_bond_rtag[bond_tag];
+        return bond_rtag == BOND_NOT_LOCAL;
+        }
+    };
+
+/*! \param num_bonds Current number of bonds
+    \param num_add_bonds Number of bonds to be added
+    \param d_bond_tag Device array of bond tags
+    \param d_bonds Device array of bonds
+    \param d_bond_type Device array of bond types
+    \param d_in Device input array of packed bond data
+
+    \returns number of bonds added
+ */
+unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
+                            const unsigned int num_add_bonds,
+                            unsigned int *d_bond_tag,
+                            uint2 *d_bonds,
+                            unsigned int *d_bond_type,
+                            unsigned int *d_bond_rtag,
+                            const bond_element *d_in)
+    {
+    // wrap pointers into thrust ptrs
+    thrust::device_ptr<unsigned int> bond_tag_ptr(d_bond_tag);
+    thrust::device_ptr<uint2> bonds_ptr(d_bonds);
+    thrust::device_ptr<unsigned int> bond_type_ptr(d_bond_type);
+
+    // wrap reverse-lookup table
+    thrust::device_ptr<unsigned int> bond_rtag_ptr(d_bond_rtag);
+
+    bdata_zip_gpu bdata_begin(thrust::make_tuple(
+        bond_tag_ptr,
+        bonds_ptr,
+        bond_type_ptr
+        ));
+    bdata_zip_gpu bdata_end = bdata_begin + num_bonds;
+
+    // pointer from tag into rtag
+    thrust::permutation_iterator<
+        thrust::device_ptr<const unsigned int>, thrust::device_ptr<unsigned int> >
+         bond_rtag_prm(bond_rtag_ptr, bond_tag_ptr);
+
+    // erase all elements for which rtag == BOND_NOT_LOCAL
+    // maintaing a contiguous array
+    bdata_zip_gpu new_bdata_end;
+    new_bdata_end = thrust::remove_if(bdata_begin, bdata_end, bond_rtag_prm, bond_rtag_compare_gpu(BOND_NOT_LOCAL));
+
+    // wrap packed input data
+    thrust::device_ptr<const bond_element> in_ptr(d_in);
+
+    // set up a transform iterator from bond_element to bdata_tuple
+    thrust::transform_iterator<to_bdata_tuple_gpu, thrust::device_ptr<const bond_element> > in_transform(
+        in_ptr,
+        to_bdata_tuple_gpu());
+
+    // add new bonds at the end, omitting duplicates
+    unsigned int num_added_bonds =
+        thrust::copy_if(in_transform, in_transform + num_add_bonds, new_bdata_end, bond_unique_gpu(d_bond_rtag)) -
+         new_bdata_end;
+
+    unsigned int new_n_bonds = new_bdata_end - bdata_begin + num_added_bonds;
+
+    // recompute bond rtags
+    thrust::counting_iterator<unsigned int> idx(0);
+    thrust::scatter(idx, idx+new_n_bonds, bond_tag_ptr, bond_rtag_ptr);
+
+    return new_n_bonds;
+    }
+#endif // ENABLE_MPI

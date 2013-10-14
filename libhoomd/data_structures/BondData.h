@@ -266,17 +266,6 @@ class BondData : boost::noncopyable
          */
         void retrieveBonds(GPUVector<bond_element>& out);
 
-        //! Unpack a buffer with new bonds to be added, and remove bonds according to a mask
-        /*! \param num_add_bonds Number of bonds in the buffer
-         *  \param num_remove_bonds Number of bonds to be removed
-         *  \param buf The buffer containing the bond data
-         *  \param remove_mask A mask that indicates whether the bond needs to be removed
-         */
-        void unpackRemoveBonds(unsigned int num_add_bonds,
-                               unsigned int num_remove_bonds,
-                               const GPUArray<bond_element>& buf,
-                               const GPUArray<unsigned int>& remove_mask);
-
         //! Unpack a buffer with new bonds to be added, and remove obsolete bonds
         /*  \param in List of bonds to be added
          *
@@ -285,6 +274,18 @@ class BondData : boost::noncopyable
          *  Duplicate bonds are not added to the local domain.
          */
         void addRemoveBonds(const GPUVector<bond_element>& in);
+
+        #ifdef ENABLE_CUDA
+        //! Pack bond data into a buffer (GPU version)
+        /*! \param out Buffer into which bond data is packed
+         */
+        void retrieveBondsGPU(GPUVector<bond_element>& out);
+
+        //! Unpack a buffer with new bonds to be added, and remove obsolete bonds (GPU version)
+        /*  \param in List of bonds to be added
+         */
+        void addRemoveBondsGPU(const GPUVector<bond_element>& in);
+        #endif
 #endif
 
         //! Gets the bond table
@@ -398,14 +399,6 @@ class BondData : boost::noncopyable
 
         //! Helper function to allocate the bond table
         void allocateBondTable(int height);
-
-#ifdef ENABLE_CUDA
-        //! Helper function to unpack and remove bonds on the GPU
-        void unpackRemoveBondsGPU(unsigned int num_add_bonds,
-                               unsigned int num_remove_bonds,
-                               const GPUArray<bond_element>& buf,
-                               const GPUArray<unsigned int>& remove_mask);
-#endif
     };
 
 //! Exports BondData to python

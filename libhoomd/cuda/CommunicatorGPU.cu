@@ -311,10 +311,10 @@ struct to_bond_element_gpu : public thrust::unary_function<const bdata_tuple_gpu
         }
     };
 
-//! Select a bond for migration
-struct select_bond_migrate_gpu : public thrust::unary_function<const uint2, bool>
+//! Select bonds that leave the box
+struct select_bond_migrate_gpu : public thrust::unary_function<const unsigned int, bool>
     {
-    const unsigned int *d_rtag;       //!< Array of particle reverse lookup tags
+    const unsigned int *d_rtag;       //!< Particle r-lookup table
 
     //! Constructor
     /*!
@@ -324,69 +324,94 @@ struct select_bond_migrate_gpu : public thrust::unary_function<const uint2, bool
         {
         }
 
-    //! Select a bond
-    /*! b bond to consider for sending
-     * \return true if bond is sent
+    //! Select bonds for sending
+    /*! \param b bond to consider for sending
+     * \return true if bond is leaving this box
      */
-    __device__ bool operator()(const uint2 bond)
+    __device__ bool operator()(const uint2 b)
         {
-        unsigned int idx_a = d_rtag[bond.x];
-        unsigned int idx_b = d_rtag[bond.y];
+        unsigned int rtag_a = d_rtag[b.x];
+        unsigned int rtag_b = d_rtag[b.y];
 
-        // if one of the particles leaves the domain, send bond with it
-        return (idx_a == STAGED || idx_b == STAGED);
+        // number of particles that remain local
+        unsigned num_local = 2;
+        if (rtag_a == NOT_LOCAL || rtag_a == STAGED) num_local--;
+        if (rtag_b == NOT_LOCAL || rtag_b == STAGED) num_local--;
+
+        // if no particle is local anymore, bond is sent and removed
+        return !num_local;
         }
      };
 
-
-/*! \param n_bonds Number of local bonds
-    \param d_bonds Array of bonds
-    \param d_rtag Reverse-lookup table for particle tag->index
- */
-unsigned int gpu_count_send_bonds(unsigned int n_bonds,
-                                  const uint2 *d_bonds,
-                                  const unsigned int *d_rtag)
+//! Select bonds that are split (a copy is sent to another domain)
+struct select_bond_split_gpu : public thrust::unary_function<const uint2, bool>
     {
-    thrust::device_ptr<const uint2> bonds_ptr(d_bonds);
-    return thrust::count_if(bonds_ptr, bonds_ptr + n_bonds, select_bond_migrate_gpu(d_rtag));
-    }
+    const unsigned int *d_rtag;       //!< Particle r-lookup table
+
+    //! Constructor
+    /*!
+     */
+    select_bond_split_gpu(const unsigned int *_d_rtag)
+        : d_rtag(_d_rtag)
+        {
+        }
+
+    //! Select bonds for sending
+    /*! \param b bond to consider for sending
+     * \return true if bond is leaving this box
+     */
+    __device__ bool operator()(const uint2 b)
+        {
+        unsigned int rtag_a = d_rtag[b.x];
+        unsigned int rtag_b = d_rtag[b.y];
+
+        // number of particles that remain local
+        unsigned num_local = 2;
+        if (rtag_a == NOT_LOCAL || rtag_a == STAGED) num_local--;
+        if (rtag_b == NOT_LOCAL || rtag_b == STAGED) num_local--;
+
+        // number of particles that leave the domain
+        unsigned int num_leave = 0;
+        if (rtag_a == STAGED) num_leave++;
+        if (rtag_b == STAGED) num_leave++;
+
+        return num_local && num_leave;
+        }
+     };
 
 /*! \param n_bonds Number of local bonds
     \param d_bonds Array of bonds
     \param d_bond_tag Array of bond tags
-    \param d_bond_type Array of bond types
+    \param d_bond_rtag Reverse-lookup table for bond tags
     \param d_rtag Particle data reverse-lookup table
     \param d_out Output array for packed bond data
  */
-void gpu_pack_bond_data(unsigned int n_bonds,
-                        const uint2 *d_bonds,
-                        const unsigned int *d_bond_tag,
-                        const unsigned int *d_bond_type,
-                        const unsigned int *d_rtag,
-                        bond_element *d_out)
+void gpu_select_bonds(unsigned int n_bonds,
+                      const uint2 *d_bonds,
+                      const unsigned int *d_bond_tag,
+                      unsigned int *d_bond_rtag,
+                      const unsigned int *d_rtag)
     {
     // Wrap bond data pointers
     thrust::device_ptr<const uint2> bonds_ptr(d_bonds);
     thrust::device_ptr<const unsigned int> bond_tag_ptr(d_bond_tag);
-    thrust::device_ptr<const unsigned int> bond_type_ptr(d_bond_type);
 
-    // Wrap output array
-    thrust::device_ptr<bond_element> out_ptr(d_out);
+    thrust::device_ptr<unsigned int> bond_rtag_ptr(d_bond_rtag);
 
-    // Construct zip iterator
-    bdata_zip_gpu_const bdata_begin(
-        thrust::make_tuple(
-            bond_tag_ptr,
-            bonds_ptr,
-            bond_type_ptr
-        ));
+    // Wrap reverse-lookup for particles
+    thrust::device_ptr<const unsigned int> rtag_ptr(d_rtag);
 
-     // set up transform iterator to compact particle data into records
-     thrust::transform_iterator<to_bond_element_gpu, bdata_zip_gpu_const> bdata_transform(bdata_begin);
+    // pointer from bond tag into bond rtag
+    thrust::permutation_iterator<
+        thrust::device_ptr<unsigned int>, thrust::device_ptr<const unsigned int> >
+        bond_rtag_prm(bond_rtag_ptr, bond_tag_ptr);
 
-     // compact selected particle elements into output array
-     thrust::copy_if(bdata_transform, bdata_transform+n_bonds, bonds_ptr, out_ptr, select_bond_migrate_gpu(d_rtag));
-     }
+    // set bond rtags for bonds that leave the domain to BOND_STAGED
+    thrust::replace_if(bond_rtag_prm, bond_rtag_prm+n_bonds, bonds_ptr, select_bond_migrate_gpu(d_rtag), BOND_STAGED);
+
+    // set bond rtags for bonds that are replicated to BOND_SPLIT
+    thrust::replace_if(bond_rtag_prm, bond_rtag_prm+n_bonds, bonds_ptr, select_bond_split_gpu(d_rtag), BOND_SPLIT);
+    }
 
 //! Reset reverse lookup tags of particles we are removing
 /* \param n_delete_ptls Number of particles to delete

@@ -167,18 +167,12 @@ void gpu_wrap_particles(const unsigned int n_recv,
                         pdata_element *d_in,
                         const BoxDim& box);
 
-//! Count bonds to be sent
-unsigned int gpu_count_send_bonds(unsigned int n_bonds,
-                                  const uint2 *d_bonds,
-                                  const unsigned int *d_rtag);
-
-//! Pack bonds into output buffer
-void gpu_pack_bond_data(unsigned int n_bonds,
-                        const uint2 *d_bonds,
-                        const unsigned int *d_bond_tag,
-                        const unsigned int *d_bond_type,
-                        const unsigned int *d_rtag,
-                        bond_element *d_out);
+//! Select bonds for sending
+void gpu_select_bonds(unsigned int n_bonds,
+                      const uint2 *d_bonds,
+                      const unsigned int *d_bond_tag,
+                      unsigned int *d_bond_rtag,
+                      const unsigned int *d_rtag);
 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls,

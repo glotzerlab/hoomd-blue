@@ -70,6 +70,15 @@ struct bond_element
 
 //! Sentinal value in \a bond_r_tag to signify that this bond is not currently present on the local processor
 const unsigned int BOND_NOT_LOCAL = 0xffffffff;
+
+#ifdef ENABLE_MPI
+//! Sentinel value in bond reverse-lookup map for bonds that are to be sent and removed
+const unsigned int BOND_STAGED = 0xfffffffe;
+
+//! Sentinel value in bond reverse-lookup map for bonds that are to be split across domains
+const unsigned int BOND_SPLIT = 0xfffffffd;
+#endif // ENABLE_MPI
+
 #else
 //! Forward declaration
 class bond_element;
@@ -95,28 +104,33 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
                                  unsigned int pitch,
                                  unsigned int N);
 
-void gpu_mark_recv_bond_duplicates(const unsigned int n_bonds,
-                                   const bond_element *d_recv_bonds,
-                                   unsigned int *d_bond_remove_mask,
-                                   const unsigned int n_recv_bonds,
-                                   unsigned int *d_bond_rtag,
-                                   unsigned char *d_recv_bond_active,
-                                   unsigned int *d_n_duplicate_recv_bonds);
+#ifdef ENABLE_MPI
+//! Count particles staged for sending
+unsigned int gpu_bdata_count_rtag_staged(const unsigned int num_bonds,
+    const unsigned int *d_bond_tag,
+    const unsigned int *d_bond_rtag);
 
-void gpu_fill_bond_bondtable(const unsigned int old_n_bonds,
-                             const unsigned int n_recv_bonds,
-                             const unsigned int n_unique_recv_bonds,
-                             const unsigned int n_remove_bonds,
-                             const unsigned int *d_remove_mask,
-                             const unsigned char *d_recv_bond_active,
-                             const bond_element *d_recv_buf,
-                             uint2 *d_bonds,
-                             unsigned int *d_bond_type,
-                             unsigned int *d_bond_tag,
-                             unsigned int *d_bond_rtag,
-                             unsigned int *d_n_fetch_ptl);
+//! Count particles marked for removal
+unsigned int gpu_bdata_count_rtag_removed(const unsigned int num_bonds,
+    const unsigned int *d_bond_tag,
+    const unsigned int *d_bond_rtag);
 
-void gpu_update_bond_rtags(unsigned int *d_bond_rtag,
-                           const unsigned int *d_bond_tag,
-                           const unsigned int num_bonds);
-#endif
+//! Pack bonds on the GPU
+void gpu_pack_bonds(unsigned int num_bonds,
+                    const unsigned int *d_bond_tag,
+                    const uint2 *d_bonds,
+                    const unsigned int *d_bond_type,
+                    unsigned int *d_bond_rtag,
+                    bond_element *d_out);
+
+//! Add new bonds and remove bonds marked for deletion, ignoring duplicates
+unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
+                            const unsigned int num_add_bonds,
+                            unsigned int *d_bond_tag,
+                            uint2 *d_bonds,
+                            unsigned int *d_bond_type,
+                            unsigned int *d_bond_rtag,
+                            const bond_element *d_in);
+
+#endif //ENABLE_MPI
+#endif // __BONDDATA_CUH__
