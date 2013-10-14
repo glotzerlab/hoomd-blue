@@ -1742,7 +1742,7 @@ struct to_pdata_tuple : public std::unary_function<const pdata_element, const pd
     };
 
 //! Remove particles from local domain and append new particle data
-void ParticleData::updateParticles(const std::vector<pdata_element>& in)
+void ParticleData::addRemoveParticles(const std::vector<pdata_element>& in)
     {
     unsigned int num_add_ptls = in.size();
     unsigned int num_remove_ptls = 0;
@@ -1874,7 +1874,7 @@ void ParticleData::retrieveParticlesGPU(GPUVector<pdata_element>& out)
     }
 
 //! Remove particles from local domain and add new particle data (GPU version)
-void ParticleData::updateParticlesGPU(const GPUVector<pdata_element>& in)
+void ParticleData::addRemoveParticlesGPU(const GPUVector<pdata_element>& in)
     {
     unsigned int num_add_ptls = in.size();
     unsigned int num_remove_ptls;

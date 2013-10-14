@@ -70,6 +70,8 @@ using namespace boost;
 
 #include <algorithm>
 #include <boost/iterator/zip_iterator.hpp>
+#include <boost/iterator/transform_iterator.hpp>
+#include <boost/algorithm/cxx11/copy_if.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 using namespace std;
@@ -773,6 +775,7 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
     m_bonds_dirty = true;
     }
 
+#ifdef ENABLE_MPI
 //! A combined iterator for filtering bonds
 typedef boost::zip_iterator< boost::tuple < uint2 *,
                                             unsigned int *,
@@ -987,8 +990,236 @@ void BondData::unpackRemoveBondsGPU(unsigned int num_add_bonds,
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     }
+#endif // ENABLE_CUDA
 
-#endif
+//! Pack bond data into a buffer
+void BondData::retrieveBonds(GPUVector<bond_element>& out)
+    {
+    // access bond data arrays
+    ArrayHandle<uint2> h_bonds(m_bonds, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_bond_type(getBondTypes(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_bond_tag(getBondTags(), access_location::host, access_mode::read);
+
+    // access reverse-lookup table
+    ArrayHandle<unsigned int> h_bond_rtag(getBondRTags(), access_location::host, access_mode::readwrite);
+
+    unsigned int n_bonds = getNumBonds();
+
+    // reset out vector
+    out.clear();
+
+    unsigned int n_pack_bonds = 0;
+
+    // count bonds to be sent
+    for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+        {
+        unsigned int bond_tag = h_bond_tag.data[bond_idx];
+
+        assert(bond_tag < getNumBondsGlobal());
+
+        unsigned int bond_rtag = h_bond_rtag.data[bond_tag];
+        if (bond_rtag == BOND_STAGED || bond_rtag == BOND_SPLIT)
+            n_pack_bonds++;
+        }
+
+    // resize out vector
+    out.resize(n_pack_bonds);
+
+    // access output vector
+    ArrayHandle<bond_element> h_out(out, access_location::host, access_mode::overwrite);
+
+    n_pack_bonds = 0;
+
+    // pack bonds
+    for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+        {
+        unsigned int bond_tag = h_bond_tag.data[bond_idx];
+
+        assert(bond_tag < getNumBondsGlobal());
+
+        unsigned int bond_rtag = h_bond_rtag.data[bond_tag];
+        if (bond_rtag == BOND_STAGED || bond_rtag == BOND_SPLIT)
+            {
+            bond_element b;
+            b.bond = h_bonds.data[bond_idx];
+            b.type = h_bond_type.data[bond_idx];
+            b.tag = bond_tag;
+            h_out.data[n_pack_bonds++] = b;
+            }
+
+        // mark staged bonds for removal
+        if (bond_rtag == BOND_STAGED)
+            h_bond_rtag.data[bond_tag] = BOND_NOT_LOCAL;
+        }
+    }
+
+//! A tuple of pdata pointers
+typedef boost::tuple <
+    unsigned int *,  // tag
+    uint2 *,         // bond
+    unsigned int *   // type
+    > bdata_it_tuple;
+
+//! A zip iterator for filtering particle data
+typedef boost::zip_iterator<bdata_it_tuple> bdata_zip;
+
+//! A tuple of pdata fields
+typedef boost::tuple <
+    const unsigned int,  // tag
+    const uint2,         // bond
+    const unsigned int   // type
+    > bdata_tuple;
+
+//! A predicate to select particles by rtag
+struct bdata_select
+    {
+    //! Constructor
+    bdata_select(const unsigned int *_rtag, const unsigned int _compare)
+        : rtag(_rtag), compare(_compare)
+        { }
+
+    //! Returns true if the remove flag is set for a particle
+    bool operator() (bdata_tuple const x) const
+        {
+        return rtag[x.get<0>()] == compare;
+        }
+
+    const unsigned int *rtag;    //!< The reverse-lookup tag array
+    const unsigned int compare;  //!< The value to compare the rtag to
+    };
+
+//! A converter from bond_element to a tuple of bond data entries
+struct to_bdata_tuple : public std::unary_function<const bond_element, const bdata_tuple>
+    {
+    const bdata_tuple operator() (const bond_element b) const
+        {
+        return boost::make_tuple(
+            b.tag,
+            b.bond,
+            b.type
+            );
+        }
+    };
+
+//! A predicate to check if the bond doesn't already exist
+struct bond_unique
+    {
+    const unsigned int *h_bond_rtag;      //!< Bond reverse-lookup table
+    unsigned int num_bonds_global; //!< Global number of bonds
+    unsigned int num_bonds;        //!< Number of local bonds
+
+    //! Constructor
+    /*! \param h_bond_rtag Pointer to reverse-lookup table
+     */
+    bond_unique(const unsigned int *_h_bond_rtag, unsigned int _num_bonds_global, unsigned int _num_bonds)
+        : h_bond_rtag(_h_bond_rtag), num_bonds_global(_num_bonds_global), num_bonds(_num_bonds)
+        { }
+
+    //! Return true if bond is unique
+    const bool operator() (const bdata_tuple t) const
+        {
+        unsigned int bond_tag = t.get<0>();
+        assert(bond_tag < num_bonds_global);
+
+        unsigned int bond_rtag = h_bond_rtag[bond_tag];
+        if (bond_rtag != BOND_NOT_LOCAL)
+            {
+            assert(bond_rtag < num_bonds || bond_rtag == BOND_SPLIT);
+            return false;
+            }
+
+        return true;
+        }
+    };
+
+//! Unpack a buffer with new bonds to be added, and remove obsolete bonds
+void BondData::addRemoveBonds(const GPUVector<bond_element>& in)
+    {
+    unsigned int num_add_bonds = in.size();
+    unsigned int num_remove_bonds = 0;
+
+        {
+        // access bond data tags and rtags
+        ArrayHandle<unsigned int> h_bond_tag(getBondTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_bond_rtag(getBondRTags(), access_location::host, access_mode::read);
+
+        unsigned int n_bonds = getNumBonds();
+
+        // count bounds to be removed
+        for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
+            {
+            unsigned int bond_tag = h_bond_tag.data[bond_idx];
+            assert(bond_tag < getNumBondsGlobal());
+            if (h_bond_rtag.data[bond_tag] == BOND_NOT_LOCAL) num_remove_bonds++;
+            }
+        }
+
+    // old number of bonds
+    unsigned int old_n_bonds = getNumBonds();
+
+    // new number of bonds, before removal
+    unsigned int new_n_bonds = old_n_bonds + num_add_bonds;
+
+    // resize internal data structures to fit the new bonds
+    m_bonds.resize(new_n_bonds);
+    m_bond_type.resize(new_n_bonds);
+    m_tags.resize(new_n_bonds);
+
+        {
+        // access bond data arrays
+        ArrayHandle<uint2> h_bonds(getBondTable(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_bond_tag(getBondTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_bond_type(getBondTypes(), access_location::host, access_mode::readwrite);
+
+        // access reverse-lookup table
+        ArrayHandle<unsigned int> h_bond_rtag(getBondRTags(), access_location::host, access_mode::readwrite);
+
+        bdata_zip bdata_begin = boost::make_tuple(
+            h_bond_tag.data,
+            h_bonds.data,
+            h_bond_type.data
+            );
+        bdata_zip bdata_end = bdata_begin + old_n_bonds;
+
+        // erase all elements for which rtag == BOND_NOT_LOCAL
+        // the array remains contiguous
+        bdata_zip new_bdata_end;
+        new_bdata_end = std::remove_if(bdata_begin, bdata_end, bdata_select(h_bond_rtag.data, BOND_NOT_LOCAL));
+
+        // access input array
+        ArrayHandle<bond_element> h_in(in, access_location::host, access_mode::read);
+
+        // set up a transform iterator from bond_element to bond data tuple
+        boost::transform_iterator<to_bdata_tuple, const bond_element *> in_transform(
+            h_in.data,
+            to_bdata_tuple());
+
+        // add new bonds at the end, omitting duplicates
+        new_bdata_end = boost::algorithm::copy_if(in_transform, in_transform + num_add_bonds, new_bdata_end,
+             bond_unique(h_bond_rtag.data, getNumBondsGlobal(), old_n_bonds));
+
+        // compute new size of bond data arrays
+        new_n_bonds = new_bdata_end - bdata_begin;
+
+        // recompute rtags
+        for (unsigned int bond_idx = 0; bond_idx < new_n_bonds; ++bond_idx)
+            {
+            // reset rtag of this bond
+            unsigned int bond_tag = h_bond_tag.data[bond_idx];
+            assert(bond_tag < getNumBondsGlobal());
+            h_bond_rtag.data[bond_tag] = bond_idx;
+            }
+        }
+
+    // due to removed bonds and duplicates, the new array size may be smaller
+    m_bonds.resize(new_n_bonds);
+    m_bond_type.resize(new_n_bonds);
+    m_tags.resize(new_n_bonds);
+
+    setDirty();
+    }
+#endif // ENABLE_MPI
+
 void export_BondData()
     {
     class_<Bond>("Bond", init<unsigned int, unsigned int, unsigned int>())

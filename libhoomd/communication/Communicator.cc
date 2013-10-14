@@ -437,9 +437,6 @@ void Communicator::migrateParticles()
         {
         if (! isCommunicating(dir) ) continue;
 
-        unsigned int n_send_bonds = 0;
-        unsigned int n_remove_bonds = 0;
-
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -471,44 +468,42 @@ void Communicator::migrateParticles()
             ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
             ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_bond_type(bdata->getBondTypes(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_bond_tag(bdata->getBondTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_bond_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_bond_rtag(bdata->getBondRTags(), access_location::host, access_mode::readwrite);
 
-            select_bond_migrate migrate_pred(h_rtag.data);
-            n_send_bonds = std::count_if(h_bonds.data,
-                                         h_bonds.data+bdata->getNumBonds(),
-                                         migrate_pred);
-
-            // resize send buffer
-            m_bond_send_buf.resize(n_send_bonds);
-
-            // resize remove mask
-            m_bond_remove_mask.resize(bdata->getNumBonds());
-
-            unsigned add_idx = 0;
-            ArrayHandle<bond_element> h_bond_send_buf(m_bond_send_buf, access_location::host, access_mode::overwrite);
-            ArrayHandle<unsigned int> h_bond_remove_mask(m_bond_remove_mask, access_location::host, access_mode::readwrite);
-
-            select_bond_remove remove_pred(h_rtag.data);
-            for (unsigned int bond_idx = 0; bond_idx < bdata->getNumBonds(); ++bond_idx)
+            unsigned int num_bonds = bdata->getNumBonds();
+            for (unsigned int bond_idx = 0; bond_idx < num_bonds; ++bond_idx)
                 {
                 uint2 bond = h_bonds.data[bond_idx];
-                bool remove = remove_pred(bond);
 
-                if (remove) n_remove_bonds++;
+                assert(bond.x < m_pdata->getNGlobal());
+                assert(bond.y < m_pdata->getNGlobal());
 
-                h_bond_remove_mask.data[bond_idx] = remove ? 1 : 0;
+                unsigned int rtag_a = h_rtag.data[bond.x];
+                unsigned int rtag_b = h_rtag.data[bond.y];
 
-                if (migrate_pred(bond))
-                    {
-                    // pack bond data
-                    bond_element el;
-                    el.bond = bond;
-                    el.type = h_bond_type.data[bond_idx];
-                    el.tag = h_bond_tag.data[bond_idx];
-                    h_bond_send_buf.data[add_idx++] = el;
-                    }
+                unsigned int bond_tag = h_bond_tag.data[bond_idx];
+                assert(bond_tag < bdata->getNumBondsGlobal());
+
+                // number of particles that remain local
+                unsigned num_local = 2;
+                if (rtag_a == NOT_LOCAL || rtag_a == STAGED) num_local--;
+                if (rtag_b == NOT_LOCAL || rtag_b == STAGED) num_local--;
+
+                // number of particles that leave the domain
+                unsigned int num_leave = 0;
+                if (rtag_a == STAGED) num_leave++;
+                if (rtag_b == STAGED) num_leave++;
+
+                // if no particle leaves, do nothing
+                if (!num_leave) continue;
+
+                // if the bond has no local particles anymore, send and remove it
+                if (!num_local)
+                    h_bond_rtag.data[bond_tag] = BOND_STAGED;
+                else
+                    // otherwise, the bond is split
+                    h_bond_rtag.data[bond_tag] = BOND_SPLIT;
                 }
             }
 
@@ -563,14 +558,18 @@ void Communicator::migrateParticles()
             }
 
         // remove particles that were sent and fill particle data with received particles
-        m_pdata->updateParticles(m_recvbuf);
+        m_pdata->addRemoveParticles(m_recvbuf);
 
         /*
          *  Bond communication
          */
         if (bdata->getNumBondsGlobal())
             {
+            // fill bond send buffer
+            bdata->retrieveBonds(m_bond_send_buf);
+
             unsigned int n_recv_bonds;
+            unsigned int n_send_bonds = m_bond_send_buf.size();
 
             // exchange size of messages
             MPI_Isend(&n_send_bonds, sizeof(unsigned int), MPI_BYTE, send_neighbor, 0, m_mpi_comm, & reqs[0]);
@@ -603,10 +602,7 @@ void Communicator::migrateParticles()
                 }
 
             // unpack data
-            bdata->unpackRemoveBonds(n_recv_bonds,
-                                     n_remove_bonds,
-                                     m_bond_recv_buf,
-                                     m_bond_remove_mask);
+            bdata->addRemoveBonds(m_bond_recv_buf);
 
             } // end bond communication
 

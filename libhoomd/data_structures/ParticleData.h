@@ -336,7 +336,7 @@ struct pdata_element
 
     During the simulation particles may enter or leave the box, therefore the number of \a local particles may change.
     To account for this, the size of the particle data arrays is dynamically updated using amortized doubling of the array sizes. To add particles to
-    the domain, the updateParticles() method is called, and the arrays are resized if necessary. Particles are retrieved
+    the domain, the addRemoveParticles() method is called, and the arrays are resized if necessary. Particles are retrieved
     from the local particle data arrays using retrieveParticles().
 
     In addition, since many other classes maintain internal arrays holding data for every particle (such as neighbor lists etc.), these
@@ -749,7 +749,7 @@ class ParticleData : boost::noncopyable
          *
          * Particles marked with the rtag==NOT_LOCAL are removed
          */
-        void updateParticles(const std::vector<pdata_element>& in);
+        void addRemoveParticles(const std::vector<pdata_element>& in);
 
         #ifdef ENABLE_CUDA
         //! Pack particle data into a buffer (GPU version)
@@ -767,7 +767,7 @@ class ParticleData : boost::noncopyable
          *
          * Particles marked with the rtag==NOT_LOCAL are removed
          */
-        void updateParticlesGPU(const GPUVector<pdata_element>& in);
+        void addRemoveParticlesGPU(const GPUVector<pdata_element>& in);
         #endif // ENABLE_CUDA
 
 #endif // ENABLE_MPI

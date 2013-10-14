@@ -1433,18 +1433,18 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 // we should own bonds 0-4
                 ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[1] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[2] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[3] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[4] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] == BOND_NOT_LOCAL);
 
                 ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
@@ -1478,18 +1478,18 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 // we should own bonds 1,5,6
                 ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[6] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[6] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] == BOND_NOT_LOCAL);
 
                 ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
@@ -1515,18 +1515,18 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 // we should own bonds 3,5,7
                 ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] == BOND_NOT_LOCAL);
 
                 ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
@@ -1552,18 +1552,18 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 // we should own bonds 2,8,9
                 ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[9] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[9] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] == BOND_NOT_LOCAL);
 
                 ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
@@ -1590,18 +1590,18 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 // we should own bonds 4,8,10
                 ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[11] == BOND_NOT_LOCAL);
 
                 ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
@@ -1628,18 +1628,18 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 // we should own bonds 6,9,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[7] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[10] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] < bdata->getNumBonds());
 
                 ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
@@ -1666,18 +1666,18 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
                 // we should own bonds 7,10,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[11] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[0] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[8] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[11] < bdata->getNumBonds());
 
                 ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);

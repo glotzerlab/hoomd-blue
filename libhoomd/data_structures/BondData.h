@@ -86,8 +86,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "HOOMDMath.h"
 
-// Sentinel value in bond reverse-lookup map for unassigned bond tags
-#define BOND_NOT_LOCAL 0xffffffff
+//! Sentinel value in bond reverse-lookup map for unassigned bond tags
+const unsigned int BOND_NOT_LOCAL = 0xffffffff;
+
+#ifdef ENABLE_MPI
+//! Sentinel value in bond reverse-lookup map for bonds that are to be sent and removed
+const unsigned int BOND_STAGED = 0xfffffffe;
+
+//! Sentinel value in bond reverse-lookup map for bonds that are to be split across domains
+const unsigned int BOND_SPLIT = 0xfffffffd;
+#endif // ENABLE_MPI
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
@@ -247,6 +255,17 @@ class BondData : boost::noncopyable
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
 
+#ifdef ENABLE_MPI
+        //! Pack bond data into a buffer
+        /*! \param out Buffer into which bond data is packed
+         *
+         *  Packs all bonds for which rtag==BOND_STAGED or rtag==BOND_SPLIT into a buffer,
+         *  and mark staged particle for removal (rtag = BOND_NOT_LOCAL)
+         *
+         *  The output buffer is automatically resized to accomodate the data.
+         */
+        void retrieveBonds(GPUVector<bond_element>& out);
+
         //! Unpack a buffer with new bonds to be added, and remove bonds according to a mask
         /*! \param num_add_bonds Number of bonds in the buffer
          *  \param num_remove_bonds Number of bonds to be removed
@@ -257,6 +276,16 @@ class BondData : boost::noncopyable
                                unsigned int num_remove_bonds,
                                const GPUArray<bond_element>& buf,
                                const GPUArray<unsigned int>& remove_mask);
+
+        //! Unpack a buffer with new bonds to be added, and remove obsolete bonds
+        /*  \param in List of bonds to be added
+         *
+         *  Particles marked with rtag==BOND_NOT_LOCAL are removed.
+         *  All other particles are retained.
+         *  Duplicate bonds are not added to the local domain.
+         */
+        void addRemoveBonds(const GPUVector<bond_element>& in);
+#endif
 
         //! Gets the bond table
         const GPUVector<uint2>& getBondTable()

@@ -613,7 +613,7 @@ void CommunicatorGPU::migrateParticles()
             }
 
         // remove particles that were sent and fill particle data with received particles
-        m_pdata->updateParticlesGPU(m_gpu_recvbuf);
+        m_pdata->addRemoveParticlesGPU(m_gpu_recvbuf);
 
         /*
          * Communicate bonds
