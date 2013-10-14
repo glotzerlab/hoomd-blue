@@ -239,7 +239,8 @@ bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
 ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
-      m_num_local_members(0)
+      m_num_local_members(0),
+      m_particles_sorted(true)
     {
     // assign all of the particles that belong to the group
     // for each particle in the (global) data
@@ -277,8 +278,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
 
-    // connect the rebuildIndexList method to be called whenever the particles are sorted, or added to or deleted from the local domain
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildIndexList, this));
+    // connect to the particle sort signal
+    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
 
     // connect reallocate() method to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
@@ -292,7 +293,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
 ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
-      m_num_local_members(0)
+      m_num_local_members(0),
+      m_particles_sorted(true)
     {
     // let's make absolutely sure that the tag order given from outside is sorted
     std::vector<unsigned int> sorted_member_tags =  member_tags;
@@ -323,8 +325,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
 
-    // connect the rebuildIndexList method to be called whenever the particles are sorted
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildIndexList, this));
+    // connect to the particle sort signal
+    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
 
     // connect reallocate() method to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
@@ -552,7 +554,7 @@ void ParticleGroup::buildTagHash()
     \note In MPI simulations, this function breaks strict O(N/P) computational scaling, as it
           iterates over all *global* members of the group
 */
-void ParticleGroup::rebuildIndexList()
+void ParticleGroup::rebuildIndexList() const
     {
 #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled() )
@@ -585,11 +587,14 @@ void ParticleGroup::rebuildIndexList()
         m_num_local_members = cur_member;
         assert(m_num_local_members <= m_member_tags.getNumElements());
         }
+
+    // index has been rebuilt
+    m_particles_sorted = false;
     }
 
 #ifdef ENABLE_CUDA
 //! rebuild index list on the GPU
-void ParticleGroup::rebuildIndexListGPU()
+void ParticleGroup::rebuildIndexListGPU() const
     {
     ArrayHandle<unsigned char> d_is_member(m_is_member, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned char> d_is_member_tag(m_is_member_tag, access_location::device, access_mode::read);

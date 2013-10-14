@@ -232,6 +232,9 @@ class ParticleGroup
         */
         unsigned int getNumMembers() const
             {
+            // check if local members have changed
+            if (m_particles_sorted) rebuildIndexList();
+
             return m_num_local_members;
             }
 
@@ -251,9 +254,14 @@ class ParticleGroup
             \returns Index of the member at position \a j
             \note getMemberTag(j) \b does \b NOT get the tag of the particle with index getMemberIndex(j). These two
                   lists are stored in different orders. Access the ParticleData to convert between tags and indices.
+            \note This method CAN access the particle data tag array if the index is rebuilt.
+                  Hence, the tag array may not be accessed in the same scope in which this method is called.
         */
         unsigned int getMemberIndex(unsigned int j) const
             {
+            // check if local members have changed
+            if (m_particles_sorted) rebuildIndexList();
+
             assert(j < getNumMembers());
             ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::read);
             unsigned int idx = h_handle.data[j];
@@ -264,9 +272,14 @@ class ParticleGroup
         //! Test if a particle index is a member of the group
         /*! \param idx Index of the particle to query (from 0 to the number of partilces in ParticleData -1)
             \returns true if the particle with index \a idx is in the group
+            \note This method CAN access the particle data tag array if the index is rebuilt.
+                  Hence, the tag array may not be accessed in the same scope in which this method is called.
         */
         bool isMember(unsigned int idx) const
             {
+            // check if local members have changed
+            if (m_particles_sorted) rebuildIndexList();
+
             ArrayHandle<unsigned char> h_handle(m_is_member, access_location::host, access_mode::read);
             return h_handle.data[idx] == 1;
             }
@@ -274,9 +287,15 @@ class ParticleGroup
         //! Direct access to the index list
         /*! \returns A GPUArray for directly accessing the index list, intended for use in using groups on the GPU
             \note The caller \b must \b not write to or change the array.
+
+            \note This method CAN access the particle data tag array if the index is rebuilt.
+                  Hence, the tag array may not be accessed in the same scope in which this method is called.
         */
         const GPUArray<unsigned int>& getIndexArray() const
             {
+            // check if local members have changed
+            if (m_particles_sorted) rebuildIndexList();
+
             return m_member_idx;
             }
 
@@ -313,22 +332,29 @@ class ParticleGroup
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
         GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the paritcle members
-        unsigned int m_num_local_members;               //!< Number of members on the local processor
+        mutable unsigned int m_num_local_members;       //!< Number of members on the local processor
+        mutable bool m_particles_sorted;                //!< True if particle have been sorted since last rebuild
 
         GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
 
         //! Helper function to resize array of member tags
         void reallocate();
 
-        //! Helper function to rebuild the index lists afer the particles have been sorted
-        void rebuildIndexList();
+        //! Helper function to rebuild the index lists after the particles have been sorted
+        void rebuildIndexList() const;
+
+        //! Helper function to be called when the particles are resorted
+        void slotParticleSort()
+            {
+            m_particles_sorted = true;
+            }
 
         //! Helper function to build the 1:1 hash for tag membership
         void buildTagHash();
 
 #ifdef ENABLE_CUDA
         //! Helper function to rebuild the index lists afer the particles have been sorted
-        void rebuildIndexListGPU();
+        void rebuildIndexListGPU() const;
 #endif
 
     };
