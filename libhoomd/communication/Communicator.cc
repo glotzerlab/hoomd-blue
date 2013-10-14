@@ -96,7 +96,7 @@ struct select_particle_migrate : public std::unary_function<const unsigned int, 
     /*! t particle data to consider for sending
      * \return true if particle stays in the box
      */
-    __host__ __device__ bool operator()(const unsigned int idx)
+    bool operator()(const unsigned int idx)
         {
         const Scalar4& postype = h_pos[idx];
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
@@ -127,10 +127,10 @@ struct select_bond_migrate : public std::unary_function<const uint2, bool>
         }
 
     //! Select a bond
-    /*! t particle data to consider for sending
+    /*! bond bond to consider for sending
      * \return true if particle stays in the box
      */
-    __host__ __device__ bool operator()(const uint2 bond)
+    bool operator()(const uint2 bond)
         {
         unsigned int idx_a = h_rtag[bond.x];
         unsigned int idx_b = h_rtag[bond.y];
@@ -158,7 +158,7 @@ struct select_bond_remove : public std::unary_function<const uint2, bool>
     /*! t particle data to consider for sending
      * \return true if particle stays in the box
      */
-    __host__ __device__ bool operator()(const uint2 bond)
+    bool operator()(const uint2 bond)
         {
         unsigned int idx_a = h_rtag[bond.x];
         unsigned int idx_b = h_rtag[bond.y];
@@ -213,19 +213,17 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         m_num_recv_ghosts[dir] = 0;
         }
 
-    if (m_sysdef->getBondData()->getNumBondsGlobal())
-        {
-        // mask for bonds, indicating if they will be removed
-        GPUArray<unsigned int> bond_remove_mask(m_sysdef->getBondData()->getNumBonds(), m_exec_conf);
-        m_bond_remove_mask.swap(bond_remove_mask);
+    // mask for bonds, indicating if they will be removed
+    GPUVector<unsigned int> bond_remove_mask(m_exec_conf);
+    m_bond_remove_mask.swap(bond_remove_mask);
 
-        // start with send and receive buffer sizes of one
-        GPUArray<bond_element> bond_recv_buf(1, m_exec_conf);
-        m_bond_recv_buf.swap(bond_recv_buf);
+    // bond receive buffer
+    GPUVector<bond_element> bond_recv_buf(m_exec_conf);
+    m_bond_recv_buf.swap(bond_recv_buf);
 
-        GPUArray<bond_element> bond_send_buf(1, m_exec_conf);
-        m_bond_send_buf.swap(bond_send_buf);
-        }
+    // bond send buffer
+    GPUVector<bond_element> bond_send_buf( m_exec_conf);
+    m_bond_send_buf.swap(bond_send_buf);
 
     setupLookupTable();
 
@@ -413,7 +411,7 @@ void Communicator::communicate(unsigned int timestep)
 void Communicator::migrateParticles()
     {
     if (m_prof)
-        m_prof->push("migrate_particles");
+        m_prof->push("comm_migrate");
 
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
@@ -439,13 +437,12 @@ void Communicator::migrateParticles()
         {
         if (! isCommunicating(dir) ) continue;
 
-        unsigned int n_send_ptls = 0;
         unsigned int n_send_bonds = 0;
         unsigned int n_remove_bonds = 0;
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
 
             // mark all particles which have left the box for sending (rtag=STAGED)
@@ -460,7 +457,6 @@ void Communicator::migrateParticles()
                 if (pred(idx))
                     {
                     h_rtag.data[tag] = STAGED;
-                    n_send_ptls++;
                     }
                 }
             }
@@ -485,23 +481,10 @@ void Communicator::migrateParticles()
                                          migrate_pred);
 
             // resize send buffer
-            if (m_bond_send_buf.getNumElements() < n_send_bonds)
-                {
-                unsigned int new_size = 1;
-                while (new_size < n_send_bonds)
-                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
+            m_bond_send_buf.resize(n_send_bonds);
 
-                m_bond_send_buf.resize(new_size);
-                }
-
-            if (m_bond_remove_mask.getNumElements() < bdata->getNumBonds())
-                {
-                unsigned int new_size = 1;
-                while (new_size < bdata->getNumBonds())
-                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-
-                m_bond_remove_mask.resize(new_size);
-                }
+            // resize remove mask
+            m_bond_remove_mask.resize(bdata->getNumBonds());
 
             unsigned add_idx = 0;
             ArrayHandle<bond_element> h_bond_send_buf(m_bond_send_buf, access_location::host, access_mode::overwrite);
@@ -512,8 +495,9 @@ void Communicator::migrateParticles()
                 {
                 uint2 bond = h_bonds.data[bond_idx];
                 bool remove = remove_pred(bond);
-                if (remove)
-                    n_remove_bonds++;
+
+                if (remove) n_remove_bonds++;
+
                 h_bond_remove_mask.data[bond_idx] = remove ? 1 : 0;
 
                 if (migrate_pred(bond))
@@ -527,9 +511,6 @@ void Communicator::migrateParticles()
                     }
                 }
             }
-
-        // resize send buffer
-        m_sendbuf.resize(n_send_ptls);
 
         // fill send buffer
         m_pdata->retrieveParticles(m_sendbuf);
@@ -552,6 +533,8 @@ void Communicator::migrateParticles()
         MPI_Request reqs[2];
         MPI_Status status[2];
 
+        unsigned int n_send_ptls = m_sendbuf.size();
+
         MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & reqs[0]);
         MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
         MPI_Waitall(2, reqs, status);
@@ -559,7 +542,7 @@ void Communicator::migrateParticles()
         // Resize receive buffer
         m_recvbuf.resize(n_recv_ptls);
 
-        // exchange actual particle data
+        // exchange particle data
         MPI_Isend(&m_sendbuf.front(), n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[0]);
         MPI_Irecv(&m_recvbuf.front(), n_recv_ptls*sizeof(pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & reqs[1]);
         MPI_Waitall(2, reqs, status);
@@ -595,14 +578,7 @@ void Communicator::migrateParticles()
             MPI_Waitall(2, reqs, status);
 
             // resize recv buffer
-            if (m_bond_recv_buf.getNumElements() < n_recv_bonds)
-                {
-                unsigned int new_size = 1;
-                while (new_size < n_recv_bonds)
-                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-
-                m_bond_recv_buf.resize(new_size);
-                }
+            m_bond_recv_buf.resize(n_recv_bonds);
 
                 {
                 // exchange actual particle data
@@ -644,7 +620,7 @@ void Communicator::migrateParticles()
 void Communicator::exchangeGhosts()
     {
     if (m_prof)
-        m_prof->push("exchange_ghosts");
+        m_prof->push("comm_ghost_exch");
 
     m_exec_conf->msg->notice(7) << "Communicator: exchange ghosts" << std::endl;
 
@@ -1058,7 +1034,7 @@ void Communicator::updateGhosts(unsigned int timestep)
     // we have a current m_copy_ghosts liss which contain the indices of particles
     // to send to neighboring processors
     if (m_prof)
-        m_prof->push("copy_ghosts");
+        m_prof->push("comm_ghost_update");
 
     m_exec_conf->msg->notice(7) << "Communicator: update ghosts" << std::endl;
 

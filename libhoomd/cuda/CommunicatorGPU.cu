@@ -59,17 +59,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "BondData.cuh"
 
+#include <thrust/replace.h>
 #include <thrust/device_ptr.h>
 #include <thrust/scatter.h>
+#include <thrust/count.h>
+#include <thrust/transform.h>
+#include <thrust/copy.h>
 #include <thrust/iterator/constant_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
 
 using namespace thrust;
-
-//! Return the size the particle data element
-unsigned int gpu_pdata_element_size()
-    {
-    return sizeof(pdata_element_gpu);
-    }
 
 unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
 
@@ -178,661 +177,216 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
                                                                                     box);
     }
 
-//! Helper kernel to reorder particle data, step one
-__global__ void gpu_select_send_particles_kernel(const Scalar4 *d_pos,
-                                                 const Scalar4 *d_vel,
-                                                 const Scalar3 *d_accel,
-                                                 const int3 *d_image,
-                                                 const Scalar *d_charge,
-                                                 const Scalar *d_diameter,
-                                                 const unsigned int *d_body,
-                                                 const Scalar4 *d_orientation,
-                                                 const unsigned int *d_tag,
-                                                 char *corner_buf,
-                                                 const unsigned int corner_buf_pitch,
-                                                 char *edge_buf,
-                                                 const unsigned int edge_buf_pitch,
-                                                 char *face_buf,
-                                                 const unsigned int face_buf_pitch,
-                                                 unsigned char *remove_mask,
-                                                 unsigned int *ptl_plan,
-                                                 unsigned int *n_send_ptls_corner,
-                                                 unsigned int *n_send_ptls_edge,
-                                                 unsigned int *n_send_ptls_face,
-                                                 unsigned int max_send_ptls_corner,
-                                                 unsigned int max_send_ptls_edge,
-                                                 unsigned int max_send_ptls_face,
-                                                 unsigned int *condition,
-                                                 unsigned int N,
-                                                 const BoxDim box)
+//! Select a particle for migration
+struct select_particle_migrate_gpu : public thrust::unary_function<const unsigned int, bool>
     {
-    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    const BoxDim box;       //!< Local simulation box dimensions
+    const unsigned int dir; //!< Direction to send particles to
 
-    if (idx >= N)
-        return;
+    //! Constructor
+    /*!
+     */
+    select_particle_migrate_gpu(const BoxDim & _box,
+                            const unsigned int _dir)
+        : box(_box), dir(_dir)
+        { }
 
-    Scalar4 postype =  d_pos[idx];
-    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-
-    unsigned int plan = 0;
-    unsigned int count = 0;
-
-    Scalar3 f = box.makeFraction(pos);
-    if (f.x >= Scalar(1.0) && d_is_communicating[face_east])
+    //! Select a particle
+    /*! t particle data to consider for sending
+     * \return true if particle stays in the box
+     */
+    __host__ __device__ bool operator()(const Scalar4 postype)
         {
-        plan |= send_east;
-        count++;
-        }
-    else if (f.x < Scalar(0.0) && d_is_communicating[face_west])
-        {
-        plan |= send_west;
-        count++;
-        }
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+        Scalar3 f = box.makeFraction(pos);
 
-    if (f.y >= Scalar(1.0) && d_is_communicating[face_north])
-        {
-        plan |= send_north;
-        count++;
-        }
-    else if (f.y < Scalar(0.0) && d_is_communicating[face_south])
-        {
-        plan |= send_south;
-        count++;
+        // return true if the particle stays leaves the box
+        return ((dir == face_east && f.x >= Scalar(1.0)) ||   // send east
+                (dir == face_west && f.x < Scalar(0.0))  ||   // send west
+                (dir == face_north && f.y >= Scalar(1.0)) ||  // send north
+                (dir == face_south && f.y < Scalar(0.0))  ||  // send south
+                (dir == face_up && f.z >= Scalar(1.0)) ||     // send up
+                (dir == face_down && f.z < Scalar(0.0) ));    // send down
         }
 
-    if (f.z >= Scalar(1.0) && d_is_communicating[face_up])
-        {
-        plan |= send_up;
-        count++;
-        }
-    else if (f.z < Scalar(0.0) && d_is_communicating[face_down])
-        {
-        plan |= send_down;
-        count++;
-        }
+     };
 
-    // save plan
-    ptl_plan[idx] = plan;
-
-    if (count)
-        {
-        const unsigned int pdata_size = sizeof(pdata_element_gpu);
-
-        // fill up buffer element
-        pdata_element_gpu el;
-        el.pos = make_scalar4(pos.x,pos.y,pos.z,postype.w);
-        el.vel = d_vel[idx];
-        el.accel = d_accel[idx];
-        el.image = d_image[idx];
-        el.charge = d_charge[idx];
-        el.diameter = d_diameter[idx];
-        el.body = d_body[idx];
-        el.orientation = d_orientation[idx];
-        el.tag =  d_tag[idx];
-
-        // mark particle for removal
-        remove_mask[idx] = 1;
-
-        if (count == 1)
-            {
-            // face ptl
-            unsigned int face = 0;
-            for (unsigned int i = 0; i < 6; ++i)
-                if (d_face_plan_lookup[i] == plan) face = i;
-
-            unsigned int n = atomicInc(&n_send_ptls_face[face],0xffffffff);
-            if (n < max_send_ptls_face)
-                *((pdata_element_gpu *) &face_buf[n*pdata_size+face*face_buf_pitch]) = el;
-            else
-                atomicOr(condition,1);
-            }
-        else if (count == 2)
-            {
-            // edge ptl
-            unsigned int edge = 0;
-            for (unsigned int i = 0; i < 12; ++i)
-                if (d_edge_plan_lookup[i] == plan) edge = i;
-
-            unsigned int n = atomicInc(&n_send_ptls_edge[edge],0xffffffff);
-            if (n < max_send_ptls_edge)
-                *((pdata_element_gpu *) &edge_buf[n*pdata_size+edge*edge_buf_pitch]) = el;
-            else
-                atomicOr(condition,2);
-            }
-        else if (count == 3)
-            {
-            // corner ptl
-            unsigned int corner;
-            for (unsigned int i = 0; i < 8; ++i)
-                if (d_corner_plan_lookup[i] == plan) corner = i;
-
-            unsigned int n = atomicInc(&n_send_ptls_corner[corner],0xffffffff);
-            if (n < max_send_ptls_corner)
-                *((pdata_element_gpu *) &corner_buf[n*pdata_size+corner*corner_buf_pitch]) = el;
-            else
-                atomicOr(condition,4);
-            }
-        else
-            {
-            // invalid plan
-            atomicOr(condition,8);
-            }
-        }
-    else
-        remove_mask[idx] = 0;
-
-    }
-
-/*! Fill send buffers with particles that leave the local box
- *
- *  \param N Number of particles in local simulation box
- *  \param d_pos Array of particle positions
- *  \param d_vel Array of particle velocities
- *  \param d_accel Array of particle accelerations
- *  \param d_image Array of particle images
- *  \param d_charge Array of particle charges
- *  \param d_diameter Array of particle diameters
- *  \param d_body Array of particle body ids
- *  \param d_orientation Array of particle orientations
- *  \param d_tag Array of particle tags
- *  \param d_n_send_ptls_corner Number of particles that are sent over a corner (per corner)
- *  \param d_n_send_ptls_edge Number of particles that are sent over an edge (per edge)
- *  \param d_n_send_ptls_face Number of particles that are sent over a face (per face)
- *  \param n_max_send_ptls_corner Maximum size of corner send buf
- *  \param n_max_send_ptls_edge Maximum size of edge send buf
- *  \param n_max_send_ptls_face Maximum size of face send buf
- *  \param d_remove_mask Per-particle flag if particle has been sent
- *  \param d_ptl_plan Array of particle itineraries (return array)
- *  \param d_corner_buf 2D Array of particle data elements that are sent over a corner
- *  \param corner_buf_pitch Pitch of 2D corner send buf
- *  \param d_edge_buf 2D Array of particle data elements that are sent over an edge
- *  \param edge_buf_pitch Pitch of 2D edge send buf
- *  \param d_face_buf 2D Array of particle data elements that are sent over a face
- *  \param face_buf_pitch Pitch of 2D face send buf
- *  \param box Dimensions of local simulation box
- *  \param global_box Dimensions of global simulation box
- *  \param d_condition Return value, unequals zero if buffers overflow
+/*! \param N Number of local particles
+    \param d_pos Device array of particle positions
+    \param d_tag Device array of particle tags
+    \param d_rtag Device array for reverse-lookup table
+    \param dir Current direction
+    \param box Local box
  */
-void gpu_migrate_select_particles(unsigned int N,
-                                  const Scalar4 *d_pos,
-                                  const Scalar4 *d_vel,
-                                  const Scalar3 *d_accel,
-                                  const int3 *d_image,
-                                  const Scalar *d_charge,
-                                  const Scalar *d_diameter,
-                                  const unsigned int *d_body,
-                                  const Scalar4 *d_orientation,
-                                  const unsigned int *d_tag,
-                                  unsigned int *d_n_send_ptls_corner,
-                                  unsigned int *d_n_send_ptls_edge,
-                                  unsigned int *d_n_send_ptls_face,
-                                  unsigned n_max_send_ptls_corner,
-                                  unsigned n_max_send_ptls_edge,
-                                  unsigned n_max_send_ptls_face,
-                                  unsigned char *d_remove_mask,
-                                  unsigned int *d_ptl_plan,
-                                  char *d_corner_buf,
-                                  unsigned int corner_buf_pitch,
-                                  char *d_edge_buf,
-                                  unsigned int edge_buf_pitch,
-                                  char *d_face_buf,
-                                  unsigned int face_buf_pitch,
-                                  const BoxDim& box,
-                                  unsigned int *d_condition)
+void gpu_stage_particles(const unsigned int N,
+                         const Scalar4 *d_pos,
+                         const unsigned int *d_tag,
+                         unsigned int *d_rtag,
+                         const unsigned int dir,
+                         const BoxDim& box)
     {
-    cudaMemsetAsync(d_n_send_ptls_corner, 0, sizeof(unsigned int)*8);
-    cudaMemsetAsync(d_n_send_ptls_edge, 0, sizeof(unsigned int)*12);
-    cudaMemsetAsync(d_n_send_ptls_face, 0, sizeof(unsigned int)*6);
+    // Wrap particle data arrays
+    thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
+    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
 
-    unsigned int block_size = 512;
+    // Wrap rtag array
+    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-    gpu_select_send_particles_kernel<<<N/block_size+1,block_size>>>(d_pos,
-                                                                    d_vel,
-                                                                    d_accel,
-                                                                    d_image,
-                                                                    d_charge,
-                                                                    d_diameter,
-                                                                    d_body,
-                                                                    d_orientation,
-                                                                    d_tag,
-                                                                    d_corner_buf,
-                                                                    corner_buf_pitch,
-                                                                    d_edge_buf,
-                                                                    edge_buf_pitch,
-                                                                    d_face_buf,
-                                                                    face_buf_pitch,
-                                                                    d_remove_mask,
-                                                                    d_ptl_plan,
-                                                                    d_n_send_ptls_corner,
-                                                                    d_n_send_ptls_edge,
-                                                                    d_n_send_ptls_face,
-                                                                    n_max_send_ptls_corner,
-                                                                    n_max_send_ptls_edge,
-                                                                    n_max_send_ptls_face,
-                                                                    d_condition,
-                                                                    N,
-                                                                    box);
+    // pointer from tag into rtag
+    thrust::permutation_iterator<
+        thrust::device_ptr<unsigned int>, thrust::device_ptr<const unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
+
+    // set flag for particles that are to be sent
+    thrust::replace_if(rtag_prm, rtag_prm + N, pos_ptr, select_particle_migrate_gpu(box, dir), STAGED);
     }
 
-//! Kernel to reset particle reverse-lookup tags for removed particles
-__global__ void gpu_reset_rtag_by_mask_kernel(const unsigned int N,
-                                       unsigned int *rtag,
-                                       const unsigned int *tag,
-                                       const unsigned char *remove_mask)
+//! Select a bond for migration
+struct wrap_particle_op_gpu : public thrust::unary_function<const pdata_element, pdata_element>
     {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const BoxDim box; //!< The box for which we are applying boundary conditions
 
-    if (idx >= N) return;
+    //! Constructor
+    /*!
+     */
+    wrap_particle_op_gpu(const BoxDim _box)
+        : box(_box)
+        {
+        }
 
-    if (remove_mask[idx]) rtag[tag[idx]] = NOT_LOCAL;
-    }
+    //! Wrap position information inside particle data element
+    /*! \param p Particle data element
+     * \returns The particle data element with wrapped coordinates
+     */
+    __device__ pdata_element operator()(const pdata_element p)
+        {
+        pdata_element ret = p;
+        box.wrap(ret.pos, ret.image);
+        return ret;
+        }
+     };
 
-//! Reset particle reverse-lookup tags for removed particles
-/*! \param N Number of particles
-    \param d_rtag Lookup table tag->idx
-    \param d_tag List of local particle tags
-    \param d_remove_mask Mask for particles (1: remove, 0: keep)
+
+/*! \param n_recv Number of particles in buffer
+    \param d_in Buffer of particle data elements
+    \param box Box for which to apply boundary conditions
  */
-void gpu_reset_rtag_by_mask(const unsigned int N,
-                            unsigned int *d_rtag,
-                            const unsigned int *d_tag,
-                            const unsigned char *d_remove_mask)
+void gpu_wrap_particles(const unsigned int n_recv,
+                        pdata_element *d_in,
+                        const BoxDim& box)
     {
-    unsigned int block_size = 512;
+    // Wrap device ptr
+    thrust::device_ptr<pdata_element> in_ptr(d_in);
 
-    gpu_reset_rtag_by_mask_kernel<<<N/block_size+1,block_size>>>(N,
-        d_rtag,
-        d_tag,
-        d_remove_mask);
+    // Apply box wrap to input buffer
+    thrust::transform(in_ptr, in_ptr + n_recv, in_ptr, wrap_particle_op_gpu(box));
     }
 
-/*! Helper function to add a bond to the send buffers */
-__device__ void gpu_send_bond_with_ptl(const uint2 bond,
-                              const unsigned int type,
-                              const unsigned int tag,
-                              const unsigned int idx,
-                              const unsigned int *ptl_plan,
-                              bond_element *face_send_buf,
-                              const unsigned int face_send_buf_pitch,
-                              bond_element *edge_send_buf,
-                              const unsigned int edge_send_buf_pitch,
-                              bond_element *corner_send_buf,
-                              const unsigned int corner_send_buf_pitch,
-                              unsigned int *n_send_bonds_face,
-                              unsigned int *n_send_bonds_edge,
-                              unsigned int *n_send_bonds_corner,
-                              const unsigned int max_send_bonds_face,
-                              const unsigned int max_send_bonds_edge,
-                              const unsigned int max_send_bonds_corner,
-                              unsigned int *condition)
+//! A tuple of bond data pointers (const version)
+typedef thrust::tuple <
+    thrust::device_ptr<const unsigned int>,  // tag
+    thrust::device_ptr<const uint2>,         // bond
+    thrust::device_ptr<const unsigned int>   // type
+    > bdata_it_tuple_gpu_const;
+
+//! A zip iterator for accessing bond data (const version)
+typedef thrust::zip_iterator<bdata_it_tuple_gpu_const> bdata_zip_gpu_const;
+
+//! A tuple of bond data fields
+typedef thrust::tuple <
+    const unsigned int,  // tag
+    const uint2 ,        // bond
+    const unsigned int   // type
+    > bdata_tuple_gpu;
+
+//! A converter from a tuple of bond data fields to a bond_element
+struct to_bond_element_gpu : public thrust::unary_function<const bdata_tuple_gpu,const bond_element>
     {
-    unsigned int plan = ptl_plan[idx];
-
-    // fill up buffer element
-    bond_element el;
-    el.bond = bond;
-    el.type = type;
-    el.tag = tag;
-
-    unsigned int count = 0;
-    if (plan & send_east) count++;
-    if (plan & send_west) count++;
-    if (plan & send_north) count++;
-    if (plan & send_south) count++;
-    if (plan & send_up) count++;
-    if (plan & send_down) count++;
-
-    if (count == 1)
+    __device__ const bond_element operator() (const bdata_tuple_gpu t)
         {
-        // face ptl
-        unsigned int face = 0;
-        for (unsigned int i = 0; i < 6; ++i)
-            if (d_face_plan_lookup[i] == plan) face = i;
-
-        unsigned int n = atomicInc(&n_send_bonds_face[face],0xffffffff);
-        if (n < max_send_bonds_face)
-            face_send_buf[n+face*face_send_buf_pitch] = el;
-        else
-            atomicOr(condition,1);
+        bond_element b;
+        b.tag = thrust::get<0>(t);
+        b.bond = thrust::get<1>(t);
+        b.type = thrust::get<2>(t);
+        return b;
         }
-    else if (count == 2)
-        {
-        // edge ptl
-        unsigned int edge = 0;
-        for (unsigned int i = 0; i < 12; ++i)
-            if (d_edge_plan_lookup[i] == plan) edge = i;
+    };
 
-        unsigned int n = atomicInc(&n_send_bonds_edge[edge],0xffffffff);
-        if (n < max_send_bonds_edge)
-            edge_send_buf[n+edge*edge_send_buf_pitch] = el;
-        else
-            atomicOr(condition,2);
-        }
-    else if (count == 3)
-        {
-        // corner ptl
-        unsigned int corner;
-        for (unsigned int i = 0; i < 8; ++i)
-            if (d_corner_plan_lookup[i] == plan) corner = i;
-
-        unsigned int n = atomicInc(&n_send_bonds_corner[corner],0xffffffff);
-        if (n < max_send_bonds_corner)
-            corner_send_buf[n+corner*corner_send_buf_pitch] = el;
-        else
-            atomicOr(condition,4);
-        }
-    else
-        {
-        // invalid plan
-        atomicOr(condition,8);
-        }
-    }
-
-//! Kernel to add bonds to send buffers
-__global__ void gpu_send_bonds_kernel(const unsigned int n_bonds,
-                                      const unsigned int n_particles,
-                                      const uint2 *bonds,
-                                      const unsigned int *bond_type,
-                                      const unsigned int *bond_tag,
-                                      const unsigned int *rtag,
-                                      const unsigned int *ptl_plan,
-                                      unsigned int *bond_remove_mask,
-                                      bond_element *face_send_buf,
-                                      unsigned int face_send_buf_pitch,
-                                      bond_element *edge_send_buf,
-                                      unsigned int edge_send_buf_pitch,
-                                      bond_element *corner_send_buf,
-                                      unsigned int corner_send_buf_pitch,
-                                      unsigned int *n_send_bonds_face,
-                                      unsigned int *n_send_bonds_edge,
-                                      unsigned int *n_send_bonds_corner,
-                                      const unsigned int max_send_bonds_face,
-                                      const unsigned int max_send_bonds_edge,
-                                      const unsigned int max_send_bonds_corner,
-                                      unsigned int *n_remove_bonds,
-                                      unsigned int *condition)
+//! Select a bond for migration
+struct select_bond_migrate_gpu : public thrust::unary_function<const uint2, bool>
     {
-    unsigned int bond_idx = blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int *d_rtag;       //!< Array of particle reverse lookup tags
 
-    if (bond_idx >= n_bonds) return;
-
-    uint2 bond = bonds[bond_idx];
-    unsigned int type = bond_type[bond_idx];
-    unsigned int tag = bond_tag[bond_idx];
-
-    bool remove = false;
-
-    unsigned int idx_a = rtag[bond.x];
-    unsigned int idx_b = rtag[bond.y];
-
-    bool remove_ptl_a = true;
-    bool remove_ptl_b = true;
-
-    // check if both members of the bond remain local after exchanging particles
-    bool ptl_a_local = (idx_a < n_particles);
-    if (ptl_a_local)
-        remove_ptl_a = (ptl_plan[idx_a] != 0);
-
-    bool ptl_b_local = (idx_b < n_particles);
-    if (ptl_b_local)
-        remove_ptl_b = (ptl_plan[idx_b] != 0);
-
-    // if no member is local, remove bond
-    if (remove_ptl_a && remove_ptl_b) remove = true;
-
-    // if any member leaves the domain, send bond with it
-    if (ptl_a_local && remove_ptl_a)
+    //! Constructor
+    /*!
+     */
+    select_bond_migrate_gpu(const unsigned int *_d_rtag)
+        : d_rtag(_d_rtag)
         {
-        gpu_send_bond_with_ptl(bond, type, tag, idx_a, ptl_plan, face_send_buf,
-                               face_send_buf_pitch, edge_send_buf, edge_send_buf_pitch, corner_send_buf,
-                               corner_send_buf_pitch, n_send_bonds_face, n_send_bonds_edge,
-                               n_send_bonds_corner, max_send_bonds_face, max_send_bonds_edge,
-                               max_send_bonds_corner, condition);
         }
 
-    if (ptl_b_local && remove_ptl_b)
+    //! Select a bond
+    /*! b bond to consider for sending
+     * \return true if bond is sent
+     */
+    __device__ bool operator()(const uint2 bond)
         {
-        gpu_send_bond_with_ptl(bond, type, tag, idx_b, ptl_plan, face_send_buf,
-                               face_send_buf_pitch, edge_send_buf, edge_send_buf_pitch, corner_send_buf,
-                               corner_send_buf_pitch, n_send_bonds_face, n_send_bonds_edge,
-                               n_send_bonds_corner, max_send_bonds_face, max_send_bonds_edge,
-                               max_send_bonds_corner, condition);
-        }
+        unsigned int idx_a = d_rtag[bond.x];
+        unsigned int idx_b = d_rtag[bond.y];
 
-    if (remove)
-        {
-        // reset rtag
-        atomicInc(n_remove_bonds, 0xffffffff);
-        bond_remove_mask[bond_idx] = 1;
+        // if one of the particles leaves the domain, send bond with it
+        return (idx_a == STAGED || idx_b == STAGED);
         }
-    else
-        bond_remove_mask[bond_idx] = 0;
-    }
+     };
 
-//! Add bonds connected to migrating particles to send buffers
+
 /*! \param n_bonds Number of local bonds
-    \param n_particles Number of local particles
-    \param d_bonds Local bond list
-    \param d_bond_type Local list of bond types
-    \param d_bond_tag Local list of bond tags
-    \param d_rtag Lookup-table particle tag -> index
-    \param d_ptl_plan Particle iteneraries
-    \param d_bond_remove_mask Per-bond flag, '1' = bond is removed, '0' = bond stays (return array)
-    \param d_face_send_buf Buffer for bonds sent through a face (return array)
-    \param face_send_buf_pitch Offsets for different faces in the buffer
-    \param d_edge_send_buf Buffer for bonds sent over an edge (return array)
-    \param edge_send_buf_pitch Offsets for different edges in the buffer
-    \param d_corner_send_buf Buffer for bonds sent via a corner (return array)
-    \param corner_send_buf_pitch Offsets for different corners in the buffer
-    \param d_n_send_bonds_face Number of bonds sent across a face (return value)
-    \param d_n_send_bonds_edge Number of bonds sent across a edge (return value)
-    \param d_n_send_bonds_corner Number of bonds sent via a corner (return value)
-    \param max_send_bonds_face Size of face send buf
-    \param max_send_bonds_edge Size of edge send buf
-    \param max_send_bonds_corner Size of corner send buf
-    \param d_n_remove_bonds Number of local bonds removed (return value)
-    \param d_condition Return value, unequal zero if bonds do not fit in buffers
-*/
-void gpu_send_bonds(const unsigned int n_bonds,
-                    const unsigned int n_particles,
-                    const uint2 *d_bonds,
-                    const unsigned int *d_bond_type,
-                    const unsigned int *d_bond_tag,
-                    const unsigned int *d_rtag,
-                    const unsigned int *d_ptl_plan,
-                    unsigned int *d_bond_remove_mask,
-                    bond_element *d_face_send_buf,
-                    unsigned int face_send_buf_pitch,
-                    bond_element *d_edge_send_buf,
-                    unsigned int edge_send_buf_pitch,
-                    bond_element *d_corner_send_buf,
-                    unsigned int corner_send_buf_pitch,
-                    unsigned int *d_n_send_bonds_face,
-                    unsigned int *d_n_send_bonds_edge,
-                    unsigned int *d_n_send_bonds_corner,
-                    const unsigned int max_send_bonds_face,
-                    const unsigned int max_send_bonds_edge,
-                    const unsigned int max_send_bonds_corner,
-                    unsigned int *d_n_remove_bonds,
-                    unsigned int *d_condition)
-    {
-    cudaMemsetAsync(d_n_remove_bonds, 0, sizeof(unsigned int));
-    cudaMemsetAsync(d_condition, 0, sizeof(unsigned int));
-    cudaMemsetAsync(d_n_send_bonds_face, 0, sizeof(unsigned int)*6);
-    cudaMemsetAsync(d_n_send_bonds_edge, 0, sizeof(unsigned int)*12);
-    cudaMemsetAsync(d_n_send_bonds_corner, 0, sizeof(unsigned int)*8);
-
-    unsigned int block_size = 512;
-
-    gpu_send_bonds_kernel<<<n_bonds/block_size+1,block_size>>>(n_bonds,
-                          n_particles,
-                          d_bonds,
-                          d_bond_type,
-                          d_bond_tag,
-                          d_rtag,
-                          d_ptl_plan,
-                          d_bond_remove_mask,
-                          d_face_send_buf,
-                          face_send_buf_pitch,
-                          d_edge_send_buf,
-                          edge_send_buf_pitch,
-                          d_corner_send_buf,
-                          corner_send_buf_pitch,
-                          d_n_send_bonds_face,
-                          d_n_send_bonds_edge,
-                          d_n_send_bonds_corner,
-                          max_send_bonds_face,
-                          max_send_bonds_edge,
-                          max_send_bonds_corner,
-                          d_n_remove_bonds,
-                          d_condition);
-    }
-
-//! Kernel to backfill particle data
-__global__ void gpu_migrate_fill_particle_arrays_kernel(unsigned int old_nparticles,
-                                             unsigned int n_recv_ptls,
-                                             unsigned int n_remove_ptls,
-                                             unsigned int *n_fetch_ptl,
-                                             unsigned char *remove_mask,
-                                             char *recv_buf,
-                                             Scalar4 *d_pos,
-                                             Scalar4 *d_vel,
-                                             Scalar3 *d_accel,
-                                             int3 *d_image,
-                                             Scalar *d_charge,
-                                             Scalar *d_diameter,
-                                             unsigned int *d_body,
-                                             Scalar4 *d_orientation,
-                                             unsigned int *d_tag,
-                                             unsigned int *d_rtag,
-                                             const BoxDim global_box)
-    {
-    unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    unsigned int new_nparticles = old_nparticles - n_remove_ptls + n_recv_ptls;
-
-    if (idx >= new_nparticles) return;
-
-    unsigned char replace = 1;
-
-    if (idx < old_nparticles)
-        replace = remove_mask[idx];
-
-    if (replace)
-        {
-        // try to atomically fetch a particle from the received list
-        unsigned int n = atomicInc(n_fetch_ptl, 0xffffffff);
-
-        if (n < n_recv_ptls)
-            {
-            // copy over receive buffer data
-            pdata_element_gpu &el= ((pdata_element_gpu *) recv_buf)[n];
-
-            // wrap particle into global box
-            int3 image = el.image;
-            Scalar4 postype = el.pos;
-            global_box.wrap(postype,image);
-
-            // store data into particle arrays
-            d_pos[idx] = postype;
-            d_vel[idx] = el.vel;
-            d_accel[idx] = el.accel;
-            d_image[idx] = image;
-            d_charge[idx] = el.charge;
-            d_diameter[idx] = el.diameter;
-            d_body[idx] = el.body;
-            d_orientation[idx] = el.orientation;
-
-            unsigned int tag = el.tag;
-            d_tag[idx] = tag;
-            d_rtag[tag] = idx;
-            }
-        else
-            {
-            unsigned int fetch_idx = new_nparticles + (n - n_recv_ptls);
-            unsigned char remove = remove_mask[fetch_idx];
-
-            while (remove)  {
-                n = atomicInc(n_fetch_ptl, 0xffffffff);
-                fetch_idx = new_nparticles + (n - n_recv_ptls);
-                remove = remove_mask[fetch_idx];
-                }
-
-            // backfill with a particle from the end
-            d_pos[idx] = d_pos[fetch_idx];
-            d_vel[idx] = d_vel[fetch_idx];
-            d_accel[idx] = d_accel[fetch_idx];
-            d_image[idx] = d_image[fetch_idx];
-            d_charge[idx] = d_charge[fetch_idx];
-            d_diameter[idx] = d_diameter[fetch_idx];
-            d_body[idx] = d_body[fetch_idx];
-            d_orientation[idx] = d_orientation[fetch_idx];
-
-            unsigned int tag = d_tag[fetch_idx];
-            d_tag[idx] = tag;
-            d_rtag[tag] = idx;
-            }
-        } // if replace
-    }
-
-//! Backfill particle data arrays with received particles and remove no longer local particles
-/*! \param old_nparticles Current number of particles
-    \param n_recv_ptls Number of particles received
-    \param n_remove_ptls Number of particles to removed
-    \param d_remove_mask Per-particle flag, '1' = remove local particle
-    \param d_recv_buf Buffer of received particles
-    \param d_pos Array of particle positions
-    \param d_vel Array of particle velocities
-    \param d_accel Array of particle accelerations
-    \param d_image Array of particle images
-    \param d_charge Array of particle charges
-    \param d_diameter Array of particle diameters
-    \param d_body Array of particle body ids
-    \param d_orientation Array of particle orientations
-    \param d_tag Array of particle tags
-    \param d_rtag Lookup table particle tag->idx
-    \param global_box Dimensions of global simulation box
+    \param d_bonds Array of bonds
+    \param d_rtag Reverse-lookup table for particle tag->index
  */
-void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
-                        unsigned int n_recv_ptls,
-                        unsigned int n_remove_ptls,
-                        unsigned char *d_remove_mask,
-                        char *d_recv_buf,
-                        Scalar4 *d_pos,
-                        Scalar4 *d_vel,
-                        Scalar3 *d_accel,
-                        int3 *d_image,
-                        Scalar *d_charge,
-                        Scalar *d_diameter,
-                        unsigned int *d_body,
-                        Scalar4 *d_orientation,
-                        unsigned int *d_tag,
-                        unsigned int *d_rtag,
-                        const BoxDim& global_box)
+unsigned int gpu_count_send_bonds(unsigned int n_bonds,
+                                  const uint2 *d_bonds,
+                                  const unsigned int *d_rtag)
     {
-    cudaMemset(d_n_fetch_ptl, 0, sizeof(unsigned int));
-
-    unsigned int block_size = 512;
-    unsigned int new_end = old_nparticles + n_recv_ptls - n_remove_ptls;
-    gpu_migrate_fill_particle_arrays_kernel<<<new_end/block_size+1,block_size>>>(old_nparticles,
-                                             n_recv_ptls,
-                                             n_remove_ptls,
-                                             d_n_fetch_ptl,
-                                             d_remove_mask,
-                                             d_recv_buf,
-                                             d_pos,
-                                             d_vel,
-                                             d_accel,
-                                             d_image,
-                                             d_charge,
-                                             d_diameter,
-                                             d_body,
-                                             d_orientation,
-                                             d_tag,
-                                             d_rtag,
-                                             global_box);
+    thrust::device_ptr<const uint2> bonds_ptr(d_bonds);
+    return thrust::count_if(bonds_ptr, bonds_ptr + n_bonds, select_bond_migrate_gpu(d_rtag));
     }
 
+/*! \param n_bonds Number of local bonds
+    \param d_bonds Array of bonds
+    \param d_bond_tag Array of bond tags
+    \param d_bond_type Array of bond types
+    \param d_rtag Particle data reverse-lookup table
+    \param d_out Output array for packed bond data
+ */
+void gpu_pack_bond_data(unsigned int n_bonds,
+                        const uint2 *d_bonds,
+                        const unsigned int *d_bond_tag,
+                        const unsigned int *d_bond_type,
+                        const unsigned int *d_rtag,
+                        bond_element *d_out)
+    {
+    // Wrap bond data pointers
+    thrust::device_ptr<const uint2> bonds_ptr(d_bonds);
+    thrust::device_ptr<const unsigned int> bond_tag_ptr(d_bond_tag);
+    thrust::device_ptr<const unsigned int> bond_type_ptr(d_bond_type);
+
+    // Wrap output array
+    thrust::device_ptr<bond_element> out_ptr(d_out);
+
+    // Construct zip iterator
+    bdata_zip_gpu_const bdata_begin(
+        thrust::make_tuple(
+            bond_tag_ptr,
+            bonds_ptr,
+            bond_type_ptr
+        ));
+
+     // set up transform iterator to compact particle data into records
+     thrust::transform_iterator<to_bond_element_gpu, bdata_zip_gpu_const> bdata_transform(bdata_begin);
+
+     // compact selected particle elements into output array
+     thrust::copy_if(bdata_transform, bdata_transform+n_bonds, bonds_ptr, out_ptr, select_bond_migrate_gpu(d_rtag));
+     }
 
 //! Reset reverse lookup tags of particles we are removing
 /* \param n_delete_ptls Number of particles to delete

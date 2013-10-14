@@ -63,12 +63,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
-//! Sentinal value in \a r_tag to signify that this particle is not currently present on the local processor
+//! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
+
+#ifdef ENABLE_MPI
+//! Sentinel value in \a r_tag to signify that the particle is to be removed from the local processor
+const unsigned int STAGED = 0xfffffffe;
 #endif
 
-//! Compact particle data storage on the GPU
-struct pdata_element_gpu
+#endif
+
+#ifdef NVCC
+//! Compact particle data storage
+struct pdata_element
     {
     Scalar4 pos;               //!< Position
     Scalar4 vel;               //!< Velocity
@@ -80,7 +87,44 @@ struct pdata_element_gpu
     Scalar4 orientation;       //!< Orientation
     unsigned int tag;          //!< global tag
     };
+#else
+//!Forward declaration
+class pdata_element;
+#endif
 
-unsigned gpu_pdata_element_size();
+//! Pack particle data into output buffer and mark extracted particles for removal
+void gpu_pdata_pack(const unsigned int N,
+                    const Scalar4 *d_pos,
+                    const Scalar4 *d_vel,
+                    const Scalar3 *d_accel,
+                    const Scalar *d_charge,
+                    const Scalar *d_diameter,
+                    const int3 *d_image,
+                    const unsigned int *d_body,
+                    const Scalar4 *d_orientation,
+                    const unsigned int *d_tag,
+                    unsigned int *d_rtag,
+                    pdata_element *d_out);
 
+//! Count particles to be removed
+unsigned int gpu_pdata_count_rtag_equals(const unsigned int N,
+    const unsigned int *d_tag,
+    const unsigned int *d_rtag,
+    const unsigned int compare);
+
+//! Update particle data with new particles and remove selected particles
+void gpu_pdata_update(const unsigned int N,
+                    const unsigned int old_nparticles,
+                    const unsigned int num_add_ptls,
+                    Scalar4 *d_pos,
+                    Scalar4 *d_vel,
+                    Scalar3 *d_accel,
+                    Scalar *d_charge,
+                    Scalar *d_diameter,
+                    int3 *d_image,
+                    unsigned int *d_body,
+                    Scalar4 *d_orientation,
+                    unsigned int *d_tag,
+                    unsigned int *d_rtag,
+                    const pdata_element *d_in);
 #endif

@@ -140,33 +140,11 @@ class CommunicatorGPU : public Communicator
         void checkValid(unsigned int timestep);
 
     private:
+        GPUVector<pdata_element> m_gpu_sendbuf;        //!< Send buffer for particle data
+        GPUVector<pdata_element> m_gpu_recvbuf;        //!< Receive buffer for particle data
 
-        GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
-        GPUArray<unsigned int> m_ptl_plan;          //!< Particle sending plans
-
-        unsigned int m_max_send_ptls_face;          //!< Size of face ptl send buffer
-        unsigned int m_max_send_ptls_edge;          //!< Size of edge ptl send buffer
-        unsigned int m_max_send_ptls_corner;        //!< Size of corner ptl send buffer
-
-        GPUArray<char> m_corner_send_buf;          //!< Send buffer for corner ptls
-        GPUArray<char> m_edge_send_buf;            //!< Send buffer for edge ptls
-        GPUArray<char> m_face_send_buf;            //!< Send buffer for edge ptls
-        GPUArray<char> m_recv_buf;                 //!< Receive buffer for particle data
-
-        GPUArray<bond_element> m_bond_corner_send_buf;  //!< Send buffer for bonds sent via a corner
-        GPUArray<bond_element> m_bond_edge_send_buf;    //!< Send buffer for bonds sent via an edge
-        GPUArray<bond_element> m_bond_face_send_buf;    //!< Send buffer for bonds sent via a face
-        unsigned int m_max_send_bonds_face;         //!< Maximum number of bonds sent across any face
-        unsigned int m_max_send_bonds_edge;         //!< Maximum number of bonds sent over any edge
-        unsigned int m_max_send_bonds_corner;       //!< Maximum number of bonds sent via any corner
-        GPUArray<unsigned int> m_n_send_bonds_corner; //!< Number of bonds sent via a corner
-        GPUArray<unsigned int> m_n_send_bonds_edge;  //!< Number of bonds sent over an edge
-        GPUArray<unsigned int> m_n_send_bonds_face;  //!< Number of bonds sent across a face
-        GPUFlags<unsigned int> m_n_remove_bonds;     //!< Number of bonds to be removed
-
-        GPUArray<unsigned int> m_n_send_ptls_corner; //!< Number of particles sent over a corner
-        GPUArray<unsigned int> m_n_send_ptls_edge;  //!< Number of particles sent over an edge
-        GPUArray<unsigned int> m_n_send_ptls_face;  //!< Number of particles sent through a face
+        GPUVector<bond_element> m_gpu_bond_sendbuf;   //!< Buffer for bonds that are sent
+        GPUVector<bond_element> m_gpu_bond_recvbuf;   //!< Buffer for bonds that are received
 
         unsigned int m_remote_send_corner[8*6];     //!< Remote corner particles, per direction
         unsigned int m_remote_send_edge[12*6];       //!< Remote edge particles, per direction

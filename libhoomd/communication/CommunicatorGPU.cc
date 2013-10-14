@@ -68,13 +68,7 @@ using namespace boost::python;
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
-    : Communicator(sysdef, decomposition), m_remove_mask(m_exec_conf),
-      m_max_send_ptls_face(0),
-      m_max_send_ptls_edge(0),
-      m_max_send_ptls_corner(0),
-      m_max_send_bonds_face(0),
-      m_max_send_bonds_edge(0),
-      m_max_send_bonds_corner(0),
+    : Communicator(sysdef, decomposition),
       m_max_copy_ghosts_face(0),
       m_max_copy_ghosts_edge(0),
       m_max_copy_ghosts_corner(0),
@@ -141,7 +135,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
     {
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost update" << std::endl;
 
-    if (m_prof) m_prof->push(m_exec_conf, "copy_ghosts");
+    if (m_prof) m_prof->push(m_exec_conf, "comm_ghost_update");
 
     unsigned int n_tot_local_ghosts = 0;
 
@@ -325,69 +319,25 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
 void CommunicatorGPU::allocateBuffers()
     {
+    // Allocate buffers for particle migration
+    GPUVector<pdata_element> gpu_sendbuf(m_exec_conf);
+    m_gpu_sendbuf.swap(gpu_sendbuf);
+
+    GPUVector<pdata_element> gpu_recvbuf(m_exec_conf);
+    m_gpu_recvbuf.swap(gpu_recvbuf);
+
     /*
      * initial size of particle send buffers = max of avg. number of ptls in skin layer in any direction
      */
     const BoxDim& box = m_pdata->getBox();
     Scalar3 L = box.getNearestPlaneDistance();
 
-    unsigned int maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.x);
-    unsigned int maxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.y);
-    unsigned int maxz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff/L.z);
-
-    m_max_send_ptls_face = 1;
-    m_max_send_ptls_face = m_max_send_ptls_face > maxx ? m_max_send_ptls_face : maxx;
-    m_max_send_ptls_face = m_max_send_ptls_face > maxy ? m_max_send_ptls_face : maxy;
-    m_max_send_ptls_face = m_max_send_ptls_face > maxz ? m_max_send_ptls_face : maxz;
-
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> face_send_buf(gpu_pdata_element_size()*m_max_send_ptls_face, 6, m_exec_conf);
-#else
-    GPUBufferMapped<char> face_send_buf(gpu_pdata_element_size()*m_max_send_ptls_face, 6, m_exec_conf);
-#endif
-    m_face_send_buf.swap(face_send_buf);
-
-    unsigned int maxxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.x/L.y);
-    unsigned int maxxz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.x/L.z);
-    unsigned int maxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff/L.y/L.z);
-
-    m_max_send_ptls_edge = 1;
-    m_max_send_ptls_edge = m_max_send_ptls_edge > maxxy ? m_max_send_ptls_edge : maxxy;
-    m_max_send_ptls_edge = m_max_send_ptls_edge > maxxz ? m_max_send_ptls_edge : maxxz;
-    m_max_send_ptls_edge = m_max_send_ptls_edge > maxyz ? m_max_send_ptls_edge : maxyz;
-
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> edge_send_buf(gpu_pdata_element_size()*m_max_send_ptls_edge, 12, m_exec_conf);
-#else
-    GPUBufferMapped<char> edge_send_buf(gpu_pdata_element_size()*m_max_send_ptls_edge, 12, m_exec_conf);
-#endif
-    m_edge_send_buf.swap(edge_send_buf);
-
-    unsigned maxxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_buff*m_r_buff*m_r_buff/L.x/L.y/L.z);
-    m_max_send_ptls_corner = maxxyz > 1 ? maxxyz : 1;
-
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> send_buf_corner(gpu_pdata_element_size()*m_max_send_ptls_corner, 8, m_exec_conf);
-#else
-    GPUBufferMapped<char> send_buf_corner(gpu_pdata_element_size()*m_max_send_ptls_corner, 8, m_exec_conf);
-#endif
-
-    m_corner_send_buf.swap(send_buf_corner);
-
-#ifdef ENABLE_MPI_CUDA
-    GPUArray<char> recv_buf(gpu_pdata_element_size()*m_max_send_ptls_face*6, m_exec_conf);
-#else
-    GPUBufferMapped<char> recv_buf(gpu_pdata_element_size()*m_max_send_ptls_face*6, m_exec_conf);
-#endif
-
-    m_recv_buf.swap(recv_buf);
-
     /*
      * initial size of ghost send buffers = max of avg number of ptls in ghost layer in every direction
      */
-    maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.x);
-    maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.y);
-    maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.z);
+    unsigned int maxx = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.x);
+    unsigned int maxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.y);
+    unsigned int maxz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost/L.z);
 
     m_max_copy_ghosts_face = 1;
     m_max_copy_ghosts_face = m_max_copy_ghosts_face > maxx ? m_max_copy_ghosts_face : maxx;
@@ -410,9 +360,9 @@ void CommunicatorGPU::allocateBuffers()
     #endif
     m_face_update_buf.swap(face_update_buf);
 
-    maxxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.y);
-    maxxz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.z);
-    maxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.y/L.z);
+    unsigned int maxxy = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.y);
+    unsigned int maxxz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.x/L.z);
+    unsigned int maxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost/L.y/L.z);
 
     m_max_copy_ghosts_edge = 1;
     m_max_copy_ghosts_edge = m_max_copy_ghosts_edge > maxxy ? m_max_copy_ghosts_edge : maxxy;
@@ -433,7 +383,7 @@ void CommunicatorGPU::allocateBuffers()
     #endif
     m_edge_update_buf.swap(edge_update_buf);
 
-    maxxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost*m_r_ghost/L.x/L.y/L.z);
+    unsigned int maxxyz = (unsigned int)((Scalar)m_pdata->getN()*m_r_ghost*m_r_ghost*m_r_ghost/L.x/L.y/L.z);
     m_max_copy_ghosts_corner = maxxyz > 1 ? maxxyz : 1;
 
     #ifdef ENABLE_MPI_CUDA
@@ -465,10 +415,6 @@ void CommunicatorGPU::allocateBuffers()
     #endif
     m_update_recv_buf.swap(update_recv_buf);
 
-    // buffer for particle plans
-    GPUArray<unsigned int> ptl_plan(m_pdata->getN(), m_exec_conf);
-    m_ptl_plan.swap(ptl_plan);
-
     // allocate ghost index lists
     GPUArray<unsigned int> ghost_idx_face(m_max_copy_ghosts_face, 6, m_exec_conf);
     m_ghost_idx_face.swap(ghost_idx_face);
@@ -493,66 +439,6 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<unsigned int> n_recv_ghosts_face(6*6, m_exec_conf);
     m_n_recv_ghosts_face.swap(n_recv_ghosts_face);
 
-    GPUArray<unsigned int> n_send_ptls_face(6, m_exec_conf);
-    m_n_send_ptls_face.swap(n_send_ptls_face);
-    GPUArray<unsigned int> n_send_ptls_edge(12, m_exec_conf);
-    m_n_send_ptls_edge.swap(n_send_ptls_edge);
-    GPUArray<unsigned int> n_send_ptls_corner(8, m_exec_conf);
-    m_n_send_ptls_corner.swap(n_send_ptls_corner);
-
-    /*
-     * Initialize send buffers for bonds only if needed
-     */
-    boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
-
-    if (bdata->getNumBondsGlobal())
-        {
-        // estimate initial numbers of bonds from numbers of particles
-        m_max_send_bonds_corner = m_max_send_ptls_corner;
-        m_max_send_bonds_edge = m_max_send_ptls_edge;
-        m_max_send_bonds_face = m_max_send_ptls_face;
-
-        #ifdef ENABLE_MPI_CUDA
-        GPUArray<bond_element> bond_corner_send_buf(m_max_send_bonds_corner,8, m_exec_conf);
-        #else
-        GPUBufferMapped<bond_element> bond_corner_send_buf(m_max_send_bonds_corner,8, m_exec_conf);
-        #endif
-        m_bond_corner_send_buf.swap(bond_corner_send_buf);
-
-        #ifdef ENABLE_MPI_CUDA
-        GPUArray<bond_element> bond_edge_send_buf(m_max_send_bonds_edge,12, m_exec_conf);
-        #else
-        GPUBufferMapped<bond_element> bond_edge_send_buf(m_max_send_bonds_edge,12, m_exec_conf);
-        #endif
-        m_bond_edge_send_buf.swap(bond_edge_send_buf);
-
-        #ifdef ENABLE_MPI_CUDA
-        GPUArray<bond_element> bond_face_send_buf(m_max_send_bonds_face,6, m_exec_conf);
-        #else
-        GPUBufferMapped<bond_element> bond_face_send_buf(m_max_send_bonds_face,6, m_exec_conf);
-        #endif
-        m_bond_face_send_buf.swap(bond_face_send_buf);
-
-        #ifdef ENABLE_MPI_CUDA
-        GPUArray<bond_element> bond_recv_buf(m_max_send_ptls_face*6, m_exec_conf);
-        #else
-        GPUBufferMapped<bond_element> bond_recv_buf(m_max_send_ptls_face*6, m_exec_conf);
-        #endif
-        m_bond_recv_buf.swap(bond_recv_buf);
-
-        // counters for number of sent bonds
-        GPUArray<unsigned int> n_send_bonds_face(6, m_exec_conf);
-        m_n_send_bonds_face.swap(n_send_bonds_face);
-        GPUArray<unsigned int> n_send_bonds_edge(12, m_exec_conf);
-        m_n_send_bonds_edge.swap(n_send_bonds_edge);
-        GPUArray<unsigned int> n_send_bonds_corner(8, m_exec_conf);
-        m_n_send_bonds_corner.swap(n_send_bonds_corner);
-
-        // number of removed bonds
-        GPUFlags<unsigned int> n_remove_bonds(m_exec_conf);
-        m_n_remove_bonds.swap(n_remove_bonds);
-        }
-
     m_buffers_allocated = true;
     }
 
@@ -560,7 +446,7 @@ void CommunicatorGPU::allocateBuffers()
 void CommunicatorGPU::migrateParticles()
     {
     if (m_prof)
-        m_prof->push(m_exec_conf,"migrate_particles");
+        m_prof->push(m_exec_conf,"comm_migrate");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
 
@@ -584,647 +470,210 @@ void CommunicatorGPU::migrateParticles()
     if (! m_buffers_allocated)
         allocateBuffers();
 
-    if (m_remove_mask.getNumElements() < m_pdata->getN())
-        {
-        unsigned int new_size = 1;
-        while (new_size < m_pdata->getN())
-                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-
-        m_remove_mask.resize(new_size);
-        }
-
-    if (m_ptl_plan.getNumElements() < m_pdata->getN())
-        {
-        unsigned int new_size = 1;
-        while (new_size < m_pdata->getN())
-                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-
-        m_ptl_plan.resize(new_size);
-        }
-
-
-    unsigned int n_send_ptls_face[6];
-    unsigned int n_send_ptls_edge[12];
-    unsigned int n_send_ptls_corner[8];
-
-    /*
-     * Select particles for sending
-     */
-    unsigned int condition;
-    do
-        {
-        if (m_corner_send_buf.getPitch() < m_max_send_ptls_corner*gpu_pdata_element_size())
-            m_corner_send_buf.resize(m_max_send_ptls_corner*gpu_pdata_element_size(), 8);
-
-        if (m_edge_send_buf.getPitch() < m_max_send_ptls_edge*gpu_pdata_element_size())
-            m_edge_send_buf.resize(m_max_send_ptls_edge*gpu_pdata_element_size(), 12);
-
-        if (m_face_send_buf.getPitch() < m_max_send_ptls_face*gpu_pdata_element_size())
-            m_face_send_buf.resize(m_max_send_ptls_face*gpu_pdata_element_size(), 6);
-
-        m_condition.resetFlags(0);
-
-            {
-            // remove all particles from our domain that are going to be sent in the current direction
-
-            ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_ptl_plan(m_ptl_plan, access_location::device, access_mode::overwrite);
-
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-            ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-
-            ArrayHandle<unsigned int> d_n_send_ptls_corner(m_n_send_ptls_corner, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_n_send_ptls_edge(m_n_send_ptls_edge, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_n_send_ptls_face(m_n_send_ptls_face, access_location::device, access_mode::overwrite);
-
-            ArrayHandle<char> d_corner_send_buf(m_corner_send_buf, access_location::device, access_mode::overwrite);
-            ArrayHandle<char> d_edge_send_buf(m_edge_send_buf, access_location::device, access_mode::overwrite);
-            ArrayHandle<char> d_face_send_buf(m_face_send_buf, access_location::device, access_mode::overwrite);
-
-            // Stage particle data for sending, wrap particles
-            gpu_migrate_select_particles(m_pdata->getN(),
-                                   d_pos.data,
-                                   d_vel.data,
-                                   d_accel.data,
-                                   d_image.data,
-                                   d_charge.data,
-                                   d_diameter.data,
-                                   d_body.data,
-                                   d_orientation.data,
-                                   d_tag.data,
-                                   d_n_send_ptls_corner.data,
-                                   d_n_send_ptls_edge.data,
-                                   d_n_send_ptls_face.data,
-                                   m_max_send_ptls_corner,
-                                   m_max_send_ptls_edge,
-                                   m_max_send_ptls_face,
-                                   d_remove_mask.data,
-                                   d_ptl_plan.data,
-                                   d_corner_send_buf.data,
-                                   m_corner_send_buf.getPitch(),
-                                   d_edge_send_buf.data,
-                                   m_edge_send_buf.getPitch(),
-                                   d_face_send_buf.data,
-                                   m_face_send_buf.getPitch(),
-                                   m_pdata->getBox(),
-                                   m_condition.getDeviceFlags());
-
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                        CHECK_CUDA_ERROR();
-            }
-
-            {
-            // read back numbers of sent particles
-            ArrayHandleAsync<unsigned int> h_n_send_ptls_face(m_n_send_ptls_face, access_location::host, access_mode::read);
-            ArrayHandleAsync<unsigned int> h_n_send_ptls_edge(m_n_send_ptls_edge, access_location::host, access_mode::read);
-            ArrayHandleAsync<unsigned int> h_n_send_ptls_corner(m_n_send_ptls_corner, access_location::host, access_mode::read);
-
-            // synchronize with GPU
-            cudaDeviceSynchronize();
-
-            for (unsigned int i = 0; i < 6; ++i)
-                n_send_ptls_face[i] = h_n_send_ptls_face.data[i];
-
-            for (unsigned int i = 0; i < 12; ++i)
-                n_send_ptls_edge[i] = h_n_send_ptls_edge.data[i];
-
-            for (unsigned int i = 0; i < 8; ++i)
-                n_send_ptls_corner[i] = h_n_send_ptls_corner.data[i];
-            }
-
-
-        condition = m_condition.readFlags();
-        if (condition & 1)
-            {
-            // set new maximum size for face send buffers
-            unsigned int new_size = 1;
-            for (unsigned int i = 0; i < 6; ++i)
-                if (n_send_ptls_face[i] > new_size) new_size = n_send_ptls_face[i];
-            while (m_max_send_ptls_face < new_size)
-                m_max_send_ptls_face = ((unsigned int)(((float)m_max_send_ptls_face)*m_resize_factor))+1;
-            }
-        if (condition & 2)
-            {
-            // set new maximum size for edge send buffers
-            unsigned int new_size = 1;
-            for (unsigned int i = 0; i < 12; ++i)
-                if (n_send_ptls_edge[i] > new_size) new_size = n_send_ptls_edge[i];
-            while (m_max_send_ptls_edge < new_size)
-                m_max_send_ptls_edge = ((unsigned int)(((float)m_max_send_ptls_edge)*m_resize_factor))+1;
-            }
-        if (condition & 4)
-            {
-            // set new maximum size for corner send buffers
-            unsigned int new_size = 1;
-            for (unsigned int i = 0; i < 8; ++i)
-                if (n_send_ptls_corner[i] > new_size) new_size = n_send_ptls_corner[i];
-            while (m_max_send_ptls_corner < new_size)
-                m_max_send_ptls_corner = ((unsigned int)(((float)m_max_send_ptls_corner)*m_resize_factor))+1;
-            }
-
-        if (condition & 8)
-            {
-            m_exec_conf->msg->error() << "Invalid particle plan." << std::endl;
-            throw std::runtime_error("Error during communication.");
-            }
-        }
-    while (condition);
-
-    /*
-     * Select bonds for sending
-     */
-    boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
-
-    unsigned int n_send_bonds_face[6];
-    unsigned int n_send_bonds_edge[12];
-    unsigned int n_send_bonds_corner[8];
-
-    for (unsigned int i = 0; i < 6; ++i)
-        n_send_bonds_face[i] = 0;
-    for (unsigned int i = 0; i < 12; ++i)
-        n_send_bonds_edge[i] = 0;
-    for (unsigned int i = 0; i < 8; ++i)
-        n_send_bonds_corner[i] = 0;
-
-    if (bdata->getNumBondsGlobal())
-        {
-        // resize mask for bonds to be removed, if necessary
-        if (m_bond_remove_mask.getNumElements() < bdata->getNumBonds())
-            {
-            unsigned int new_size = 1;
-            while (new_size < bdata->getNumBonds())
-                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-
-            m_bond_remove_mask.resize(new_size);
-            }
-
-        do
-            {
-            if (m_bond_corner_send_buf.getPitch() < m_max_send_bonds_corner)
-                m_bond_corner_send_buf.resize(m_max_send_bonds_corner, 8);
-
-            if (m_bond_edge_send_buf.getPitch() < m_max_send_bonds_edge)
-                m_bond_edge_send_buf.resize(m_max_send_bonds_edge, 12);
-
-            if (m_bond_face_send_buf.getPitch() < m_max_send_bonds_face)
-                m_bond_face_send_buf.resize(m_max_send_bonds_face, 6);
-
-
-                {
-                ArrayHandle<uint2> d_bonds(bdata->getBondTable(), access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_bond_type(bdata->getBondTypes(), access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_bond_tag(bdata->getBondTags(), access_location::device, access_mode::read);
-
-                ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_ptl_plan(m_ptl_plan, access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_bond_remove_mask(m_bond_remove_mask, access_location::device, access_mode::overwrite);
-                ArrayHandle<unsigned int> d_n_send_bonds_face(m_n_send_bonds_face, access_location::device, access_mode::overwrite);
-                ArrayHandle<unsigned int> d_n_send_bonds_edge(m_n_send_bonds_edge, access_location::device, access_mode::overwrite);
-                ArrayHandle<unsigned int> d_n_send_bonds_corner(m_n_send_bonds_corner, access_location::device, access_mode::overwrite);
-
-                ArrayHandle<bond_element> d_bond_face_send_buf(m_bond_face_send_buf, access_location::device, access_mode::overwrite);
-                ArrayHandle<bond_element> d_bond_edge_send_buf(m_bond_edge_send_buf, access_location::device, access_mode::overwrite);
-                ArrayHandle<bond_element> d_bond_corner_send_buf(m_bond_corner_send_buf, access_location::device, access_mode::overwrite);
-                gpu_send_bonds(bdata->getNumBonds(),
-                               m_pdata->getN(),
-                               d_bonds.data,
-                               d_bond_type.data,
-                               d_bond_tag.data,
-                               d_rtag.data,
-                               d_ptl_plan.data,
-                               d_bond_remove_mask.data,
-                               d_bond_face_send_buf.data,
-                               m_bond_face_send_buf.getPitch(),
-                               d_bond_edge_send_buf.data,
-                               m_bond_edge_send_buf.getPitch(),
-                               d_bond_corner_send_buf.data,
-                               m_bond_corner_send_buf.getPitch(),
-                               d_n_send_bonds_face.data,
-                               d_n_send_bonds_edge.data,
-                               d_n_send_bonds_corner.data,
-                               m_max_send_bonds_face,
-                               m_max_send_bonds_edge,
-                               m_max_send_bonds_corner,
-                               m_n_remove_bonds.getDeviceFlags(),
-                               m_condition.getDeviceFlags());
-
-                if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                    CHECK_CUDA_ERROR();
-                }
-
-                {
-                // read back numbers of sent bonds
-                ArrayHandleAsync<unsigned int> h_n_send_bonds_face(m_n_send_bonds_face, access_location::host, access_mode::read);
-                ArrayHandleAsync<unsigned int> h_n_send_bonds_edge(m_n_send_bonds_edge, access_location::host, access_mode::read);
-                ArrayHandleAsync<unsigned int> h_n_send_bonds_corner(m_n_send_bonds_corner, access_location::host, access_mode::read);
-
-                // synchronize with GPU
-                cudaDeviceSynchronize();
-
-                for (unsigned int i = 0; i < 6; ++i)
-                    n_send_bonds_face[i] = h_n_send_bonds_face.data[i];
-
-                for (unsigned int i = 0; i < 12; ++i)
-                    n_send_bonds_edge[i] = h_n_send_bonds_edge.data[i];
-
-                for (unsigned int i = 0; i < 8; ++i)
-                    n_send_bonds_corner[i] = h_n_send_bonds_corner.data[i];
-                }
-
-            condition = m_condition.readFlags();
-            if (condition & 1)
-                {
-                // set new maximum size for face send buffers
-                unsigned int new_size = 1;
-                for (unsigned int i = 0; i < 6; ++i)
-                    if (n_send_bonds_face[i] > new_size) new_size = n_send_bonds_face[i];
-                while (m_max_send_bonds_face < new_size)
-                    m_max_send_bonds_face = ((unsigned int)(((float)m_max_send_bonds_face)*m_resize_factor))+1;
-                }
-            if (condition & 2)
-                {
-                // set new maximum size for edge send buffers
-                unsigned int new_size = 1;
-                for (unsigned int i = 0; i < 12; ++i)
-                    if (n_send_bonds_edge[i] > new_size) new_size = n_send_bonds_edge[i];
-                while (m_max_send_bonds_edge < new_size)
-                    m_max_send_bonds_edge = ((unsigned int)(((float)m_max_send_bonds_edge)*m_resize_factor))+1;
-                }
-            if (condition & 4)
-                {
-                // set new maximum size for corner send buffers
-                unsigned int new_size = 1;
-                for (unsigned int i = 0; i < 8; ++i)
-                    if (n_send_bonds_corner[i] > new_size) new_size = n_send_bonds_corner[i];
-                while (m_max_send_bonds_corner < new_size)
-                    m_max_send_bonds_corner = ((unsigned int)(((float)m_max_send_bonds_corner)*m_resize_factor))+1;
-                }
-
-            if (condition & 8)
-                {
-                m_exec_conf->msg->error() << "Invalid particle plan." << std::endl;
-                throw std::runtime_error("Error during bond communication.");
-                }
-            } // end do
-        while (condition);
-        }
-
-        {
-        // reset reverse-lookup tag of sent particles
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::read);
-
-        gpu_reset_rtag_by_mask(m_pdata->getN(),
-                               d_rtag.data,
-                               d_tag.data,
-                               d_remove_mask.data);
-        }
-
-    /*
-     * Communicate particles
-     */
-
-    for (unsigned int i = 0; i < NFACE*NCORNER; ++i)
-        m_remote_send_corner[i] = 0;
-    for (unsigned int i = 0; i < NFACE*NEDGE; ++i)
-        m_remote_send_edge[i] = 0;
-    for (unsigned int i = 0; i < NFACE; ++i)
-        m_remote_send_face[i] = 0;
-
-    // total up number of sent particles
-    unsigned int n_remove_ptls = 0;
-    for (unsigned int i = 0; i < 6; ++i)
-        n_remove_ptls += n_send_ptls_face[i];
-    for (unsigned int i = 0; i < 12; ++i)
-        n_remove_ptls += n_send_ptls_edge[i];
-    for (unsigned int i = 0; i < 8; ++i)
-        n_remove_ptls += n_send_ptls_corner[i];
-
-    unsigned int n_tot_recv_ptls = 0;
-
+    // determine local particles that are to be sent to neighboring processors and fill send buffer
     for (unsigned int dir=0; dir < 6; dir++)
         {
-
         if (! isCommunicating(dir) ) continue;
 
-        unsigned int n_recv_ptls_edge[12];
-        unsigned int n_recv_ptls_face[6];
-        unsigned int n_recv_ptls = 0;
-        for (unsigned int i = 0; i < 12; ++i)
-            n_recv_ptls_edge[i] = 0;
+        unsigned int n_send_bonds = 0;
+        unsigned int n_remove_bonds = 0;
 
-        for (unsigned int i = 0; i < 6; ++i)
-            n_recv_ptls_face[i] = 0;
-
-        unsigned int max_n_recv_edge = 0;
-        unsigned int max_n_recv_face = 0;
-
-        // communicate size of the messages that will contain the particle data
-        communicateStepOne(dir,
-                           n_send_ptls_corner,
-                           n_send_ptls_edge,
-                           n_send_ptls_face,
-                           n_recv_ptls_face,
-                           n_recv_ptls_edge,
-                           &n_recv_ptls,
-                           true);
-
-        unsigned int max_n_send_edge = 0;
-        unsigned int max_n_send_face = 0;
-        // resize buffers as necessary
-        for (unsigned int i = 0; i < 12; ++i)
             {
-            if (n_recv_ptls_edge[i] > max_n_recv_edge)
-                max_n_recv_edge = n_recv_ptls_edge[i];
-            if (n_send_ptls_edge[i] > max_n_send_edge)
-                max_n_send_edge = n_send_ptls_edge[i];
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+
+            // mark all particles which have left the box for sending (rtag=STAGED)
+            gpu_stage_particles(m_pdata->getN(),
+                d_pos.data,
+                d_tag.data,
+                d_rtag.data,
+                dir,
+                m_pdata->getBox());
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
 
+        /*
+         * Select bonds for sending
+         */
+        boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
 
-        if (max_n_recv_edge + max_n_send_edge > m_max_send_ptls_edge)
+        if (bdata->getNumBondsGlobal())
             {
-            unsigned int new_size = 1;
-            while (new_size < max_n_recv_edge + max_n_send_edge)
-                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-            m_max_send_ptls_edge = new_size;
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<uint2> d_bonds(bdata->getBondTable(), access_location::device, access_mode::read);
 
-            m_edge_send_buf.resize(m_max_send_ptls_edge*gpu_pdata_element_size(), 12);
+            n_send_bonds = gpu_count_send_bonds( bdata->getNumBonds(), d_bonds.data, d_rtag.data);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+
+            // resize send buffer
+            m_bond_send_buf.resize(n_send_bonds);
+
+            // resize remove mask
+            m_bond_remove_mask.resize(bdata->getNumBonds());
+
+            // Access bond data
+            ArrayHandle<unsigned int> d_bond_type(bdata->getBondTypes(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_bond_tag(bdata->getBondTags(), access_location::device, access_mode::read);
+            ArrayHandle<bond_element> d_bond_send_buf(m_bond_send_buf, access_location::device, access_mode::overwrite);
+
+            // pack bond data
+            gpu_pack_bond_data(bdata->getNumBonds(),
+                               d_bonds.data,
+                               d_bond_tag.data,
+                               d_bond_type.data,
+                               d_rtag.data,
+                               d_bond_send_buf.data);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
-        for (unsigned int i = 0; i < 6; ++i)
+       // NOTE: this is currently running on the host and will be rewritten
+       if (bdata->getNumBondsGlobal())
             {
-            if (n_recv_ptls_face[i] > max_n_recv_face)
-                max_n_recv_face = n_recv_ptls_face[i];
-            if (n_send_ptls_face[i] > max_n_send_face)
-                max_n_send_face = n_send_ptls_face[i];
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+            ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
+
+            ArrayHandle<unsigned int> h_bond_remove_mask(m_bond_remove_mask, access_location::host, access_mode::overwrite);
+            for (unsigned int bond_idx = 0; bond_idx < bdata->getNumBonds(); ++bond_idx)
+                {
+                uint2 bond = h_bonds.data[bond_idx];
+
+                unsigned int idx_a = h_rtag.data[bond.x];
+                unsigned int idx_b = h_rtag.data[bond.y];
+
+                bool remove = ((idx_a == NOT_LOCAL || idx_a == STAGED) && (idx_b == NOT_LOCAL || idx_b == STAGED));
+
+                if (remove) n_remove_bonds++;
+
+                h_bond_remove_mask.data[bond_idx] = remove ? 1 : 0;
+                }
             }
 
-        if (max_n_recv_face + max_n_send_face > m_max_send_ptls_face)
+        // fill send buffer
+        m_pdata->retrieveParticlesGPU(m_gpu_sendbuf);
+
+        // rank of processor to which we send the data
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
+
+        // we receive from the direction opposite to the one we send to
+        unsigned int recv_neighbor;
+        if (dir % 2 == 0)
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
+        else
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
+
+        if (m_prof)
+            m_prof->push("MPI send/recv");
+
+        unsigned int n_recv_ptls;
+
+        // communicate size of the message that will contain the particle data
+        MPI_Request reqs[2];
+        MPI_Status status[2];
+
+        unsigned int n_send_ptls = m_gpu_sendbuf.size();
+
+        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & reqs[0]);
+        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
+        MPI_Waitall(2, reqs, status);
+
+        // Resize receive buffer
+        m_gpu_recvbuf.resize(n_recv_ptls);
+
             {
-            unsigned int new_size = 1;
-            while (new_size < max_n_recv_face + max_n_send_face)
-                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-            m_max_send_ptls_face = new_size;
-            m_face_send_buf.resize(m_max_send_ptls_face*gpu_pdata_element_size(), 6);
+            #ifdef ENABLE_MPI_CUDA
+            ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::device, access_mode::overwrite);
+            #else
+            ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::host, access_mode::overwrite);
+            #endif
+
+            // exchange particle data
+            MPI_Isend(gpu_sendbuf_handle.data, n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[0]);
+            MPI_Irecv(gpu_recvbuf_handle.data, n_recv_ptls*sizeof(pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & reqs[1]);
+            MPI_Waitall(2, reqs, status);
             }
 
-        if (m_recv_buf.getNumElements() < (n_tot_recv_ptls + n_recv_ptls)*gpu_pdata_element_size())
+        if (m_prof)
+            m_prof->pop();
+
             {
-            unsigned int new_size =1;
-            while (new_size < n_tot_recv_ptls + n_recv_ptls)
-                new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-            m_recv_buf.resize(new_size*gpu_pdata_element_size());
+            ArrayHandle<pdata_element> d_gpu_recvbuf(m_gpu_recvbuf, access_location::device, access_mode::readwrite);
+            const BoxDim shifted_box = getShiftedBox();
+
+            // Apply boundary conditions
+            gpu_wrap_particles(n_recv_ptls,
+                               d_gpu_recvbuf.data,
+                               shifted_box);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
 
+        // remove particles that were sent and fill particle data with received particles
+        m_pdata->updateParticlesGPU(m_gpu_recvbuf);
 
-        unsigned int cpitch = m_corner_send_buf.getPitch();
-        unsigned int epitch = m_edge_send_buf.getPitch();
-        unsigned int fpitch = m_face_send_buf.getPitch();
+        /*
+         * Communicate bonds
+         */
 
-        #ifdef ENABLE_MPI_CUDA
-        ArrayHandle<char> corner_send_buf_handle(m_corner_send_buf, access_location::device, access_mode::read);
-        ArrayHandle<char> edge_send_buf_handle(m_edge_send_buf, access_location::device, access_mode::readwrite);
-        ArrayHandle<char> face_send_buf_handle(m_face_send_buf, access_location::device, access_mode::readwrite);
-        ArrayHandle<char> recv_buf_handle(m_recv_buf, access_location::device, access_mode::readwrite);
-        #else
-        ArrayHandle<char> corner_send_buf_handle(m_corner_send_buf, access_location::host, access_mode::read);
-        ArrayHandle<char> edge_send_buf_handle(m_edge_send_buf, access_location::host, access_mode::readwrite);
-        ArrayHandle<char> face_send_buf_handle(m_face_send_buf, access_location::host, access_mode::readwrite);
-        ArrayHandle<char> recv_buf_handle(m_recv_buf, access_location::host, access_mode::readwrite);
-        #endif
+        if (bdata->getNumBondsGlobal())
+            {
+            unsigned int n_recv_bonds;
 
-        communicateStepTwo(dir,
-                           corner_send_buf_handle.data,
-                           edge_send_buf_handle.data,
-                           face_send_buf_handle.data,
-                           cpitch,
-                           epitch,
-                           fpitch,
-                           recv_buf_handle.data,
-                           n_send_ptls_corner,
-                           n_send_ptls_edge,
-                           n_send_ptls_face,
-                           m_recv_buf.getNumElements(),
-                           n_tot_recv_ptls,
-                           gpu_pdata_element_size(),
-                           true);
+            // exchange size of messages
+            MPI_Isend(&n_send_bonds, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & reqs[0]);
+            MPI_Irecv(&n_recv_bonds, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
+            MPI_Waitall(2, reqs, status);
 
-        // update buffer sizes
-        for (unsigned int i = 0; i < 12; ++i)
-            n_send_ptls_edge[i] += n_recv_ptls_edge[i];
+            m_bond_recv_buf.resize(n_recv_bonds);
 
-        for (unsigned int i = 0; i < 6; ++i)
-            n_send_ptls_face[i] += n_recv_ptls_face[i];
+                {
+                // exchange particle data
+                #ifdef ENABLE_MPI_CUDA
+                ArrayHandle<bond_element> bond_send_buf_handle(m_bond_send_buf, access_location::device, access_mode::read);
+                ArrayHandle<bond_element> bond_recv_buf_handle(m_bond_recv_buf, access_location::device, access_mode::overwrite);
+                #else
+                ArrayHandle<bond_element> bond_send_buf_handle(m_bond_send_buf, access_location::host, access_mode::read);
+                ArrayHandle<bond_element> bond_recv_buf_handle(m_bond_recv_buf, access_location::host, access_mode::overwrite);
+                #endif
 
-        n_tot_recv_ptls += n_recv_ptls;
+                MPI_Isend(bond_send_buf_handle.data,
+                          n_send_bonds*sizeof(bond_element),
+                          MPI_BYTE,
+                          send_neighbor,
+                          1,
+                          m_mpi_comm,
+                          & reqs[0]);
+                MPI_Irecv(bond_recv_buf_handle.data,
+                          n_recv_bonds*sizeof(bond_element),
+                          MPI_BYTE,
+                          recv_neighbor,
+                          1,
+                          m_mpi_comm,
+                          & reqs[1]);
+                MPI_Waitall(2, reqs, status);
+                }
+
+            // unpack data
+            bdata->unpackRemoveBonds(n_recv_bonds,
+                                     n_remove_bonds,
+                                     m_bond_recv_buf,
+                                     m_bond_remove_mask);
+            } // end bond communication
 
         } // end dir loop
 
-    unsigned int old_nparticles = m_pdata->getN();
-
-    // allocate memory for particles that will be received
-    //m_pdata->addParticles(n_tot_recv_ptls);
-
-        {
-        // Finally insert new particles into array and remove the ones that are to be deleted
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
-        ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
-
-        ArrayHandle<unsigned char> d_remove_mask(m_remove_mask, access_location::device, access_mode::read);
-
-        ArrayHandle<char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
-
-        const BoxDim shifted_box = getShiftedBox();
-
-        gpu_migrate_fill_particle_arrays(old_nparticles,
-                               n_tot_recv_ptls,
-                               n_remove_ptls,
-                               d_remove_mask.data,
-                               d_recv_buf.data,
-                               d_pos.data,
-                               d_vel.data,
-                               d_accel.data,
-                               d_image.data,
-                               d_charge.data,
-                               d_diameter.data,
-                               d_body.data,
-                               d_orientation.data,
-                               d_tag.data,
-                               d_rtag.data,
-                               shifted_box);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        }
-
-    //m_pdata->removeParticles(n_remove_ptls);
-
-    /*
-     * Communicate bonds
-     */
-
-    if (bdata->getNumBondsGlobal())
-        {
-        for (unsigned int i = 0; i < NFACE*NCORNER; ++i)
-            m_remote_send_corner[i] = 0;
-        for (unsigned int i = 0; i < NFACE*NEDGE; ++i)
-            m_remote_send_edge[i] = 0;
-        for (unsigned int i = 0; i < NFACE; ++i)
-            m_remote_send_face[i] = 0;
-
-        unsigned int n_tot_recv_bonds = 0;
-
-        for (unsigned int dir=0; dir < 6; dir++)
-            {
-
-            if (! isCommunicating(dir) ) continue;
-
-            unsigned int n_recv_bonds_edge[12];
-            unsigned int n_recv_bonds_face[6];
-            unsigned int n_recv_bonds = 0;
-            for (unsigned int i = 0; i < 12; ++i)
-                n_recv_bonds_edge[i] = 0;
-
-            for (unsigned int i = 0; i < 6; ++i)
-                n_recv_bonds_face[i] = 0;
-
-            unsigned int max_n_recv_edge = 0;
-            unsigned int max_n_recv_face = 0;
-
-            // communicate size of the messages that will contain the particle data
-            communicateStepOne(dir,
-                               n_send_bonds_corner,
-                               n_send_bonds_edge,
-                               n_send_bonds_face,
-                               n_recv_bonds_face,
-                               n_recv_bonds_edge,
-                               &n_recv_bonds,
-                               true);
-
-            unsigned int max_n_send_edge = 0;
-            unsigned int max_n_send_face = 0;
-            // resize buffers as necessary
-            for (unsigned int i = 0; i < 12; ++i)
-                {
-                if (n_recv_bonds_edge[i] > max_n_recv_edge)
-                    max_n_recv_edge = n_recv_bonds_edge[i];
-                if (n_send_bonds_edge[i] > max_n_send_edge)
-                    max_n_send_edge = n_send_bonds_edge[i];
-                }
-
-
-            if (max_n_recv_edge + max_n_send_edge > m_max_send_bonds_edge)
-                {
-                unsigned int new_size = 1;
-                while (new_size < max_n_recv_edge + max_n_send_edge)
-                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-                m_max_send_bonds_edge = new_size;
-
-                m_bond_edge_send_buf.resize(m_max_send_bonds_edge, 12);
-                }
-
-            for (unsigned int i = 0; i < 6; ++i)
-                {
-                if (n_recv_bonds_face[i] > max_n_recv_face)
-                    max_n_recv_face = n_recv_bonds_face[i];
-                if (n_send_bonds_face[i] > max_n_send_face)
-                    max_n_send_face = n_send_bonds_face[i];
-                }
-
-            if (max_n_recv_face + max_n_send_face > m_max_send_bonds_face)
-                {
-                unsigned int new_size = 1;
-                while (new_size < max_n_recv_face + max_n_send_face)
-                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-                m_max_send_bonds_face = new_size;
-                m_bond_face_send_buf.resize(m_max_send_bonds_face*gpu_pdata_element_size(), 6);
-                }
-
-            if (m_recv_buf.getNumElements() < (n_tot_recv_bonds + n_recv_bonds))
-                {
-                unsigned int new_size =1;
-                while (new_size < n_tot_recv_bonds + n_recv_bonds)
-                    new_size = ((unsigned int)(((float)new_size)*m_resize_factor))+1;
-                m_recv_buf.resize(new_size);
-                }
-
-
-            unsigned int cpitch = m_bond_corner_send_buf.getPitch();
-            unsigned int epitch = m_bond_edge_send_buf.getPitch();
-            unsigned int fpitch = m_bond_face_send_buf.getPitch();
-
-            #ifdef ENABLE_MPI_CUDA
-            ArrayHandle<bond_element> corner_send_buf_handle(m_bond_corner_send_buf, access_location::device, access_mode::read);
-            ArrayHandle<bond_element> edge_send_buf_handle(m_bond_edge_send_buf, access_location::device, access_mode::readwrite);
-            ArrayHandle<bond_element> face_send_buf_handle(m_bond_face_send_buf, access_location::device, access_mode::readwrite);
-            ArrayHandle<bond_element> recv_buf_handle(m_bond_recv_buf, access_location::device, access_mode::readwrite);
-            #else
-            ArrayHandle<bond_element> corner_send_buf_handle(m_bond_corner_send_buf, access_location::host, access_mode::read);
-            ArrayHandle<bond_element> edge_send_buf_handle(m_bond_edge_send_buf, access_location::host, access_mode::readwrite);
-            ArrayHandle<bond_element> face_send_buf_handle(m_bond_face_send_buf, access_location::host, access_mode::readwrite);
-            ArrayHandle<bond_element> recv_buf_handle(m_bond_recv_buf, access_location::host, access_mode::readwrite);
-            #endif
-
-            communicateStepTwo(dir,
-                               (char *)corner_send_buf_handle.data,
-                               (char *)edge_send_buf_handle.data,
-                               (char *)face_send_buf_handle.data,
-                               cpitch*sizeof(bond_element),
-                               epitch*sizeof(bond_element),
-                               fpitch*sizeof(bond_element),
-                               (char *)recv_buf_handle.data,
-                               n_send_bonds_corner,
-                               n_send_bonds_edge,
-                               n_send_bonds_face,
-                               m_bond_recv_buf.getNumElements(),
-                               n_tot_recv_bonds,
-                               sizeof(bond_element),
-                               true);
-
-            // update buffer sizes
-            for (unsigned int i = 0; i < 12; ++i)
-                n_send_bonds_edge[i] += n_recv_bonds_edge[i];
-
-            for (unsigned int i = 0; i < 6; ++i)
-                n_send_bonds_face[i] += n_recv_bonds_face[i];
-
-            n_tot_recv_bonds += n_recv_bonds;
-
-            } // end dir loop
-
-        bdata->unpackRemoveBonds(n_tot_recv_bonds,
-                                 m_n_remove_bonds.readFlags(),
-                                 m_bond_recv_buf,
-                                 m_bond_remove_mask);
-        }
-
-
     if (m_prof) m_prof->pop(m_exec_conf);
 
-    // notify ParticleData that addition / removal of particles is complete
-    m_pdata->notifyParticleSort();
     }
 
 //! Build a ghost particle list, exchange ghost particle data with neighboring processors
 void CommunicatorGPU::exchangeGhosts()
     {
-    if (m_prof) m_prof->push(m_exec_conf, "exchange_ghosts");
+    if (m_prof) m_prof->push(m_exec_conf, "comm_ghost_exch");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
 

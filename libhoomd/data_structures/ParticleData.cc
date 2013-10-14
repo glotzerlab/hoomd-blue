@@ -457,6 +457,25 @@ void ParticleData::setNGlobal(unsigned int nglobal)
 
     }
 
+/*! \param new_nparticles New particle number
+ */
+void ParticleData::resize(unsigned int new_nparticles)
+    {
+    // resize pdata arrays as necessary
+    unsigned int max_nparticles = m_max_nparticles;
+    if (new_nparticles > max_nparticles)
+        {
+        // use amortized array resizing
+        while (new_nparticles > max_nparticles)
+            max_nparticles = ((unsigned int) (((float) max_nparticles) * m_resize_factor)) + 1 ;
+
+        // reallocate particle data arrays
+        reallocate(max_nparticles);
+        }
+
+    m_nparticles = new_nparticles;
+    }
+
 /*! \param max_n new maximum size of particle data arrays (can be greater or smaller than the current maxium size)
  *  To inform classes that allocate arrays for per-particle information of the change of the particle data size,
  *  this method issues a m_max_particle_num_signal().
@@ -1617,17 +1636,20 @@ void ParticleData::retrieveParticles(std::vector<pdata_element>& out)
     ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::read);
+
+    // access reverse-lookup tags
+    ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
 
     unsigned int N = getN();
 
-    unsigned int pack_idx = 0;
+    // reset out vector
+    out.clear();
 
     // loop over local particles
     for (unsigned int idx = 0; idx < N; ++idx)
         {
         assert(idx < getN());
-       
+
         unsigned int tag = h_tag.data[idx];
         assert(tag < getNGlobal());
 
@@ -1647,8 +1669,7 @@ void ParticleData::retrieveParticles(std::vector<pdata_element>& out)
             // mark for removal
             h_rtag.data[tag] = NOT_LOCAL;
 
-            assert(pack_idx < out.size());
-            out[pack_idx++] = p;
+            out.push_back(p);
             }
         }
     }
@@ -1683,20 +1704,21 @@ typedef boost::tuple <
     > pdata_tuple;
 
 //! A predicate to select particles by rtag (NOT_LOCAL)
-struct pdata_not_local
+struct pdata_select
     {
     //! Constructor
-    pdata_not_local(const unsigned int *_rtag)
-        : rtag(_rtag)
+    pdata_select(const unsigned int *_rtag, const unsigned int _compare)
+        : rtag(_rtag), compare(_compare)
         { }
 
     //! Returns true if the remove flag is set for a particle
     bool operator() (pdata_tuple const x) const
         {
-        return rtag[x.get<0>()] == NOT_LOCAL;
+        return rtag[x.get<0>()] == compare;
         }
 
-    const unsigned int *rtag; //! The reverse-lookup tag array
+    const unsigned int *rtag;    //!< The reverse-lookup tag array
+    const unsigned int compare;  //!< The value to compare the rtag to
     };
 
 
@@ -1723,25 +1745,44 @@ struct to_pdata_tuple : public std::unary_function<const pdata_element, const pd
 void ParticleData::updateParticles(const std::vector<pdata_element>& in)
     {
     unsigned int num_add_ptls = in.size();
-    unsigned int num_remove_ptls;
-
-    pdata_zip pdata_begin, pdata_end;
+    unsigned int num_remove_ptls = 0;
 
         {
-        // access particle data arrays
-        ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::read);
-        ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::read);
+        // access particle data tags and rtags
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::read);
 
-        // construct zip iterators for particle data begin
-        pdata_begin = boost::make_tuple(
+        // count particles to be removed
+        unsigned int N = getN();
+
+        for (unsigned int idx = 0; idx < N; idx++)
+            {
+            unsigned int tag = h_tag.data[idx];
+            assert(tag < getNGlobal());
+            if (h_rtag.data[tag] == NOT_LOCAL) num_remove_ptls++;
+            }
+        }
+
+    unsigned int old_nparticles = getN();
+    unsigned int new_nparticles = m_nparticles + num_add_ptls - num_remove_ptls;
+
+    // resize particle data using amortized scaling
+    resize(new_nparticles);
+
+        {
+        // access particle data arrays
+        ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+
+        pdata_zip pdata_begin = boost::make_tuple(
             h_tag.data,
             h_pos.data,
             h_vel.data,
@@ -1752,77 +1793,151 @@ void ParticleData::updateParticles(const std::vector<pdata_element>& in)
             h_body.data,
             h_orientation.data
             );
+        pdata_zip pdata_end = pdata_begin + old_nparticles;
 
-        // particle data end
-        pdata_end = pdata_begin + getN();
+        // erase all elements for which rtag == NOT_LOCAL
+        // the array remains contiguous
+        pdata_zip new_pdata_end;
+        new_pdata_end = std::remove_if(pdata_begin, pdata_end, pdata_select(h_rtag.data,NOT_LOCAL));
 
-        // count particles to be removed
-        num_remove_ptls = std::count_if(pdata_begin, pdata_end, pdata_not_local(h_rtag.data));
-        }
+        // add new particles at the end
+        std::transform(in.begin(), in.end(), new_pdata_end, to_pdata_tuple());
 
-    unsigned int new_nparticles = m_nparticles + num_add_ptls - num_remove_ptls;
-
-    // resize pdata arrays as necessary
-    unsigned int max_nparticles = m_max_nparticles;
-    if (new_nparticles > max_nparticles)
-        {
-        // use amortized array resizing
-        while (new_nparticles > max_nparticles)
-            max_nparticles = ((unsigned int) (((float) max_nparticles) * m_resize_factor)) + 1 ;
-
-        // reallocate particle data arrays
-        reallocate(max_nparticles);
-        }
-
-    // access particle data arrays
-    ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
-    ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
-
-    pdata_begin = boost::make_tuple(
-        h_tag.data,
-        h_pos.data,
-        h_vel.data,
-        h_accel.data,
-        h_charge.data,
-        h_diameter.data,
-        h_image.data,
-        h_body.data,
-        h_orientation.data
-        );
-    pdata_end = pdata_begin + getN();
-
-    // erase all elements for which rtag == NOT_LOCAL
-    // the array remains contiguous
-    pdata_zip new_pdata_end;
-    new_pdata_end = std::remove_if(pdata_begin, pdata_end, pdata_not_local(h_rtag.data));
-
-    // add new particles at the end
-    std::transform(in.begin(), in.end(), new_pdata_end, to_pdata_tuple());
-
-    // update particle count
-    m_nparticles = new_nparticles;
-
-    // recompute rtags
-    for (unsigned int idx = 0; idx < m_nparticles; ++idx)
-        {
-        // reset rtag of this ptl
-        unsigned int tag = h_tag.data[idx];
-        assert(tag < getNGlobal());
-        h_rtag.data[tag] = idx;
+        // recompute rtags
+        for (unsigned int idx = 0; idx < m_nparticles; ++idx)
+            {
+            // reset rtag of this ptl
+            unsigned int tag = h_tag.data[idx];
+            assert(tag < getNGlobal());
+            h_rtag.data[tag] = idx;
+            }
         }
 
     // notify subscribers that particle data order has been changed
     notifyParticleSort();
     }
 
+#ifdef ENABLE_CUDA
+//! Pack particle data into a buffer (GPU version)
+void ParticleData::retrieveParticlesGPU(GPUVector<pdata_element>& out)
+    {
+
+    unsigned int num_retrieve_ptls = 0;
+        {
+        // access particle data tags and rtags
+        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::read);
+
+        // count particles to be removed
+        num_retrieve_ptls = gpu_pdata_count_rtag_equals(getN(), d_tag.data, d_rtag.data,STAGED);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    // resize output vector
+    out.resize(num_retrieve_ptls);
+
+    // access particle data arrays
+    ArrayHandle<Scalar4> d_pos(getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_vel(getVelocities(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_accel(getAccelerations(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_charge(getCharges(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
+
+    // Access reverse-lookup table
+    ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
+
+
+    // Access output array
+    ArrayHandle<pdata_element> d_out(out, access_location::device, access_mode::readwrite);
+    gpu_pdata_pack(getN(),
+                   d_pos.data,
+                   d_vel.data,
+                   d_accel.data,
+                   d_charge.data,
+                   d_diameter.data,
+                   d_image.data,
+                   d_body.data,
+                   d_orientation.data,
+                   d_tag.data,
+                   d_rtag.data,
+                   d_out.data);
+
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    }
+
+//! Remove particles from local domain and add new particle data (GPU version)
+void ParticleData::updateParticlesGPU(const GPUVector<pdata_element>& in)
+    {
+    unsigned int num_add_ptls = in.size();
+    unsigned int num_remove_ptls;
+
+        {
+        // access particle data tags and rtags
+        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::read);
+
+        // count particles to be removed
+        num_remove_ptls = gpu_pdata_count_rtag_equals(getN(), d_tag.data, d_rtag.data,NOT_LOCAL);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    unsigned int old_nparticles = getN();
+    unsigned int new_nparticles = m_nparticles + num_add_ptls - num_remove_ptls;
+
+    // amortized resizing of particle data
+    resize(new_nparticles);
+
+        {
+        // access particle data arrays
+        ArrayHandle<Scalar4> d_pos(getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(getAccelerations(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_charge(getCharges(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_diameter(getDiameters(), access_location::device, access_mode::readwrite);
+        ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
+
+        // Access input array
+        ArrayHandle<pdata_element> d_in(in, access_location::device, access_mode::read);
+
+        gpu_pdata_update(
+            getN(),
+            old_nparticles,
+            num_add_ptls,
+            d_pos.data,
+            d_vel.data,
+            d_accel.data,
+            d_charge.data,
+            d_diameter.data,
+            d_image.data,
+            d_body.data,
+            d_orientation.data,
+            d_tag.data,
+            d_rtag.data,
+            d_in.data);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    // notify subscribers that particle data order has been changed
+    notifyParticleSort();
+    }
+
+#endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
 void export_SnapshotParticleData()

@@ -112,8 +112,6 @@ enum gpu_corner_flags
     };
 #endif
 
-unsigned int gpu_pdata_element_size();
-
 //! Allocate temporary device memory for reordering particles
 void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
                               const unsigned int *is_at_boundary,
@@ -156,62 +154,36 @@ void gpu_send_bonds(const unsigned int n_bonds,
                     unsigned int *d_n_remove_bonds,
                     unsigned int *d_condition);
 
+//! Mark particles that have left the local box for sending
+void gpu_stage_particles(const unsigned int N,
+                         const Scalar4 *d_pos,
+                         const unsigned int *d_tag,
+                         unsigned int *d_rtag,
+                         const unsigned int dir,
+                         const BoxDim& box);
 
-//! Reorder the particle data
-void gpu_migrate_select_particles(unsigned int N,
-                                  const Scalar4 *d_pos,
-                                  const Scalar4 *d_vel,
-                                  const Scalar3 *d_accel,
-                                  const int3 *d_image,
-                                  const Scalar *d_charge,
-                                  const Scalar *d_diameter,
-                                  const unsigned int *d_body,
-                                  const Scalar4 *d_orientation,
-                                  const unsigned int *d_tag,
-                                  unsigned int *d_n_send_ptls_corner,
-                                  unsigned int *d_n_send_ptls_edge,
-                                  unsigned int *d_n_send_ptls_face,
-                                  unsigned n_max_send_ptls_corner,
-                                  unsigned n_max_send_ptls_edge,
-                                  unsigned n_max_send_ptls_face,
-                                  unsigned char *d_remove_mask,
-                                  unsigned int *d_ptl_plan,
-                                  char *d_corner_buf,
-                                  unsigned int corner_buf_pitch,
-                                  char *d_edge_buf,
-                                  unsigned int edge_buf_pitch,
-                                  char *d_face_buf,
-                                  unsigned int face_buf_pitch,
-                                  const BoxDim& box,
-                                  unsigned int *d_condition);
+//! Apply boundary conditions
+void gpu_wrap_particles(const unsigned int n_recv,
+                        pdata_element *d_in,
+                        const BoxDim& box);
 
-void gpu_reset_rtag_by_mask(const unsigned int N,
-                            unsigned int *d_rtag,
-                            const unsigned int *d_tag,
-                            const unsigned char *d_remove_mask);
+//! Count bonds to be sent
+unsigned int gpu_count_send_bonds(unsigned int n_bonds,
+                                  const uint2 *d_bonds,
+                                  const unsigned int *d_rtag);
 
-void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
-                        unsigned int n_recv_ptls,
-                        unsigned int n_remove_ptls,
-                        unsigned char *d_remove_mask,
-                        char *d_recv_buf,
-                        Scalar4 *d_pos,
-                        Scalar4 *d_vel,
-                        Scalar3 *d_accel,
-                        int3 *d_image,
-                        Scalar *d_charge,
-                        Scalar *d_diameter,
-                        unsigned int *d_body,
-                        Scalar4 *d_orientation,
-                        unsigned int *d_tag,
-                        unsigned int *d_rtag,
-                        const BoxDim& global_box);
+//! Pack bonds into output buffer
+void gpu_pack_bond_data(unsigned int n_bonds,
+                        const uint2 *d_bonds,
+                        const unsigned int *d_bond_tag,
+                        const unsigned int *d_bond_type,
+                        const unsigned int *d_rtag,
+                        bond_element *d_out);
 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls,
                      unsigned int *d_delete_tags,
                      unsigned int *d_rtag);
-
 
 //! Construct plans for sending non-bonded ghost particles
 void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,

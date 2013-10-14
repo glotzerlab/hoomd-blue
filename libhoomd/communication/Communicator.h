@@ -472,7 +472,8 @@ class Communicator
 
         unsigned int m_is_at_boundary[6];      //!< Array of flags indicating whether this box lies at a global boundary
 
-       GPUArray<unsigned int> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
+        GPUVector<unsigned int> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
+
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
@@ -499,8 +500,8 @@ class Communicator
 
         CommFlags m_flags;                       //!< The ghost communication flags
 
-        GPUArray<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
-        GPUArray<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
+        GPUVector<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
+        GPUVector<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
 
     private:
         std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent

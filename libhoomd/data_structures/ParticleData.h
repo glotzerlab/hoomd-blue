@@ -68,6 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 #include "GPUArray.h"
+#include "GPUVector.h"
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
@@ -330,29 +331,20 @@ struct pdata_element
 
     ## Parallel simulations
 
-    In a parallel (or domain decompositon) simulation, the ParticleData may either correspond to the global state of the
-    simulation (e.g. before and after a simulation run), or to the local particles only (e.g. during a simulation run).
-    In the latter case, getN() returns the current number of \a local particles. The method getNGlobal() can be used to query the \a global number
-    of particles on all processors.
+    In a parallel simulation, the ParticleData contains he local particles only, and getN() returns the current number of
+    \a local particles. The method getNGlobal() can be used to query the \a global number of particles on all processors.
 
     During the simulation particles may enter or leave the box, therefore the number of \a local particles may change.
     To account for this, the size of the particle data arrays is dynamically updated using amortized doubling of the array sizes. To add particles to
-    the domain, the resize() method is called, and the arrays are resized if necessary.
+    the domain, the updateParticles() method is called, and the arrays are resized if necessary. Particles are retrieved
+    from the local particle data arrays using retrieveParticles().
 
-    In addition, since many other classes maintain internal arrays with data for every particle (such as neighbor lists etc.), these
+    In addition, since many other classes maintain internal arrays holding data for every particle (such as neighbor lists etc.), these
     arrays need to be resized, too, if the particle number changes. Everytime the particle data arrays are reallocated, a
     maximum particle number change signal is triggered. Other classes can subscribe to this signal using connectMaxParticleNumberChange().
-    They may use the current maxium size of the particle arrays, which is returned by getMaxN().
-    This size changes only infrequently (it is doubled when necessary, see above). Note that getMaxN() can return a higher number
+    They may use the current maxium size of the particle arrays, which is returned by getMaxN().  This size changes only infrequently
+    (by amortized array resizing). Note that getMaxN() can return a higher number
     than the actual number of particles.
-
-    \note addParticles() and removeParticles() only change the particle number counters and the allocated memory size (if necessary).
-    They do not actually change any data in the particle arrays. The caller is responsible for (re-)organizing the particle data when particles
-    are added or deleted.
-
-    If, after insertion or deletion of particles, the reorganisation of the particle data is complete, i.e. all the particle data
-    fields are filled, the class that has modified the ParticleData must inform other classes about the new particle data
-    using notifyParticleSort().
 
     Particle data also stores temporary particles ('ghost atoms'). These are added after the local particle data (i.e. with indices
     starting at getN()). It keeps track of those particles using the addGhostParticles() and removeAllGhostParticles() methods.
@@ -745,12 +737,10 @@ class ParticleData : boost::noncopyable
         //! Pack particle data into a buffer
         /*! \param out Buffer into which particle data is packed
          *
-         *  Packs all particles for which rtag==STAGED into a buffer, and mark them
+         *  Packs all particles for which rtag==STAGED into a buffer and marks them
          *  for removal (rtag = NOT_LOCAL)
          *
-         *  The buffer has to be large enough to accomodate all the selected particles, i.e.
-         *  at most getN()*sizeof(pdata_element). The particles are stored in the buffer
-         *  in the order in which they occur in the particle data (i.e. in index order).
+         *  The out buffer is automatically resized to accomodate the data.
          */
         void retrieveParticles(std::vector<pdata_element>& out);
 
@@ -760,6 +750,25 @@ class ParticleData : boost::noncopyable
          * Particles marked with the rtag==NOT_LOCAL are removed
          */
         void updateParticles(const std::vector<pdata_element>& in);
+
+        #ifdef ENABLE_CUDA
+        //! Pack particle data into a buffer (GPU version)
+        /*! \param out Buffer into which particle data is packed
+         *
+         *  Packs all particles for which rtag==STAGED into a buffer and marks them
+         *  for removal (rtag = NOT_LOCAL)
+         *
+         *  The out buffer is automatically resized to accomodate the data.
+         */
+        void retrieveParticlesGPU(GPUVector<pdata_element>& out);
+
+        //! Remove particles from local domain and add new particle data (GPU version)
+        /*! \param in List of particle data elements to fill the particle data with
+         *
+         * Particles marked with the rtag==NOT_LOCAL are removed
+         */
+        void updateParticlesGPU(const GPUVector<pdata_element>& in);
+        #endif // ENABLE_CUDA
 
 #endif // ENABLE_MPI
 
@@ -830,6 +839,9 @@ class ParticleData : boost::noncopyable
 
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
+
+        //! Helper function for amortized array resizing
+        void resize(unsigned int new_nparticles);
 
         //! Helper function to reallocate particle data
         void reallocate(unsigned int max_n);
