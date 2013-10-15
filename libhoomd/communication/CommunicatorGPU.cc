@@ -515,7 +515,7 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> d_bond_rtag(bdata->getBondRTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_bond_tag(bdata->getBondTags(), access_location::device, access_mode::read);
 
-            // pack bond data
+            // select bonds for migration
             gpu_select_bonds(bdata->getNumBonds(),
                              d_bonds.data,
                              d_bond_tag.data,
@@ -536,9 +536,6 @@ void CommunicatorGPU::migrateParticles()
             recv_neighbor = m_decomposition->getNeighborRank(dir+1);
         else
             recv_neighbor = m_decomposition->getNeighborRank(dir-1);
-
-        if (m_prof)
-            m_prof->push("MPI send/recv");
 
         unsigned int n_recv_ptls;
 
@@ -564,14 +561,16 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::host, access_mode::overwrite);
             #endif
 
+            if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
+
             // exchange particle data
             MPI_Isend(gpu_sendbuf_handle.data, n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[0]);
             MPI_Irecv(gpu_recvbuf_handle.data, n_recv_ptls*sizeof(pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & reqs[1]);
             MPI_Waitall(2, reqs, status);
+
+            if (m_prof) m_prof->pop(m_exec_conf);
             }
 
-        if (m_prof)
-            m_prof->pop();
 
             {
             ArrayHandle<pdata_element> d_gpu_recvbuf(m_gpu_recvbuf, access_location::device, access_mode::readwrite);
@@ -608,6 +607,7 @@ void CommunicatorGPU::migrateParticles()
             m_gpu_bond_recvbuf.resize(n_recv_bonds);
 
                 {
+
                 // exchange particle data
                 #ifdef ENABLE_MPI_CUDA
                 ArrayHandle<bond_element> bond_sendbuf_handle(m_gpu_bond_sendbuf, access_location::device, access_mode::read);
@@ -616,6 +616,8 @@ void CommunicatorGPU::migrateParticles()
                 ArrayHandle<bond_element> bond_sendbuf_handle(m_gpu_bond_sendbuf, access_location::host, access_mode::read);
                 ArrayHandle<bond_element> bond_recvbuf_handle(m_gpu_bond_recvbuf, access_location::host, access_mode::overwrite);
                 #endif
+
+                if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
 
                 MPI_Isend(bond_sendbuf_handle.data,
                           n_send_bonds*sizeof(bond_element),
@@ -632,6 +634,8 @@ void CommunicatorGPU::migrateParticles()
                           m_mpi_comm,
                           & reqs[1]);
                 MPI_Waitall(2, reqs, status);
+
+                if (m_prof) m_prof->pop(m_exec_conf);
                 }
 
             // unpack data and remove bonds that have left the domain

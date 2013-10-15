@@ -1724,6 +1724,8 @@ bool SnapshotParticleData::validate() const
 //! Pack particle data into a buffer
 void ParticleData::retrieveParticles(std::vector<pdata_element>& out)
     {
+    if (m_prof) m_prof->push("pack");
+
     // access particle data arrays
     ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::read);
@@ -1770,6 +1772,8 @@ void ParticleData::retrieveParticles(std::vector<pdata_element>& out)
             out.push_back(p);
             }
         }
+
+    if (m_prof) m_prof->pop();
     }
 
 //! A tuple of pdata pointers
@@ -1842,6 +1846,8 @@ struct to_pdata_tuple : public std::unary_function<const pdata_element, const pd
 //! Remove particles from local domain and append new particle data
 void ParticleData::addRemoveParticles(const std::vector<pdata_element>& in)
     {
+    if (m_prof) m_prof->push("unpack/remove");
+
     unsigned int num_add_ptls = in.size();
     unsigned int num_remove_ptls = 0;
 
@@ -1911,6 +1917,8 @@ void ParticleData::addRemoveParticles(const std::vector<pdata_element>& in)
             }
         }
 
+    if (m_prof) m_prof->pop();
+
     // notify subscribers that particle data order has been changed
     notifyParticleSort();
     }
@@ -1919,7 +1927,7 @@ void ParticleData::addRemoveParticles(const std::vector<pdata_element>& in)
 //! Pack particle data into a buffer (GPU version)
 void ParticleData::retrieveParticlesGPU(GPUVector<pdata_element>& out)
     {
-
+    if (m_prof) m_prof->push(m_exec_conf, "pack");
     unsigned int num_retrieve_ptls = 0;
         {
         // access particle data tags and rtags
@@ -1969,11 +1977,14 @@ void ParticleData::retrieveParticlesGPU(GPUVector<pdata_element>& out)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 //! Remove particles from local domain and add new particle data (GPU version)
 void ParticleData::addRemoveParticlesGPU(const GPUVector<pdata_element>& in)
     {
+    if (m_prof) m_prof->push(m_exec_conf, "unpack/remove");
+
     unsigned int num_add_ptls = in.size();
     unsigned int num_remove_ptls;
 
@@ -2030,8 +2041,11 @@ void ParticleData::addRemoveParticlesGPU(const GPUVector<pdata_element>& in)
             CHECK_CUDA_ERROR();
         }
 
+    if (m_prof) m_prof->pop(m_exec_conf);
+
     // notify subscribers that particle data order has been changed
     notifyParticleSort();
+
     }
 
 #endif // ENABLE_CUDA

@@ -913,6 +913,8 @@ struct bond_unique
 //! Unpack a buffer with new bonds to be added, and remove obsolete bonds
 void BondData::addRemoveBonds(const std::vector<bond_element>& in)
     {
+    if (m_prof) m_prof->push("unpack/remove bonds");
+
     unsigned int num_add_bonds = in.size();
 
     // old number of bonds
@@ -976,12 +978,16 @@ void BondData::addRemoveBonds(const std::vector<bond_element>& in)
 
     // set flag to indicate we have changed the bond table
     setDirty();
+
+    if (m_prof) m_prof->pop();
     }
 
 #ifdef ENABLE_CUDA
 //! Pack bond data into a buffer (GPU version)
 void BondData::retrieveBondsGPU(GPUVector<bond_element>& out)
     {
+    if (m_prof) m_prof->push(m_exec_conf, "pack bonds");
+
     // access bond data arrays
     ArrayHandle<uint2> d_bonds(m_bonds, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_bond_type(getBondTypes(), access_location::device, access_mode::read);
@@ -1014,11 +1020,15 @@ void BondData::retrieveBondsGPU(GPUVector<bond_element>& out)
     gpu_pack_bonds(n_bonds, d_bond_tag.data, d_bonds.data, d_bond_type.data, d_bond_rtag.data, d_out.data);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 //! Unpack a buffer with new bonds to be added, and remove obsolete bonds (GPU version)
 void BondData::addRemoveBondsGPU(const GPUVector<bond_element>& in)
     {
+    if (m_prof) m_prof->push(m_exec_conf, "unpack/remove bonds");
+
     unsigned int num_add_bonds = in.size();
 
     // old number of bonds
@@ -1064,6 +1074,8 @@ void BondData::addRemoveBondsGPU(const GPUVector<bond_element>& in)
 
     // set flag to indicate we have changed the bond table
     setDirty();
+
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 #endif // ENABLE_CUDA
 
