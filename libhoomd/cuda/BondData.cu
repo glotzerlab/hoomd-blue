@@ -236,10 +236,10 @@ struct bond_rtag_select_send_gpu
         }
     };
 
-//! A predicate to select bond rtags by value (BOND_STAGED)
+//! A predicate to select bond rtags by value
 struct bond_rtag_compare_gpu
     {
-    unsigned int compare;  //! Value to compare to
+    unsigned int compare;  //!< Value to compare to
 
     //! Constructor
     bond_rtag_compare_gpu(unsigned int _compare)
@@ -252,7 +252,6 @@ struct bond_rtag_compare_gpu
         return (bond_rtag == compare);
         }
     };
-
 
 /*! \param num_bonds Number of local bonds
     \param d_bond_tag Device array of bond tag
@@ -346,6 +345,27 @@ struct to_bond_element_gpu : public thrust::unary_function<const bdata_tuple_gpu
         return b;
         }
     };
+
+//! A predicate to select bond rtags by value
+struct bdata_tuple_rtag_compare_gpu
+    {
+    unsigned int *d_bond_rtag; //!< Bond reverse-lookup table
+    unsigned int compare;      //!< Value to compare to
+
+    //! Constructor
+    bdata_tuple_rtag_compare_gpu(unsigned int *_d_bond_rtag, unsigned int _compare)
+        : d_bond_rtag(_d_bond_rtag), compare(_compare)
+        { }
+
+    //! Returns true if the remove flag is set for a particle
+    __device__ bool operator() (const bdata_tuple_gpu t) const
+        {
+        unsigned int bond_tag = thrust::get<0>(t);
+        return (d_bond_rtag[bond_tag] == compare);
+        }
+    };
+
+
 
 //! Pack bonds on the GPU
 /*! \param num_bonds Number of local bonds
@@ -462,7 +482,7 @@ unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
     // erase all elements for which rtag == BOND_NOT_LOCAL
     // maintaing a contiguous array
     bdata_zip_gpu new_bdata_end;
-    new_bdata_end = thrust::remove_if(bdata_begin, bdata_end, bond_rtag_prm, bond_rtag_compare_gpu(BOND_NOT_LOCAL));
+    new_bdata_end = thrust::remove_if(bdata_begin, bdata_end, bdata_tuple_rtag_compare_gpu(d_bond_rtag, BOND_NOT_LOCAL));
 
     // wrap packed input data
     thrust::device_ptr<const bond_element> in_ptr(d_in);

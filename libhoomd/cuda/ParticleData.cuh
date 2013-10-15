@@ -113,8 +113,7 @@ unsigned int gpu_pdata_count_rtag_equals(const unsigned int N,
     const unsigned int compare);
 
 //! Update particle data with new particles and remove selected particles
-void gpu_pdata_update(const unsigned int N,
-                    const unsigned int old_nparticles,
+void gpu_pdata_update(const unsigned int old_nparticles,
                     const unsigned int num_add_ptls,
                     Scalar4 *d_pos,
                     Scalar4 *d_vel,

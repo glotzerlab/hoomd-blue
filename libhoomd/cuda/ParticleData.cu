@@ -101,15 +101,15 @@ typedef thrust::zip_iterator<pdata_it_tuple_gpu_const> pdata_zip_gpu_const;
 
 //! A tuple of pdata fields
 typedef thrust::tuple <
-    const unsigned int,  // tag
-    const Scalar4,       // pos
-    const Scalar4,       // vel
-    const Scalar3,       // accel
-    const Scalar,        // charge
-    const Scalar,        // diameter
-    const int3,          // image
-    const unsigned int,  // body
-    const Scalar4        // orientation
+    unsigned int,  // tag
+    Scalar4,       // pos
+    Scalar4,       // vel
+    Scalar3,       // accel
+    Scalar,        // charge
+    Scalar,        // diameter
+    int3,          // image
+    unsigned int,  // body
+    Scalar4        // orientation
     > pdata_tuple_gpu;
 
 //! A predicate to select particles by rtag
@@ -147,9 +147,28 @@ struct rtag_select_gpu
     const unsigned int compare; //!< rtag value to compare to
     };
 
+//! A predicate to select pdata tuples by rtag
+struct pdata_tuple_select_rtag_gpu
+    {
+    //! Constructor
+    pdata_tuple_select_rtag_gpu(const unsigned int *_d_rtag, const unsigned int _compare)
+        :  d_rtag(_d_rtag), compare(_compare)
+        { }
+
+    //! Returns true if the remove flag is set for a particle
+    __device__ bool operator() (const pdata_tuple_gpu t) const
+        {
+        unsigned int tag = thrust::get<0>(t);
+        return d_rtag[tag] == compare;
+        }
+
+    const unsigned int *d_rtag; //!< Reverse-lookup table
+    const unsigned int compare; //!< rtag value to compare to
+    };
+
 
 //! A converter from pdata_element to a tuple of pdata entries
-struct to_pdata_tuple_gpu : public thrust::unary_function<const pdata_element, const pdata_tuple_gpu>
+struct to_pdata_tuple_gpu : public thrust::unary_function<const pdata_element, pdata_tuple_gpu>
     {
     __device__ const pdata_tuple_gpu operator() (const pdata_element p)
         {
@@ -296,8 +315,7 @@ unsigned int gpu_pdata_count_rtag_equals(const unsigned int N,
     \param d_rtag Device array for reverse-lookup table
     \param d_in Device array of packed input particle data
 */
-void gpu_pdata_update(const unsigned int N,
-                    const unsigned int old_nparticles,
+void gpu_pdata_update(const unsigned int old_nparticles,
                     const unsigned int num_add_ptls,
                     Scalar4 *d_pos,
                     Scalar4 *d_vel,
@@ -351,13 +369,15 @@ void gpu_pdata_update(const unsigned int N,
     // erase all elements for which rtag == NOT_LOCAL
     // the array remains contiguous
     pdata_zip_gpu new_pdata_end;
-    new_pdata_end = thrust::remove_if(pdata_begin, pdata_end, rtag_prm, rtag_select_gpu(NOT_LOCAL));
+    new_pdata_end = thrust::remove_if(pdata_begin, pdata_end, pdata_tuple_select_rtag_gpu(d_rtag, NOT_LOCAL));
 
     // add new particles at the end
     thrust::transform(in_ptr, in_ptr + num_add_ptls, new_pdata_end, to_pdata_tuple_gpu());
 
+    unsigned int new_n_particles = new_pdata_end - pdata_begin + num_add_ptls;
+
     // recompute rtags
     thrust::counting_iterator<unsigned int> idx(0);
-    thrust::scatter(idx, idx+N, tag_ptr, rtag_ptr);
+    thrust::scatter(idx, idx+new_n_particles, tag_ptr, rtag_ptr);
     }
 #endif // ENABLE_MPI

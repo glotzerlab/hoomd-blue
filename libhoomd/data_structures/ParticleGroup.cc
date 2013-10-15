@@ -550,12 +550,12 @@ void ParticleGroup::buildTagHash()
     \pre memory has been allocated for m_is_member and m_member_idx
     \post m_is_member is updated so that it reflects the current indices of the particles in the group
     \post m_member_idx is updated listing all particle indices belonging to the group, in index order
-
-    \note In MPI simulations, this function breaks strict O(N/P) computational scaling, as it
-          iterates over all *global* members of the group
 */
 void ParticleGroup::rebuildIndexList() const
     {
+    // notice message
+    m_pdata->getExecConf()->msg->notice(10) << "ParticleGroup: rebuilding index" << std::endl;
+
 #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled() )
         {

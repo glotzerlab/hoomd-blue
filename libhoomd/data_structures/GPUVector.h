@@ -120,8 +120,8 @@ template<class T> class GPUVector : public GPUArray<T>
         */
         virtual void resize(unsigned int width, unsigned int height)
             {
-                this->m_exec_conf->msg->error() << "Cannot change a GPUVector into a matrix." << std::endl;
-                throw std::runtime_error("Error resizing GPUVector.");
+            this->m_exec_conf->msg->error() << "Cannot change a GPUVector into a matrix." << std::endl;
+            throw std::runtime_error("Error resizing GPUVector.");
             }
 
         //! Insert an element at the end of the vector
@@ -276,8 +276,12 @@ template<class T> void GPUVector<T>::reallocate(unsigned int size)
 */
 template<class T> void GPUVector<T>::resize(unsigned int new_size)
     {
-    // allocate memory only if necessary
-    reallocate(new_size);
+    // allocate memory by amortized O(N) resizing
+    if (new_size > 0)
+        reallocate(new_size);
+    else
+        // for zero size, we at least allocate the memory
+        reallocate(1);
 
     // set new size
     m_size = new_size;

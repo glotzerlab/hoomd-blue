@@ -496,7 +496,8 @@ void ParticleData::resize(unsigned int new_nparticles)
  */
 void ParticleData::reallocate(unsigned int max_n)
     {
-
+    m_exec_conf->msg->notice(7) << "Resizing particle data arrays "
+        << m_max_nparticles << " -> " << max_n << " ptls" << std::endl;
     m_max_nparticles = max_n;
 
     m_pos.resize(max_n);
@@ -1989,7 +1990,7 @@ void ParticleData::addRemoveParticlesGPU(const GPUVector<pdata_element>& in)
         }
 
     unsigned int old_nparticles = getN();
-    unsigned int new_nparticles = m_nparticles + num_add_ptls - num_remove_ptls;
+    unsigned int new_nparticles = old_nparticles + num_add_ptls - num_remove_ptls;
 
     // amortized resizing of particle data
     resize(new_nparticles);
@@ -2011,7 +2012,6 @@ void ParticleData::addRemoveParticlesGPU(const GPUVector<pdata_element>& in)
         ArrayHandle<pdata_element> d_in(in, access_location::device, access_mode::read);
 
         gpu_pdata_update(
-            getN(),
             old_nparticles,
             num_add_ptls,
             d_pos.data,
