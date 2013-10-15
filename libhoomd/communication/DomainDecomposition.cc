@@ -236,6 +236,25 @@ const BoxDim DomainDecomposition::calculateLocalBox(const BoxDim & global_box)
     return box;
     }
 
+unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar3 pos)
+    {
+    // get fractional coordinates in the global box
+    Scalar3 f = global_box.makeFraction(pos);
+
+    // compute the box the particle should be placed into
+    unsigned ix = f.x*m_nx;
+    if (ix == m_nx) ix = 0;
+
+    unsigned iy = f.y*m_ny;
+    if (iy == m_ny) iy = 0;
+
+    unsigned iz = f.z*m_nz;
+    if (iz == m_nz) iz = 0;
+
+    return m_index(ix, iy, iz);
+    }
+
+
 //! Export DomainDecomposition class to python
 void export_DomainDecomposition()
     {

@@ -1335,21 +1335,102 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
 }
 
 //! Set the current position of a particle
+/* \post In parallel simulations, the particle is moved to a new domain if necessary.
+ */
 void ParticleData::setPosition(unsigned int tag, const Scalar3& pos)
     {
     unsigned int idx = getRTag(tag);
-    bool found = (idx < getN());
+    bool ptl_local = (idx < getN());
 
-#ifdef ENABLE_MPI
-    // make sure the particle is somewhere
-    if (m_decomposition)
-        getOwnerRank(tag);
-#endif
-    if (found)
+    #ifdef ENABLE_MPI
+    // get the owner rank
+    unsigned int owner_rank = 0;
+    if (m_decomposition) owner_rank = getOwnerRank(tag);
+    #endif
+
+    if (ptl_local)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
         h_pos.data[idx].x = pos.x; h_pos.data[idx].y = pos.y; h_pos.data[idx].z = pos.z;
         }
+
+    #ifdef ENABLE_MPI
+    /*
+     * migrate particle if necessary
+     */
+    if (m_decomposition)
+        {
+        unsigned my_rank = m_exec_conf->getRank();
+
+        assert(!ptl_local || owner_rank == my_rank);
+
+        // get rank where the particle should be according to new position
+        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, pos);
+
+        // should the particle migrate?
+        if (new_rank != owner_rank)
+            {
+            m_exec_conf->msg->notice(6) << "Moving particle " << tag << " from rank " << owner_rank << " to " << new_rank << std::endl;
+
+            if (ptl_local)
+                {
+                // mark for sending
+                ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+                h_rtag.data[tag] = STAGED;
+
+                std::vector<pdata_element> buf;
+
+                // retrieve particle data
+                retrieveParticles(buf);
+
+                assert(buf.size() >= 1);
+
+                // check for particle data consistency
+                if (buf.size() != 1)
+                    {
+                    m_exec_conf->msg->error() << "More than one (" << buf.size() << ") particle marked for sending." << endl << endl;
+                    throw std::runtime_error("Error moving particle.");
+                    }
+
+                // prune local particle data
+                addRemoveParticles(std::vector<pdata_element>());
+
+                MPI_Request req;
+                MPI_Status stat;
+
+                // send particle data to new domain
+                MPI_Isend(&buf.front(),
+                    sizeof(pdata_element),
+                    MPI_BYTE,
+                    new_rank,
+                    0,
+                    m_exec_conf->getMPICommunicator(),
+                    &req);
+                MPI_Waitall(1,&req,&stat);
+                }
+            else if (new_rank == my_rank)
+                {
+                std::vector<pdata_element> buf(1);
+
+                MPI_Request req;
+                MPI_Status stat;
+
+                // receive particle data
+                MPI_Irecv(&buf.front(),
+                    sizeof(pdata_element),
+                    MPI_BYTE,
+                    owner_rank,
+                    0,
+                    m_exec_conf->getMPICommunicator(),
+                    &req);
+                MPI_Waitall(1, &req, &stat);
+
+                // add particle back to local data
+                addRemoveParticles(buf);
+                }
+            }
+        }
+    #endif // ENABLE_MPI
     }
 
 //! Set the current velocity of a particle

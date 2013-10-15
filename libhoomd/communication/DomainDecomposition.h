@@ -109,6 +109,12 @@ class DomainDecomposition
         //! Get the dimensions of the local simulation box
         const BoxDim calculateLocalBox(const BoxDim& global_box);
 
+        //! Get the rank for a particle to be placed
+        /*! \param pos Particle position
+         * \returns the rank of the processor that should receive the particle
+         */
+        unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
+
     private:
         unsigned int m_nx;           //!< Number of processors along the x-axis
         unsigned int m_ny;           //!< Number of processors along the y-axis
