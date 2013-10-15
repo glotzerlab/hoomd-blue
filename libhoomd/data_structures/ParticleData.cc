@@ -1374,9 +1374,11 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos)
 
             if (ptl_local)
                 {
-                // mark for sending
-                ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
-                h_rtag.data[tag] = STAGED;
+                    {
+                    // mark for sending
+                    ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+                    h_rtag.data[tag] = STAGED;
+                    }
 
                 std::vector<pdata_element> buf;
 
