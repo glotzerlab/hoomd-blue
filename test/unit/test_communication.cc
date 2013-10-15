@@ -1077,14 +1077,61 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
    // even outside the ghost layers or boxes they were in originally
    //(but they should not move further than half the skin length),
 
-   pdata->setPosition(8, make_scalar3(-0.12,-1.05,-0.6));
-   pdata->setPosition(9, make_scalar3(-0.03,-1.09,-0.3));
-   pdata->setPosition(10, make_scalar3(-0.11,  0.01,-1.02));
-   pdata->setPosition(11, make_scalar3(-0.81, -0.92,-0.2));
-   pdata->setPosition(12, make_scalar3(-1.02, -1.05,-1.100));
-   pdata->setPosition(13, make_scalar3(-0.89,  0.005, -0.99));
-   pdata->setPosition(14, make_scalar3( 1.123, 1.121, 0.9));
-   pdata->setPosition(15, make_scalar3( 0.85, 1.001, 1.012));
+        {
+        unsigned int rtag;
+        ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        switch (exec_conf->getRank())
+            {
+            case 0:
+                rtag = h_rtag.data[8];
+                h_pos.data[rtag].x = -0.12;
+                h_pos.data[rtag].y = -1.05;
+                h_pos.data[rtag].z = -0.6;
+
+                rtag = h_rtag.data[9];
+                h_pos.data[rtag].x = -0.03;
+                h_pos.data[rtag].y = -1.09;
+                h_pos.data[rtag].z = -0.3;
+
+                rtag = h_rtag.data[10];
+                h_pos.data[rtag].x = -0.11;
+                h_pos.data[rtag].y = 0.01;
+                h_pos.data[rtag].z = -1.02;
+
+                rtag = h_rtag.data[11];
+                h_pos.data[rtag].x = -0.81;
+                h_pos.data[rtag].y = -0.92;
+                h_pos.data[rtag].z = -0.2;
+
+                rtag = h_rtag.data[12];
+                h_pos.data[rtag].x = -1.02;
+                h_pos.data[rtag].y = -1.05;
+                h_pos.data[rtag].z = -1.100;
+
+                rtag = h_rtag.data[13];
+                h_pos.data[rtag].x = -0.89;
+                h_pos.data[rtag].y = 0.005;
+                h_pos.data[rtag].z = -0.99;
+
+                break;
+            case 7:
+                rtag = h_rtag.data[14];
+                h_pos.data[rtag].x = 1.123;
+                h_pos.data[rtag].y = 1.121;
+                h_pos.data[rtag].z = 0.9;
+
+                rtag = h_rtag.data[15];
+                h_pos.data[rtag].x = 0.85;
+                h_pos.data[rtag].y = 1.001;
+                h_pos.data[rtag].z = 1.012;
+
+                break;
+            default:
+                break;
+            }
+        }
 
    // update ghosts
    comm->updateGhosts(0);
@@ -2153,7 +2200,6 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     Scalar3 lo = pdata_1->getBox().getLo();
-    Scalar3 hi = pdata_1->getBox().getHi();
     Scalar3 L = pdata_1->getBox().getL();
 
     SnapshotParticleData snap(n);
