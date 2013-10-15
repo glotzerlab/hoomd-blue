@@ -554,6 +554,12 @@ class ParticleData : boost::noncopyable
         //! Connects a function to be called every time the ghost particles are updated
         boost::signals::connection connectGhostParticleNumberChange(const boost::function< void()> &func);
 
+        #ifdef ENABLE_MPI
+        //! Connects a function to be called every time a single particle migration is requested
+        boost::signals::connection connectSingleParticleMove(
+            const boost::function<void (unsigned int, unsigned int, unsigned int)> &func);
+        #endif
+
         //! Notify listeners that the number of ghost particles has changed
         void notifyGhostParticleNumberChange();
 
@@ -805,6 +811,10 @@ class ParticleData : boost::noncopyable
         boost::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
         boost::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
         boost::signal<void ()> m_ghost_particle_num_signal; //!< Signal that is triggered when ghost particles are added to or deleted
+
+        #ifdef ENABLE_MPI
+        boost::signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
+        #endif
 
         unsigned int m_nparticles;                  //!< number of particles
         unsigned int m_nghosts;                     //!< number of ghost particles

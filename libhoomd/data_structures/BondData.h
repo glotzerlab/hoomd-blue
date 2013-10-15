@@ -264,7 +264,7 @@ class BondData : boost::noncopyable
          *
          *  The output buffer is automatically resized to accomodate the data.
          */
-        void retrieveBonds(GPUVector<bond_element>& out);
+        void retrieveBonds(std::vector<bond_element>& out);
 
         //! Unpack a buffer with new bonds to be added, and remove obsolete bonds
         /*  \param in List of bonds to be added
@@ -273,7 +273,7 @@ class BondData : boost::noncopyable
          *  All other particles are retained.
          *  Duplicate bonds are not added to the local domain.
          */
-        void addRemoveBonds(const GPUVector<bond_element>& in);
+        void addRemoveBonds(const std::vector<bond_element>& in);
 
         #ifdef ENABLE_CUDA
         //! Pack bond data into a buffer (GPU version)
@@ -358,6 +358,9 @@ class BondData : boost::noncopyable
         boost::signals::connection m_max_particle_num_change_connection; //!< Connection to maximum particle number change signal
         boost::signals::connection m_ghost_particle_num_change_connection; //!< Connection to ghost particle number change signal
 
+        #ifdef ENABLE_MPI
+        boost::signals::connection m_ptl_move_connection;  //!< Connection to particle data ptl move signal
+        #endif
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
 
@@ -399,6 +402,15 @@ class BondData : boost::noncopyable
 
         //! Helper function to allocate the bond table
         void allocateBondTable(int height);
+
+        #ifdef ENABLE_MPI
+        //! Helper function to transfer bond data when a *single* particle is moved between domains
+        /*! \param tag Tag of particle that changes domains
+            \param old_rank Old MPI rank for particle
+            \param new_rank New MPI rank
+         */
+        void moveParticleBonds(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
+        #endif
     };
 
 //! Exports BondData to python

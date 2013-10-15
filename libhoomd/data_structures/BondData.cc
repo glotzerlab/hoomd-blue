@@ -105,6 +105,11 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     // attach to ghost particle number change connection
     m_ghost_particle_num_change_connection = m_pdata->connectGhostParticleNumberChange(bind(&BondData::setDirty, this));
 
+    #ifdef ENABLE_MPI
+    // attach to signal when a single particle is moved between domains
+    m_ptl_move_connection = m_pdata->connectSingleParticleMove(bind(&BondData::moveParticleBonds, this, _1, _2, _3));
+    #endif
+
     // offer a default type mapping
     for (unsigned int i = 0; i < n_bond_types; i++)
         {
@@ -153,6 +158,11 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, const SnapshotBondData
     // attach to ghost particle number change connection
     m_ghost_particle_num_change_connection = m_pdata->connectGhostParticleNumberChange(bind(&BondData::setDirty, this));
 
+    #ifdef ENABLE_MPI
+    // attach to signal when a single particle is moved between domains
+    m_ptl_move_connection = m_pdata->connectSingleParticleMove(bind(&BondData::moveParticleBonds, this, _1, _2, _3));
+    #endif
+
     // allocate memory for the GPU bond table
     allocateBondTable(1);
 
@@ -172,6 +182,10 @@ BondData::~BondData()
     m_sort_connection.disconnect();
     m_max_particle_num_change_connection.disconnect();
     m_ghost_particle_num_change_connection.disconnect();
+
+    #ifdef ENABLE_MPI
+    m_ptl_move_connection.disconnect();
+    #endif
     }
 
 /*! \post A bond between particles specified in \a bond is created.
@@ -777,7 +791,7 @@ void BondData::initializeFromSnapshot(const SnapshotBondData& snapshot)
 
 #ifdef ENABLE_MPI
 //! Pack bond data into a buffer
-void BondData::retrieveBonds(GPUVector<bond_element>& out)
+void BondData::retrieveBonds(std::vector<bond_element>& out)
     {
     // access bond data arrays
     ArrayHandle<uint2> h_bonds(m_bonds, access_location::host, access_mode::read);
@@ -791,28 +805,6 @@ void BondData::retrieveBonds(GPUVector<bond_element>& out)
 
     // reset out vector
     out.clear();
-
-    unsigned int n_pack_bonds = 0;
-
-    // count bonds to be sent
-    for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
-        {
-        unsigned int bond_tag = h_bond_tag.data[bond_idx];
-
-        assert(bond_tag < getNumBondsGlobal());
-
-        unsigned int bond_rtag = h_bond_rtag.data[bond_tag];
-        if (bond_rtag == BOND_STAGED || bond_rtag == BOND_SPLIT)
-            n_pack_bonds++;
-        }
-
-    // resize out vector
-    out.resize(n_pack_bonds);
-
-    // access output vector
-    ArrayHandle<bond_element> h_out(out, access_location::host, access_mode::overwrite);
-
-    n_pack_bonds = 0;
 
     // pack bonds
     for (unsigned int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
@@ -828,7 +820,7 @@ void BondData::retrieveBonds(GPUVector<bond_element>& out)
             b.bond = h_bonds.data[bond_idx];
             b.type = h_bond_type.data[bond_idx];
             b.tag = bond_tag;
-            h_out.data[n_pack_bonds++] = b;
+            out.push_back(b);
             }
 
         // mark staged bonds for removal
@@ -919,7 +911,7 @@ struct bond_unique
     };
 
 //! Unpack a buffer with new bonds to be added, and remove obsolete bonds
-void BondData::addRemoveBonds(const GPUVector<bond_element>& in)
+void BondData::addRemoveBonds(const std::vector<bond_element>& in)
     {
     unsigned int num_add_bonds = in.size();
 
@@ -955,12 +947,9 @@ void BondData::addRemoveBonds(const GPUVector<bond_element>& in)
         bdata_zip new_bdata_end;
         new_bdata_end = std::remove_if(bdata_begin, bdata_end, bdata_select(h_bond_rtag.data, BOND_NOT_LOCAL));
 
-        // access input array
-        ArrayHandle<bond_element> h_in(in, access_location::host, access_mode::read);
-
         // set up a transform iterator from bond_element to bond data tuple
-        boost::transform_iterator<to_bdata_tuple, const bond_element *> in_transform(
-            h_in.data,
+        boost::transform_iterator<to_bdata_tuple, std::vector<bond_element>::const_iterator> in_transform(
+            in.begin(),
             to_bdata_tuple());
 
         // add new bonds at the end, omitting duplicates
@@ -1078,7 +1067,110 @@ void BondData::addRemoveBondsGPU(const GPUVector<bond_element>& in)
     }
 #endif // ENABLE_CUDA
 
-#endif // ENABLE_MPI
+void BondData::moveParticleBonds(unsigned int tag, unsigned int old_rank, unsigned int new_rank)
+    {
+    unsigned int my_rank = m_exec_conf->getRank();
+
+    // Number of bonds moved
+    unsigned int n_bonds;
+
+    std::vector<bond_element> buf;
+
+    if (my_rank == old_rank)
+        {
+            {
+            // access particle data reverse-lookup table
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+            // access bond tables
+            ArrayHandle<uint2> h_bonds(getBondTable(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_bond_tag(getBondTags(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_bond_rtag(getBondRTags(), access_location::host, access_mode::readwrite);
+
+            // mark all bonds that involve the particle
+            unsigned int num_bonds = getNumBonds();
+            for (unsigned int bond_idx = 0; bond_idx < num_bonds; ++bond_idx)
+                {
+                uint2 bond = h_bonds.data[bond_idx];
+
+                // send bond only if it involves particle
+                if (!(bond.x == tag || bond.y == tag))
+                    continue;
+
+                assert(bond.x < m_pdata->getNGlobal());
+                assert(bond.y < m_pdata->getNGlobal());
+
+                unsigned int rtag_a = h_rtag.data[bond.x];
+                unsigned int rtag_b = h_rtag.data[bond.y];
+
+                bool local = true;
+                // if bond doesn't have any local members, discard it
+                if ( !(rtag_a < m_pdata->getN()) && !(rtag_b < m_pdata->getN()))
+                    local = false;
+
+                unsigned int bond_tag = h_bond_tag.data[bond_idx];
+                assert(bond_tag < getNumBondsGlobal());
+                if (!local)
+                    h_bond_rtag.data[bond_tag] = BOND_STAGED;
+                else
+                    h_bond_rtag.data[bond_tag] = BOND_SPLIT;
+                } // end loop over bonds
+            }
+
+        // retrieve all bonds for particle being moved
+        retrieveBonds(buf);
+
+        // number of bonds being moved
+        n_bonds = buf.size();
+
+        // prune bond data
+        addRemoveBonds(std::vector<bond_element>());
+        }
+
+    // Broadcast number of bonds moved
+    bcast(n_bonds, old_rank, m_exec_conf->getMPICommunicator());
+
+    // inform user
+    m_exec_conf->msg->notice(6) << "Moving " << n_bonds << " bond(s) from rank " << old_rank << " to " << new_rank << std::endl;
+
+    if (my_rank == old_rank)
+        {
+        MPI_Status stat;
+        MPI_Request req;
+
+        // send bond data
+        MPI_Isend(&buf.front(),
+            sizeof(bond_element)*n_bonds,
+            MPI_BYTE,
+            new_rank,
+            1,
+            m_exec_conf->getMPICommunicator(),
+            &req);
+        MPI_Waitall(1,&req,&stat);
+        }
+    else if (my_rank == new_rank)
+        {
+        MPI_Status stat;
+        MPI_Request req;
+
+        std::vector<bond_element> recv_buf(n_bonds);
+
+        // receive bond data
+        MPI_Irecv(&recv_buf.front(),
+            sizeof(bond_element)*n_bonds,
+            MPI_BYTE,
+            old_rank,
+            1,
+            m_exec_conf->getMPICommunicator(),
+            &req);
+        MPI_Waitall(1,&req,&stat);
+
+        // load bond data
+        addRemoveBonds(recv_buf);
+        }
+    // done
+    }
+#endif
 
 void export_BondData()
     {
@@ -1115,7 +1207,6 @@ void export_BondData()
     .def_readwrite("type_mapping", &SnapshotBondData::type_mapping)
     ;
     }
-
 
 #ifdef WIN32
 #pragma warning( pop )

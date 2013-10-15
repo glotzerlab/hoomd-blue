@@ -472,8 +472,6 @@ class Communicator
 
         unsigned int m_is_at_boundary[6];      //!< Array of flags indicating whether this box lies at a global boundary
 
-        GPUVector<unsigned int> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
-
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
@@ -500,12 +498,12 @@ class Communicator
 
         CommFlags m_flags;                       //!< The ghost communication flags
 
-        GPUVector<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
-        GPUVector<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
-
     private:
         std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent
         std::vector<pdata_element> m_recvbuf;  //!< Buffer for particles that are received
+
+        std::vector<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
+        std::vector<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
 
         std::vector<Scalar4> scal4_tmp;          //!< Temporary list used to apply the sort order to the particle data
         std::vector<Scalar3> scal3_tmp;          //!< Temporary list used to apply the sort order to the particle data

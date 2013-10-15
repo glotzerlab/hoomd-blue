@@ -328,6 +328,17 @@ void ParticleData::notifyGhostParticleNumberChange()
     m_ghost_particle_num_signal();
     }
 
+#ifdef ENABLE_MPI
+/*! \param func Function to be called when a single particle moves between domains
+    \return Connection to manage the signal
+ */
+boost::signals::connection ParticleData::connectSingleParticleMove(
+    const boost::function<void(unsigned int, unsigned int, unsigned int)> &func)
+    {
+    return m_ptl_move_signal.connect(func);
+    }
+#endif
+
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
     \note Throws an exception if the type name is not found
@@ -1430,6 +1441,9 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos)
                 // add particle back to local data
                 addRemoveParticles(buf);
                 }
+
+            // Notify observers
+            m_ptl_move_signal(tag, owner_rank, new_rank);
             }
         }
     #endif // ENABLE_MPI

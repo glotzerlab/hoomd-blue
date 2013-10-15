@@ -326,6 +326,14 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<pdata_element> gpu_recvbuf(m_exec_conf);
     m_gpu_recvbuf.swap(gpu_recvbuf);
 
+    // Allocate buffers for bond migration
+    GPUVector<bond_element> gpu_bond_sendbuf(m_exec_conf);
+    m_gpu_bond_sendbuf.swap(gpu_bond_sendbuf);
+
+    GPUVector<bond_element> gpu_bond_recvbuf(m_exec_conf);
+    m_gpu_bond_recvbuf.swap(gpu_bond_recvbuf);
+
+
     /*
      * initial size of particle send buffers = max of avg. number of ptls in skin layer in any direction
      */
@@ -587,9 +595,9 @@ void CommunicatorGPU::migrateParticles()
         if (bdata->getNumBondsGlobal())
             {
             // fill send buffer for bond data
-            bdata->retrieveBondsGPU(m_bond_send_buf);
+            bdata->retrieveBondsGPU(m_gpu_bond_sendbuf);
 
-            unsigned int n_send_bonds = m_bond_send_buf.size();
+            unsigned int n_send_bonds = m_gpu_bond_sendbuf.size();
             unsigned int n_recv_bonds;
 
             // exchange size of messages
@@ -597,26 +605,26 @@ void CommunicatorGPU::migrateParticles()
             MPI_Irecv(&n_recv_bonds, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
             MPI_Waitall(2, reqs, status);
 
-            m_bond_recv_buf.resize(n_recv_bonds);
+            m_gpu_bond_recvbuf.resize(n_recv_bonds);
 
                 {
                 // exchange particle data
                 #ifdef ENABLE_MPI_CUDA
-                ArrayHandle<bond_element> bond_send_buf_handle(m_bond_send_buf, access_location::device, access_mode::read);
-                ArrayHandle<bond_element> bond_recv_buf_handle(m_bond_recv_buf, access_location::device, access_mode::overwrite);
+                ArrayHandle<bond_element> bond_sendbuf_handle(m_gpu_bond_sendbuf, access_location::device, access_mode::read);
+                ArrayHandle<bond_element> bond_recvbuf_handle(m_gpu_bond_recvbuf, access_location::device, access_mode::overwrite);
                 #else
-                ArrayHandle<bond_element> bond_send_buf_handle(m_bond_send_buf, access_location::host, access_mode::read);
-                ArrayHandle<bond_element> bond_recv_buf_handle(m_bond_recv_buf, access_location::host, access_mode::overwrite);
+                ArrayHandle<bond_element> bond_sendbuf_handle(m_gpu_bond_sendbuf, access_location::host, access_mode::read);
+                ArrayHandle<bond_element> bond_recvbuf_handle(m_gpu_bond_recvbuf, access_location::host, access_mode::overwrite);
                 #endif
 
-                MPI_Isend(bond_send_buf_handle.data,
+                MPI_Isend(bond_sendbuf_handle.data,
                           n_send_bonds*sizeof(bond_element),
                           MPI_BYTE,
                           send_neighbor,
                           1,
                           m_mpi_comm,
                           & reqs[0]);
-                MPI_Irecv(bond_recv_buf_handle.data,
+                MPI_Irecv(bond_recvbuf_handle.data,
                           n_recv_bonds*sizeof(bond_element),
                           MPI_BYTE,
                           recv_neighbor,
@@ -627,7 +635,7 @@ void CommunicatorGPU::migrateParticles()
                 }
 
             // unpack data and remove bonds that have left the domain
-            bdata->addRemoveBondsGPU(m_bond_recv_buf);
+            bdata->addRemoveBondsGPU(m_gpu_bond_recvbuf);
             } // end bond communication
 
         } // end dir loop

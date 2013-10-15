@@ -113,64 +113,6 @@ struct select_particle_migrate : public std::unary_function<const unsigned int, 
 
      };
 
-//! Select a bond for migration
-struct select_bond_migrate : public std::unary_function<const uint2, bool>
-    {
-    const unsigned int *h_rtag;       //!< Array of particle reverse lookup tags
-
-    //! Constructor
-    /*!
-     */
-    select_bond_migrate(const unsigned int *_h_rtag)
-        : h_rtag(_h_rtag)
-        {
-        }
-
-    //! Select a bond
-    /*! bond bond to consider for sending
-     * \return true if particle stays in the box
-     */
-    bool operator()(const uint2 bond)
-        {
-        unsigned int idx_a = h_rtag[bond.x];
-        unsigned int idx_b = h_rtag[bond.y];
-
-        // if one of the particles leaves the domain, send bond with it
-        return (idx_a == STAGED || idx_b == STAGED);
-        }
-
-     };
-
-//! Select a bond for removal
-struct select_bond_remove : public std::unary_function<const uint2, bool>
-    {
-    const unsigned int *h_rtag;       //!< Array of particle reverse lookup tags
-
-    //! Constructor
-    /*!
-     */
-    select_bond_remove(const unsigned int *_h_rtag)
-        : h_rtag(_h_rtag)
-        {
-        }
-
-    //! Select a bond
-    /*! t particle data to consider for sending
-     * \return true if particle stays in the box
-     */
-    bool operator()(const uint2 bond)
-        {
-        unsigned int idx_a = h_rtag[bond.x];
-        unsigned int idx_b = h_rtag[bond.y];
-
-        // if no particle is local anymore, remove bond
-        return ((idx_a == NOT_LOCAL || idx_a == STAGED) &&
-                (idx_b == NOT_LOCAL || idx_b == STAGED));
-        }
-
-     };
-
-
 //! Constructor
 Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<DomainDecomposition> decomposition)
@@ -212,18 +154,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
         }
-
-    // mask for bonds, indicating if they will be removed
-    GPUVector<unsigned int> bond_remove_mask(m_exec_conf);
-    m_bond_remove_mask.swap(bond_remove_mask);
-
-    // bond receive buffer
-    GPUVector<bond_element> bond_recv_buf(m_exec_conf);
-    m_bond_recv_buf.swap(bond_recv_buf);
-
-    // bond send buffer
-    GPUVector<bond_element> bond_send_buf( m_exec_conf);
-    m_bond_send_buf.swap(bond_send_buf);
 
     setupLookupTable();
 
@@ -579,27 +509,22 @@ void Communicator::migrateParticles()
             // resize recv buffer
             m_bond_recv_buf.resize(n_recv_bonds);
 
-                {
-                // exchange actual particle data
-                ArrayHandle<bond_element> h_bond_send_buf(m_bond_send_buf, access_location::host, access_mode::read);
-                ArrayHandle<bond_element> h_bond_recv_buf(m_bond_recv_buf, access_location::host, access_mode::overwrite);
-
-                MPI_Isend(h_bond_send_buf.data,
-                          n_send_bonds*sizeof(bond_element),
-                          MPI_BYTE,
-                          send_neighbor,
-                          1,
-                          m_mpi_comm,
-                          & reqs[0]);
-                MPI_Irecv(h_bond_recv_buf.data,
-                          n_recv_bonds*sizeof(bond_element),
-                          MPI_BYTE,
-                          recv_neighbor,
-                          1,
-                          m_mpi_comm,
-                          & reqs[1]);
-                MPI_Waitall(2, reqs, status);
-                }
+            // exchange bond data
+            MPI_Isend(&m_bond_send_buf.front(),
+                      n_send_bonds*sizeof(bond_element),
+                      MPI_BYTE,
+                      send_neighbor,
+                      1,
+                      m_mpi_comm,
+                      & reqs[0]);
+            MPI_Irecv(&m_bond_recv_buf.front(),
+                      n_recv_bonds*sizeof(bond_element),
+                      MPI_BYTE,
+                      recv_neighbor,
+                      1,
+                      m_mpi_comm,
+                      & reqs[1]);
+            MPI_Waitall(2, reqs, status);
 
             // unpack data
             bdata->addRemoveBonds(m_bond_recv_buf);
