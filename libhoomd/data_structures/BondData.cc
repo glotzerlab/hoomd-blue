@@ -71,7 +71,6 @@ using namespace boost;
 #include <algorithm>
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/iterator/transform_iterator.hpp>
-#include <boost/algorithm/cxx11/copy_if.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 using namespace std;
@@ -878,7 +877,7 @@ struct to_bdata_tuple : public std::unary_function<const bond_element, const bda
     };
 
 //! A predicate to check if the bond doesn't already exist
-struct bond_unique
+struct bond_duplicate
     {
     const unsigned int *h_bond_rtag;      //!< Bond reverse-lookup table
     unsigned int num_bonds_global; //!< Global number of bonds
@@ -889,11 +888,11 @@ struct bond_unique
      *  \param _num_bonds_global Global number of bonds
      *  \param _num_bonds Number of local bonds
      */
-    bond_unique(const unsigned int *_h_bond_rtag, unsigned int _num_bonds_global, unsigned int _num_bonds)
+    bond_duplicate(const unsigned int *_h_bond_rtag, unsigned int _num_bonds_global, unsigned int _num_bonds)
         : h_bond_rtag(_h_bond_rtag), num_bonds_global(_num_bonds_global), num_bonds(_num_bonds)
         { }
 
-    //! Return true if bond is unique
+    //! Return true f bond is duplicate
     const bool operator() (const bdata_tuple t) const
         {
         unsigned int bond_tag = t.get<0>();
@@ -903,10 +902,10 @@ struct bond_unique
         if (bond_rtag != BOND_NOT_LOCAL)
             {
             assert(bond_rtag < num_bonds || bond_rtag == BOND_SPLIT);
-            return false;
+            return true;
             }
 
-        return true;
+        return false;
         }
     };
 
@@ -955,8 +954,8 @@ void BondData::addRemoveBonds(const std::vector<bond_element>& in)
             to_bdata_tuple());
 
         // add new bonds at the end, omitting duplicates
-        new_bdata_end = boost::algorithm::copy_if(in_transform, in_transform + num_add_bonds, new_bdata_end,
-             bond_unique(h_bond_rtag.data, getNumBondsGlobal(), old_n_bonds));
+        new_bdata_end = std::remove_copy_if(in_transform, in_transform + num_add_bonds, new_bdata_end,
+             bond_duplicate(h_bond_rtag.data, getNumBondsGlobal(), old_n_bonds));
 
         // compute new size of bond data arrays
         new_n_bonds = new_bdata_end - bdata_begin;
