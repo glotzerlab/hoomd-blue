@@ -156,7 +156,7 @@ struct pdata_tuple_select_rtag_gpu
         { }
 
     //! Returns true if the remove flag is set for a particle
-    __device__ bool operator() (const pdata_tuple_gpu t) const
+    __device__ bool operator() (const pdata_tuple_gpu& t) const
         {
         unsigned int tag = thrust::get<0>(t);
         return d_rtag[tag] == compare;
@@ -232,7 +232,8 @@ void gpu_pdata_pack(const unsigned int N,
                     const Scalar4 *d_orientation,
                     const unsigned int *d_tag,
                     unsigned int *d_rtag,
-                    pdata_element *d_out)
+                    pdata_element *d_out,
+                    cached_allocator& alloc)
     {
     // wrap device arrays into thrust ptr
     thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
@@ -267,7 +268,8 @@ void gpu_pdata_pack(const unsigned int N,
     thrust::transform_iterator<to_pdata_element_gpu, pdata_zip_gpu_const> pdata_transform(pdata_begin);
 
     // compact selected particle elements into output array
-    thrust::copy_if(pdata_transform, pdata_transform+N, out_ptr, pdata_element_select_gpu(d_rtag,STAGED));
+    thrust::copy_if(thrust::cuda::par(alloc),
+        pdata_transform, pdata_transform+N, out_ptr, pdata_element_select_gpu(d_rtag,STAGED));
 
     // wrap rtag array
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
@@ -277,7 +279,7 @@ void gpu_pdata_pack(const unsigned int N,
         thrust::device_ptr<unsigned int>, thrust::device_ptr<const unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
 
     // set all STAGED tags to NOT_LOCAL
-    thrust::replace_if(rtag_prm, rtag_prm + N, rtag_select_gpu(STAGED), NOT_LOCAL);
+    thrust::replace_if(thrust::cuda::par(alloc), rtag_prm, rtag_prm + N, rtag_select_gpu(STAGED), NOT_LOCAL);
     }
 
 /*! \param N Number of local particles
@@ -288,7 +290,8 @@ void gpu_pdata_pack(const unsigned int N,
 unsigned int gpu_pdata_count_rtag_equals(const unsigned int N,
     const unsigned int *d_tag,
     const unsigned int *d_rtag,
-    const unsigned int compare)
+    const unsigned int compare,
+    cached_allocator& alloc)
     {
     thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
     thrust::device_ptr<const unsigned int> rtag_ptr(d_rtag);
@@ -297,11 +300,76 @@ unsigned int gpu_pdata_count_rtag_equals(const unsigned int N,
     thrust::permutation_iterator<
         thrust::device_ptr<const unsigned int>, thrust::device_ptr<const unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
 
-    return thrust::count_if(rtag_prm, rtag_prm + N, rtag_select_gpu(compare));
+    return thrust::count_if(thrust::cuda::par(alloc), rtag_prm, rtag_prm + N, rtag_select_gpu(compare));
     }
 
-/*! \param N New local particle count
-    \param old_nparticles old local particle cound
+/*! \param old_nparticles old local particle count
+    \param d_pos Device array of particle positions
+    \param d_vel Device iarray of particle velocities
+    \param d_accel Device array of particle accelerations
+    \param d_charge Device array of particle charges
+    \param d_diameter Device array of particle diameters
+    \param d_image Device array of particle images
+    \param d_body Device array of particle body tags
+    \param d_orientation Device array of particle orientations
+    \param d_tag Device array of particle tags
+    \param d_rtag Device array for reverse-lookup table
+
+    \returns number of particles removed
+*/
+unsigned int gpu_pdata_remove_particles(const unsigned int old_nparticles,
+                    Scalar4 *d_pos,
+                    Scalar4 *d_vel,
+                    Scalar3 *d_accel,
+                    Scalar *d_charge,
+                    Scalar *d_diameter,
+                    int3 *d_image,
+                    unsigned int *d_body,
+                    Scalar4 *d_orientation,
+                    unsigned int *d_tag,
+                    unsigned int *d_rtag,
+                    cached_allocator& alloc)
+    {
+    // wrap device arrays into thrust ptr
+    thrust::device_ptr<Scalar4> pos_ptr(d_pos);
+    thrust::device_ptr<Scalar4> vel_ptr(d_vel);
+    thrust::device_ptr<Scalar3> accel_ptr(d_accel);
+    thrust::device_ptr<Scalar> charge_ptr(d_charge);
+    thrust::device_ptr<Scalar> diameter_ptr(d_diameter);
+    thrust::device_ptr<int3> image_ptr(d_image);
+    thrust::device_ptr<unsigned int> body_ptr(d_body);
+    thrust::device_ptr<Scalar4> orientation_ptr(d_orientation);
+    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
+
+    // Construct zip iterator
+    pdata_zip_gpu pdata_begin(
+       thrust::make_tuple(
+            tag_ptr,
+            pos_ptr,
+            vel_ptr,
+            accel_ptr,
+            charge_ptr,
+            diameter_ptr,
+            image_ptr,
+            body_ptr,
+            orientation_ptr
+            )
+        );
+    pdata_zip_gpu pdata_end = pdata_begin + old_nparticles;
+
+    // wrap reverse-lookup table
+    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+
+    // erase all elements for which rtag == NOT_LOCAL
+    // the array remains contiguous
+    pdata_zip_gpu new_pdata_end;
+    new_pdata_end = thrust::remove_if(thrust::cuda::par(alloc),
+        pdata_begin, pdata_end, pdata_tuple_select_rtag_gpu(d_rtag, NOT_LOCAL));
+
+    return pdata_end - new_pdata_end;
+    }
+
+/*! \param old_nparticles old local particle count
     \param num_add_ptls Number of particles in input array
     \param d_pos Device array of particle positions
     \param d_vel Device iarray of particle velocities
@@ -315,7 +383,7 @@ unsigned int gpu_pdata_count_rtag_equals(const unsigned int N,
     \param d_rtag Device array for reverse-lookup table
     \param d_in Device array of packed input particle data
 */
-void gpu_pdata_update(const unsigned int old_nparticles,
+void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     const unsigned int num_add_ptls,
                     Scalar4 *d_pos,
                     Scalar4 *d_vel,
@@ -327,7 +395,8 @@ void gpu_pdata_update(const unsigned int old_nparticles,
                     Scalar4 *d_orientation,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
-                    const pdata_element *d_in)
+                    const pdata_element *d_in,
+                    cached_allocator& alloc)
     {
     // wrap device arrays into thrust ptr
     thrust::device_ptr<Scalar4> pos_ptr(d_pos);
@@ -362,22 +431,13 @@ void gpu_pdata_update(const unsigned int old_nparticles,
     // wrap reverse-lookup table
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-    // pointer from tag into rtag
-    thrust::permutation_iterator<
-        thrust::device_ptr<const unsigned int>, thrust::device_ptr<unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
-
-    // erase all elements for which rtag == NOT_LOCAL
-    // the array remains contiguous
-    pdata_zip_gpu new_pdata_end;
-    new_pdata_end = thrust::remove_if(pdata_begin, pdata_end, pdata_tuple_select_rtag_gpu(d_rtag, NOT_LOCAL));
-
     // add new particles at the end
-    thrust::transform(in_ptr, in_ptr + num_add_ptls, new_pdata_end, to_pdata_tuple_gpu());
+    thrust::transform(thrust::cuda::par(alloc), in_ptr, in_ptr + num_add_ptls, pdata_end, to_pdata_tuple_gpu());
 
-    unsigned int new_n_particles = new_pdata_end - pdata_begin + num_add_ptls;
+    unsigned int new_n_particles = old_nparticles + num_add_ptls;
 
     // recompute rtags
     thrust::counting_iterator<unsigned int> idx(0);
-    thrust::scatter(idx, idx+new_n_particles, tag_ptr, rtag_ptr);
+    thrust::scatter(thrust::cuda::par(alloc), idx, idx+new_n_particles, tag_ptr, rtag_ptr);
     }
 #endif // ENABLE_MPI

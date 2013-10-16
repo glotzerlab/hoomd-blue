@@ -146,6 +146,8 @@ class CommunicatorGPU : public Communicator
         GPUVector<bond_element> m_gpu_bond_sendbuf;   //!< Buffer for bonds that are sent
         GPUVector<bond_element> m_gpu_bond_recvbuf;   //!< Buffer for bonds that are received
 
+        cached_allocator m_cached_alloc;              //!< Cached memory allocator for internal thrust code
+
         unsigned int m_remote_send_corner[8*6];     //!< Remote corner particles, per direction
         unsigned int m_remote_send_edge[12*6];       //!< Remote edge particles, per direction
         unsigned int m_remote_send_face[6];         //!< Remote face particles, per direction

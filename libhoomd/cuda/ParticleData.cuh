@@ -56,6 +56,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #include "BoxDim.h"
 
+#include "cached_allocator.h"
+
 /*! \file ParticleData.cuh
     \brief Declares GPU kernel code and data structure functions used by ParticleData
 */
@@ -104,16 +106,32 @@ void gpu_pdata_pack(const unsigned int N,
                     const Scalar4 *d_orientation,
                     const unsigned int *d_tag,
                     unsigned int *d_rtag,
-                    pdata_element *d_out);
+                    pdata_element *d_out,
+                    cached_allocator& alloc);
 
 //! Count particles to be removed
 unsigned int gpu_pdata_count_rtag_equals(const unsigned int N,
     const unsigned int *d_tag,
     const unsigned int *d_rtag,
-    const unsigned int compare);
+    const unsigned int compare,
+    cached_allocator& alloc);
 
-//! Update particle data with new particles and remove selected particles
-void gpu_pdata_update(const unsigned int old_nparticles,
+//! Remove selected particles
+unsigned int gpu_pdata_remove_particles(const unsigned int old_nparticles,
+                    Scalar4 *d_pos,
+                    Scalar4 *d_vel,
+                    Scalar3 *d_accel,
+                    Scalar *d_charge,
+                    Scalar *d_diameter,
+                    int3 *d_image,
+                    unsigned int *d_body,
+                    Scalar4 *d_orientation,
+                    unsigned int *d_tag,
+                    unsigned int *d_rtag,
+                    cached_allocator& alloc);
+
+//! Update particle data with new particles
+void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     const unsigned int num_add_ptls,
                     Scalar4 *d_pos,
                     Scalar4 *d_vel,
@@ -125,5 +143,6 @@ void gpu_pdata_update(const unsigned int old_nparticles,
                     Scalar4 *d_orientation,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
-                    const pdata_element *d_in);
+                    const pdata_element *d_in,
+                    cached_allocator& alloc);
 #endif

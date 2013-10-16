@@ -86,10 +86,10 @@ template<class T> class GPUVector : public GPUArray<T>
         GPUVector();
 
         //! Constructs an empty GPUVector
-        GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+        GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped = false);
 
         //! Constructs a GPUVector
-        GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+        GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped = false);
 
         //! Frees memory
         virtual ~GPUVector() {}
@@ -211,15 +211,16 @@ template<class T> GPUVector<T>::GPUVector()
 //! Constructs an empty GPUVector
 /*! \param exec_conf Shared pointer to the execution configuration
  */
-template<class T> GPUVector<T>::GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf)
-    : GPUArray<T>(0,exec_conf), m_size(0)
+template<class T> GPUVector<T>::GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped)
+    : GPUArray<T>(0,exec_conf, mapped), m_size(0)
     {
     }
 
 /*! \param size Number of elements to allocate initial memory for in the array
     \param exec_conf Shared pointer to the execution configuration
 */
-template<class T> GPUVector<T>::GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf) : GPUArray<T>(size, exec_conf), m_size(size)
+template<class T> GPUVector<T>::GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped)
+     : GPUArray<T>(size, exec_conf, mapped), m_size(size)
     {
     }
 

@@ -55,6 +55,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cuda_runtime.h>
 
+#include "HOOMDMath.h"
+#include "cached_allocator.h"
+
 /*! \file BondData.cuh
     \brief GPU helper functions used in BondData
 */
@@ -108,7 +111,8 @@ cudaError_t gpu_create_bondtable(uint2 *d_gpu_bondtable,
 //! Count particles staged for sending
 unsigned int gpu_bdata_count_rtag_staged(const unsigned int num_bonds,
     const unsigned int *d_bond_tag,
-    const unsigned int *d_bond_rtag);
+    const unsigned int *d_bond_rtag,
+    cached_allocator& alloc);
 
 //! Pack bonds on the GPU
 void gpu_pack_bonds(unsigned int num_bonds,
@@ -116,7 +120,8 @@ void gpu_pack_bonds(unsigned int num_bonds,
                     const uint2 *d_bonds,
                     const unsigned int *d_bond_type,
                     unsigned int *d_bond_rtag,
-                    bond_element *d_out);
+                    bond_element *d_out,
+                    cached_allocator& alloc);
 
 //! Add new bonds and remove bonds marked for deletion, ignoring duplicates
 unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
@@ -125,7 +130,8 @@ unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
                             uint2 *d_bonds,
                             unsigned int *d_bond_type,
                             unsigned int *d_bond_rtag,
-                            const bond_element *d_in);
+                            const bond_element *d_in,
+                            cached_allocator& alloc);
 
 #endif //ENABLE_MPI
 #endif // __BONDDATA_CUH__

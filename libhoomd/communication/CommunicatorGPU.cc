@@ -319,18 +319,26 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
 void CommunicatorGPU::allocateBuffers()
     {
+    // using mapped-pinned memory avoids unnecessary memcpy's as buffers grow
+    bool mapped = true;
+
+    #ifdef ENABLE_MPI_CUDA
+    // store data on device if using CUDA-aware MPI
+    mapped = false;
+    #endif
+
     // Allocate buffers for particle migration
-    GPUVector<pdata_element> gpu_sendbuf(m_exec_conf);
+    GPUVector<pdata_element> gpu_sendbuf(m_exec_conf,mapped);
     m_gpu_sendbuf.swap(gpu_sendbuf);
 
-    GPUVector<pdata_element> gpu_recvbuf(m_exec_conf);
+    GPUVector<pdata_element> gpu_recvbuf(m_exec_conf,mapped);
     m_gpu_recvbuf.swap(gpu_recvbuf);
 
     // Allocate buffers for bond migration
-    GPUVector<bond_element> gpu_bond_sendbuf(m_exec_conf);
+    GPUVector<bond_element> gpu_bond_sendbuf(m_exec_conf,mapped);
     m_gpu_bond_sendbuf.swap(gpu_bond_sendbuf);
 
-    GPUVector<bond_element> gpu_bond_recvbuf(m_exec_conf);
+    GPUVector<bond_element> gpu_bond_recvbuf(m_exec_conf,mapped);
     m_gpu_bond_recvbuf.swap(gpu_bond_recvbuf);
 
 
@@ -494,7 +502,8 @@ void CommunicatorGPU::migrateParticles()
                 d_tag.data,
                 d_rtag.data,
                 dir,
-                m_pdata->getBox());
+                m_pdata->getBox(),
+                m_cached_alloc);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -520,7 +529,8 @@ void CommunicatorGPU::migrateParticles()
                              d_bonds.data,
                              d_bond_tag.data,
                              d_bond_rtag.data,
-                             d_rtag.data);
+                             d_rtag.data,
+                             m_cached_alloc);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
@@ -545,14 +555,20 @@ void CommunicatorGPU::migrateParticles()
 
         unsigned int n_send_ptls = m_gpu_sendbuf.size();
 
+        if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
+
         MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & reqs[0]);
         MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
         MPI_Waitall(2, reqs, status);
+
+        if (m_prof) m_prof->pop(m_exec_conf);
 
         // Resize receive buffer
         m_gpu_recvbuf.resize(n_recv_ptls);
 
             {
+            if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
+
             #ifdef ENABLE_MPI_CUDA
             ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::device, access_mode::overwrite);
@@ -560,8 +576,6 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::host, access_mode::overwrite);
             #endif
-
-            if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
 
             // exchange particle data
             MPI_Isend(gpu_sendbuf_handle.data, n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[0]);
@@ -599,16 +613,21 @@ void CommunicatorGPU::migrateParticles()
             unsigned int n_send_bonds = m_gpu_bond_sendbuf.size();
             unsigned int n_recv_bonds;
 
+            if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
+
             // exchange size of messages
             MPI_Isend(&n_send_bonds, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & reqs[0]);
             MPI_Irecv(&n_recv_bonds, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
             MPI_Waitall(2, reqs, status);
 
+            if (m_prof) m_prof->pop(m_exec_conf);
+
             m_gpu_bond_recvbuf.resize(n_recv_bonds);
 
                 {
+                if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
 
-                // exchange particle data
+                // exchange bond data
                 #ifdef ENABLE_MPI_CUDA
                 ArrayHandle<bond_element> bond_sendbuf_handle(m_gpu_bond_sendbuf, access_location::device, access_mode::read);
                 ArrayHandle<bond_element> bond_recvbuf_handle(m_gpu_bond_recvbuf, access_location::device, access_mode::overwrite);
@@ -616,8 +635,6 @@ void CommunicatorGPU::migrateParticles()
                 ArrayHandle<bond_element> bond_sendbuf_handle(m_gpu_bond_sendbuf, access_location::host, access_mode::read);
                 ArrayHandle<bond_element> bond_recvbuf_handle(m_gpu_bond_recvbuf, access_location::host, access_mode::overwrite);
                 #endif
-
-                if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
 
                 MPI_Isend(bond_sendbuf_handle.data,
                           n_send_bonds*sizeof(bond_element),

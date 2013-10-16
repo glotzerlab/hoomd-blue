@@ -847,6 +847,10 @@ class ParticleData : boost::noncopyable
         Scalar3 m_origin;                            //!< Tracks the position of the origin of the coordinate system
         int3 m_o_image;                              //!< Tracks the origin image
 
+        #ifdef ENABLE_CUDA
+        cached_allocator m_cached_alloc;             //!< Cached allocator for ParticleData's internal Thrust GPU code
+        #endif
+
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
 

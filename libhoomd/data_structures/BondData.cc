@@ -1005,7 +1005,8 @@ void BondData::retrieveBondsGPU(GPUVector<bond_element>& out)
     unsigned int n_pack_bonds = gpu_bdata_count_rtag_staged(
         n_bonds,
         d_bond_tag.data,
-        d_bond_rtag.data);
+        d_bond_rtag.data,
+        m_cached_alloc);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -1017,7 +1018,7 @@ void BondData::retrieveBondsGPU(GPUVector<bond_element>& out)
     ArrayHandle<bond_element> d_out(out, access_location::device, access_mode::overwrite);
 
     // pack bonds on GPU
-    gpu_pack_bonds(n_bonds, d_bond_tag.data, d_bonds.data, d_bond_type.data, d_bond_rtag.data, d_out.data);
+    gpu_pack_bonds(n_bonds, d_bond_tag.data, d_bonds.data, d_bond_type.data, d_bond_rtag.data, d_out.data, m_cached_alloc);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
@@ -1062,7 +1063,8 @@ void BondData::addRemoveBondsGPU(const GPUVector<bond_element>& in)
             d_bonds.data,
             d_bond_type.data,
             d_bond_rtag.data,
-            d_in.data);
+            d_in.data,
+            m_cached_alloc);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }

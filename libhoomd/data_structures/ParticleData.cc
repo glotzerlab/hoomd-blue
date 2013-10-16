@@ -1935,7 +1935,7 @@ void ParticleData::retrieveParticlesGPU(GPUVector<pdata_element>& out)
         ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::read);
 
         // count particles to be removed
-        num_retrieve_ptls = gpu_pdata_count_rtag_equals(getN(), d_tag.data, d_rtag.data,STAGED);
+        num_retrieve_ptls = gpu_pdata_count_rtag_equals(getN(), d_tag.data, d_rtag.data,STAGED,m_cached_alloc);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -1972,7 +1972,8 @@ void ParticleData::retrieveParticlesGPU(GPUVector<pdata_element>& out)
                    d_orientation.data,
                    d_tag.data,
                    d_rtag.data,
-                   d_out.data);
+                   d_out.data,
+                   m_cached_alloc);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -1985,23 +1986,43 @@ void ParticleData::addRemoveParticlesGPU(const GPUVector<pdata_element>& in)
     {
     if (m_prof) m_prof->push(m_exec_conf, "unpack/remove");
 
-    unsigned int num_add_ptls = in.size();
     unsigned int num_remove_ptls;
 
         {
-        // access particle data tags and rtags
-        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::read);
+        // access particle data arrays
+        ArrayHandle<Scalar4> d_pos(getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(getAccelerations(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_charge(getCharges(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_diameter(getDiameters(), access_location::device, access_mode::readwrite);
+        ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
 
-        // count particles to be removed
-        num_remove_ptls = gpu_pdata_count_rtag_equals(getN(), d_tag.data, d_rtag.data,NOT_LOCAL);
+        // remove particles on GPU
+        num_remove_ptls = gpu_pdata_remove_particles(
+            getN(),
+            d_pos.data,
+            d_vel.data,
+            d_accel.data,
+            d_charge.data,
+            d_diameter.data,
+            d_image.data,
+            d_body.data,
+            d_orientation.data,
+            d_tag.data,
+            d_rtag.data,
+            m_cached_alloc);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
-    unsigned int old_nparticles = getN();
-    unsigned int new_nparticles = old_nparticles + num_add_ptls - num_remove_ptls;
+    unsigned int old_nparticles = getN() - num_remove_ptls;
+    unsigned int num_add_ptls = in.size();
+    unsigned int new_nparticles = old_nparticles + num_add_ptls;
 
     // amortized resizing of particle data
     resize(new_nparticles);
@@ -2022,7 +2043,8 @@ void ParticleData::addRemoveParticlesGPU(const GPUVector<pdata_element>& in)
         // Access input array
         ArrayHandle<pdata_element> d_in(in, access_location::device, access_mode::read);
 
-        gpu_pdata_update(
+        // add new particles on GPU
+        gpu_pdata_add_particles(
             old_nparticles,
             num_add_ptls,
             d_pos.data,
@@ -2035,7 +2057,8 @@ void ParticleData::addRemoveParticlesGPU(const GPUVector<pdata_element>& in)
             d_orientation.data,
             d_tag.data,
             d_rtag.data,
-            d_in.data);
+            d_in.data,
+            m_cached_alloc);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

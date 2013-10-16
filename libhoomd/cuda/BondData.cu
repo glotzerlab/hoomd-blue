@@ -259,7 +259,8 @@ struct bond_rtag_compare_gpu
  */
 unsigned int gpu_bdata_count_rtag_staged(const unsigned int num_bonds,
     const unsigned int *d_bond_tag,
-    const unsigned int *d_bond_rtag)
+    const unsigned int *d_bond_rtag,
+    cached_allocator& alloc)
     {
     thrust::device_ptr<const unsigned int> bond_tag_ptr(d_bond_tag);
     thrust::device_ptr<const unsigned int> bond_rtag_ptr(d_bond_rtag);
@@ -269,7 +270,8 @@ unsigned int gpu_bdata_count_rtag_staged(const unsigned int num_bonds,
         thrust::device_ptr<const unsigned int>, thrust::device_ptr<const unsigned int> >
         bond_rtag_prm(bond_rtag_ptr, bond_tag_ptr);
 
-    return thrust::count_if(bond_rtag_prm, bond_rtag_prm + num_bonds, bond_rtag_select_send_gpu());
+    return thrust::count_if(thrust::cuda::par(alloc),
+        bond_rtag_prm, bond_rtag_prm + num_bonds, bond_rtag_select_send_gpu());
     }
 
 //! A tuple of bond data pointers
@@ -380,7 +382,8 @@ void gpu_pack_bonds(unsigned int num_bonds,
                     const uint2 *d_bonds,
                     const unsigned int *d_bond_type,
                     unsigned int *d_bond_rtag,
-                    bond_element *d_out)
+                    bond_element *d_out,
+                    cached_allocator& alloc)
     {
     // wrap device arrays into thrust ptr
     thrust::device_ptr<const unsigned int> bond_tag_ptr(d_bond_tag);
@@ -406,7 +409,8 @@ void gpu_pack_bonds(unsigned int num_bonds,
         );
 
     // compact selected particle elements into output array
-    thrust::copy_if(bdata_transform, bdata_transform+num_bonds, out_ptr, bond_element_select_gpu(d_bond_rtag));
+    thrust::copy_if(thrust::cuda::par(alloc),
+        bdata_transform, bdata_transform+num_bonds, out_ptr, bond_element_select_gpu(d_bond_rtag));
 
     // wrap bond rtag array
     thrust::device_ptr<unsigned int> bond_rtag_ptr(d_bond_rtag);
@@ -417,7 +421,8 @@ void gpu_pack_bonds(unsigned int num_bonds,
          bond_rtag_prm(bond_rtag_ptr, bond_tag_ptr);
 
     // set all BOND_STAGED tags to BOND_NOT_LOCAL
-    thrust::replace_if(bond_rtag_prm, bond_rtag_prm + num_bonds, bond_rtag_compare_gpu(BOND_STAGED), BOND_NOT_LOCAL);
+    thrust::replace_if(thrust::cuda::par(alloc),
+        bond_rtag_prm, bond_rtag_prm + num_bonds, bond_rtag_compare_gpu(BOND_STAGED), BOND_NOT_LOCAL);
     }
 
 //! A predicate to check if the bond doesn't already exist
@@ -457,7 +462,8 @@ unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
                             uint2 *d_bonds,
                             unsigned int *d_bond_type,
                             unsigned int *d_bond_rtag,
-                            const bond_element *d_in)
+                            const bond_element *d_in,
+                            cached_allocator& alloc)
     {
     // wrap pointers into thrust ptrs
     thrust::device_ptr<unsigned int> bond_tag_ptr(d_bond_tag);
@@ -482,7 +488,8 @@ unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
     // erase all elements for which rtag == BOND_NOT_LOCAL
     // maintaing a contiguous array
     bdata_zip_gpu new_bdata_end;
-    new_bdata_end = thrust::remove_if(bdata_begin, bdata_end, bdata_tuple_rtag_compare_gpu(d_bond_rtag, BOND_NOT_LOCAL));
+    new_bdata_end = thrust::remove_if(thrust::cuda::par(alloc),
+        bdata_begin, bdata_end, bdata_tuple_rtag_compare_gpu(d_bond_rtag, BOND_NOT_LOCAL));
 
     // wrap packed input data
     thrust::device_ptr<const bond_element> in_ptr(d_in);
@@ -493,13 +500,14 @@ unsigned int gpu_bdata_add_remove_bonds(const unsigned int num_bonds,
         to_bdata_tuple_gpu());
 
     // add new bonds at the end, omitting duplicates
-    new_bdata_end = thrust::copy_if(in_transform, in_transform + num_add_bonds, new_bdata_end, bond_unique_gpu(d_bond_rtag));
+    new_bdata_end = thrust::copy_if(thrust::cuda::par(alloc),
+        in_transform, in_transform + num_add_bonds, new_bdata_end, bond_unique_gpu(d_bond_rtag));
 
     unsigned int new_n_bonds = new_bdata_end - bdata_begin;
 
     // recompute bond rtags
     thrust::counting_iterator<unsigned int> idx(0);
-    thrust::scatter(idx, idx+new_n_bonds, bond_tag_ptr, bond_rtag_ptr);
+    thrust::scatter(thrust::cuda::par(alloc), idx, idx+new_n_bonds, bond_tag_ptr, bond_rtag_ptr);
 
     return new_n_bonds;
     }

@@ -223,7 +223,8 @@ void gpu_stage_particles(const unsigned int N,
                          const unsigned int *d_tag,
                          unsigned int *d_rtag,
                          const unsigned int dir,
-                         const BoxDim& box)
+                         const BoxDim& box,
+                         cached_allocator& alloc)
     {
     // Wrap particle data arrays
     thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
@@ -237,7 +238,8 @@ void gpu_stage_particles(const unsigned int N,
         thrust::device_ptr<unsigned int>, thrust::device_ptr<const unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
 
     // set flag for particles that are to be sent
-    thrust::replace_if(rtag_prm, rtag_prm + N, pos_ptr, select_particle_migrate_gpu(box, dir), STAGED);
+    thrust::replace_if(thrust::cuda::par(alloc),
+        rtag_prm, rtag_prm + N, pos_ptr, select_particle_migrate_gpu(box, dir), STAGED);
     }
 
 //! Select a bond for migration
@@ -390,7 +392,8 @@ void gpu_select_bonds(unsigned int n_bonds,
                       const uint2 *d_bonds,
                       const unsigned int *d_bond_tag,
                       unsigned int *d_bond_rtag,
-                      const unsigned int *d_rtag)
+                      const unsigned int *d_rtag,
+                      cached_allocator& alloc)
     {
     // Wrap bond data pointers
     thrust::device_ptr<const uint2> bonds_ptr(d_bonds);
@@ -407,10 +410,12 @@ void gpu_select_bonds(unsigned int n_bonds,
         bond_rtag_prm(bond_rtag_ptr, bond_tag_ptr);
 
     // set bond rtags for bonds that leave the domain to BOND_STAGED
-    thrust::replace_if(bond_rtag_prm, bond_rtag_prm+n_bonds, bonds_ptr, select_bond_migrate_gpu(d_rtag), BOND_STAGED);
+    thrust::replace_if(thrust::cuda::par(alloc),
+        bond_rtag_prm, bond_rtag_prm+n_bonds, bonds_ptr, select_bond_migrate_gpu(d_rtag), BOND_STAGED);
 
     // set bond rtags for bonds that are replicated to BOND_SPLIT
-    thrust::replace_if(bond_rtag_prm, bond_rtag_prm+n_bonds, bonds_ptr, select_bond_split_gpu(d_rtag), BOND_SPLIT);
+    thrust::replace_if(thrust::cuda::par(alloc),
+        bond_rtag_prm, bond_rtag_prm+n_bonds, bonds_ptr, select_bond_split_gpu(d_rtag), BOND_SPLIT);
     }
 
 //! Reset reverse lookup tags of particles we are removing

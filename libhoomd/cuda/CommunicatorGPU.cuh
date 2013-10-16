@@ -58,6 +58,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "BondData.cuh"
 
+#include "cached_allocator.h"
+
 #ifdef NVCC
 //! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
@@ -160,7 +162,8 @@ void gpu_stage_particles(const unsigned int N,
                          const unsigned int *d_tag,
                          unsigned int *d_rtag,
                          const unsigned int dir,
-                         const BoxDim& box);
+                         const BoxDim& box,
+                         cached_allocator& alloc);
 
 //! Apply boundary conditions
 void gpu_wrap_particles(const unsigned int n_recv,
@@ -172,7 +175,8 @@ void gpu_select_bonds(unsigned int n_bonds,
                       const uint2 *d_bonds,
                       const unsigned int *d_bond_tag,
                       unsigned int *d_bond_rtag,
-                      const unsigned int *d_rtag);
+                      const unsigned int *d_rtag,
+                      cached_allocator& alloc);
 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls,

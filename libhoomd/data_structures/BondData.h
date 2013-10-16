@@ -389,6 +389,11 @@ class BondData : boost::noncopyable
         unsigned int m_num_bonds_global;        //!< Total number of bonds on all processors
 
         boost::shared_ptr<Profiler> m_prof; //!< The profiler to use
+
+#ifdef ENABLE_CUDA
+        cached_allocator m_cached_alloc;        //!< Cached memory allocator for use with internal thrust code
+#endif
+
 #ifdef ENABLE_CUDA
         //! Helper function to update the bond table on the device
         void updateBondTableGPU();
