@@ -14,6 +14,8 @@
 #include <thrust/system/cuda/execution_policy.h>
 #include <map>
 
+#define MAX_CACHED_BYTES 250*1024*1024
+
 /* From the original documentation:
 
   This example demonstrates how to intercept calls to get_temporary_buffer
@@ -36,7 +38,8 @@ class cached_allocator
     // just allocate bytes
     typedef char value_type;
 
-    cached_allocator() {}
+    cached_allocator()
+        : num_bytes_tot(0) {}
 
     ~cached_allocator()
     {
@@ -48,8 +51,9 @@ class cached_allocator
     {
       char *result = 0;
 
+      unsigned int num_allocated_bytes = num_bytes;
       // search the cache for a free block
-      free_blocks_type::iterator free_block = free_blocks.find(num_bytes);
+      free_blocks_type::iterator free_block = free_blocks.lower_bound(num_bytes);
 
       if(free_block != free_blocks.end())
       {
@@ -57,6 +61,8 @@ class cached_allocator
 
         // get the pointer
         result = free_block->second;
+
+        num_allocated_bytes = free_block->first;
 
         // erase from the free_blocks map
         free_blocks.erase(free_block);
@@ -72,6 +78,20 @@ class cached_allocator
 
           // allocate memory and convert cuda::pointer to raw pointer
           result = thrust::cuda::malloc<char>(num_bytes).get();
+
+          num_bytes_tot += num_bytes;
+
+          while (num_bytes_tot >= MAX_CACHED_BYTES)
+            {
+            // eliminate first free blocks
+            free_blocks_type::iterator i = free_blocks.begin();
+
+            // transform the pointer to cuda::pointer before calling cuda::free
+            thrust::cuda::free(thrust::cuda::pointer<char>(i->second));
+            num_bytes_tot -= i->first;
+
+            free_blocks.erase(i);
+            }
         }
         catch(std::runtime_error &e)
         {
@@ -80,7 +100,7 @@ class cached_allocator
       }
 
       // insert the allocated pointer into the allocated_blocks map
-      allocated_blocks.insert(std::make_pair(result, num_bytes));
+      allocated_blocks.insert(std::make_pair(result, num_allocated_bytes));
 
       return result;
     }
@@ -102,6 +122,8 @@ class cached_allocator
 
     free_blocks_type free_blocks;
     allocated_blocks_type allocated_blocks;
+
+    unsigned int num_bytes_tot;
 
     void free_all()
     {
