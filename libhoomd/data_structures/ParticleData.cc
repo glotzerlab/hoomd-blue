@@ -2090,7 +2090,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
 //! Add new particle data (GPU version)
 void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
     {
-    if (m_prof) m_prof->push(m_exec_conf, "unpack/remove");
+    if (m_prof) m_prof->push(m_exec_conf, "unpack");
 
     unsigned int old_nparticles = getN();
     unsigned int num_add_ptls = in.size();

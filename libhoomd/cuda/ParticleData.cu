@@ -436,22 +436,4 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
     thrust::transform(thrust::cuda::par(alloc),in, in + num_add_ptls, pdata_end, to_rtag_pdata_tuple_gpu(d_rtag));
    }
 
-/*! \param nparticles Number of particles
-    \param d_tag Array of particle tags
-    \param d_rtag Reverse-lookup table
- */
-void gpu_pdata_compute_rtags(
-    unsigned int nparticles,
-    const unsigned int *d_tag,
-    unsigned int *d_rtag,
-    cached_allocator &alloc)
-    {
-    // wrap device ptrs
-    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-
-    // recompute rtags
-    thrust::counting_iterator<unsigned int> idx(0);
-    thrust::scatter(thrust::cuda::par(alloc), idx, idx+nparticles, tag_ptr, rtag_ptr);
-    }
 #endif // ENABLE_MPI
