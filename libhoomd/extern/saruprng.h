@@ -12,7 +12,7 @@
 
 /*
  * Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
- 
+
 BSD license will go here when it's released..
 
  */
@@ -28,7 +28,7 @@ BSD license will go here when it's released..
   (or rewind) its state. This advancement feature is useful for game
   and graphics tools, and is especially attractive for multithreaded
   and GPU applications.
-  
+
   The Saru generator is an original work and (deliberately)
   unpatented. See the algorithm description at
   worley.com/mathgeek/saru.html. Updates/fixes to this code (and a plain C
@@ -44,18 +44,18 @@ Saru z, s(12345), t(123, 456), u(123, 456, 789);
   Advance state by 1, and output a 32 bit integer pseudo-random value.
 cout << s.u32() << endl; //  Passes BigCrush and DIEHARD
 
-  Advance state by 1, and output a double precision [0..1) floating point 
+  Advance state by 1, and output a double precision [0..1) floating point
 cout << s.d() << endl;
 
-  Advance state by 1, and output a single precision [0..1) floating point 
+  Advance state by 1, and output a single precision [0..1) floating point
 cout << s.f() << endl;
 
   Move the generator state forwards a variable number of steps
 s.advance(steps);
 
   Efficient state advancement or rewind when delta is known at compiletime
-s.advance<123>(); 
-s.rewind<123>(); 
+s.advance<123>();
+s.rewind<123>();
 
 Advance state by a different step (other than 1) and output a pseudorandom value.
 cout << s.u32<4>() << endl; // skips forward 4 values and outputs the prand.
@@ -66,7 +66,7 @@ z=s;
 
   Fork the PRNG, creating a new independent stream, seeded using
   current generator's state. Template seeding allows multiple
-  independent children forks. 
+  independent children forks.
 Saru n=s.fork<123>();
 
 
@@ -86,14 +86,14 @@ class Saru {
   inline Saru(unsigned int seed1, unsigned int seed2);
   inline Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3);
 
-  
+
   /* Efficient compile-time computed advancements */
-  template <unsigned int steps> inline void advance() 
+  template <unsigned int steps> inline void advance()
     { advanceWeyl<steps>(); advanceLCG<steps>(); }
 
   // OK to advance negative steps in LCG, it's done mod 2^32 so it's
   // the same as advancing 2^32-1 steps, which is correct!
-  template <unsigned int steps> inline void rewind() 
+  template <unsigned int steps> inline void rewind()
     { rewindWeyl<steps>(); advanceLCG<-steps>(); }
 
   /* Slower (but still reasonable) run-time computed advancement */
@@ -114,18 +114,21 @@ class Saru {
   inline double d();
   inline float f(float low, float high);
   inline double d(double low, double high);
-  
+
+  template<class Real> inline Real s();
+  template<class Real> inline Real s(Real low, Real high);
+
  private:
 
   /* compile-time metaprograms to compute LCG and Weyl advancement */
 
 
   /* Computes A^N mod 2^32 */
-  template<unsigned int A, unsigned int N> struct CTpow 
+  template<unsigned int A, unsigned int N> struct CTpow
   { static const unsigned int value=(N&1?A:1)*CTpow<A*A, N/2>::value; };
   /* Specialization to terminate recursion: A^0 = 1 */
   template<unsigned int A> struct CTpow<A, 0> { static const unsigned int value=1; };
-  
+
   /* CTpowseries<A,N> computes 1+A+A^2+A^3+A^4+A^5..+A^(N-1) mod 2^32.
      We do NOT use the more elegant formula (a^N-1)/(a-1) (see Knuth
      3.2.1), because it's more awkward to compute with implicit mod 2^32.
@@ -139,13 +142,13 @@ class Saru {
       static const unsigned int value=  (N&1) ? 1+A*recurse : recurse;
     };
   template<unsigned int A>
-    struct CTpowseries<A, 0> { static const unsigned int value=0; };  
+    struct CTpowseries<A, 0> { static const unsigned int value=0; };
   template<unsigned int A>
     struct CTpowseries<A, 1> { static const unsigned int value=1; };
-  
-    
+
+
   /* Compute A*B mod m.  Tricky only because of implicit 2^32 modulus.
-     Uses recursion. 
+     Uses recursion.
      if A is even, then A*B mod m =   (A/2)*(B+B mod m) mod m.
      if A is odd,  then A*B mod m =  ((A/2)*(B+B mod m) mod m) + B mod m.  */
   template <unsigned int A, unsigned int B, unsigned int m>
@@ -156,20 +159,20 @@ class Saru {
     };
   template <unsigned int B, unsigned int m>  /* terminate the recursion */
     struct CTmultmod<0, B, m> { static const unsigned int value=0; };
-  
-  template <unsigned int offset, unsigned int delta, 
-    unsigned int modulus, unsigned int steps> 
+
+  template <unsigned int offset, unsigned int delta,
+    unsigned int modulus, unsigned int steps>
     inline unsigned int advanceAnyWeyl(unsigned int);
 
   static const unsigned int LCGA=0x4beb5d59; // Full period 32 bit LCG
-  static const unsigned int LCGC=0x2600e1f7; 
+  static const unsigned int LCGC=0x2600e1f7;
   static const unsigned int oWeylPeriod=0xda879add; // Prime period 3666320093
   static const unsigned int oWeylOffset=0x8009d14b;
   static const unsigned int oWeylDelta=oWeylPeriod+oWeylOffset; // wraps mod 2^32
 
 /* Compile-time template function to efficently advance a state x with
    a LCG (mod 2^32) N steps.  Runtime, this all becomes a super-simple
-   single multiply and add. */ 
+   single multiply and add. */
   template <unsigned int steps> inline void advanceLCG()
     { state=CTpow<LCGA, steps>::value*state+LCGC*CTpowseries<LCGA, steps>::value; }
 
@@ -178,9 +181,9 @@ class Saru {
 
 
   template <unsigned int steps> inline void rewindWeyl()
-    { wstate=advanceAnyWeyl<oWeylOffset, oWeylPeriod-oWeylDelta, 
+    { wstate=advanceAnyWeyl<oWeylOffset, oWeylPeriod-oWeylDelta,
     oWeylPeriod, steps>(wstate); }
-    
+
   unsigned int state;  // LCG state
   unsigned int wstate; // Offset Weyl sequence state
 };
@@ -196,7 +199,7 @@ template <> inline void Saru::advanceWeyl<1>() /* especially efficient single st
 /* This seeding was carefully tested for good churning with 1, 2, and
    3 bit flips.  All 32 incrementing counters (each of the circular
    shifts) pass the TestU01 Crush tests. */
-inline Saru::Saru(unsigned int seed) 
+inline Saru::Saru(unsigned int seed)
 {
   state  = 0x79dedea3*(seed^(((signed int)seed)>>14));
   wstate = seed ^ (((signed int)state)>>8);
@@ -216,7 +219,7 @@ inline Saru::Saru(unsigned int seed1, unsigned int seed2)
   seed2^=seed2>>10;
   seed2^=((signed int)seed2)>>19;
   seed1+=seed2^0x6d2d4e11;
-  
+
   state  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
   wstate = (state + seed2) ^ (((signed int)state)>>8);
   state  = state + (wstate*(wstate^0xdddf97f5));
@@ -227,7 +230,7 @@ inline Saru::Saru(unsigned int seed1, unsigned int seed2)
 
 /* 3 seeds. We have to premix the seeds before dropping to 64 bits.
    TODO: this may be better optimized in a future version */
-inline Saru::Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3) 
+inline Saru::Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 {
   seed3^=(seed1<<7)^(seed2>>6);
   seed2+=(seed1>>4)^(seed3>>15);
@@ -238,7 +241,7 @@ inline Saru::Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
   seed2+=seed1*seed3;
   seed1+=seed3 ^ (seed2>>2);
   seed2^=((signed int)seed2)>>17;
-  
+
   state  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
   wstate = (state + seed2) ^ (((signed int)state)>>8);
   state  = state + (wstate*(wstate^0xdddf97f5));
@@ -246,9 +249,9 @@ inline Saru::Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 }
 
 
-template <unsigned int offset, unsigned int delta, 
-      unsigned int modulus, unsigned int steps> 
-  inline unsigned int Saru::advanceAnyWeyl(unsigned int x) 
+template <unsigned int offset, unsigned int delta,
+      unsigned int modulus, unsigned int steps>
+  inline unsigned int Saru::advanceAnyWeyl(unsigned int x)
 {
   static const unsigned int fullDelta=CTmultmod<delta, steps%modulus, modulus>::value;
   /* runtime code boils down to this single constant-filled line. */
@@ -267,32 +270,32 @@ inline void Saru::advance(unsigned int steps)
 
   unsigned int currentDelta=oWeylDelta;
   unsigned int netDelta=0;
-  
-  while (steps) {    
+
+  while (steps) {
     if (steps&1) {
       state=currentA*state+currentC; // LCG step
-      if (netDelta<oWeylPeriod-currentDelta) netDelta+=currentDelta; 
+      if (netDelta<oWeylPeriod-currentDelta) netDelta+=currentDelta;
       else netDelta+=currentDelta-oWeylPeriod;
     }
-    
+
     // Change the LCG to step at twice the rate as before
     currentC+=currentA*currentC;
-    currentA*=currentA;          
-    
+    currentA*=currentA;
+
     // Change the Weyl delta to step at 2X rate
     if (currentDelta<oWeylPeriod-currentDelta) currentDelta+=currentDelta;
     else currentDelta+=currentDelta-oWeylPeriod;
-    
+
     steps/=2;
   }
-  
+
   // Apply the net delta to the Weyl state.
-  if (wstate-oWeylOffset<oWeylPeriod-netDelta) wstate+=netDelta; 
+  if (wstate-oWeylOffset<oWeylPeriod-netDelta) wstate+=netDelta;
   else wstate+=netDelta-oWeylPeriod;
 }
 
 
-template <unsigned int seed> 
+template <unsigned int seed>
 inline Saru Saru::fork() const
 {
   static const unsigned int churned1=0xDEADBEEF ^ (0x1fc4ce47*(seed^(seed>>13)));
@@ -306,7 +309,7 @@ inline Saru Saru::fork() const
   unsigned int add=(z.state+churned1)>>1;
   if (z.wstate-oWeylOffset<oWeylPeriod-add) z.wstate+=add;
   else z.wstate+=add-oWeylPeriod;
-  return z; 
+  return z;
 }
 
 /* Core PRNG evaluation. Very simple! */
@@ -332,7 +335,7 @@ inline unsigned int Saru::u32()
 template <unsigned int steps>
 inline float Saru::f()
 {
-  return ((signed int)(u32<steps>()>>1))*(1.0f/0x80000000); 
+  return ((signed int)(u32<steps>()>>1))*(1.0f/0x80000000);
 }
 
 /* for a range that doesn't start at 0, we use the full 32 bits since
@@ -389,6 +392,44 @@ inline double Saru::d(double low, double high)
 {
   return d<1>(low, high);
 }
+
+template<class Real>
+inline Real Saru::s()
+    {
+    // default implementation returns something ridiculous, so it is obvious when it is called
+    return -1000000000;
+    }
+
+template<class Real>
+inline Real Saru::s(Real low, Real high)
+    {
+    // default implementation returns something ridiculous, so it is obvious when it is called
+    return -1000000000;
+    }
+
+template<>
+inline float Saru::s()
+    {
+    return f();
+    }
+
+template<>
+inline float Saru::s(float low, float high)
+    {
+    return f(low, high);
+    }
+
+template<>
+inline double Saru::s()
+    {
+    return d();
+    }
+
+template<>
+inline double Saru::s(double low, double high)
+    {
+    return d(low, high);
+    }
 
 #ifdef WIN32
 #pragma warning( pop )
