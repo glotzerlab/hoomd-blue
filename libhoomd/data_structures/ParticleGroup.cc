@@ -609,7 +609,8 @@ void ParticleGroup::rebuildIndexListGPU() const
                            d_is_member.data,
                            d_member_idx.data,
                            d_tag.data,
-                           m_num_local_members);
+                           m_num_local_members,
+                           m_cached_allocator);
         }
     else
         m_num_local_members = 0;

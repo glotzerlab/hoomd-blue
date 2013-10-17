@@ -239,7 +239,7 @@ void gpu_stage_particles(const unsigned int N,
 
     // set flag for particles that are to be sent
     thrust::replace_if(thrust::cuda::par(alloc),
-        rtag_prm, rtag_prm + N, pos_ptr, select_particle_migrate_gpu(box, dir), STAGED);
+        rtag_prm, rtag_prm + N, pos_ptr, select_particle_migrate_gpu(box, dir), NOT_LOCAL);
     }
 
 //! Select a bond for migration

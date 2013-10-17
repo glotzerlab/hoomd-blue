@@ -50,28 +50,70 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifdef WIN32
-#include <cassert>
-#else
-#include <assert.h>
-#endif
-
-#include "cached_allocator.h"
-
-/*! \file ParticleGroup.cuh
-    \brief Contains GPU kernel code used by ParticleGroup
+/*! \file clipped_range.h
+    \brief Declares a clipping iterator
 */
-#ifndef __PARTICLE_GROUP_CUH__
-#define __PARTICLE_GROUP_CUH__
 
-//! GPU method for rebuilding the index list of a ParticleGroup
-cudaError_t gpu_rebuild_index_list(unsigned int N,
-                                   unsigned char *d_is_member_tag,
-                                   unsigned char *d_is_member,
-                                   unsigned int *d_member_idx,
-                                   unsigned int *d_tag,
-                                   unsigned int &num_local_members,
-                                   cached_allocator& alloc);
+/*! clipped_range limits the element range of the iterator it wraps
+    to a specified range. It ensures that no write/read beyond that
+    range occurs, instead the last element is accesssed.
+ */
 
+#ifndef __CLIPPED_RANGE_H__
+#define __CLIPPED_RANGE_H__
+
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/functional.h>
+
+//! Implements a clipping iterator
+template <typename Iterator>
+class clipped_range
+{
+    public:
+
+    typedef typename thrust::iterator_difference<Iterator>::type difference_type;
+
+    struct clip_functor : public thrust::unary_function<difference_type,difference_type>
+    {
+        difference_type max_element;
+
+        clip_functor(difference_type _max_element)
+            : max_element(_max_element) {}
+
+        __host__ __device__
+        difference_type operator()(const difference_type& i) const
+        {
+            return (i >= max_element - 1) ?  max_element - 1 : i;
+        }
+    };
+
+    typedef typename thrust::counting_iterator<difference_type>                   CountingIterator;
+    typedef typename thrust::transform_iterator<clip_functor, CountingIterator> TransformIterator;
+    typedef typename thrust::permutation_iterator<Iterator,TransformIterator>     PermutationIterator;
+
+    // type of the clipped_range iterator
+    typedef PermutationIterator iterator;
+
+    // construct clipped_range for the range [first,last)
+    clipped_range(Iterator _first, Iterator _last)
+        : first(_first), last(_last), max_element(_last-_first) {}
+
+    iterator begin(void) const
+    {
+        return PermutationIterator(first, TransformIterator(CountingIterator(0), clip_functor(max_element)));
+    }
+
+    iterator end(void) const
+    {
+        return begin() + (last - first);
+    }
+
+    protected:
+        Iterator first;
+        Iterator last;
+        difference_type max_element;
+};
 
 #endif

@@ -94,8 +94,8 @@ struct pdata_element
 class pdata_element;
 #endif
 
-//! Pack particle data into output buffer and mark extracted particles for removal
-void gpu_pdata_pack(const unsigned int N,
+//! Pack particle data into output buffer and remove marked particles
+unsigned int gpu_pdata_remove(const unsigned int N,
                     const Scalar4 *d_pos,
                     const Scalar4 *d_vel,
                     const Scalar3 *d_accel,
@@ -105,29 +105,18 @@ void gpu_pdata_pack(const unsigned int N,
                     const unsigned int *d_body,
                     const Scalar4 *d_orientation,
                     const unsigned int *d_tag,
-                    unsigned int *d_rtag,
+                    const unsigned int *d_rtag,
+                    Scalar4 *d_pos_alt,
+                    Scalar4 *d_vel_alt,
+                    Scalar3 *d_accel_alt,
+                    Scalar *d_charge_alt,
+                    Scalar *d_diameter_alt,
+                    int3 *d_image_alt,
+                    unsigned int *d_body_alt,
+                    Scalar4 *d_orientation_alt,
+                    unsigned int *d_tag_alt,
                     pdata_element *d_out,
-                    cached_allocator& alloc);
-
-//! Count particles to be removed
-unsigned int gpu_pdata_count_rtag_equals(const unsigned int N,
-    const unsigned int *d_tag,
-    const unsigned int *d_rtag,
-    const unsigned int compare,
-    cached_allocator& alloc);
-
-//! Remove selected particles
-unsigned int gpu_pdata_remove_particles(const unsigned int old_nparticles,
-                    Scalar4 *d_pos,
-                    Scalar4 *d_vel,
-                    Scalar3 *d_accel,
-                    Scalar *d_charge,
-                    Scalar *d_diameter,
-                    int3 *d_image,
-                    unsigned int *d_body,
-                    Scalar4 *d_orientation,
-                    unsigned int *d_tag,
-                    unsigned int *d_rtag,
+                    unsigned int max_n_out,
                     cached_allocator& alloc);
 
 //! Update particle data with new particles

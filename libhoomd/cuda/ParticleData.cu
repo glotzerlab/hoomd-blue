@@ -48,9 +48,11 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
 #include "ParticleData.cuh"
+
+#include "clipped_range.h"
 
 /*! \file ParticleData.cu
     \brief ImplementsGPU kernel code and data structure functions used by ParticleData
@@ -62,9 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/functional.h>
 #include <thrust/device_ptr.h>
-#include <thrust/copy.h>
-#include <thrust/count.h>
-#include <thrust/remove.h>
+#include <thrust/partition.h>
 
 //! A tuple of pdata pointers
 typedef thrust::tuple <
@@ -148,17 +148,17 @@ struct rtag_select_gpu
     };
 
 //! A predicate to select pdata tuples by rtag
-struct pdata_tuple_select_rtag_gpu
+struct combined_tuple_select_rtag_gpu
     {
     //! Constructor
-    pdata_tuple_select_rtag_gpu(const unsigned int *_d_rtag, const unsigned int _compare)
+    combined_tuple_select_rtag_gpu(const unsigned int *_d_rtag, const unsigned int _compare)
         :  d_rtag(_d_rtag), compare(_compare)
         { }
 
     //! Returns true if the remove flag is set for a particle
-    __device__ bool operator() (const pdata_tuple_gpu& t) const
+    __device__ bool operator() (const thrust::tuple<pdata_tuple_gpu,pdata_element>& t) const
         {
-        unsigned int tag = thrust::get<0>(t);
+        unsigned int tag = thrust::get<0>(thrust::get<0>(t));
         return d_rtag[tag] == compare;
         }
 
@@ -210,7 +210,7 @@ struct to_pdata_element_gpu : public thrust::unary_function<const pdata_tuple_gp
 
 /*! \param N Number of local particles
     \param d_pos Device array of particle positions
-    \param d_vel Device iarray of particle velocities
+    \param d_vel Device array of particle velocities
     \param d_accel Device array of particle accelerations
     \param d_charge Device array of particle charges
     \param d_diameter Device array of particle diameters
@@ -219,9 +219,20 @@ struct to_pdata_element_gpu : public thrust::unary_function<const pdata_tuple_gp
     \param d_orientation Device array of particle orientations
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
-    \param d_out Output array for packed particle ata
+    \param d_pos_alt Device array of particle positions (output)
+    \param d_vel_alt Device array of particle velocities (output)
+    \param d_accel_alt Device array of particle accelerations (output)
+    \param d_charge_alt Device array of particle charges (output)
+    \param d_diameter_alt Device array of particle diameters (output)
+    \param d_image_alt Device array of particle images (output)
+    \param d_body_alt Device array of particle body tags (output)
+    \param d_orientation_alt Device array of particle orientations (output)
+    \param d_out Output array for packed particle data
+    \param max_n_out Maximum number of elements to write to output array
+
+    \returns Number of elements marked for removal
  */
-void gpu_pdata_pack(const unsigned int N,
+unsigned int gpu_pdata_remove(const unsigned int N,
                     const Scalar4 *d_pos,
                     const Scalar4 *d_vel,
                     const Scalar3 *d_accel,
@@ -231,8 +242,18 @@ void gpu_pdata_pack(const unsigned int N,
                     const unsigned int *d_body,
                     const Scalar4 *d_orientation,
                     const unsigned int *d_tag,
-                    unsigned int *d_rtag,
+                    const unsigned int *d_rtag,
+                    Scalar4 *d_pos_alt,
+                    Scalar4 *d_vel_alt,
+                    Scalar3 *d_accel_alt,
+                    Scalar *d_charge_alt,
+                    Scalar *d_diameter_alt,
+                    int3 *d_image_alt,
+                    unsigned int *d_body_alt,
+                    Scalar4 *d_orientation_alt,
+                    unsigned int *d_tag_alt,
                     pdata_element *d_out,
+                    unsigned int max_n_out,
                     cached_allocator& alloc)
     {
     // wrap device arrays into thrust ptr
@@ -246,10 +267,21 @@ void gpu_pdata_pack(const unsigned int N,
     thrust::device_ptr<const Scalar4> orientation_ptr(d_orientation);
     thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
 
+    // wrap output device arrays into thrust ptr
+    thrust::device_ptr<Scalar4> pos_alt_ptr(d_pos_alt);
+    thrust::device_ptr<Scalar4> vel_alt_ptr(d_vel_alt);
+    thrust::device_ptr<Scalar3> accel_alt_ptr(d_accel_alt);
+    thrust::device_ptr<Scalar> charge_alt_ptr(d_charge_alt);
+    thrust::device_ptr<Scalar> diameter_alt_ptr(d_diameter_alt);
+    thrust::device_ptr<int3> image_alt_ptr(d_image_alt);
+    thrust::device_ptr<unsigned int> body_alt_ptr(d_body_alt);
+    thrust::device_ptr<Scalar4> orientation_alt_ptr(d_orientation_alt);
+    thrust::device_ptr<unsigned int> tag_alt_ptr(d_tag_alt);
+
     // wrap output array
     thrust::device_ptr<pdata_element> out_ptr(d_out);
 
-    // Construct zip iterator
+    // Construct zip iterator for input
     pdata_zip_gpu_const pdata_begin(
        thrust::make_tuple(
             tag_ptr,
@@ -264,109 +296,48 @@ void gpu_pdata_pack(const unsigned int N,
             )
         );
 
-    // set up transform iterator to compact particle data into records
-    thrust::transform_iterator<to_pdata_element_gpu, pdata_zip_gpu_const> pdata_transform(pdata_begin);
-
-    // compact selected particle elements into output array
-    thrust::copy_if(thrust::cuda::par(alloc),
-        pdata_transform, pdata_transform+N, out_ptr, pdata_element_select_gpu(d_rtag,STAGED));
-
-    // wrap rtag array
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-
-    // set up permutation iterator to point into rtags
-    thrust::permutation_iterator<
-        thrust::device_ptr<unsigned int>, thrust::device_ptr<const unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
-
-    // set all STAGED tags to NOT_LOCAL
-    thrust::replace_if(thrust::cuda::par(alloc), rtag_prm, rtag_prm + N, rtag_select_gpu(STAGED), NOT_LOCAL);
-    }
-
-/*! \param N Number of local particles
-    \param d_tag Device array of particle tags
-    \param d_rtag Device array of reverse-lookup tags
-    \param compare rtag value to compare to
- */
-unsigned int gpu_pdata_count_rtag_equals(const unsigned int N,
-    const unsigned int *d_tag,
-    const unsigned int *d_rtag,
-    const unsigned int compare,
-    cached_allocator& alloc)
-    {
-    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<const unsigned int> rtag_ptr(d_rtag);
-
-    // set up permutation iterator to point into rtags
-    thrust::permutation_iterator<
-        thrust::device_ptr<const unsigned int>, thrust::device_ptr<const unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
-
-    return thrust::count_if(thrust::cuda::par(alloc), rtag_prm, rtag_prm + N, rtag_select_gpu(compare));
-    }
-
-/*! \param old_nparticles old local particle count
-    \param d_pos Device array of particle positions
-    \param d_vel Device iarray of particle velocities
-    \param d_accel Device array of particle accelerations
-    \param d_charge Device array of particle charges
-    \param d_diameter Device array of particle diameters
-    \param d_image Device array of particle images
-    \param d_body Device array of particle body tags
-    \param d_orientation Device array of particle orientations
-    \param d_tag Device array of particle tags
-    \param d_rtag Device array for reverse-lookup table
-
-    \returns number of particles removed
-*/
-unsigned int gpu_pdata_remove_particles(const unsigned int old_nparticles,
-                    Scalar4 *d_pos,
-                    Scalar4 *d_vel,
-                    Scalar3 *d_accel,
-                    Scalar *d_charge,
-                    Scalar *d_diameter,
-                    int3 *d_image,
-                    unsigned int *d_body,
-                    Scalar4 *d_orientation,
-                    unsigned int *d_tag,
-                    unsigned int *d_rtag,
-                    cached_allocator& alloc)
-    {
-    // wrap device arrays into thrust ptr
-    thrust::device_ptr<Scalar4> pos_ptr(d_pos);
-    thrust::device_ptr<Scalar4> vel_ptr(d_vel);
-    thrust::device_ptr<Scalar3> accel_ptr(d_accel);
-    thrust::device_ptr<Scalar> charge_ptr(d_charge);
-    thrust::device_ptr<Scalar> diameter_ptr(d_diameter);
-    thrust::device_ptr<int3> image_ptr(d_image);
-    thrust::device_ptr<unsigned int> body_ptr(d_body);
-    thrust::device_ptr<Scalar4> orientation_ptr(d_orientation);
-    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-
-    // Construct zip iterator
-    pdata_zip_gpu pdata_begin(
+    // Construct zip iterator for output
+    pdata_zip_gpu pdata_alt_begin(
        thrust::make_tuple(
-            tag_ptr,
-            pos_ptr,
-            vel_ptr,
-            accel_ptr,
-            charge_ptr,
-            diameter_ptr,
-            image_ptr,
-            body_ptr,
-            orientation_ptr
+            tag_alt_ptr,
+            pos_alt_ptr,
+            vel_alt_ptr,
+            accel_alt_ptr,
+            charge_alt_ptr,
+            diameter_alt_ptr,
+            image_alt_ptr,
+            body_alt_ptr,
+            orientation_alt_ptr
             )
         );
-    pdata_zip_gpu pdata_end = pdata_begin + old_nparticles;
 
-    // wrap reverse-lookup table
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+    // set up transform iterator to compact particle data into records
+    typedef thrust::transform_iterator<to_pdata_element_gpu, pdata_zip_gpu_const > transform_it;
+    transform_it in_transform(pdata_begin);
 
-    // erase all elements for which rtag == NOT_LOCAL
-    // the array remains contiguous
-    pdata_zip_gpu new_pdata_end;
-    new_pdata_end = thrust::remove_if(thrust::cuda::par(alloc),
-        pdata_begin, pdata_end, pdata_tuple_select_rtag_gpu(d_rtag, NOT_LOCAL));
+    // Combine two input streams
+    thrust::zip_iterator<thrust::tuple<pdata_zip_gpu_const, transform_it> >
+        in(thrust::make_tuple(pdata_begin, in_transform));
 
-    return pdata_end - new_pdata_end;
+    // Output stream 1
+    typedef thrust::zip_iterator<thrust::tuple< thrust::discard_iterator< >, thrust::device_ptr<pdata_element> > >
+        out_it_1;
+    out_it_1 out_1(thrust::make_tuple(thrust::make_discard_iterator(), out_ptr));
+
+    // Output stream 2
+    typedef thrust::zip_iterator<thrust::tuple< pdata_zip_gpu, thrust::discard_iterator<> > > out_it_2;
+    out_it_2 out_2(thrust::make_tuple(pdata_alt_begin, thrust::make_discard_iterator()));
+
+    // Clip output stream 1
+    clipped_range<out_it_1> clip(out_1, out_1 + max_n_out);
+
+    // partition input into two outputs (local particles and removed particles)
+    thrust::pair<clipped_range<out_it_1>::iterator, out_it_2> res =
+        thrust::partition_copy(thrust::cuda::par(alloc),
+        in, in+N, clip.begin(), out_2, combined_tuple_select_rtag_gpu(d_rtag,NOT_LOCAL));
+
+    // return elements written to output stream
+    return res.first - clip.begin();
     }
 
 /*! \param old_nparticles old local particle count

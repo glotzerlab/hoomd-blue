@@ -377,7 +377,7 @@ std::string ParticleData::getNameByType(unsigned int type) const
 
 /*! \param N Number of particles to allocate memory for
     \pre No memory is allocated and the per-particle GPUArrays are unitialized
-    \post All per-perticle GPUArrays are allocated
+    \post All per-particle GPUArrays are allocated
 */
 void ParticleData::allocate(unsigned int N)
     {
@@ -433,9 +433,58 @@ void ParticleData::allocate(unsigned int N)
     m_orientation.swap(orientation);
     m_inertia_tensor.resize(N);
 
+    // allocate alternate particle data arrays (for swapping in-out)
+    allocateAlternateArrays(N);
+
     // notify observers
     m_max_particle_num_signal();
     }
+
+/*! \param N Number of particles to allocate memory for
+    \pre No memory is allocated and the alternate per-particle GPUArrays are unitialized
+    \post All alternate per-particle GPUArrays are allocated
+*/
+void ParticleData::allocateAlternateArrays(unsigned int N)
+    {
+    assert(N>0);
+
+    // positions
+    GPUArray< Scalar4 > pos_alt(N, m_exec_conf);
+    m_pos_alt.swap(pos_alt);
+
+    // velocities
+    GPUArray< Scalar4 > vel_alt(N, m_exec_conf);
+    m_vel_alt.swap(vel_alt);
+
+    // accelerations
+    GPUArray< Scalar3 > accel_alt(N, m_exec_conf);
+    m_accel_alt.swap(accel_alt);
+
+    // charge
+    GPUArray< Scalar > charge_alt(N, m_exec_conf);
+    m_charge_alt.swap(charge_alt);
+
+    // diameter
+    GPUArray< Scalar > diameter_alt(N, m_exec_conf);
+    m_diameter_alt.swap(diameter_alt);
+
+    // image
+    GPUArray< int3 > image_alt(N, m_exec_conf);
+    m_image_alt.swap(image_alt);
+
+    // global tag
+    GPUArray< unsigned int> tag_alt(N, m_exec_conf);
+    m_tag_alt.swap(tag_alt);
+
+    // body ID
+    GPUArray< unsigned int > body_alt(N, m_exec_conf);
+    m_body_alt.swap(body_alt);
+
+    // orientation
+    GPUArray< Scalar4 > orientation_alt(N, m_exec_conf);
+    m_orientation_alt.swap(orientation_alt);
+    }
+
 
 //! Set global number of particles
 /*! \param nglobal Global number of particles
@@ -514,6 +563,20 @@ void ParticleData::reallocate(unsigned int max_n)
     m_net_torque.resize(max_n);
     m_orientation.resize(max_n);
     m_inertia_tensor.resize(max_n);
+
+    if (! m_pos_alt.isNull())
+        {
+        // reallocate alternate arrays
+        m_pos_alt.resize(max_n);
+        m_vel_alt.resize(max_n);
+        m_accel_alt.resize(max_n);
+        m_charge_alt.resize(max_n);
+        m_diameter_alt.resize(max_n);
+        m_image_alt.resize(max_n);
+        m_tag_alt.resize(max_n);
+        m_body_alt.resize(max_n);
+        m_orientation_alt.resize(max_n);
+        }
 
     // notify observers
     m_max_particle_num_signal();
@@ -1925,102 +1988,108 @@ void ParticleData::addRemoveParticles(const std::vector<pdata_element>& in)
 
 #ifdef ENABLE_CUDA
 //! Pack particle data into a buffer (GPU version)
-void ParticleData::retrieveParticlesGPU(GPUVector<pdata_element>& out)
+void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
     {
     if (m_prof) m_prof->push(m_exec_conf, "pack");
-    unsigned int num_retrieve_ptls = 0;
+
+    // this is the maximum number of elements we can possibly write to out
+    unsigned int max_n_out = out.getNumElements();
+
+    // allocate array if necessary
+    if (! max_n_out)
         {
-        // access particle data tags and rtags
-        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::read);
-
-        // count particles to be removed
-        num_retrieve_ptls = gpu_pdata_count_rtag_equals(getN(), d_tag.data, d_rtag.data,STAGED,m_cached_alloc);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+        out.resize(1);
+        max_n_out = out.getNumElements();
         }
 
-    // resize output vector
-    out.resize(num_retrieve_ptls);
+    // number of particles that are to be written out
+    unsigned int n_out = 0;
 
-    // access particle data arrays
-    ArrayHandle<Scalar4> d_pos(getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_vel(getVelocities(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar3> d_accel(getAccelerations(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_charge(getCharges(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
+    bool done = false;
 
-    // Access reverse-lookup table
-    ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
+    // copy without writing past the end of the output array, resizing it as needed
+    while (! done)
+        {
+        // access particle data arrays to read from
+        ArrayHandle<Scalar4> d_pos(getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_vel(getVelocities(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_accel(getAccelerations(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_charge(getCharges(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_diameter(getDiameters(), access_location::device, access_mode::read);
+        ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
 
+        // access alternate particle data arrays to write to
+        ArrayHandle<Scalar4> d_pos_alt(m_pos_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_vel_alt(m_vel_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar3> d_accel_alt(m_accel_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_charge_alt(m_charge_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_diameter_alt(m_diameter_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<int3> d_image_alt(m_image_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_body_alt(m_body_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_orientation_alt(m_orientation_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
 
-    // Access output array
-    ArrayHandle<pdata_element> d_out(out, access_location::device, access_mode::readwrite);
-    gpu_pdata_pack(getN(),
-                   d_pos.data,
-                   d_vel.data,
-                   d_accel.data,
-                   d_charge.data,
-                   d_diameter.data,
-                   d_image.data,
-                   d_body.data,
-                   d_orientation.data,
-                   d_tag.data,
-                   d_rtag.data,
-                   d_out.data,
-                   m_cached_alloc);
+        // Access reverse-lookup table
+        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::read);
 
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+            {
+            // Access output array
+            ArrayHandle<pdata_element> d_out(out, access_location::device, access_mode::overwrite);
+
+            n_out = gpu_pdata_remove(getN(),
+                           d_pos.data,
+                           d_vel.data,
+                           d_accel.data,
+                           d_charge.data,
+                           d_diameter.data,
+                           d_image.data,
+                           d_body.data,
+                           d_orientation.data,
+                           d_tag.data,
+                           d_rtag.data,
+                           d_pos_alt.data,
+                           d_vel_alt.data,
+                           d_accel_alt.data,
+                           d_charge_alt.data,
+                           d_diameter_alt.data,
+                           d_image_alt.data,
+                           d_body_alt.data,
+                           d_orientation_alt.data,
+                           d_tag_alt.data,
+                           d_out.data,
+                           max_n_out,
+                           m_cached_alloc);
+           }
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+
+        // resize output vector
+        out.resize(n_out);
+
+        // was the array large enough?
+        if (n_out <= max_n_out)
+            done = true;
+        else
+            max_n_out = out.getNumElements();
+        }
+
+    // update particle number (no need to shrink arrays)
+    m_nparticles -= n_out;
+
+    // swap particle data arrays
+    swap();
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-//! Remove particles from local domain and add new particle data (GPU version)
-void ParticleData::addRemoveParticlesGPU(const GPUVector<pdata_element>& in)
+//! Add new particle data (GPU version)
+void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
     {
     if (m_prof) m_prof->push(m_exec_conf, "unpack/remove");
 
-    unsigned int num_remove_ptls;
-
-        {
-        // access particle data arrays
-        ArrayHandle<Scalar4> d_pos(getPositions(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_vel(getVelocities(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar3> d_accel(getAccelerations(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_charge(getCharges(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_diameter(getDiameters(), access_location::device, access_mode::readwrite);
-        ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
-
-        // remove particles on GPU
-        num_remove_ptls = gpu_pdata_remove_particles(
-            getN(),
-            d_pos.data,
-            d_vel.data,
-            d_accel.data,
-            d_charge.data,
-            d_diameter.data,
-            d_image.data,
-            d_body.data,
-            d_orientation.data,
-            d_tag.data,
-            d_rtag.data,
-            m_cached_alloc);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        }
-
-    unsigned int old_nparticles = getN() - num_remove_ptls;
+    unsigned int old_nparticles = getN();
     unsigned int num_add_ptls = in.size();
     unsigned int new_nparticles = old_nparticles + num_add_ptls;
 

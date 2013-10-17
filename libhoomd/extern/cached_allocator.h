@@ -14,7 +14,11 @@
 #include <thrust/system/cuda/execution_policy.h>
 #include <map>
 
-#define MAX_CACHED_BYTES 250*1024*1024
+// 100 MB max cache
+#define MAX_CACHED_BYTES 100*1024*1024
+
+// to use a cached allocation, it may be larger than the requested size by a relative tolerance
+#define CACHE_RELTOL 0.1
 
 /* From the original documentation:
 
@@ -55,7 +59,8 @@ class cached_allocator
       // search the cache for a free block
       free_blocks_type::iterator free_block = free_blocks.lower_bound(num_bytes);
 
-      if(free_block != free_blocks.end())
+      if(free_block != free_blocks.end()
+         && free_block->first <= ((unsigned int)((float)num_bytes*(1.0+CACHE_RELTOL))))
       {
         //std::cout << "cached_allocator::allocator(): found a hit" << std::endl;
 
@@ -74,14 +79,15 @@ class cached_allocator
         // throw if cuda::malloc can't satisfy the request
         try
         {
-          //std::cout << "cached_allocator::allocator(): no free block found; calling cuda::malloc" << std::endl;
+          //std::cout << "cached_allocator::allocator(): no free block found; calling cuda::malloc ("
+          //          << num_bytes << " bytes)" << std::endl;
 
           // allocate memory and convert cuda::pointer to raw pointer
           result = thrust::cuda::malloc<char>(num_bytes).get();
 
           num_bytes_tot += num_bytes;
 
-          while (num_bytes_tot >= MAX_CACHED_BYTES)
+          while (num_bytes_tot > MAX_CACHED_BYTES && free_blocks.size())
             {
             // eliminate first free blocks
             free_blocks_type::iterator i = free_blocks.begin();

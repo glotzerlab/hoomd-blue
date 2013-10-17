@@ -97,7 +97,8 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned char *d_is_member,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_tag,
-                                   unsigned int &num_local_members)
+                                   unsigned int &num_local_members,
+                                   cached_allocator& alloc)
     {
     assert(d_is_member);
     assert(d_is_member_tag);
@@ -116,7 +117,8 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
     thrust::counting_iterator<unsigned int> idx(0);
 
     // fill member_idx array
-    num_local_members = thrust::copy_if(idx, idx + N, is_member_ptr, member_idx_ptr, thrust::identity<unsigned char>()) - member_idx_ptr;
+    num_local_members = thrust::copy_if(thrust::cuda::par(alloc),
+        idx, idx + N, is_member_ptr, member_idx_ptr, thrust::identity<unsigned char>()) - member_idx_ptr;
 
     return cudaSuccess;
     }

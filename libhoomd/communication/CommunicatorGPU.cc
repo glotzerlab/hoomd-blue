@@ -496,7 +496,7 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
 
-            // mark all particles which have left the box for sending (rtag=STAGED)
+            // mark all particles which have left the box for sending (rtag=NOT_LOCAL)
             gpu_stage_particles(m_pdata->getN(),
                 d_pos.data,
                 d_tag.data,
@@ -535,7 +535,7 @@ void CommunicatorGPU::migrateParticles()
             }
 
         // fill send buffer
-        m_pdata->retrieveParticlesGPU(m_gpu_sendbuf);
+        m_pdata->removeParticlesGPU(m_gpu_sendbuf);
 
         // rank of processor to which we send the data
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
@@ -599,7 +599,7 @@ void CommunicatorGPU::migrateParticles()
             }
 
         // remove particles that were sent and fill particle data with received particles
-        m_pdata->addRemoveParticlesGPU(m_gpu_recvbuf);
+        m_pdata->addParticlesGPU(m_gpu_recvbuf);
 
         /*
          * Communicate bonds

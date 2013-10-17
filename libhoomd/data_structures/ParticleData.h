@@ -761,19 +761,21 @@ class ParticleData : boost::noncopyable
         //! Pack particle data into a buffer (GPU version)
         /*! \param out Buffer into which particle data is packed
          *
-         *  Packs all particles for which rtag==STAGED into a buffer and marks them
-         *  for removal (rtag = NOT_LOCAL)
+         *  Packs all particles for which rtag==STAGED into a buffer
+         *  and removes them from the particle data
          *
          *  The out buffer is automatically resized to accomodate the data.
+         *
+         *  \post The particle data arrays remain compact. Any ghost atoms
+         *        are invalidated. (call removeAllGhostAtoms() before or after
+         *        this method)
          */
-        void retrieveParticlesGPU(GPUVector<pdata_element>& out);
+        void removeParticlesGPU(GPUVector<pdata_element>& out);
 
         //! Remove particles from local domain and add new particle data (GPU version)
         /*! \param in List of particle data elements to fill the particle data with
-         *
-         * Particles marked with the rtag==NOT_LOCAL are removed
          */
-        void addRemoveParticlesGPU(const GPUVector<pdata_element>& in);
+        void addParticlesGPU(const GPUVector<pdata_element>& in);
         #endif // ENABLE_CUDA
 
 #endif // ENABLE_MPI
@@ -795,6 +797,32 @@ class ParticleData : boost::noncopyable
             {
             m_origin = make_scalar3(0,0,0);
             m_o_image = make_int3(0,0,0);
+            }
+
+        //! Swap between main and alternate particle data arrays
+        /*! This enables fast swapping-in of previously initialized data.
+
+            \post The main particle data arrays eflect the content of the
+            alternate pdata arrays, and vice versa.
+
+            \warning If the alternate particle data arrays are uninitialized
+            before the swap(), the particle data arrays will be unitiailized after
+            the swap() as a consequence.
+
+            \note swap() doesn't change the actual particle data, it's action
+            can be completely reversed by a second swap().
+         */
+        void swap()
+            {
+            m_pos.swap(m_pos_alt);
+            m_vel.swap(m_vel_alt);
+            m_accel.swap(m_accel_alt);
+            m_charge.swap(m_charge_alt);
+            m_diameter.swap(m_diameter_alt);
+            m_image.swap(m_image_alt);
+            m_tag.swap(m_tag_alt);
+            m_body.swap(m_body_alt);
+            m_orientation.swap(m_orientation_alt);
             }
 
     private:
@@ -831,13 +859,32 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_tag;               //!< particle tags
         GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
+        GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
+
+        /* Alternate particle data arrays are provided for fast swapping in and out of particle data
+           The size of these arrays is updated in sync with the main particle data arrays.
+
+           The primary use case is when particle data has to be re-ordered in-place, i.e.
+           a temporary array would otherwise be required. Instead of writing to a temporary
+           array and copying to the main particle data subsequently, the re-ordered particle
+           data can be written to the alternate arrays, which are then swapped in for
+           the real particle data at effectively zero cost.
+         */
+        GPUArray<Scalar4> m_pos_alt;                //!< particle positions and type (swap-in)
+        GPUArray<Scalar4> m_vel_alt;                //!< particle velocities and masses (swap-in)
+        GPUArray<Scalar3> m_accel_alt;              //!< particle accelerations (swap-in)
+        GPUArray<Scalar> m_charge_alt;              //!< particle charges (swap-in)
+        GPUArray<Scalar> m_diameter_alt;            //!< particle diameters (swap-in)
+        GPUArray<int3> m_image_alt;                 //!< particle images (swap-in)
+        GPUArray<unsigned int> m_tag_alt;           //!< particle tags (swap-in)
+        GPUArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
+        GPUArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
 
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
 
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
         GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)
         GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
-        GPUArray< Scalar4 > m_orientation;           //!< Orientation quaternion for each particle (ignored if not anisotropic)
         std::vector< InertiaTensor > m_inertia_tensor; //!< Inertia tensor for each particle
 
         Scalar m_external_virial[6];                 //!< External potential contribution to the virial
@@ -853,6 +900,9 @@ class ParticleData : boost::noncopyable
 
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
+
+        //! Helper function to allocate alternate particle data
+        void allocateAlternateArrays(unsigned int N);
 
         //! Helper function for amortized array resizing
         void resize(unsigned int new_nparticles);
