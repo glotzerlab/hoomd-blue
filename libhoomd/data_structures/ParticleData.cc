@@ -2081,6 +2081,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
     // swap particle data arrays
     swap();
 
+    // notify subscribers
+    notifyParticleSort();
+
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
@@ -2133,11 +2136,10 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
             CHECK_CUDA_ERROR();
         }
 
-    if (m_prof) m_prof->pop(m_exec_conf);
-
-    // notify subscribers that particle data order has been changed
+    // notify subscribers
     notifyParticleSort();
 
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 #endif // ENABLE_CUDA

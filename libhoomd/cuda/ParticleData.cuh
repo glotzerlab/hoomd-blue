@@ -134,4 +134,11 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
                     cached_allocator& alloc);
+
+//! Compute new reverse-lookup table
+void gpu_pdata_compute_rtags(
+    unsigned int nparticles,
+    const unsigned int *d_tag,
+    unsigned int *d_rtag,
+    cached_allocator &alloc);
 #endif

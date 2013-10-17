@@ -761,14 +761,14 @@ class ParticleData : boost::noncopyable
         //! Pack particle data into a buffer (GPU version)
         /*! \param out Buffer into which particle data is packed
          *
-         *  Packs all particles for which rtag==STAGED into a buffer
-         *  and removes them from the particle data
+         *  Pack all particles for which rtag==NOT_LOCAL into a buffer
+         *  and remove them from the particle data
          *
          *  The out buffer is automatically resized to accomodate the data.
          *
          *  \post The particle data arrays remain compact. Any ghost atoms
          *        are invalidated. (call removeAllGhostAtoms() before or after
-         *        this method)
+         *        this method).
          */
         void removeParticlesGPU(GPUVector<pdata_element>& out);
 
