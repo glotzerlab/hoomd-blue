@@ -24,8 +24,7 @@ add_custom_command (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/index.htm
                     COMMAND ${DOXYGEN} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
                     DEPENDS
                     ${SOURCE_FILES}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
-                    ${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml)
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
 
 add_custom_target (${PROJECT_NAME}_doc ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/index.html)
 
