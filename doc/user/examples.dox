@@ -433,7 +433,6 @@ via function evaluation.
 To specify a potential in a file, first write a file that lists \f$ V(r) \f$ and \f$ F(r) \f$ in the following form:
 \snippet bond_table.dat start
 ...
-\snippet bond_table.dat end
 
 The first column lists all the *r* values. The first *r* value in the file is taken to be *rmin*. The last
 is *rmax*. All values in-between must be evenly spaced and monotonically increasing. The second column specifies
