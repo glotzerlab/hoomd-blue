@@ -515,7 +515,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         {
         f << "<orientation num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
 
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             Scalar4 orientation = snapshot.orientation[j];
