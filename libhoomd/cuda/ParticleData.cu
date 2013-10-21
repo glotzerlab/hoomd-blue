@@ -188,35 +188,6 @@ struct to_pdata_element_gpu : public thrust::unary_function<const pdata_tuple_gp
         }
     };
 
-//! Global cached allocator
-cached_allocator g_pdata_alloc;
-
-namespace thrust
-    {
-    // overload get_temporary_buffer on cuda::tag due to bug in thrust
-    // its job is to forward allocation requests to g_pdata_allocator
-    template<typename T>
-      thrust::pair<T*, std::ptrdiff_t>
-        get_temporary_buffer(thrust::cuda::tag, std::ptrdiff_t n)
-        {
-        // ask the allocator for sizeof(T) * n bytes
-        T* result = reinterpret_cast<T*>(g_pdata_alloc.allocate(sizeof(T) * n));
-        // return the pointer and the number of elements allocated
-        return thrust::make_pair(result,n);
-        }
-
-    // overload return_temporary_buffer on cuda::tag
-    // its job is to forward deallocations to g_pdata_allocator
-    // an overloaded return_temporary_buffer should always accompany
-    // an overloaded get_temporary_buffer
-    template<typename Pointer>
-      void return_temporary_buffer(thrust::cuda::tag, Pointer p)
-        {
-        // return the pointer to the allocator
-        g_pdata_alloc.deallocate((char *)thrust::raw_pointer_cast(p),0);
-        }
-    }
-
 /*! \param N Number of local particles
     \param d_pos Device array of particle positions
     \param d_vel Device array of particle velocities
