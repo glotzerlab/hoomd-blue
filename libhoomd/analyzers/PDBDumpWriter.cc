@@ -241,7 +241,7 @@ void PDBDumpWriter::writeFile(std::string fname)
             }
 
         // grab the bond data
-        shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+        boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
         for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
             {
             Bond bond = bond_data->getBond(i);

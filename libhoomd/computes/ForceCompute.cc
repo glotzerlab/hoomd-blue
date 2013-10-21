@@ -344,7 +344,7 @@ class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
     public:
         //! Constructor
         /*! \param sysdef Particle data passed to the base class */
-        ForceComputeWrap(shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef) { }
+        ForceComputeWrap(boost::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef) { }
     protected:
         //! Calls the overidden ForceCompute::computeForces()
         /*! \param timestep parameter to pass on to the overidden method
