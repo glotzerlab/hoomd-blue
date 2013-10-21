@@ -103,21 +103,10 @@ typedef float4 Scalar4;
 typedef double Scalar;
 //! Floating point type with x,y elements (double precision)
 typedef double2 Scalar2;
-//! Floating point type with x,y,z elements
-struct Scalar3
-    {
-    double x;   //!< x component
-    double y;   //!< y component
-    double z;   //!< z component
-    };
+//! Floating point type with x,y,z elements (double precision)
+typedef double3 Scalar3;
 //! Floating point type with x,y,z,w elements (double precision)
-struct Scalar4
-    {
-    double x;   //!< x component
-    double y;   //!< y component
-    double z;   //!< z component
-    double w;   //!< w component
-    };
+typedef double4 Scalar4;
 #endif
 
 //! make a scalar2 value
