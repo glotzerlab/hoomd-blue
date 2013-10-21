@@ -102,7 +102,7 @@ class SnapshotSystemData;
     \b good \b thing ^TM, as it promotes good separation and isolation of the various classes responsibilities.
 
     In rare circumstances, a references back really is required (i.e. notification of referring classes when
-    ParticleData resorts particles). Any event based notifications of such should be managed with boost::signals.
+    ParticleData resorts particles). Any event based notifications of such should be managed with boost::signals2.
     Any ongoing references where two data structure classes are so interwoven that they must constantly refer to
     each other should be avoided (consider merging them into one class).
 

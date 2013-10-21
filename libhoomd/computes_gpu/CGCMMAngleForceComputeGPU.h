@@ -59,7 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMAngleForceGPU.cuh"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 
 /*! \file HarmonicAngleForceComputeGPU.h
     \brief Declares the HarmonicAngleForceGPU class

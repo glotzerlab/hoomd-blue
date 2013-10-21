@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 #include "GPUArray.h"
 #include "GPUFlags.h"
 
@@ -373,8 +373,8 @@ class CellList : public Compute
         GPUArray<Scalar4> m_orientation;     //!< Cell list with orientation
         GPUArray<unsigned int> m_idx;        //!< Cell list with index
         GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
-        boost::signals::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
-        boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
+        boost::signals2::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
+        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
 
         //! Computes what the dimensions should me
         uint3 computeDimensions();

@@ -479,7 +479,7 @@ class RigidData
     private:
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data with which this RigidData is associated
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
-        boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+        boost::signals2::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
 
         //! \name static data members (set on initialization)
         //@{

@@ -71,7 +71,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DomainDecomposition.h"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 
 /*! \ingroup hoomd_lib
     @{
@@ -183,7 +183,7 @@ typedef std::bitset<32> CommFlags;
 //! Perform a logical or operation on the return values of several signals
 struct migrate_logical_or
     {
-    //! This is needed by boost::signals
+    //! This is needed by boost::signals2
     typedef bool result_type;
 
     //! Combine return values using logical or
@@ -291,7 +291,7 @@ class Communicator
         /*! This method keeps track of all functions that may request particle migration.
          * \return A connection to the present class
          */
-        boost::signals::connection addMigrateRequest(const boost::function<bool (unsigned int timestep)>& subscriber)
+        boost::signals2::connection addMigrateRequest(const boost::function<bool (unsigned int timestep)>& subscriber)
             {
             return m_migrate_requests.connect(subscriber);
             }
@@ -511,7 +511,7 @@ class Communicator
 
         GPUVector<unsigned char> m_plan;         //!< Array of per-direction flags that determine the sending route
 
-        boost::signal<bool(unsigned int timestep), migrate_logical_or>
+        boost::signals2::signal<bool(unsigned int timestep), migrate_logical_or>
             m_migrate_requests; //!< List of functions that may request particle migration
 
         RoutingTable m_routing_table;            //!< The routing table

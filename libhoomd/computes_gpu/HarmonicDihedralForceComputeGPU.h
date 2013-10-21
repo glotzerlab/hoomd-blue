@@ -59,7 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicDihedralForceGPU.cuh"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 
 /*! \file HarmonicDihedralForceComputeGPU.h
     \brief Declares the HarmonicDihedralForceGPU class

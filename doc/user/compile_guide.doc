@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-/*! 
+/*!
 \page page_compile_guide Compiling HOOMD-blue
 
 Table of contents:
@@ -67,7 +67,7 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
 
 - Required to compile:
   - Python >= 2.3
-  - boost >= 1.32.0
+  - boost >= 1.39.0
   - CMake >= 2.6.2
   - C++ Compiler (must be compatible with CUDA)
   - CUDA Toolkit >= 4.0
@@ -101,29 +101,29 @@ directory and run
 or run cmake-gui and point it to your build directory. After changing an option, press c to configure then press g to
 generate. The makefile/IDE project is now updated with the newly selected options.
  - \b BUILD_TESTING - Enables the compilation of unit tests
- - \b CMAKE_BUILD_TYPE - sets the build type (Makefile generation only, XCode and 
- 		Visual Studio can change the build type from within their GUIs)
-	- \b Debug - Compiles debug information into the library and executables. 
-		Enables asserts to check for programming mistakes. HOOMD-blue will run 
-		\e very slow if compiled in Debug mode, but problems are easier to
-		identify.
-	- \b Release - All compiler optimizations are enabled and asserts are removed.
-		Recommended for production builds: required for any benchmarking.
+ - \b CMAKE_BUILD_TYPE - sets the build type (Makefile generation only, XCode and
+         Visual Studio can change the build type from within their GUIs)
+    - \b Debug - Compiles debug information into the library and executables.
+        Enables asserts to check for programming mistakes. HOOMD-blue will run
+        \e very slow if compiled in Debug mode, but problems are easier to
+        identify.
+    - \b Release - All compiler optimizations are enabled and asserts are removed.
+        Recommended for production builds: required for any benchmarking.
  - \b ENABLE_CUDA - Enable compiling of the GPU accelerated computations using CUDA
- 	- Requires the CUDA Toolkit to be installed
+     - Requires the CUDA Toolkit to be installed
  - \b ENABLE_DOXYGEN - enables the generation of detailed user and developer documentation
- 	- Requires doxygen to be installed
-	- Defaults to off if doxygen is older than 1.5.6. You can manually turn it on, but expect doxygen errors
-		and possible missing output from the generated documentation.
+     - Requires doxygen to be installed
+    - Defaults to off if doxygen is older than 1.5.6. You can manually turn it on, but expect doxygen errors
+        and possible missing output from the generated documentation.
  - \b ENABLE_OCELOT - compiles hoomd against ocelot instead of the CUDA runtime
  - \b ENABLE_OPENMP - enables the generation of a multi-core capable hoomd using OpenMP. Can only be enabled if your
         compiler supports OpenMP.
  - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging.
  - \b ENABLE_ZLIB - Links hoomd to libz (must be available) and enables direct writing of zlib compressed files from dump.bin
  - \b SINGLE_PRECISION - Controls precision
- 	- When set to \b ON, all calculations are performed in single precision.
- 	- When set to \b OFF, all calculations are performed in double precision. 
- 	- Must be set to \b ON to enable the \b ENABLE_CUDA option (HOOMD-blue has not yet been updated to perform double precision calculations)
+     - When set to \b ON, all calculations are performed in single precision.
+     - When set to \b OFF, all calculations are performed in double precision.
+     - Must be set to \b ON to enable the \b ENABLE_CUDA option (HOOMD-blue has not yet been updated to perform double precision calculations)
  - \b ENABLE_MPI - Enable multi-processor/GPU simulations using MPI
     - Requires an MPI library to be installed
     - When set to \b ON (default if any MPI library is found automatically by CMake), multi-GPU simulations are supported
@@ -149,28 +149,28 @@ There are a few options for controlling the CUDA compilation.
 The following are advanced variables, and thus will only show when CMake's advanced mode is turned on.
 You really shouldn't change these from their defaults unless you really know what you are doing.
  - \b ENABLE_STATIC - Controls the compiling and linking of static libraries
- 	- When set to \b ON, \b libhoomd is compiled as a static library and all 
- 		other libraries (i.e. boost) are linked statically if possible.
- 	- When set to \b OFF, \b libhoomd is compiled as a dynamic library and all
- 		other libraries are linked dynamically if possible.
- 	- Note 2: \b ENABLE_STATIC defaults OFF and can only be set ON from the command line 
- 		and when configuring a clean build directory.
-		Example:
- 		\code ccmake -D ENABLE_STATIC=ON ../hoomd
- 		\endcode
+     - When set to \b ON, \b libhoomd is compiled as a static library and all
+         other libraries (i.e. boost) are linked statically if possible.
+     - When set to \b OFF, \b libhoomd is compiled as a dynamic library and all
+         other libraries are linked dynamically if possible.
+     - Note 2: \b ENABLE_STATIC defaults OFF and can only be set ON from the command line
+         and when configuring a clean build directory.
+        Example:
+         \code ccmake -D ENABLE_STATIC=ON ../hoomd
+         \endcode
 
 \section sec_build_plugin Building a plugin for HOOMD-blue
 
-There are several methods that can be used to build code that interfaces with hoomd. 
+There are several methods that can be used to build code that interfaces with hoomd.
 
 <b>Method 1: Build an executable that uses hoomd as a library</b><br>
 
-First, understand that building an executable linked to hoomd for the purposes of running a simulation is not a 
+First, understand that building an executable linked to hoomd for the purposes of running a simulation is not a
 supported configuration. The developers will not respond to or fix bugs found while using such a setup. There are many
 levels of configuration and performance tuning that are handled at the python script level, and the C++ API is mainly
 designed to interface with python.
 
-However, there are many cases when building a simple quick test executable is desirable (i.e. to test or debug a new 
+However, there are many cases when building a simple quick test executable is desirable (i.e. to test or debug a new
 feature that does not yet have a python interface). So a simple method to build such executables is provided.
 
 To setup for use:
@@ -225,7 +225,7 @@ $ g++ -o test test.cc `hoomd-config.sh --cflags --libs`
 
 <b>Method 2: Write a full-fledged plugin in python only</b><br>
 
-Some plugins can be implemented fully in python, providing high-level code for configuring or running simulations. 
+Some plugins can be implemented fully in python, providing high-level code for configuring or running simulations.
 
 In order to use such a plugin, one must first:
  -# Compile hoomd normally
@@ -258,7 +258,7 @@ plugin_name.whatever(...)
 
 <b>Method 3: Write a full-fledged plugin with C++ code included</b><br>
 
-For high performance, execution on the GPU, or other reasons, part of a plugin can be written in C++. To write a plugin 
+For high performance, execution on the GPU, or other reasons, part of a plugin can be written in C++. To write a plugin
 that incorporates such code, 'make install' hoomd as normal. Then copy the
 directory hoomd_install_location/share/hoomd/plugin_template_cpp to a new working space and modify it to implement your
 plugin. See the README file in that directory for full documentation. Examples of new pair and bond potentials

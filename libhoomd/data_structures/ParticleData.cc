@@ -82,7 +82,7 @@ using namespace boost::python;
 
 #include <boost/bind.hpp>
 
-using namespace boost::signals;
+using namespace boost::signals2;
 using namespace boost;
 
 ////////////////////////////////////////////////////////////////////////////
@@ -261,13 +261,13 @@ const BoxDim & ParticleData::getGlobalBox() const
 
 /*! \param func Function to call when the particles are resorted
     \return Connection to manage the signal/slot connection
-    Calls are performed by using boost::signals. The function passed in
+    Calls are performed by using boost::signals2. The function passed in
     \a func will be called every time the ParticleData is notified of a particle
     sort via notifyParticleSort().
     \note If the caller class is destroyed, it needs to disconnect the signal connection
     via \b con.disconnect where \b con is the return value of this function.
 */
-boost::signals::connection ParticleData::connectParticleSort(const boost::function<void ()> &func)
+boost::signals2::connection ParticleData::connectParticleSort(const boost::function<void ()> &func)
     {
     return m_sort_signal.connect(func);
     }
@@ -282,12 +282,12 @@ void ParticleData::notifyParticleSort()
 
 /*! \param func Function to call when the box size changes
     \return Connection to manage the signal/slot connection
-    Calls are performed by using boost::signals. The function passed in
+    Calls are performed by using boost::signals2. The function passed in
     \a func will be called every time the the box size is changed via setGlobalBoxL()
     \note If the caller class is destroyed, it needs to disconnect the signal connection
     via \b con.disconnect where \b con is the return value of this function.
 */
-boost::signals::connection ParticleData::connectBoxChange(const boost::function<void ()> &func)
+boost::signals2::connection ParticleData::connectBoxChange(const boost::function<void ()> &func)
     {
     return m_boxchange_signal.connect(func);
     }
@@ -307,7 +307,7 @@ boost::signals::connection ParticleData::connectBoxChange(const boost::function<
           and notifyParticleSort() needs to be called separately after all particle data is available
           on the local processor.
 */
-boost::signals::connection ParticleData::connectMaxParticleNumberChange(const boost::function<void ()> &func)
+boost::signals2::connection ParticleData::connectMaxParticleNumberChange(const boost::function<void ()> &func)
     {
     return m_max_particle_num_signal.connect(func);
     }
@@ -315,7 +315,7 @@ boost::signals::connection ParticleData::connectMaxParticleNumberChange(const bo
 /*! \param func Function to be called when the number of ghost particles changes
     \return Connection to manage the signal
  */
-boost::signals::connection ParticleData::connectGhostParticleNumberChange(const boost::function<void ()> &func)
+boost::signals2::connection ParticleData::connectGhostParticleNumberChange(const boost::function<void ()> &func)
     {
     return m_ghost_particle_num_signal.connect(func);
     }
