@@ -63,6 +63,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "System.h"
 
 #include <boost/python.hpp>
+#include <algorithm>
+#include <functional>
+
 using namespace boost::python;
 
 //! Constructor
@@ -400,6 +403,9 @@ void CommunicatorGPU::allocateBuffers()
 
         // remove duplicates
         m_nneigh = std::unique(h_neighbors.data, h_neighbors.data + m_nneigh) - h_neighbors.data;
+
+        // sort neighbors
+        std::sort(h_neighbors.data, h_neighbors.data+m_nneigh);
         }
 
     // Allocate buffers for bond migration
@@ -526,6 +532,72 @@ void CommunicatorGPU::allocateBuffers()
     m_buffers_allocated = true;
     }
 
+//! Select a particle for migration
+struct get_migrate_key : public std::unary_function<const pdata_element, std::pair<unsigned int, pdata_element> >
+    {
+    const BoxDim box;       //!< Local simulation box dimensions
+    const uint3 my_pos;     //!< My domain decomposition position
+    const Index3D di;             //!< Domain indexer
+
+    //! Constructor
+    /*!
+     */
+    get_migrate_key(const BoxDim & _box, const uint3 _my_pos, const Index3D _di)
+        : box(_box), my_pos(_my_pos), di(_di)
+        { }
+
+    //! Generate key for a sent particle
+    __host__ __device__ std::pair<unsigned int, pdata_element> operator()(const pdata_element p)
+        {
+        Scalar4 postype = p.pos;
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+        Scalar3 f = box.makeFraction(pos);
+
+        int ix, iy, iz;
+        ix = iy = iz = 0;
+
+        if (f.x >= Scalar(.995))
+            ix = 1;
+        else if (f.x < Scalar(0.005))
+            ix = -1;
+
+        if (f.y >= Scalar(.995))
+            iy = 1;
+        else if (f.y < Scalar(0.005))
+            iy = -1;
+
+        if (f.z >= Scalar(.995))
+            iz = 1;
+        else if (f.z < Scalar(0.005))
+            iz = -1;
+
+        int i = my_pos.x;
+        int j = my_pos.y;
+        int k = my_pos.z;
+
+        i += ix;
+        if (i == di.getW())
+            i = 0;
+        else if (i < 0)
+            i += di.getW();
+
+        j += iy;
+        if (j == di.getH())
+            j = 0;
+        else if (j < 0)
+            j += di.getH();
+
+        k += iz;
+        if (k == di.getD())
+            k = 0;
+        else if (k < 0)
+            k += di.getD();
+
+        return std::pair<unsigned int,pdata_element>(di(i,j,k),p);
+        }
+
+     };
+
 //! Transfer particles between neighboring domains
 void CommunicatorGPU::migrateParticles()
     {
@@ -575,14 +647,15 @@ void CommunicatorGPU::migrateParticles()
     // fill send buffer
     m_pdata->removeParticlesGPU(m_gpu_sendbuf);
 
-    // resize keys
-    m_send_keys.resize(m_gpu_sendbuf.size());
-
     const Index3D& di = m_decomposition->getDomainIndexer();
     // determine local particles that are to be sent to neighboring processors and fill send buffer
     uint3 mypos = di.getTriple(m_exec_conf->getRank());
 
+#if 0
         {
+        // resize keys
+        m_send_keys.resize(m_gpu_sendbuf.size());
+
         ArrayHandle<pdata_element> d_gpu_sendbuf(m_gpu_sendbuf, access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_send_keys(m_send_keys, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_begin(m_begin, access_location::device, access_mode::overwrite);
@@ -604,8 +677,36 @@ void CommunicatorGPU::migrateParticles()
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+#else
+        {
+        ArrayHandle<pdata_element> h_gpu_sendbuf(m_gpu_sendbuf, access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_neighbors(m_neighbors, access_location::host, access_mode::read);
 
+        typedef std::multimap<unsigned int,pdata_element>key_t;
+        key_t keys;
 
+        // generate keys
+        std::transform(h_gpu_sendbuf.data, h_gpu_sendbuf.data + m_gpu_sendbuf.size(), std::inserter(keys,keys.begin()),
+            get_migrate_key(m_pdata->getBox(), mypos, di));
+
+        // Find start&end indices
+        for (unsigned int i = 0; i < m_nneigh; ++i)
+            {
+            key_t::iterator lower = keys.lower_bound(h_neighbors.data[i]);
+            key_t::iterator upper = keys.upper_bound(h_neighbors.data[i]);
+            h_begin.data[i] = std::distance(keys.begin(),lower);
+            h_end.data[i] = h_begin.data[i] + std::distance(lower,upper);
+            }
+
+        for (key_t::iterator it = keys.begin(); it != keys.end(); ++it)
+            {
+            unsigned int i = std::distance(keys.begin(),it);
+            h_gpu_sendbuf.data[i] = it->second;
+            }
+        }
+    #endif
     MPI_Request req[2*m_nneigh];
     MPI_Status stat[2*m_nneigh];
 
