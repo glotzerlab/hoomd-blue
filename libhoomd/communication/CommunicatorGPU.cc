@@ -69,6 +69,7 @@ using namespace boost::python;
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
     : Communicator(sysdef, decomposition),
+      m_nneigh(0),
       m_max_copy_ghosts_face(0),
       m_max_copy_ghosts_edge(0),
       m_max_copy_ghosts_corner(0),
@@ -334,6 +335,73 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<pdata_element> gpu_recvbuf(m_exec_conf,mapped);
     m_gpu_recvbuf.swap(gpu_recvbuf);
 
+    // Key for every particle sent
+    GPUVector<unsigned int> send_keys(m_exec_conf);
+    m_send_keys.swap(send_keys);
+
+    GPUArray<unsigned int> begin(27,m_exec_conf);
+    m_begin.swap(begin);
+
+    GPUArray<unsigned int> end(27,m_exec_conf);
+    m_end.swap(end);
+
+    GPUArray<unsigned int> neighbors(27,m_exec_conf);
+    m_neighbors.swap(neighbors);
+
+    Index3D di= m_pdata->getDomainDecomposition()->getDomainIndexer();
+    uint3 mypos = di.getTriple(m_exec_conf->getRank());
+    unsigned int l = mypos.x;
+    unsigned int m = mypos.y;
+    unsigned int n = mypos.z;
+
+    m_nneigh = 0;
+
+        {
+        ArrayHandle<unsigned int> h_neighbors(m_neighbors, access_location::host, access_mode::overwrite);
+
+        // loop over neighbors
+        for (int ix=-1; ix <= 1; ix++)
+            {
+            if (ix && di.getW() == 1) continue;
+            int i = ix + l;
+            if (i == di.getW())
+                i = 0;
+            else if (i < 0)
+                i += di.getW();
+
+            for (int iy=-1; iy <= 1; iy++)
+                {
+                if (iy && di.getH() == 1) continue;
+                int j = iy + m;
+
+                if (j == di.getH())
+                    j = 0;
+                else if (j < 0)
+                    j += di.getH();
+
+
+                for (int iz=-1; iz <= 1; iz++)
+                    {
+                    if (iz && di.getD() == 1) continue;
+                    int k = iz + n;
+
+                    if (k == di.getD())
+                        k = 0;
+                    else if (k < 0)
+                        k += di.getD();
+
+                    unsigned int neighbor = di(i,j,k);
+                    if (neighbor == m_exec_conf->getRank()) continue;
+
+                    h_neighbors.data[m_nneigh++] = neighbor;
+                    }
+                }
+            }
+
+        // remove duplicates
+        m_nneigh = std::unique(h_neighbors.data, h_neighbors.data + m_nneigh) - h_neighbors.data;
+        }
+
     // Allocate buffers for bond migration
     GPUVector<bond_element> gpu_bond_sendbuf(m_exec_conf,mapped);
     m_gpu_bond_sendbuf.swap(gpu_bond_sendbuf);
@@ -486,28 +554,169 @@ void CommunicatorGPU::migrateParticles()
     if (! m_buffers_allocated)
         allocateBuffers();
 
-    // determine local particles that are to be sent to neighboring processors and fill send buffer
-    for (unsigned int dir=0; dir < 6; dir++)
         {
-        if (! isCommunicating(dir) ) continue;
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
 
+        // mark all particles which have left the box for sending (rtag=NOT_LOCAL)
+        gpu_stage_particles(m_pdata->getN(),
+            d_pos.data,
+            d_tag.data,
+            d_rtag.data,
+            m_pdata->getBox(),
+            m_cached_alloc);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
+        }
+
+    // fill send buffer
+    m_pdata->removeParticlesGPU(m_gpu_sendbuf);
+
+    // resize keys
+    m_send_keys.resize(m_gpu_sendbuf.size());
+
+    const Index3D& di = m_decomposition->getDomainIndexer();
+    // determine local particles that are to be sent to neighboring processors and fill send buffer
+    uint3 mypos = di.getTriple(m_exec_conf->getRank());
+
+        {
+        ArrayHandle<pdata_element> d_gpu_sendbuf(m_gpu_sendbuf, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_send_keys(m_send_keys, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_begin(m_begin, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_end(m_end, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_neighbors(m_neighbors, access_location::device, access_mode::read);
+
+        gpu_sort_keys(m_gpu_sendbuf.size(),
+                   d_gpu_sendbuf.data,
+                   di,
+                   mypos,
+                   m_pdata->getBox(),
+                   d_send_keys.data,
+                   d_begin.data,
+                   d_end.data,
+                   d_neighbors.data,
+                   m_nneigh,
+                   m_cached_alloc);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+
+    MPI_Request req[2*m_nneigh];
+    MPI_Status stat[2*m_nneigh];
+
+    unsigned int n_send_ptls[m_nneigh];
+    unsigned int n_recv_ptls[m_nneigh];
+    unsigned int offs[m_nneigh];
+    unsigned int n_recv_tot = 0;
+
+        {
+        ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_neighbors(m_neighbors, access_location::host, access_mode::read);
+
+        if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
+
+        // compute send counts
+        for (unsigned int ineigh = 0; ineigh < m_nneigh; ineigh++)
+            n_send_ptls[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
+
+        // loop over neighbors
+        for (unsigned int ineigh = 0; ineigh < m_nneigh; ineigh++)
             {
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+            // rank of neighbor processor
+            unsigned int neighbor = h_neighbors.data[ineigh];
 
-            // mark all particles which have left the box for sending (rtag=NOT_LOCAL)
-            gpu_stage_particles(m_pdata->getN(),
-                d_pos.data,
-                d_tag.data,
-                d_rtag.data,
-                dir,
-                m_pdata->getBox(),
-                m_cached_alloc);
+            MPI_Isend(&n_send_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh]);
+            MPI_Irecv(&n_recv_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh+1]);
+            } // end neighbor loop
 
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
+        MPI_Waitall(2*m_nneigh, req, stat);
+
+        // sum up receive counts
+        for (unsigned int ineigh = 0; ineigh < m_nneigh; ineigh++)
+            {
+            if (ineigh == 0)
+                offs[ineigh] = 0;
+            else
+                offs[ineigh] = offs[ineigh-1] + n_recv_ptls[ineigh-1];
+
+            n_recv_tot += n_recv_ptls[ineigh];
             }
+
+        if (m_prof) m_prof->pop(m_exec_conf);
+        }
+
+    // Resize receive buffer
+    m_gpu_recvbuf.resize(n_recv_tot);
+
+        {
+        ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_neighbors(m_neighbors, access_location::host, access_mode::read);
+
+        #ifdef ENABLE_MPI_CUDA
+        ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::device, access_mode::read);
+        ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::device, access_mode::overwrite);
+        #else
+        ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::host, access_mode::read);
+        ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::host, access_mode::overwrite);
+        #endif
+
+        if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
+
+        // loop over neighbors
+        for (unsigned int ineigh = 0; ineigh < m_nneigh; ineigh++)
+            {
+            // rank of neighbor processor
+            unsigned int neighbor = h_neighbors.data[ineigh];
+
+            unsigned int n_send_ptls = h_end.data[ineigh] - h_begin.data[ineigh];
+
+            // exchange particle data
+            MPI_Isend(gpu_sendbuf_handle.data+h_begin.data[ineigh],
+                n_send_ptls*sizeof(pdata_element),
+                MPI_BYTE,
+                neighbor,
+                1,
+                m_mpi_comm,
+                &req[2*ineigh]);
+            MPI_Irecv(gpu_recvbuf_handle.data+offs[ineigh],
+                n_recv_ptls[ineigh]*sizeof(pdata_element),
+                MPI_BYTE,
+                neighbor,
+                1,
+                m_mpi_comm,
+                &req[2*ineigh+1]);
+            }
+
+        if (m_prof) m_prof->pop(m_exec_conf);
+        MPI_Waitall(2*m_nneigh, req, stat);
+        }
+
+        {
+        ArrayHandle<pdata_element> d_gpu_recvbuf(m_gpu_recvbuf, access_location::device, access_mode::readwrite);
+        const BoxDim shifted_box = getShiftedBox();
+
+        // Apply boundary conditions
+        gpu_wrap_particles(n_recv_tot,
+                           d_gpu_recvbuf.data,
+                           shifted_box);
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    // remove particles that were sent and fill particle data with received particles
+    m_pdata->addParticlesGPU(m_gpu_recvbuf);
+
+#if 0
+        /*
+         * Communicate bonds
+         */
 
         /*
          * Select bonds for sending
@@ -533,77 +742,6 @@ void CommunicatorGPU::migrateParticles()
                              m_cached_alloc);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
-
-        // fill send buffer
-        m_pdata->removeParticlesGPU(m_gpu_sendbuf);
-
-        // rank of processor to which we send the data
-        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
-
-        // we receive from the direction opposite to the one we send to
-        unsigned int recv_neighbor;
-        if (dir % 2 == 0)
-            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
-        else
-            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
-
-        unsigned int n_recv_ptls;
-
-        // communicate size of the message that will contain the particle data
-        MPI_Request reqs[2];
-        MPI_Status status[2];
-
-        unsigned int n_send_ptls = m_gpu_sendbuf.size();
-
-        if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
-
-        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & reqs[0]);
-        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
-        MPI_Waitall(2, reqs, status);
-
-        if (m_prof) m_prof->pop(m_exec_conf);
-
-        // Resize receive buffer
-        m_gpu_recvbuf.resize(n_recv_ptls);
-
-            {
-            if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
-
-            #ifdef ENABLE_MPI_CUDA
-            ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::device, access_mode::read);
-            ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::device, access_mode::overwrite);
-            #else
-            ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::host, access_mode::read);
-            ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::host, access_mode::overwrite);
-            #endif
-
-            // exchange particle data
-            MPI_Isend(gpu_sendbuf_handle.data, n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[0]);
-            MPI_Irecv(gpu_recvbuf_handle.data, n_recv_ptls*sizeof(pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & reqs[1]);
-            MPI_Waitall(2, reqs, status);
-
-            if (m_prof) m_prof->pop(m_exec_conf);
-            }
-
-
-            {
-            ArrayHandle<pdata_element> d_gpu_recvbuf(m_gpu_recvbuf, access_location::device, access_mode::readwrite);
-            const BoxDim shifted_box = getShiftedBox();
-
-            // Apply boundary conditions
-            gpu_wrap_particles(n_recv_ptls,
-                               d_gpu_recvbuf.data,
-                               shifted_box);
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            }
-
-        // remove particles that were sent and fill particle data with received particles
-        m_pdata->addParticlesGPU(m_gpu_recvbuf);
-
-        /*
-         * Communicate bonds
-         */
 
         if (bdata->getNumBondsGlobal())
             {
@@ -660,6 +798,7 @@ void CommunicatorGPU::migrateParticles()
             } // end bond communication
 
         } // end dir loop
+#endif
 
     if (m_prof) m_prof->pop(m_exec_conf);
 

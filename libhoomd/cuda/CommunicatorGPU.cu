@@ -65,6 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/count.h>
 #include <thrust/transform.h>
 #include <thrust/copy.h>
+#include <thrust/sort.h>
+#include <thrust/binary_search.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 
@@ -178,17 +180,15 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
     }
 
 //! Select a particle for migration
-struct select_particle_migrate_gpu : public thrust::unary_function<const unsigned int, bool>
+struct select_particle_migrate_gpu : public thrust::unary_function<const Scalar4, bool>
     {
     const BoxDim box;       //!< Local simulation box dimensions
-    const unsigned int dir; //!< Direction to send particles to
 
     //! Constructor
     /*!
      */
-    select_particle_migrate_gpu(const BoxDim & _box,
-                            const unsigned int _dir)
-        : box(_box), dir(_dir)
+    select_particle_migrate_gpu(const BoxDim & _box)
+        : box(_box)
         { }
 
     //! Select a particle
@@ -201,28 +201,93 @@ struct select_particle_migrate_gpu : public thrust::unary_function<const unsigne
         Scalar3 f = box.makeFraction(pos);
 
         // return true if the particle stays leaves the box
-        return ((dir == face_east && f.x >= Scalar(1.0)) ||   // send east
-                (dir == face_west && f.x < Scalar(0.0))  ||   // send west
-                (dir == face_north && f.y >= Scalar(1.0)) ||  // send north
-                (dir == face_south && f.y < Scalar(0.0))  ||  // send south
-                (dir == face_up && f.z >= Scalar(1.0)) ||     // send up
-                (dir == face_down && f.z < Scalar(0.0) ));    // send down
+        return (f.x >= Scalar(1.0) ||   // send east
+                f.x < Scalar(0.0)  ||   // send west
+                f.y >= Scalar(1.0) ||  // send north
+                f.y < Scalar(0.0)  ||  // send south
+                f.z >= Scalar(1.0) ||     // send up
+                f.z < Scalar(0.0));    // send down
         }
 
      };
+
+//! Select a particle for migration
+struct get_migrate_key_gpu : public thrust::unary_function<const pdata_element, unsigned int>
+    {
+    const BoxDim box;       //!< Local simulation box dimensions
+    const uint3 my_pos;     //!< My domain decomposition position
+    const Index3D di;             //!< Domain indexer
+
+    //! Constructor
+    /*!
+     */
+    get_migrate_key_gpu(const BoxDim & _box, const uint3 _my_pos, const Index3D _di)
+        : box(_box), my_pos(_my_pos), di(_di)
+        { }
+
+    //! Generate key for a sent particle
+    __host__ __device__ bool operator()(const pdata_element p)
+        {
+        Scalar4 postype = p.pos;
+        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+        Scalar3 f = box.makeFraction(pos);
+
+        int ix, iy, iz;
+        ix = iy = iz = 0;
+
+        if (f.x >= Scalar(.995))
+            ix = 1;
+        else if (f.x < Scalar(0.005))
+            ix = -1;
+
+        if (f.y >= Scalar(.995))
+            iy = 1;
+        else if (f.y < Scalar(0.005))
+            iy = -1;
+
+        if (f.z >= Scalar(.995))
+            iz = 1;
+        else if (f.z < Scalar(0.005))
+            iz = -1;
+
+        int i = my_pos.x;
+        int j = my_pos.y;
+        int k = my_pos.z;
+
+        i += ix;
+        if (i == di.getW())
+            i = 0;
+        else if (i < 0)
+            i += di.getW();
+
+        j += iy;
+        if (j == di.getH())
+            j = 0;
+        else if (j < 0)
+            j += di.getH();
+
+        k += iz;
+        if (k == di.getD())
+            k = 0;
+        else if (k < 0)
+            k += di.getD();
+
+        return di(i,j,k);
+        }
+
+     };
+
 
 /*! \param N Number of local particles
     \param d_pos Device array of particle positions
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
-    \param dir Current direction
     \param box Local box
  */
 void gpu_stage_particles(const unsigned int N,
                          const Scalar4 *d_pos,
                          const unsigned int *d_tag,
                          unsigned int *d_rtag,
-                         const unsigned int dir,
                          const BoxDim& box,
                          cached_allocator& alloc)
     {
@@ -239,7 +304,49 @@ void gpu_stage_particles(const unsigned int N,
 
     // set flag for particles that are to be sent
     thrust::replace_if(thrust::cuda::par(alloc),
-        rtag_prm, rtag_prm + N, pos_ptr, select_particle_migrate_gpu(box, dir), NOT_LOCAL);
+        rtag_prm, rtag_prm + N, pos_ptr, select_particle_migrate_gpu(box), NOT_LOCAL);
+    }
+
+/*! \param nsend Number of particles in buffer
+    \param d_in Send buf (in-place sort)
+    \param di Domain indexer
+    \param box Local box
+    \param d_keys Output array (target domains)
+    \param d_begin Output array (start indices per key in send buf)
+    \param d_end Output array (end indices per key in send buf)
+    \param d_neighbors List of neighbor ranks
+    \param alloc Caching allocator
+ */
+void gpu_sort_keys(const unsigned int nsend,
+                   pdata_element *d_in,
+                   const Index3D& di,
+                   const uint3 my_pos,
+                   const BoxDim& box,
+                   unsigned int *d_keys,
+                   unsigned int *d_begin,
+                   unsigned int *d_end,
+                   const unsigned int *d_neighbors,
+                   const unsigned int nneigh,
+                   cached_allocator& alloc)
+    {
+    // Wrap input & output
+    thrust::device_ptr<pdata_element> in_ptr(d_in);
+    thrust::device_ptr<unsigned int> keys_ptr(d_keys);
+    thrust::device_ptr<unsigned int> begin_ptr(d_begin);
+    thrust::device_ptr<unsigned int> end_ptr(d_end);
+    thrust::device_ptr<const unsigned int> neighbors_ptr(d_neighbors);
+
+    // generate keys
+    thrust::transform(thrust::cuda::par(alloc), in_ptr, in_ptr + nsend, keys_ptr, get_migrate_key_gpu(box, my_pos, di));
+
+    // sort
+    thrust::sort_by_key(thrust::cuda::par(alloc), keys_ptr, keys_ptr + nsend, in_ptr);
+
+    // Find start indices
+    thrust::lower_bound(thrust::cuda::par(alloc), keys_ptr, keys_ptr + nsend,
+        neighbors_ptr, neighbors_ptr + nneigh, begin_ptr);
+    thrust::upper_bound(thrust::cuda::par(alloc), keys_ptr, keys_ptr + nsend,
+        neighbors_ptr, neighbors_ptr + nneigh, end_ptr);
     }
 
 //! Select a bond for migration

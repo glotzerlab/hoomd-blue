@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.cuh"
 
 #include "cached_allocator.h"
+#include "Index1D.h"
 
 #ifdef NVCC
 //! The flags used for indicating the itinerary of a particle
@@ -161,9 +162,30 @@ void gpu_stage_particles(const unsigned int N,
                          const Scalar4 *d_pos,
                          const unsigned int *d_tag,
                          unsigned int *d_rtag,
-                         const unsigned int dir,
                          const BoxDim& box,
                          cached_allocator& alloc);
+
+/*! \param nsend Number of particles in buffer
+    \param d_in Send buf (in-place sort)
+    \param di Domain indexer
+    \param box Local box
+    \param d_keys Output array (target domains)
+    \param d_begin Output array (start indices per key in send buf)
+    \param d_end Output array (end indices per key in send buf)
+    \param d_neighbors List of neighbor ranks
+    \param alloc Caching allocator
+ */
+void gpu_sort_keys(const unsigned int nsend,
+                   pdata_element *d_in,
+                   const Index3D& di,
+                   const uint3 my_pos,
+                   const BoxDim& box,
+                   unsigned int *d_keys,
+                   unsigned int *d_begin,
+                   unsigned int *d_end,
+                   const unsigned int *d_neighbors,
+                   const unsigned int nneigh,
+                   cached_allocator& alloc);
 
 //! Apply boundary conditions
 void gpu_wrap_particles(const unsigned int n_recv,

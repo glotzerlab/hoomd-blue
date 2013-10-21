@@ -143,6 +143,12 @@ class CommunicatorGPU : public Communicator
         GPUVector<pdata_element> m_gpu_sendbuf;        //!< Send buffer for particle data
         GPUVector<pdata_element> m_gpu_recvbuf;        //!< Receive buffer for particle data
 
+        GPUVector<unsigned int> m_send_keys;           //!< Destination rank for particles
+        GPUArray<unsigned int> m_begin;               //!< Begin index for every neighbor in send buf
+        GPUArray<unsigned int> m_end;                 //!< Last index + 1 for every neighbor in send buf
+        GPUArray<unsigned int> m_neighbors;           //!< Neighbor ranks
+        unsigned int m_nneigh;                         //!< Number of neighbors
+
         GPUVector<bond_element> m_gpu_bond_sendbuf;   //!< Buffer for bonds that are sent
         GPUVector<bond_element> m_gpu_bond_recvbuf;   //!< Buffer for bonds that are received
 
