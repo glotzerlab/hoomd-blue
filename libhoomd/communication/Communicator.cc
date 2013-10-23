@@ -316,7 +316,10 @@ void Communicator::communicate(unsigned int timestep)
     // Guard to prevent recursive triggering of migration
     m_is_communicating = true;
 
-   // Check if migration of particles is requested
+    // update ghost communication flags
+    m_flags = m_requested_flags(timestep);
+
+    // Check if migration of particles is requested
     if (m_force_migrate || m_migrate_requests(timestep) || m_is_first_step)
         {
         m_force_migrate = false;

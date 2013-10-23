@@ -167,9 +167,6 @@ void IntegratorTwoStep::update(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        // preset flags for ghost communication
-        m_comm->setFlags(determineFlags(timestep));
-
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if ghost atom positions are updated every time step
@@ -314,9 +311,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 #ifdef ENABLE_MPI
         if (m_comm)
             {
-            // preset flags for ghost communication
-            m_comm->setFlags(determineFlags(timestep));
-
             // perform communication
             m_comm->communicate(timestep);
             }

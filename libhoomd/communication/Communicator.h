@@ -155,7 +155,8 @@ struct comm_flag
     //! The enum
     enum Enum
         {
-        position=0,  //! Bit id in CommFlags for particle positions
+        tag = 0,     //! Bit id in CommFlags for particle tag
+        position,    //! Bit id in CommFlags for particle positions
         charge,      //! Bit id in CommFlags for particle charge
         diameter,    //! Bit id in CommFlags for particle diameter
         velocity,    //! Bit id in CommFlags for particle velocity
@@ -192,6 +193,29 @@ struct migrate_logical_or
         return return_value;
         }
     };
+
+//! Perform a bitwise or operation on the return values of several signals
+struct comm_flags_bitwise_or
+    {
+    //! This is needed by boost::signals
+    typedef CommFlags result_type;
+
+    //! Combine return values using logical or
+    /*! \param first First return value
+        \param last Last return value
+     */
+    template<typename InputIterator>
+    CommFlags operator()(InputIterator first, InputIterator last) const
+        {
+        if (first == last) return CommFlags(0);
+
+        CommFlags return_value(0);
+        while (first != last) return_value |= *first++;
+
+        return return_value;
+        }
+    };
+
 
 //! <b>Class that handles MPI communication</b>
 /*! This class implements the communication algorithms that are used in parallel simulations.
@@ -280,6 +304,15 @@ class Communicator
         boost::signals::connection addMigrateRequest(const boost::function<bool (unsigned int timestep)>& subscriber)
             {
             return m_migrate_requests.connect(subscriber);
+            }
+
+        //! Subscribe to list of functions that determine the communication flags
+        /*! This method keeps track of all functions that may request communication flags
+         * \return A connection to the present class
+         */
+        boost::signals::connection addCommFlagsRequest(const boost::function<CommFlags (unsigned int timestep)>& subscriber)
+            {
+            return m_requested_flags.connect(subscriber);
             }
 
         //! Set width of ghost layer
@@ -493,6 +526,9 @@ class Communicator
 
         boost::signal<bool(unsigned int timestep), migrate_logical_or>
             m_migrate_requests; //!< List of functions that may request particle migration
+
+        boost::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
+            m_requested_flags;  //!< List of functions that may request ghost communication flags
 
         RoutingTable m_routing_table;            //!< The routing table
 
