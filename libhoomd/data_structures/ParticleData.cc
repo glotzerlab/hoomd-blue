@@ -1412,7 +1412,7 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
 //! Set the current position of a particle
 /* \post In parallel simulations, the particle is moved to a new domain if necessary.
  */
-void ParticleData::setPosition(unsigned int tag, const Scalar3& pos)
+void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     {
     unsigned int idx = getRTag(tag);
     bool ptl_local = (idx < getN());
@@ -1430,11 +1430,11 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos)
         }
 
     #ifdef ENABLE_MPI
-    /*
-     * migrate particle if necessary
-     */
-    if (m_decomposition)
+    if (m_decomposition && move)
         {
+        /*
+         * migrate particle if necessary
+         */
         unsigned my_rank = m_exec_conf->getRank();
 
         assert(!ptl_local || owner_rank == my_rank);
@@ -2069,10 +2069,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
         out.resize(n_out);
 
         // was the array large enough?
-        if (n_out <= max_n_out)
-            done = true;
-        else
-            max_n_out = out.getNumElements();
+        if (n_out <= max_n_out) done = true;
+
+        max_n_out = out.getNumElements();
         }
 
     // update particle number (no need to shrink arrays)
@@ -2080,6 +2079,14 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
 
     // swap particle data arrays
     swap();
+
+        {
+        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
+
+        // update reverse-lookup table
+        gpu_pdata_update_rtags(d_tag.data, d_rtag.data, getN(), m_cached_alloc);
+        }
 
     // notify subscribers
     notifyParticleSort();

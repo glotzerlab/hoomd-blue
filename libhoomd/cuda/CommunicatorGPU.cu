@@ -66,42 +66,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/transform.h>
 #include <thrust/copy.h>
 #include <thrust/sort.h>
+#include <thrust/scan.h>
 #include <thrust/binary_search.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 
 using namespace thrust;
-
-unsigned int *d_n_fetch_ptl;              //!< Index of fetched particle from received ptl list
-
-__constant__ unsigned int d_corner_plan_lookup[8]; //!< Lookup-table corner -> plan flags
-__constant__ unsigned int d_edge_plan_lookup[12];  //!< Lookup-table edges -> plan flags
-__constant__ unsigned int d_face_plan_lookup[6];   //!< Lookup-table faces -> plan falgs
-
-__constant__ unsigned int d_is_communicating[6]; //!< Per-direction flag indicating whether we are communicating in that direction
-__constant__ unsigned int d_is_at_boundary[6]; //!< Per-direction flag indicating whether the box has a global boundary
-
-void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
-                              const unsigned int *is_at_boundary,
-                              const unsigned int *corner_plan_lookup,
-                              const unsigned int *edge_plan_lookup,
-                              const unsigned int *face_plan_lookup)
-    {
-    cudaMalloc(&d_n_fetch_ptl,sizeof(unsigned int));
-
-    cudaMemcpyToSymbol(d_corner_plan_lookup, corner_plan_lookup, sizeof(unsigned int)*8);
-    cudaMemcpyToSymbol(d_edge_plan_lookup, edge_plan_lookup, sizeof(unsigned int)*12);
-    cudaMemcpyToSymbol(d_face_plan_lookup, face_plan_lookup, sizeof(unsigned int)*6);
-
-    cudaMemcpyToSymbol(d_is_communicating, is_communicating, sizeof(unsigned int)*6);
-    cudaMemcpyToSymbol(d_is_at_boundary, is_at_boundary, sizeof(unsigned int)*6);
-    }
-
-void gpu_deallocate_tmp_storage()
-    {
-    cudaFree(d_n_fetch_ptl);
-    }
-
 
 //! GPU Kernel to find incomplete bonds
 __global__ void gpu_mark_particles_in_incomplete_bonds_kernel(const uint2 *btable,
@@ -226,7 +196,7 @@ struct get_migrate_key_gpu : public thrust::unary_function<const pdata_element, 
         { }
 
     //! Generate key for a sent particle
-    __host__ __device__ bool operator()(const pdata_element p)
+    __device__ bool operator()(const pdata_element p)
         {
         Scalar4 postype = p.pos;
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
@@ -235,19 +205,21 @@ struct get_migrate_key_gpu : public thrust::unary_function<const pdata_element, 
         int ix, iy, iz;
         ix = iy = iz = 0;
 
-        if (f.x >= Scalar(.995))
+        // we allow for a tolerance, large enough so we don't loose particles
+        const Scalar tol(1e-5);
+        if (f.x >= Scalar(1.0)-tol)
             ix = 1;
-        else if (f.x < Scalar(0.005))
+        else if (f.x < tol)
             ix = -1;
 
-        if (f.y >= Scalar(.995))
+        if (f.y >= Scalar(1.0)-tol)
             iy = 1;
-        else if (f.y < Scalar(0.005))
+        else if (f.y < tol)
             iy = -1;
 
-        if (f.z >= Scalar(.995))
+        if (f.z >= Scalar(1.0)-tol)
             iz = 1;
-        else if (f.z < Scalar(0.005))
+        else if (f.z < tol)
             iz = -1;
 
         int i = my_pos.x;
@@ -255,19 +227,19 @@ struct get_migrate_key_gpu : public thrust::unary_function<const pdata_element, 
         int k = my_pos.z;
 
         i += ix;
-        if (i == di.getW())
+        if (i == (int)di.getW())
             i = 0;
         else if (i < 0)
             i += di.getW();
 
         j += iy;
-        if (j == di.getH())
+        if (j == (int) di.getH())
             j = 0;
         else if (j < 0)
             j += di.getH();
 
         k += iz;
-        if (k == di.getD())
+        if (k == (int) di.getD())
             k = 0;
         else if (k < 0)
             k += di.getD();
@@ -317,7 +289,7 @@ void gpu_stage_particles(const unsigned int N,
     \param d_neighbors List of neighbor ranks
     \param alloc Caching allocator
  */
-void gpu_sort_keys(const unsigned int nsend,
+void gpu_sort_migrating_particles(const unsigned int nsend,
                    pdata_element *d_in,
                    const Index3D& di,
                    const uint3 my_pos,
@@ -349,7 +321,7 @@ void gpu_sort_keys(const unsigned int nsend,
         neighbors_ptr, neighbors_ptr + nneigh, end_ptr);
     }
 
-//! Select a bond for migration
+//! Wrap a particle in a pdata_element
 struct wrap_particle_op_gpu : public thrust::unary_function<const pdata_element, pdata_element>
     {
     const BoxDim box; //!< The box for which we are applying boundary conditions
@@ -546,39 +518,40 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
 
 
 //! Kernel to select ghost atoms due to non-bonded interactions
-__global__ void gpu_nonbonded_plan_kernel(unsigned char *plan,
-                               const unsigned int N,
-                               Scalar4 *d_postype,
-                               const BoxDim box,
-                               Scalar3 ghost_fraction)
+struct make_ghost_exchange_plan_gpu : thrust::unary_function<const Scalar4, unsigned int>
     {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const BoxDim box;             //!< Local box
+    Scalar3 ghost_fraction; //!< Fractional width of ghost layer
 
-    if (idx >= N) return;
+    //! Constructor
+    make_ghost_exchange_plan_gpu(const BoxDim& _box, Scalar3 _ghost_fraction)
+        : box(_box), ghost_fraction(_ghost_fraction)
+        { }
 
-    Scalar4 postype = d_postype[idx];
-    Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
-    Scalar3 f = box.makeFraction(pos);
+    __device__ unsigned int operator() (const Scalar4 postype)
+        {
+        Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
+        Scalar3 f = box.makeFraction(pos);
 
-    unsigned char p = plan[idx];
+        unsigned int plan = 0;
 
-    // is particle inside ghost layer? set plan accordingly.
-    if (f.x >= Scalar(1.0) - ghost_fraction.x)
-        p |= send_east;
-    if (f.x < ghost_fraction.x)
-        p |= send_west;
-    if (f.y >= Scalar(1.0) - ghost_fraction.y)
-        p |= send_north;
-    if (f.y < ghost_fraction.y)
-        p |= send_south;
-    if (f.z >= Scalar(1.0) - ghost_fraction.z)
-        p |= send_up;
-    if (f.z < ghost_fraction.z)
-        p |= send_down;
+        // is particle inside ghost layer? set plan accordingly.
+        if (f.x >= Scalar(1.0) - ghost_fraction.x)
+            plan |= send_east;
+        if (f.x < ghost_fraction.x)
+            plan |= send_west;
+        if (f.y >= Scalar(1.0) - ghost_fraction.y)
+            plan |= send_north;
+        if (f.y < ghost_fraction.y)
+            plan |= send_south;
+        if (f.z >= Scalar(1.0) - ghost_fraction.z)
+            plan |= send_up;
+        if (f.z < ghost_fraction.z)
+            plan |= send_down;
 
-    // write out plan
-    plan[idx] = p;
-    }
+        return plan;
+        }
+    };
 
 //! Construct plans for sending non-bonded ghost particles
 /*! \param d_plan Array of ghost particle plans
@@ -587,934 +560,361 @@ __global__ void gpu_nonbonded_plan_kernel(unsigned char *plan,
  * \param box Dimensions of local simulation box
  * \param r_ghost Width of boundary layer
  */
-void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
-                                      unsigned int N,
-                                      Scalar4 *d_pos,
-                                      const BoxDim &box,
-                                      Scalar3 ghost_fraction)
+void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
+                                  unsigned int N,
+                                  const Scalar4 *d_pos,
+                                  const BoxDim &box,
+                                  Scalar3 ghost_fraction,
+                                  cached_allocator& alloc)
     {
-    unsigned int block_size = 512;
+    // wrap position array
+    thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
 
-    gpu_nonbonded_plan_kernel<<<N/block_size+1, block_size>>>(d_plan,
-                                                              N,
-                                                              d_pos,
-                                                              box,
-                                                              ghost_fraction);
+    // wrap plan (output) array
+    thrust::device_ptr<unsigned int> plan_ptr(d_plan);
+
+    // compute plans
+    thrust::transform(thrust::cuda::par(alloc), pos_ptr, pos_ptr + N, plan_ptr, make_ghost_exchange_plan_gpu(box, ghost_fraction));
     }
 
-//! Write data to send buffer
-__device__ void write_to_buf(char *buf,
-                             const Scalar4 postype,
-                             const Scalar4 vel,
-                             const Scalar charge,
-                             const Scalar diameter,
-                             const Scalar4 orientation,
-                             const unsigned int tag,
-                             unsigned char exch_pos,
-                             unsigned char exch_vel,
-                             unsigned char exch_charge,
-                             unsigned char exch_diameter,
-                             unsigned char exch_orientation)
+//! Apply adjacency masks to plan and return number of matching neighbors
+struct num_neighbors_gpu
     {
-    unsigned int offs = 0;
+    thrust::device_ptr<const unsigned int> adj_ptr;
+    const unsigned int nneigh;
 
-    // Scalar4's first, then Scalars/unsigned ints
-    // for proper alignment
-    if (exch_pos)
+    num_neighbors_gpu(thrust::device_ptr<const unsigned int> _adj_ptr, unsigned int _nneigh)
+        : adj_ptr(_adj_ptr), nneigh(_nneigh)
+        { }
+
+    __device__ unsigned int operator() (unsigned int plan)
         {
-        *((Scalar4 *) &buf[offs]) = postype;
-        offs += sizeof(Scalar4);
-        }
-    if (exch_vel)
-        {
-        *((Scalar4 *) &buf[offs]) = vel;
-        offs += sizeof(Scalar4);
-        }
-    if (exch_orientation)
-        {
-        *((Scalar4 *) &buf[offs]) = orientation;
-        offs += sizeof(Scalar4);
-        }
-    if (exch_charge)
-        {
-        *((Scalar *) &buf[offs]) = charge;
-        offs += sizeof(Scalar);
-        }
-    if (exch_diameter)
-        {
-        *((Scalar *) &buf[offs]) = diameter;
-        offs += sizeof(Scalar);
-        }
-
-    *((unsigned int *) &buf[offs]) = tag;
-    offs += sizeof(Scalar);
-    }
-
-//! Kernel to pack local particle data into ghost send buffers
-__global__ void gpu_exchange_ghosts_kernel(const unsigned int N,
-                                         const unsigned char *d_plan,
-                                         const unsigned int *d_tag,
-                                         unsigned int *d_ghost_idx_face,
-                                         unsigned int ghost_idx_face_pitch,
-                                         unsigned int *d_ghost_idx_edge,
-                                         unsigned int ghost_idx_edge_pitch,
-                                         unsigned int *d_ghost_idx_corner,
-                                         unsigned int ghost_idx_corner_pitch,
-                                         Scalar4 *d_pos,
-                                         Scalar *d_charge,
-                                         Scalar *d_diameter,
-                                         Scalar4 *d_vel,
-                                         Scalar4 *d_orientation,
-                                         char *d_ghost_corner_buf,
-                                         unsigned int corner_buf_pitch,
-                                         char *d_ghost_edge_buf,
-                                         unsigned int edge_buf_pitch,
-                                         char *d_ghost_face_buf,
-                                         unsigned int face_buf_pitch,
-                                         unsigned int *n_copy_ghosts_corner,
-                                         unsigned int *n_copy_ghosts_edge,
-                                         unsigned int *n_copy_ghosts_face,
-                                         unsigned int max_copy_ghosts_corner,
-                                         unsigned int max_copy_ghosts_edge,
-                                         unsigned int max_copy_ghosts_face,
-                                         unsigned int *condition,
-                                         unsigned int sz,
-                                         unsigned char exch_pos,
-                                         unsigned char exch_vel,
-                                         unsigned char exch_charge,
-                                         unsigned char exch_diameter,
-                                         unsigned char exch_orientation)
-
-    {
-    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
-
-    if (idx >= N) return;
-
-    unsigned char plan = d_plan[idx];
-
-    // if we are not communicating in a direction, discard it from plan
-    for (unsigned int face = 0; face < 6; ++face)
-        plan &= (d_is_communicating[face]) ? ~0 : ~d_face_plan_lookup[face];
-
-    if (plan)
-        {
-        Scalar4 postype;
-        Scalar4 vel;
-        Scalar charge;
-        Scalar diameter;
-        Scalar4 orientation;
-        unsigned int tag;
-        if (exch_pos)
-            postype = d_pos[idx];
-        if (exch_vel)
-            vel = d_vel[idx];
-        if (exch_charge)
-            charge = d_charge[idx];
-        if (exch_diameter)
-            diameter = d_diameter[idx];
-        if (exch_orientation)
-            orientation =  d_orientation[idx];
-
-        tag = d_tag[idx];
-
-        // the boundary plan indicates whether the particle will cross a particle
-        // in a specific direction
-        unsigned int boundary_plan = 0;
-        for (unsigned int face = 0; face < 6; ++face)
-            if (d_is_at_boundary[face] && (plan & d_face_plan_lookup[face]))
-                boundary_plan |= d_face_plan_lookup[face];
-
         unsigned int count = 0;
-        if (plan & send_east) count++;
-        if (plan & send_west) count++;
-        if (plan & send_north) count++;
-        if (plan & send_south) count++;
-        if (plan & send_up) count++;
-        if (plan & send_down) count++;
-
-        // determine corner to send ptl to
-        if (count == 3)
+        for (unsigned int i = 0; i < nneigh; i++)
             {
-            // corner ptl
-            unsigned int corner = 0;
-            bool has_corner = false;
-            for (unsigned int i = 0; i < 8; ++i)
-                {
-                if ((plan & d_corner_plan_lookup[i]) == d_corner_plan_lookup[i])
-                    {
-                    corner = i;
-                    has_corner = true;
-                    }
-                }
-            if (!has_corner)
-                {
-                atomicOr(condition, 8); // invalid plan
-                return;
-                }
-
-            unsigned int n = atomicInc(&n_copy_ghosts_corner[corner],0xffffffff);
-            if (n < max_copy_ghosts_corner)
-                {
-                // copy ghost data to send buffer
-                write_to_buf(&d_ghost_corner_buf[n*sz+corner*corner_buf_pitch],
-                    postype, vel, charge, diameter, orientation, tag,
-                    exch_pos, exch_vel, exch_charge, exch_diameter, exch_orientation);
-
-                d_ghost_idx_corner[n+corner*ghost_idx_corner_pitch] = idx;
-                }
-            else
-                // overflow
-                atomicOr(condition,4);
+            unsigned int adj = adj_ptr[i];
+            if ((adj & plan) == adj) count++;
             }
-
-        // determine box edge to copy ptl to
-        if (count == 2)
-            {
-            bool has_edge = false;
-            unsigned int edge = 0;
-            for (unsigned int i = 0; i < 12; ++i)
-                if ((plan & d_edge_plan_lookup[i]) == d_edge_plan_lookup[i])
-                    {
-                    has_edge = true;
-                    edge = i;
-                    break;
-                    }
-
-            if (!has_edge)
-                {
-                atomicOr(condition,8); // invalid plan
-                return;
-                }
-
-            unsigned int n = atomicInc(&n_copy_ghosts_edge[edge],0xffffffff);
-            if (n < max_copy_ghosts_edge)
-                {
-                // copy ghost data to send buffer
-                write_to_buf(&d_ghost_edge_buf[n*sz+edge*edge_buf_pitch],
-                    postype, vel, charge, diameter, orientation, tag,
-                    exch_pos, exch_vel, exch_charge, exch_diameter, exch_orientation);
-
-                // store particle index in ghost copying lists
-                d_ghost_idx_edge[n+edge*ghost_idx_edge_pitch] = idx;
-                }
-            else
-                // overflow
-                atomicOr(condition,2);
-            }
-
-        // determine box face to copy ptl
-        if (count == 1)
-            {
-            bool has_face = false;
-            unsigned int face = 0;
-            for (unsigned int i = 0; i < 6; ++i)
-                if ((plan & d_face_plan_lookup[i]) == d_face_plan_lookup[i])
-                    {
-                    face = i;
-                    has_face = true;
-                    break;
-                    }
-
-            if (!has_face)
-                {
-                atomicOr(condition,8); // invalid plan
-                return;
-                }
-
-            unsigned int n = atomicInc(&n_copy_ghosts_face[face],0xffffffff);
-            if (n < max_copy_ghosts_face)
-                {
-                // copy ghost data to send buffer
-                write_to_buf(&d_ghost_face_buf[n*sz+face*face_buf_pitch],
-                    postype, vel, charge, diameter, orientation, tag,
-                    exch_pos, exch_vel, exch_charge, exch_diameter, exch_orientation);
-
-                // store particle index in ghost copying lists
-                d_ghost_idx_face[n+face*ghost_idx_face_pitch] = idx;
-                }
-            else
-                // overflow
-                atomicOr(condition,1);
-
-            }
-
-        if (count > 3)
-            atomicOr(condition,8); // invalid plan
+        return count;
         }
+    };
+
+//! Apply adjacency masks to plan and integer and return nth matching neighbor rank
+struct get_neighbor_rank_n : thrust::unary_function<
+    thrust::tuple<unsigned int, unsigned int>, unsigned int >
+    {
+    thrust::device_ptr<const unsigned int> adj_ptr;
+    thrust::device_ptr<const unsigned int> neighbor_ptr;
+    const unsigned int nneigh;
+
+    get_neighbor_rank_n(thrust::device_ptr<const unsigned int> _adj_ptr,
+        thrust::device_ptr<const unsigned int> _neighbor_ptr,
+        unsigned int _nneigh)
+        : adj_ptr(_adj_ptr), neighbor_ptr(_neighbor_ptr), nneigh(_nneigh)
+        { }
+
+    __device__ unsigned int operator() (thrust::tuple<unsigned int, unsigned int> t)
+        {
+        unsigned int plan = thrust::get<0>(t);
+        unsigned int n = thrust::get<1>(t);
+        unsigned int count = 0;
+        unsigned int ineigh;
+        for (ineigh = 0; ineigh < nneigh; ineigh++)
+            {
+            unsigned int adj = adj_ptr[ineigh];
+            if ((adj & plan) == adj)
+                {
+                if (count == n) break;
+                count++;
+                }
+            }
+        return neighbor_ptr[ineigh];
+        }
+    };
+
+unsigned int gpu_exchange_ghosts_count_neighbors(
+    unsigned int N,
+    const unsigned int *d_ghost_plan,
+    const unsigned int *d_adj,
+    unsigned int *d_counts,
+    unsigned int nneigh,
+    cached_allocator& alloc)
+    {
+    thrust::device_ptr<const unsigned int> ghost_plan_ptr(d_ghost_plan);
+    thrust::device_ptr<const unsigned int> adj_ptr(d_adj);
+    thrust::device_ptr<unsigned int> counts_ptr(d_counts);
+
+    // compute neighbor counts
+    thrust::transform(thrust::cuda::par(alloc), ghost_plan_ptr, ghost_plan_ptr + N, counts_ptr,
+        num_neighbors_gpu(adj_ptr, nneigh));
+
+    // determine output size
+    return thrust::reduce(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N);
     }
 
-//! Construct a list of particle tags to send as ghost particles
-/*! \param N number of local particles
- * \param d_plan Array of particle exchange plans
- * \param d_tag Array of particle global tags
- * \param d_ghost_idx_face List of particle indices sent as ghosts through a face (return array)
- * \param ghost_idx_face_pitch Offset of different faces in ghost index list
- * \param d_ghost_idx_edge List of particle indices sent as ghosts over an edge (return array)
- * \param ghost_idx_edge_pitch Offset of different edges in ghost index list
- * \param d_ghost_idx_corner List of particle indices sent as ghosts via an corner (return array)
- * \param ghost_idx_corner_pitch Offset of different corners in ghost index list
- * \param d_pos Array of particle positions
- * \param d_charge Array of particle charges
- * \param d_diameter Array of particle diameters
- * \param d_vel Particle data array of velocities
- * \param d_orientation Particle data array of orientations
- * \param d_ghost_corner_buf Buffer for ghosts sent via a corner (return array)
- * \param corner_buf_pitch Offsets of different corners in send buffer
- * \param d_ghost_edge_buf Buffer for ghosts sent over an edge (return array)
- * \param edge_buf_pitch Offsets of different edges in send buffer
- * \param d_ghost_face_buf Buffer for ghosts sent through a face (return array)
- * \param face_buf_pitch Offsets of different faces in send buffer
- * \param d_n_copy_ghosts_corner Number of ghosts sent via a corner (return array)
- * \param d_n_copy_ghosts_edge Number of ghosts sent over an edge (return array)
- * \param d_n_copy_ghosts_face Number of ghosts sent via a corner (return array)
- * \param max_copy_ghosts_corner Size of corner ghost send buffer
- * \param max_copy_ghosts_edge Size of edge ghost send buffer
- * \param max_copy_ghosts_face Size of face ghost send buffer
- * \param d_condition Return value, unequal zero if buffer overflow
- * \param sz Size of exchange element
- * \param exch_pos >0 if exchanging positions
- * \param exch_vel >0 if exchanging positions
- * \param exch_charge >0 if exchanging positions
- * \param exch_diameter >0 if exchanging positions
- * \param exch_orientation >0 if exchanging positions
+void gpu_exchange_ghosts_make_indices(
+    unsigned int N,
+    const unsigned int *d_ghost_plan,
+    const unsigned int *d_tag,
+    const unsigned int *d_adj,
+    const unsigned int *d_neighbors,
+    const unsigned int *d_unique_neighbors,
+    const unsigned int *d_counts,
+    unsigned int *d_ghost_tag,
+    unsigned int *d_ghost_begin,
+    unsigned int *d_ghost_end,
+    unsigned int nneigh,
+    unsigned int n_unique_neigh,
+    unsigned int n_out,
+    cached_allocator& alloc)
+    {
+    thrust::device_ptr<const unsigned int> ghost_plan_ptr(d_ghost_plan);
+    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
+    thrust::device_ptr<const unsigned int> adj_ptr(d_adj);
+    thrust::device_ptr<const unsigned int> neighbors_ptr(d_neighbors);
+    thrust::device_ptr<const unsigned int> unique_neighbors_ptr(d_unique_neighbors);
+    thrust::device_ptr<const unsigned int> counts_ptr(d_counts);
+    thrust::device_ptr<unsigned int> ghost_tag_ptr(d_ghost_tag);
+    thrust::device_ptr<unsigned int> ghost_begin_ptr(d_ghost_begin);
+    thrust::device_ptr<unsigned int> ghost_end_ptr(d_ghost_end);
+
+    /*
+     * expand each tag by the number of neighbors to send the corresponding ptl to
+     */
+
+    // allocate temporary array
+    thrust::device_ptr<unsigned int> offsets_ptr((unsigned int *)alloc.allocate(N*sizeof(unsigned int)));
+
+    // scan over counts
+    thrust::exclusive_scan(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N, offsets_ptr);
+
+    // allocate temporary array for output
+    thrust::device_ptr<unsigned int> out_idx_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+
+    thrust::fill(out_idx_ptr, out_idx_ptr+n_out, 0);
+
+    // compute indices for gathering
+    thrust::scatter_if(thrust::cuda::par(alloc), thrust::counting_iterator<unsigned int>(0),
+        thrust::counting_iterator<unsigned int>(N),
+        offsets_ptr,
+        counts_ptr,
+        out_idx_ptr);
+
+    // max-scan for filling holes (in-place)
+    thrust::inclusive_scan(thrust::cuda::par(alloc), out_idx_ptr, out_idx_ptr + n_out,
+        out_idx_ptr, thrust::maximum<unsigned int>());
+
+    // temporary array for plans
+    thrust::device_ptr<unsigned int> plan_out_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+
+    // gather tags and plans according to positions in input
+    thrust::gather(thrust::cuda::par(alloc),
+        out_idx_ptr, out_idx_ptr + n_out,
+        thrust::make_zip_iterator(thrust::make_tuple(tag_ptr, ghost_plan_ptr)),
+        thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr, plan_out_ptr)));
+
+    /*
+     * for the nth consecutive occurence of the same index in the output, fetch the nth matching neighbor
+     */
+
+    // temporary array for matching neighbor index per output element
+    thrust::device_ptr<unsigned int> n_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+
+    // scan by key (ptl index)
+    thrust::exclusive_scan_by_key(thrust::cuda::par(alloc), out_idx_ptr, out_idx_ptr + n_out,
+       thrust::constant_iterator<unsigned int>(1), n_ptr);
+
+    // temporary array for output neighbor ranks
+    thrust::device_ptr<unsigned int> out_neighbor_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+
+    // compute neighbor ranks per output ptl
+    thrust::transform(thrust::cuda::par(alloc),
+        thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr, n_ptr)),
+        thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr + n_out, n_ptr + n_out)),
+        out_neighbor_ptr,
+        get_neighbor_rank_n(adj_ptr, neighbors_ptr, nneigh));
+
+    /*
+     * sort by neighbor and compute start and end indices
+     */
+    thrust::sort_by_key(thrust::cuda::par(alloc),
+        out_neighbor_ptr,
+        out_neighbor_ptr + n_out,
+        ghost_tag_ptr);
+
+    thrust::lower_bound(thrust::cuda::par(alloc),
+        out_neighbor_ptr,
+        out_neighbor_ptr + n_out,
+        unique_neighbors_ptr,
+        unique_neighbors_ptr + n_unique_neigh,
+        ghost_begin_ptr);
+
+    thrust::upper_bound(thrust::cuda::par(alloc),
+        out_neighbor_ptr,
+        out_neighbor_ptr + n_out,
+        unique_neighbors_ptr,
+        unique_neighbors_ptr + n_unique_neigh,
+        ghost_end_ptr);
+
+    // deallocate temporary arrays
+    alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
+    alloc.deallocate((char *)thrust::raw_pointer_cast(out_idx_ptr),0);
+    alloc.deallocate((char *)thrust::raw_pointer_cast(plan_out_ptr),0);
+    alloc.deallocate((char *)thrust::raw_pointer_cast(n_ptr),0);
+    alloc.deallocate((char *)thrust::raw_pointer_cast(out_neighbor_ptr),0);
+    }
+
+void gpu_exchange_ghosts_pack(
+    unsigned int n_out,
+    const unsigned int *d_ghost_tag,
+    const unsigned int *d_rtag,
+    const Scalar4 *d_pos,
+    const Scalar4 *d_vel,
+    const Scalar *d_charge,
+    const Scalar *d_diameter,
+    const Scalar4 *d_orientation,
+    Scalar4 *d_pos_sendbuf,
+    Scalar4 *d_vel_sendbuf,
+    Scalar *d_charge_sendbuf,
+    Scalar *d_diameter_sendbuf,
+    Scalar4 *d_orientation_sendbuf,
+    bool send_pos,
+    bool send_vel,
+    bool send_charge,
+    bool send_diameter,
+    bool send_orientation,
+    cached_allocator &alloc)
+    {
+    // wrap pointers
+    thrust::device_ptr<const unsigned int> ghost_tag_ptr(d_ghost_tag);
+    thrust::device_ptr<const unsigned int> rtag_ptr(d_rtag);
+    thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
+    thrust::device_ptr<const Scalar4> vel_ptr(d_vel);
+    thrust::device_ptr<const Scalar> charge_ptr(d_charge);
+    thrust::device_ptr<const Scalar> diameter_ptr(d_diameter);
+    thrust::device_ptr<const Scalar4> orientation_ptr(d_orientation);
+    thrust::device_ptr<Scalar4> pos_sendbuf_ptr(d_pos_sendbuf);
+    thrust::device_ptr<Scalar4> vel_sendbuf_ptr(d_vel_sendbuf);
+    thrust::device_ptr<Scalar> charge_sendbuf_ptr(d_charge_sendbuf);
+    thrust::device_ptr<Scalar> diameter_sendbuf_ptr(d_diameter_sendbuf);
+    thrust::device_ptr<Scalar4> orientation_sendbuf_ptr(d_orientation_sendbuf);
+
+    if (send_pos)
+        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
+            thrust::make_permutation_iterator(pos_ptr, rtag_ptr), pos_sendbuf_ptr);
+
+    if (send_vel)
+        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
+            thrust::make_permutation_iterator(vel_ptr, rtag_ptr), vel_sendbuf_ptr);
+
+    if (send_charge)
+        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
+            thrust::make_permutation_iterator(charge_ptr, rtag_ptr), charge_sendbuf_ptr);
+
+    if (send_diameter)
+        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
+            thrust::make_permutation_iterator(diameter_ptr, rtag_ptr), diameter_sendbuf_ptr);
+
+    if (send_orientation)
+        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
+            thrust::make_permutation_iterator(orientation_ptr, rtag_ptr), orientation_sendbuf_ptr);
+    }
+
+//! Wrap particles
+struct wrap_ghost_pos_gpu : public thrust::unary_function<Scalar4, Scalar4>
+    {
+    const BoxDim box; //!< The box for which we are applying boundary conditions
+
+    //! Constructor
+    /*!
+     */
+    wrap_ghost_pos_gpu(const BoxDim _box)
+        : box(_box)
+        {
+        }
+
+    //! Wrap position Scalar4
+    /*! \param p The position
+     * \returns The wrapped position
+     */
+    __device__ Scalar4 operator()(Scalar4 p)
+        {
+        int3 image;
+        box.wrap(p,image);
+        return p;
+        }
+     };
+
+
+/*! \param n_recv Number of particles in buffer
+    \param d_pos The particle positions array
+    \param box Box for which to apply boundary conditions
  */
-void gpu_exchange_ghosts(const unsigned int N,
-                         const unsigned char *d_plan,
-                         const unsigned int *d_tag,
-                         unsigned int *d_ghost_idx_face,
-                         unsigned int ghost_idx_face_pitch,
-                         unsigned int *d_ghost_idx_edge,
-                         unsigned int ghost_idx_edge_pitch,
-                         unsigned int *d_ghost_idx_corner,
-                         unsigned int ghost_idx_corner_pitch,
-                         Scalar4 *d_pos,
-                         Scalar *d_charge,
-                         Scalar *d_diameter,
-                         Scalar4 *d_vel,
-                         Scalar4 *d_orientation,
-                         char *d_ghost_corner_buf,
-                         unsigned int corner_buf_pitch,
-                         char *d_ghost_edge_buf,
-                         unsigned int edge_buf_pitch,
-                         char *d_ghost_face_buf,
-                         unsigned int face_buf_pitch,
-                         unsigned int *d_n_copy_ghosts_corner,
-                         unsigned int *d_n_copy_ghosts_edge,
-                         unsigned int *d_n_copy_ghosts_face,
-                         unsigned int max_copy_ghosts_corner,
-                         unsigned int max_copy_ghosts_edge,
-                         unsigned int max_copy_ghosts_face,
-                         unsigned int *d_condition,
-                         unsigned int sz,
-                         unsigned char exch_pos,
-                         unsigned char exch_vel,
-                         unsigned char exch_charge,
-                         unsigned char exch_diameter,
-                         unsigned char exch_orientation)
+void gpu_wrap_ghosts(const unsigned int n_recv,
+                        Scalar4 *d_pos,
+                        const BoxDim& box)
     {
-    cudaMemset(d_n_copy_ghosts_corner, 0, sizeof(unsigned int)*8);
-    cudaMemset(d_n_copy_ghosts_edge, 0, sizeof(unsigned int)*12);
-    cudaMemset(d_n_copy_ghosts_face, 0, sizeof(unsigned int)*6);
+    // Wrap device ptr
+    thrust::device_ptr<Scalar4> pos_ptr(d_pos);
 
-    unsigned int block_size = 256;
-    gpu_exchange_ghosts_kernel<<<N/block_size+1, block_size>>>(N,
-                         d_plan,
-                         d_tag,
-                         d_ghost_idx_face,
-                         ghost_idx_face_pitch,
-                         d_ghost_idx_edge,
-                         ghost_idx_edge_pitch,
-                         d_ghost_idx_corner,
-                         ghost_idx_corner_pitch,
-                         d_pos,
-                         d_charge,
-                         d_diameter,
-                         d_vel,
-                         d_orientation,
-                         d_ghost_corner_buf,
-                         corner_buf_pitch,
-                         d_ghost_edge_buf,
-                         edge_buf_pitch,
-                         d_ghost_face_buf,
-                         face_buf_pitch,
-                         d_n_copy_ghosts_corner,
-                         d_n_copy_ghosts_edge,
-                         d_n_copy_ghosts_face,
-                         max_copy_ghosts_corner,
-                         max_copy_ghosts_edge,
-                         max_copy_ghosts_face,
-                         d_condition,
-                         sz,
-                         exch_pos,
-                         exch_vel,
-                         exch_charge,
-                         exch_diameter,
-                         exch_orientation);
+    // Apply box wrap to input buffer
+    thrust::transform(pos_ptr, pos_ptr + n_recv, pos_ptr, wrap_ghost_pos_gpu(box));
     }
 
-//! Unpack a buffer of received ghost particles into local particle data arrays
-/*! \tparam element_type Type of ghost element
-    \tparam update True if only updating positions, false if copying all fields needed for force calculation
- */
-template<bool update>
-__global__ void gpu_exchange_ghosts_unpack_kernel(unsigned int N,
-                                                  unsigned int n_tot_recv_ghosts,
-                                                  const unsigned int *n_local_ghosts_face,
-                                                  const unsigned int *n_local_ghosts_edge,
-                                                  const unsigned int n_tot_recv_ghosts_local,
-                                                  const unsigned int *n_recv_ghosts_local,
-                                                  const unsigned int *n_recv_ghosts_face,
-                                                  const unsigned int *n_recv_ghosts_edge,
-                                                  const char *d_face_ghosts,
-                                                  const unsigned int face_pitch,
-                                                  const char *d_edge_ghosts,
-                                                  const unsigned int edge_pitch,
-                                                  const char *d_recv_ghosts,
-                                                  Scalar4 *d_pos,
-                                                  Scalar *d_charge,
-                                                  Scalar *d_diameter,
-                                                  Scalar4 *d_vel,
-                                                  Scalar4 *d_orientation,
-                                                  unsigned int *d_tag,
-                                                  unsigned int *d_rtag,
-                                                  const BoxDim shifted_global_box,
-                                                  const unsigned int sz,
-                                                  unsigned char exch_pos,
-                                                  unsigned char exch_vel,
-                                                  unsigned char exch_charge,
-                                                  unsigned char exch_diameter,
-                                                  unsigned char exch_orientation
-                                                  )
+void gpu_exchange_ghosts_copy_buf(
+    unsigned int n_recv,
+    const unsigned int *d_tag_recvbuf,
+    const Scalar4 *d_pos_recvbuf,
+    const Scalar4 *d_vel_recvbuf,
+    const Scalar *d_charge_recvbuf,
+    const Scalar *d_diameter_recvbuf,
+    const Scalar4 *d_orientation_recvbuf,
+    unsigned int *d_tag,
+    Scalar4 *d_pos,
+    Scalar4 *d_vel,
+    Scalar *d_charge,
+    Scalar *d_diameter,
+    Scalar4 *d_orientation,
+    bool send_tag,
+    bool send_pos,
+    bool send_vel,
+    bool send_charge,
+    bool send_diameter,
+    bool send_orientation,
+    cached_allocator &alloc)
     {
-    unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
+    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
+    thrust::device_ptr<Scalar4> pos_ptr(d_pos);
+    thrust::device_ptr<Scalar4> vel_ptr(d_vel);
+    thrust::device_ptr<Scalar> charge_ptr(d_charge);
+    thrust::device_ptr<Scalar> diameter_ptr(d_diameter);
+    thrust::device_ptr<Scalar4> orientation_ptr(d_orientation);
+    thrust::device_ptr<const unsigned int> tag_recvbuf_ptr(d_tag_recvbuf);
+    thrust::device_ptr<const Scalar4> pos_recvbuf_ptr(d_pos_recvbuf);
+    thrust::device_ptr<const Scalar4> vel_recvbuf_ptr(d_vel_recvbuf);
+    thrust::device_ptr<const Scalar> charge_recvbuf_ptr(d_charge_recvbuf);
+    thrust::device_ptr<const Scalar> diameter_recvbuf_ptr(d_diameter_recvbuf);
+    thrust::device_ptr<const Scalar4> orientation_recvbuf_ptr(d_orientation_recvbuf);
 
-    if (ghost_idx >= n_tot_recv_ghosts) return;
-
-    char *el_ptr;
-
-    // decide for each ghost particle from which buffer we are fetching it from
-    unsigned int offset = 0;
-
-    // first ghosts that are received for the local box only
-    bool done = false;
-    unsigned int local_idx = ghost_idx;
-    int recv_dir = -1;
-    if (local_idx < n_tot_recv_ghosts_local)
-        {
-        unsigned int local_offset = 0;
-        for (recv_dir = 0; recv_dir < 6; ++recv_dir)
-            {
-            local_offset +=n_recv_ghosts_local[recv_dir];
-            if (local_idx < local_offset) break;
-            }
-
-        el_ptr = (char *) &d_recv_ghosts[local_idx*sz];
-        done = true;
-        }
-    else
-        offset += n_tot_recv_ghosts_local;
-
-    if (! done)
-        {
-        unsigned int n_tot_recv_ghosts_face[6];
-
-        for (unsigned int i = 0; i < 6; ++i)
-            {
-            n_tot_recv_ghosts_face[i] = 0;
-            for (unsigned int j = 0; j < 6; ++j)
-                n_tot_recv_ghosts_face[i] += n_recv_ghosts_face[6*j+i];
-            }
-
-        // ghosts we have forwarded over a face of our box
-        for (unsigned int i=0; i < 6; ++i)
-            {
-            local_idx = ghost_idx - offset;
-
-            if (local_idx < n_tot_recv_ghosts_face[i])
-                {
-                unsigned int local_offset = 0;
-                for (recv_dir = 0; recv_dir < 6; ++recv_dir)
-                    {
-                    local_offset += n_recv_ghosts_face[6*recv_dir+i];
-                    if (local_idx < local_offset) break;
-                    }
-
-                unsigned int n = n_local_ghosts_face[i]+local_idx;
-                el_ptr = (char *) &d_face_ghosts[n*sz + i*face_pitch];
-                done = true;
-                break;
-                }
-            else
-                offset += n_tot_recv_ghosts_face[i];
-            }
-        }
-
-    if (! done)
-        {
-        unsigned int n_tot_recv_ghosts_edge[12];
-
-        for (unsigned int i = 0; i < 12; ++i)
-            {
-            n_tot_recv_ghosts_edge[i] = 0;
-            for (unsigned int j = 0; j < 6; ++j)
-                n_tot_recv_ghosts_edge[i] += n_recv_ghosts_edge[12*j+i];
-            }
-
-        // ghosts we have forwared over an edge of our box
-        for (unsigned int i=0; i < 12; ++i)
-            {
-            local_idx = ghost_idx - offset;
-
-            if (local_idx < n_tot_recv_ghosts_edge[i])
-                {
-                unsigned int local_offset = 0;
-                for (recv_dir = 0; recv_dir < 6; ++recv_dir)
-                    {
-                    local_offset += n_recv_ghosts_edge[12*recv_dir+i];
-                    if (local_idx < local_offset) break;
-                    }
-
-                unsigned int n = n_local_ghosts_edge[i]+local_idx;
-                el_ptr = (char *) &d_edge_ghosts[n*sz + i*edge_pitch];
-                done = true;
-                break;
-                }
-            else
-                offset += n_tot_recv_ghosts_edge[i];
-            }
-        }
-
-    // we have a pointer to the data element to be unpacked, now unpack
-    // unpack in the order it was packed
-    Scalar4 postype;
-    if (update)
-        {
-        unsigned int offs = 0;
-        if (exch_pos)
-            {
-            Scalar4 &pos = *((Scalar4 *) (el_ptr+offs));
-            offs += sizeof(Scalar4);
-            postype = pos;
-            }
-        if (exch_vel)
-            {
-            Scalar4 &vel = *((Scalar4 *) (el_ptr+offs));
-            offs += sizeof(Scalar4);
-            d_vel[N+ghost_idx] = vel;
-            }
-        if (exch_orientation)
-            {
-            Scalar4 &orientation = *((Scalar4 *) (el_ptr+offs));
-            offs += sizeof(Scalar4);
-            d_orientation[N+ghost_idx] = orientation;
-            }
-        }
-    else
-        {
-        unsigned int offs = 0;
-        if (exch_pos)
-            {
-            Scalar4 &pos = *((Scalar4 *) (el_ptr+offs));
-            offs += sizeof(Scalar4);
-            postype = pos;
-            }
-        if (exch_vel)
-            {
-            Scalar4 &vel = *((Scalar4 *) (el_ptr+offs));
-            offs += sizeof(Scalar4);
-            d_vel[N+ghost_idx] = vel;
-            }
-        if (exch_orientation)
-            {
-            Scalar4 &orientation = *((Scalar4 *) (el_ptr+offs));
-            offs += sizeof(Scalar4);
-            d_orientation[N+ghost_idx] = orientation;
-            }
-        if (exch_charge)
-            {
-            Scalar charge = *((Scalar *) (el_ptr+offs));
-            offs += sizeof(Scalar);
-            d_charge[N+ghost_idx] = charge;
-            }
-       if (exch_diameter)
-            {
-            Scalar diameter = *((Scalar *) (el_ptr+offs));
-            offs += sizeof(Scalar);
-            d_diameter[N+ghost_idx] = diameter;
-            }
-
-        unsigned int tag = *((unsigned int *) (el_ptr+offs));
-        offs += sizeof(unsigned int);
-
-        d_tag[N+ghost_idx] = tag;
-        d_rtag[tag] = N+ghost_idx;
-        }
-
-    // apply global boundary conditions for received particle
-    if (exch_pos)
-        {
-        int3 img = make_int3(0,0,0);
-        shifted_global_box.wrap(postype,img);
-
-        d_pos[N+ghost_idx] = postype;
-        }
+    if (send_tag) thrust::copy(thrust::cuda::par(alloc), tag_recvbuf_ptr, tag_recvbuf_ptr + n_recv, tag_ptr);
+    if (send_pos) thrust::copy(thrust::cuda::par(alloc), pos_recvbuf_ptr, pos_recvbuf_ptr + n_recv, pos_ptr);
+    if (send_vel) thrust::copy(thrust::cuda::par(alloc), vel_recvbuf_ptr, vel_recvbuf_ptr + n_recv, vel_ptr);
+    if (send_charge) thrust::copy(thrust::cuda::par(alloc), charge_recvbuf_ptr, charge_recvbuf_ptr + n_recv, charge_ptr);
+    if (send_diameter) thrust::copy(thrust::cuda::par(alloc), diameter_recvbuf_ptr, diameter_recvbuf_ptr + n_recv, diameter_ptr);
+    if (send_orientation) thrust::copy(thrust::cuda::par(alloc), orientation_recvbuf_ptr, orientation_recvbuf_ptr + n_recv, orientation_ptr);
     }
 
-//! Unpack received ghosts
-/*! \param N Number of local particles
-    \param n_tot_recv_ghosts Number of received ghosts
-    \param d_n_local_ghosts_face Number of local particles SENT as ghosts across a face
-    \param d_n_local_ghosts_edge Number of local particle SENT as ghosts over an edge
-    \param n_tot_recv_ghosts_local Number of ghosts received for local box
-    \param d_n_recv_ghosts_local Number of ghosts received for local box (per send direction)
-    \param d_n_recv_ghosts_face Number of ghosts received for forwarding across a face (per send-direction and face)
-    \param d_n_recv_ghosts_edge Number of ghosts received for forwarding over an edge (per send-direction an edge)
-    \param d_face_ghosts Buffer of ghosts sent/forwarded across a face
-    \param face_pitch Offsets of different faces in face ghost buffer
-    \param d_edge_ghosts Buffer of ghosts sent/forwarded over an edge
-    \param edge_pitch Offsets of different edges in edge ghost buffer
-    \param d_recv_ghosts Buffer of ghosts received for the local box
-    \param d_pos Array of particle positions
-    \param d_charge Array of particle charges
-    \param d_diameter Array of particle diameters
-    \param d_vel Array of particle velocities
-    \param d_orientation Array of particle orientations
-    \param d_tag Array of particle tags
-    \param d_rtag Lookup table particle tag->idx
-    \param shifted_global_box Global simulation box, shifted by one local box if local box has a global boundary
-    \param sz Size of exchange element
-    \param exch_pos >0 if exchanging positions
-    \param exch_vel >0 if exchanging positions
-    \param exch_charge >0 if exchanging positions
-    \param exch_diameter >0 if exchanging positions
-    \param exch_orientation >0 if exchanging positions
-*/
-void gpu_exchange_ghosts_unpack(unsigned int N,
-                                unsigned int n_tot_recv_ghosts,
-                                const unsigned int *d_n_local_ghosts_face,
-                                const unsigned int *d_n_local_ghosts_edge,
-                                const unsigned int n_tot_recv_ghosts_local,
-                                const unsigned int *d_n_recv_ghosts_local,
-                                const unsigned int *d_n_recv_ghosts_face,
-                                const unsigned int *d_n_recv_ghosts_edge,
-                                const char *d_face_ghosts,
-                                const unsigned int face_pitch,
-                                const char *d_edge_ghosts,
-                                const unsigned int edge_pitch,
-                                const char *d_recv_ghosts,
-                                Scalar4 *d_pos,
-                                Scalar *d_charge,
-                                Scalar *d_diameter,
-                                Scalar4 *d_vel,
-                                Scalar4 *d_orientation,
-                                unsigned int *d_tag,
-                                unsigned int *d_rtag,
-                                const BoxDim& shifted_global_box,
-                                unsigned int sz,
-                                unsigned char exch_pos,
-                                unsigned char exch_vel,
-                                unsigned char exch_charge,
-                                unsigned char exch_diameter,
-                                unsigned char exch_orientation
-                                )
+void gpu_compute_ghost_rtags(
+     unsigned int first_idx,
+     unsigned int n_ghost,
+     const unsigned int *d_tag,
+     unsigned int *d_rtag)
     {
-    unsigned int block_size = 512;
+    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
+    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-    gpu_exchange_ghosts_unpack_kernel<false><<<n_tot_recv_ghosts/block_size+1, block_size>>>(N,
-                                                                           n_tot_recv_ghosts,
-                                                                           d_n_local_ghosts_face,
-                                                                           d_n_local_ghosts_edge,
-                                                                           n_tot_recv_ghosts_local,
-                                                                           d_n_recv_ghosts_local,
-                                                                           d_n_recv_ghosts_face,
-                                                                           d_n_recv_ghosts_edge,
-                                                                           d_face_ghosts,
-                                                                           face_pitch,
-                                                                           d_edge_ghosts,
-                                                                           edge_pitch,
-                                                                           d_recv_ghosts,
-                                                                           d_pos,
-                                                                           d_charge,
-                                                                           d_diameter,
-                                                                           d_vel,
-                                                                           d_orientation,
-                                                                           d_tag,
-                                                                           d_rtag,
-                                                                           shifted_global_box,
-                                                                           sz,
-                                                                           exch_pos,
-                                                                           exch_vel,
-                                                                           exch_charge,
-                                                                           exch_diameter,
-                                                                           exch_orientation);
-    }
-
-//! Kernel to pack local particle data into ghost send buffers
-__global__ void gpu_update_ghosts_pack_kernel(const unsigned int n_copy_ghosts,
-                                         const unsigned int *d_ghost_idx_face,
-                                         const unsigned int ghost_idx_face_pitch,
-                                         const unsigned int *d_ghost_idx_edge,
-                                         const unsigned int ghost_idx_edge_pitch,
-                                         const unsigned int *d_ghost_idx_corner,
-                                         const unsigned int ghost_idx_corner_pitch,
-                                         const Scalar4 *d_pos,
-                                         const Scalar4 *d_vel,
-                                         const Scalar4 *d_orientation,
-                                         char *d_update_corner_buf,
-                                         unsigned int corner_buf_pitch,
-                                         char *d_update_edge_buf,
-                                         unsigned int edge_buf_pitch,
-                                         char *d_update_face_buf,
-                                         unsigned int face_buf_pitch,
-                                         const unsigned int *n_copy_ghosts_corner,
-                                         const unsigned int *n_copy_ghosts_edge,
-                                         const unsigned int *n_copy_ghosts_face,
-                                         unsigned int sz,
-                                         unsigned char exch_pos,
-                                         unsigned char exch_vel,
-                                         unsigned char exch_orientation)
-    {
-    unsigned int ghost_idx = blockIdx.x*blockDim.x+threadIdx.x;
-
-    if (ghost_idx >= n_copy_ghosts) return;
-
-    // this kernel traverses 26 index buffers at once by mapping
-    // a continuous local ghost particle index onto a single element in a single index buffer.
-    // Then it fetches the particle data for the particle index stored in that buffer
-    // and writes it to the send buffer
-
-    // order does matter, inside the individual buffers the particle order must be the same as the one
-    // in the ghost index buffer (created by exchange_ghosts kernel)
-    unsigned int offset = 0;
-
-    char *buf_ptr = NULL;
-
-    // the particle index we are going to fetch (initialized with a dummy value)
-    unsigned int idx = NOT_LOCAL;
-
-    bool done = false;
-
-    // first, ghosts that are sent over a corner
-    for (unsigned int corner=0; corner < 8; ++corner)
-        {
-        unsigned int local_idx = ghost_idx - offset;
-
-        if (local_idx < n_copy_ghosts_corner[corner])
-            {
-            idx = d_ghost_idx_corner[local_idx + corner * ghost_idx_corner_pitch];
-            buf_ptr = (char *) &d_update_corner_buf[local_idx*sz + corner*corner_buf_pitch];
-            done = true;
-            break;
-            }
-        else
-            offset += n_copy_ghosts_corner[corner];
-        }
-
-    if (! done)
-        {
-        // second, ghosts that are sent over an edge
-        for (unsigned int edge=0; edge < 12; ++edge)
-            {
-            unsigned int local_idx = ghost_idx - offset;
-
-            if (local_idx < n_copy_ghosts_edge[edge])
-                {
-                idx = d_ghost_idx_edge[local_idx + edge * ghost_idx_edge_pitch];
-                buf_ptr = (char *) &d_update_edge_buf[local_idx*sz + edge*edge_buf_pitch];
-                done = true;
-                break;
-                }
-            else
-                offset += n_copy_ghosts_edge[edge];
-            }
-        }
-
-    if (!done)
-        {
-        // third, ghosts that are sent through a face of the box
-        for (unsigned int face=0; face < 6; ++face)
-            {
-            unsigned int local_idx = ghost_idx - offset;
-
-            if (local_idx < n_copy_ghosts_face[face])
-                {
-                idx = d_ghost_idx_face[local_idx + face * ghost_idx_face_pitch];
-                buf_ptr = (char *) &d_update_face_buf[local_idx*sz + face*face_buf_pitch];
-                done = true;
-                break;
-                }
-            else
-                offset += n_copy_ghosts_face[face];
-            }
-        }
-
-    // we have found a ghost index to be updated
-    // store data in buffer element
-    unsigned int offs = 0;
-    if (exch_pos)
-        {
-        *((Scalar4 *) (buf_ptr+offs)) = d_pos[idx];
-        offs += sizeof(Scalar4);
-        }
-    if (exch_vel)
-        {
-        *((Scalar4 *) (buf_ptr+offs)) = d_vel[idx];
-        offs += sizeof(Scalar4);
-        }
-    if (exch_orientation)
-        {
-        *((Scalar4 *) (buf_ptr+offs)) = d_orientation[idx];
-        offs += sizeof(Scalar4);
-        }
-    }
-
-//! Pack local particle data into ghost send buffers
-/*! \param n_copy_ghosts Number of ghosts to be packed
-    \param d_ghost_idx_face List of particle indices sent as ghosts across a face
-    \param ghost_idx_face_pitch Offsets of different box faces in ghost index list
-    \param d_ghost_idx_edge List of particle indices sent as ghosts across a edge
-    \param ghost_idx_edge_pitch Offsets of different box edges in ghost index list
-    \param d_ghost_idx_corner List of particle indices sent as ghosts across a corner
-    \param ghost_idx_corner_pitch Offsets of different box corners in ghost index list
-    \param d_pos Array of particle positions
-    \param d_update_corner_buf Buffer of ghost particle positions sent via corner (return array)
-    \param corner_buf_pitch Offsets of different corners in update buffer
-    \param d_update_edge_buf Buffer of ghost particle positions sent over an edge (return array)
-    \param edge_buf_pitch Offsets of different edges in update buffer
-    \param d_update_face_buf Buffer of ghost particle positions sent over an face (return array)
-    \param face_buf_pitch Buffer of different faces in update buffer
-    \param d_n_local_ghosts_corner Number of ghosts sent in every corner
-    \param d_n_local_ghosts_edge Number of ghosts sent over every edge
-    \param d_n_local_ghosts_face Number of ghosts sent across every face
-    \param sz Size of update element
-    \param exch_pos >0 if exchanging positions
-    \param exch_vel >0 if exchanging positions
-    \param exch_orientation >0 if exchanging positions
-*/
-void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
-                                     const unsigned int *d_ghost_idx_face,
-                                     const unsigned int ghost_idx_face_pitch,
-                                     const unsigned int *d_ghost_idx_edge,
-                                     const unsigned int ghost_idx_edge_pitch,
-                                     const unsigned int *d_ghost_idx_corner,
-                                     const unsigned int ghost_idx_corner_pitch,
-                                     const Scalar4 *d_pos,
-                                     const Scalar4 *d_vel,
-                                     const Scalar4 *d_orientation,
-                                     char *d_update_corner_buf,
-                                     unsigned int corner_buf_pitch,
-                                     char *d_update_edge_buf,
-                                     unsigned int edge_buf_pitch,
-                                     char *d_update_face_buf,
-                                     unsigned int face_buf_pitch,
-                                     const unsigned int *d_n_local_ghosts_corner,
-                                     const unsigned int *d_n_local_ghosts_edge,
-                                     const unsigned int *d_n_local_ghosts_face,
-                                     unsigned int sz,
-                                     unsigned char exch_pos,
-                                     unsigned char exch_vel,
-                                     unsigned char exch_orientation)
-    {
-    unsigned int block_size = 512;
-    gpu_update_ghosts_pack_kernel<<<n_copy_ghosts/block_size+1,block_size>>>(n_copy_ghosts,
-                                                                             d_ghost_idx_face,
-                                                                             ghost_idx_face_pitch,
-                                                                             d_ghost_idx_edge,
-                                                                             ghost_idx_edge_pitch,
-                                                                             d_ghost_idx_corner,
-                                                                             ghost_idx_corner_pitch,
-                                                                             d_pos,
-                                                                             d_vel,
-                                                                             d_orientation,
-                                                                             d_update_corner_buf,
-                                                                             corner_buf_pitch,
-                                                                             d_update_edge_buf,
-                                                                             edge_buf_pitch,
-                                                                             d_update_face_buf,
-                                                                             face_buf_pitch,
-                                                                             d_n_local_ghosts_corner,
-                                                                             d_n_local_ghosts_edge,
-                                                                             d_n_local_ghosts_face,
-                                                                             sz,
-                                                                             exch_pos,
-                                                                             exch_vel,
-                                                                             exch_orientation);
-    }
-
-//! Unpack received ghosts
-/*! \param N Number of local particles
-    \param n_tot_recv_ghosts Number of received ghosts
-    \param d_n_local_ghosts_face Number of local particles SENT as ghosts across a face
-    \param d_n_local_ghosts_edge Number of local particle SENT as ghosts over an edge
-    \param n_tot_recv_ghosts_local Number of ghosts received for local box
-    \param d_n_recv_ghosts_local Number of ghosts received for local box (per send direction)
-    \param d_n_recv_ghosts_face Number of ghosts received for forwarding across a face (per send-direction and face)
-    \param d_n_recv_ghosts_edge Number of ghosts received for forwarding over an edge (per send-direction an edge)
-    \param d_face_ghosts Buffer of ghosts sent/forwarded across a face
-    \param face_pitch Offsets of different faces in face ghost buffer
-    \param d_edge_ghosts Buffer of ghosts sent/forwarded over an edge
-    \param edge_pitch Offsets of different edges in edge ghost buffer
-    \param d_recv_ghosts Buffer of ghosts received for the local box
-    \param d_pos Array of particle positions
-    \param d_vel Array of particle velocities
-    \param d_orientation Array of particle orientations
-    \param global_box Global simulation box
-    \param sz Size of update element
-    \param exch_pos >0 if exchanging positions
-    \param exch_vel >0 if exchanging positions
-    \param exch_orientation >0 if exchanging positions
-*/
-void gpu_update_ghosts_unpack(unsigned int N,
-                                unsigned int n_tot_recv_ghosts,
-                                const unsigned int *d_n_local_ghosts_face,
-                                const unsigned int *d_n_local_ghosts_edge,
-                                const unsigned int n_tot_recv_ghosts_local,
-                                const unsigned int *d_n_recv_ghosts_local,
-                                const unsigned int *d_n_recv_ghosts_face,
-                                const unsigned int *d_n_recv_ghosts_edge,
-                                const char *d_face_ghosts,
-                                const unsigned int face_pitch,
-                                const char *d_edge_ghosts,
-                                const unsigned int edge_pitch,
-                                const char *d_recv_ghosts,
-                                Scalar4 *d_pos,
-                                Scalar4 *d_vel,
-                                Scalar4 *d_orientation,
-                                const BoxDim& shifted_global_box,
-                                unsigned int sz,
-                                unsigned char exch_pos,
-                                unsigned char exch_vel,
-                                unsigned char exch_orientation)
-    {
-    unsigned int block_size = 512;
-    gpu_exchange_ghosts_unpack_kernel<true><<<n_tot_recv_ghosts/block_size+1, block_size>>>
-                                                                          (N,
-                                                                           n_tot_recv_ghosts,
-                                                                           d_n_local_ghosts_face,
-                                                                           d_n_local_ghosts_edge,
-                                                                           n_tot_recv_ghosts_local,
-                                                                           d_n_recv_ghosts_local,
-                                                                           d_n_recv_ghosts_face,
-                                                                           d_n_recv_ghosts_edge,
-                                                                           d_face_ghosts,
-                                                                           face_pitch,
-                                                                           d_edge_ghosts,
-                                                                           edge_pitch,
-                                                                           d_recv_ghosts,
-                                                                           d_pos,
-                                                                           NULL,
-                                                                           NULL,
-                                                                           d_vel,
-                                                                           d_orientation,
-                                                                           NULL,
-                                                                           NULL,
-                                                                           shifted_global_box,
-                                                                           sz,
-                                                                           exch_pos,
-                                                                           exch_vel,
-                                                                           0,
-                                                                           0,
-                                                                           exch_orientation);
+    thrust::counting_iterator<unsigned int> idx(first_idx);
+    thrust::scatter(idx, idx + n_ghost, tag_ptr, rtag_ptr);
     }
 
 

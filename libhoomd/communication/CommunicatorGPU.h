@@ -60,7 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #ifdef ENABLE_CUDA
 
-//#define MPI3 // define if the MPI implementation supports MPI3 one-sided communications
+// in 3d, there are 26 neighbors max.
+#define NEIGH_MAX 26
 
 #include "Communicator.h"
 
@@ -140,86 +141,62 @@ class CommunicatorGPU : public Communicator
         void checkValid(unsigned int timestep);
 
     private:
+        /* Particle migration */
         GPUVector<pdata_element> m_gpu_sendbuf;        //!< Send buffer for particle data
         GPUVector<pdata_element> m_gpu_recvbuf;        //!< Receive buffer for particle data
 
         GPUVector<unsigned int> m_send_keys;           //!< Destination rank for particles
-        GPUArray<unsigned int> m_begin;               //!< Begin index for every neighbor in send buf
-        GPUArray<unsigned int> m_end;                 //!< Last index + 1 for every neighbor in send buf
-        GPUArray<unsigned int> m_neighbors;           //!< Neighbor ranks
+        GPUArray<unsigned int> m_begin;                //!< Begin index for every neighbor in send buf
+        GPUArray<unsigned int> m_end;                  //!< End index for every neighbor in send buf
+        GPUArray<unsigned int> m_neighbors;            //!< Neighbor ranks
+        GPUArray<unsigned int> m_unique_neighbors;     //!< Neighbor ranks w/duplicates removed
         unsigned int m_nneigh;                         //!< Number of neighbors
+        unsigned int m_n_unique_neigh;                 //!< Number of unique neighbors
 
-        GPUVector<bond_element> m_gpu_bond_sendbuf;   //!< Buffer for bonds that are sent
-        GPUVector<bond_element> m_gpu_bond_recvbuf;   //!< Buffer for bonds that are received
+        GPUVector<bond_element> m_gpu_bond_sendbuf;    //!< Buffer for bonds that are sent
+        GPUVector<bond_element> m_gpu_bond_recvbuf;    //!< Buffer for bonds that are received
+
+        /* Ghost communication */
+
+        GPUVector<unsigned int> m_tag_ghost_recvbuf;    //!< Buffer for recveiving particle tags
+
+        GPUVector<Scalar4> m_pos_ghost_sendbuf;        //<! Buffer for sending ghost positions
+        GPUVector<Scalar4> m_pos_ghost_recvbuf;        //<! Buffer for receiving ghost positions
+
+        GPUVector<Scalar4> m_vel_ghost_sendbuf;        //<! Buffer for sending ghost velocities
+        GPUVector<Scalar4> m_vel_ghost_recvbuf;        //<! Buffer for receiving ghost velocities
+
+        GPUVector<Scalar> m_charge_ghost_sendbuf;      //!< Buffer for sending ghost charges
+        GPUVector<Scalar> m_charge_ghost_recvbuf;      //!< Buffer for sending ghost charges
+
+        GPUVector<Scalar> m_diameter_ghost_sendbuf;    //!< Buffer for sending ghost charges
+        GPUVector<Scalar> m_diameter_ghost_recvbuf;    //!< Buffer for sending ghost charges
+
+        GPUVector<Scalar4> m_orientation_ghost_sendbuf;//<! Buffer for sending ghost orientations
+        GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
+
+        GPUArray<unsigned int> m_ghost_begin;          //!< Begin index for every plan in send buf
+        GPUArray<unsigned int> m_ghost_end;            //!< Begin index for every plan in send buf
+
+        GPUArray<unsigned int> m_adj_mask;             //!< Adjacency mask for every neighbor
+        GPUVector<unsigned int> m_ghost_plan;         //!< Plans for every particle
+        GPUVector<unsigned int> m_ghost_tag;          //!< Ghost particles tags, ordered by neighbor
+        GPUVector<unsigned int> m_neigh_counts;       //!< List of number of neighbors to send ghost to
+
+        unsigned int m_n_send_ghosts[NEIGH_MAX];        //!< Number of ghosts to send per neighbor
+        unsigned int m_n_recv_ghosts[NEIGH_MAX];        //!< Number of ghosts to receive per neighbor
+        unsigned int m_ghost_offs[NEIGH_MAX];           //!< Begin of offset in recv buf per neighbor
+
+        unsigned int m_n_send_ghosts_tot;              //!< Total number of sent ghosts
+        unsigned int m_n_recv_ghosts_tot;              //!< Total number of received ghosts
 
         cached_allocator m_cached_alloc;              //!< Cached memory allocator for internal thrust code
-
-        unsigned int m_remote_send_corner[8*6];     //!< Remote corner particles, per direction
-        unsigned int m_remote_send_edge[12*6];       //!< Remote edge particles, per direction
-        unsigned int m_remote_send_face[6];         //!< Remote face particles, per direction
-
-        GPUArray<char> m_corner_ghosts_buf;         //!< Copy buffer for ghosts lying at the edge
-        GPUArray<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
-        GPUArray<char> m_face_ghosts_buf;           //!< Copy buffer for ghosts lying near a face
-        GPUArray<char> m_ghosts_recv_buf;           //!< Receive buffer for particle data
-
-        GPUArray<unsigned int> m_ghost_idx_corner;  //!< Indices of particles copied as ghosts via corner
-        GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge
-        GPUArray<unsigned int> m_ghost_idx_face;    //!< Indices of particles copied as ghosts via a face
-
-        GPUArray<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions
-        GPUArray<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions
-        GPUArray<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions
-        GPUArray<char> m_update_recv_buf;     //!< Receive buffer for ghost positions
-
-        unsigned int m_max_copy_ghosts_face;        //!< Maximum number of ghosts 'face' particles
-        unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
-        unsigned int m_max_copy_ghosts_corner;      //!< Maximum number of ghosts 'corner' particles
-        unsigned int m_max_recv_ghosts;             //!< Maximum number of ghosts received for the local box
-
-        GPUArray<unsigned int> m_n_local_ghosts_face;  //!< Number of local ghosts sent over a face
-        GPUArray<unsigned int> m_n_local_ghosts_edge;  //!< Local ghosts sent over an edge
-        GPUArray<unsigned int> m_n_local_ghosts_corner;//!< Local ghosts sent over a corner
-
-        GPUArray<unsigned int> m_n_recv_ghosts_face; //!< Number of received ghosts for sending over a face, per direction
-        GPUArray<unsigned int> m_n_recv_ghosts_edge; //!< Number of received ghosts for sending over an edge, per direction
-        GPUArray<unsigned int> m_n_recv_ghosts_local;//!< Number of received ghosts that stay in the local box, per direction
-
-        unsigned int m_n_tot_recv_ghosts;           //!< Total number of received ghots
-        unsigned int m_n_tot_recv_ghosts_local;     //!< Total number of received ghosts for local box
-        unsigned int m_n_forward_ghosts_face[6];    //!< Total number of received ghosts for the face send buffer
-        unsigned int m_n_forward_ghosts_edge[12];   //!< Total number of received ghosts for the edge send buffer
-
-        bool m_buffers_allocated;                   //!< True if buffers have been allocated
-        bool m_mesh_buffers_allocated;              //!< True if buffers for ghost mesh exchange have been allocated
-
-        uint3 m_mesh_dim;                           //!< Dimensions of mesh for which we allocated buffers
-        uint3 m_inner_dim;                          //!< Number of non-ghost cells along every axis
-        unsigned int m_n_ghost_cells;               //!< Number of ghost cells of mesh along non-periodic axes
-        unsigned int m_n_corner_cells;              //!< Number of corner cells
-        uint3 m_n_edge_cells;                       //!< Number of edge cells, for every four edges along every axis
-        uint3 m_n_face_cells;                       //!< Number of face cells for every axis
-
-        GPUFlags<unsigned int> m_condition;         //!< Condition variable set to a value unequal zero if send buffers need to be resized
-
-#ifdef MPI3
-        MPI_Group m_comm_group;                     //!< Group corresponding to MPI communicator
-        MPI_Win m_win_edge[12];                     //!< Shared memory windows for every of the 12 edges
-        MPI_Win m_win_face[6];                      //!< Shared memory windows for every of the 6 edges
-        MPI_Win m_win_local;                        //!< Shared memory window for locally received particles
-#endif
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
 
-        //! Helper function to allocate buffers for ghost mesh exchange
-        void allocateMeshBuffers(const uint3 dim, const uint3 n_ghost_cells, size_t size_datatype);
-
-        //! Compute size of ghost exchange element
-        size_t ghost_exchange_element_size();
-
-        //! Compute size of ghost update element
-        size_t ghost_update_element_size();
+        //! Helper function to initialize neighbor arrays
+        void initializeNeighborArrays();
 
     };
 

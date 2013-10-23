@@ -494,25 +494,6 @@ class BoxDim
             return r;
             }
 
-        //! Check if the displacement is out of bounds
-        /*! \param dx The displacement vector
-            \returns True if the displacement exceeds the box length in a direction where periodic
-                     boundary conditions are not applied
-         */
-        HOSTDEVICE bool checkOutOfBounds(const Scalar3& dx) const
-            {
-            Scalar3 del;
-            del.x = dx.x - (m_xz - m_xy*m_yz) * dx.z - m_xy * dx.y;
-            del.y = dx.y -  m_yz * dx.z;
-            del.z = dx.z;
-
-            if (!m_periodic.x && del.x*del.x >= m_L.x*m_L.x) return true;
-            if (!m_periodic.y && del.y*del.y >= m_L.y*m_L.y) return true;
-            if (!m_periodic.z && del.z*del.z >= m_L.z*m_L.z) return true;
-
-            return false;
-            }
-
         //! Get the shortest distance between opposite boundary planes of the box
         /*! The distance between two planes of the lattice is 2 Pi/|b_i|, where
          *   b_1 is the reciprocal lattice vector of the Bravais lattice normal to

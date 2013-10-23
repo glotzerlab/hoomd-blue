@@ -650,7 +650,9 @@ class ParticleData : boost::noncopyable
         Scalar4 getNetTorque(unsigned int tag) const;
 
         //! Set the current position of a particle
-        void setPosition(unsigned int tag, const Scalar3& pos);
+        /*! \param move If true, particle is automatically placed into correct domain
+         */
+        void setPosition(unsigned int tag, const Scalar3& pos, bool move=true);
 
         //! Set the current velocity of a particle
         void setVelocity(unsigned int tag, const Scalar3& vel);

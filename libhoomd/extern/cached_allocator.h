@@ -13,6 +13,7 @@
 #include <thrust/system/cuda/vector.h>
 #include <thrust/system/cuda/execution_policy.h>
 #include <map>
+#include <assert.h>
 
 // 100 MB max cache
 #define MAX_CACHED_BYTES 100*1024*1024
@@ -54,6 +55,9 @@ class cached_allocator
     char *allocate(std::ptrdiff_t num_bytes)
     {
       char *result = 0;
+
+      // short-cut to avoid storing duplicate NULL ptrs in the map
+      if (!num_bytes) return NULL;
 
       unsigned int num_allocated_bytes = num_bytes;
       // search the cache for a free block
@@ -113,8 +117,11 @@ class cached_allocator
 
     void deallocate(char *ptr, size_t n)
     {
+      if (ptr == NULL) return;
+
       // erase the allocated block from the allocated blocks map
       allocated_blocks_type::iterator iter = allocated_blocks.find(ptr);
+      assert(iter != allocated_blocks.end());
       std::ptrdiff_t num_bytes = iter->second;
       allocated_blocks.erase(iter);
 

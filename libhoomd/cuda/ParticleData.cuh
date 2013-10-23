@@ -105,7 +105,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     const unsigned int *d_body,
                     const Scalar4 *d_orientation,
                     const unsigned int *d_tag,
-                    const unsigned int *d_rtag,
+                    unsigned int *d_rtag,
                     Scalar4 *d_pos_alt,
                     Scalar4 *d_vel_alt,
                     Scalar3 *d_accel_alt,
@@ -118,6 +118,13 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     pdata_element *d_out,
                     unsigned int max_n_out,
                     cached_allocator& alloc);
+
+//! Update reverse-lookup tabs
+void gpu_pdata_update_rtags(
+    const unsigned int *d_tag,
+    unsigned int *d_rtag,
+    const unsigned int N,
+    cached_allocator& alloc);
 
 //! Update particle data with new particles
 void gpu_pdata_add_particles(const unsigned int old_nparticles,

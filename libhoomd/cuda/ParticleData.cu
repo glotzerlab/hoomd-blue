@@ -113,58 +113,23 @@ typedef thrust::tuple <
     Scalar4        // orientation
     > pdata_tuple_gpu;
 
-//! A predicate to select particles by rtag
-struct pdata_element_select_gpu : public thrust::unary_function<pdata_element, bool>
-    {
-    //! Constructor
-    pdata_element_select_gpu(const unsigned int *_d_rtag, unsigned int _compare)
-        : d_rtag(_d_rtag), compare(_compare)
-        { }
-
-    //! Returns true if the remove flag is set for a particle
-    __device__ bool operator() (pdata_element const p) const
-        {
-        return d_rtag[p.tag] == compare;
-        }
-
-    const unsigned int *d_rtag; //!< The reverse-lookup tag array
-    const unsigned int compare; //!< rtag value to compare to
-    };
-
-//! A predicate to select rtags by value
-struct rtag_select_gpu
-    {
-    //! Constructor
-    rtag_select_gpu(const unsigned int _compare)
-        :  compare(_compare)
-        { }
-
-    //! Returns true if the remove flag is set for a particle
-    __device__ bool operator() (const unsigned int rtag) const
-        {
-        return rtag == compare;
-        }
-
-    const unsigned int compare; //!< rtag value to compare to
-    };
-
 //! A predicate to select pdata tuples by rtag
 struct combined_tuple_select_rtag_gpu
     {
     //! Constructor
-    combined_tuple_select_rtag_gpu(const unsigned int *_d_rtag, const unsigned int _compare)
-        :  d_rtag(_d_rtag), compare(_compare)
+    combined_tuple_select_rtag_gpu(thrust::device_ptr<unsigned int> _rtag_ptr, const unsigned int _compare)
+        :  rtag_ptr(_rtag_ptr), compare(_compare)
         { }
 
     //! Returns true if the remove flag is set for a particle
-    __device__ bool operator() (const thrust::tuple<pdata_tuple_gpu,pdata_element>& t) const
+    __device__ bool operator() (const thrust::tuple<pdata_tuple_gpu,pdata_element> t) const
         {
         unsigned int tag = thrust::get<0>(thrust::get<0>(t));
-        return d_rtag[tag] == compare;
+        return rtag_ptr[tag] == compare;
         }
 
-    const unsigned int *d_rtag; //!< Reverse-lookup table
-    const unsigned int compare; //!< rtag value to compare to
+    thrust::device_ptr<unsigned int> rtag_ptr; //!< Reverse-lookup table
+    const unsigned int compare;                //!< rtag value to compare to
     };
 
 //! A converter from a tuple of pdata entries to a pdata_element
@@ -222,7 +187,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     const unsigned int *d_body,
                     const Scalar4 *d_orientation,
                     const unsigned int *d_tag,
-                    const unsigned int *d_rtag,
+                    unsigned int *d_rtag,
                     Scalar4 *d_pos_alt,
                     Scalar4 *d_vel_alt,
                     Scalar3 *d_accel_alt,
@@ -260,6 +225,9 @@ unsigned int gpu_pdata_remove(const unsigned int N,
 
     // wrap output array
     thrust::device_ptr<pdata_element> out_ptr(d_out);
+
+    // wrap reverse-lookup table
+    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
     // Construct zip iterator for input
     pdata_zip_gpu_const pdata_begin(
@@ -314,7 +282,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     // partition input into two outputs (local particles and removed particles)
     thrust::pair<clipped_range<out_it_1>::iterator, out_it_2> res =
         thrust::stable_partition_copy(thrust::cuda::par(alloc), in, in+N, clip.begin(),
-        out_2, combined_tuple_select_rtag_gpu(d_rtag,NOT_LOCAL));
+        out_2, combined_tuple_select_rtag_gpu(rtag_ptr,NOT_LOCAL));
 
     // return elements written to output stream
     return res.first - clip.begin();
@@ -326,25 +294,28 @@ typedef thrust::tuple<
     const pdata_element
     > idx_pdata_element_gpu;
 
+void gpu_pdata_update_rtags(
+    const unsigned int *d_tag,
+    unsigned int *d_rtag,
+    const unsigned int N,
+    cached_allocator& alloc)
+    {
+    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
+    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
+
+    // update rtags
+    thrust::counting_iterator<unsigned int> idx(0);
+    thrust::scatter(thrust::cuda::par(alloc), idx, idx + N, tag_ptr, rtag_ptr);
+    }
+
+
 //! A converter from pdata_element to a tuple of tag and a tuple of pdata entries
 /*! Writes the tag into the rtag table at the same time
  */
-struct to_rtag_pdata_tuple_gpu : public thrust::unary_function<const idx_pdata_element_gpu, pdata_tuple_gpu>
+struct to_pdata_tuple_gpu : public thrust::unary_function<const pdata_element, pdata_tuple_gpu>
     {
-    unsigned int *d_rtag; //!< rtag table
-
-    to_rtag_pdata_tuple_gpu(unsigned int *_d_rtag)
-        : d_rtag(_d_rtag)
-        { }
-
-    __device__ const pdata_tuple_gpu operator() (const idx_pdata_element_gpu t)
+    __device__ const pdata_tuple_gpu operator() (const pdata_element p)
         {
-        // fetch pdata element
-        const pdata_element &p = thrust::get<1>(t);
-
-        // update rtag table
-        d_rtag[p.tag] = thrust::get<0>(t);
-
         // make tuple
         return thrust::make_tuple(
             p.tag,
@@ -425,15 +396,12 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
 
     typedef thrust::counting_iterator<unsigned int> count_it;
 
-    // Indices start at end of pdata
-    count_it idx(old_nparticles);
-
-    // zip together a counting iterator and the input stream
-    typedef thrust::zip_iterator<thrust::tuple<count_it, thrust::device_ptr<const pdata_element> > > idx_element_zip;
-    idx_element_zip in(thrust::make_tuple(idx, in_ptr));
-
     // add new particles at the end, writing rtags at the same time
-    thrust::transform(thrust::cuda::par(alloc),in, in + num_add_ptls, pdata_end, to_rtag_pdata_tuple_gpu(d_rtag));
-   }
+    thrust::transform(thrust::cuda::par(alloc),in_ptr, in_ptr + num_add_ptls, pdata_end, to_pdata_tuple_gpu());
+
+    // update rtags
+    thrust::counting_iterator<unsigned int> idx(old_nparticles);
+    thrust::scatter(thrust::cuda::par(alloc), idx, idx + num_add_ptls, tag_ptr+old_nparticles, rtag_ptr);
+    }
 
 #endif // ENABLE_MPI

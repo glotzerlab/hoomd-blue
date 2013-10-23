@@ -164,7 +164,9 @@ bool DomainDecomposition::findDecomposition(const Scalar3 L, unsigned int& nx, u
     return found_decomposition;
     }
 
-//! Calculate MPI ranks of neighboring domain.
+/*! \param dir Spatial direction to find neighbor in
+               0: east, 1: west, 2: north, 3: south, 4: up, 5: down
+ */
 unsigned int DomainDecomposition::getNeighborRank(unsigned int dir) const
     {
     assert(0<= dir && dir < 6);
@@ -240,6 +242,16 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar
     {
     // get fractional coordinates in the global box
     Scalar3 f = global_box.makeFraction(pos);
+
+    Scalar tol(1e-5);
+
+    // check user input
+    if (f.x < -tol|| f.x >= 1.0+tol || f.y < -tol || f.y >= 1.0+tol || f.z < -tol|| f.z >= 1.0+tol)
+        {
+        m_exec_conf->msg->error() << "Particle coordinates outside box." << std::endl;
+        m_exec_conf->msg->error() << "f.x = " << f.x << " f.y = " << f.y << " f.z = " << f.z << std::endl;
+        throw std::runtime_error("Error placing particle");
+        }
 
     // compute the box the particle should be placed into
     unsigned ix = f.x*m_nx;
