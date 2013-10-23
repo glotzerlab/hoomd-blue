@@ -10,10 +10,10 @@
 #define __CACHED_ALLOCATOR_H__
 
 #ifdef ENABLE_CUDA
-#include <thrust/system/cuda/vector.h>
 #include <thrust/system/cuda/execution_policy.h>
+#include <thrust/system/cuda/vector.h>
 #include <map>
-#include <assert.h>
+#include <cassert>
 
 // 100 MB max cache
 #define MAX_CACHED_BYTES 100*1024*1024
