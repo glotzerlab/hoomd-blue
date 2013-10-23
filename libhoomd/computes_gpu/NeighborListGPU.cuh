@@ -69,8 +69,7 @@ cudaError_t gpu_nlist_needs_update_check_new(uint2 * d_result,
                                              const BoxDim& box,
                                              const Scalar maxshiftsq,
                                              const Scalar3 lambda,
-                                             const unsigned int checkn,
-                                             const bool check_bounds);
+                                             const unsigned int checkn);
 
 //! Kernel driver for gpu_nlist_filter_kernel()
 cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,

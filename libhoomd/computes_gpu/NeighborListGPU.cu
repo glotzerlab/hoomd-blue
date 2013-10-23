@@ -67,13 +67,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param maxshiftsq The maximum drsq a particle can have before an update is needed
     \param lambda Diagonal deformation tensor (for orthorhombic boundaries)
     \param checkn
-    \tparam check_bounds True if we are checking for displacements larger than the box length
 
     gpu_nlist_needs_update_check_new_kernel() executes one thread per particle. Every particle's current position is
     compared to its last position. If the particle has moved a distance more than sqrt(\a maxshiftsq), then *d_result
     is set to \a ncheck.
 */
-template<bool check_bounds>
 __global__ void gpu_nlist_needs_update_check_new_kernel(uint2 *d_result,
                                                         const Scalar4 *d_last_pos,
                                                         const Scalar4 *d_pos,
@@ -100,12 +98,6 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(uint2 *d_result,
 
         if (dot(dx, dx) >= maxshiftsq)
             atomicMax(&((*d_result).x), checkn);
-
-        if (check_bounds && box.checkOutOfBounds(dx))
-            {
-            atomicMax(&((*d_result).x), checkn+1);
-            (*d_result).y = idx;
-            }
         }
     }
 
@@ -116,22 +108,11 @@ cudaError_t gpu_nlist_needs_update_check_new(uint2 *d_result,
                                              const BoxDim& box,
                                              const Scalar maxshiftsq,
                                              const Scalar3 lambda,
-                                             const unsigned int checkn,
-                                             const bool check_bounds)
+                                             const unsigned int checkn)
     {
     unsigned int block_size = 128;
     int n_blocks = N/block_size+1;
-    if (check_bounds)
-        gpu_nlist_needs_update_check_new_kernel<true><<<n_blocks, block_size>>>(d_result,
-                                                                                d_last_pos,
-                                                                                d_pos,
-                                                                                N,
-                                                                                box,
-                                                                                maxshiftsq,
-                                                                                lambda,
-                                                                                checkn);
-    else
-        gpu_nlist_needs_update_check_new_kernel<false><<<n_blocks, block_size>>>(d_result,
+    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size>>>(d_result,
                                                                                 d_last_pos,
                                                                                 d_pos,
                                                                                 N,

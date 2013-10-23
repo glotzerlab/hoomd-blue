@@ -222,11 +222,6 @@ bool NeighborListGPU::distanceCheck()
             }
         }
 
-    bool check_out_of_bounds = false;
-#ifdef ENABLE_MPI
-    check_out_of_bounds = m_pdata->getDomainDecomposition();
-#endif
-
     gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
                                      d_last_pos.data,
                                      d_pos.data,
@@ -234,8 +229,7 @@ bool NeighborListGPU::distanceCheck()
                                      box,
                                      maxshiftsq,
                                      lambda,
-                                     m_checkn,
-                                     check_out_of_bounds);
+                                     m_checkn);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -243,15 +237,6 @@ bool NeighborListGPU::distanceCheck()
     bool result;
     uint2 flags = m_flags.readFlags();
     result = (flags.x == m_checkn);
-
-    if (check_out_of_bounds && (flags.x == m_checkn+1))
-        {
-        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        unsigned int tag = h_tag.data[flags.y];
-        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one sub-domain length."
-                                  << std::endl << std::endl;
-        throw std::runtime_error("Error checking particle displacements");
-        }
 
     m_checkn++;
 

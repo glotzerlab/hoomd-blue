@@ -769,14 +769,6 @@ bool NeighborList::distanceCheck()
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
     Scalar maxsq = delta_max > 0  ? delta_max*delta_max : 0;
 
-    bool boundary_check = false;
-    bool out_of_bounds = false;
-    unsigned int out_of_bounds_idx = 0;
-
-    #ifdef ENABLE_MPI
-    boundary_check = m_pdata->getDomainDecomposition();
-    #endif
-
     // the change of the global box size should not exceed the local box size
     Scalar3 del_L = L_g - m_last_L;
     if ( fabs(del_L.x) >= m_last_L_local.x ||
@@ -815,22 +807,6 @@ bool NeighborList::distanceCheck()
             result = true;
             break;
             }
-        if (boundary_check)
-            if (box.checkOutOfBounds(dx))
-                {
-                out_of_bounds = true;
-                out_of_bounds_idx = i;
-                break;
-                }
-        }
-
-    if (boundary_check && out_of_bounds)
-        {
-        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        unsigned int tag = h_tag.data[out_of_bounds_idx];
-        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one sub-domain length."
-                                  << std::endl << std::endl;
-        throw std::runtime_error("Error checking particle displacements");
         }
 
     // don't worry about computing flops here, this is fast
