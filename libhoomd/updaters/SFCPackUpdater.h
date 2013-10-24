@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
 
@@ -128,7 +128,7 @@ class SFCPackUpdater : public Updater
         std::vector< unsigned int > m_traversal_order;      //!< Generated traversal order of bins
         std::vector<unsigned int> m_sort_order;             //!< Generated sort order of the particles
 
-        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to the maximum particle number change signal of particle data
+        boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the maximum particle number change signal of particle data
         //! Helper function that actually performs the sort
         void getSortedOrder2D();
         //! Helper function that actually performs the sort

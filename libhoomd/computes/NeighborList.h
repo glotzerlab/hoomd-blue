@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 #include <vector>
 
 #include "Compute.h"
@@ -427,10 +427,10 @@ class NeighborList : public Compute
         Index2D m_ex_list_indexer_tag;         //!< Indexer for accessing the by-tag exclusion list
         bool m_exclusions_set;                 //!< True if any exclusions have been set
 
-        boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
-        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
+        boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
+        boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
 #ifdef ENABLE_MPI
-        boost::signals::connection m_migrate_request_connection; //!< Connection to trigger particle migration
+        boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
 #endif
 
         //! Performs the distance check

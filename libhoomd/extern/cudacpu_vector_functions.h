@@ -1,36 +1,50 @@
 /*
- * Copyright 1993-2008 NVIDIA Corporation.  All rights reserved.
+ * Copyright 1993-2012 NVIDIA Corporation.  All rights reserved.
  *
- * NOTICE TO USER:   
+ * NOTICE TO LICENSEE:
  *
- * This source code is subject to NVIDIA ownership rights under U.S. and 
- * international Copyright laws.  Users and possessors of this source code 
- * are hereby granted a nonexclusive, royalty-free license to use this code 
- * in individual and commercial software.
+ * This source code and/or documentation ("Licensed Deliverables") are
+ * subject to NVIDIA intellectual property rights under U.S. and
+ * international Copyright laws.
  *
- * NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOURCE 
- * CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR 
- * IMPLIED WARRANTY OF ANY KIND.  NVIDIA DISCLAIMS ALL WARRANTIES WITH 
- * REGARD TO THIS SOURCE CODE, INCLUDING ALL IMPLIED WARRANTIES OF 
- * MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
- * IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL, 
- * OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS 
- * OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
- * OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE 
- * OR PERFORMANCE OF THIS SOURCE CODE.  
+ * These Licensed Deliverables contained herein is PROPRIETARY and
+ * CONFIDENTIAL to NVIDIA and is being provided under the terms and
+ * conditions of a form of NVIDIA software license agreement by and
+ * between NVIDIA and Licensee ("License Agreement") or electronically
+ * accepted by Licensee.  Notwithstanding any terms or conditions to
+ * the contrary in the License Agreement, reproduction or disclosure
+ * of the Licensed Deliverables to any third party without the express
+ * written consent of NVIDIA is prohibited.
  *
- * U.S. Government End Users.   This source code is a "commercial item" as 
- * that term is defined at  48 C.F.R. 2.101 (OCT 1995), consisting  of 
- * "commercial computer  software"  and "commercial computer software 
- * documentation" as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995) 
- * and is provided to the U.S. Government only as a commercial end item.  
- * Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through 
- * 227.7202-4 (JUNE 1995), all U.S. Government End Users acquire the 
- * source code with only those rights set forth herein. 
+ * NOTWITHSTANDING ANY TERMS OR CONDITIONS TO THE CONTRARY IN THE
+ * LICENSE AGREEMENT, NVIDIA MAKES NO REPRESENTATION ABOUT THE
+ * SUITABILITY OF THESE LICENSED DELIVERABLES FOR ANY PURPOSE.  IT IS
+ * PROVIDED "AS IS" WITHOUT EXPRESS OR IMPLIED WARRANTY OF ANY KIND.
+ * NVIDIA DISCLAIMS ALL WARRANTIES WITH REGARD TO THESE LICENSED
+ * DELIVERABLES, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY,
+ * NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
+ * NOTWITHSTANDING ANY TERMS OR CONDITIONS TO THE CONTRARY IN THE
+ * LICENSE AGREEMENT, IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, OR ANY
+ * DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+ * WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+ * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+ * OF THESE LICENSED DELIVERABLES.
  *
- * Any use of this source code in individual and commercial software must 
- * include, in the user documentation and internal comments to the code,
- * the above Disclaimer and U.S. Government End Users Notice.
+ * U.S. Government End Users.  These Licensed Deliverables are a
+ * "commercial item" as that term is defined at 48 C.F.R. 2.101 (OCT
+ * 1995), consisting of "commercial computer software" and "commercial
+ * computer software documentation" as such terms are used in 48
+ * C.F.R. 12.212 (SEPT 1995) and is provided to the U.S. Government
+ * only as a commercial end item.  Consistent with 48 C.F.R.12.212 and
+ * 48 C.F.R. 227.7202-1 through 227.7202-4 (JUNE 1995), all
+ * U.S. Government End Users acquire the Licensed Deliverables with
+ * only those rights set forth herein.
+ *
+ * Any use of the Licensed Deliverables in individual and commercial
+ * software must include, in the user documentation and internal
+ * comments to the code, the above Disclaimer and U.S. Government End
+ * Users Notice.
  */
 
 #if !defined(__VECTOR_FUNCTIONS_H__)
@@ -42,6 +56,7 @@
 *                                                                              *
 *******************************************************************************/
 
+//#include "builtin_types.h"
 #include "cudacpu_host_defines.h"
 #include "cudacpu_vector_types.h"
 
@@ -191,8 +206,6 @@ static __inline__ __host__ __device__ ulong2 make_ulong2(unsigned long int x, un
   ulong2 t; t.x = x; t.y = y; return t;
 }
 
-#if !defined(__LP64__)
-
 static __inline__ __host__ __device__ long3 make_long3(long int x, long int y, long int z)
 {
   long3 t; t.x = x; t.y = y; t.z = z; return t;
@@ -212,8 +225,6 @@ static __inline__ __host__ __device__ ulong4 make_ulong4(unsigned long int x, un
 {
   ulong4 t; t.x = x; t.y = y; t.z = z; t.w = w; return t;
 }
-
-#endif /* !__LP64__ */
 
 static __inline__ __host__ __device__ float1 make_float1(float x)
 {
@@ -235,6 +246,46 @@ static __inline__ __host__ __device__ float4 make_float4(float x, float y, float
   float4 t; t.x = x; t.y = y; t.z = z; t.w = w; return t;
 }
 
+static __inline__ __host__ __device__ longlong1 make_longlong1(long long int x)
+{
+  longlong1 t; t.x = x; return t;
+}
+
+static __inline__ __host__ __device__ ulonglong1 make_ulonglong1(unsigned long long int x)
+{
+  ulonglong1 t; t.x = x; return t;
+}
+
+static __inline__ __host__ __device__ longlong2 make_longlong2(long long int x, long long int y)
+{
+  longlong2 t; t.x = x; t.y = y; return t;
+}
+
+static __inline__ __host__ __device__ ulonglong2 make_ulonglong2(unsigned long long int x, unsigned long long int y)
+{
+  ulonglong2 t; t.x = x; t.y = y; return t;
+}
+
+static __inline__ __host__ __device__ longlong3 make_longlong3(long long int x, long long int y, long long int z)
+{
+  longlong3 t; t.x = x; t.y = y; t.z = z; return t;
+}
+
+static __inline__ __host__ __device__ ulonglong3 make_ulonglong3(unsigned long long int x, unsigned long long int y, unsigned long long int z)
+{
+  ulonglong3 t; t.x = x; t.y = y; t.z = z; return t;
+}
+
+static __inline__ __host__ __device__ longlong4 make_longlong4(long long int x, long long int y, long long int z, long long int w)
+{
+  longlong4 t; t.x = x; t.y = y; t.z = z; t.w = w; return t;
+}
+
+static __inline__ __host__ __device__ ulonglong4 make_ulonglong4(unsigned long long int x, unsigned long long int y, unsigned long long int z, unsigned long long int w)
+{
+  ulonglong4 t; t.x = x; t.y = y; t.z = z; t.w = w; return t;
+}
+
 static __inline__ __host__ __device__ double1 make_double1(double x)
 {
   double1 t; t.x = x; return t;
@@ -243,6 +294,16 @@ static __inline__ __host__ __device__ double1 make_double1(double x)
 static __inline__ __host__ __device__ double2 make_double2(double x, double y)
 {
   double2 t; t.x = x; t.y = y; return t;
+}
+
+static __inline__ __host__ __device__ double3 make_double3(double x, double y, double z)
+{
+  double3 t; t.x = x; t.y = y; t.z = z; return t;
+}
+
+static __inline__ __host__ __device__ double4 make_double4(double x, double y, double z, double w)
+{
+  double4 t; t.x = x; t.y = y; t.z = z; t.w = w; return t;
 }
 
 #endif /* !__VECTOR_FUNCTIONS_H__ */

@@ -227,7 +227,7 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
 void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethodTwoStep> new_method)
     {
     // check for intersections with existing methods
-    shared_ptr<ParticleGroup> new_group = new_method->getGroup();
+    boost::shared_ptr<ParticleGroup> new_group = new_method->getGroup();
 
     if (new_group->getNumMembersGlobal() == 0)
         m_exec_conf->msg->warning() << "integrate.mode_standard: An integration method has been added that operates on zero particles." << endl;
@@ -235,8 +235,8 @@ void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethod
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
-        shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
-        shared_ptr<ParticleGroup> intersection = ParticleGroup::groupIntersection(new_group, current_group);
+        boost::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+        boost::shared_ptr<ParticleGroup> intersection = ParticleGroup::groupIntersection(new_group, current_group);
 
         if (intersection->getNumMembersGlobal() > 0)
             {

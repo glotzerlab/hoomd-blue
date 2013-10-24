@@ -79,7 +79,7 @@ Saru n=s.fork<123>();
 class SaruGPU
     {
     public:
-    
+
         inline __device__ SaruGPU()
             {
             state.x=0x12345678; state.y=12345678;
@@ -87,25 +87,25 @@ class SaruGPU
         inline __device__ SaruGPU(unsigned int seed);
         inline __device__ SaruGPU(unsigned int seed1, unsigned int seed2);
         inline __device__ SaruGPU(unsigned int seed1, unsigned int seed2, unsigned int seed3);
-        
+
         /* Efficient compile-time computed advancements */
         template <unsigned int steps> __device__ inline  void advance()
             {
             advanceWeyl<steps>(); advanceLCG<steps>();
             }
-            
+
         // OK to advance negative steps in LCG, it's done mod 2^32 so it's
         // the same as advancing 2^32-1 steps, which is correct!
         template <unsigned int steps> __device__ inline void rewind()
             {
             rewindWeyl<steps>(); advanceLCG<-steps>();
             }
-            
+
         /* Slower (but still reasonable) run-time computed advancements */
         __device__ inline void advance(unsigned int steps);
-        
+
         template <unsigned int seed> __device__ SaruGPU fork() const;
-        
+
         template <unsigned int steps> __device__ inline unsigned int u32();
         template <unsigned int steps> __device__ inline float f();
         template <unsigned int steps> __device__ inline double d();
@@ -116,15 +116,18 @@ class SaruGPU
         __device__ inline double d();
         __device__ inline float f(float low, float high);
         __device__ inline double d(double low, double high);
-        
+
+        template<class Real> __device__ inline Real s();
+        template<class Real> __device__ inline Real s(Real low, Real high);
+
         /* nvcc doesn't like private members in emulation mode */
 #ifndef __DEVICE_EMULATION__
     private:
 #endif
-    
+
         /* compile-time metaprograms to compute LCG and Weyl advancement */
-        
-        
+
+
         /* Computes A^N mod 2^32 */
         template<unsigned int A, unsigned int N> struct CTpow
             {
@@ -135,12 +138,12 @@ class SaruGPU
             {
             static const unsigned int value=1;
             };
-            
+
         /* CTpowseries<A,N> computes 1+A+A^2+A^3+A^4+A^5..+A^(N-1) mod 2^32.
            We do NOT use the more elegant formula (a^N-1)/(a-1) (see Knuth
            3.2.1), because it's more awkward to compute with the CPU's
            inherent mod 2^32.
-        
+
            Based on recursion:
            g(A,n)= (1+A)*g(A*A, n/2);      if n is even
            g(A,n)= 1+A*(1+A)*g(A*A, n/2);  if n is ODD (since n/2 truncates)   */
@@ -160,8 +163,8 @@ class SaruGPU
             {
             static const unsigned int value=1;
             };
-            
-            
+
+
         /* Compute A*B mod m.  Tricky only because of implicit 2^32 modulus.
           Uses recursion.
           if A is even, then A*B mod m =  (A/2)*(B+B mod m) mod m.
@@ -178,18 +181,18 @@ class SaruGPU
             {
             static const unsigned int value=0;
             };
-            
+
         template <unsigned int offset, unsigned int delta,
         unsigned int modulus, unsigned int steps>
         __device__ inline unsigned int advanceAnyWeyl(unsigned int);
-        
-        
+
+
         static const unsigned int LCGA=0x4beb5d59; // Full period 32 bit LCG
         static const unsigned int LCGC=0x2600e1f7;
         static const unsigned int oWeylPeriod=0xda879add; // Prime period 3666320093
         static const unsigned int oWeylOffset=0x8009d14b;
         static const unsigned int oWeylDelta=(oWeylPeriod-0x80000000)+(oWeylOffset-0x80000000); // wraps mod 2^32
-        
+
         /* Compile-time template function to efficently advance a state x with
            a LCG (mod 2^32) N steps.  Runtime, this all becomes a super-simple
            single multiply and add. */
@@ -197,18 +200,18 @@ class SaruGPU
             {
             state.x=CTpow<LCGA, steps>::value*state.x+LCGC*CTpowseries<LCGA, steps>::value;
             }
-            
+
         template <unsigned int steps> __device__ inline  void advanceWeyl()
             {
             state.y=advanceAnyWeyl<oWeylOffset, oWeylDelta, oWeylPeriod, steps>(state.y);
             }
-            
+
         template <unsigned int steps> __device__ inline  void rewindWeyl()
             {
             state.y=advanceAnyWeyl<oWeylOffset, oWeylPeriod-oWeylDelta,
                     oWeylPeriod, steps>(state.y);
             }
-            
+
         uint2 state;
     };
 
@@ -242,7 +245,7 @@ __device__ SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2)
     seed2^=seed2>>10;
     seed2^=((signed int)seed2)>>19;
     seed1+=seed2^0x6d2d4e11;
-    
+
     state.x  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
     state.y = (state.x+seed2) ^ (((signed int)state.x)>>8);
     state.x  = state.x + (state.y*(state.y^0xdddf97f5));
@@ -263,7 +266,7 @@ __device__ SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2, unsigned int
     seed2+=seed1*seed3;
     seed1+=seed3 ^ (seed2>>2);
     seed2^=((signed int)seed2)>>17;
-    
+
     state.x  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
     state.y = (state.x+seed2) ^ (((signed int)state.x)>>8);
     state.x  = state.x + (state.y*(state.y^0xdddf97f5));
@@ -282,13 +285,13 @@ __device__ inline unsigned int SaruGPU::advanceAnyWeyl(unsigned int x)
 __device__ inline void SaruGPU::advance(unsigned int steps)
     {
     // Computes the LCG advancement AND the Weyl D*E mod m simultaneously
-    
+
     unsigned int currentA=LCGA;
     unsigned int currentC=LCGC;
-    
+
     unsigned int currentDelta=oWeylDelta;
     unsigned int netDelta=0;
-    
+
     while (steps)
         {
         if (steps&1)
@@ -297,18 +300,18 @@ __device__ inline void SaruGPU::advance(unsigned int steps)
             if (netDelta<oWeylPeriod-currentDelta) netDelta+=currentDelta;
             else netDelta+=currentDelta-oWeylPeriod;
             }
-            
+
         // Change the LCG to step at twice the rate as before
         currentC+=currentA*currentC;
         currentA*=currentA;
-        
+
         // Change the Weyl delta to step at 2X rate
         if (currentDelta<oWeylPeriod-currentDelta) currentDelta+=currentDelta;
         else currentDelta+=currentDelta-oWeylPeriod;
-        
+
         steps/=2;
         }
-        
+
     // Apply the net delta to the Weyl state.
     if (state.y-oWeylOffset<oWeylPeriod-netDelta) state.y+=netDelta;
     else state.y+=netDelta-oWeylPeriod;
@@ -324,7 +327,7 @@ __device__ SaruGPU SaruGPU::fork() const
     /* The above lines are FREE since they'll be precomputed at compile time. They
        take user values like 1 2 3 and hash them to become roughly uncorrelated. */
     SaruGPU z;
-    
+
     z.state.x=churned2+state.x+(churned3^state.y);
     unsigned int add=(z.state.y+churned1)>>1;
     if (z.state.y-oWeylOffset<oWeylPeriod-add) z.state.y+=add;
@@ -390,7 +393,7 @@ __device__ inline double SaruGPU::d()
     {
     const double TWO_N32 = 0.232830643653869628906250e-9; /* 2^-32 */
     signed int v=(signed int)u32<steps>(); // deliberate cast to signed int for conversion speed
-    
+
     return (v*TWO_N32+(0.5+0.5*TWO_N32))+((signed int)state.x)*(TWO_N32*TWO_N32);
     }
 
@@ -414,6 +417,43 @@ __device__ inline double SaruGPU::d(double low, double high)
     return d<1>(low, high);
     }
 
+template<class Real>
+__device__ inline Real SaruGPU::s()
+    {
+    // default implementation returns something ridiculous, so it is obvious when it is called
+    return -1000000000;
+    }
+
+template<class Real>
+__device__ inline Real SaruGPU::s(Real low, Real high)
+    {
+    // default implementation returns something ridiculous, so it is obvious when it is called
+    return -1000000000;
+    }
+
+template<>
+__device__ inline float SaruGPU::s()
+    {
+    return f();
+    }
+
+template<>
+__device__ inline float SaruGPU::s(float low, float high)
+    {
+    return f(low, high);
+    }
+
+template<>
+__device__ inline double SaruGPU::s()
+    {
+    return d();
+    }
+
+template<>
+__device__ inline double SaruGPU::s(double low, double high)
+    {
+    return d(low, high);
+    }
 
 #endif /* SARUPRNG_H */
 

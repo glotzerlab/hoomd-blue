@@ -1197,7 +1197,7 @@ void export_BondData()
     .def(vector_indexing_suite<std::vector<uint2> >())
     ;
 
-    class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<shared_ptr<ParticleData>, unsigned int>())
+    class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<boost::shared_ptr<ParticleData>, unsigned int>())
     .def("getNumBonds", &BondData::getNumBonds)
     .def("getNumBondsGlobal", &BondData::getNumBondsGlobal)
     .def("getNBondTypes", &BondData::getNBondTypes)

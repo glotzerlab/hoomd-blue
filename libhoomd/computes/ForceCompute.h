@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 
 #include "Compute.h"
 #include "Index1D.h"
@@ -213,10 +213,10 @@ class ForceCompute : public Compute
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
 
         //! Connection to the signal notifying when particles are resorted
-        boost::signals::connection m_sort_connection;
+        boost::signals2::connection m_sort_connection;
 
         //! Connection to the signal notifying when maximum number of particles changes
-        boost::signals::connection m_max_particle_num_change_connection;
+        boost::signals2::connection m_max_particle_num_change_connection;
 
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by

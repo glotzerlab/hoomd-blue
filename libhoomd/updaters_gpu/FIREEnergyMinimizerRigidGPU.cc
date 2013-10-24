@@ -122,7 +122,7 @@ void FIREEnergyMinimizerRigidGPU::reset()
     m_alpha = m_alpha_start;
     m_was_reset = true;
 
-    shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+    boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
     ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);

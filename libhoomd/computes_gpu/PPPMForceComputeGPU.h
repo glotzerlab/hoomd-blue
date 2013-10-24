@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.h"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 
 /*! \file PPPMForceComputeGPU.h
     \brief Declares the PPPMForceGPU class

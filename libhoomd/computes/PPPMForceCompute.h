@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: sbarr
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 
 #include "ForceCompute.h"
 #include "NeighborList.h"
@@ -183,7 +183,7 @@ class PPPMForceCompute : public ForceCompute
         GPUArray<Scalar> m_v_yy_sum;             //!< Used to quickoy sum grid points for virial_yy
         GPUArray<Scalar> m_v_yz_sum;             //!< Used to quickoy sum grid points for virial_yz
         GPUArray<Scalar> m_v_zz_sum;             //!< Used to quickoy sum grid points for virial_zz
-        boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
+        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
         boost::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
         boost::shared_ptr<ParticleGroup> m_group;//!< Group to compute properties for
         kiss_fft_cpx *fft_in;                    //!< For FFTs on CPU rho_real_space

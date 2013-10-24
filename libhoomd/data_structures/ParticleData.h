@@ -78,7 +78,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BoxDim.h"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
 #include <boost/dynamic_bitset.hpp>
@@ -540,19 +540,19 @@ class ParticleData : boost::noncopyable
             }
 
         //! Connects a function to be called every time the particles are rearranged in memory
-        boost::signals::connection connectParticleSort(const boost::function<void ()> &func);
+        boost::signals2::connection connectParticleSort(const boost::function<void ()> &func);
 
         //! Notify listeners that the particles have been rearranged in memory
         void notifyParticleSort();
 
         //! Connects a function to be called every time the box size is changed
-        boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
+        boost::signals2::connection connectBoxChange(const boost::function<void ()> &func);
 
         //! Connects a function to be called every time the maximum particle number changes
-        boost::signals::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
+        boost::signals2::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
 
         //! Connects a function to be called every time the ghost particles are updated
-        boost::signals::connection connectGhostParticleNumberChange(const boost::function< void()> &func);
+        boost::signals2::connection connectGhostParticleNumberChange(const boost::function< void()> &func);
 
         #ifdef ENABLE_MPI
         //! Connects a function to be called every time a single particle migration is requested
@@ -837,10 +837,10 @@ class ParticleData : boost::noncopyable
 
         std::vector<std::string> m_type_mapping;    //!< Mapping between particle type indices and names
 
-        boost::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
-        boost::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
-        boost::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
-        boost::signal<void ()> m_ghost_particle_num_signal; //!< Signal that is triggered when ghost particles are added to or deleted
+        boost::signals2::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
+        boost::signals2::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
+        boost::signals2::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
+        boost::signals2::signal<void ()> m_ghost_particle_num_signal; //!< Signal that is triggered when ghost particles are added to or deleted
 
         #ifdef ENABLE_MPI
         boost::signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains

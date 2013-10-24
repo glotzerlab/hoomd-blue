@@ -228,7 +228,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     //Output the integrator states to the binary file
     {
-    shared_ptr<IntegratorData> integrator_data = m_sysdef->getIntegratorData();
+    boost::shared_ptr<IntegratorData> integrator_data = m_sysdef->getIntegratorData();
     unsigned int ni = integrator_data->getNumIntegrators();
     f.write((char*)&ni, sizeof(unsigned int));
     for (unsigned int j = 0; j < ni; j++)
@@ -259,7 +259,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     unsigned int nb = m_sysdef->getBondData()->getNumBonds();
     f.write((char*)&nb, sizeof(unsigned int));
-    shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+    boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
     // loop over all bonds and write them out
     for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
@@ -285,7 +285,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     unsigned int na = m_sysdef->getAngleData()->getNumAngles();
     f.write((char*)&na, sizeof(unsigned int));
 
-    shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
+    boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
     // loop over all angles and write them out
     for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
@@ -313,7 +313,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     unsigned int nd = m_sysdef->getDihedralData()->getNumDihedrals();
     f.write((char*)&nd, sizeof(unsigned int));
 
-    shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
+    boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
     // loop over all angles and write them out
     for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
@@ -341,7 +341,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     unsigned int ni = m_sysdef->getImproperData()->getNumDihedrals();
     f.write((char*)&ni, sizeof(unsigned int));
 
-    shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
+    boost::shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
 
     // loop over all angles and write them out
     for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
@@ -358,7 +358,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     // Output the walls to the binary file
     {
-    shared_ptr<WallData> wall_data = m_sysdef->getWallData();
+    boost::shared_ptr<WallData> wall_data = m_sysdef->getWallData();
 
     unsigned int nw = wall_data->getNumWalls();
     f.write((char*)&nw, sizeof(unsigned int));
@@ -379,7 +379,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     // Output the rigid bodies to the binary file
     {
-    shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+    boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 
     unsigned int n_bodies = rigid_data->getNumBodies();
     f.write((char*)&n_bodies, sizeof(unsigned int));

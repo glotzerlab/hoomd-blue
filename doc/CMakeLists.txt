@@ -45,8 +45,7 @@ file(GLOB_RECURSE _dev_doc_sources
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.doc
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.dox
                     ${CMAKE_CURRENT_SOURCE_DIR}/dev/*.doc
-                    ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_dev.in
-                    ${CMAKE_CURRENT_SOURCE_DIR}/dev/DoxygenLayout.xml)
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_dev.in)
 
 # configure the doxygen file and target for the developer documentation
 set(DOXYGEN_DEV_DOC_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/hoomd-devdoc-${HOOMD_VERSION}")
@@ -103,7 +102,6 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/citing.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/DoxygenLayout.xml
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/stylesheet.css
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/header.html
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/footer.html
@@ -120,8 +118,7 @@ add_custom_command (OUTPUT ${DOXYGEN_USER_DOC_HTML_DIR}/index.html
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.css
                     ${CMAKE_CURRENT_SOURCE_DIR}/dev/*.doc
                     ${HOOMD_SOURCE_DIR}/share/hoomd/examples/*
-                    ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
-                    ${CMAKE_CURRENT_SOURCE_DIR}/user/DoxygenLayout.xml)
+                    ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in)
 
 add_custom_target (user ALL DEPENDS ${DOXYGEN_USER_DOC_HTML_DIR}/index.html
                             SOURCES ${_user_doc_sources})

@@ -1,36 +1,50 @@
 /*
- * Copyright 1993-2008 NVIDIA Corporation.  All rights reserved.
+ * Copyright 1993-2012 NVIDIA Corporation.  All rights reserved.
  *
- * NOTICE TO USER:   
+ * NOTICE TO LICENSEE:
  *
- * This source code is subject to NVIDIA ownership rights under U.S. and 
- * international Copyright laws.  Users and possessors of this source code 
- * are hereby granted a nonexclusive, royalty-free license to use this code 
- * in individual and commercial software.
+ * This source code and/or documentation ("Licensed Deliverables") are
+ * subject to NVIDIA intellectual property rights under U.S. and
+ * international Copyright laws.
  *
- * NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOURCE 
- * CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR 
- * IMPLIED WARRANTY OF ANY KIND.  NVIDIA DISCLAIMS ALL WARRANTIES WITH 
- * REGARD TO THIS SOURCE CODE, INCLUDING ALL IMPLIED WARRANTIES OF 
- * MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
- * IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL, 
- * OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS 
- * OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
- * OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE 
- * OR PERFORMANCE OF THIS SOURCE CODE.  
+ * These Licensed Deliverables contained herein is PROPRIETARY and
+ * CONFIDENTIAL to NVIDIA and is being provided under the terms and
+ * conditions of a form of NVIDIA software license agreement by and
+ * between NVIDIA and Licensee ("License Agreement") or electronically
+ * accepted by Licensee.  Notwithstanding any terms or conditions to
+ * the contrary in the License Agreement, reproduction or disclosure
+ * of the Licensed Deliverables to any third party without the express
+ * written consent of NVIDIA is prohibited.
  *
- * U.S. Government End Users.   This source code is a "commercial item" as 
- * that term is defined at  48 C.F.R. 2.101 (OCT 1995), consisting  of 
- * "commercial computer  software"  and "commercial computer software 
- * documentation" as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995) 
- * and is provided to the U.S. Government only as a commercial end item.  
- * Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through 
- * 227.7202-4 (JUNE 1995), all U.S. Government End Users acquire the 
- * source code with only those rights set forth herein. 
+ * NOTWITHSTANDING ANY TERMS OR CONDITIONS TO THE CONTRARY IN THE
+ * LICENSE AGREEMENT, NVIDIA MAKES NO REPRESENTATION ABOUT THE
+ * SUITABILITY OF THESE LICENSED DELIVERABLES FOR ANY PURPOSE.  IT IS
+ * PROVIDED "AS IS" WITHOUT EXPRESS OR IMPLIED WARRANTY OF ANY KIND.
+ * NVIDIA DISCLAIMS ALL WARRANTIES WITH REGARD TO THESE LICENSED
+ * DELIVERABLES, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY,
+ * NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
+ * NOTWITHSTANDING ANY TERMS OR CONDITIONS TO THE CONTRARY IN THE
+ * LICENSE AGREEMENT, IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, OR ANY
+ * DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+ * WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+ * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+ * OF THESE LICENSED DELIVERABLES.
  *
- * Any use of this source code in individual and commercial software must 
- * include, in the user documentation and internal comments to the code,
- * the above Disclaimer and U.S. Government End Users Notice.
+ * U.S. Government End Users.  These Licensed Deliverables are a
+ * "commercial item" as that term is defined at 48 C.F.R. 2.101 (OCT
+ * 1995), consisting of "commercial computer software" and "commercial
+ * computer software documentation" as such terms are used in 48
+ * C.F.R. 12.212 (SEPT 1995) and is provided to the U.S. Government
+ * only as a commercial end item.  Consistent with 48 C.F.R.12.212 and
+ * 48 C.F.R. 227.7202-1 through 227.7202-4 (JUNE 1995), all
+ * U.S. Government End Users acquire the Licensed Deliverables with
+ * only those rights set forth herein.
+ *
+ * Any use of the Licensed Deliverables in individual and commercial
+ * software must include, in the user documentation and internal
+ * comments to the code, the above Disclaimer and U.S. Government End
+ * Users Notice.
  */
 
 #if !defined(__VECTOR_TYPES_H__)
@@ -42,6 +56,9 @@
 *                                                                              *
 *******************************************************************************/
 
+#if !defined(__CUDA_LIBDEVICE__)
+//#include "builtin_types.h"
+#endif /* !__CUDA_LIBDEVICE__ */
 #include "cudacpu_host_defines.h"
 
 /*******************************************************************************
@@ -50,249 +67,289 @@
 *                                                                              *
 *******************************************************************************/
 
-/*DEVICE_BUILTIN*/
-struct char1
+#if !defined(__CUDACC__) && !defined(__CUDABE__) && \
+    defined(_WIN32) && !defined(_WIN64)
+
+#pragma warning(push)
+#pragma warning(disable: 4201 4408)
+
+#define __cuda_builtin_vector_align8(tag, members) \
+struct __device_builtin__ tag                      \
+{                                                  \
+    union                                          \
+    {                                              \
+        struct { members };                        \
+        struct { long long int :1,:0; };           \
+    };                                             \
+}
+
+#else /* !__CUDACC__ && !__CUDABE__ && _WIN32 && !_WIN64 */
+
+#define __cuda_builtin_vector_align8(tag, members) \
+struct __device_builtin__ __align__(8) tag         \
+{                                                  \
+    members                                        \
+}
+
+#endif /* !__CUDACC__ && !__CUDABE__ && _WIN32 && !_WIN64 */
+
+struct __device_builtin__ char1
 {
-  signed char x;
+    signed char x;
 };
 
-/*DEVICE_BUILTIN*/
-struct uchar1 
+struct __device_builtin__ uchar1
 {
-  unsigned char x;
+    unsigned char x;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(2) char2
+
+struct __device_builtin__ __align__(2) char2
 {
-  signed char x, y;
+    signed char x, y;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(2) uchar2
+struct __device_builtin__ __align__(2) uchar2
 {
-  unsigned char x, y;
+    unsigned char x, y;
 };
 
-/*DEVICE_BUILTIN*/
-struct char3
+struct __device_builtin__ char3
 {
-  signed char x, y, z;
+    signed char x, y, z;
 };
 
-/*DEVICE_BUILTIN*/
-struct uchar3
+struct __device_builtin__ uchar3
 {
-  unsigned char x, y, z;
+    unsigned char x, y, z;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(4) char4
+struct __device_builtin__ __align__(4) char4
 {
-  signed char x, y, z, w;
+    signed char x, y, z, w;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(4) uchar4
+struct __device_builtin__ __align__(4) uchar4
 {
-  unsigned char x, y, z, w;
+    unsigned char x, y, z, w;
 };
 
-/*DEVICE_BUILTIN*/
-struct short1
+struct __device_builtin__ short1
 {
-  short x;
+    short x;
 };
 
-/*DEVICE_BUILTIN*/
-struct ushort1
+struct __device_builtin__ ushort1
 {
-  unsigned short x;
+    unsigned short x;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(4) short2
+struct __device_builtin__ __align__(4) short2
 {
-  short x, y;
+    short x, y;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(4) ushort2
+struct __device_builtin__ __align__(4) ushort2
 {
-  unsigned short x, y;
+    unsigned short x, y;
 };
 
-/*DEVICE_BUILTIN*/
-struct short3
+struct __device_builtin__ short3
 {
-  short x, y, z;
+    short x, y, z;
 };
 
-/*DEVICE_BUILTIN*/
-struct ushort3
+struct __device_builtin__ ushort3
 {
-  unsigned short x, y, z;
+    unsigned short x, y, z;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(8) short4
+__cuda_builtin_vector_align8(short4, short x; short y; short z; short w;);
+__cuda_builtin_vector_align8(ushort4, unsigned short x; unsigned short y; unsigned short z; unsigned short w;);
+
+struct __device_builtin__ int1
 {
-  short x, y, z, w;
+    int x;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(8) ushort4
+struct __device_builtin__ uint1
 {
-  unsigned short x, y, z, w;
+    unsigned int x;
 };
 
-/*DEVICE_BUILTIN*/
-struct int1
+__cuda_builtin_vector_align8(int2, int x; int y;);
+__cuda_builtin_vector_align8(uint2, unsigned int x; unsigned int y;);
+
+struct __device_builtin__ int3
 {
-  int x;
+    int x, y, z;
 };
 
-/*DEVICE_BUILTIN*/
-struct uint1
+struct __device_builtin__ uint3
 {
-  unsigned int x;
+    unsigned int x, y, z;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(8) int2
+struct __device_builtin__ __builtin_align__(16) int4
 {
-  int x, y;
+    int x, y, z, w;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(8) uint2
+struct __device_builtin__ __builtin_align__(16) uint4
 {
-  unsigned int x, y;
+    unsigned int x, y, z, w;
 };
 
-/*DEVICE_BUILTIN*/
-struct int3
+struct __device_builtin__ long1
 {
-  int x, y, z;
+    long int x;
 };
 
-/*DEVICE_BUILTIN*/
-struct uint3
+struct __device_builtin__ ulong1
 {
-  unsigned int x, y, z;
+    unsigned long x;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(16) int4
-{
-  int x, y, z, w;
-};
-
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(16) uint4
-{
-  unsigned int x, y, z, w;
-};
-
-/*DEVICE_BUILTIN*/
-struct long1
-{
-  long int x;
-};
-
-/*DEVICE_BUILTIN*/
-struct ulong1
-{
-  unsigned long x;
-};
-
-/*DEVICE_BUILTIN*/
-struct 
 #if defined (_WIN32)
-       __builtin_align__(8)
+__cuda_builtin_vector_align8(long2, long int x; long int y;);
+__cuda_builtin_vector_align8(ulong2, unsigned long int x; unsigned long int y;);
 #else /* _WIN32 */
-       __builtin_align__(2*sizeof(long int))
+
+struct __device_builtin__ __align__(2*sizeof(long int)) long2
+{
+    long int x, y;
+};
+
+struct __device_builtin__ __align__(2*sizeof(unsigned long int)) ulong2
+{
+    unsigned long int x, y;
+};
+
 #endif /* _WIN32 */
-                                             long2
+
+struct __device_builtin__ long3
 {
-  long int x, y;
+    long int x, y, z;
 };
 
-/*DEVICE_BUILTIN*/
-struct 
-#if defined (_WIN32)
-       __builtin_align__(8)
-#else /* _WIN32 */
-       __builtin_align__(2*sizeof(unsigned long int))
-#endif /* _WIN32 */
-                                                      ulong2
+struct __device_builtin__ ulong3
 {
-  unsigned long int x, y;
+    unsigned long int x, y, z;
 };
 
-#if !defined(__LP64__)
-
-/*DEVICE_BUILTIN*/
-struct long3
+struct __device_builtin__ __builtin_align__(16) long4
 {
-  long int x, y, z;
+    long int x, y, z, w;
 };
 
-/*DEVICE_BUILTIN*/
-struct ulong3
+struct __device_builtin__ __builtin_align__(16) ulong4
 {
-  unsigned long int x, y, z;
+    unsigned long int x, y, z, w;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(16) long4
+struct __device_builtin__ float1
 {
-  long int x, y, z, w;
+    float x;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(16) ulong4
+#if !defined(__CUDACC__) && !defined(__CUDABE__) && defined(__arm__) && \
+    defined(__ARM_PCS_VFP) && __GNUC__ == 4 && __GNUC_MINOR__ == 6
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-pedantic"
+
+struct __device_builtin__ __attribute__((aligned(8))) float2
 {
-  unsigned long int x, y, z, w;
+    float x; float y; float __cuda_gnu_arm_ice_workaround[0];
 };
 
-#endif /* !__LP64__ */
+#pragma GCC poison __cuda_gnu_arm_ice_workaround
+#pragma GCC diagnostic pop
 
-/*DEVICE_BUILTIN*/
-struct float1
+#else /* !__CUDACC__ && !__CUDABE__ && __arm__ && __ARM_PCS_VFP &&
+         __GNUC__ == 4&& __GNUC_MINOR__ == 6 */
+
+__cuda_builtin_vector_align8(float2, float x; float y;);
+
+#endif /* !__CUDACC__ && !__CUDABE__ && __arm__ && __ARM_PCS_VFP &&
+          __GNUC__ == 4&& __GNUC_MINOR__ == 6 */
+
+struct __device_builtin__ float3
 {
-  float x;
+    float x, y, z;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(8) float2
+struct __device_builtin__ __builtin_align__(16) float4
 {
-  float x, y;
+    float x, y, z, w;
 };
 
-/*DEVICE_BUILTIN*/
-struct float3
+struct __device_builtin__ longlong1
 {
-  float x, y, z;
+    long long int x;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(16) float4
+struct __device_builtin__ ulonglong1
 {
-  float x, y, z, w;
+    unsigned long long int x;
 };
 
-/*DEVICE_BUILTIN*/
-struct double1
+struct __device_builtin__ __builtin_align__(16) longlong2
 {
-  double x;
+    long long int x, y;
 };
 
-/*DEVICE_BUILTIN*/
-struct __builtin_align__(16) double2
+struct __device_builtin__ __builtin_align__(16) ulonglong2
 {
-  double x, y;
+    unsigned long long int x, y;
 };
+
+struct __device_builtin__ longlong3
+{
+    long long int x, y, z;
+};
+
+struct __device_builtin__ ulonglong3
+{
+    unsigned long long int x, y, z;
+};
+
+struct __device_builtin__ __builtin_align__(16) longlong4
+{
+    long long int x, y, z ,w;
+};
+
+struct __device_builtin__ __builtin_align__(16) ulonglong4
+{
+    unsigned long long int x, y, z, w;
+};
+
+struct __device_builtin__ double1
+{
+    double x;
+};
+
+struct __device_builtin__ __builtin_align__(16) double2
+{
+    double x, y;
+};
+
+struct __device_builtin__ double3
+{
+    double x, y, z;
+};
+
+struct __device_builtin__ __builtin_align__(16) double4
+{
+    double x, y, z, w;
+};
+
+#if !defined(__CUDACC__) && !defined(__CUDABE__) && \
+    defined(_WIN32) && !defined(_WIN64)
+
+#pragma warning(pop)
+
+#endif /* !__CUDACC__ && !__CUDABE__ && _WIN32 && !_WIN64 */
 
 /*******************************************************************************
 *                                                                              *
@@ -300,82 +357,54 @@ struct __builtin_align__(16) double2
 *                                                                              *
 *******************************************************************************/
 
-/*DEVICE_BUILTIN*/
-typedef struct char1 char1;
-/*DEVICE_BUILTIN*/
-typedef struct uchar1 uchar1;
-/*DEVICE_BUILTIN*/
-typedef struct char2 char2;
-/*DEVICE_BUILTIN*/
-typedef struct uchar2 uchar2;
-/*DEVICE_BUILTIN*/
-typedef struct char3 char3;
-/*DEVICE_BUILTIN*/
-typedef struct uchar3 uchar3;
-/*DEVICE_BUILTIN*/
-typedef struct char4 char4;
-/*DEVICE_BUILTIN*/
-typedef struct uchar4 uchar4;
-/*DEVICE_BUILTIN*/
-typedef struct short1 short1;
-/*DEVICE_BUILTIN*/
-typedef struct ushort1 ushort1;
-/*DEVICE_BUILTIN*/
-typedef struct short2 short2;
-/*DEVICE_BUILTIN*/
-typedef struct ushort2 ushort2;
-/*DEVICE_BUILTIN*/
-typedef struct short3 short3;
-/*DEVICE_BUILTIN*/
-typedef struct ushort3 ushort3;
-/*DEVICE_BUILTIN*/
-typedef struct short4 short4;
-/*DEVICE_BUILTIN*/
-typedef struct ushort4 ushort4;
-/*DEVICE_BUILTIN*/
-typedef struct int1 int1;
-/*DEVICE_BUILTIN*/
-typedef struct uint1 uint1;
-/*DEVICE_BUILTIN*/
-typedef struct int2 int2;
-/*DEVICE_BUILTIN*/
-typedef struct uint2 uint2;
-/*DEVICE_BUILTIN*/
-typedef struct int3 int3;
-/*DEVICE_BUILTIN*/
-typedef struct uint3 uint3;
-/*DEVICE_BUILTIN*/
-typedef struct int4 int4;
-/*DEVICE_BUILTIN*/
-typedef struct uint4 uint4;
-/*DEVICE_BUILTIN*/
-typedef struct long1 long1;
-/*DEVICE_BUILTIN*/
-typedef struct ulong1 ulong1;
-/*DEVICE_BUILTIN*/
-typedef struct long2 long2;
-/*DEVICE_BUILTIN*/
-typedef struct ulong2 ulong2;
-/*DEVICE_BUILTIN*/
-typedef struct long3 long3;
-/*DEVICE_BUILTIN*/
-typedef struct ulong3 ulong3;
-/*DEVICE_BUILTIN*/
-typedef struct long4 long4;
-/*DEVICE_BUILTIN*/
-typedef struct ulong4 ulong4;
-/*DEVICE_BUILTIN*/
-typedef struct float1 float1;
-/*DEVICE_BUILTIN*/
-typedef struct float2 float2;
-/*DEVICE_BUILTIN*/
-typedef struct float3 float3;
-/*DEVICE_BUILTIN*/
-typedef struct float4 float4;
-/*DEVICE_BUILTIN*/
-typedef struct double1 double1;
-/*DEVICE_BUILTIN*/
-typedef struct double2 double2;
+typedef __device_builtin__ struct char1 char1;
+typedef __device_builtin__ struct uchar1 uchar1;
+typedef __device_builtin__ struct char2 char2;
+typedef __device_builtin__ struct uchar2 uchar2;
+typedef __device_builtin__ struct char3 char3;
+typedef __device_builtin__ struct uchar3 uchar3;
+typedef __device_builtin__ struct char4 char4;
+typedef __device_builtin__ struct uchar4 uchar4;
+typedef __device_builtin__ struct short1 short1;
+typedef __device_builtin__ struct ushort1 ushort1;
+typedef __device_builtin__ struct short2 short2;
+typedef __device_builtin__ struct ushort2 ushort2;
+typedef __device_builtin__ struct short3 short3;
+typedef __device_builtin__ struct ushort3 ushort3;
+typedef __device_builtin__ struct short4 short4;
+typedef __device_builtin__ struct ushort4 ushort4;
+typedef __device_builtin__ struct int1 int1;
+typedef __device_builtin__ struct uint1 uint1;
+typedef __device_builtin__ struct int2 int2;
+typedef __device_builtin__ struct uint2 uint2;
+typedef __device_builtin__ struct int3 int3;
+typedef __device_builtin__ struct uint3 uint3;
+typedef __device_builtin__ struct int4 int4;
+typedef __device_builtin__ struct uint4 uint4;
+typedef __device_builtin__ struct long1 long1;
+typedef __device_builtin__ struct ulong1 ulong1;
+typedef __device_builtin__ struct long2 long2;
+typedef __device_builtin__ struct ulong2 ulong2;
+typedef __device_builtin__ struct long3 long3;
+typedef __device_builtin__ struct ulong3 ulong3;
+typedef __device_builtin__ struct long4 long4;
+typedef __device_builtin__ struct ulong4 ulong4;
+typedef __device_builtin__ struct float1 float1;
+typedef __device_builtin__ struct float2 float2;
+typedef __device_builtin__ struct float3 float3;
+typedef __device_builtin__ struct float4 float4;
+typedef __device_builtin__ struct longlong1 longlong1;
+typedef __device_builtin__ struct ulonglong1 ulonglong1;
+typedef __device_builtin__ struct longlong2 longlong2;
+typedef __device_builtin__ struct ulonglong2 ulonglong2;
+typedef __device_builtin__ struct longlong3 longlong3;
+typedef __device_builtin__ struct ulonglong3 ulonglong3;
+typedef __device_builtin__ struct longlong4 longlong4;
+typedef __device_builtin__ struct ulonglong4 ulonglong4;
+typedef __device_builtin__ struct double1 double1;
+typedef __device_builtin__ struct double2 double2;
+typedef __device_builtin__ struct double3 double3;
+typedef __device_builtin__ struct double4 double4;
 
 /*******************************************************************************
 *                                                                              *
@@ -383,18 +412,18 @@ typedef struct double2 double2;
 *                                                                              *
 *******************************************************************************/
 
-/*DEVICE_BUILTIN*/
-typedef struct dim3 dim3;
-
-/*DEVICE_BUILTIN*/
-struct dim3
+struct __device_builtin__ dim3
 {
     unsigned int x, y, z;
 #if defined(__cplusplus)
-    dim3(unsigned int x = 1, unsigned int y = 1, unsigned int z = 1) : x(x), y(y), z(z) {}
-    dim3(uint3 v) : x(v.x), y(v.y), z(v.z) {}
-    operator uint3(void) { uint3 t; t.x = x; t.y = y; t.z = z; return t; }
+    __host__ __device__ dim3(unsigned int vx = 1, unsigned int vy = 1, unsigned int vz = 1) : x(vx), y(vy), z(vz) {}
+    __host__ __device__ dim3(uint3 v) : x(v.x), y(v.y), z(v.z) {}
+    __host__ __device__ operator uint3(void) { uint3 t; t.x = x; t.y = y; t.z = z; return t; }
 #endif /* __cplusplus */
 };
+
+typedef __device_builtin__ struct dim3 dim3;
+
+#undef  __cuda_builtin_vector_align8
 
 #endif /* !__VECTOR_TYPES_H__ */

@@ -221,7 +221,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_bond)
         {
         // take a bond data snapshot
-        shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+        boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
         bond_data->takeSnapshot(bdata_snapshot);
         }
@@ -412,7 +412,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_bond)
         {
         f << "<bond num=\"" << bdata_snapshot.bonds.size() << "\">" << "\n";
-        shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+        boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
         // loop over all bonds and write them out
         for (unsigned int i = 0; i < bdata_snapshot.bonds.size(); i++)
@@ -429,7 +429,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_angle)
         {
         f << "<angle num=\"" << m_sysdef->getAngleData()->getNumAngles() << "\">" << "\n";
-        shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
+        boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
         // loop over all angles and write them out
         for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
@@ -445,7 +445,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_dihedral)
         {
         f << "<dihedral num=\"" << m_sysdef->getDihedralData()->getNumDihedrals() << "\">" << "\n";
-        shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
+        boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
         // loop over all angles and write them out
         for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
@@ -462,7 +462,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_improper)
         {
         f << "<improper num=\"" << m_sysdef->getImproperData()->getNumDihedrals() << "\">" << "\n";
-        shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
+        boost::shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
 
         // loop over all angles and write them out
         for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
@@ -479,7 +479,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     if (m_output_wall)
         {
         f << "<wall>" << "\n";
-        shared_ptr<WallData> wall_data = m_sysdef->getWallData();
+        boost::shared_ptr<WallData> wall_data = m_sysdef->getWallData();
 
         // loop over all walls and write them out
         for (unsigned int i = 0; i < wall_data->getNumWalls(); i++)
@@ -515,7 +515,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         {
         f << "<orientation num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
 
-        for (unsigned int j = 0; j < m_pdata->getN(); j++)
+        for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
             Scalar4 orientation = snapshot.orientation[j];

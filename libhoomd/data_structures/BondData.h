@@ -73,7 +73,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signal.hpp>
+#include <boost/signals2.hpp>
 #include <boost/utility.hpp>
 
 #ifdef ENABLE_CUDA
@@ -354,9 +354,9 @@ class BondData : boost::noncopyable
         GPUVector<unsigned int> m_bond_rtag;            //!< Map to support lookup of bonds by tag
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
 
-        boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
-        boost::signals::connection m_max_particle_num_change_connection; //!< Connection to maximum particle number change signal
-        boost::signals::connection m_ghost_particle_num_change_connection; //!< Connection to ghost particle number change signal
+        boost::signals2::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+        boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to maximum particle number change signal
+        boost::signals2::connection m_ghost_particle_num_change_connection; //!< Connection to ghost particle number change signal
 
         #ifdef ENABLE_MPI
         boost::signals::connection m_ptl_move_connection;  //!< Connection to particle data ptl move signal

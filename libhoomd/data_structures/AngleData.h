@@ -73,7 +73,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/signal.hpp>
+#include <boost/signals2.hpp>
 #include <boost/utility.hpp>
 
 #ifdef ENABLE_CUDA
@@ -280,7 +280,7 @@ class AngleData : boost::noncopyable
         GPUVector<unsigned int> m_angle_rtag;           //!< Map to support lookup of angle by tag
         std::vector<std::string> m_angle_type_mapping;  //!< Mapping between angle type indices and names
 
-        boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+        boost::signals2::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
 

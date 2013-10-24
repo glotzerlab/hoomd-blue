@@ -66,6 +66,40 @@ using namespace boost::python;
 
 void export_hoomd_math_functions()
     {
+    #ifdef SINGLE_PRECISION
+    class_<double2>("double2", init<>())
+        .def_readwrite("x", &double2::x)
+        .def_readwrite("y", &double2::y)
+        ;
+    class_<double3>("double3", init<>())
+        .def_readwrite("x", &double3::x)
+        .def_readwrite("y", &double3::y)
+        .def_readwrite("z", &double3::z)
+        ;
+    class_<double4>("double4", init<>())
+        .def_readwrite("x", &double4::x)
+        .def_readwrite("y", &double4::y)
+        .def_readwrite("z", &double4::z)
+        .def_readwrite("w", &double4::w)
+        ;
+    #else
+    class_<float2>("float2", init<>())
+        .def_readwrite("x", &float2::x)
+        .def_readwrite("y", &float2::y)
+        ;
+    class_<float3>("float3", init<>())
+        .def_readwrite("x", &float3::x)
+        .def_readwrite("y", &float3::y)
+        .def_readwrite("z", &float3::z)
+        ;
+    class_<float4>("float4", init<>())
+        .def_readwrite("x", &float4::x)
+        .def_readwrite("y", &float4::y)
+        .def_readwrite("z", &float4::z)
+        .def_readwrite("w", &float4::w)
+        ;
+    #endif
+
     class_<Scalar2>("Scalar2", init<>())
         .def_readwrite("x", &Scalar2::x)
         .def_readwrite("y", &Scalar2::y)
