@@ -332,7 +332,7 @@ void ParticleData::notifyGhostParticleNumberChange()
 /*! \param func Function to be called when a single particle moves between domains
     \return Connection to manage the signal
  */
-boost::signals::connection ParticleData::connectSingleParticleMove(
+boost::signals2::connection ParticleData::connectSingleParticleMove(
     const boost::function<void(unsigned int, unsigned int, unsigned int)> &func)
     {
     return m_ptl_move_signal.connect(func);

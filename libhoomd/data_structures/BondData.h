@@ -359,7 +359,7 @@ class BondData : boost::noncopyable
         boost::signals2::connection m_ghost_particle_num_change_connection; //!< Connection to ghost particle number change signal
 
         #ifdef ENABLE_MPI
-        boost::signals::connection m_ptl_move_connection;  //!< Connection to particle data ptl move signal
+        boost::signals2::connection m_ptl_move_connection;  //!< Connection to particle data ptl move signal
         #endif
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA

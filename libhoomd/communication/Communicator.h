@@ -310,7 +310,7 @@ class Communicator
         /*! This method keeps track of all functions that may request communication flags
          * \return A connection to the present class
          */
-        boost::signals::connection addCommFlagsRequest(const boost::function<CommFlags (unsigned int timestep)>& subscriber)
+        boost::signals2::connection addCommFlagsRequest(const boost::function<CommFlags (unsigned int timestep)>& subscriber)
             {
             return m_requested_flags.connect(subscriber);
             }
@@ -527,7 +527,7 @@ class Communicator
         boost::signals2::signal<bool(unsigned int timestep), migrate_logical_or>
             m_migrate_requests; //!< List of functions that may request particle migration
 
-        boost::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
+        boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
             m_requested_flags;  //!< List of functions that may request ghost communication flags
 
         RoutingTable m_routing_table;            //!< The routing table
