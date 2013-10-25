@@ -1,4 +1,4 @@
-BRANCH=maint
+BRANCH=master
 
 #update our codebase
 cd  ../
