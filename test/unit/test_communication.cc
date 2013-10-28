@@ -2574,6 +2574,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     test_communicator_ghosts(communicator_creator_base, exec_conf_cpu);
     }
 
+#if 0
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
@@ -2585,6 +2586,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_bond_exchange(communicator_creator_base, exec_conf_cpu);
     }
+#endif
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
     {

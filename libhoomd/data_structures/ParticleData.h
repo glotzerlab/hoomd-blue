@@ -196,11 +196,6 @@ const unsigned int NO_BODY = 0xffffffff;
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 
-#ifdef ENABLE_MPI
-//! Sentinel value in \a r_tag to signify that the particle is to be removed from the local processor
-const unsigned int STAGED = 0xfffffffe;
-#endif
-
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
  * - Initializing the ParticleData
@@ -336,8 +331,8 @@ struct pdata_element
 
     During the simulation particles may enter or leave the box, therefore the number of \a local particles may change.
     To account for this, the size of the particle data arrays is dynamically updated using amortized doubling of the array sizes. To add particles to
-    the domain, the addRemoveParticles() method is called, and the arrays are resized if necessary. Particles are retrieved
-    from the local particle data arrays using retrieveParticles().
+    the domain, the addParticles() method is called, and the arrays are resized if necessary. Particles are retrieved
+    and removed from the local particle data arrays using removeParticles().
 
     In addition, since many other classes maintain internal arrays holding data for every particle (such as neighbor lists etc.), these
     arrays need to be resized, too, if the particle number changes. Everytime the particle data arrays are reallocated, a
@@ -745,19 +740,21 @@ class ParticleData : boost::noncopyable
         //! Pack particle data into a buffer
         /*! \param out Buffer into which particle data is packed
          *
-         *  Packs all particles for which rtag==STAGED into a buffer and marks them
-         *  for removal (rtag = NOT_LOCAL)
+         *  Packs all particles for which rtag==NOT_LOCAL into a buffer
+         *  and remove them from the particle data
          *
          *  The out buffer is automatically resized to accomodate the data.
+         *
+         *  \post The particle data arrays remain compact. Any ghost atoms
+         *        are invalidated. (call removeAllGhostAtoms() before or after
+         *        this method).
          */
-        void retrieveParticles(std::vector<pdata_element>& out);
+        void removeParticles(std::vector<pdata_element>& out);
 
         //! Remove particles from local domain and add new particle data
         /*! \param in List of particle data elements to fill the particle data with
-         *
-         * Particles marked with the rtag==NOT_LOCAL are removed
          */
-        void addRemoveParticles(const std::vector<pdata_element>& in);
+        void addParticles(const std::vector<pdata_element>& in);
 
         #ifdef ENABLE_CUDA
         //! Pack particle data into a buffer (GPU version)

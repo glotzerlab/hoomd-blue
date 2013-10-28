@@ -375,7 +375,7 @@ void Communicator::migrateParticles()
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
 
-            // mark all particles which have left the box for sending (rtag=STAGED)
+            // mark all particles which have left the box for sending (rtag=NOT_LOCAL)
             unsigned int N = m_pdata->getN();
             select_particle_migrate pred(box, dir, h_pos.data);
 
@@ -386,13 +386,14 @@ void Communicator::migrateParticles()
 
                 if (pred(idx))
                     {
-                    h_rtag.data[tag] = STAGED;
+                    h_rtag.data[tag] = NOT_LOCAL;
                     }
                 }
             }
 
         boost::shared_ptr<BondData> bdata(m_sysdef->getBondData());
 
+        #if 0
         if (bdata->getNumBondsGlobal())
             {
             /*
@@ -439,9 +440,10 @@ void Communicator::migrateParticles()
                     h_bond_rtag.data[bond_tag] = BOND_SPLIT;
                 }
             }
+        #endif
 
         // fill send buffer
-        m_pdata->retrieveParticles(m_sendbuf);
+        m_pdata->removeParticles(m_sendbuf);
 
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 
@@ -491,8 +493,9 @@ void Communicator::migrateParticles()
             }
 
         // remove particles that were sent and fill particle data with received particles
-        m_pdata->addRemoveParticles(m_recvbuf);
+        m_pdata->addParticles(m_recvbuf);
 
+        #if 0
         /*
          *  Bond communication
          */
@@ -533,7 +536,7 @@ void Communicator::migrateParticles()
             bdata->addRemoveBonds(m_bond_recv_buf);
 
             } // end bond communication
-
+            #endif
         } // end dir loop
 
     if (m_prof)

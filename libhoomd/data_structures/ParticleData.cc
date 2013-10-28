@@ -82,6 +82,7 @@ using namespace boost::python;
 
 #include <boost/bind.hpp>
 #include <boost/iterator/zip_iterator.hpp>
+#include <boost/iterator/transform_iterator.hpp>
 
 using namespace boost::signals2;
 using namespace boost;
@@ -1452,13 +1453,13 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                     {
                     // mark for sending
                     ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
-                    h_rtag.data[tag] = STAGED;
+                    h_rtag.data[tag] = NOT_LOCAL;
                     }
 
                 std::vector<pdata_element> buf;
 
                 // retrieve particle data
-                retrieveParticles(buf);
+                removeParticles(buf);
 
                 assert(buf.size() >= 1);
 
@@ -1468,9 +1469,6 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                     m_exec_conf->msg->error() << "More than one (" << buf.size() << ") particle marked for sending." << endl << endl;
                     throw std::runtime_error("Error moving particle.");
                     }
-
-                // prune local particle data
-                addRemoveParticles(std::vector<pdata_element>());
 
                 MPI_Request req;
                 MPI_Status stat;
@@ -1503,7 +1501,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 MPI_Waitall(1, &req, &stat);
 
                 // add particle back to local data
-                addRemoveParticles(buf);
+                addParticles(buf);
                 }
 
             // Notify observers
@@ -1784,61 +1782,6 @@ bool SnapshotParticleData::validate() const
     }
 
 #ifdef ENABLE_MPI
-//! Pack particle data into a buffer
-void ParticleData::retrieveParticles(std::vector<pdata_element>& out)
-    {
-    if (m_prof) m_prof->push("pack");
-
-    // access particle data arrays
-    ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::read);
-
-    // access reverse-lookup tags
-    ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
-
-    unsigned int N = getN();
-
-    // reset out vector
-    out.clear();
-
-    // loop over local particles
-    for (unsigned int idx = 0; idx < N; ++idx)
-        {
-        assert(idx < getN());
-
-        unsigned int tag = h_tag.data[idx];
-        assert(tag < getNGlobal());
-
-        if (h_rtag.data[tag] == STAGED)
-            {
-            pdata_element p;
-            p.pos = h_pos.data[idx];
-            p.vel = h_vel.data[idx];
-            p.accel = h_accel.data[idx];
-            p.charge = h_charge.data[idx];
-            p.diameter = h_diameter.data[idx];
-            p.image = h_image.data[idx];
-            p.body = h_body.data[idx];
-            p.orientation = h_orientation.data[idx];
-            p.tag = h_tag.data[idx];
-
-            // mark for removal
-            h_rtag.data[tag] = NOT_LOCAL;
-
-            out.push_back(p);
-            }
-        }
-
-    if (m_prof) m_prof->pop();
-    }
-
 //! A tuple of pdata pointers
 typedef boost::tuple <
     unsigned int *,  // tag
@@ -1869,7 +1812,7 @@ typedef boost::tuple <
     > pdata_tuple;
 
 //! A predicate to select particles by rtag (NOT_LOCAL)
-struct pdata_select
+struct pdata_select : std::unary_function<const pdata_tuple, bool>
     {
     //! Constructor
     pdata_select(const unsigned int *_rtag, const unsigned int _compare)
@@ -1886,11 +1829,30 @@ struct pdata_select
     const unsigned int compare;  //!< The value to compare the rtag to
     };
 
+//! A predicate to select particles by rtag (NOT_LOCAL)
+struct pdata_element_select : std::unary_function<const pdata_element, bool>
+    {
+    //! Constructor
+    pdata_element_select(const unsigned int *_rtag, const unsigned int _compare)
+        : rtag(_rtag), compare(_compare)
+        { }
+
+    //! Returns true if the remove flag is set for a particle
+    bool operator() (pdata_element const p) const
+        {
+        return rtag[p.tag] == compare;
+        }
+
+
+    const unsigned int *rtag;    //!< The reverse-lookup tag array
+    const unsigned int compare;  //!< The value to compare the rtag to
+    };
+
 
 //! A converter from pdata_element to a tuple of pdata entries
 struct to_pdata_tuple : public std::unary_function<const pdata_element, const pdata_tuple>
     {
-    const pdata_tuple operator() (const pdata_element p)
+    const pdata_tuple operator() (const pdata_element p) const
         {
         return boost::make_tuple(
             p.tag,
@@ -1906,12 +1868,32 @@ struct to_pdata_tuple : public std::unary_function<const pdata_element, const pd
         }
     };
 
-//! Remove particles from local domain and append new particle data
-void ParticleData::addRemoveParticles(const std::vector<pdata_element>& in)
+//! A converter from pdata_tuple to a pdata_element
+struct to_pdata_element : public std::unary_function<const pdata_tuple, pdata_element>
     {
-    if (m_prof) m_prof->push("unpack/remove");
+    const pdata_element operator() (const pdata_tuple t) const
+        {
+        pdata_element p;
 
-    unsigned int num_add_ptls = in.size();
+        p.tag = t.get<0>();
+        p.pos = t.get<1>();
+        p.vel = t.get<2>();
+        p.accel = t.get<3>();
+        p.charge = t.get<4>();
+        p.diameter = t.get<5>();
+        p.image = t.get<6>();
+        p.body = t.get<7>();
+        p.orientation = t.get<8>();
+
+        return p;
+        }
+    };
+
+
+void ParticleData::removeParticles(std::vector<pdata_element>& out)
+    {
+    if (m_prof) m_prof->push("pack");
+
     unsigned int num_remove_ptls = 0;
 
         {
@@ -1931,9 +1913,109 @@ void ParticleData::addRemoveParticles(const std::vector<pdata_element>& in)
         }
 
     unsigned int old_nparticles = getN();
-    unsigned int new_nparticles = m_nparticles + num_add_ptls - num_remove_ptls;
+    unsigned int new_nparticles = m_nparticles - num_remove_ptls;
 
-    // resize particle data using amortized scaling
+    // resize output buffer
+    out.resize(num_remove_ptls);
+
+    // resize particle data using amortized O(1) array resizing
+    resize(new_nparticles);
+
+        {
+        // access particle data arrays
+        ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
+
+        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::read);
+
+        ArrayHandle<Scalar4> h_pos_alt(m_pos_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_vel_alt(m_vel_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar3> h_accel_alt(m_accel_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_charge_alt(m_charge_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_diameter_alt(m_diameter_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<int3> h_image_alt(m_image_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_body_alt(m_body_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_orientation_alt(m_orientation_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_tag_alt(m_tag_alt, access_location::host, access_mode::overwrite);
+
+        pdata_zip pdata_begin = boost::make_tuple(
+            h_tag.data,
+            h_pos.data,
+            h_vel.data,
+            h_accel.data,
+            h_charge.data,
+            h_diameter.data,
+            h_image.data,
+            h_body.data,
+            h_orientation.data
+            );
+        pdata_zip pdata_end = pdata_begin + old_nparticles;
+
+        // reorder particle data, putting local elements first
+        pdata_zip pdata_alt_begin = boost::make_tuple(
+            h_tag_alt.data,
+            h_pos_alt.data,
+            h_vel_alt.data,
+            h_accel_alt.data,
+            h_charge_alt.data,
+            h_diameter_alt.data,
+            h_image_alt.data,
+            h_body_alt.data,
+            h_orientation_alt.data
+            );
+
+        std::remove_copy_if(pdata_begin, pdata_end, pdata_alt_begin,
+            pdata_select(h_rtag.data,NOT_LOCAL));
+
+        // set up a transformation from pdata to packed format
+        // copy to output buf in packed form
+        std::remove_copy_if(boost::make_transform_iterator(pdata_begin, to_pdata_element()),
+            boost::make_transform_iterator(pdata_end, to_pdata_element()),
+            out.begin(),
+            std::not1(pdata_element_select(h_rtag.data,NOT_LOCAL)));
+        }
+
+    // swap temp arrays and pdata arrays
+    swap();
+
+        {
+        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::read);
+
+        // recompute rtags (particles have moved)
+        for (unsigned int idx = 0; idx < m_nparticles; ++idx)
+            {
+            // reset rtag of this ptl
+            unsigned int tag = h_tag.data[idx];
+            assert(tag < getNGlobal());
+            h_rtag.data[tag] = idx;
+            }
+        }
+
+    if (m_prof) m_prof->pop();
+
+    // notify subscribers that particle data order has been changed
+    notifyParticleSort();
+    }
+
+//! Remove particles from local domain and append new particle data
+void ParticleData::addParticles(const std::vector<pdata_element>& in)
+    {
+    if (m_prof) m_prof->push("unpack");
+
+    unsigned int num_add_ptls = in.size();
+
+    unsigned int old_nparticles = getN();
+    unsigned int new_nparticles = m_nparticles + num_add_ptls;
+
+    // resize particle data using amortized O(1) array resizing
     resize(new_nparticles);
 
         {
@@ -1960,15 +2042,10 @@ void ParticleData::addRemoveParticles(const std::vector<pdata_element>& in)
             h_body.data,
             h_orientation.data
             );
-        pdata_zip pdata_end = pdata_begin + old_nparticles;
-
-        // erase all elements for which rtag == NOT_LOCAL
-        // the array remains contiguous
-        pdata_zip new_pdata_end;
-        new_pdata_end = std::remove_if(pdata_begin, pdata_end, pdata_select(h_rtag.data,NOT_LOCAL));
+        pdata_zip pdata_add_begin = pdata_begin + old_nparticles;
 
         // add new particles at the end
-        std::transform(in.begin(), in.end(), new_pdata_end, to_pdata_tuple());
+        std::transform(in.begin(), in.end(), pdata_add_begin, to_pdata_tuple());
 
         // recompute rtags
         for (unsigned int idx = 0; idx < m_nparticles; ++idx)
