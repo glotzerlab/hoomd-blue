@@ -196,7 +196,7 @@ struct get_migrate_key_gpu : public thrust::unary_function<const pdata_element, 
         { }
 
     //! Generate key for a sent particle
-    __device__ bool operator()(const pdata_element p)
+    __device__ unsigned int operator()(const pdata_element p)
         {
         Scalar4 postype = p.pos;
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);

@@ -405,7 +405,8 @@ void CommunicatorGPU::migrateParticles()
     // determine local particles that are to be sent to neighboring processors and fill send buffer
     uint3 mypos = di.getTriple(m_exec_conf->getRank());
 
-#if 0
+    /* We need some better heuristics to decide whether to take the GPU or CPU code path */
+    #ifdef ENABLE_MPI_CUDA
         {
         // resize keys
         m_send_keys.resize(m_gpu_sendbuf.size());
@@ -431,7 +432,7 @@ void CommunicatorGPU::migrateParticles()
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-#else
+    #else
         {
         ArrayHandle<pdata_element> h_gpu_sendbuf(m_gpu_sendbuf, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::overwrite);
