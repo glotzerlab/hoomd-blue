@@ -63,6 +63,31 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for neighbor list generation on the GPU
 */
 
+//! Kernel driver for gpu_compute_nlist_shared_kernel()
+cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
+                                     unsigned int *d_n_neigh,
+                                     Scalar4 *d_last_updated_pos,
+                                     unsigned int *d_conditions,
+                                     const Index2D& nli,
+                                     const Scalar4 *d_pos,
+                                     const unsigned int *d_body,
+                                     const Scalar *d_diameter,
+                                     const unsigned int N,
+                                     const unsigned int *d_cell_size,
+                                     const Scalar4 *d_cell_xyzf,
+                                     const Scalar4 *d_cell_tdb,
+                                     const unsigned int *d_cell_adj,
+                                     const Index3D& ci,
+                                     const Index2D& cli,
+                                     const Index2D& cadji,
+                                     const BoxDim& box,
+                                     const Scalar r_maxsq,
+                                     const unsigned int max_shared_neighbors,
+                                     const unsigned int threads_per_particle,
+                                     bool filter_body,
+                                     bool filter_diameter,
+                                     const Scalar3& ghost_width);
+
 //! Kernel driver for gpu_compute_nlist_binned_new_kernel()
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,

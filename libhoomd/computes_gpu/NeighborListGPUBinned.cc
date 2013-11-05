@@ -195,6 +195,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (exec_conf->getComputeCapability() >= 200)
         {
+        #if 0
         gpu_compute_nlist_binned(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,
@@ -217,6 +218,34 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_body,
                                  m_filter_diameter,
                                  m_cl->getGhostWidth());
+        #else
+        unsigned int max_shared_neighbors = 16;
+        unsigned int threads_per_particle =2;
+
+        gpu_compute_nlist_binned_shared(d_nlist.data,
+                                 d_n_neigh.data,
+                                 d_last_pos.data,
+                                 m_conditions.getDeviceFlags(),
+                                 m_nlist_indexer,
+                                 d_pos.data,
+                                 d_body.data,
+                                 d_diameter.data,
+                                 m_pdata->getN(),
+                                 d_cell_size.data,
+                                 d_cell_xyzf.data,
+                                 d_cell_tdb.data,
+                                 d_cell_adj.data,
+                                 m_cl->getCellIndexer(),
+                                 m_cl->getCellListIndexer(),
+                                 m_cl->getCellAdjIndexer(),
+                                 box,
+                                 rmaxsq,
+                                 max_shared_neighbors,
+                                 threads_per_particle,
+                                 m_filter_body,
+                                 m_filter_diameter,
+                                 m_cl->getGhostWidth());
+        #endif
         }
     else
         {
