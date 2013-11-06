@@ -197,8 +197,8 @@ def _get_optimal_block_size(name):
         if name in _default_block_size_db[compute_cap]:
             return _default_block_size_db[compute_cap][name];
         else:
-            globals.msg.error("Default block size db does not contain a value for " + str(name) + ".\n");
-            raise RuntimeError("Error retrieving optimal block size");
+            globals.msg.warning("Default block size db does not contain a value for " + str(name) + ".\n");
+            return 64
     else:
         globals.msg.warning("Optimal block size tuning values are not present for your hardware with compute capability " + str(compute_cap) + "\n");
         globals.msg.warning("To obtain better performance, execute the following hoomd script to determine the optimal\n");
