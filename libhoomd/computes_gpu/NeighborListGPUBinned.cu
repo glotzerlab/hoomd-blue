@@ -115,10 +115,6 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     // each thread block is going to compute the neighbor list for a single particle
     int my_pidx = blockIdx.x;
 
-    // quit early if we are past the end of the array
-    if (my_pidx >= N)
-        return;
-
     // first, determine which bin this particle belongs to
     Scalar4 my_postype = d_pos[my_pidx];
     Scalar3 my_pos = make_scalar3(my_postype.x, my_postype.y, my_postype.z);
@@ -146,7 +142,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     int my_cell = ci(ib,jb,kb);
 
     // determine index of adjacent bin
-    unsigned cur_adj = threadIdx.x/threads_per_particle;
+    unsigned int cur_adj = threadIdx.x/threads_per_particle;
 
     int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
     unsigned int size = d_cell_size[neigh_cell];
@@ -161,28 +157,24 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     if (threadIdx.x == 0) n_neigh_tot = 0;
 
     // neighbors per thread counter
-    unsigned int *sh_nneigh = &shmem[0] + 1;
+    unsigned int *sh_nneigh = &shmem[1];
 
     // initialize shared counter to zero
     sh_nneigh[threadIdx.x] = 0;
 
     // array of neighbors per thread
-    unsigned int *sh_neighbors = &shmem[0] + blockDim.x + 1;
+    unsigned int *sh_neighbors = &shmem[blockDim.x + 1];
 
     // start at this cell list entry
-    unsigned int cl_offs =  threadIdx.x % threads_per_particle;
-    unsigned int start_offs = cl_offs;
-
-    // if we are past the list of neighbor bins, return early
-    if (cur_adj >= cadji.getW()) return;
+    unsigned int start_offs =  threadIdx.x % threads_per_particle;
 
     // run up to max cell list element
     // (make sure all threads of a block participate in the loop)
     unsigned int loop_max = cli.getW();
-    loop_max = (cli.getW() > threads_per_particle*max_shared_neighbors) ?
-        cli.getW() - threads_per_particle*max_shared_neighbors : cli.getW();
 
-    while ((start_offs - cl_offs) < loop_max)
+    if (loop_max% threads_per_particle) loop_max = threads_per_particle*(1+loop_max/threads_per_particle);
+
+    while (start_offs < loop_max)
         {
         // process batches of max_shared_neigbhors
         unsigned int end_offs = start_offs + max_shared_neighbors*threads_per_particle;
@@ -223,7 +215,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
             if (filter_body && my_body != 0xffffffff)
                 excluded = excluded | (my_body == neigh_body);
 
-            Scalar sqshift = 0;
+            Scalar sqshift(0.0);
             if (filter_diameter)
                 {
                 // compute the shift in radius to accept neighbors based on their diameters
@@ -255,17 +247,17 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
 
         // max neighbor list position accessed by this thread
         unsigned int n_neigh_needed = out_idx + nneigh;
-        if (n_neigh_needed > nli.getH())
+        if (n_neigh_needed <= nli.getH())
             {
-            // we need a larger neighbor list
-            atomicMax(&d_conditions[0], n_neigh_needed);
+            // flush neighbors to global mem
+            for (unsigned int ineigh = 0; ineigh < nneigh; ++ineigh)
+                {
+                unsigned int neighbor = sh_neighbors[ineigh*blockDim.x+threadIdx.x];
+                d_nlist[nli(my_pidx, out_idx+ineigh)] = neighbor;
+                }
             }
         else
-            {
-            // write out neighbors contiguously
-            for (unsigned int ineigh = 0; ineigh < nneigh; ++ineigh)
-                d_nlist[nli(my_pidx, out_idx+ineigh)] = sh_neighbors[ineigh*blockDim.x+threadIdx.x];
-            }
+            atomicMax(&d_conditions[0], n_neigh_needed);
 
         // make sure n_neigh_tot doesn't get updated before its old value has been read by all other threads
         __syncthreads();
@@ -276,6 +268,9 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
             for (unsigned int tidx = 0; tidx < blockDim.x; ++tidx)
                 n_neigh_tot += sh_nneigh[tidx];
             }
+
+        // necessary to avoid race condition (other threads updating sh_nneigh during the reduction)
+        __syncthreads();
 
         // advance start_offs
         start_offs += max_shared_neighbors*threads_per_particle;
@@ -354,7 +349,7 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
         }
     if (!filter_diameter && filter_body)
         {
-        gpu_compute_nlist_binned_shared_kernel<1><<<n_blocks, block_size>>>(d_nlist,
+        gpu_compute_nlist_binned_shared_kernel<1><<<n_blocks, block_size,shared_size>>>(d_nlist,
                                                                          d_n_neigh,
                                                                          d_last_updated_pos,
                                                                          d_conditions,
@@ -379,7 +374,7 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
         }
     if (filter_diameter && !filter_body)
         {
-        gpu_compute_nlist_binned_shared_kernel<2><<<n_blocks, block_size>>>(d_nlist,
+        gpu_compute_nlist_binned_shared_kernel<2><<<n_blocks, block_size,shared_size>>>(d_nlist,
                                                                          d_n_neigh,
                                                                          d_last_updated_pos,
                                                                          d_conditions,
@@ -404,7 +399,7 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
         }
     if (filter_diameter && filter_body)
         {
-        gpu_compute_nlist_binned_shared_kernel<3><<<n_blocks, block_size>>>(d_nlist,
+        gpu_compute_nlist_binned_shared_kernel<3><<<n_blocks, block_size,shared_size>>>(d_nlist,
                                                                          d_n_neigh,
                                                                          d_last_updated_pos,
                                                                          d_conditions,
