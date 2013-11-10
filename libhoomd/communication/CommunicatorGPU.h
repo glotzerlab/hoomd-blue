@@ -153,6 +153,7 @@ class CommunicatorGPU : public Communicator
         unsigned int m_max_stages;                     //!< Maximum number of (dependent) communication stages
         unsigned int m_num_stages;                     //!< Number of stages
         std::vector<unsigned int> m_comm_mask;         //!< Communication mask per stage
+        std::vector<int> m_stages;                     //!< Communication stage per unique neighbor
 
         /* Particle migration */
         GPUVector<pdata_element> m_gpu_sendbuf;        //!< Send buffer for particle data
@@ -163,7 +164,7 @@ class CommunicatorGPU : public Communicator
         GPUVector<bond_element> m_gpu_bond_recvbuf;    //!< Buffer for bonds that are received
 
         /* Ghost communication */
-        GPUVector<unsigned int> m_tag_ghost_recvbuf;    //!< Buffer for recveiving particle tags
+        GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags
         GPUVector<Scalar4> m_pos_ghost_sendbuf;        //<! Buffer for sending ghost positions
         GPUVector<Scalar4> m_pos_ghost_recvbuf;        //<! Buffer for receiving ghost positions
 
@@ -179,19 +180,21 @@ class CommunicatorGPU : public Communicator
         GPUVector<Scalar4> m_orientation_ghost_sendbuf;//<! Buffer for sending ghost orientations
         GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
 
-        GPUArray<unsigned int> m_ghost_begin;          //!< Begin index for every plan in send buf
-        GPUArray<unsigned int> m_ghost_end;            //!< Begin index for every plan in send buf
+        GPUArray<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf
+        GPUArray<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf
 
         GPUVector<unsigned int> m_ghost_plan;         //!< Plans for every particle
-        GPUVector<unsigned int> m_ghost_tag;          //!< Ghost particles tags, ordered by neighbor
-        GPUVector<unsigned int> m_neigh_counts;       //!< List of number of neighbors to send ghost to
+        GPUVector<unsigned int> m_ghost_tag;          //!< List of ghost particles tags per stage, ordered by neighbor
+        std::vector<unsigned int> m_tag_offs;         //!< Per-stage offset into tag send buf
 
-        unsigned int m_n_send_ghosts[NEIGH_MAX];        //!< Number of ghosts to send per neighbor
-        unsigned int m_n_recv_ghosts[NEIGH_MAX];        //!< Number of ghosts to receive per neighbor
-        unsigned int m_ghost_offs[NEIGH_MAX];           //!< Begin of offset in recv buf per neighbor
+        GPUVector<unsigned int> m_neigh_counts;       //!< List of number of neighbors to send ghost to (temp array)
 
-        unsigned int m_n_send_ghosts_tot;              //!< Total number of sent ghosts
-        unsigned int m_n_recv_ghosts_tot;              //!< Total number of received ghosts
+        std::vector<std::vector<unsigned int> > m_n_send_ghosts; //!< Number of ghosts to send per stage and neighbor
+        std::vector<std::vector<unsigned int> > m_n_recv_ghosts; //!< Number of ghosts to receive per stage and neighbor
+        std::vector<std::vector<unsigned int> > m_ghost_offs;    //!< Begin of offset in recv buf per stage and neighbor
+
+        std::vector<unsigned int> m_n_send_ghosts_tot; //!< Total number of sent ghosts per stage
+        std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
         cached_allocator m_cached_alloc;              //!< Cached memory allocator for internal thrust code
 

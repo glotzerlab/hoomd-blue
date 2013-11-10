@@ -536,12 +536,13 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
 //! Kernel to select ghost atoms due to non-bonded interactions
 struct make_ghost_exchange_plan_gpu : thrust::unary_function<const Scalar4, unsigned int>
     {
-    const BoxDim box;             //!< Local box
+    const BoxDim box;       //!< Local box
     Scalar3 ghost_fraction; //!< Fractional width of ghost layer
+    unsigned int mask;      //!< Mask of allowed communication directions
 
     //! Constructor
-    make_ghost_exchange_plan_gpu(const BoxDim& _box, Scalar3 _ghost_fraction)
-        : box(_box), ghost_fraction(_ghost_fraction)
+    make_ghost_exchange_plan_gpu(const BoxDim& _box, Scalar3 _ghost_fraction, unsigned int _mask)
+        : box(_box), ghost_fraction(_ghost_fraction), mask(_mask)
         { }
 
     __device__ unsigned int operator() (const Scalar4 postype)
@@ -565,6 +566,9 @@ struct make_ghost_exchange_plan_gpu : thrust::unary_function<const Scalar4, unsi
         if (f.z < ghost_fraction.z)
             plan |= send_down;
 
+        // filter out non-communiating directions
+        plan &= mask;
+
         return plan;
         }
     };
@@ -581,6 +585,7 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   const Scalar4 *d_pos,
                                   const BoxDim &box,
                                   Scalar3 ghost_fraction,
+                                  unsigned int mask,
                                   cached_allocator& alloc)
     {
     // wrap position array
@@ -590,7 +595,9 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
     thrust::device_ptr<unsigned int> plan_ptr(d_plan);
 
     // compute plans
-    thrust::transform(thrust::cuda::par(alloc), pos_ptr, pos_ptr + N, plan_ptr, make_ghost_exchange_plan_gpu(box, ghost_fraction));
+    thrust::transform(thrust::cuda::par(alloc),
+        pos_ptr, pos_ptr + N, plan_ptr,
+        make_ghost_exchange_plan_gpu(box, ghost_fraction,mask));
     }
 
 //! Apply adjacency masks to plan and return number of matching neighbors

@@ -155,8 +155,7 @@ struct comm_flag
     //! The enum
     enum Enum
         {
-        tag = 0,     //! Bit id in CommFlags for particle tag
-        position,    //! Bit id in CommFlags for particle positions
+        position = 0,//! Bit id in CommFlags for particle positions
         charge,      //! Bit id in CommFlags for particle charge
         diameter,    //! Bit id in CommFlags for particle diameter
         velocity,    //! Bit id in CommFlags for particle velocity

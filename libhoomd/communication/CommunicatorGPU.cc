@@ -76,8 +76,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_n_unique_neigh(0),
       m_max_stages(3),
       m_num_stages(0),
-      m_comm_mask(0),
-      m_n_recv_ghosts_tot(0)
+      m_comm_mask(0)
     {
     // find out if this is a 1D decomposition
     unsigned int d = 0;
@@ -152,7 +151,6 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<unsigned int> end(NEIGH_MAX,m_exec_conf);
     m_end.swap(end);
 
-
     /*
      * Ghost communication
      */
@@ -190,10 +188,10 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<Scalar4> orientation_ghost_recvbuf(m_exec_conf,mapped);
     m_orientation_ghost_recvbuf.swap(orientation_ghost_recvbuf);
 
-    GPUArray<unsigned int> ghost_begin(NEIGH_MAX, m_exec_conf);
+    GPUVector<unsigned int> ghost_begin(m_exec_conf);
     m_ghost_begin.swap(ghost_begin);
 
-    GPUArray<unsigned int> ghost_end(NEIGH_MAX, m_exec_conf);
+    GPUVector<unsigned int> ghost_end(m_exec_conf);
     m_ghost_end.swap(ghost_end);
 
     GPUVector<unsigned int> ghost_plan(m_exec_conf);
@@ -355,10 +353,29 @@ void CommunicatorGPU::initializeCommunicationStages()
     // number of communication stages
     m_num_stages = max_stage + 1;
 
-    // every direction occurs in one and only one stage
+    // every direction occurs in one and only one stages
+    // number of communications per stage is constant or decreases with stage number
     for (unsigned int istage = 0; istage < m_num_stages; ++istage)
         for (unsigned int jstage = istage+1; jstage < m_num_stages; ++jstage)
             m_comm_mask[jstage] &= ~m_comm_mask[istage];
+
+    // access unique neighbors
+    ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
+
+    // initialize stages array
+    m_stages.resize(m_n_unique_neigh,-1);
+
+    // assign stages to unique neighbors
+    for (unsigned int i= 0; i < m_n_unique_neigh; i++)
+        for (unsigned int istage = 0; istage < m_num_stages; ++istage)
+            // compare adjacency masks of (non-unique) neighbors to mask for this stage
+            for (unsigned int j = 0; j < m_n_neigh; ++j)
+                if (h_unique_neighbors.data[i] == h_neighbors.data[j]
+                    && (h_adj_mask.data[j] &m_comm_mask[istage]) == h_adj_mask.data[j])
+                    {
+                    m_stages[i] = istage;
+                    break; // associate neighbor with stage of lowest index
+                    }
     }
 
 //! Select a particle for migration
@@ -438,8 +455,6 @@ void CommunicatorGPU::migrateParticles()
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
 
-    CommFlags flags = getFlags();
-    if (flags[comm_flag::tag])
         {
         // Reset reverse lookup tags of old ghost atoms
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
@@ -569,6 +584,14 @@ void CommunicatorGPU::migrateParticles()
             // loop over neighbors
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 {
+                if (m_stages[ineigh] != stage)
+                    {
+                    // skip neighbor if not participating in this communication stage
+                    n_send_ptls[ineigh] = 0;
+                    n_recv_ptls[ineigh] = 0;
+                    continue;
+                    }
+
                 // rank of neighbor processor
                 unsigned int neighbor = h_unique_neighbors.data[ineigh];
 
@@ -803,493 +826,540 @@ void CommunicatorGPU::exchangeGhosts()
     // the ghost layer must be at_least m_r_ghost wide along every lattice direction
     Scalar3 ghost_fraction = m_r_ghost/m_pdata->getBox().getNearestPlaneDistance();
 
-    m_ghost_plan.resize(m_pdata->getN());
+    // resize arrays
+    m_n_send_ghosts.resize(m_num_stages);
+    m_n_recv_ghosts.resize(m_num_stages);
 
+    for (unsigned int istage = 0; istage < m_num_stages; ++istage)
         {
-        // compute plans
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
-
-        gpu_make_ghost_exchange_plan(d_ghost_plan.data,
-                                     m_pdata->getN(),
-                                     d_pos.data,
-                                     m_pdata->getBox(),
-                                     ghost_fraction,
-                                     m_cached_alloc);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+        m_n_send_ghosts[istage].resize(m_n_unique_neigh);
+        m_n_recv_ghosts[istage].resize(m_n_unique_neigh);
         }
 
-    // get requested ghost fields
-    CommFlags flags = getFlags();
+    m_n_send_ghosts_tot.resize(m_num_stages);
+    m_n_recv_ghosts_tot.resize(m_num_stages);
+    m_ghost_offs.resize(m_num_stages);
+    for (unsigned int istage = 0; istage < m_num_stages; ++istage)
+        m_ghost_offs[istage].resize(m_n_unique_neigh);
 
-    // number of sent ghost particles
-    m_n_send_ghosts_tot = 0;
+    m_ghost_begin.resize(m_n_unique_neigh*m_num_stages);
+    m_ghost_end.resize(m_n_unique_neigh*m_num_stages);
 
-    // resize temporary number of neighbors array
-    m_neigh_counts.resize(m_pdata->getN());
+    m_tag_offs.resize(m_num_stages);
 
+    // main communication loop
+    for (unsigned int stage = 0; stage < m_num_stages; stage++)
         {
-        ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_adj_mask(m_adj_mask, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_neigh_counts(m_neigh_counts, access_location::device, access_mode::overwrite);
+        // make room for plans
+        m_ghost_plan.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
-        // count number of neighbors (total and per particle) the ghost ptls are sent to
-        m_n_send_ghosts_tot = gpu_exchange_ghosts_count_neighbors(
-            m_pdata->getN(),
-            d_ghost_plan.data,
-            d_adj_mask.data,
-            d_neigh_counts.data,
-            m_nneigh,
-            m_cached_alloc);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
-
-    // resize output buffers
-    m_ghost_tag.resize(m_n_send_ghosts_tot);
-
-    if (flags[comm_flag::position]) m_pos_ghost_sendbuf.resize(m_n_send_ghosts_tot);
-    if (flags[comm_flag::velocity]) m_vel_ghost_sendbuf.resize(m_n_send_ghosts_tot);
-    if (flags[comm_flag::charge]) m_charge_ghost_sendbuf.resize(m_n_send_ghosts_tot);
-    if (flags[comm_flag::diameter]) m_diameter_ghost_sendbuf.resize(m_n_send_ghosts_tot);
-    if (flags[comm_flag::orientation]) m_orientation_ghost_sendbuf.resize(m_n_send_ghosts_tot);
-
-        {
-        ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_adj_mask(m_adj_mask, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_neigh_counts(m_neigh_counts, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_neighbors(m_neighbors, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_unique_neighbors(m_unique_neighbors, access_location::device, access_mode::read);
-
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-
-        ArrayHandle<unsigned int> d_ghost_tag(m_ghost_tag, access_location::device, access_mode::overwrite);
-        ArrayHandle<unsigned int> d_ghost_begin(m_ghost_begin, access_location::device, access_mode::overwrite);
-        ArrayHandle<unsigned int> d_ghost_end(m_ghost_end, access_location::device, access_mode::overwrite);
-
-        //! Fill ghost send list and compute start and end indices per unique neighbor in list
-        gpu_exchange_ghosts_make_indices(
-            m_pdata->getN(),
-            d_ghost_plan.data,
-            d_tag.data,
-            d_adj_mask.data,
-            d_neighbors.data,
-            d_unique_neighbors.data,
-            d_neigh_counts.data,
-            d_ghost_tag.data,
-            d_ghost_begin.data,
-            d_ghost_end.data,
-            m_nneigh,
-            m_n_unique_neigh,
-            m_n_send_ghosts_tot,
-            m_cached_alloc);
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
-
-        {
-        // access particle data
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-
-        // access ghost send indices
-        ArrayHandle<unsigned int> d_ghost_tag(m_ghost_tag, access_location::device, access_mode::read);
-
-        // access output buffers
-        ArrayHandle<Scalar4> d_pos_ghost_sendbuf(m_pos_ghost_sendbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_vel_ghost_sendbuf(m_vel_ghost_sendbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_charge_ghost_sendbuf(m_charge_ghost_sendbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_diameter_ghost_sendbuf(m_diameter_ghost_sendbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf, access_location::device, access_mode::overwrite);
-
-        // Pack ghosts into send buffers
-        gpu_exchange_ghosts_pack(
-            m_n_send_ghosts_tot,
-            d_ghost_tag.data,
-            d_rtag.data,
-            d_pos.data,
-            d_vel.data,
-            d_charge.data,
-            d_diameter.data,
-            d_orientation.data,
-            d_pos_ghost_sendbuf.data,
-            d_vel_ghost_sendbuf.data,
-            d_charge_ghost_sendbuf.data,
-            d_diameter_ghost_sendbuf.data,
-            d_orientation_ghost_sendbuf.data,
-            flags[comm_flag::position],
-            flags[comm_flag::velocity],
-            flags[comm_flag::charge],
-            flags[comm_flag::diameter],
-            flags[comm_flag::orientation],
-            m_cached_alloc);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
-
-    /*
-     * Ghost particle communication
-     */
-    m_n_recv_ghosts_tot = 0;
-
-    unsigned int send_bytes = 0;
-    unsigned int recv_bytes = 0;
-
-        {
-        ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_ghost_end(m_ghost_end, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
-
-        if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
-
-        // compute send counts
-        for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
-            m_n_send_ghosts[ineigh] = h_ghost_end.data[ineigh] - h_ghost_begin.data[ineigh];
-
-        MPI_Request req[2*m_n_unique_neigh];
-        MPI_Status stat[2*m_n_unique_neigh];
-
-        // loop over neighbors
-        for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
             {
-            // rank of neighbor processor
-            unsigned int neighbor = h_unique_neighbors.data[ineigh];
+            // compute plans for all particles, including already received ghosts
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
 
-            MPI_Isend(&m_n_send_ghosts[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh]);
-            MPI_Irecv(&m_n_recv_ghosts[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh+1]);
+            gpu_make_ghost_exchange_plan(d_ghost_plan.data,
+                                         m_pdata->getN()+m_pdata->getNGhosts(),
+                                         d_pos.data,
+                                         m_pdata->getBox(),
+                                         ghost_fraction,
+                                         m_comm_mask[stage],
+                                         m_cached_alloc);
 
-            send_bytes += sizeof(unsigned int);
-            recv_bytes += sizeof(unsigned int);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
 
-        MPI_Waitall(2*m_n_unique_neigh, req, stat);
+        // get requested ghost fields
+        CommFlags flags = getFlags();
 
-        // total up receive counts
-        for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
+        // resize temporary number of neighbors array
+        m_neigh_counts.resize(m_pdata->getN()+m_pdata->getNGhosts());
+
             {
-            if (ineigh == 0)
-                m_ghost_offs[ineigh] = 0;
-            else
-                m_ghost_offs[ineigh] = m_ghost_offs[ineigh-1] + m_n_recv_ghosts[ineigh-1];
+            ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_adj_mask(m_adj_mask, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_neigh_counts(m_neigh_counts, access_location::device, access_mode::overwrite);
 
-            m_n_recv_ghosts_tot += m_n_recv_ghosts[ineigh];
+            // count number of neighbors (total and per particle) the ghost ptls are sent to
+            m_n_send_ghosts_tot[stage] =
+                gpu_exchange_ghosts_count_neighbors(
+                    m_pdata->getN()+m_pdata->getNGhosts(),
+                    d_ghost_plan.data,
+                    d_adj_mask.data,
+                    d_neigh_counts.data,
+                    m_nneigh,
+                    m_cached_alloc);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
-        if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
-        }
+        // compute offset into tag send buf
+        m_tag_offs[stage] = 0;
+        for (unsigned int i = 0; i < stage; ++i)
+            m_tag_offs[stage] +=  m_n_send_ghosts_tot[i];
 
-    // update number of ghost particles
-    m_pdata->addGhostParticles(m_n_recv_ghosts_tot);
+        // compute maximum send buf size
+        unsigned int n_max = 0;
+        for (unsigned int istage = 0; istage <= stage; ++istage)
+            if (m_n_send_ghosts_tot[istage] > n_max) n_max = m_n_send_ghosts_tot[istage];
 
-    if (flags[comm_flag::tag]) m_tag_ghost_recvbuf.resize(m_n_recv_ghosts_tot);
-    if (flags[comm_flag::position]) m_pos_ghost_recvbuf.resize(m_n_recv_ghosts_tot);
-    if (flags[comm_flag::velocity]) m_vel_ghost_recvbuf.resize(m_n_recv_ghosts_tot);
-    if (flags[comm_flag::charge]) m_charge_ghost_recvbuf.resize(m_n_recv_ghosts_tot);
-    if (flags[comm_flag::diameter]) m_diameter_ghost_recvbuf.resize(m_n_recv_ghosts_tot);
-    if (flags[comm_flag::orientation]) m_orientation_ghost_recvbuf.resize(m_n_recv_ghosts_tot);
+        // make room for send tags
+        m_ghost_tag.resize(m_tag_offs[stage] + m_n_send_ghosts_tot[stage]);
 
-        {
-        #ifdef ENABLE_MPI_CUDA
-        // recv buffers
-        ArrayHandle<unsigned int> tag_ghost_recvbuf_handle(m_tag_ghost_recvbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> charge_ghost_recvbuf_handle(m_charge_ghost_recvbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> diameter_ghost_recvbuf_handle(m_diameter_ghost_recvbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::device, access_mode::overwrite);
+        if (flags[comm_flag::position]) m_pos_ghost_sendbuf.resize(n_max);
+        if (flags[comm_flag::velocity]) m_vel_ghost_sendbuf.resize(n_max);
+        if (flags[comm_flag::charge]) m_charge_ghost_sendbuf.resize(n_max);
+        if (flags[comm_flag::diameter]) m_diameter_ghost_sendbuf.resize(n_max);
+        if (flags[comm_flag::orientation]) m_orientation_ghost_sendbuf.resize(n_max);
 
-        // send buffers
-        ArrayHandle<unsigned int> ghost_tag_handle(m_ghost_tag, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> diameter_ghost_sendbuf_handle(m_diameter_ghost_sendbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::device, access_mode::read);
-        #else
-        // recv buffers
-        ArrayHandle<unsigned int> tag_ghost_recvbuf_handle(m_tag_ghost_recvbuf, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> charge_ghost_recvbuf_handle(m_charge_ghost_recvbuf, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> diameter_ghost_recvbuf_handle(m_diameter_ghost_recvbuf, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::host, access_mode::overwrite);
-        // send buffers
-        ArrayHandle<unsigned int> ghost_tag_handle(m_ghost_tag, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> diameter_ghost_sendbuf_handle(m_diameter_ghost_sendbuf, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::host, access_mode::read);
-        #endif
-
-        ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_ghost_end(m_ghost_end, access_location::host, access_mode::read);
-
-        if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
-
-        std::vector<MPI_Request> reqs;
-        MPI_Request req;
-
-        // loop over neighbors
-        for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
             {
-            // rank of neighbor processor
-            unsigned int neighbor = h_unique_neighbors.data[ineigh];
+            ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_adj_mask(m_adj_mask, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_neigh_counts(m_neigh_counts, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_neighbors(m_neighbors, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_unique_neighbors(m_unique_neighbors, access_location::device, access_mode::read);
 
-            if (flags[comm_flag::tag])
+            ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+
+            ArrayHandle<unsigned int> d_ghost_tag(m_ghost_tag, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_ghost_begin(m_ghost_begin, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_ghost_end(m_ghost_end, access_location::device, access_mode::overwrite);
+
+            //! Fill ghost send list and compute start and end indices per unique neighbor in list
+            gpu_exchange_ghosts_make_indices(
+                m_pdata->getN() + m_pdata->getNGhosts(),
+                d_ghost_plan.data,
+                d_tag.data,
+                d_adj_mask.data,
+                d_neighbors.data,
+                d_unique_neighbors.data,
+                d_neigh_counts.data,
+                d_ghost_tag.data + m_tag_offs[stage],
+                d_ghost_begin.data + stage*m_n_unique_neigh,
+                d_ghost_end.data + stage*m_n_unique_neigh,
+                m_nneigh,
+                m_n_unique_neigh,
+                m_n_send_ghosts_tot[stage],
+                m_cached_alloc);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+            {
+            // access particle data
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+
+            // access ghost send indices
+            ArrayHandle<unsigned int> d_ghost_tag(m_ghost_tag, access_location::device, access_mode::read);
+
+            // access output buffers
+            ArrayHandle<Scalar4> d_pos_ghost_sendbuf(m_pos_ghost_sendbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_vel_ghost_sendbuf(m_vel_ghost_sendbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar> d_charge_ghost_sendbuf(m_charge_ghost_sendbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar> d_diameter_ghost_sendbuf(m_diameter_ghost_sendbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf, access_location::device, access_mode::overwrite);
+
+            // Pack ghosts into send buffers
+            gpu_exchange_ghosts_pack(
+                m_n_send_ghosts_tot[stage],
+                d_ghost_tag.data + m_tag_offs[stage],
+                d_rtag.data,
+                d_pos.data,
+                d_vel.data,
+                d_charge.data,
+                d_diameter.data,
+                d_orientation.data,
+                d_pos_ghost_sendbuf.data,
+                d_vel_ghost_sendbuf.data,
+                d_charge_ghost_sendbuf.data,
+                d_diameter_ghost_sendbuf.data,
+                d_orientation_ghost_sendbuf.data,
+                flags[comm_flag::position],
+                flags[comm_flag::velocity],
+                flags[comm_flag::charge],
+                flags[comm_flag::diameter],
+                flags[comm_flag::orientation],
+                m_cached_alloc);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+        /*
+         * Ghost particle communication
+         */
+        m_n_recv_ghosts_tot[stage] = 0;
+
+        unsigned int send_bytes = 0;
+        unsigned int recv_bytes = 0;
+
+            {
+            ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_ghost_end(m_ghost_end, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
+
+            if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
+
+            // compute send counts
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
+                m_n_send_ghosts[stage][ineigh] = h_ghost_end.data[ineigh+stage*m_n_unique_neigh]
+                    - h_ghost_begin.data[ineigh+stage*m_n_unique_neigh];
+
+            MPI_Request req[2*m_n_unique_neigh];
+            MPI_Status stat[2*m_n_unique_neigh];
+
+            // loop over neighbors
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 {
-                // when sending/receiving 0 ptls, the send/recv buffer may be uninitialized
-                if (m_n_send_ghosts[ineigh])
+                if (m_stages[ineigh] != stage)
                     {
-                    MPI_Isend(ghost_tag_handle.data+h_ghost_begin.data[ineigh],
-                        m_n_send_ghosts[ineigh]*sizeof(unsigned int),
-                        MPI_BYTE,
-                        neighbor,
-                        1,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
+                    // skip neighbor if not participating in this communication stage
+                    m_n_send_ghosts[stage][ineigh] = 0;
+                    m_n_recv_ghosts[stage][ineigh] = 0;
+                    continue;
                     }
-                send_bytes += m_n_send_ghosts[ineigh]*sizeof(unsigned int);
-                if (m_n_recv_ghosts[ineigh])
-                    {
-                    MPI_Irecv(tag_ghost_recvbuf_handle.data + m_ghost_offs[ineigh],
-                        m_n_recv_ghosts[ineigh]*sizeof(unsigned int),
-                        MPI_BYTE,
-                        neighbor,
-                        1,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                recv_bytes += m_n_recv_ghosts[ineigh]*sizeof(unsigned int);
+
+               // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
+
+                MPI_Isend(&m_n_send_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh]);
+                MPI_Irecv(&m_n_recv_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh+1]);
+
+                send_bytes += sizeof(unsigned int);
+                recv_bytes += sizeof(unsigned int);
                 }
 
-            if (flags[comm_flag::position])
+            MPI_Waitall(2*m_n_unique_neigh, req, stat);
+
+            // total up receive counts
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 {
-                MPI_Request req;
-                if (m_n_send_ghosts[ineigh])
-                    {
-                    MPI_Isend(pos_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh],
-                        m_n_send_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        2,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                send_bytes += m_n_send_ghosts[ineigh]*sizeof(Scalar4);
-                if (m_n_recv_ghosts[ineigh])
-                    {
-                    MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[ineigh],
-                        m_n_recv_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        2,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                recv_bytes += m_n_recv_ghosts[ineigh]*sizeof(unsigned int);
+                if (ineigh == 0)
+                    m_ghost_offs[stage][ineigh] = 0;
+                else
+                    m_ghost_offs[stage][ineigh] = m_ghost_offs[stage][ineigh-1] + m_n_recv_ghosts[stage][ineigh-1];
+
+                m_n_recv_ghosts_tot[stage] += m_n_recv_ghosts[stage][ineigh];
                 }
 
-            if (flags[comm_flag::velocity])
+            if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
+            }
+
+        n_max = 0;
+        // compute maximum number of received ghosts
+        for (unsigned int istage = 0; istage <= stage; ++istage)
+            if (m_n_recv_ghosts_tot[istage] > n_max) n_max = m_n_recv_ghosts_tot[istage];
+
+        m_tag_ghost_recvbuf.resize(n_max);
+        if (flags[comm_flag::position]) m_pos_ghost_recvbuf.resize(n_max);
+        if (flags[comm_flag::velocity]) m_vel_ghost_recvbuf.resize(n_max);
+        if (flags[comm_flag::charge]) m_charge_ghost_recvbuf.resize(n_max);
+        if (flags[comm_flag::diameter]) m_diameter_ghost_recvbuf.resize(n_max);
+        if (flags[comm_flag::orientation]) m_orientation_ghost_recvbuf.resize(n_max);
+
+            {
+            #ifdef ENABLE_MPI_CUDA
+            // recv buffers
+            ArrayHandle<unsigned int> tag_ghost_recvbuf_handle(m_tag_ghost_recvbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar> charge_ghost_recvbuf_handle(m_charge_ghost_recvbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar> diameter_ghost_recvbuf_handle(m_diameter_ghost_recvbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::device, access_mode::overwrite);
+
+            // send buffers
+            ArrayHandle<unsigned int> ghost_tag_handle(m_ghost_tag, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> diameter_ghost_sendbuf_handle(m_diameter_ghost_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::device, access_mode::read);
+            #else
+            // recv buffers
+            ArrayHandle<unsigned int> tag_ghost_recvbuf_handle(m_tag_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar> charge_ghost_recvbuf_handle(m_charge_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar> diameter_ghost_recvbuf_handle(m_diameter_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            // send buffers
+            ArrayHandle<unsigned int> ghost_tag_handle(m_ghost_tag, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> diameter_ghost_sendbuf_handle(m_diameter_ghost_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::host, access_mode::read);
+            #endif
+
+            ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_ghost_end(m_ghost_end, access_location::host, access_mode::read);
+
+            if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
+
+            std::vector<MPI_Request> reqs;
+            MPI_Request req;
+
+            // loop over neighbors
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 {
-                if (m_n_send_ghosts[ineigh])
-                    {
-                    MPI_Isend(vel_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh],
-                        m_n_send_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        3,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                send_bytes += m_n_send_ghosts[ineigh]*sizeof(Scalar4);
-                if (m_n_recv_ghosts[ineigh])
-                    {
-                    MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[ineigh],
-                        m_n_recv_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        3,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                recv_bytes += m_n_recv_ghosts[ineigh]*sizeof(Scalar4);
-                }
+                // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
 
-            if (flags[comm_flag::charge])
-                {
-                if (m_n_send_ghosts[ineigh])
                     {
-                    MPI_Isend(charge_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh],
-                        m_n_send_ghosts[ineigh]*sizeof(Scalar),
-                        MPI_BYTE,
-                        neighbor,
-                        4,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
+                    // when sending/receiving 0 ptls, the send/recv buffer may be uninitialized
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(ghost_tag_handle.data+h_ghost_begin.data[ineigh+stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int),
+                            MPI_BYTE,
+                            neighbor,
+                            1,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int);
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(tag_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int),
+                            MPI_BYTE,
+                            neighbor,
+                            1,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int);
                     }
-                send_bytes += m_n_send_ghosts[ineigh]*sizeof(Scalar);
-                if (m_n_recv_ghosts[ineigh])
-                    {
-                    MPI_Irecv(charge_ghost_recvbuf_handle.data + m_ghost_offs[ineigh],
-                        m_n_recv_ghosts[ineigh]*sizeof(Scalar),
-                        MPI_BYTE,
-                        neighbor,
-                        4,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                recv_bytes += m_n_recv_ghosts[ineigh]*sizeof(Scalar);
-                }
 
-            if (flags[comm_flag::diameter])
-                {
-                if (m_n_send_ghosts[ineigh])
+                if (flags[comm_flag::position])
                     {
-                    MPI_Isend(diameter_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh],
-                        m_n_send_ghosts[ineigh]*sizeof(Scalar),
-                        MPI_BYTE,
-                        neighbor,
-                        5,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
+                    MPI_Request req;
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(pos_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            2,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            2,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int);
                     }
-                send_bytes += m_n_send_ghosts[ineigh]*sizeof(Scalar);
-                if (m_n_recv_ghosts[ineigh])
+
+                if (flags[comm_flag::velocity])
                     {
-                    MPI_Irecv(diameter_ghost_recvbuf_handle.data + m_ghost_offs[ineigh],
-                        m_n_recv_ghosts[ineigh]*sizeof(Scalar),
-                        MPI_BYTE,
-                        neighbor,
-                        5,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(vel_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            3,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            3,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
                     }
-                recv_bytes += m_n_recv_ghosts[ineigh]*sizeof(Scalar);
-                }
 
-            if (flags[comm_flag::orientation])
-                {
-                if (m_n_send_ghosts[ineigh])
+                if (flags[comm_flag::charge])
                     {
-                    MPI_Isend(orientation_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh],
-                        m_n_send_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        6,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(charge_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar),
+                            MPI_BYTE,
+                            neighbor,
+                            4,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar);
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(charge_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
+                            MPI_BYTE,
+                            neighbor,
+                            4,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar);
                     }
-                send_bytes += m_n_send_ghosts[ineigh]*sizeof(Scalar4);
-                if (m_n_recv_ghosts[ineigh])
+
+                if (flags[comm_flag::diameter])
                     {
-                    MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[ineigh],
-                        m_n_recv_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        6,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(diameter_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar),
+                            MPI_BYTE,
+                            neighbor,
+                            5,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar);
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(diameter_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
+                            MPI_BYTE,
+                            neighbor,
+                            5,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar);
                     }
-                recv_bytes += m_n_recv_ghosts[ineigh]*sizeof(Scalar4);
-                }
-            } // end neighbor loop
 
-        std::vector<MPI_Status> stats(reqs.size());
-        MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+                if (flags[comm_flag::orientation])
+                    {
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(orientation_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            6,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            6,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    }
+                } // end neighbor loop
 
-        if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
-        } // end ArrayHandle scope
+            std::vector<MPI_Status> stats(reqs.size());
+            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
 
-        {
-        // access receive buffers
-        ArrayHandle<unsigned int> d_tag_ghost_recvbuf(m_tag_ghost_recvbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_vel_ghost_recvbuf(m_vel_ghost_recvbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> d_charge_ghost_recvbuf(m_charge_ghost_recvbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> d_diameter_ghost_recvbuf(m_diameter_ghost_recvbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_orientation_ghost_recvbuf(m_orientation_ghost_recvbuf, access_location::device, access_mode::read);
-        // access particle data
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+            if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
+            } // end ArrayHandle scope
 
         // first ghost ptl index
-        unsigned int first_idx = m_pdata->getN();
+        unsigned int first_idx = m_pdata->getN()+m_pdata->getNGhosts();
 
-        // copy recv buf into particle data
-        gpu_exchange_ghosts_copy_buf(
-            m_n_recv_ghosts_tot,
-            d_tag_ghost_recvbuf.data,
-            d_pos_ghost_recvbuf.data,
-            d_vel_ghost_recvbuf.data,
-            d_charge_ghost_recvbuf.data,
-            d_diameter_ghost_recvbuf.data,
-            d_orientation_ghost_recvbuf.data,
-            d_tag.data + first_idx,
-            d_pos.data + first_idx,
-            d_vel.data + first_idx,
-            d_charge.data + first_idx,
-            d_diameter.data + first_idx,
-            d_orientation.data + first_idx,
-            flags[comm_flag::tag],
-            flags[comm_flag::position],
-            flags[comm_flag::velocity],
-            flags[comm_flag::charge],
-            flags[comm_flag::diameter],
-            flags[comm_flag::orientation],
-            m_cached_alloc);
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
+        // update number of ghost particles
+        m_pdata->addGhostParticles(m_n_recv_ghosts_tot[stage]);
 
-    if (flags[comm_flag::position])
-        {
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+            {
+            // access receive buffers
+            ArrayHandle<unsigned int> d_tag_ghost_recvbuf(m_tag_ghost_recvbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_vel_ghost_recvbuf(m_vel_ghost_recvbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_charge_ghost_recvbuf(m_charge_ghost_recvbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_diameter_ghost_recvbuf(m_diameter_ghost_recvbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_orientation_ghost_recvbuf(m_orientation_ghost_recvbuf, access_location::device, access_mode::read);
+            // access particle data
+            ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
 
-        // shifted global box
-        const BoxDim& shifted_box = getShiftedBox();
+            // copy recv buf into particle data
+            gpu_exchange_ghosts_copy_buf(
+                m_n_recv_ghosts_tot[stage],
+                d_tag_ghost_recvbuf.data,
+                d_pos_ghost_recvbuf.data,
+                d_vel_ghost_recvbuf.data,
+                d_charge_ghost_recvbuf.data,
+                d_diameter_ghost_recvbuf.data,
+                d_orientation_ghost_recvbuf.data,
+                d_tag.data + first_idx,
+                d_pos.data + first_idx,
+                d_vel.data + first_idx,
+                d_charge.data + first_idx,
+                d_diameter.data + first_idx,
+                d_orientation.data + first_idx,
+                true,
+                flags[comm_flag::position],
+                flags[comm_flag::velocity],
+                flags[comm_flag::charge],
+                flags[comm_flag::diameter],
+                flags[comm_flag::orientation],
+                m_cached_alloc);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
 
-        // wrap received ghosts
-        gpu_wrap_ghosts(m_n_recv_ghosts_tot,
-            d_pos.data+m_pdata->getN(),
-            shifted_box);
+        if (flags[comm_flag::position])
+            {
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
+            // shifted global box
+            const BoxDim& shifted_box = getShiftedBox();
 
-    if (flags[comm_flag::tag])
-        {
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+            // wrap received ghosts
+            gpu_wrap_ghosts(m_n_recv_ghosts_tot[stage],
+                d_pos.data+first_idx,
+                shifted_box);
 
-        // update reverse-lookup table
-        gpu_compute_ghost_rtags(m_pdata->getN(),
-            m_n_recv_ghosts_tot,
-            d_tag.data + m_pdata->getN(),
-            d_rtag.data);
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+            {
+            ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+
+            // update reverse-lookup table
+            gpu_compute_ghost_rtags(first_idx,
+                m_n_recv_ghosts_tot[stage],
+                d_tag.data + first_idx,
+                d_rtag.data);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+        } // end main communication loop
 
     if (m_prof) m_prof->pop(m_exec_conf);
 
@@ -1306,239 +1376,247 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
     CommFlags flags = getFlags();
 
+    // main communication loop
+    for (unsigned int stage = 0; stage < m_num_stages; ++stage)
         {
-        // access particle data
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-
-        // access ghost send indices
-        ArrayHandle<unsigned int> d_ghost_tag(m_ghost_tag, access_location::device, access_mode::read);
-
-        // access output buffers
-        ArrayHandle<Scalar4> d_pos_ghost_sendbuf(m_pos_ghost_sendbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_vel_ghost_sendbuf(m_vel_ghost_sendbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf, access_location::device, access_mode::overwrite);
-
-        // Pack ghosts into send buffers
-        gpu_exchange_ghosts_pack(
-            m_n_send_ghosts_tot,
-            d_ghost_tag.data,
-            d_rtag.data,
-            d_pos.data,
-            d_vel.data,
-            NULL,
-            NULL,
-            d_orientation.data,
-            d_pos_ghost_sendbuf.data,
-            d_vel_ghost_sendbuf.data,
-            NULL,
-            NULL,
-            d_orientation_ghost_sendbuf.data,
-            flags[comm_flag::position],
-            flags[comm_flag::velocity],
-            false,
-            false,
-            flags[comm_flag::orientation],
-            m_cached_alloc);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
-
-    /*
-     * Ghost particle communication
-     */
-
-        {
-        // access particle data
-        #ifdef ENABLE_MPI_CUDA
-        // recv buffers
-        ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::device, access_mode::overwrite);
-
-        // send buffers
-        ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::device, access_mode::read);
-        #else
-        // recv buffers
-        ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::host, access_mode::overwrite);
-
-        // send buffers
-        ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::host, access_mode::read);
-
-        #endif
-        ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
-
-        // access send buffers
-        if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
-
-        std::vector<MPI_Request> reqs;
-        MPI_Request req;
-
-        unsigned int send_bytes = 0;
-        unsigned int recv_bytes = 0;
-
-        // loop over neighbors
-        for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
             {
-            // rank of neighbor processor
-            unsigned int neighbor = h_unique_neighbors.data[ineigh];
+            // access particle data
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
 
-            if (flags[comm_flag::position])
+            // access ghost send indices
+            ArrayHandle<unsigned int> d_ghost_tag(m_ghost_tag, access_location::device, access_mode::read);
+
+            // access output buffers
+            ArrayHandle<Scalar4> d_pos_ghost_sendbuf(m_pos_ghost_sendbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_vel_ghost_sendbuf(m_vel_ghost_sendbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf, access_location::device, access_mode::overwrite);
+
+            // Pack ghosts into send buffers
+            gpu_exchange_ghosts_pack(
+                m_n_send_ghosts_tot[stage],
+                d_ghost_tag.data + m_tag_offs[stage],
+                d_rtag.data,
+                d_pos.data,
+                d_vel.data,
+                NULL,
+                NULL,
+                d_orientation.data,
+                d_pos_ghost_sendbuf.data,
+                d_vel_ghost_sendbuf.data,
+                NULL,
+                NULL,
+                d_orientation_ghost_sendbuf.data,
+                flags[comm_flag::position],
+                flags[comm_flag::velocity],
+                false,
+                false,
+                flags[comm_flag::orientation],
+                m_cached_alloc);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+        /*
+         * Ghost particle communication
+         */
+
+            {
+            // access particle data
+            #ifdef ENABLE_MPI_CUDA
+            // recv buffers
+            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::device, access_mode::overwrite);
+            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::device, access_mode::overwrite);
+
+            // send buffers
+            ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::device, access_mode::read);
+            #else
+            // recv buffers
+            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::host, access_mode::overwrite);
+
+            // send buffers
+            ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::host, access_mode::read);
+
+            #endif
+            ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
+
+            // access send buffers
+            if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
+
+            std::vector<MPI_Request> reqs;
+            MPI_Request req;
+
+            unsigned int send_bytes = 0;
+            unsigned int recv_bytes = 0;
+
+            // loop over neighbors
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 {
-                // when sending/receiving 0 ptls, the send/recv buffer may be uninitialized
-                if (m_n_send_ghosts[ineigh])
+                // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
+
+                if (flags[comm_flag::position])
                     {
-                    MPI_Isend(pos_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh],
-                        m_n_send_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        2,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                send_bytes += m_n_send_ghosts[ineigh]*sizeof(Scalar4);
+                    // when sending/receiving 0 ptls, the send/recv buffer may be uninitialized
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(pos_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            2,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
 
-                if (m_n_recv_ghosts[ineigh])
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            2,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    }
+
+                if (flags[comm_flag::velocity])
                     {
-                    MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[ineigh],
-                        m_n_recv_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        2,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                recv_bytes += m_n_recv_ghosts[ineigh]*sizeof(Scalar4);
-                }
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(vel_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            3,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
 
-            if (flags[comm_flag::velocity])
-                {
-                if (m_n_send_ghosts[ineigh])
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            3,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    }
+
+                if (flags[comm_flag::orientation])
                     {
-                    MPI_Isend(vel_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh],
-                        m_n_send_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        3,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(orientation_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
+                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            6,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            MPI_BYTE,
+                            neighbor,
+                            6,
+                            m_mpi_comm,
+                            &req);
+                        reqs.push_back(req);
+                        }
+                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
                     }
-                send_bytes += m_n_send_ghosts[ineigh]*sizeof(Scalar4);
+                } // end neighbor loop
 
-                if (m_n_recv_ghosts[ineigh])
-                    {
-                    MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[ineigh],
-                        m_n_recv_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        3,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                recv_bytes += m_n_recv_ghosts[ineigh]*sizeof(Scalar4);
-                }
+            std::vector<MPI_Status> stats(reqs.size());
+            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
 
-            if (flags[comm_flag::orientation])
-                {
-                if (m_n_send_ghosts[ineigh])
-                    {
-                    MPI_Isend(orientation_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh],
-                        m_n_send_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        6,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                send_bytes += m_n_send_ghosts[ineigh]*sizeof(Scalar4);
+            if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
+            } // end ArrayHandle scope
 
-                if (m_n_recv_ghosts[ineigh])
-                    {
-                    MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[ineigh],
-                        m_n_recv_ghosts[ineigh]*sizeof(Scalar4),
-                        MPI_BYTE,
-                        neighbor,
-                        6,
-                        m_mpi_comm,
-                        &req);
-                    reqs.push_back(req);
-                    }
-                recv_bytes += m_n_recv_ghosts[ineigh]*sizeof(Scalar4);
-                }
-            } // end neighbor loop
+            // first ghost ptl index
+            unsigned int first_idx = m_pdata->getN();
 
-        std::vector<MPI_Status> stats(reqs.size());
-        MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+            // total up ghosts received thus far
+            for (unsigned int istage = 0; istage < stage; ++istage)
+                first_idx += m_n_recv_ghosts_tot[istage];
 
-        if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
-        } // end ArrayHandle scope
+            {
+            // access receive buffers
+            ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_vel_ghost_recvbuf(m_vel_ghost_recvbuf, access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_orientation_ghost_recvbuf(m_orientation_ghost_recvbuf, access_location::device, access_mode::read);
+            // access particle data
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
 
-        {
-        // access receive buffers
-        ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_vel_ghost_recvbuf(m_vel_ghost_recvbuf, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_orientation_ghost_recvbuf(m_orientation_ghost_recvbuf, access_location::device, access_mode::read);
-        // access particle data
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+            // copy recv buf into particle data
+            gpu_exchange_ghosts_copy_buf(
+                m_n_recv_ghosts_tot[stage],
+                NULL,
+                d_pos_ghost_recvbuf.data,
+                d_vel_ghost_recvbuf.data,
+                NULL,
+                NULL,
+                d_orientation_ghost_recvbuf.data,
+                NULL,
+                d_pos.data + first_idx,
+                d_vel.data + first_idx,
+                NULL,
+                NULL,
+                d_orientation.data + first_idx,
+                false,
+                flags[comm_flag::position],
+                flags[comm_flag::velocity],
+                false,
+                false,
+                flags[comm_flag::orientation],
+                m_cached_alloc);
 
-        // first ghost ptl index
-        unsigned int first_idx = m_pdata->getN();
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
 
-        // copy recv buf into particle data
-        gpu_exchange_ghosts_copy_buf(
-            m_n_recv_ghosts_tot,
-            NULL,
-            d_pos_ghost_recvbuf.data,
-            d_vel_ghost_recvbuf.data,
-            NULL,
-            NULL,
-            d_orientation_ghost_recvbuf.data,
-            NULL,
-            d_pos.data + first_idx,
-            d_vel.data + first_idx,
-            NULL,
-            NULL,
-            d_orientation.data + first_idx,
-            false,
-            flags[comm_flag::position],
-            flags[comm_flag::velocity],
-            false,
-            false,
-            flags[comm_flag::orientation],
-            m_cached_alloc);
+        if (flags[comm_flag::position])
+            {
+            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
+            // shifted global box
+            const BoxDim& shifted_box = getShiftedBox();
 
-    if (flags[comm_flag::position])
-        {
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-
-        // shifted global box
-        const BoxDim& shifted_box = getShiftedBox();
-
-        // wrap received ghosts
-        gpu_wrap_ghosts(m_n_recv_ghosts_tot,
-            d_pos.data+m_pdata->getN(),
-            shifted_box);
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
+            // wrap received ghosts
+            gpu_wrap_ghosts(m_n_recv_ghosts_tot[stage],
+                d_pos.data+first_idx,
+                shifted_box);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+        } // end main communication loop
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
