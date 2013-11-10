@@ -60,8 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #ifdef ENABLE_CUDA
 
-// in 3d, there are 26 neighbors max.
-#define NEIGH_MAX 26
+// in 3d, there are 27 neighbors max.
+#define NEIGH_MAX 27
 
 #include "Communicator.h"
 
@@ -141,25 +141,29 @@ class CommunicatorGPU : public Communicator
         void checkValid(unsigned int timestep);
 
     private:
-        /* Particle migration */
-        GPUVector<pdata_element> m_gpu_sendbuf;        //!< Send buffer for particle data
-        GPUVector<pdata_element> m_gpu_recvbuf;        //!< Receive buffer for particle data
-
-        GPUVector<unsigned int> m_send_keys;           //!< Destination rank for particles
+        /* General communication */
         GPUArray<unsigned int> m_begin;                //!< Begin index for every neighbor in send buf
         GPUArray<unsigned int> m_end;                  //!< End index for every neighbor in send buf
+        GPUArray<unsigned int> m_adj_mask;             //!< Adjacency mask for every neighbor
         GPUArray<unsigned int> m_neighbors;            //!< Neighbor ranks
         GPUArray<unsigned int> m_unique_neighbors;     //!< Neighbor ranks w/duplicates removed
         unsigned int m_nneigh;                         //!< Number of neighbors
         unsigned int m_n_unique_neigh;                 //!< Number of unique neighbors
 
+        unsigned int m_max_stages;                     //!< Maximum number of (dependent) communication stages
+        unsigned int m_num_stages;                     //!< Number of stages
+        std::vector<unsigned int> m_comm_mask;         //!< Communication mask per stage
+
+        /* Particle migration */
+        GPUVector<pdata_element> m_gpu_sendbuf;        //!< Send buffer for particle data
+        GPUVector<pdata_element> m_gpu_recvbuf;        //!< Receive buffer for particle data
+
+        GPUVector<unsigned int> m_send_keys;           //!< Destination rank for particles
         GPUVector<bond_element> m_gpu_bond_sendbuf;    //!< Buffer for bonds that are sent
         GPUVector<bond_element> m_gpu_bond_recvbuf;    //!< Buffer for bonds that are received
 
         /* Ghost communication */
-
         GPUVector<unsigned int> m_tag_ghost_recvbuf;    //!< Buffer for recveiving particle tags
-
         GPUVector<Scalar4> m_pos_ghost_sendbuf;        //<! Buffer for sending ghost positions
         GPUVector<Scalar4> m_pos_ghost_recvbuf;        //<! Buffer for receiving ghost positions
 
@@ -178,7 +182,6 @@ class CommunicatorGPU : public Communicator
         GPUArray<unsigned int> m_ghost_begin;          //!< Begin index for every plan in send buf
         GPUArray<unsigned int> m_ghost_end;            //!< Begin index for every plan in send buf
 
-        GPUArray<unsigned int> m_adj_mask;             //!< Adjacency mask for every neighbor
         GPUVector<unsigned int> m_ghost_plan;         //!< Plans for every particle
         GPUVector<unsigned int> m_ghost_tag;          //!< Ghost particles tags, ordered by neighbor
         GPUVector<unsigned int> m_neigh_counts;       //!< List of number of neighbors to send ghost to
@@ -198,6 +201,8 @@ class CommunicatorGPU : public Communicator
         //! Helper function to initialize neighbor arrays
         void initializeNeighborArrays();
 
+        //! Helper function to set up communication stages
+        void initializeCommunicationStages();
     };
 
 //! Export CommunicatorGPU class to python

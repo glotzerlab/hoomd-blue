@@ -195,7 +195,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (exec_conf->getComputeCapability() >= 200)
         {
-        #if 0
+        #if 1
         gpu_compute_nlist_binned(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,

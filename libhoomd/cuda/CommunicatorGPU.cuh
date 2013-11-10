@@ -148,11 +148,12 @@ void gpu_send_bonds(const unsigned int n_bonds,
                     unsigned int *d_condition);
 
 //! Mark particles that have left the local box for sending
-void gpu_stage_particles(const unsigned int N,
+void gpu_stage_particles(const unsigned int n,
                          const Scalar4 *d_pos,
                          const unsigned int *d_tag,
                          unsigned int *d_rtag,
                          const BoxDim& box,
+                         const unsigned int comm_mask,
                          cached_allocator& alloc);
 
 /*! \param nsend Number of particles in buffer

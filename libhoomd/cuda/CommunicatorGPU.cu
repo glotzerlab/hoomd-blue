@@ -152,13 +152,14 @@ void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
 //! Select a particle for migration
 struct select_particle_migrate_gpu : public thrust::unary_function<const Scalar4, bool>
     {
-    const BoxDim box;       //!< Local simulation box dimensions
+    const BoxDim box;          //!< Local simulation box dimensions
+    unsigned int comm_mask;    //!< Allowed communication directions
 
     //! Constructor
     /*!
      */
-    select_particle_migrate_gpu(const BoxDim & _box)
-        : box(_box)
+    select_particle_migrate_gpu(const BoxDim & _box, unsigned int _comm_mask)
+        : box(_box), comm_mask(_comm_mask)
         { }
 
     //! Select a particle
@@ -170,13 +171,18 @@ struct select_particle_migrate_gpu : public thrust::unary_function<const Scalar4
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
         Scalar3 f = box.makeFraction(pos);
 
-        // return true if the particle stays leaves the box
-        return (f.x >= Scalar(1.0) ||   // send east
-                f.x < Scalar(0.0)  ||   // send west
-                f.y >= Scalar(1.0) ||  // send north
-                f.y < Scalar(0.0)  ||  // send south
-                f.z >= Scalar(1.0) ||     // send up
-                f.z < Scalar(0.0));    // send down
+        unsigned int flags = 0;
+        if (f.x >= Scalar(1.0)) flags |= send_west;
+        if (f.x < Scalar(0.0)) flags |= send_east;
+        if (f.y >= Scalar(1.0)) flags |= send_north;
+        if (f.y < Scalar(0.0)) flags |= send_south;
+        if (f.z >= Scalar(1.0)) flags |= send_up;
+        if (f.z < Scalar(0.0)) flags |= send_down;
+
+        // filter allowed directions
+        flags &= comm_mask;
+
+        return flags > 0;
         }
 
      };
@@ -187,12 +193,13 @@ struct get_migrate_key_gpu : public thrust::unary_function<const pdata_element, 
     const BoxDim box;       //!< Local simulation box dimensions
     const uint3 my_pos;     //!< My domain decomposition position
     const Index3D di;             //!< Domain indexer
+    const unsigned int mask; //!< Mask of allowed directions
 
     //! Constructor
     /*!
      */
-    get_migrate_key_gpu(const BoxDim & _box, const uint3 _my_pos, const Index3D _di)
-        : box(_box), my_pos(_my_pos), di(_di)
+    get_migrate_key_gpu(const BoxDim & _box, const uint3 _my_pos, const Index3D _di, const unsigned int _mask)
+        : box(_box), my_pos(_my_pos), di(_di), mask(_mask)
         { }
 
     //! Generate key for a sent particle
@@ -206,20 +213,21 @@ struct get_migrate_key_gpu : public thrust::unary_function<const pdata_element, 
         ix = iy = iz = 0;
 
         // we allow for a tolerance, large enough so we don't loose particles
+        // due to numerical precision
         const Scalar tol(1e-5);
-        if (f.x >= Scalar(1.0)-tol)
+        if (f.x >= Scalar(1.0)-tol && (mask & send_east))
             ix = 1;
-        else if (f.x < tol)
+        else if (f.x < tol && (mask & send_west))
             ix = -1;
 
-        if (f.y >= Scalar(1.0)-tol)
+        if (f.y >= Scalar(1.0)-tol && (mask & send_north))
             iy = 1;
-        else if (f.y < tol)
+        else if (f.y < tol && (mask & send_south))
             iy = -1;
 
-        if (f.z >= Scalar(1.0)-tol)
+        if (f.z >= Scalar(1.0)-tol && (mask & send_up))
             iz = 1;
-        else if (f.z < tol)
+        else if (f.z < tol && (mask & send_down))
             iz = -1;
 
         int i = my_pos.x;
@@ -255,12 +263,15 @@ struct get_migrate_key_gpu : public thrust::unary_function<const pdata_element, 
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
     \param box Local box
+    \param comm_mask Mask of allowed communication directions
+    \param alloc Caching allocator
  */
 void gpu_stage_particles(const unsigned int N,
                          const Scalar4 *d_pos,
                          const unsigned int *d_tag,
                          unsigned int *d_rtag,
                          const BoxDim& box,
+                         const unsigned int comm_mask,
                          cached_allocator& alloc)
     {
     // Wrap particle data arrays
@@ -276,7 +287,9 @@ void gpu_stage_particles(const unsigned int N,
 
     // set flag for particles that are to be sent
     thrust::replace_if(thrust::cuda::par(alloc),
-        rtag_prm, rtag_prm + N, pos_ptr, select_particle_migrate_gpu(box), NOT_LOCAL);
+        rtag_prm, rtag_prm + N, pos_ptr,
+        select_particle_migrate_gpu(box,comm_mask),
+        NOT_LOCAL);
     }
 
 /*! \param nsend Number of particles in buffer
@@ -287,6 +300,7 @@ void gpu_stage_particles(const unsigned int N,
     \param d_begin Output array (start indices per key in send buf)
     \param d_end Output array (end indices per key in send buf)
     \param d_neighbors List of neighbor ranks
+    \param mask Mask of communicating directions
     \param alloc Caching allocator
  */
 void gpu_sort_migrating_particles(const unsigned int nsend,
@@ -299,6 +313,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    unsigned int *d_end,
                    const unsigned int *d_neighbors,
                    const unsigned int nneigh,
+                   const unsigned int mask,
                    cached_allocator& alloc)
     {
     // Wrap input & output
@@ -309,7 +324,8 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
     thrust::device_ptr<const unsigned int> neighbors_ptr(d_neighbors);
 
     // generate keys
-    thrust::transform(thrust::cuda::par(alloc), in_ptr, in_ptr + nsend, keys_ptr, get_migrate_key_gpu(box, my_pos, di));
+    thrust::transform(thrust::cuda::par(alloc), in_ptr, in_ptr + nsend, keys_ptr,
+        get_migrate_key_gpu(box, my_pos, di,mask));
 
     // sort
     thrust::sort_by_key(thrust::cuda::par(alloc), keys_ptr, keys_ptr + nsend, in_ptr);
