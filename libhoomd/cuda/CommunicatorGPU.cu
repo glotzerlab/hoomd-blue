@@ -675,6 +675,20 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
     return thrust::reduce(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N);
     }
 
+//! Unary function to select one of two spatial directions (positive or negative)
+struct gpu_select_direction : thrust::unary_function<unsigned int, bool>
+    {
+    unsigned int dir;
+
+    gpu_select_direction(unsigned int _dir)
+        : dir(_dir) {}
+
+    __device__ bool operator() (unsigned int plan)
+        {
+        return plan & (dir ? (send_east | send_north | send_up) : (send_west | send_south | send_down));
+        }
+    };
+
 void gpu_exchange_ghosts_make_indices(
     unsigned int N,
     const unsigned int *d_ghost_plan,
@@ -769,6 +783,15 @@ void gpu_exchange_ghosts_make_indices(
         alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
         alloc.deallocate((char *)thrust::raw_pointer_cast(out_idx_ptr),0);
         alloc.deallocate((char *)thrust::raw_pointer_cast(n_ptr),0);
+
+        /*
+         * sort by neighbor and compute start and end indices
+         */
+        thrust::sort_by_key(thrust::cuda::par(alloc),
+            out_neighbor_ptr,
+            out_neighbor_ptr + n_out,
+            ghost_tag_ptr);
+
         }
     else
         {
@@ -787,15 +810,14 @@ void gpu_exchange_ghosts_make_indices(
             thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr + n_out, const_it + n_out)),
             out_neighbor_ptr,
             get_neighbor_rank_n(adj_ptr, neighbors_ptr, nneigh));
-        }
 
-    /*
-     * sort by neighbor and compute start and end indices
-     */
-    thrust::sort_by_key(thrust::cuda::par(alloc),
-        out_neighbor_ptr,
-        out_neighbor_ptr + n_out,
-        ghost_tag_ptr);
+        // there are two different directions max., partitioning (rather than sorting) may be faster
+        thrust::stable_partition(thrust::cuda::par(alloc),
+            thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr, out_neighbor_ptr)),
+            thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr+n_out, out_neighbor_ptr+n_out)),
+            ghost_plan_ptr,
+            gpu_select_direction(0));
+        }
 
     thrust::lower_bound(thrust::cuda::par(alloc),
         out_neighbor_ptr,

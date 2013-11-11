@@ -74,7 +74,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : Communicator(sysdef, decomposition),
       m_nneigh(0),
       m_n_unique_neigh(0),
-      m_max_stages(1),
+      m_max_stages(3),
       m_num_stages(0),
       m_comm_mask(0)
     {
