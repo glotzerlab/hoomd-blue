@@ -228,6 +228,7 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int nneigh,
     unsigned int n_unique_neigh,
     unsigned int n_out,
+    unsigned int mask,
     cached_allocator& alloc);
 
 //! Pack ghosts in output buffers

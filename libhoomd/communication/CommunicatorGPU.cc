@@ -74,7 +74,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : Communicator(sysdef, decomposition),
       m_nneigh(0),
       m_n_unique_neigh(0),
-      m_max_stages(3),
+      m_max_stages(1),
       m_num_stages(0),
       m_comm_mask(0)
     {
@@ -369,13 +369,15 @@ void CommunicatorGPU::initializeCommunicationStages()
     for (unsigned int i= 0; i < m_n_unique_neigh; i++)
         for (unsigned int istage = 0; istage < m_num_stages; ++istage)
             // compare adjacency masks of (non-unique) neighbors to mask for this stage
-            for (unsigned int j = 0; j < m_n_neigh; ++j)
+            for (unsigned int j = 0; j < m_nneigh; ++j)
                 if (h_unique_neighbors.data[i] == h_neighbors.data[j]
                     && (h_adj_mask.data[j] &m_comm_mask[istage]) == h_adj_mask.data[j])
                     {
                     m_stages[i] = istage;
                     break; // associate neighbor with stage of lowest index
                     }
+
+    m_exec_conf->msg->notice(5) << "ComunicatorGPU: " << m_num_stages << " communication stages." << std::endl;
     }
 
 //! Select a particle for migration
@@ -581,10 +583,12 @@ void CommunicatorGPU::migrateParticles()
             MPI_Request req[2*m_n_unique_neigh];
             MPI_Status stat[2*m_n_unique_neigh];
 
+            unsigned int nreq = 0;
+
             // loop over neighbors
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 {
-                if (m_stages[ineigh] != stage)
+                if (m_stages[ineigh] != (int) stage)
                     {
                     // skip neighbor if not participating in this communication stage
                     n_send_ptls[ineigh] = 0;
@@ -595,13 +599,13 @@ void CommunicatorGPU::migrateParticles()
                 // rank of neighbor processor
                 unsigned int neighbor = h_unique_neighbors.data[ineigh];
 
-                MPI_Isend(&n_send_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh]);
-                MPI_Irecv(&n_recv_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh+1]);
+                MPI_Isend(&n_send_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
+                MPI_Irecv(&n_recv_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
                 send_bytes += sizeof(unsigned int);
                 recv_bytes += sizeof(unsigned int);
                 } // end neighbor loop
 
-            MPI_Waitall(2*m_n_unique_neigh, req, stat);
+            MPI_Waitall(nreq, req, stat);
 
             // sum up receive counts
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
@@ -941,7 +945,9 @@ void CommunicatorGPU::exchangeGhosts()
                 m_nneigh,
                 m_n_unique_neigh,
                 m_n_send_ghosts_tot[stage],
+                m_comm_mask[stage],
                 m_cached_alloc);
+
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
@@ -1012,10 +1018,12 @@ void CommunicatorGPU::exchangeGhosts()
             MPI_Request req[2*m_n_unique_neigh];
             MPI_Status stat[2*m_n_unique_neigh];
 
+            unsigned int nreq = 0;
+
             // loop over neighbors
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
                 {
-                if (m_stages[ineigh] != stage)
+                if (m_stages[ineigh] != (int) stage)
                     {
                     // skip neighbor if not participating in this communication stage
                     m_n_send_ghosts[stage][ineigh] = 0;
@@ -1023,17 +1031,17 @@ void CommunicatorGPU::exchangeGhosts()
                     continue;
                     }
 
-               // rank of neighbor processor
+                // rank of neighbor processor
                 unsigned int neighbor = h_unique_neighbors.data[ineigh];
 
-                MPI_Isend(&m_n_send_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh]);
-                MPI_Irecv(&m_n_recv_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[2*ineigh+1]);
+                MPI_Isend(&m_n_send_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
+                MPI_Irecv(&m_n_recv_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
 
                 send_bytes += sizeof(unsigned int);
                 recv_bytes += sizeof(unsigned int);
                 }
 
-            MPI_Waitall(2*m_n_unique_neigh, req, stat);
+            MPI_Waitall(nreq, req, stat);
 
             // total up receive counts
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)

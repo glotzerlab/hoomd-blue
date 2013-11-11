@@ -689,6 +689,7 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int nneigh,
     unsigned int n_unique_neigh,
     unsigned int n_out,
+    unsigned int mask,
     cached_allocator& alloc)
     {
     thrust::device_ptr<const unsigned int> ghost_plan_ptr(d_ghost_plan);
@@ -701,61 +702,92 @@ void gpu_exchange_ghosts_make_indices(
     thrust::device_ptr<unsigned int> ghost_begin_ptr(d_ghost_begin);
     thrust::device_ptr<unsigned int> ghost_end_ptr(d_ghost_end);
 
-    /*
-     * expand each tag by the number of neighbors to send the corresponding ptl to
-     */
-
-    // allocate temporary array
-    thrust::device_ptr<unsigned int> offsets_ptr((unsigned int *)alloc.allocate(N*sizeof(unsigned int)));
-
-    // scan over counts
-    thrust::exclusive_scan(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N, offsets_ptr);
-
-    // allocate temporary array for output
-    thrust::device_ptr<unsigned int> out_idx_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
-
-    thrust::fill(out_idx_ptr, out_idx_ptr+n_out, 0);
-
-    // compute indices for gathering
-    thrust::scatter_if(thrust::cuda::par(alloc), thrust::counting_iterator<unsigned int>(0),
-        thrust::counting_iterator<unsigned int>(N),
-        offsets_ptr,
-        counts_ptr,
-        out_idx_ptr);
-
-    // max-scan for filling holes (in-place)
-    thrust::inclusive_scan(thrust::cuda::par(alloc), out_idx_ptr, out_idx_ptr + n_out,
-        out_idx_ptr, thrust::maximum<unsigned int>());
-
-    // temporary array for plans
-    thrust::device_ptr<unsigned int> plan_out_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
-
-    // gather tags and plans according to positions in input
-    thrust::gather(thrust::cuda::par(alloc),
-        out_idx_ptr, out_idx_ptr + n_out,
-        thrust::make_zip_iterator(thrust::make_tuple(tag_ptr, ghost_plan_ptr)),
-        thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr, plan_out_ptr)));
-
-    /*
-     * for the nth consecutive occurence of the same index in the output, fetch the nth matching neighbor
-     */
-
-    // temporary array for matching neighbor index per output element
-    thrust::device_ptr<unsigned int> n_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
-
-    // scan by key (ptl index)
-    thrust::exclusive_scan_by_key(thrust::cuda::par(alloc), out_idx_ptr, out_idx_ptr + n_out,
-       thrust::constant_iterator<unsigned int>(1), n_ptr);
+    unsigned int num = 0;
+    if (mask & (send_east | send_west)) num++;
+    if (mask & (send_north | send_south)) num++;
+    if (mask & (send_up | send_down)) num++;
 
     // temporary array for output neighbor ranks
     thrust::device_ptr<unsigned int> out_neighbor_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
 
-    // compute neighbor ranks per output ptl
-    thrust::transform(thrust::cuda::par(alloc),
-        thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr, n_ptr)),
-        thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr + n_out, n_ptr + n_out)),
-        out_neighbor_ptr,
-        get_neighbor_rank_n(adj_ptr, neighbors_ptr, nneigh));
+    // temporary array for plans
+    thrust::device_ptr<unsigned int> plan_out_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+
+    // Optimization: are we sending into more than two independent directions simultaneously?
+    if (num > 1)
+        {
+        /*
+         * expand each tag by the number of neighbors to send the corresponding ptl to
+         */
+
+        // allocate temporary array
+        thrust::device_ptr<unsigned int> offsets_ptr((unsigned int *)alloc.allocate(N*sizeof(unsigned int)));
+
+        // scan over counts
+        thrust::exclusive_scan(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N, offsets_ptr);
+
+        // allocate temporary array for output
+        thrust::device_ptr<unsigned int> out_idx_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+
+        thrust::fill(out_idx_ptr, out_idx_ptr+n_out, 0);
+
+        // compute indices for gathering
+        thrust::scatter_if(thrust::cuda::par(alloc), thrust::counting_iterator<unsigned int>(0),
+            thrust::counting_iterator<unsigned int>(N),
+            offsets_ptr,
+            counts_ptr,
+            out_idx_ptr);
+
+        // max-scan for filling holes (in-place)
+        thrust::inclusive_scan(thrust::cuda::par(alloc), out_idx_ptr, out_idx_ptr + n_out,
+            out_idx_ptr, thrust::maximum<unsigned int>());
+
+        // gather tags and plans according to positions in input
+        thrust::gather(thrust::cuda::par(alloc),
+            out_idx_ptr, out_idx_ptr + n_out,
+            thrust::make_zip_iterator(thrust::make_tuple(tag_ptr, ghost_plan_ptr)),
+            thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr, plan_out_ptr)));
+
+        /*
+         * for the nth consecutive occurence of the same index in the output, fetch the nth matching neighbor
+         */
+
+        // temporary array for matching neighbor index per output element
+        thrust::device_ptr<unsigned int> n_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+
+        // scan by key (ptl index)
+        thrust::exclusive_scan_by_key(thrust::cuda::par(alloc), out_idx_ptr, out_idx_ptr + n_out,
+           thrust::constant_iterator<unsigned int>(1), n_ptr);
+
+        // compute neighbor ranks per output ptl
+        thrust::transform(thrust::cuda::par(alloc),
+            thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr, n_ptr)),
+            thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr + n_out, n_ptr + n_out)),
+            out_neighbor_ptr,
+            get_neighbor_rank_n(adj_ptr, neighbors_ptr, nneigh));
+
+        alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
+        alloc.deallocate((char *)thrust::raw_pointer_cast(out_idx_ptr),0);
+        alloc.deallocate((char *)thrust::raw_pointer_cast(n_ptr),0);
+        }
+    else
+        {
+        // copy non-zero plans and corresponding tags
+        thrust::copy_if(thrust::cuda::par(alloc),
+            thrust::make_zip_iterator(thrust::make_tuple(tag_ptr, ghost_plan_ptr)),
+            thrust::make_zip_iterator(thrust::make_tuple(tag_ptr+N, ghost_plan_ptr+N)),
+            ghost_plan_ptr,
+            thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr, plan_out_ptr)),
+            thrust::identity<unsigned int>());
+
+        // fill neighbors array (get first neighbor to send to for every ghost particle)
+        thrust::constant_iterator<unsigned int> const_it(0);
+        thrust::transform(thrust::cuda::par(alloc),
+            thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr, const_it)),
+            thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr + n_out, const_it + n_out)),
+            out_neighbor_ptr,
+            get_neighbor_rank_n(adj_ptr, neighbors_ptr, nneigh));
+        }
 
     /*
      * sort by neighbor and compute start and end indices
@@ -780,11 +812,8 @@ void gpu_exchange_ghosts_make_indices(
         ghost_end_ptr);
 
     // deallocate temporary arrays
-    alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
-    alloc.deallocate((char *)thrust::raw_pointer_cast(out_idx_ptr),0);
-    alloc.deallocate((char *)thrust::raw_pointer_cast(plan_out_ptr),0);
-    alloc.deallocate((char *)thrust::raw_pointer_cast(n_ptr),0);
     alloc.deallocate((char *)thrust::raw_pointer_cast(out_neighbor_ptr),0);
+    alloc.deallocate((char *)thrust::raw_pointer_cast(plan_out_ptr),0);
     }
 
 void gpu_exchange_ghosts_pack(
