@@ -58,7 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 
 #include "CommunicatorGPU.h"
-#include "CommunicatorGPU.cuh"
 #include "Profiler.h"
 #include "System.h"
 
@@ -74,7 +73,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : Communicator(sysdef, decomposition),
       m_nneigh(0),
       m_n_unique_neigh(0),
-      m_max_stages(3),
+      m_max_stages(1),
       m_num_stages(0),
       m_comm_mask(0)
     {
@@ -104,6 +103,11 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     // initialize communciation stages
     initializeCommunicationStages();
+
+    // create at ModernGPU context
+    int dev;
+    cudaGetDevice(&dev);
+    m_mgpu_context = mgpu::CreateCudaDevice(dev);
     }
 
 //! Destructor
@@ -789,7 +793,6 @@ void CommunicatorGPU::migrateParticles()
         } // end communication stage
 
     if (m_prof) m_prof->pop(m_exec_conf);
-
     }
 
 //! Build a ghost particle list, exchange ghost particle data with neighboring processors
@@ -946,6 +949,7 @@ void CommunicatorGPU::exchangeGhosts()
                 m_n_unique_neigh,
                 m_n_send_ghosts_tot[stage],
                 m_comm_mask[stage],
+                m_mgpu_context,
                 m_cached_alloc);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();

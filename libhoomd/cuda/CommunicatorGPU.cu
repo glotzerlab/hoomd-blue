@@ -71,6 +71,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 
+// moderngpu
+#include "moderngpu/device/loadstore.cuh"
+#include "moderngpu/device/launchbox.cuh"
+#include "moderngpu/device/ctaloadbalance.cuh"
+#include "moderngpu/kernels/intervalmove.cuh"
+#include "moderngpu/util/mgpucontext.h"
+
 using namespace thrust;
 
 //! GPU Kernel to find incomplete bonds
@@ -630,16 +637,41 @@ struct get_neighbor_rank_n : thrust::unary_function<
     thrust::device_ptr<const unsigned int> neighbor_ptr;
     const unsigned int nneigh;
 
-    get_neighbor_rank_n(thrust::device_ptr<const unsigned int> _adj_ptr,
+    __host__ __device__ get_neighbor_rank_n(thrust::device_ptr<const unsigned int> _adj_ptr,
         thrust::device_ptr<const unsigned int> _neighbor_ptr,
         unsigned int _nneigh)
         : adj_ptr(_adj_ptr), neighbor_ptr(_neighbor_ptr), nneigh(_nneigh)
         { }
 
+    __host__ __device__ get_neighbor_rank_n(const unsigned int *_d_adj,
+        const unsigned int *_d_neighbor,
+        unsigned int _nneigh)
+        : adj_ptr(thrust::device_ptr<const unsigned int>(_d_adj)),
+          neighbor_ptr(thrust::device_ptr<const unsigned int>(_d_neighbor)),
+          nneigh(_nneigh)
+        { }
+
+
     __device__ unsigned int operator() (thrust::tuple<unsigned int, unsigned int> t)
         {
         unsigned int plan = thrust::get<0>(t);
         unsigned int n = thrust::get<1>(t);
+        unsigned int count = 0;
+        unsigned int ineigh;
+        for (ineigh = 0; ineigh < nneigh; ineigh++)
+            {
+            unsigned int adj = adj_ptr[ineigh];
+            if ((adj & plan) == adj)
+                {
+                if (count == n) break;
+                count++;
+                }
+            }
+        return neighbor_ptr[ineigh];
+        }
+
+    __device__ unsigned int operator() (unsigned int plan, unsigned int n)
+        {
         unsigned int count = 0;
         unsigned int ineigh;
         for (ineigh = 0; ineigh < nneigh; ineigh++)
@@ -689,6 +721,117 @@ struct gpu_select_direction : thrust::unary_function<unsigned int, bool>
         }
     };
 
+template<typename Tuning>
+__global__ void gpu_expand_neighbors_kernel(const unsigned int n_out,
+    const int *d_offs,
+    const unsigned int *d_tag,
+    const unsigned int *d_plan,
+    const unsigned int n_offs,
+    const int* mp_global,
+    unsigned int *d_tag_out,
+    const unsigned int *d_neighbors,
+    const unsigned int *d_adj,
+    const unsigned int nneigh,
+    unsigned int *d_neighbors_out)
+    {
+    typedef MGPU_LAUNCH_PARAMS Params;
+    const int NT = Params::NT;
+    const int VT = Params::VT;
+
+    union Shared
+        {
+        int indices[NT * (VT + 1)];
+        unsigned int values[NT * VT];
+        };
+    __shared__ Shared shared;
+    int tid = threadIdx.x;
+    int block = blockIdx.x;
+
+    // Compute the input and output intervals this CTA processes.
+    int4 range = mgpu::CTALoadBalance<NT, VT>(n_out, d_offs, n_offs,
+        block, tid, mp_global, shared.indices, true);
+
+    // The interval indices are in the left part of shared memory (n_out).
+    // The scan of interval counts are in the right part (n_offs)
+    int destCount = range.y - range.x;
+    int sourceCount = range.w - range.z;
+
+    // Copy the source indices into register.
+    int sources[VT];
+    mgpu::DeviceSharedToReg<NT, VT>(NT * VT, shared.indices, tid, sources);
+
+    __syncthreads();
+
+    // Now use the segmented scan to fetch nth neighbor
+    get_neighbor_rank_n getn(d_adj, d_neighbors, nneigh);
+
+    // register to hold neighbors
+    unsigned int neighbors[VT];
+
+    int *intervals = shared.indices + destCount;
+
+    #pragma unroll
+    for(int i = 0; i < VT; ++i)
+        {
+        int index = NT * i + tid;
+        int gid = range.x + index;
+
+        if(index < destCount)
+            {
+            int interval = sources[i];
+            int rank = gid - intervals[interval - range.z];
+            int plan = d_plan[interval];
+            neighbors[i] = getn(plan,rank);
+            }
+        }
+
+    // write out neighbors to global mem
+    mgpu::DeviceRegToGlobal<NT, VT>(destCount, neighbors, tid, d_neighbors_out + range.x);
+
+    // load tags
+    mgpu::DeviceMemToMemLoop<NT>(sourceCount, d_tag + range.z, tid, shared.values);
+
+    // gather tags into registers
+    unsigned int values[VT];
+    mgpu::DeviceGather<NT, VT>(destCount, shared.values - range.z, sources, tid,
+        values, false);
+
+    // store tags to global mem
+    mgpu::DeviceRegToGlobal<NT, VT>(destCount, values, tid, d_tag_out + range.x);
+    }
+
+void gpu_expand_neighbors(unsigned int n_out,
+    const unsigned int *d_offs,
+    const unsigned int *d_tag,
+    const unsigned int *d_plan,
+    unsigned int n_offs,
+    unsigned int *d_tag_out,
+    const unsigned int *d_neighbors,
+    const unsigned int *d_adj,
+    const unsigned int nneigh,
+    unsigned int *d_neighbors_out,
+    mgpu::CudaContext& context)
+    {
+    const int NT = 128;
+    const int VT = 7;
+    typedef mgpu::LaunchBoxVT<NT, VT> Tuning;
+    int2 launch = Tuning::GetLaunchParams(context);
+
+    int NV = launch.x * launch.y;
+    int numBlocks = MGPU_DIV_UP(n_out + n_offs, NV);
+
+    // Partition the input and output sequences so that the load-balancing
+    // search results in a CTA fit in shared memory.
+    MGPU_MEM(int) partitionsDevice = mgpu::MergePathPartitions<mgpu::MgpuBoundsUpper>(
+        mgpu::counting_iterator<int>(0), n_out, (int *) d_offs,
+        n_offs, NV, 0, mgpu::less<int>(), context);
+
+    gpu_expand_neighbors_kernel<Tuning><<<numBlocks, launch.x, 0, context.Stream()>>>(
+        n_out, (int *) d_offs, d_tag, d_plan, n_offs,
+        partitionsDevice->get(), d_tag_out,
+        d_neighbors, d_adj, nneigh, d_neighbors_out);
+    }
+
 void gpu_exchange_ghosts_make_indices(
     unsigned int N,
     const unsigned int *d_ghost_plan,
@@ -704,6 +847,7 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int n_unique_neigh,
     unsigned int n_out,
     unsigned int mask,
+    mgpu::ContextPtr mgpu_context,
     cached_allocator& alloc)
     {
     thrust::device_ptr<const unsigned int> ghost_plan_ptr(d_ghost_plan);
@@ -724,9 +868,6 @@ void gpu_exchange_ghosts_make_indices(
     // temporary array for output neighbor ranks
     thrust::device_ptr<unsigned int> out_neighbor_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
 
-    // temporary array for plans
-    thrust::device_ptr<unsigned int> plan_out_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
-
     // Optimization: are we sending into more than two independent directions simultaneously?
     if (num > 1)
         {
@@ -739,6 +880,10 @@ void gpu_exchange_ghosts_make_indices(
 
         // scan over counts
         thrust::exclusive_scan(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N, offsets_ptr);
+
+        #if 0
+        // temporary array for plans
+        thrust::device_ptr<unsigned int> plan_out_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
 
         // allocate temporary array for output
         thrust::device_ptr<unsigned int> out_idx_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
@@ -780,10 +925,18 @@ void gpu_exchange_ghosts_make_indices(
             out_neighbor_ptr,
             get_neighbor_rank_n(adj_ptr, neighbors_ptr, nneigh));
 
-        alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
         alloc.deallocate((char *)thrust::raw_pointer_cast(out_idx_ptr),0);
         alloc.deallocate((char *)thrust::raw_pointer_cast(n_ptr),0);
+        #else
+        gpu_expand_neighbors(n_out,
+            thrust::raw_pointer_cast(offsets_ptr),
+            d_tag, d_ghost_plan, N, d_ghost_tag,
+            d_neighbors, d_adj, nneigh,
+            thrust::raw_pointer_cast(out_neighbor_ptr),
+            *mgpu_context);
+        #endif
 
+        alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
         /*
          * sort by neighbor and compute start and end indices
          */
@@ -795,6 +948,9 @@ void gpu_exchange_ghosts_make_indices(
         }
     else
         {
+        // temporary array for plans
+        thrust::device_ptr<unsigned int> plan_out_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+
         // copy non-zero plans and corresponding tags
         thrust::copy_if(thrust::cuda::par(alloc),
             thrust::make_zip_iterator(thrust::make_tuple(tag_ptr, ghost_plan_ptr)),
@@ -817,6 +973,8 @@ void gpu_exchange_ghosts_make_indices(
             thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr+n_out, out_neighbor_ptr+n_out)),
             ghost_plan_ptr,
             gpu_select_direction(0));
+
+        alloc.deallocate((char *)thrust::raw_pointer_cast(plan_out_ptr),0);
         }
 
     thrust::lower_bound(thrust::cuda::par(alloc),
@@ -835,7 +993,6 @@ void gpu_exchange_ghosts_make_indices(
 
     // deallocate temporary arrays
     alloc.deallocate((char *)thrust::raw_pointer_cast(out_neighbor_ptr),0);
-    alloc.deallocate((char *)thrust::raw_pointer_cast(plan_out_ptr),0);
     }
 
 void gpu_exchange_ghosts_pack(

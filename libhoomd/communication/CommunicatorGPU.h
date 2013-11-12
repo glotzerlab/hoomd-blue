@@ -65,6 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Communicator.h"
 
+#include "CommunicatorGPU.cuh"
+
 #include "GPUFlags.h"
 #include "GPUArray.h"
 #include "GPUBufferMapped.h"
@@ -180,8 +182,8 @@ class CommunicatorGPU : public Communicator
         GPUVector<Scalar4> m_orientation_ghost_sendbuf;//<! Buffer for sending ghost orientations
         GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
 
-        GPUArray<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf
-        GPUArray<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf
+        GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf
+        GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf
 
         GPUVector<unsigned int> m_ghost_plan;         //!< Plans for every particle
         GPUVector<unsigned int> m_ghost_tag;          //!< List of ghost particles tags per stage, ordered by neighbor
@@ -197,6 +199,7 @@ class CommunicatorGPU : public Communicator
         std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
         cached_allocator m_cached_alloc;              //!< Cached memory allocator for internal thrust code
+        mgpu::ContextPtr m_mgpu_context;                    //!< MGPU context
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
