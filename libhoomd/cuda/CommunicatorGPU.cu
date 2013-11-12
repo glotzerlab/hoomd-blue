@@ -72,11 +72,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/iterator/zip_iterator.h>
 
 // moderngpu
+#include "moderngpu/util/mgpucontext.h"
 #include "moderngpu/device/loadstore.cuh"
 #include "moderngpu/device/launchbox.cuh"
 #include "moderngpu/device/ctaloadbalance.cuh"
-#include "moderngpu/kernels/intervalmove.cuh"
-#include "moderngpu/util/mgpucontext.h"
+#include "moderngpu/kernels/localitysort.cuh"
+#include "moderngpu/kernels/search.cuh"
+#include "moderngpu/kernels/sortedsearch.cuh"
 
 using namespace thrust;
 
@@ -869,7 +871,7 @@ void gpu_exchange_ghosts_make_indices(
     thrust::device_ptr<unsigned int> out_neighbor_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
 
     // Optimization: are we sending into more than two independent directions simultaneously?
-    if (num > 1)
+    if (true || num > 1)
         {
         /*
          * expand each tag by the number of neighbors to send the corresponding ptl to
@@ -927,16 +929,7 @@ void gpu_exchange_ghosts_make_indices(
 
         alloc.deallocate((char *)thrust::raw_pointer_cast(out_idx_ptr),0);
         alloc.deallocate((char *)thrust::raw_pointer_cast(n_ptr),0);
-        #else
-        gpu_expand_neighbors(n_out,
-            thrust::raw_pointer_cast(offsets_ptr),
-            d_tag, d_ghost_plan, N, d_ghost_tag,
-            d_neighbors, d_adj, nneigh,
-            thrust::raw_pointer_cast(out_neighbor_ptr),
-            *mgpu_context);
-        #endif
 
-        alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
         /*
          * sort by neighbor and compute start and end indices
          */
@@ -945,6 +938,22 @@ void gpu_exchange_ghosts_make_indices(
             out_neighbor_ptr + n_out,
             ghost_tag_ptr);
 
+
+        #else
+        gpu_expand_neighbors(n_out,
+            thrust::raw_pointer_cast(offsets_ptr),
+            d_tag, d_ghost_plan, N, d_ghost_tag,
+            d_neighbors, d_adj, nneigh,
+            thrust::raw_pointer_cast(out_neighbor_ptr),
+            *mgpu_context);
+
+        // sort tags by neighbors
+        mgpu::LocalitySortPairs(thrust::raw_pointer_cast(out_neighbor_ptr),
+                       d_ghost_tag, n_out, *mgpu_context);
+
+        #endif
+
+        alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
         }
     else
         {
@@ -977,6 +986,7 @@ void gpu_exchange_ghosts_make_indices(
         alloc.deallocate((char *)thrust::raw_pointer_cast(plan_out_ptr),0);
         }
 
+    #if 0
     thrust::lower_bound(thrust::cuda::par(alloc),
         out_neighbor_ptr,
         out_neighbor_ptr + n_out,
@@ -990,7 +1000,12 @@ void gpu_exchange_ghosts_make_indices(
         unique_neighbors_ptr,
         unique_neighbors_ptr + n_unique_neigh,
         ghost_end_ptr);
-
+    #else
+    mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_unique_neighbors, n_unique_neigh,
+        thrust::raw_pointer_cast(out_neighbor_ptr), n_out, d_ghost_begin, *mgpu_context);
+    mgpu::SortedSearch<mgpu::MgpuBoundsUpper>(d_unique_neighbors, n_unique_neigh,
+        thrust::raw_pointer_cast(out_neighbor_ptr), n_out, d_ghost_end, *mgpu_context);
+    #endif
     // deallocate temporary arrays
     alloc.deallocate((char *)thrust::raw_pointer_cast(out_neighbor_ptr),0);
     }
