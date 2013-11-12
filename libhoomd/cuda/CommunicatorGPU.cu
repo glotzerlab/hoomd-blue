@@ -78,6 +78,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "moderngpu/device/ctaloadbalance.cuh"
 #include "moderngpu/kernels/localitysort.cuh"
 #include "moderngpu/kernels/search.cuh"
+#include "moderngpu/kernels/scan.cuh"
 #include "moderngpu/kernels/sortedsearch.cuh"
 
 using namespace thrust;
@@ -323,27 +324,45 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    const unsigned int *d_neighbors,
                    const unsigned int nneigh,
                    const unsigned int mask,
+                   mgpu::ContextPtr mgpu_context,
                    cached_allocator& alloc)
     {
     // Wrap input & output
     thrust::device_ptr<pdata_element> in_ptr(d_in);
     thrust::device_ptr<unsigned int> keys_ptr(d_keys);
-    thrust::device_ptr<unsigned int> begin_ptr(d_begin);
-    thrust::device_ptr<unsigned int> end_ptr(d_end);
     thrust::device_ptr<const unsigned int> neighbors_ptr(d_neighbors);
 
     // generate keys
-    thrust::transform(thrust::cuda::par(alloc), in_ptr, in_ptr + nsend, keys_ptr,
-        get_migrate_key_gpu(box, my_pos, di,mask));
+    thrust::transform(in_ptr, in_ptr + nsend, keys_ptr, get_migrate_key_gpu(box, my_pos, di,mask));
 
-    // sort
-    thrust::sort_by_key(thrust::cuda::par(alloc), keys_ptr, keys_ptr + nsend, in_ptr);
 
-    // Find start indices
-    thrust::lower_bound(thrust::cuda::par(alloc), keys_ptr, keys_ptr + nsend,
-        neighbors_ptr, neighbors_ptr + nneigh, begin_ptr);
-    thrust::upper_bound(thrust::cuda::par(alloc), keys_ptr, keys_ptr + nsend,
-        neighbors_ptr, neighbors_ptr + nneigh, end_ptr);
+    // allocate temp arrays
+    unsigned int *d_tmp = (unsigned int *)alloc.allocate(nsend*sizeof(unsigned int));
+    thrust::device_ptr<unsigned int> tmp_ptr(d_tmp);
+
+    pdata_element *d_in_copy = (pdata_element *)alloc.allocate(nsend*sizeof(pdata_element));
+    thrust::device_ptr<pdata_element> in_copy_ptr(d_in_copy);
+
+    // copy and fill with ascending integer sequence
+    thrust::counting_iterator<unsigned int> count_it(0);
+    thrust::copy(make_zip_iterator(thrust::make_tuple(count_it, in_ptr)),
+        thrust::make_zip_iterator(thrust::make_tuple(count_it + nsend, in_ptr + nsend)),
+        thrust::make_zip_iterator(thrust::make_tuple(tmp_ptr, in_copy_ptr)));
+
+    // sort buffer by neighbors
+    if (nsend) mgpu::LocalitySortPairs(thrust::raw_pointer_cast(keys_ptr), d_tmp, nsend, *mgpu_context);
+
+    // reorder send buf
+    thrust::gather(tmp_ptr, tmp_ptr + nsend, in_copy_ptr, in_ptr);
+
+    mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_neighbors, nneigh,
+        thrust::raw_pointer_cast(keys_ptr), nsend, d_begin, *mgpu_context);
+    mgpu::SortedSearch<mgpu::MgpuBoundsUpper>(d_neighbors, nneigh,
+        thrust::raw_pointer_cast(keys_ptr), nsend, d_end, *mgpu_context);
+
+    // release temporary buffers
+    alloc.deallocate((char *)d_in_copy,0);
+    alloc.deallocate((char *)d_tmp,0);
     }
 
 //! Wrap a particle in a pdata_element
@@ -695,18 +714,19 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
     const unsigned int *d_adj,
     unsigned int *d_counts,
     unsigned int nneigh,
-    cached_allocator& alloc)
+    mgpu::ContextPtr mgpu_context)
     {
     thrust::device_ptr<const unsigned int> ghost_plan_ptr(d_ghost_plan);
     thrust::device_ptr<const unsigned int> adj_ptr(d_adj);
     thrust::device_ptr<unsigned int> counts_ptr(d_counts);
 
     // compute neighbor counts
-    thrust::transform(thrust::cuda::par(alloc), ghost_plan_ptr, ghost_plan_ptr + N, counts_ptr,
-        num_neighbors_gpu(adj_ptr, nneigh));
+    thrust::transform(ghost_plan_ptr, ghost_plan_ptr + N, counts_ptr, num_neighbors_gpu(adj_ptr, nneigh));
 
     // determine output size
-    return thrust::reduce(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N);
+    unsigned int total = 0;
+    if (N) total = mgpu::Scan<mgpu::MgpuScanTypeExc>(d_counts, N, *mgpu_context);
+    return total;
     }
 
 //! Unary function to select one of two spatial directions (positive or negative)
@@ -852,12 +872,8 @@ void gpu_exchange_ghosts_make_indices(
     mgpu::ContextPtr mgpu_context,
     cached_allocator& alloc)
     {
-    // wrap pointers
-    thrust::device_ptr<const unsigned int> counts_ptr(d_counts);
-
     // temporary array for output neighbor ranks
-    thrust::device_ptr<unsigned int> out_neighbor_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
-
+    unsigned int *d_out_neighbors = (unsigned int *)alloc.allocate(n_out*sizeof(unsigned int));
 
     /*
      * expand each tag by the number of neighbors to send the corresponding ptl to
@@ -865,31 +881,23 @@ void gpu_exchange_ghosts_make_indices(
      */
 
     // allocate temporary array
-    thrust::device_ptr<unsigned int> offsets_ptr((unsigned int *)alloc.allocate(N*sizeof(unsigned int)));
-
-    // scan over counts
-    thrust::exclusive_scan(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N, offsets_ptr);
-
     gpu_expand_neighbors(n_out,
-        thrust::raw_pointer_cast(offsets_ptr),
+        d_counts,
         d_tag, d_ghost_plan, N, d_ghost_tag,
         d_neighbors, d_adj, nneigh,
-        thrust::raw_pointer_cast(out_neighbor_ptr),
+        d_out_neighbors,
         *mgpu_context);
 
     // sort tags by neighbors
-    mgpu::LocalitySortPairs(thrust::raw_pointer_cast(out_neighbor_ptr),
-                   d_ghost_tag, n_out, *mgpu_context);
-
-    alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
+    if (n_out) mgpu::LocalitySortPairs(d_out_neighbors, d_ghost_tag, n_out, *mgpu_context);
 
     mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_unique_neighbors, n_unique_neigh,
-        thrust::raw_pointer_cast(out_neighbor_ptr), n_out, d_ghost_begin, *mgpu_context);
+        d_out_neighbors, n_out, d_ghost_begin, *mgpu_context);
     mgpu::SortedSearch<mgpu::MgpuBoundsUpper>(d_unique_neighbors, n_unique_neigh,
-        thrust::raw_pointer_cast(out_neighbor_ptr), n_out, d_ghost_end, *mgpu_context);
+        d_out_neighbors, n_out, d_ghost_end, *mgpu_context);
 
     // deallocate temporary arrays
-    alloc.deallocate((char *)thrust::raw_pointer_cast(out_neighbor_ptr),0);
+    alloc.deallocate((char *)d_out_neighbors,0);
     }
 
 __global__ void gpu_exchange_ghosts_pack_kernel(
@@ -1065,7 +1073,7 @@ void gpu_exchange_ghosts_copy_buf(
     bool send_diameter,
     bool send_orientation)
     {
-    unsigned int block_size = 128;
+    unsigned int block_size = 512;
 
     gpu_exchange_ghosts_copy_kernel<<<n_recv/block_size+1,block_size>>>(
         n_recv,

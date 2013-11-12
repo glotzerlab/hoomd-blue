@@ -531,6 +531,7 @@ void CommunicatorGPU::migrateParticles()
                        d_unique_neighbors.data,
                        m_n_unique_neigh,
                        m_comm_mask[stage],
+                       m_mgpu_context,
                        m_cached_alloc);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -896,7 +897,7 @@ void CommunicatorGPU::exchangeGhosts()
                     d_adj_mask.data,
                     d_neigh_counts.data,
                     m_nneigh,
-                    m_cached_alloc);
+                    m_mgpu_context);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }

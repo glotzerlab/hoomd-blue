@@ -178,6 +178,8 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    unsigned int *d_end,
                    const unsigned int *d_neighbors,
                    const unsigned int nneigh,
+                   const unsigned int mask,
+                   mgpu::ContextPtr mgpu_context,
                    cached_allocator& alloc);
 
 //! Apply boundary conditions
@@ -213,7 +215,7 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
     const unsigned int *d_adj,
     unsigned int *d_counts,
     unsigned int nneigh,
-    cached_allocator& alloc);
+    mgpu::ContextPtr mgpu_context);
 
 //! Construct tag lists per ghost particle
 void gpu_exchange_ghosts_make_indices(
