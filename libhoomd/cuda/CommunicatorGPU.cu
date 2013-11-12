@@ -852,160 +852,42 @@ void gpu_exchange_ghosts_make_indices(
     mgpu::ContextPtr mgpu_context,
     cached_allocator& alloc)
     {
-    thrust::device_ptr<const unsigned int> ghost_plan_ptr(d_ghost_plan);
-    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<const unsigned int> adj_ptr(d_adj);
-    thrust::device_ptr<const unsigned int> neighbors_ptr(d_neighbors);
-    thrust::device_ptr<const unsigned int> unique_neighbors_ptr(d_unique_neighbors);
+    // wrap pointers
     thrust::device_ptr<const unsigned int> counts_ptr(d_counts);
-    thrust::device_ptr<unsigned int> ghost_tag_ptr(d_ghost_tag);
-    thrust::device_ptr<unsigned int> ghost_begin_ptr(d_ghost_begin);
-    thrust::device_ptr<unsigned int> ghost_end_ptr(d_ghost_end);
-
-    unsigned int num = 0;
-    if (mask & (send_east | send_west)) num++;
-    if (mask & (send_north | send_south)) num++;
-    if (mask & (send_up | send_down)) num++;
 
     // temporary array for output neighbor ranks
     thrust::device_ptr<unsigned int> out_neighbor_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
 
-    // Optimization: are we sending into more than two independent directions simultaneously?
-    if (true || num > 1)
-        {
-        /*
-         * expand each tag by the number of neighbors to send the corresponding ptl to
-         */
 
-        // allocate temporary array
-        thrust::device_ptr<unsigned int> offsets_ptr((unsigned int *)alloc.allocate(N*sizeof(unsigned int)));
+    /*
+     * expand each tag by the number of neighbors to send the corresponding ptl to
+     * and assign each copy to a different neighbor
+     */
 
-        // scan over counts
-        thrust::exclusive_scan(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N, offsets_ptr);
+    // allocate temporary array
+    thrust::device_ptr<unsigned int> offsets_ptr((unsigned int *)alloc.allocate(N*sizeof(unsigned int)));
 
-        #if 0
-        // temporary array for plans
-        thrust::device_ptr<unsigned int> plan_out_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+    // scan over counts
+    thrust::exclusive_scan(thrust::cuda::par(alloc), counts_ptr, counts_ptr + N, offsets_ptr);
 
-        // allocate temporary array for output
-        thrust::device_ptr<unsigned int> out_idx_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
+    gpu_expand_neighbors(n_out,
+        thrust::raw_pointer_cast(offsets_ptr),
+        d_tag, d_ghost_plan, N, d_ghost_tag,
+        d_neighbors, d_adj, nneigh,
+        thrust::raw_pointer_cast(out_neighbor_ptr),
+        *mgpu_context);
 
-        thrust::fill(out_idx_ptr, out_idx_ptr+n_out, 0);
+    // sort tags by neighbors
+    mgpu::LocalitySortPairs(thrust::raw_pointer_cast(out_neighbor_ptr),
+                   d_ghost_tag, n_out, *mgpu_context);
 
-        // compute indices for gathering
-        thrust::scatter_if(thrust::cuda::par(alloc), thrust::counting_iterator<unsigned int>(0),
-            thrust::counting_iterator<unsigned int>(N),
-            offsets_ptr,
-            counts_ptr,
-            out_idx_ptr);
+    alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
 
-        // max-scan for filling holes (in-place)
-        thrust::inclusive_scan(thrust::cuda::par(alloc), out_idx_ptr, out_idx_ptr + n_out,
-            out_idx_ptr, thrust::maximum<unsigned int>());
-
-        // gather tags and plans according to positions in input
-        thrust::gather(thrust::cuda::par(alloc),
-            out_idx_ptr, out_idx_ptr + n_out,
-            thrust::make_zip_iterator(thrust::make_tuple(tag_ptr, ghost_plan_ptr)),
-            thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr, plan_out_ptr)));
-
-        /*
-         * for the nth consecutive occurence of the same index in the output, fetch the nth matching neighbor
-         */
-
-        // temporary array for matching neighbor index per output element
-        thrust::device_ptr<unsigned int> n_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
-
-        // scan by key (ptl index)
-        thrust::exclusive_scan_by_key(thrust::cuda::par(alloc), out_idx_ptr, out_idx_ptr + n_out,
-           thrust::constant_iterator<unsigned int>(1), n_ptr);
-
-        // compute neighbor ranks per output ptl
-        thrust::transform(thrust::cuda::par(alloc),
-            thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr, n_ptr)),
-            thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr + n_out, n_ptr + n_out)),
-            out_neighbor_ptr,
-            get_neighbor_rank_n(adj_ptr, neighbors_ptr, nneigh));
-
-        alloc.deallocate((char *)thrust::raw_pointer_cast(out_idx_ptr),0);
-        alloc.deallocate((char *)thrust::raw_pointer_cast(n_ptr),0);
-
-        /*
-         * sort by neighbor and compute start and end indices
-         */
-        thrust::sort_by_key(thrust::cuda::par(alloc),
-            out_neighbor_ptr,
-            out_neighbor_ptr + n_out,
-            ghost_tag_ptr);
-
-
-        #else
-        gpu_expand_neighbors(n_out,
-            thrust::raw_pointer_cast(offsets_ptr),
-            d_tag, d_ghost_plan, N, d_ghost_tag,
-            d_neighbors, d_adj, nneigh,
-            thrust::raw_pointer_cast(out_neighbor_ptr),
-            *mgpu_context);
-
-        // sort tags by neighbors
-        mgpu::LocalitySortPairs(thrust::raw_pointer_cast(out_neighbor_ptr),
-                       d_ghost_tag, n_out, *mgpu_context);
-
-        #endif
-
-        alloc.deallocate((char *)thrust::raw_pointer_cast(offsets_ptr),0);
-        }
-    else
-        {
-        // temporary array for plans
-        thrust::device_ptr<unsigned int> plan_out_ptr((unsigned int *)alloc.allocate(n_out*sizeof(unsigned int)));
-
-        // copy non-zero plans and corresponding tags
-        thrust::copy_if(thrust::cuda::par(alloc),
-            thrust::make_zip_iterator(thrust::make_tuple(tag_ptr, ghost_plan_ptr)),
-            thrust::make_zip_iterator(thrust::make_tuple(tag_ptr+N, ghost_plan_ptr+N)),
-            ghost_plan_ptr,
-            thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr, plan_out_ptr)),
-            thrust::identity<unsigned int>());
-
-        // fill neighbors array (get first neighbor to send to for every ghost particle)
-        thrust::constant_iterator<unsigned int> const_it(0);
-        thrust::transform(thrust::cuda::par(alloc),
-            thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr, const_it)),
-            thrust::make_zip_iterator(thrust::make_tuple(plan_out_ptr + n_out, const_it + n_out)),
-            out_neighbor_ptr,
-            get_neighbor_rank_n(adj_ptr, neighbors_ptr, nneigh));
-
-        // there are two different directions max., partitioning (rather than sorting) may be faster
-        thrust::stable_partition(thrust::cuda::par(alloc),
-            thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr, out_neighbor_ptr)),
-            thrust::make_zip_iterator(thrust::make_tuple(ghost_tag_ptr+n_out, out_neighbor_ptr+n_out)),
-            ghost_plan_ptr,
-            gpu_select_direction(0));
-
-        alloc.deallocate((char *)thrust::raw_pointer_cast(plan_out_ptr),0);
-        }
-
-    #if 0
-    thrust::lower_bound(thrust::cuda::par(alloc),
-        out_neighbor_ptr,
-        out_neighbor_ptr + n_out,
-        unique_neighbors_ptr,
-        unique_neighbors_ptr + n_unique_neigh,
-        ghost_begin_ptr);
-
-    thrust::upper_bound(thrust::cuda::par(alloc),
-        out_neighbor_ptr,
-        out_neighbor_ptr + n_out,
-        unique_neighbors_ptr,
-        unique_neighbors_ptr + n_unique_neigh,
-        ghost_end_ptr);
-    #else
     mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_unique_neighbors, n_unique_neigh,
         thrust::raw_pointer_cast(out_neighbor_ptr), n_out, d_ghost_begin, *mgpu_context);
     mgpu::SortedSearch<mgpu::MgpuBoundsUpper>(d_unique_neighbors, n_unique_neigh,
         thrust::raw_pointer_cast(out_neighbor_ptr), n_out, d_ghost_end, *mgpu_context);
-    #endif
+
     // deallocate temporary arrays
     alloc.deallocate((char *)thrust::raw_pointer_cast(out_neighbor_ptr),0);
     }
@@ -1031,6 +913,7 @@ __global__ void gpu_exchange_ghosts_pack_kernel(
     bool send_orientation)
     {
     unsigned int buf_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (buf_idx >= n_out) return;
 
     unsigned int tag = d_ghost_tag[buf_idx];
     unsigned int idx = d_rtag[tag];
@@ -1150,6 +1033,8 @@ __global__ void gpu_exchange_ghosts_copy_kernel
     )
     {
     unsigned int idx = blockDim.x*blockIdx.x+threadIdx.x;
+
+    if (idx >= n_recv) return;
 
     if (send_tag) d_tag[idx] = d_tag_recvbuf[idx];
     if (send_pos) d_pos[idx] = d_pos_recvbuf[idx];
