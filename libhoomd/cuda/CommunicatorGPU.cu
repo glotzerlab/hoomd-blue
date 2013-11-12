@@ -1010,6 +1010,38 @@ void gpu_exchange_ghosts_make_indices(
     alloc.deallocate((char *)thrust::raw_pointer_cast(out_neighbor_ptr),0);
     }
 
+__global__ void gpu_exchange_ghosts_pack_kernel(
+    unsigned int n_out,
+    const unsigned int *d_ghost_tag,
+    const unsigned int *d_rtag,
+    const Scalar4 *d_pos,
+    const Scalar4 *d_vel,
+    const Scalar *d_charge,
+    const Scalar *d_diameter,
+    const Scalar4 *d_orientation,
+    Scalar4 *d_pos_sendbuf,
+    Scalar4 *d_vel_sendbuf,
+    Scalar *d_charge_sendbuf,
+    Scalar *d_diameter_sendbuf,
+    Scalar4 *d_orientation_sendbuf,
+    bool send_pos,
+    bool send_vel,
+    bool send_charge,
+    bool send_diameter,
+    bool send_orientation)
+    {
+    unsigned int buf_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    unsigned int tag = d_ghost_tag[buf_idx];
+    unsigned int idx = d_rtag[tag];
+
+    if (send_pos) d_pos_sendbuf[buf_idx] = d_pos[idx];
+    if (send_vel) d_vel_sendbuf[buf_idx] = d_vel[idx];
+    if (send_charge) d_charge_sendbuf[buf_idx] = d_charge[idx];
+    if (send_diameter) d_diameter_sendbuf[buf_idx] = d_diameter[idx];
+    if (send_orientation) d_orientation_sendbuf[buf_idx] = d_orientation[idx];
+    }
+
 void gpu_exchange_ghosts_pack(
     unsigned int n_out,
     const unsigned int *d_ghost_tag,
@@ -1028,42 +1060,29 @@ void gpu_exchange_ghosts_pack(
     bool send_vel,
     bool send_charge,
     bool send_diameter,
-    bool send_orientation,
-    cached_allocator &alloc)
+    bool send_orientation)
     {
-    // wrap pointers
-    thrust::device_ptr<const unsigned int> ghost_tag_ptr(d_ghost_tag);
-    thrust::device_ptr<const unsigned int> rtag_ptr(d_rtag);
-    thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
-    thrust::device_ptr<const Scalar4> vel_ptr(d_vel);
-    thrust::device_ptr<const Scalar> charge_ptr(d_charge);
-    thrust::device_ptr<const Scalar> diameter_ptr(d_diameter);
-    thrust::device_ptr<const Scalar4> orientation_ptr(d_orientation);
-    thrust::device_ptr<Scalar4> pos_sendbuf_ptr(d_pos_sendbuf);
-    thrust::device_ptr<Scalar4> vel_sendbuf_ptr(d_vel_sendbuf);
-    thrust::device_ptr<Scalar> charge_sendbuf_ptr(d_charge_sendbuf);
-    thrust::device_ptr<Scalar> diameter_sendbuf_ptr(d_diameter_sendbuf);
-    thrust::device_ptr<Scalar4> orientation_sendbuf_ptr(d_orientation_sendbuf);
+    unsigned int block_size = 128;
 
-    if (send_pos)
-        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
-            thrust::make_permutation_iterator(pos_ptr, rtag_ptr), pos_sendbuf_ptr);
-
-    if (send_vel)
-        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
-            thrust::make_permutation_iterator(vel_ptr, rtag_ptr), vel_sendbuf_ptr);
-
-    if (send_charge)
-        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
-            thrust::make_permutation_iterator(charge_ptr, rtag_ptr), charge_sendbuf_ptr);
-
-    if (send_diameter)
-        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
-            thrust::make_permutation_iterator(diameter_ptr, rtag_ptr), diameter_sendbuf_ptr);
-
-    if (send_orientation)
-        thrust::gather(thrust::cuda::par(alloc),ghost_tag_ptr, ghost_tag_ptr + n_out,
-            thrust::make_permutation_iterator(orientation_ptr, rtag_ptr), orientation_sendbuf_ptr);
+    gpu_exchange_ghosts_pack_kernel<<<n_out/block_size+1,block_size>>>(
+        n_out,
+        d_ghost_tag,
+        d_rtag,
+        d_pos,
+        d_vel,
+        d_charge,
+        d_diameter,
+        d_orientation,
+        d_pos_sendbuf,
+        d_vel_sendbuf,
+        d_charge_sendbuf,
+        d_diameter_sendbuf,
+        d_orientation_sendbuf,
+        send_pos,
+        send_vel,
+        send_charge,
+        send_diameter,
+        send_orientation);
     }
 
 //! Wrap particles
@@ -1107,6 +1126,39 @@ void gpu_wrap_ghosts(const unsigned int n_recv,
     thrust::transform(pos_ptr, pos_ptr + n_recv, pos_ptr, wrap_ghost_pos_gpu(box));
     }
 
+__global__ void gpu_exchange_ghosts_copy_kernel
+    (
+    unsigned int n_recv,
+    const unsigned int *d_tag_recvbuf,
+    const Scalar4 *d_pos_recvbuf,
+    const Scalar4 *d_vel_recvbuf,
+    const Scalar *d_charge_recvbuf,
+    const Scalar *d_diameter_recvbuf,
+    const Scalar4 *d_orientation_recvbuf,
+    unsigned int *d_tag,
+    Scalar4 *d_pos,
+    Scalar4 *d_vel,
+    Scalar *d_charge,
+    Scalar *d_diameter,
+    Scalar4 *d_orientation,
+    bool send_tag,
+    bool send_pos,
+    bool send_vel,
+    bool send_charge,
+    bool send_diameter,
+    bool send_orientation
+    )
+    {
+    unsigned int idx = blockDim.x*blockIdx.x+threadIdx.x;
+
+    if (send_tag) d_tag[idx] = d_tag_recvbuf[idx];
+    if (send_pos) d_pos[idx] = d_pos_recvbuf[idx];
+    if (send_vel) d_vel[idx] = d_vel_recvbuf[idx];
+    if (send_charge) d_charge[idx] = d_charge_recvbuf[idx];
+    if (send_diameter) d_diameter[idx] = d_diameter_recvbuf[idx];
+    if (send_orientation) d_orientation[idx] = d_orientation_recvbuf[idx];
+    }
+
 void gpu_exchange_ghosts_copy_buf(
     unsigned int n_recv,
     const unsigned int *d_tag_recvbuf,
@@ -1126,28 +1178,30 @@ void gpu_exchange_ghosts_copy_buf(
     bool send_vel,
     bool send_charge,
     bool send_diameter,
-    bool send_orientation,
-    cached_allocator &alloc)
+    bool send_orientation)
     {
-    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<Scalar4> pos_ptr(d_pos);
-    thrust::device_ptr<Scalar4> vel_ptr(d_vel);
-    thrust::device_ptr<Scalar> charge_ptr(d_charge);
-    thrust::device_ptr<Scalar> diameter_ptr(d_diameter);
-    thrust::device_ptr<Scalar4> orientation_ptr(d_orientation);
-    thrust::device_ptr<const unsigned int> tag_recvbuf_ptr(d_tag_recvbuf);
-    thrust::device_ptr<const Scalar4> pos_recvbuf_ptr(d_pos_recvbuf);
-    thrust::device_ptr<const Scalar4> vel_recvbuf_ptr(d_vel_recvbuf);
-    thrust::device_ptr<const Scalar> charge_recvbuf_ptr(d_charge_recvbuf);
-    thrust::device_ptr<const Scalar> diameter_recvbuf_ptr(d_diameter_recvbuf);
-    thrust::device_ptr<const Scalar4> orientation_recvbuf_ptr(d_orientation_recvbuf);
+    unsigned int block_size = 128;
 
-    if (send_tag) thrust::copy(thrust::cuda::par(alloc), tag_recvbuf_ptr, tag_recvbuf_ptr + n_recv, tag_ptr);
-    if (send_pos) thrust::copy(thrust::cuda::par(alloc), pos_recvbuf_ptr, pos_recvbuf_ptr + n_recv, pos_ptr);
-    if (send_vel) thrust::copy(thrust::cuda::par(alloc), vel_recvbuf_ptr, vel_recvbuf_ptr + n_recv, vel_ptr);
-    if (send_charge) thrust::copy(thrust::cuda::par(alloc), charge_recvbuf_ptr, charge_recvbuf_ptr + n_recv, charge_ptr);
-    if (send_diameter) thrust::copy(thrust::cuda::par(alloc), diameter_recvbuf_ptr, diameter_recvbuf_ptr + n_recv, diameter_ptr);
-    if (send_orientation) thrust::copy(thrust::cuda::par(alloc), orientation_recvbuf_ptr, orientation_recvbuf_ptr + n_recv, orientation_ptr);
+    gpu_exchange_ghosts_copy_kernel<<<n_recv/block_size+1,block_size>>>(
+        n_recv,
+        d_tag_recvbuf,
+        d_pos_recvbuf,
+        d_vel_recvbuf,
+        d_charge_recvbuf,
+        d_diameter_recvbuf,
+        d_orientation_recvbuf,
+        d_tag,
+        d_pos,
+        d_vel,
+        d_charge,
+        d_diameter,
+        d_orientation,
+        send_tag,
+        send_pos,
+        send_vel,
+        send_charge,
+        send_diameter,
+        send_orientation);
     }
 
 void gpu_compute_ghost_rtags(

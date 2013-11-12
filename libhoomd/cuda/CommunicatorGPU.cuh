@@ -253,8 +253,7 @@ void gpu_exchange_ghosts_pack(
     bool send_vel,
     bool send_charge,
     bool send_diameter,
-    bool send_orientation,
-    cached_allocator &alloc);
+    bool send_orientation);
 
 //! Wrap received ghost positions
 void gpu_wrap_ghosts(const unsigned int n_recv,
@@ -281,8 +280,7 @@ void gpu_exchange_ghosts_copy_buf(
     bool send_vel,
     bool send_charge,
     bool send_diameter,
-    bool send_orientation,
-    cached_allocator& alloc);
+    bool send_orientation);
 
 //! Compute ghost rtags
 void gpu_compute_ghost_rtags(unsigned int first_idx,

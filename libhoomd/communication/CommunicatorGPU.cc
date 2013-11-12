@@ -993,8 +993,7 @@ void CommunicatorGPU::exchangeGhosts()
                 flags[comm_flag::velocity],
                 flags[comm_flag::charge],
                 flags[comm_flag::diameter],
-                flags[comm_flag::orientation],
-                m_cached_alloc);
+                flags[comm_flag::orientation]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
@@ -1340,8 +1339,8 @@ void CommunicatorGPU::exchangeGhosts()
                 flags[comm_flag::velocity],
                 flags[comm_flag::charge],
                 flags[comm_flag::diameter],
-                flags[comm_flag::orientation],
-                m_cached_alloc);
+                flags[comm_flag::orientation]);
+
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
@@ -1425,8 +1424,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                 flags[comm_flag::velocity],
                 false,
                 false,
-                flags[comm_flag::orientation],
-                m_cached_alloc);
+                flags[comm_flag::orientation]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
@@ -1609,8 +1607,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                 flags[comm_flag::velocity],
                 false,
                 false,
-                flags[comm_flag::orientation],
-                m_cached_alloc);
+                flags[comm_flag::orientation]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
