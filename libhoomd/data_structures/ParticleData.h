@@ -526,6 +526,46 @@ class ParticleData : boost::noncopyable
         //! Return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
 
+        /*
+         * Access methods to alternate (stand-by) arrays for fast swapping in of reordered particle data
+         */
+
+        //! Return positions and types (alternate array)
+        const GPUArray< Scalar4 >& getAltPositions() const { return m_pos_alt; }
+
+        //! Return velocities and masses (alternate array)
+        const GPUArray< Scalar4 >& getAltVelocities() const { return m_vel_alt; }
+
+        //! Return accelerations (alternate array)
+        const GPUArray< Scalar3 >& getAltAccelerations() const { return m_accel_alt; }
+
+        //! Return charges (alternate array)
+        const GPUArray< Scalar >& getAltCharges() const { return m_charge_alt; }
+
+        //! Return diameters (alternate array)
+        const GPUArray< Scalar >& getAltDiameters() const { return m_diameter_alt; }
+
+        //! Return images (alternate array)
+        const GPUArray< int3 >& getAltImages() const { return m_image_alt; }
+
+        //! Return tags (alternate array)
+        const GPUArray< unsigned int >& getAltTags() const { return m_tag_alt; }
+
+        //! Return body ids (alternate array)
+        const GPUArray< unsigned int >& getAltBodies() const { return m_body_alt; }
+
+        //! Get the net force array (alternate array)
+        const GPUArray< Scalar4 >& getAltNetForce() const { return m_net_force_alt; }
+
+        //! Get the net virial array (alternate array)
+        const GPUArray< Scalar >& getAltNetVirial() const { return m_net_virial_alt; }
+
+        //! Get the net torque array (alternate array)
+        const GPUArray< Scalar4 >& getAltNetTorqueArray() const { return m_net_torque_alt; }
+
+        //! Get the orientations (alternate array)
+        const GPUArray< Scalar4 >& getAltOrientationArray() const { return m_orientation_alt; }
+
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
         */
@@ -878,6 +918,9 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_tag_alt;           //!< particle tags (swap-in)
         GPUArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
         GPUArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
+        GPUArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
+        GPUArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
+        GPUArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
 
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
 

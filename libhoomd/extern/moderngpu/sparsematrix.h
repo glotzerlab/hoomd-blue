@@ -34,55 +34,91 @@
 
 #pragma once
 
-#include "../mgpuhost.cuh"
-#include "../device/ctaloadbalance.cuh"
-#include "../kernels/search.cuh"
+#include "util/static.h"
 
 namespace mgpu {
 
-////////////////////////////////////////////////////////////////////////////////
-// KernelLoadBalance
+struct SparseMatrix {
+	int height, width, nz;
+	std::vector<int> csr;				// height
+	std::vector<int> cols;				// nz
+	std::vector<double> matrix;			// nz
+};
 
-template<typename Tuning, typename InputIt>
-MGPU_LAUNCH_BOUNDS void KernelLoadBalance(int aCount, InputIt b_global,
-	int bCount, const int* mp_global, int* indices_global) {
+bool ReadSparseMatrix(FILE* f, std::auto_ptr<SparseMatrix>* ppMatrix,
+	std::string& err);
 
-	typedef MGPU_LAUNCH_PARAMS Params;
-	const int NT = Params::NT;
-	const int VT = Params::VT;
-	__shared__ int indices_shared[NT * (VT + 1)];
+bool ReadSparseMatrix(const char* filename,
+	std::auto_ptr<SparseMatrix>* ppMatrix, std::string& err);
+
+bool LoadBinaryMatrix(const char* filename,
+	std::auto_ptr<SparseMatrix>* ppMatrix);
+
+bool StoreBinaryMatrix(const char* filename, const SparseMatrix& matrix);
+
+bool LoadCachedMatrix(const char* filename, 
+	std::auto_ptr<SparseMatrix>* ppMatrix, std::string& err);
+
+// Multiply the matrix by a vector of 1s.
+template<typename T>
+void SpmvTest(const SparseMatrix& m, T* results) {
+	memset(results, 0, sizeof(T) * m.height);
+	for(int row = 0; row < m.height; ++row) {
+		T product = 0;
+		int begin = m.csr[row];
+		int end = (row + 1 < m.height) ? m.csr[row + 1] : m.nz;
+		for(int i = begin; i < end; ++i)
+			product += (T)m.matrix[i];
+
+		results[row] = product;
+	}		
+}
+
+template<typename T>
+void CompareVecs(const T* test, const T* ref, int count) {
+	for(int i = 0; i < count; ++i) {
+		double x = ref[i];
+		double y = test[i];
+		double diff = fabs(x - y);
+
+		if(diff > 1.0e-5) {
+			if(y > 0) {
+				if(1.01 * x < y || 0.99 * x > y) {
+					printf("BAD OUTPUT AT COMPONENT %d: %8.5e vs %8.5e\n", i,
+						x, y);
+				//	exit(0);
+					return;
+				}
+			} else {
+				if(1.01 * x > y || 0.99 * x < y) {
+					printf("BAD OUTPUT AT COMPONENT %d: %8.5e vs %8.5e\n", i, 
+						x, y);
+				//	exit(0);
+					return;
+				}
+			}
+		}
+	}
+}
+
+struct MatrixStats {
+	int height, width, nz;
 	
-	int tid = threadIdx.x;
-	int block = blockIdx.x;
-	int4 range = CTALoadBalance<NT, VT>(aCount, b_global, bCount, block, tid,
-		mp_global, indices_shared, false);
-	aCount = range.y - range.x;
+	// Row density moments:
+	double mean;
+	double stddev;
+	double skewness;
+};
 
-	DeviceSharedToGlobal<NT, VT>(aCount, indices_shared, tid, 
-		indices_global + range.x, false);
-}
+MatrixStats ComputeMatrixStats(const SparseMatrix& m);
 
-////////////////////////////////////////////////////////////////////////////////
-// LoadBalanceSearch
+int64 MulSparseMatrices(const SparseMatrix& A, const SparseMatrix& B,
+	std::auto_ptr<SparseMatrix>* ppC);
 
-template<typename InputIt>
-MGPU_HOST void LoadBalanceSearch(int aCount, InputIt b_global, int bCount,
-	int* indices_global, CudaContext& context) {
 
-	const int NT = 128;
-	const int VT = 7;
-	typedef LaunchBoxVT<NT, VT> Tuning;
-	int2 launch = Tuning::GetLaunchParams(context);
-	const int NV = launch.x * launch.y;
-	  
-	MGPU_MEM(int) partitionsDevice = MergePathPartitions<MgpuBoundsUpper>(
-		mgpu::counting_iterator<int>(0), aCount, b_global, bCount, NV, 0,
-		mgpu::less<int>(), context);
+int64 ComputeProductCount(const SparseMatrix& A, const SparseMatrix& B);
 
-	int numBlocks = MGPU_DIV_UP(aCount + bCount, NV);
-	KernelLoadBalance<Tuning><<<numBlocks, launch.x, 0, context.Stream()>>>(
-		aCount, b_global, bCount, partitionsDevice->get(), indices_global);
-	MGPU_SYNC_CHECK("KernelLoadBalance");
-}
+void ComputeColRanges(const SparseMatrix& A, const SparseMatrix& B,
+	int* colMin, int* colMax);
 
 } // namespace mgpu

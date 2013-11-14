@@ -32,21 +32,39 @@
  *
  ******************************************************************************/
 
-#pragma once
+#pragma once 
 
-#include "kernels/reduce.cuh"
-#include "kernels/scan.cuh"
-#include "kernels/bulkremove.cuh"
-#include "kernels/bulkinsert.cuh"
-#include "kernels/merge.cuh"
-#include "kernels/mergesort.cuh"
-#include "kernels/segmentedsort.cuh"
-#include "kernels/localitysort.cuh"
-#include "kernels/sortedsearch.cuh"
-#include "kernels/loadbalance.cuh"
-#include "kernels/intervalmove.cuh"
-#include "kernels/join.cuh"
-#include "kernels/sets.cuh"
-#include "kernels/segreducecsr.cuh"
-#include "kernels/reducebykey.cuh"
-#include "kernels/spmvcsr.cuh"
+namespace mgpu {
+
+enum MgpuBounds {
+	MgpuBoundsLower,
+	MgpuBoundsUpper
+};
+
+enum MgpuScanType {
+	MgpuScanTypeExc,
+	MgpuScanTypeInc
+};
+
+enum MgpuSearchType {
+	MgpuSearchTypeNone,
+	MgpuSearchTypeIndex,
+	MgpuSearchTypeMatch,
+	MgpuSearchTypeIndexMatch
+};
+
+enum MgpuJoinKind {
+	MgpuJoinKindInner,
+	MgpuJoinKindLeft,
+	MgpuJoinKindRight,
+	MgpuJoinKindOuter
+};
+
+enum MgpuSetOp {
+	MgpuSetOpIntersection,
+	MgpuSetOpUnion,
+	MgpuSetOpDiff,
+	MgpuSetOpSymDiff
+};
+
+} // namespace mgpu

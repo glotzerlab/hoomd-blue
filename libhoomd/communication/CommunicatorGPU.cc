@@ -106,7 +106,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     // create at ModernGPU context
     int dev;
-    cudaGetDevice(&dev);
+    cudaGetDevice(&dev); // this is a kludge until we figure out how to attach MGPU to an existing context
     m_mgpu_context = mgpu::CreateCudaDevice(dev);
     }
 

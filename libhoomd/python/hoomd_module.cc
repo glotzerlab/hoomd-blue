@@ -166,6 +166,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
+#include "SFCPackUpdaterGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
@@ -562,6 +563,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_FIREEnergyMinimizer();
     export_FIREEnergyMinimizerRigid();
 #ifdef ENABLE_CUDA
+    export_SFCPackUpdaterGPU();
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
     export_TwoStepBDNVTGPU();

@@ -484,6 +484,18 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
     // orientation
     GPUArray< Scalar4 > orientation_alt(N, m_exec_conf);
     m_orientation_alt.swap(orientation_alt);
+
+    // Net force
+    GPUArray< Scalar4 > net_force_alt(N, m_exec_conf);
+    m_net_force_alt.swap(net_force_alt);
+
+    // Net virial
+    GPUArray< Scalar > net_virial_alt(N,6, m_exec_conf);
+    m_net_virial_alt.swap(net_virial_alt);
+
+    // Net torque
+    GPUArray< Scalar4 > net_torque_alt(N, m_exec_conf);
+    m_net_torque_alt.swap(net_torque_alt);
     }
 
 
@@ -577,6 +589,9 @@ void ParticleData::reallocate(unsigned int max_n)
         m_tag_alt.resize(max_n);
         m_body_alt.resize(max_n);
         m_orientation_alt.resize(max_n);
+        m_net_force_alt.resize(max_n);
+        m_net_torque_alt.resize(max_n);
+        m_net_virial_alt.resize(max_n, 6);
         }
 
     // notify observers

@@ -275,7 +275,10 @@ class sort(_updater):
         _updater.__init__(self);
 
         # create the c++ mirror class
-        self.cpp_updater = hoomd.SFCPackUpdater(globals.system_definition);
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_updater = hoomd.SFCPackUpdater(globals.system_definition);
+        else:
+            self.cpp_updater = hoomd.SFCPackUpdaterGPU(globals.system_definition);
 
         default_period = 300;
         # change default period to 100 on the CPU

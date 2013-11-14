@@ -48,15 +48,17 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: joaander
+// Maintainer: jglaser
 
-/*! \file SFCPackUpdater.h
-    \brief Declares the SFCPackUpdater class
+/*! \file SFCPackUpdaterGPU.h
+    \brief Declares the SFCPackUpdaterGPU class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#ifdef ENABLE_CUDA
 
 #ifdef WIN32
 #pragma warning( push )
@@ -69,91 +71,57 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 #include "Updater.h"
-#include "NeighborList.h"
-#include "GPUVector.h"
 
-#ifndef __SFCPACK_UPDATER_H__
-#define __SFCPACK_UPDATER_H__
+#include "SFCPackUpdater.h"
+#include "SFCPackUpdaterGPU.cuh"
+#include "GPUArray.h"
+
+#ifndef __SFCPACK_UPDATER_GPU_H__
+#define __SFCPACK_UPDATER_GPU_H__
 
 //! Sort the particles
-/*! Impelements an algorithm that reorders particles in the ParticleData so that particles
-    near each other in space become near each other in memory. This transformation improves
-    cache locality in almost every other calculation in HOOMD, such as LJForceCompute,
-    HarmonicBondForceCompute, and NeighborListBinned, to name a few. As particles move
-    through time, they will tend to unsort themselves at a rate depending on how diffusive
-    the simulation is. Tests preformed on a Leannard-Jones liquid simulation at a temperature of 1.2
-    showed that performing the sort every 1,000 time steps is sufficient to maintain the
-    benifits of the sort without significant overhead. Less diffusive systems can easily increase
-    that value to 2,000 or more.
-
-    Usage:<br>
-    Constructe the SFCPackUpdater, attaching it to the ParticleData. The grid size is automatically set to reasonable
-    defaults, which is as high as it can possibly go without consuming a significant amount of memory. The grid
-    dimension can be changed by calling setGrid().
-
-    Implementation details:<br>
-    The rearranging is done by computing bins for the particles, and then ordering the particles based on the order in
-    which those bins appear along a hilbert curve. It is very efficient, even when the box size changes often as the
-    grid dimension is kept constant.
+/*! GPU implementation of SFCPackUpdater
 
     \ingroup updaters
 */
-class SFCPackUpdater : public Updater
+class SFCPackUpdaterGPU : public SFCPackUpdater
     {
     public:
         //! Constructor
-        SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef);
+        SFCPackUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
-        virtual ~SFCPackUpdater();
-
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-
-        //! Set the grid dimension
-        /*! \param grid New grid dimension to set
-            \note It is automatically rounded up to the nearest power of 2
-        */
-        void setGrid(unsigned int grid)
-            {
-            m_grid = (unsigned int)pow(2.0, ceil(log(double(grid)) / log(2.0)));;
-            }
+        virtual ~SFCPackUpdaterGPU();
 
     protected:
-        unsigned int m_grid;        //!< Grid dimension to use
-        unsigned int m_last_grid;   //!< The last value of MMax
-        unsigned int m_last_dim;    //!< Check the last dimension we ran at
-        GPUArray< unsigned int > m_traversal_order;      //!< Generated traversal order of bins
+        // reallocate internal data structure
+        virtual void reallocate();
+
+    private:
+        GPUArray<unsigned int> m_gpu_particle_bins;    //!< Particle bins
+        GPUArray<unsigned int> m_gpu_sort_order;       //!< Generated sort order of the particles
 
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the maximum particle number change signal of particle data
+
         //! Helper function that actually performs the sort
         virtual void getSortedOrder2D();
+
         //! Helper function that actually performs the sort
         virtual void getSortedOrder3D();
 
         //! Apply the sorted order to the particle data
         virtual void applySortOrder();
 
-        //! Helper function to generate traversal order
-        static void generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned int cell_order[8], vector< unsigned int > &traversal_order);
+        mgpu::ContextPtr m_mgpu_context;                    //!< MGPU context (for sorting)
+    };
 
-        //! Write traversal order out for visualization
-        void writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order);
+//! Export the SFCPackUpdaterGPU class to python
+void export_SFCPackUpdaterGPU();
 
-        //! Reallocate internal arrays
-        virtual void reallocate();
-
-    private:
-        std::vector<unsigned int> m_sort_order;             //!< Generated sort order of the particles
-        std::vector< std::pair<unsigned int, unsigned int> > m_particle_bins;    //!< Binned particles
-
-   };
-
-//! Export the SFCPackUpdater class to python
-void export_SFCPackUpdater();
-
-#endif
+#endif // __SFC_PACK_UPDATER_GPU_H_
 
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+
+#endif // ENABLE_CUDA

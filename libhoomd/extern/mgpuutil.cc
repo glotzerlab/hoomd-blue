@@ -32,12 +32,23 @@
  *
  ******************************************************************************/
 
+#include "util/format.h"
 #include <vector_types.h>
-#include "moderngpu/util/format.h"
 #include <cstdarg>
 #include <map>
 
+#define MGPU_RAND_NS std::tr1
+
+#ifdef _MSC_VER
+#include <random>
+#else
+#include <tr1/random>
+#endif
+
 namespace mgpu {
+
+////////////////////////////////////////////////////////////////////////////////
+// String formatting utilities.
 
 std::string stringprintf(const char* format, ...) {
 	va_list args;
@@ -124,6 +135,36 @@ public:
 const char* TypeIdString(const std::type_info& ti) {
 	static TypeIdMap typeIdMap;
 	return typeIdMap.name(ti);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Random number generators.
+
+MGPU_RAND_NS::mt19937 mt19937;
+
+int Rand(int min, int max) {
+	MGPU_RAND_NS::uniform_int<int> r(min, max);
+	return r(mt19937);
+}
+int64 Rand(int64 min, int64 max) {
+	MGPU_RAND_NS::uniform_int<int64> r(min, max);
+	return r(mt19937);
+}
+uint Rand(uint min, uint max) {
+	MGPU_RAND_NS::uniform_int<uint> r(min, max);
+	return r(mt19937);
+}
+uint64 Rand(uint64 min, uint64 max) {
+	MGPU_RAND_NS::uniform_int<uint64> r(min, max);
+	return r(mt19937);
+}
+float Rand(float min, float max) {
+	MGPU_RAND_NS::uniform_real<float> r(min, max);
+	return r(mt19937);
+}
+double Rand(double min, double max) {
+	MGPU_RAND_NS::uniform_real<double> r(min, max);
+	return r(mt19937);
 }
 
 } // namespace mgpu

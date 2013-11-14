@@ -14,6 +14,7 @@ include_directories(${HOOMD_SOURCE_DIR}/libhoomd/utils
                     ${HOOMD_SOURCE_DIR}/libhoomd/system
                     ${HOOMD_SOURCE_DIR}/libhoomd/extern
                     ${HOOMD_SOURCE_DIR}/libhoomd/communication
+                    ${HOOMD_SOURCE_DIR}/libhoomd/extern/moderngpu
                     ${CUDA_INCLUDE}
                     ${HOOMD_BINARY_DIR}/include)
 

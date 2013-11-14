@@ -725,7 +725,7 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
 
     // determine output size
     unsigned int total = 0;
-    if (N) total = mgpu::Scan<mgpu::MgpuScanTypeExc>(d_counts, N, *mgpu_context);
+    if (N) mgpu::ScanExc(d_counts, N, &total, *mgpu_context);
     return total;
     }
 
@@ -780,7 +780,7 @@ __global__ void gpu_expand_neighbors_kernel(const unsigned int n_out,
 
     // Copy the source indices into register.
     int sources[VT];
-    mgpu::DeviceSharedToReg<NT, VT>(NT * VT, shared.indices, tid, sources);
+    mgpu::DeviceSharedToReg<NT, VT>(shared.indices, tid, sources);
 
     __syncthreads();
 
