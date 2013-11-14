@@ -1427,6 +1427,7 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
 
 //! Set the current position of a particle
 /* \post In parallel simulations, the particle is moved to a new domain if necessary.
+ * \warning Do not call during a simulation (method can overwrite ghost particle data)
  */
 void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     {
@@ -1904,7 +1905,10 @@ struct to_pdata_element : public std::unary_function<const pdata_tuple, pdata_el
         }
     };
 
-
+/*! \note This method may only be used during communication or when
+ *        no ghost particles are present, because ghost particle values
+ *        are undefined after calling this method.
+ */
 void ParticleData::removeParticles(std::vector<pdata_element>& out)
     {
     if (m_prof) m_prof->push("pack");
@@ -1997,8 +2001,21 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out)
             std::not1(pdata_element_select(h_rtag.data,NOT_LOCAL)));
         }
 
-    // swap temp arrays and pdata arrays
-    swap();
+    // we do not fill net force, net virial, and net torque, so swap twice
+    m_net_force.swap(m_net_force_alt);
+    m_net_virial.swap(m_net_virial_alt);
+    m_net_torque.swap(m_net_torque_alt);
+
+    // swap particle data arrays
+    swapPositions();
+    swapVelocities();
+    swapAccelerations();
+    swapCharges();
+    swapDiameters();
+    swapImages();
+    swapBodies();
+    swapOrientations();
+    swapTags();
 
         {
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
@@ -2080,6 +2097,10 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
 
 #ifdef ENABLE_CUDA
 //! Pack particle data into a buffer (GPU version)
+/*! \note This method may only be used during communication or when
+ *        no ghost particles are present, because ghost particle values
+ *        are undefined after calling this method.
+ */
 void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
     {
     if (m_prof) m_prof->push(m_exec_conf, "pack");
@@ -2170,7 +2191,15 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
     m_nparticles -= n_out;
 
     // swap particle data arrays
-    swap();
+    swapPositions();
+    swapVelocities();
+    swapAccelerations();
+    swapCharges();
+    swapDiameters();
+    swapImages();
+    swapBodies();
+    swapOrientations();
+    swapTags();
 
         {
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);

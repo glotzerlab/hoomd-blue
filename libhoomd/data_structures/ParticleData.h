@@ -526,45 +526,98 @@ class ParticleData : boost::noncopyable
         //! Return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
 
-        /*
-         * Access methods to alternate (stand-by) arrays for fast swapping in of reordered particle data
+        /*!
+         * Access methods to stand-by arrays for fast swapping in of reordered particle data
+         *
+         * \warning An array that is swapped in has to be completely initialized.
+         *          In parallel simulations, the ghost data needs to be initalized as well,
+         *          or all ghosts need to be removed and re-initialized before and after reordering.
+         *
+         * USAGE EXAMPLE:
+         * \code
+         * m_comm->migrateParticles(); // migrate particles and remove all ghosts
+         *     {
+         *      ArrayHandle<Scalar4> h_pos_alt(m_pdata->getAltPositions(), access_location::host, access_mode::overwrite)
+         *      ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+         *      for (int i=0; i < getN(); ++i)
+         *          h_pos_alt.data[i] = h_pos.data[permutation[i]]; // apply some permutation
+         *     }
+         * m_pdata->swapPositions(); // swap in reordered data at no extra cost
+         * m_comm->exchangeGhosts(); // restore ghost particles
+         * \endcode
          */
 
         //! Return positions and types (alternate array)
         const GPUArray< Scalar4 >& getAltPositions() const { return m_pos_alt; }
 
+        //! Swap in positions
+        inline void swapPositions() { m_pos.swap(m_pos_alt); }
+
         //! Return velocities and masses (alternate array)
         const GPUArray< Scalar4 >& getAltVelocities() const { return m_vel_alt; }
+
+        //! Swap in velocities
+        inline void swapVelocities() { m_vel.swap(m_vel_alt); }
 
         //! Return accelerations (alternate array)
         const GPUArray< Scalar3 >& getAltAccelerations() const { return m_accel_alt; }
 
+        //! Swap in accelerations
+        inline void swapAccelerations() { m_accel.swap(m_accel_alt); }
+
         //! Return charges (alternate array)
         const GPUArray< Scalar >& getAltCharges() const { return m_charge_alt; }
+
+        //! Swap in accelerations
+        inline void swapCharges() { m_charge.swap(m_charge_alt); }
 
         //! Return diameters (alternate array)
         const GPUArray< Scalar >& getAltDiameters() const { return m_diameter_alt; }
 
+        //! Swap in diameters
+        inline void swapDiameters() { m_diameter.swap(m_diameter_alt); }
+
         //! Return images (alternate array)
         const GPUArray< int3 >& getAltImages() const { return m_image_alt; }
+
+        //! Swap in images
+        inline void swapImages() { m_image.swap(m_image_alt); }
 
         //! Return tags (alternate array)
         const GPUArray< unsigned int >& getAltTags() const { return m_tag_alt; }
 
+        //! Swap in tags
+        inline void swapTags() { m_tag.swap(m_tag_alt); }
+
         //! Return body ids (alternate array)
         const GPUArray< unsigned int >& getAltBodies() const { return m_body_alt; }
+
+        //! Swap in bodies
+        inline void swapBodies() { m_body.swap(m_body_alt); }
 
         //! Get the net force array (alternate array)
         const GPUArray< Scalar4 >& getAltNetForce() const { return m_net_force_alt; }
 
+        //! Swap in net force
+        inline void swapNetForce() { m_net_force.swap(m_net_force_alt); }
+
         //! Get the net virial array (alternate array)
         const GPUArray< Scalar >& getAltNetVirial() const { return m_net_virial_alt; }
+
+        //! Swap in net virial
+        inline void swapNetVirial() { m_net_virial.swap(m_net_virial_alt); }
 
         //! Get the net torque array (alternate array)
         const GPUArray< Scalar4 >& getAltNetTorqueArray() const { return m_net_torque_alt; }
 
+        //! Swap in net torque
+        inline void swapNetTorque() { m_net_torque.swap(m_net_torque_alt); }
+
         //! Get the orientations (alternate array)
         const GPUArray< Scalar4 >& getAltOrientationArray() const { return m_orientation_alt; }
+
+        //! Swap in orientations
+        inline void swapOrientations() { m_orientation.swap(m_orientation_alt); }
 
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
@@ -836,32 +889,6 @@ class ParticleData : boost::noncopyable
             {
             m_origin = make_scalar3(0,0,0);
             m_o_image = make_int3(0,0,0);
-            }
-
-        //! Swap between main and alternate particle data arrays
-        /*! This enables fast swapping-in of previously initialized data.
-
-            \post The main particle data arrays eflect the content of the
-            alternate pdata arrays, and vice versa.
-
-            \warning If the alternate particle data arrays are uninitialized
-            before the swap(), the particle data arrays will be unitiailized after
-            the swap() as a consequence.
-
-            \note swap() doesn't change the actual particle data, it's action
-            can be completely reversed by a second swap().
-         */
-        void swap()
-            {
-            m_pos.swap(m_pos_alt);
-            m_vel.swap(m_vel_alt);
-            m_accel.swap(m_accel_alt);
-            m_charge.swap(m_charge_alt);
-            m_diameter.swap(m_diameter_alt);
-            m_image.swap(m_image_alt);
-            m_tag.swap(m_tag_alt);
-            m_body.swap(m_body_alt);
-            m_orientation.swap(m_orientation_alt);
             }
 
     private:

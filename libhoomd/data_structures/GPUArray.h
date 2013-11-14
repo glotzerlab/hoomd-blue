@@ -600,6 +600,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     {
     // this may work, but really shouldn't be done when aquired
     assert(!m_acquired && !from.m_acquired);
+    assert(&from != this);
 
     std::swap(m_num_elements, from.m_num_elements);
     std::swap(m_pitch, from.m_pitch);
@@ -618,6 +619,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
 template<class T> void GPUArray<T>::swap(GPUArray& from) const
     {
     assert(!m_acquired && !from.m_acquired);
+    assert(&from != this);
 
     std::swap(m_num_elements, from.m_num_elements);
     std::swap(m_pitch, from.m_pitch);

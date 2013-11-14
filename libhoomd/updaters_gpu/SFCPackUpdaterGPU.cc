@@ -169,7 +169,7 @@ void SFCPackUpdaterGPU::getSortedOrder3D()
 
     // sanity checks
     assert(m_gpu_particle_bins.getNumElements() >= m_pdata->getN());
-    assert(m_traversal_order.size() == m_grid*m_grid*m_grid);
+    assert(m_traversal_order.getNumElements() == m_grid*m_grid*m_grid);
 
     // access arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -196,75 +196,88 @@ void SFCPackUpdaterGPU::applySortOrder()
     assert(m_pdata);
     assert(m_gpu_sort_order.getNumElements() >= m_pdata->getN());
 
-    // access alternate arrays to write to
-    ArrayHandle<Scalar4> d_pos_alt(m_pdata->getAltPositions(), access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_vel_alt(m_pdata->getAltVelocities(), access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar3> d_accel_alt(m_pdata->getAltAccelerations(), access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_charge_alt(m_pdata->getAltCharges(), access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_diameter_alt(m_pdata->getAltDiameters(), access_location::device, access_mode::overwrite);
-    ArrayHandle<int3> d_image_alt(m_pdata->getAltImages(), access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_body_alt(m_pdata->getAltBodies(), access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_tag_alt(m_pdata->getAltTags(), access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_orientation_alt(m_pdata->getAltOrientationArray(), access_location::device, access_mode::overwrite);
+        {
+        // access alternate arrays to write to
+        ArrayHandle<Scalar4> d_pos_alt(m_pdata->getAltPositions(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_vel_alt(m_pdata->getAltVelocities(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar3> d_accel_alt(m_pdata->getAltAccelerations(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_charge_alt(m_pdata->getAltCharges(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_diameter_alt(m_pdata->getAltDiameters(), access_location::device, access_mode::overwrite);
+        ArrayHandle<int3> d_image_alt(m_pdata->getAltImages(), access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_body_alt(m_pdata->getAltBodies(), access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_tag_alt(m_pdata->getAltTags(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_orientation_alt(m_pdata->getAltOrientationArray(), access_location::device, access_mode::overwrite);
 
-    ArrayHandle<Scalar> d_net_virial_alt(m_pdata->getAltNetVirial(), access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_net_force_alt(m_pdata->getAltNetForce(), access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_net_torque_alt(m_pdata->getAltNetTorqueArray(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_net_virial_alt(m_pdata->getAltNetVirial(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_net_force_alt(m_pdata->getAltNetForce(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_net_torque_alt(m_pdata->getAltNetTorqueArray(), access_location::device, access_mode::overwrite);
 
-    // access live particle data to read from
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+        // access live particle data to read from
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+        ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
 
-    ArrayHandle<Scalar> d_net_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_net_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
 
-    // access rtags
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+        // access rtags
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
 
-    // access sorted order
-    ArrayHandle<unsigned int> d_gpu_sort_order(m_gpu_sort_order, access_location::device, access_mode::read);
+        // access sorted order
+        ArrayHandle<unsigned int> d_gpu_sort_order(m_gpu_sort_order, access_location::device, access_mode::read);
 
-    // apply sorted order and re-build rtags
-    gpu_apply_sorted_order(m_pdata->getN(),
-        d_gpu_sort_order.data,
-        d_pos.data,
-        d_pos_alt.data,
-        d_vel.data,
-        d_vel_alt.data,
-        d_accel.data,
-        d_accel_alt.data,
-        d_charge.data,
-        d_charge_alt.data,
-        d_diameter.data,
-        d_diameter_alt.data,
-        d_image.data,
-        d_image_alt.data,
-        d_body.data,
-        d_body_alt.data,
-        d_tag.data,
-        d_tag_alt.data,
-        d_orientation.data,
-        d_orientation_alt.data,
-        d_net_virial.data,
-        d_net_virial_alt.data,
-        d_net_force.data,
-        d_net_force_alt.data,
-        d_net_torque.data,
-        d_net_torque_alt.data,
-        d_rtag.data);
+        // apply sorted order and re-build rtags
+        gpu_apply_sorted_order(m_pdata->getN(),
+            d_gpu_sort_order.data,
+            d_pos.data,
+            d_pos_alt.data,
+            d_vel.data,
+            d_vel_alt.data,
+            d_accel.data,
+            d_accel_alt.data,
+            d_charge.data,
+            d_charge_alt.data,
+            d_diameter.data,
+            d_diameter_alt.data,
+            d_image.data,
+            d_image_alt.data,
+            d_body.data,
+            d_body_alt.data,
+            d_tag.data,
+            d_tag_alt.data,
+            d_orientation.data,
+            d_orientation_alt.data,
+            d_net_virial.data,
+            d_net_virial_alt.data,
+            d_net_force.data,
+            d_net_force_alt.data,
+            d_net_torque.data,
+            d_net_torque_alt.data,
+            d_rtag.data);
 
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        }
 
     // make alternate arrays current
-    m_pdata->swap();
+    m_pdata->swapPositions();
+    m_pdata->swapVelocities();
+    m_pdata->swapAccelerations();
+    m_pdata->swapCharges();
+    m_pdata->swapDiameters();
+    m_pdata->swapImages();
+    m_pdata->swapBodies();
+    m_pdata->swapTags();
+    m_pdata->swapOrientations();
+    m_pdata->swapNetVirial();
+    m_pdata->swapNetForce();
+    m_pdata->swapNetTorque();
     }
 
 void export_SFCPackUpdaterGPU()

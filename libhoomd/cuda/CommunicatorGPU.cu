@@ -729,20 +729,6 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
     return total;
     }
 
-//! Unary function to select one of two spatial directions (positive or negative)
-struct gpu_select_direction : thrust::unary_function<unsigned int, bool>
-    {
-    unsigned int dir;
-
-    gpu_select_direction(unsigned int _dir)
-        : dir(_dir) {}
-
-    __device__ bool operator() (unsigned int plan)
-        {
-        return plan & (dir ? (send_east | send_north | send_up) : (send_west | send_south | send_down));
-        }
-    };
-
 template<typename Tuning>
 __global__ void gpu_expand_neighbors_kernel(const unsigned int n_out,
     const int *d_offs,

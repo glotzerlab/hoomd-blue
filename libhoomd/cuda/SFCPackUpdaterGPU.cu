@@ -218,7 +218,8 @@ void gpu_apply_sorted_order(
     unsigned int block_size = 512;
     unsigned int n_blocks = (N % block_size) ? N/block_size + 1 : N/block_size;
 
-    gpu_apply_sorted_order_kernel<<<n_blocks, block_size>>>(N, d_sorted_order,
+    gpu_apply_sorted_order_kernel<<<n_blocks, block_size>>>(N,
+        d_sorted_order,
         d_pos,
         d_pos_alt,
         d_vel,

@@ -545,6 +545,14 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             }
         }
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // migrate particles back into domains and remove all ghost atoms
+        m_comm->migrateParticles();
+        }
+    #endif
+
     // generate a final status line
     if (!m_quiet_run)
         generateStatusLine();

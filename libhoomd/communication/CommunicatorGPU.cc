@@ -426,6 +426,9 @@ struct get_migrate_key : public std::unary_function<const pdata_element, std::pa
         else if (f.z < tol && (mask & Communicator::send_down))
             iz = -1;
 
+        // sanity check: particle has to be sent somewhere
+        assert(ix || iy || iz);
+
         int i = my_pos.x;
         int j = my_pos.y;
         int k = my_pos.z;

@@ -123,14 +123,19 @@ SFCPackUpdater::~SFCPackUpdater()
  */
 void SFCPackUpdater::update(unsigned int timestep)
     {
+    m_exec_conf->msg->notice(6) << "SFCPackUpdater: particle sort" << std::endl;
+
     #ifdef ENABLE_MPI
-    // make sure all particles are inside their respective domains (so we do
-    // not need to pad the particle bins)
+    /* migrate particles are to their respective domains
+       this has two consequences:
+       1. we do not need to pad the particle bins for particles that are outside the domain
+       2. we migrate only, so all ghost particles are cleared, and we can reorder the particle data
+          without having to account for ghosts
+     */
     if (m_pdata->getDomainDecomposition())
         {
         assert(m_comm);
-        m_comm->forceMigrate();
-        m_comm->communicate(timestep);
+        m_comm->migrateParticles();
         }
     #endif
 
@@ -148,6 +153,15 @@ void SFCPackUpdater::update(unsigned int timestep)
     m_pdata->notifyParticleSort();
 
     if (m_prof) m_prof->pop(m_exec_conf);
+
+    #ifdef ENABLE_MPI
+    /* restore ghost particles */
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_comm->exchangeGhosts();
+        }
+    #endif
+
     }
 
 void SFCPackUpdater::applySortOrder()
