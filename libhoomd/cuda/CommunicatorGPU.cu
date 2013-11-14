@@ -182,8 +182,8 @@ struct select_particle_migrate_gpu : public thrust::unary_function<const Scalar4
         Scalar3 f = box.makeFraction(pos);
 
         unsigned int flags = 0;
-        if (f.x >= Scalar(1.0)) flags |= send_west;
-        if (f.x < Scalar(0.0)) flags |= send_east;
+        if (f.x >= Scalar(1.0)) flags |= send_east;
+        if (f.x < Scalar(0.0)) flags |= send_west;
         if (f.y >= Scalar(1.0)) flags |= send_north;
         if (f.y < Scalar(0.0)) flags |= send_south;
         if (f.z >= Scalar(1.0)) flags |= send_up;
