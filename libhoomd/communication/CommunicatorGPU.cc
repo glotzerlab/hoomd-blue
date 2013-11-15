@@ -75,7 +75,8 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_n_unique_neigh(0),
       m_max_stages(1),
       m_num_stages(0),
-      m_comm_mask(0)
+      m_comm_mask(0),
+      m_last_flags(0)
     {
     // find out if this is a 1D decomposition
     unsigned int d = 0;
@@ -159,6 +160,9 @@ void CommunicatorGPU::allocateBuffers()
      * Ghost communication
      */
 
+    GPUVector<unsigned int> tag_ghost_sendbuf(m_exec_conf,mapped);
+    m_tag_ghost_sendbuf.swap(tag_ghost_sendbuf);
+
     GPUVector<unsigned int> tag_ghost_recvbuf(m_exec_conf,mapped);
     m_tag_ghost_recvbuf.swap(tag_ghost_recvbuf);
 
@@ -201,8 +205,8 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<unsigned int> ghost_plan(m_exec_conf);
     m_ghost_plan.swap(ghost_plan);
 
-    GPUVector<unsigned int> ghost_tag(m_exec_conf);
-    m_ghost_tag.swap(ghost_tag);
+    GPUVector<unsigned int> ghost_idx(m_exec_conf);
+    m_ghost_idx.swap(ghost_idx);
 
     GPUVector<unsigned int> neigh_counts(m_exec_conf);
     m_neigh_counts.swap(neigh_counts);
@@ -464,6 +468,7 @@ void CommunicatorGPU::migrateParticles()
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
 
+    if (m_last_flags[comm_flag::tag])
         {
         // Reset reverse lookup tags of old ghost atoms
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
@@ -856,7 +861,10 @@ void CommunicatorGPU::exchangeGhosts()
     m_ghost_begin.resize(m_n_unique_neigh*m_num_stages);
     m_ghost_end.resize(m_n_unique_neigh*m_num_stages);
 
-    m_tag_offs.resize(m_num_stages);
+    m_idx_offs.resize(m_num_stages);
+
+    // get requested ghost fields
+    CommFlags flags = getFlags();
 
     // main communication loop
     for (unsigned int stage = 0; stage < m_num_stages; stage++)
@@ -881,9 +889,6 @@ void CommunicatorGPU::exchangeGhosts()
                 CHECK_CUDA_ERROR();
             }
 
-        // get requested ghost fields
-        CommFlags flags = getFlags();
-
         // resize temporary number of neighbors array
         m_neigh_counts.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
@@ -905,19 +910,20 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
-        // compute offset into tag send buf
-        m_tag_offs[stage] = 0;
+        // compute offset into ghost idx list
+        m_idx_offs[stage] = 0;
         for (unsigned int i = 0; i < stage; ++i)
-            m_tag_offs[stage] +=  m_n_send_ghosts_tot[i];
+            m_idx_offs[stage] +=  m_n_send_ghosts_tot[i];
 
         // compute maximum send buf size
         unsigned int n_max = 0;
         for (unsigned int istage = 0; istage <= stage; ++istage)
             if (m_n_send_ghosts_tot[istage] > n_max) n_max = m_n_send_ghosts_tot[istage];
 
-        // make room for send tags
-        m_ghost_tag.resize(m_tag_offs[stage] + m_n_send_ghosts_tot[stage]);
+        // make room for ghost indices
+        m_ghost_idx.resize(m_idx_offs[stage] + m_n_send_ghosts_tot[stage]);
 
+        if (flags[comm_flag::tag]) m_tag_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::position]) m_pos_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::velocity]) m_vel_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::charge]) m_charge_ghost_sendbuf.resize(n_max);
@@ -933,7 +939,7 @@ void CommunicatorGPU::exchangeGhosts()
 
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
-            ArrayHandle<unsigned int> d_ghost_tag(m_ghost_tag, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_ghost_begin(m_ghost_begin, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_ghost_end(m_ghost_end, access_location::device, access_mode::overwrite);
 
@@ -946,7 +952,7 @@ void CommunicatorGPU::exchangeGhosts()
                 d_neighbors.data,
                 d_unique_neighbors.data,
                 d_neigh_counts.data,
-                d_ghost_tag.data + m_tag_offs[stage],
+                d_ghost_idx.data + m_idx_offs[stage],
                 d_ghost_begin.data + stage*m_n_unique_neigh,
                 d_ghost_end.data + stage*m_n_unique_neigh,
                 m_nneigh,
@@ -961,6 +967,7 @@ void CommunicatorGPU::exchangeGhosts()
 
             {
             // access particle data
+            ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
             ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
@@ -969,9 +976,10 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
 
             // access ghost send indices
-            ArrayHandle<unsigned int> d_ghost_tag(m_ghost_tag, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx, access_location::device, access_mode::read);
 
             // access output buffers
+            ArrayHandle<unsigned int> d_tag_ghost_sendbuf(m_tag_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_pos_ghost_sendbuf(m_pos_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_vel_ghost_sendbuf(m_vel_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar> d_charge_ghost_sendbuf(m_charge_ghost_sendbuf, access_location::device, access_mode::overwrite);
@@ -981,18 +989,20 @@ void CommunicatorGPU::exchangeGhosts()
             // Pack ghosts into send buffers
             gpu_exchange_ghosts_pack(
                 m_n_send_ghosts_tot[stage],
-                d_ghost_tag.data + m_tag_offs[stage],
-                d_rtag.data,
+                d_ghost_idx.data + m_idx_offs[stage],
+                d_tag.data,
                 d_pos.data,
                 d_vel.data,
                 d_charge.data,
                 d_diameter.data,
                 d_orientation.data,
+                d_tag_ghost_sendbuf.data,
                 d_pos_ghost_sendbuf.data,
                 d_vel_ghost_sendbuf.data,
                 d_charge_ghost_sendbuf.data,
                 d_diameter_ghost_sendbuf.data,
                 d_orientation_ghost_sendbuf.data,
+                flags[comm_flag::tag],
                 flags[comm_flag::position],
                 flags[comm_flag::velocity],
                 flags[comm_flag::charge],
@@ -1069,7 +1079,7 @@ void CommunicatorGPU::exchangeGhosts()
         for (unsigned int istage = 0; istage <= stage; ++istage)
             if (m_n_recv_ghosts_tot[istage] > n_max) n_max = m_n_recv_ghosts_tot[istage];
 
-        m_tag_ghost_recvbuf.resize(n_max);
+        if (flags[comm_flag::tag]) m_tag_ghost_recvbuf.resize(n_max);
         if (flags[comm_flag::position]) m_pos_ghost_recvbuf.resize(n_max);
         if (flags[comm_flag::velocity]) m_vel_ghost_recvbuf.resize(n_max);
         if (flags[comm_flag::charge]) m_charge_ghost_recvbuf.resize(n_max);
@@ -1087,7 +1097,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::device, access_mode::overwrite);
 
             // send buffers
-            ArrayHandle<unsigned int> ghost_tag_handle(m_ghost_tag, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> tag_ghost_sendbuf_handle(m_tag_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::device, access_mode::read);
@@ -1102,7 +1112,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> diameter_ghost_recvbuf_handle(m_diameter_ghost_recvbuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::host, access_mode::overwrite);
             // send buffers
-            ArrayHandle<unsigned int> ghost_tag_handle(m_ghost_tag, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> tag_ghost_sendbuf_handle(m_tag_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> vel_ghost_sendbuf_handle(m_vel_ghost_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::host, access_mode::read);
@@ -1125,11 +1135,12 @@ void CommunicatorGPU::exchangeGhosts()
                 // rank of neighbor processor
                 unsigned int neighbor = h_unique_neighbors.data[ineigh];
 
+                if (flags[comm_flag::tag])
                     {
                     // when sending/receiving 0 ptls, the send/recv buffer may be uninitialized
                     if (m_n_send_ghosts[stage][ineigh])
                         {
-                        MPI_Isend(ghost_tag_handle.data+h_ghost_begin.data[ineigh+stage*m_n_unique_neigh],
+                        MPI_Isend(tag_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh+stage*m_n_unique_neigh],
                             m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int),
                             MPI_BYTE,
                             neighbor,
@@ -1338,7 +1349,7 @@ void CommunicatorGPU::exchangeGhosts()
                 d_charge.data + first_idx,
                 d_diameter.data + first_idx,
                 d_orientation.data + first_idx,
-                true,
+                flags[comm_flag::tag],
                 flags[comm_flag::position],
                 flags[comm_flag::velocity],
                 flags[comm_flag::charge],
@@ -1363,6 +1374,7 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
+        if (flags[comm_flag::tag])
             {
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
@@ -1375,6 +1387,8 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
         } // end main communication loop
+
+    m_last_flags = flags;
 
     if (m_prof) m_prof->pop(m_exec_conf);
 
@@ -1399,12 +1413,12 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
 
             // access ghost send indices
-            ArrayHandle<unsigned int> d_ghost_tag(m_ghost_tag, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx, access_location::device, access_mode::read);
 
             // access output buffers
+            ArrayHandle<unsigned int> d_tag_ghost_sendbuf(m_tag_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_pos_ghost_sendbuf(m_pos_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_vel_ghost_sendbuf(m_vel_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf, access_location::device, access_mode::overwrite);
@@ -1412,18 +1426,20 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             // Pack ghosts into send buffers
             gpu_exchange_ghosts_pack(
                 m_n_send_ghosts_tot[stage],
-                d_ghost_tag.data + m_tag_offs[stage],
-                d_rtag.data,
+                d_ghost_idx.data + m_idx_offs[stage],
+                NULL,
                 d_pos.data,
                 d_vel.data,
                 NULL,
                 NULL,
                 d_orientation.data,
+                NULL,
                 d_pos_ghost_sendbuf.data,
                 d_vel_ghost_sendbuf.data,
                 NULL,
                 NULL,
                 d_orientation_ghost_sendbuf.data,
+                false,
                 flags[comm_flag::position],
                 flags[comm_flag::velocity],
                 false,

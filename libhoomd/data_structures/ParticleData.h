@@ -543,7 +543,7 @@ class ParticleData : boost::noncopyable
          *          h_pos_alt.data[i] = h_pos.data[permutation[i]]; // apply some permutation
          *     }
          * m_pdata->swapPositions(); // swap in reordered data at no extra cost
-         * m_comm->exchangeGhosts(); // restore ghost particles
+         * notifyParticleSort();     // ensures that ghosts will be restored at next communication step
          * \endcode
          */
 

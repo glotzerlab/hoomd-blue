@@ -736,7 +736,7 @@ __global__ void gpu_expand_neighbors_kernel(const unsigned int n_out,
     const unsigned int *d_plan,
     const unsigned int n_offs,
     const int* mp_global,
-    unsigned int *d_tag_out,
+    unsigned int *d_idx_out,
     const unsigned int *d_neighbors,
     const unsigned int *d_adj,
     const unsigned int nneigh,
@@ -762,7 +762,6 @@ __global__ void gpu_expand_neighbors_kernel(const unsigned int n_out,
     // The interval indices are in the left part of shared memory (n_out).
     // The scan of interval counts are in the right part (n_offs)
     int destCount = range.y - range.x;
-    int sourceCount = range.w - range.z;
 
     // Copy the source indices into register.
     int sources[VT];
@@ -796,16 +795,8 @@ __global__ void gpu_expand_neighbors_kernel(const unsigned int n_out,
     // write out neighbors to global mem
     mgpu::DeviceRegToGlobal<NT, VT>(destCount, neighbors, tid, d_neighbors_out + range.x);
 
-    // load tags
-    mgpu::DeviceMemToMemLoop<NT>(sourceCount, d_tag + range.z, tid, shared.values);
-
-    // gather tags into registers
-    unsigned int values[VT];
-    mgpu::DeviceGather<NT, VT>(destCount, shared.values - range.z, sources, tid,
-        values, false);
-
-    // store tags to global mem
-    mgpu::DeviceRegToGlobal<NT, VT>(destCount, values, tid, d_tag_out + range.x);
+    // store indices to global mem
+    mgpu::DeviceRegToGlobal<NT, VT>(destCount, sources, tid, d_idx_out + range.x);
     }
 
 void gpu_expand_neighbors(unsigned int n_out,
@@ -813,7 +804,7 @@ void gpu_expand_neighbors(unsigned int n_out,
     const unsigned int *d_tag,
     const unsigned int *d_plan,
     unsigned int n_offs,
-    unsigned int *d_tag_out,
+    unsigned int *d_idx_out,
     const unsigned int *d_neighbors,
     const unsigned int *d_adj,
     const unsigned int nneigh,
@@ -836,7 +827,7 @@ void gpu_expand_neighbors(unsigned int n_out,
 
     gpu_expand_neighbors_kernel<Tuning><<<numBlocks, launch.x, 0, context.Stream()>>>(
         n_out, (int *) d_offs, d_tag, d_plan, n_offs,
-        partitionsDevice->get(), d_tag_out,
+        partitionsDevice->get(), d_idx_out,
         d_neighbors, d_adj, nneigh, d_neighbors_out);
     }
 
@@ -848,7 +839,7 @@ void gpu_exchange_ghosts_make_indices(
     const unsigned int *d_neighbors,
     const unsigned int *d_unique_neighbors,
     const unsigned int *d_counts,
-    unsigned int *d_ghost_tag,
+    unsigned int *d_ghost_idx,
     unsigned int *d_ghost_begin,
     unsigned int *d_ghost_end,
     unsigned int nneigh,
@@ -869,13 +860,13 @@ void gpu_exchange_ghosts_make_indices(
     // allocate temporary array
     gpu_expand_neighbors(n_out,
         d_counts,
-        d_tag, d_ghost_plan, N, d_ghost_tag,
+        d_tag, d_ghost_plan, N, d_ghost_idx,
         d_neighbors, d_adj, nneigh,
         d_out_neighbors,
         *mgpu_context);
 
     // sort tags by neighbors
-    if (n_out) mgpu::LocalitySortPairs(d_out_neighbors, d_ghost_tag, n_out, *mgpu_context);
+    if (n_out) mgpu::LocalitySortPairs(d_out_neighbors, d_ghost_idx, n_out, *mgpu_context);
 
     mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_unique_neighbors, n_unique_neigh,
         d_out_neighbors, n_out, d_ghost_begin, *mgpu_context);
@@ -886,80 +877,49 @@ void gpu_exchange_ghosts_make_indices(
     alloc.deallocate((char *)d_out_neighbors,0);
     }
 
-__global__ void gpu_exchange_ghosts_pack_kernel(
+template<typename T>
+__global__ void gpu_pack_kernel(
     unsigned int n_out,
-    const unsigned int *d_ghost_tag,
-    const unsigned int *d_rtag,
-    const Scalar4 *d_pos,
-    const Scalar4 *d_vel,
-    const Scalar *d_charge,
-    const Scalar *d_diameter,
-    const Scalar4 *d_orientation,
-    Scalar4 *d_pos_sendbuf,
-    Scalar4 *d_vel_sendbuf,
-    Scalar *d_charge_sendbuf,
-    Scalar *d_diameter_sendbuf,
-    Scalar4 *d_orientation_sendbuf,
-    bool send_pos,
-    bool send_vel,
-    bool send_charge,
-    bool send_diameter,
-    bool send_orientation)
+    const unsigned int *d_ghost_idx,
+    const T *in,
+    T *out)
     {
-    unsigned int buf_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (buf_idx >= n_out) return;
-
-    unsigned int tag = d_ghost_tag[buf_idx];
-    unsigned int idx = d_rtag[tag];
-
-    if (send_pos) d_pos_sendbuf[buf_idx] = d_pos[idx];
-    if (send_vel) d_vel_sendbuf[buf_idx] = d_vel[idx];
-    if (send_charge) d_charge_sendbuf[buf_idx] = d_charge[idx];
-    if (send_diameter) d_diameter_sendbuf[buf_idx] = d_diameter[idx];
-    if (send_orientation) d_orientation_sendbuf[buf_idx] = d_orientation[idx];
+    unsigned int idx = d_ghost_idx[buf_idx];
+    out[buf_idx] = in[idx];
     }
 
 void gpu_exchange_ghosts_pack(
     unsigned int n_out,
-    const unsigned int *d_ghost_tag,
-    const unsigned int *d_rtag,
+    const unsigned int *d_ghost_idx,
+    const unsigned int *d_tag,
     const Scalar4 *d_pos,
     const Scalar4 *d_vel,
     const Scalar *d_charge,
     const Scalar *d_diameter,
     const Scalar4 *d_orientation,
+    unsigned int *d_tag_sendbuf,
     Scalar4 *d_pos_sendbuf,
     Scalar4 *d_vel_sendbuf,
     Scalar *d_charge_sendbuf,
     Scalar *d_diameter_sendbuf,
     Scalar4 *d_orientation_sendbuf,
+    bool send_tag,
     bool send_pos,
     bool send_vel,
     bool send_charge,
     bool send_diameter,
     bool send_orientation)
     {
-    unsigned int block_size = 128;
-
-    gpu_exchange_ghosts_pack_kernel<<<n_out/block_size+1,block_size>>>(
-        n_out,
-        d_ghost_tag,
-        d_rtag,
-        d_pos,
-        d_vel,
-        d_charge,
-        d_diameter,
-        d_orientation,
-        d_pos_sendbuf,
-        d_vel_sendbuf,
-        d_charge_sendbuf,
-        d_diameter_sendbuf,
-        d_orientation_sendbuf,
-        send_pos,
-        send_vel,
-        send_charge,
-        send_diameter,
-        send_orientation);
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_out/block_size + 1;
+    if (send_tag) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_tag, d_tag_sendbuf);
+    if (send_pos) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_pos, d_pos_sendbuf);
+    if (send_vel) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_vel, d_vel_sendbuf);
+    if (send_charge) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_charge, d_charge_sendbuf);
+    if (send_diameter) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_diameter, d_diameter_sendbuf);
+    if (send_orientation) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_orientation, d_orientation_sendbuf);
     }
 
 //! Wrap particles
@@ -1003,41 +963,6 @@ void gpu_wrap_ghosts(const unsigned int n_recv,
     thrust::transform(pos_ptr, pos_ptr + n_recv, pos_ptr, wrap_ghost_pos_gpu(box));
     }
 
-__global__ void gpu_exchange_ghosts_copy_kernel
-    (
-    unsigned int n_recv,
-    const unsigned int *d_tag_recvbuf,
-    const Scalar4 *d_pos_recvbuf,
-    const Scalar4 *d_vel_recvbuf,
-    const Scalar *d_charge_recvbuf,
-    const Scalar *d_diameter_recvbuf,
-    const Scalar4 *d_orientation_recvbuf,
-    unsigned int *d_tag,
-    Scalar4 *d_pos,
-    Scalar4 *d_vel,
-    Scalar *d_charge,
-    Scalar *d_diameter,
-    Scalar4 *d_orientation,
-    bool send_tag,
-    bool send_pos,
-    bool send_vel,
-    bool send_charge,
-    bool send_diameter,
-    bool send_orientation
-    )
-    {
-    unsigned int idx = blockDim.x*blockIdx.x+threadIdx.x;
-
-    if (idx >= n_recv) return;
-
-    if (send_tag) d_tag[idx] = d_tag_recvbuf[idx];
-    if (send_pos) d_pos[idx] = d_pos_recvbuf[idx];
-    if (send_vel) d_vel[idx] = d_vel_recvbuf[idx];
-    if (send_charge) d_charge[idx] = d_charge_recvbuf[idx];
-    if (send_diameter) d_diameter[idx] = d_diameter_recvbuf[idx];
-    if (send_orientation) d_orientation[idx] = d_orientation_recvbuf[idx];
-    }
-
 void gpu_exchange_ghosts_copy_buf(
     unsigned int n_recv,
     const unsigned int *d_tag_recvbuf,
@@ -1059,28 +984,12 @@ void gpu_exchange_ghosts_copy_buf(
     bool send_diameter,
     bool send_orientation)
     {
-    unsigned int block_size = 512;
-
-    gpu_exchange_ghosts_copy_kernel<<<n_recv/block_size+1,block_size>>>(
-        n_recv,
-        d_tag_recvbuf,
-        d_pos_recvbuf,
-        d_vel_recvbuf,
-        d_charge_recvbuf,
-        d_diameter_recvbuf,
-        d_orientation_recvbuf,
-        d_tag,
-        d_pos,
-        d_vel,
-        d_charge,
-        d_diameter,
-        d_orientation,
-        send_tag,
-        send_pos,
-        send_vel,
-        send_charge,
-        send_diameter,
-        send_orientation);
+    if (send_tag) cudaMemcpyAsync(d_tag, d_tag_recvbuf, n_recv*sizeof(unsigned int), cudaMemcpyDeviceToDevice,0);
+    if (send_pos) cudaMemcpyAsync(d_pos, d_pos_recvbuf, n_recv*sizeof(Scalar4), cudaMemcpyDeviceToDevice,0);
+    if (send_vel) cudaMemcpyAsync(d_vel, d_vel_recvbuf, n_recv*sizeof(Scalar4), cudaMemcpyDeviceToDevice,0);
+    if (send_charge) cudaMemcpyAsync(d_charge, d_charge_recvbuf, n_recv*sizeof(Scalar), cudaMemcpyDeviceToDevice,0);
+    if (send_diameter) cudaMemcpyAsync(d_diameter, d_diameter_recvbuf, n_recv*sizeof(Scalar), cudaMemcpyDeviceToDevice,0);
+    if (send_orientation) cudaMemcpyAsync(d_orientation, d_orientation_recvbuf, n_recv*sizeof(Scalar4), cudaMemcpyDeviceToDevice,0);
     }
 
 void gpu_compute_ghost_rtags(

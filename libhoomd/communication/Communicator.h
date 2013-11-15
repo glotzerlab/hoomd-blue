@@ -155,7 +155,8 @@ struct comm_flag
     //! The enum
     enum Enum
         {
-        position = 0,//! Bit id in CommFlags for particle positions
+        tag,         //! Bit id in CommFlags for particle tags
+        position,    //! Bit id in CommFlags for particle positions
         charge,      //! Bit id in CommFlags for particle charge
         diameter,    //! Bit id in CommFlags for particle diameter
         velocity,    //! Bit id in CommFlags for particle velocity
@@ -540,19 +541,10 @@ class Communicator
         std::vector<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
         std::vector<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
 
-        std::vector<Scalar4> scal4_tmp;          //!< Temporary list used to apply the sort order to the particle data
-        std::vector<Scalar3> scal3_tmp;          //!< Temporary list used to apply the sort order to the particle data
-        std::vector<Scalar> scal_tmp;            //!< Temporary list used to apply the sort order to the particle data
-        std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
-        std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
-
         bool m_is_first_step;                    //!< True if no communication has yet occured
 
-        //! Helper function to initialize the lookup tables
-        void setupLookupTable();
-
-        //! Helper function to intialize the routing tables
-        void setupRoutingTable();
+        //! Connection to the signal notifying when particles are resorted
+        boost::signals2::connection m_sort_connection;
     };
 
 

@@ -166,6 +166,7 @@ class CommunicatorGPU : public Communicator
         GPUVector<bond_element> m_gpu_bond_recvbuf;    //!< Buffer for bonds that are received
 
         /* Ghost communication */
+        GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< List of ghost particles tags per stage, ordered by neighbor
         GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags
         GPUVector<Scalar4> m_pos_ghost_sendbuf;        //<! Buffer for sending ghost positions
         GPUVector<Scalar4> m_pos_ghost_recvbuf;        //<! Buffer for receiving ghost positions
@@ -185,9 +186,9 @@ class CommunicatorGPU : public Communicator
         GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf
         GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf
 
+        GPUVector<unsigned int> m_ghost_idx;          //!< Indices of ghosts to send
         GPUVector<unsigned int> m_ghost_plan;         //!< Plans for every particle
-        GPUVector<unsigned int> m_ghost_tag;          //!< List of ghost particles tags per stage, ordered by neighbor
-        std::vector<unsigned int> m_tag_offs;         //!< Per-stage offset into tag send buf
+        std::vector<unsigned int> m_idx_offs;         //!< Per-stage offset into ghost idx list
 
         GPUVector<unsigned int> m_neigh_counts;       //!< List of number of neighbors to send ghost to (temp array)
 
@@ -198,6 +199,7 @@ class CommunicatorGPU : public Communicator
         std::vector<unsigned int> m_n_send_ghosts_tot; //!< Total number of sent ghosts per stage
         std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
+        CommFlags m_last_flags;                       //! Flags of last ghost exchange
         cached_allocator m_cached_alloc;              //!< Cached memory allocator for internal thrust code
         mgpu::ContextPtr m_mgpu_context;                    //!< MGPU context
 
