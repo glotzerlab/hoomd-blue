@@ -153,10 +153,10 @@ void CommunicatorGPU::allocateBuffers()
     GPUArray<unsigned int> adj_mask(NEIGH_MAX, m_exec_conf);
     m_adj_mask.swap(adj_mask);
 
-    GPUArray<unsigned int> begin(NEIGH_MAX,m_exec_conf);
+    GPUArray<unsigned int> begin(NEIGH_MAX,m_exec_conf,true);
     m_begin.swap(begin);
 
-    GPUArray<unsigned int> end(NEIGH_MAX,m_exec_conf);
+    GPUArray<unsigned int> end(NEIGH_MAX,m_exec_conf,true);
     m_end.swap(end);
 
     /*

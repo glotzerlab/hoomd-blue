@@ -256,14 +256,12 @@ template<class T> class GPUArray
         virtual ~GPUArray();
 
 #ifdef ENABLE_CUDA
-    protected:
         //! Constructs a 1-D GPUArray
         GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
         //! Constructs a 2-D GPUArray
         GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
-
-    public:
 #endif
+
         //! Copy constructor
         GPUArray(const GPUArray& from);
         //! = operator

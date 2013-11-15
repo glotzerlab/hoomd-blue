@@ -69,7 +69,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GPUFlags.h"
 #include "GPUArray.h"
-#include "GPUBufferMapped.h"
 
 /*! \ingroup communication
 */
