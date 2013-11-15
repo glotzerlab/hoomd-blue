@@ -220,7 +220,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getGhostWidth());
         #else
         unsigned int max_shared_neighbors = 8;
-        unsigned int threads_per_particle =1;
+        unsigned int threads_per_particle =4;
 
         gpu_compute_nlist_binned_shared(d_nlist.data,
                                  d_n_neigh.data,

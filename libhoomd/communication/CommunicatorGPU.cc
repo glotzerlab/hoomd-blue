@@ -199,10 +199,10 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<Scalar4> orientation_ghost_recvbuf(m_exec_conf,mapped);
     m_orientation_ghost_recvbuf.swap(orientation_ghost_recvbuf);
 
-    GPUVector<unsigned int> ghost_begin(m_exec_conf);
+    GPUVector<unsigned int> ghost_begin(m_exec_conf,true);
     m_ghost_begin.swap(ghost_begin);
 
-    GPUVector<unsigned int> ghost_end(m_exec_conf);
+    GPUVector<unsigned int> ghost_end(m_exec_conf,true);
     m_ghost_end.swap(ghost_end);
 
     GPUVector<unsigned int> ghost_plan(m_exec_conf);
