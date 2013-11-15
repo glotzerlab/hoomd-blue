@@ -792,7 +792,7 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
     if (m_mapped)
         {
         // if we are using mapped pinned memory, no need to copy, only synchronize
-        cudaDeviceSynchronize();
+        if (!async) cudaDeviceSynchronize();
         return;
         }
 
