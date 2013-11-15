@@ -259,6 +259,9 @@ void gpu_exchange_ghosts_pack(
     bool send_diameter,
     bool send_orientation);
 
+//! Initialize cache configuration
+void gpu_communicator_initialize_cache_config();
+
 //! Wrap received ghost positions
 void gpu_wrap_ghosts(const unsigned int n_recv,
                      Scalar4 *d_pos,

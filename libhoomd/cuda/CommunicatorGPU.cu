@@ -922,6 +922,13 @@ void gpu_exchange_ghosts_pack(
     if (send_orientation) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_orientation, d_orientation_sendbuf);
     }
 
+void gpu_communicator_initialize_cache_config()
+    {
+    cudaFuncSetCacheConfig(gpu_pack_kernel<Scalar>, cudaFuncCachePreferL1);
+    cudaFuncSetCacheConfig(gpu_pack_kernel<Scalar4>, cudaFuncCachePreferL1);
+    cudaFuncSetCacheConfig(gpu_pack_kernel<unsigned int>, cudaFuncCachePreferL1);
+    }
+
 //! Wrap particles
 struct wrap_ghost_pos_gpu : public thrust::unary_function<Scalar4, Scalar4>
     {

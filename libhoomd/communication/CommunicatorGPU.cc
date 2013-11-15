@@ -105,6 +105,9 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // initialize communciation stages
     initializeCommunicationStages();
 
+    // Initialize cache configuration
+    gpu_communicator_initialize_cache_config();
+
     // create at ModernGPU context
     int dev;
     cudaGetDevice(&dev); // this is a kludge until we figure out how to attach MGPU to an existing context
