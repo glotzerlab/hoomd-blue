@@ -894,6 +894,7 @@ class lj(pair):
             self.cpp_class = hoomd.PotentialPairLJGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
 
+        print "*******************************  ", self.force_name, " *******************************  "
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options

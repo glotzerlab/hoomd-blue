@@ -176,6 +176,12 @@ class PotentialPair : public ForceCompute
         //! Get ghost particle fields requested by this pair potential
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
+        
+        //! Friend function to compute the force and energy between a pair of particles.
+        void computeForcesAndEngergyOfParticlePair( const unsigned int& tag1,
+                                                    const unsigned int& tag2,
+                                                    Scalar& force_divr,
+                                                    Scalar& pair_eng);
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -598,6 +604,139 @@ CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timeste
     return flags;
     }
 #endif
+
+
+//! Friend function to compute the force and energy between a pair of particles.
+template< class evaluator >
+void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const unsigned int& tag1,
+                                                                        const unsigned int& tag2,
+                                                                        Scalar& force_divr,
+                                                                        Scalar& pair_eng)
+{
+
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_rtags(m_pdata->getRTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+
+    //force arrays
+//    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
+//    ArrayHandle<Scalar>  h_virial(m_virial,access_location::host, access_mode::overwrite);
+
+
+    const BoxDim& box = m_pdata->getBox();
+    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    
+    unsigned int i = h_rtags.data[tag1];
+    Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+    unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+    // sanity check
+    assert(typei < m_pdata->getNTypes());
+
+    // access diameter and charge (if needed)
+    Scalar di = Scalar(0.0);
+    Scalar qi = Scalar(0.0);
+    if (evaluator::needsDiameter())
+        di = h_diameter.data[i];
+    if (evaluator::needsCharge())
+        qi = h_charge.data[i];
+
+    // initialize current particle force, potential energy, and virial to 0
+    Scalar3 fi = make_scalar3(0, 0, 0);
+    Scalar pei = 0.0;
+    unsigned int j = h_rtags.data[tag2];
+    assert(j < m_pdata->getN() + m_pdata->getNGhosts());
+
+    // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+    Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+    Scalar3 dx = pi - pj;
+
+    // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
+    unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+    assert(typej < m_pdata->getNTypes());
+
+    // access diameter and charge (if needed)
+    Scalar dj = Scalar(0.0);
+    Scalar qj = Scalar(0.0);
+    if (evaluator::needsDiameter())
+        dj = h_diameter.data[j];
+    if (evaluator::needsCharge())
+        qj = h_charge.data[j];
+
+    // apply periodic boundary conditions
+    dx = box.minImage(dx);
+
+    // calculate r_ij squared (FLOPS: 5)
+    Scalar rsq = dot(dx, dx);
+
+    // get parameters for this type pair
+    unsigned int typpair_idx = m_typpair_idx(typei, typej);
+    param_type param = h_params.data[typpair_idx];
+    Scalar rcutsq = h_rcutsq.data[typpair_idx];
+    Scalar ronsq = Scalar(0.0);
+    if (m_shift_mode == xplor)
+        ronsq = h_ronsq.data[typpair_idx];
+
+    // design specifies that energies are shifted if
+    // 1) shift mode is set to shift
+    // or 2) shift mode is explor and ron > rcut
+    bool energy_shift = false;
+    if (m_shift_mode == shift)
+        energy_shift = true;
+    else if (m_shift_mode == xplor)
+        {
+        if (ronsq > rcutsq)
+            energy_shift = true;
+        }
+
+    // compute the force and potential energy
+//    Scalar force_divr = Scalar(0.0);
+//    Scalar pair_eng = Scalar(0.0);
+    evaluator eval(rsq, rcutsq, param);
+    if (evaluator::needsDiameter())
+        eval.setDiameter(di, dj);
+    if (evaluator::needsCharge())
+        eval.setCharge(qi, qj);
+
+    bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+    if (evaluated)
+        {
+        // modify the potential for xplor shifting
+        if (m_shift_mode == xplor)
+            {
+            if (rsq >= ronsq && rsq < rcutsq)
+                {
+                // Implement XPLOR smoothing (FLOPS: 16)
+                Scalar old_pair_eng = pair_eng;
+                Scalar old_force_divr = force_divr;
+
+                // calculate 1.0 / (xplor denominator)
+                Scalar xplor_denom_inv =
+                    Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+
+                Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
+                           (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
+                Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+
+                // make modifications to the old pair energy and force
+                pair_eng = old_pair_eng * s;
+                // note: I'm not sure why the minus sign needs to be there: my notes have a +
+                // But this is verified correct via plotting
+                force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                }
+            }
+        }
+}
+
+
+
+
+
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module

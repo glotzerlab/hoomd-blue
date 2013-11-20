@@ -1,0 +1,1428 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		DAE7A5E5183C689B00805975 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A5E4183C689B00805975 /* main.cpp */; };
+		DAE7A5E7183C689B00805975 /* HOOMD.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = DAE7A5E6183C689B00805975 /* HOOMD.1 */; };
+		DAE7A779183C68D800805975 /* Analyzer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A5EF183C68D700805975 /* Analyzer.cc */; };
+		DAE7A77A183C68D800805975 /* DCDDumpWriter.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A5F2183C68D700805975 /* DCDDumpWriter.cc */; };
+		DAE7A77B183C68D800805975 /* HOOMDBinaryDumpWriter.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A5F4183C68D700805975 /* HOOMDBinaryDumpWriter.cc */; };
+		DAE7A77C183C68D800805975 /* HOOMDDumpWriter.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A5F6183C68D700805975 /* HOOMDDumpWriter.cc */; };
+		DAE7A77D183C68D800805975 /* IMDInterface.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A5F8183C68D700805975 /* IMDInterface.cc */; };
+		DAE7A77E183C68D800805975 /* Logger.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A5FA183C68D700805975 /* Logger.cc */; };
+		DAE7A77F183C68D800805975 /* MOL2DumpWriter.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A5FC183C68D700805975 /* MOL2DumpWriter.cc */; };
+		DAE7A780183C68D800805975 /* MSDAnalyzer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A5FE183C68D700805975 /* MSDAnalyzer.cc */; };
+		DAE7A781183C68D800805975 /* PDBDumpWriter.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A600183C68D700805975 /* PDBDumpWriter.cc */; };
+		DAE7A782183C68D800805975 /* Communicator.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A60A183C68D700805975 /* Communicator.cc */; };
+		DAE7A783183C68D800805975 /* CommunicatorGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A60C183C68D700805975 /* CommunicatorGPU.cc */; };
+		DAE7A784183C68D800805975 /* DomainDecomposition.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A60E183C68D700805975 /* DomainDecomposition.cc */; };
+		DAE7A785183C68D800805975 /* BondTablePotential.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A612183C68D700805975 /* BondTablePotential.cc */; };
+		DAE7A786183C68D800805975 /* CellList.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A614183C68D700805975 /* CellList.cc */; };
+		DAE7A787183C68D800805975 /* CGCMMAngleForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A616183C68D700805975 /* CGCMMAngleForceCompute.cc */; };
+		DAE7A788183C68D800805975 /* CGCMMForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A618183C68D700805975 /* CGCMMForceCompute.cc */; };
+		DAE7A789183C68D800805975 /* Compute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A61B183C68D700805975 /* Compute.cc */; };
+		DAE7A78A183C68D800805975 /* ComputeThermo.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A61D183C68D700805975 /* ComputeThermo.cc */; };
+		DAE7A78B183C68D800805975 /* ConstExternalFieldDipoleForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A620183C68D700805975 /* ConstExternalFieldDipoleForceCompute.cc */; };
+		DAE7A78C183C68D800805975 /* ConstForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A622183C68D700805975 /* ConstForceCompute.cc */; };
+		DAE7A78D183C68D800805975 /* ConstraintSphere.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A624183C68D700805975 /* ConstraintSphere.cc */; };
+		DAE7A78E183C68D800805975 /* EAMForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A626183C68D700805975 /* EAMForceCompute.cc */; };
+		DAE7A78F183C68D800805975 /* ForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A62B183C68D700805975 /* ForceCompute.cc */; };
+		DAE7A790183C68D800805975 /* ForceConstraint.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A62D183C68D700805975 /* ForceConstraint.cc */; };
+		DAE7A791183C68D800805975 /* HarmonicAngleForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A62F183C68D700805975 /* HarmonicAngleForceCompute.cc */; };
+		DAE7A792183C68D800805975 /* HarmonicDihedralForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A631183C68D700805975 /* HarmonicDihedralForceCompute.cc */; };
+		DAE7A793183C68D800805975 /* HarmonicImproperForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A633183C68D700805975 /* HarmonicImproperForceCompute.cc */; };
+		DAE7A794183C68D800805975 /* LJWallForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A635183C68D700805975 /* LJWallForceCompute.cc */; };
+		DAE7A795183C68D800805975 /* NeighborList.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A637183C68D700805975 /* NeighborList.cc */; };
+		DAE7A796183C68D800805975 /* NeighborListBinned.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A639183C68D700805975 /* NeighborListBinned.cc */; };
+		DAE7A797183C68D800805975 /* PPPMForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A63C183C68D700805975 /* PPPMForceCompute.cc */; };
+		DAE7A798183C68D800805975 /* TableAngleForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A63E183C68D700805975 /* TableAngleForceCompute.cc */; };
+		DAE7A799183C68D800805975 /* TableDihedralForceCompute.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A640183C68D700805975 /* TableDihedralForceCompute.cc */; };
+		DAE7A79A183C68D800805975 /* TablePotential.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A642183C68D700805975 /* TablePotential.cc */; };
+		DAE7A79B183C68D800805975 /* BondTablePotentialGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A645183C68D700805975 /* BondTablePotentialGPU.cc */; };
+		DAE7A79C183C68D800805975 /* CellListGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A647183C68D700805975 /* CellListGPU.cc */; };
+		DAE7A79D183C68D800805975 /* CGCMMAngleForceComputeGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A64B183C68D700805975 /* CGCMMAngleForceComputeGPU.cc */; };
+		DAE7A79E183C68D800805975 /* CGCMMForceComputeGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A64D183C68D700805975 /* CGCMMForceComputeGPU.cc */; };
+		DAE7A79F183C68D800805975 /* ComputeThermoGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A650183C68D700805975 /* ComputeThermoGPU.cc */; };
+		DAE7A7A0183C68D800805975 /* ConstraintSphereGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A652183C68D700805975 /* ConstraintSphereGPU.cc */; };
+		DAE7A7A1183C68D800805975 /* EAMForceComputeGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A654183C68D700805975 /* EAMForceComputeGPU.cc */; };
+		DAE7A7A2183C68D800805975 /* HarmonicAngleForceComputeGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A656183C68D700805975 /* HarmonicAngleForceComputeGPU.cc */; };
+		DAE7A7A3183C68D800805975 /* HarmonicDihedralForceComputeGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A658183C68D700805975 /* HarmonicDihedralForceComputeGPU.cc */; };
+		DAE7A7A4183C68D800805975 /* HarmonicImproperForceComputeGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A65A183C68D700805975 /* HarmonicImproperForceComputeGPU.cc */; };
+		DAE7A7A5183C68D800805975 /* NeighborListGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A65C183C68D700805975 /* NeighborListGPU.cc */; };
+		DAE7A7A6183C68D800805975 /* NeighborListGPUBinned.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A660183C68D700805975 /* NeighborListGPUBinned.cc */; };
+		DAE7A7A7183C68D800805975 /* PPPMForceComputeGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A665183C68D700805975 /* PPPMForceComputeGPU.cc */; };
+		DAE7A7A8183C68D800805975 /* TableAngleForceComputeGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A667183C68D700805975 /* TableAngleForceComputeGPU.cc */; };
+		DAE7A7A9183C68D800805975 /* TableDihedralForceComputeGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A669183C68D700805975 /* TableDihedralForceComputeGPU.cc */; };
+		DAE7A7AA183C68D800805975 /* TablePotentialGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A66B183C68D700805975 /* TablePotentialGPU.cc */; };
+		DAE7A7AB183C68D800805975 /* AngleData.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6BD183C68D700805975 /* AngleData.cc */; };
+		DAE7A7AC183C68D800805975 /* BondData.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6BF183C68D700805975 /* BondData.cc */; };
+		DAE7A7AD183C68D800805975 /* DihedralData.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6C3183C68D700805975 /* DihedralData.cc */; };
+		DAE7A7AE183C68D800805975 /* ExecutionConfiguration.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6C5183C68D700805975 /* ExecutionConfiguration.cc */; };
+		DAE7A7AF183C68D800805975 /* HOOMDBinaryInitializer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6CB183C68D700805975 /* HOOMDBinaryInitializer.cc */; };
+		DAE7A7B0183C68D800805975 /* HOOMDInitializer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6CD183C68D700805975 /* HOOMDInitializer.cc */; };
+		DAE7A7B1183C68D800805975 /* Initializers.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6CF183C68D700805975 /* Initializers.cc */; };
+		DAE7A7B2183C68D800805975 /* IntegratorData.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6D1183C68D700805975 /* IntegratorData.cc */; };
+		DAE7A7B3183C68D800805975 /* ParticleData.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6D3183C68D700805975 /* ParticleData.cc */; };
+		DAE7A7B4183C68D800805975 /* ParticleGroup.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6D5183C68D700805975 /* ParticleGroup.cc */; };
+		DAE7A7B5183C68D800805975 /* RandomGenerator.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6D7183C68D700805975 /* RandomGenerator.cc */; };
+		DAE7A7B6183C68D800805975 /* RigidBodyGroup.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6D9183C68D700805975 /* RigidBodyGroup.cc */; };
+		DAE7A7B7183C68D800805975 /* RigidData.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6DB183C68D700805975 /* RigidData.cc */; };
+		DAE7A7B8183C68D800805975 /* SnapshotSystemData.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6DD183C68D700805975 /* SnapshotSystemData.cc */; };
+		DAE7A7B9183C68D800805975 /* SystemDefinition.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6DF183C68D700805975 /* SystemDefinition.cc */; };
+		DAE7A7BA183C68D800805975 /* WallData.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6E1183C68D700805975 /* WallData.cc */; };
+		DAE7A7BB183C68D800805975 /* imd.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6E9183C68D700805975 /* imd.cc */; };
+		DAE7A7BC183C68D800805975 /* kiss_fft.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6EB183C68D700805975 /* kiss_fft.cc */; };
+		DAE7A7BD183C68D800805975 /* kiss_fftnd.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6ED183C68D700805975 /* kiss_fftnd.cc */; };
+		DAE7A7BE183C68D800805975 /* vmdsock.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6F1183C68D700805975 /* vmdsock.cc */; };
+		DAE7A7BF183C68D800805975 /* xmlParser.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A6F4183C68D700805975 /* xmlParser.cc */; };
+		DAE7A7C0183C68D800805975 /* hoomd_module.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A714183C68D700805975 /* hoomd_module.cc */; };
+		DAE7A7C1183C68D800805975 /* System.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A717183C68D700805975 /* System.cc */; };
+		DAE7A7C2183C68D800805975 /* BoxResizeUpdater.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A71A183C68D700805975 /* BoxResizeUpdater.cc */; };
+		DAE7A7C3183C68D800805975 /* Enforce2DUpdater.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A71D183C68D700805975 /* Enforce2DUpdater.cc */; };
+		DAE7A7C4183C68D800805975 /* FIREEnergyMinimizer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A71F183C68D700805975 /* FIREEnergyMinimizer.cc */; };
+		DAE7A7C5183C68D800805975 /* FIREEnergyMinimizerRigid.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A721183C68D700805975 /* FIREEnergyMinimizerRigid.cc */; };
+		DAE7A7C6183C68D800805975 /* IntegrationMethodTwoStep.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A723183C68D700805975 /* IntegrationMethodTwoStep.cc */; };
+		DAE7A7C7183C68D800805975 /* Integrator.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A725183C68D700805975 /* Integrator.cc */; };
+		DAE7A7C8183C68D800805975 /* IntegratorTwoStep.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A727183C68D700805975 /* IntegratorTwoStep.cc */; };
+		DAE7A7C9183C68D800805975 /* SFCPackUpdater.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A729183C68D700805975 /* SFCPackUpdater.cc */; };
+		DAE7A7CA183C68D800805975 /* TempRescaleUpdater.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A72B183C68D700805975 /* TempRescaleUpdater.cc */; };
+		DAE7A7CB183C68D800805975 /* TwoStepBDNVT.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A72D183C68D700805975 /* TwoStepBDNVT.cc */; };
+		DAE7A7CC183C68D800805975 /* TwoStepBDNVTRigid.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A72F183C68D700805975 /* TwoStepBDNVTRigid.cc */; };
+		DAE7A7CD183C68D800805975 /* TwoStepBerendsen.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A731183C68D700805975 /* TwoStepBerendsen.cc */; };
+		DAE7A7CE183C68D800805975 /* TwoStepNPHRigid.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A733183C68D700805975 /* TwoStepNPHRigid.cc */; };
+		DAE7A7CF183C68D800805975 /* TwoStepNPTMTK.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A735183C68D700805975 /* TwoStepNPTMTK.cc */; };
+		DAE7A7D0183C68D800805975 /* TwoStepNPTRigid.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A737183C68D700805975 /* TwoStepNPTRigid.cc */; };
+		DAE7A7D1183C68D800805975 /* TwoStepNVE.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A739183C68D700805975 /* TwoStepNVE.cc */; };
+		DAE7A7D2183C68D800805975 /* TwoStepNVERigid.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A73B183C68D700805975 /* TwoStepNVERigid.cc */; };
+		DAE7A7D3183C68D800805975 /* TwoStepNVT.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A73D183C68D700805975 /* TwoStepNVT.cc */; };
+		DAE7A7D4183C68D800805975 /* TwoStepNVTRigid.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A73F183C68D700805975 /* TwoStepNVTRigid.cc */; };
+		DAE7A7D5183C68D800805975 /* Updater.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A741183C68D700805975 /* Updater.cc */; };
+		DAE7A7D6183C68D800805975 /* ZeroMomentumUpdater.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A743183C68D700805975 /* ZeroMomentumUpdater.cc */; };
+		DAE7A7D7183C68D800805975 /* Enforce2DUpdaterGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A747183C68D700805975 /* Enforce2DUpdaterGPU.cc */; };
+		DAE7A7D8183C68D800805975 /* FIREEnergyMinimizerGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A749183C68D700805975 /* FIREEnergyMinimizerGPU.cc */; };
+		DAE7A7D9183C68D800805975 /* FIREEnergyMinimizerRigidGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A74B183C68D700805975 /* FIREEnergyMinimizerRigidGPU.cc */; };
+		DAE7A7DA183C68D800805975 /* TwoStepBDNVTGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A74D183C68D700805975 /* TwoStepBDNVTGPU.cc */; };
+		DAE7A7DB183C68D800805975 /* TwoStepBDNVTRigidGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A74F183C68D700805975 /* TwoStepBDNVTRigidGPU.cc */; };
+		DAE7A7DC183C68D800805975 /* TwoStepBerendsenGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A751183C68D700805975 /* TwoStepBerendsenGPU.cc */; };
+		DAE7A7DD183C68D800805975 /* TwoStepNPHRigidGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A755183C68D700805975 /* TwoStepNPHRigidGPU.cc */; };
+		DAE7A7DE183C68D800805975 /* TwoStepNPTMTKGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A757183C68D700805975 /* TwoStepNPTMTKGPU.cc */; };
+		DAE7A7DF183C68D800805975 /* TwoStepNPTRigidGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A759183C68D700805975 /* TwoStepNPTRigidGPU.cc */; };
+		DAE7A7E0183C68D800805975 /* TwoStepNVEGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A75B183C68D700805975 /* TwoStepNVEGPU.cc */; };
+		DAE7A7E1183C68D800805975 /* TwoStepNVERigidGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A75D183C68D800805975 /* TwoStepNVERigidGPU.cc */; };
+		DAE7A7E2183C68D800805975 /* TwoStepNVTGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A75F183C68D800805975 /* TwoStepNVTGPU.cc */; };
+		DAE7A7E3183C68D800805975 /* TwoStepNVTRigidGPU.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A761183C68D800805975 /* TwoStepNVTRigidGPU.cc */; };
+		DAE7A7E4183C68D800805975 /* ClockSource.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A764183C68D800805975 /* ClockSource.cc */; };
+		DAE7A7E5183C68D800805975 /* HOOMDMath.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A767183C68D800805975 /* HOOMDMath.cc */; };
+		DAE7A7E6183C68D800805975 /* HOOMDVersion.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A76A183C68D800805975 /* HOOMDVersion.cc */; };
+		DAE7A7E7183C68D800805975 /* Messenger.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A76D183C68D800805975 /* Messenger.cc */; };
+		DAE7A7E8183C68D800805975 /* PathUtils.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A76F183C68D800805975 /* PathUtils.cc */; };
+		DAE7A7E9183C68D800805975 /* Profiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A771183C68D800805975 /* Profiler.cc */; };
+		DAE7A7EA183C68D800805975 /* SignalHandler.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A774183C68D800805975 /* SignalHandler.cc */; };
+		DAE7A7EB183C68D800805975 /* Variant.cc in Sources */ = {isa = PBXBuildFile; fileRef = DAE7A777183C68D800805975 /* Variant.cc */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DAE7A5DF183C689B00805975 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				DAE7A5E7183C689B00805975 /* HOOMD.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		DAE7A5E1183C689B00805975 /* HOOMD */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HOOMD; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAE7A5E4183C689B00805975 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		DAE7A5E6183C689B00805975 /* HOOMD.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = HOOMD.1; sourceTree = "<group>"; };
+		DAE7A5EF183C68D700805975 /* Analyzer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Analyzer.cc; sourceTree = "<group>"; };
+		DAE7A5F0183C68D700805975 /* Analyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Analyzer.h; sourceTree = "<group>"; };
+		DAE7A5F1183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A5F2183C68D700805975 /* DCDDumpWriter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DCDDumpWriter.cc; sourceTree = "<group>"; };
+		DAE7A5F3183C68D700805975 /* DCDDumpWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DCDDumpWriter.h; sourceTree = "<group>"; };
+		DAE7A5F4183C68D700805975 /* HOOMDBinaryDumpWriter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HOOMDBinaryDumpWriter.cc; sourceTree = "<group>"; };
+		DAE7A5F5183C68D700805975 /* HOOMDBinaryDumpWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HOOMDBinaryDumpWriter.h; sourceTree = "<group>"; };
+		DAE7A5F6183C68D700805975 /* HOOMDDumpWriter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HOOMDDumpWriter.cc; sourceTree = "<group>"; };
+		DAE7A5F7183C68D700805975 /* HOOMDDumpWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HOOMDDumpWriter.h; sourceTree = "<group>"; };
+		DAE7A5F8183C68D700805975 /* IMDInterface.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IMDInterface.cc; sourceTree = "<group>"; };
+		DAE7A5F9183C68D700805975 /* IMDInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IMDInterface.h; sourceTree = "<group>"; };
+		DAE7A5FA183C68D700805975 /* Logger.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Logger.cc; sourceTree = "<group>"; };
+		DAE7A5FB183C68D700805975 /* Logger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Logger.h; sourceTree = "<group>"; };
+		DAE7A5FC183C68D700805975 /* MOL2DumpWriter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MOL2DumpWriter.cc; sourceTree = "<group>"; };
+		DAE7A5FD183C68D700805975 /* MOL2DumpWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MOL2DumpWriter.h; sourceTree = "<group>"; };
+		DAE7A5FE183C68D700805975 /* MSDAnalyzer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MSDAnalyzer.cc; sourceTree = "<group>"; };
+		DAE7A5FF183C68D700805975 /* MSDAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MSDAnalyzer.h; sourceTree = "<group>"; };
+		DAE7A600183C68D700805975 /* PDBDumpWriter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PDBDumpWriter.cc; sourceTree = "<group>"; };
+		DAE7A601183C68D700805975 /* PDBDumpWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PDBDumpWriter.h; sourceTree = "<group>"; };
+		DAE7A603183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A604183C68D700805975 /* hoomd-config.sh.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "hoomd-config.sh.in"; sourceTree = "<group>"; };
+		DAE7A605183C68D700805975 /* hoomd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hoomd.h; sourceTree = "<group>"; };
+		DAE7A606183C68D700805975 /* hoomd_config.h.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = hoomd_config.h.in; sourceTree = "<group>"; };
+		DAE7A607183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A609183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A60A183C68D700805975 /* Communicator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Communicator.cc; sourceTree = "<group>"; };
+		DAE7A60B183C68D700805975 /* Communicator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Communicator.h; sourceTree = "<group>"; };
+		DAE7A60C183C68D700805975 /* CommunicatorGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CommunicatorGPU.cc; sourceTree = "<group>"; };
+		DAE7A60D183C68D700805975 /* CommunicatorGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommunicatorGPU.h; sourceTree = "<group>"; };
+		DAE7A60E183C68D700805975 /* DomainDecomposition.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DomainDecomposition.cc; sourceTree = "<group>"; };
+		DAE7A60F183C68D700805975 /* DomainDecomposition.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DomainDecomposition.h; sourceTree = "<group>"; };
+		DAE7A611183C68D700805975 /* AllExternalPotentials.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AllExternalPotentials.h; sourceTree = "<group>"; };
+		DAE7A612183C68D700805975 /* BondTablePotential.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BondTablePotential.cc; sourceTree = "<group>"; };
+		DAE7A613183C68D700805975 /* BondTablePotential.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BondTablePotential.h; sourceTree = "<group>"; };
+		DAE7A614183C68D700805975 /* CellList.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CellList.cc; sourceTree = "<group>"; };
+		DAE7A615183C68D700805975 /* CellList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CellList.h; sourceTree = "<group>"; };
+		DAE7A616183C68D700805975 /* CGCMMAngleForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CGCMMAngleForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A617183C68D700805975 /* CGCMMAngleForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CGCMMAngleForceCompute.h; sourceTree = "<group>"; };
+		DAE7A618183C68D700805975 /* CGCMMForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CGCMMForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A619183C68D700805975 /* CGCMMForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CGCMMForceCompute.h; sourceTree = "<group>"; };
+		DAE7A61A183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A61B183C68D700805975 /* Compute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Compute.cc; sourceTree = "<group>"; };
+		DAE7A61C183C68D700805975 /* Compute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Compute.h; sourceTree = "<group>"; };
+		DAE7A61D183C68D700805975 /* ComputeThermo.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ComputeThermo.cc; sourceTree = "<group>"; };
+		DAE7A61E183C68D700805975 /* ComputeThermo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComputeThermo.h; sourceTree = "<group>"; };
+		DAE7A61F183C68D700805975 /* ComputeThermoTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComputeThermoTypes.h; sourceTree = "<group>"; };
+		DAE7A620183C68D700805975 /* ConstExternalFieldDipoleForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ConstExternalFieldDipoleForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A621183C68D700805975 /* ConstExternalFieldDipoleForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConstExternalFieldDipoleForceCompute.h; sourceTree = "<group>"; };
+		DAE7A622183C68D700805975 /* ConstForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ConstForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A623183C68D700805975 /* ConstForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConstForceCompute.h; sourceTree = "<group>"; };
+		DAE7A624183C68D700805975 /* ConstraintSphere.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ConstraintSphere.cc; sourceTree = "<group>"; };
+		DAE7A625183C68D700805975 /* ConstraintSphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConstraintSphere.h; sourceTree = "<group>"; };
+		DAE7A626183C68D700805975 /* EAMForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EAMForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A627183C68D700805975 /* EAMForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EAMForceCompute.h; sourceTree = "<group>"; };
+		DAE7A628183C68D700805975 /* EvaluatorConstraint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorConstraint.h; sourceTree = "<group>"; };
+		DAE7A629183C68D700805975 /* EvaluatorConstraintSphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorConstraintSphere.h; sourceTree = "<group>"; };
+		DAE7A62A183C68D700805975 /* EvaluatorExternalPeriodic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorExternalPeriodic.h; sourceTree = "<group>"; };
+		DAE7A62B183C68D700805975 /* ForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A62C183C68D700805975 /* ForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ForceCompute.h; sourceTree = "<group>"; };
+		DAE7A62D183C68D700805975 /* ForceConstraint.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ForceConstraint.cc; sourceTree = "<group>"; };
+		DAE7A62E183C68D700805975 /* ForceConstraint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ForceConstraint.h; sourceTree = "<group>"; };
+		DAE7A62F183C68D700805975 /* HarmonicAngleForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HarmonicAngleForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A630183C68D700805975 /* HarmonicAngleForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HarmonicAngleForceCompute.h; sourceTree = "<group>"; };
+		DAE7A631183C68D700805975 /* HarmonicDihedralForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HarmonicDihedralForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A632183C68D700805975 /* HarmonicDihedralForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HarmonicDihedralForceCompute.h; sourceTree = "<group>"; };
+		DAE7A633183C68D700805975 /* HarmonicImproperForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HarmonicImproperForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A634183C68D700805975 /* HarmonicImproperForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HarmonicImproperForceCompute.h; sourceTree = "<group>"; };
+		DAE7A635183C68D700805975 /* LJWallForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = LJWallForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A636183C68D700805975 /* LJWallForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LJWallForceCompute.h; sourceTree = "<group>"; };
+		DAE7A637183C68D700805975 /* NeighborList.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NeighborList.cc; sourceTree = "<group>"; };
+		DAE7A638183C68D700805975 /* NeighborList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NeighborList.h; sourceTree = "<group>"; };
+		DAE7A639183C68D700805975 /* NeighborListBinned.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NeighborListBinned.cc; sourceTree = "<group>"; };
+		DAE7A63A183C68D700805975 /* NeighborListBinned.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NeighborListBinned.h; sourceTree = "<group>"; };
+		DAE7A63B183C68D700805975 /* PotentialExternal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialExternal.h; sourceTree = "<group>"; };
+		DAE7A63C183C68D700805975 /* PPPMForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PPPMForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A63D183C68D700805975 /* PPPMForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PPPMForceCompute.h; sourceTree = "<group>"; };
+		DAE7A63E183C68D700805975 /* TableAngleForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TableAngleForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A63F183C68D700805975 /* TableAngleForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TableAngleForceCompute.h; sourceTree = "<group>"; };
+		DAE7A640183C68D700805975 /* TableDihedralForceCompute.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TableDihedralForceCompute.cc; sourceTree = "<group>"; };
+		DAE7A641183C68D700805975 /* TableDihedralForceCompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TableDihedralForceCompute.h; sourceTree = "<group>"; };
+		DAE7A642183C68D700805975 /* TablePotential.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TablePotential.cc; sourceTree = "<group>"; };
+		DAE7A643183C68D700805975 /* TablePotential.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TablePotential.h; sourceTree = "<group>"; };
+		DAE7A645183C68D700805975 /* BondTablePotentialGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BondTablePotentialGPU.cc; sourceTree = "<group>"; };
+		DAE7A646183C68D700805975 /* BondTablePotentialGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BondTablePotentialGPU.h; sourceTree = "<group>"; };
+		DAE7A647183C68D700805975 /* CellListGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CellListGPU.cc; sourceTree = "<group>"; };
+		DAE7A648183C68D700805975 /* CellListGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CellListGPU.cu; sourceTree = "<group>"; };
+		DAE7A649183C68D700805975 /* CellListGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CellListGPU.cuh; sourceTree = "<group>"; };
+		DAE7A64A183C68D700805975 /* CellListGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CellListGPU.h; sourceTree = "<group>"; };
+		DAE7A64B183C68D700805975 /* CGCMMAngleForceComputeGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CGCMMAngleForceComputeGPU.cc; sourceTree = "<group>"; };
+		DAE7A64C183C68D700805975 /* CGCMMAngleForceComputeGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CGCMMAngleForceComputeGPU.h; sourceTree = "<group>"; };
+		DAE7A64D183C68D700805975 /* CGCMMForceComputeGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CGCMMForceComputeGPU.cc; sourceTree = "<group>"; };
+		DAE7A64E183C68D700805975 /* CGCMMForceComputeGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CGCMMForceComputeGPU.h; sourceTree = "<group>"; };
+		DAE7A64F183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A650183C68D700805975 /* ComputeThermoGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ComputeThermoGPU.cc; sourceTree = "<group>"; };
+		DAE7A651183C68D700805975 /* ComputeThermoGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComputeThermoGPU.h; sourceTree = "<group>"; };
+		DAE7A652183C68D700805975 /* ConstraintSphereGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ConstraintSphereGPU.cc; sourceTree = "<group>"; };
+		DAE7A653183C68D700805975 /* ConstraintSphereGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConstraintSphereGPU.h; sourceTree = "<group>"; };
+		DAE7A654183C68D700805975 /* EAMForceComputeGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EAMForceComputeGPU.cc; sourceTree = "<group>"; };
+		DAE7A655183C68D700805975 /* EAMForceComputeGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EAMForceComputeGPU.h; sourceTree = "<group>"; };
+		DAE7A656183C68D700805975 /* HarmonicAngleForceComputeGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HarmonicAngleForceComputeGPU.cc; sourceTree = "<group>"; };
+		DAE7A657183C68D700805975 /* HarmonicAngleForceComputeGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HarmonicAngleForceComputeGPU.h; sourceTree = "<group>"; };
+		DAE7A658183C68D700805975 /* HarmonicDihedralForceComputeGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HarmonicDihedralForceComputeGPU.cc; sourceTree = "<group>"; };
+		DAE7A659183C68D700805975 /* HarmonicDihedralForceComputeGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HarmonicDihedralForceComputeGPU.h; sourceTree = "<group>"; };
+		DAE7A65A183C68D700805975 /* HarmonicImproperForceComputeGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HarmonicImproperForceComputeGPU.cc; sourceTree = "<group>"; };
+		DAE7A65B183C68D700805975 /* HarmonicImproperForceComputeGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HarmonicImproperForceComputeGPU.h; sourceTree = "<group>"; };
+		DAE7A65C183C68D700805975 /* NeighborListGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NeighborListGPU.cc; sourceTree = "<group>"; };
+		DAE7A65D183C68D700805975 /* NeighborListGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = NeighborListGPU.cu; sourceTree = "<group>"; };
+		DAE7A65E183C68D700805975 /* NeighborListGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = NeighborListGPU.cuh; sourceTree = "<group>"; };
+		DAE7A65F183C68D700805975 /* NeighborListGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NeighborListGPU.h; sourceTree = "<group>"; };
+		DAE7A660183C68D700805975 /* NeighborListGPUBinned.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NeighborListGPUBinned.cc; sourceTree = "<group>"; };
+		DAE7A661183C68D700805975 /* NeighborListGPUBinned.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = NeighborListGPUBinned.cu; sourceTree = "<group>"; };
+		DAE7A662183C68D700805975 /* NeighborListGPUBinned.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = NeighborListGPUBinned.cuh; sourceTree = "<group>"; };
+		DAE7A663183C68D700805975 /* NeighborListGPUBinned.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NeighborListGPUBinned.h; sourceTree = "<group>"; };
+		DAE7A664183C68D700805975 /* PotentialExternalGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialExternalGPU.h; sourceTree = "<group>"; };
+		DAE7A665183C68D700805975 /* PPPMForceComputeGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PPPMForceComputeGPU.cc; sourceTree = "<group>"; };
+		DAE7A666183C68D700805975 /* PPPMForceComputeGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PPPMForceComputeGPU.h; sourceTree = "<group>"; };
+		DAE7A667183C68D700805975 /* TableAngleForceComputeGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TableAngleForceComputeGPU.cc; sourceTree = "<group>"; };
+		DAE7A668183C68D700805975 /* TableAngleForceComputeGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TableAngleForceComputeGPU.h; sourceTree = "<group>"; };
+		DAE7A669183C68D700805975 /* TableDihedralForceComputeGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TableDihedralForceComputeGPU.cc; sourceTree = "<group>"; };
+		DAE7A66A183C68D700805975 /* TableDihedralForceComputeGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TableDihedralForceComputeGPU.h; sourceTree = "<group>"; };
+		DAE7A66B183C68D700805975 /* TablePotentialGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TablePotentialGPU.cc; sourceTree = "<group>"; };
+		DAE7A66C183C68D700805975 /* TablePotentialGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TablePotentialGPU.h; sourceTree = "<group>"; };
+		DAE7A66E183C68D700805975 /* AllDriverPotentialBondGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AllDriverPotentialBondGPU.cu; sourceTree = "<group>"; };
+		DAE7A66F183C68D700805975 /* AllDriverPotentialBondGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AllDriverPotentialBondGPU.cuh; sourceTree = "<group>"; };
+		DAE7A670183C68D700805975 /* AllDriverPotentialExternalGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AllDriverPotentialExternalGPU.cu; sourceTree = "<group>"; };
+		DAE7A671183C68D700805975 /* AllDriverPotentialExternalGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AllDriverPotentialExternalGPU.cuh; sourceTree = "<group>"; };
+		DAE7A672183C68D700805975 /* AllDriverPotentialPairGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AllDriverPotentialPairGPU.cu; sourceTree = "<group>"; };
+		DAE7A673183C68D700805975 /* AllDriverPotentialPairGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AllDriverPotentialPairGPU.cuh; sourceTree = "<group>"; };
+		DAE7A674183C68D700805975 /* AngleData.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AngleData.cu; sourceTree = "<group>"; };
+		DAE7A675183C68D700805975 /* AngleData.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AngleData.cuh; sourceTree = "<group>"; };
+		DAE7A676183C68D700805975 /* BondData.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = BondData.cu; sourceTree = "<group>"; };
+		DAE7A677183C68D700805975 /* BondData.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = BondData.cuh; sourceTree = "<group>"; };
+		DAE7A678183C68D700805975 /* BondTablePotentialGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = BondTablePotentialGPU.cu; sourceTree = "<group>"; };
+		DAE7A679183C68D700805975 /* BondTablePotentialGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = BondTablePotentialGPU.cuh; sourceTree = "<group>"; };
+		DAE7A67A183C68D700805975 /* CGCMMAngleForceGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CGCMMAngleForceGPU.cu; sourceTree = "<group>"; };
+		DAE7A67B183C68D700805975 /* CGCMMAngleForceGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CGCMMAngleForceGPU.cuh; sourceTree = "<group>"; };
+		DAE7A67C183C68D700805975 /* CGCMMForceGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CGCMMForceGPU.cu; sourceTree = "<group>"; };
+		DAE7A67D183C68D700805975 /* CGCMMForceGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CGCMMForceGPU.cuh; sourceTree = "<group>"; };
+		DAE7A67E183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A67F183C68D700805975 /* CommunicatorGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CommunicatorGPU.cu; sourceTree = "<group>"; };
+		DAE7A680183C68D700805975 /* CommunicatorGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CommunicatorGPU.cuh; sourceTree = "<group>"; };
+		DAE7A681183C68D700805975 /* ComputeThermoGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ComputeThermoGPU.cu; sourceTree = "<group>"; };
+		DAE7A682183C68D700805975 /* ComputeThermoGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ComputeThermoGPU.cuh; sourceTree = "<group>"; };
+		DAE7A683183C68D700805975 /* ConstraintSphereGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ConstraintSphereGPU.cu; sourceTree = "<group>"; };
+		DAE7A684183C68D700805975 /* ConstraintSphereGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ConstraintSphereGPU.cuh; sourceTree = "<group>"; };
+		DAE7A685183C68D700805975 /* DihedralData.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = DihedralData.cu; sourceTree = "<group>"; };
+		DAE7A686183C68D700805975 /* DihedralData.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = DihedralData.cuh; sourceTree = "<group>"; };
+		DAE7A687183C68D700805975 /* DriverTersoffGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = DriverTersoffGPU.cu; sourceTree = "<group>"; };
+		DAE7A688183C68D700805975 /* DriverTersoffGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = DriverTersoffGPU.cuh; sourceTree = "<group>"; };
+		DAE7A689183C68D700805975 /* EAMForceGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = EAMForceGPU.cu; sourceTree = "<group>"; };
+		DAE7A68A183C68D700805975 /* EAMForceGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = EAMForceGPU.cuh; sourceTree = "<group>"; };
+		DAE7A68B183C68D700805975 /* Enforce2DUpdaterGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Enforce2DUpdaterGPU.cu; sourceTree = "<group>"; };
+		DAE7A68C183C68D700805975 /* Enforce2DUpdaterGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Enforce2DUpdaterGPU.cuh; sourceTree = "<group>"; };
+		DAE7A68D183C68D700805975 /* FIREEnergyMinimizerGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = FIREEnergyMinimizerGPU.cu; sourceTree = "<group>"; };
+		DAE7A68E183C68D700805975 /* FIREEnergyMinimizerGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = FIREEnergyMinimizerGPU.cuh; sourceTree = "<group>"; };
+		DAE7A68F183C68D700805975 /* FIREEnergyMinimizerRigidGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = FIREEnergyMinimizerRigidGPU.cu; sourceTree = "<group>"; };
+		DAE7A690183C68D700805975 /* FIREEnergyMinimizerRigidGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = FIREEnergyMinimizerRigidGPU.cuh; sourceTree = "<group>"; };
+		DAE7A691183C68D700805975 /* HarmonicAngleForceGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = HarmonicAngleForceGPU.cu; sourceTree = "<group>"; };
+		DAE7A692183C68D700805975 /* HarmonicAngleForceGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = HarmonicAngleForceGPU.cuh; sourceTree = "<group>"; };
+		DAE7A693183C68D700805975 /* HarmonicDihedralForceGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = HarmonicDihedralForceGPU.cu; sourceTree = "<group>"; };
+		DAE7A694183C68D700805975 /* HarmonicDihedralForceGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = HarmonicDihedralForceGPU.cuh; sourceTree = "<group>"; };
+		DAE7A695183C68D700805975 /* HarmonicImproperForceGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = HarmonicImproperForceGPU.cu; sourceTree = "<group>"; };
+		DAE7A696183C68D700805975 /* HarmonicImproperForceGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = HarmonicImproperForceGPU.cuh; sourceTree = "<group>"; };
+		DAE7A697183C68D700805975 /* Integrator.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Integrator.cu; sourceTree = "<group>"; };
+		DAE7A698183C68D700805975 /* Integrator.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Integrator.cuh; sourceTree = "<group>"; };
+		DAE7A699183C68D700805975 /* ParticleData.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ParticleData.cuh; sourceTree = "<group>"; };
+		DAE7A69A183C68D700805975 /* ParticleGroup.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ParticleGroup.cu; sourceTree = "<group>"; };
+		DAE7A69B183C68D700805975 /* ParticleGroup.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ParticleGroup.cuh; sourceTree = "<group>"; };
+		DAE7A69C183C68D700805975 /* PotentialBondGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PotentialBondGPU.cuh; sourceTree = "<group>"; };
+		DAE7A69D183C68D700805975 /* PotentialExternalGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PotentialExternalGPU.cuh; sourceTree = "<group>"; };
+		DAE7A69E183C68D700805975 /* PotentialPairGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PotentialPairGPU.cuh; sourceTree = "<group>"; };
+		DAE7A69F183C68D700805975 /* PotentialTersoffGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PotentialTersoffGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6A0183C68D700805975 /* PPPMForceGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PPPMForceGPU.cu; sourceTree = "<group>"; };
+		DAE7A6A1183C68D700805975 /* PPPMForceGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PPPMForceGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6A2183C68D700805975 /* RigidData.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = RigidData.cu; sourceTree = "<group>"; };
+		DAE7A6A3183C68D700805975 /* RigidData.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = RigidData.cuh; sourceTree = "<group>"; };
+		DAE7A6A4183C68D700805975 /* TableAngleForceGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TableAngleForceGPU.cu; sourceTree = "<group>"; };
+		DAE7A6A5183C68D700805975 /* TableAngleForceGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TableAngleForceGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6A6183C68D700805975 /* TableDihedralForceGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TableDihedralForceGPU.cu; sourceTree = "<group>"; };
+		DAE7A6A7183C68D700805975 /* TableDihedralForceGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TableDihedralForceGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6A8183C68D700805975 /* TablePotentialGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TablePotentialGPU.cu; sourceTree = "<group>"; };
+		DAE7A6A9183C68D700805975 /* TablePotentialGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TablePotentialGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6AA183C68D700805975 /* TwoStepBDNVTGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepBDNVTGPU.cu; sourceTree = "<group>"; };
+		DAE7A6AB183C68D700805975 /* TwoStepBDNVTGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepBDNVTGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6AC183C68D700805975 /* TwoStepBDNVTRigidGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepBDNVTRigidGPU.cu; sourceTree = "<group>"; };
+		DAE7A6AD183C68D700805975 /* TwoStepBDNVTRigidGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepBDNVTRigidGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6AE183C68D700805975 /* TwoStepNPHRigidGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNPHRigidGPU.cu; sourceTree = "<group>"; };
+		DAE7A6AF183C68D700805975 /* TwoStepNPHRigidGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNPHRigidGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6B0183C68D700805975 /* TwoStepNPTMTKGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNPTMTKGPU.cu; sourceTree = "<group>"; };
+		DAE7A6B1183C68D700805975 /* TwoStepNPTMTKGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNPTMTKGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6B2183C68D700805975 /* TwoStepNPTRigidGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNPTRigidGPU.cu; sourceTree = "<group>"; };
+		DAE7A6B3183C68D700805975 /* TwoStepNPTRigidGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNPTRigidGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6B4183C68D700805975 /* TwoStepNVEGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNVEGPU.cu; sourceTree = "<group>"; };
+		DAE7A6B5183C68D700805975 /* TwoStepNVEGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNVEGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6B6183C68D700805975 /* TwoStepNVERigidGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNVERigidGPU.cu; sourceTree = "<group>"; };
+		DAE7A6B7183C68D700805975 /* TwoStepNVERigidGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNVERigidGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6B8183C68D700805975 /* TwoStepNVTGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNVTGPU.cu; sourceTree = "<group>"; };
+		DAE7A6B9183C68D700805975 /* TwoStepNVTGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNVTGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6BA183C68D700805975 /* TwoStepNVTRigidGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNVTRigidGPU.cu; sourceTree = "<group>"; };
+		DAE7A6BB183C68D700805975 /* TwoStepNVTRigidGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepNVTRigidGPU.cuh; sourceTree = "<group>"; };
+		DAE7A6BD183C68D700805975 /* AngleData.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AngleData.cc; sourceTree = "<group>"; };
+		DAE7A6BE183C68D700805975 /* AngleData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AngleData.h; sourceTree = "<group>"; };
+		DAE7A6BF183C68D700805975 /* BondData.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BondData.cc; sourceTree = "<group>"; };
+		DAE7A6C0183C68D700805975 /* BondData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BondData.h; sourceTree = "<group>"; };
+		DAE7A6C1183C68D700805975 /* BoxDim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BoxDim.h; sourceTree = "<group>"; };
+		DAE7A6C2183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A6C3183C68D700805975 /* DihedralData.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DihedralData.cc; sourceTree = "<group>"; };
+		DAE7A6C4183C68D700805975 /* DihedralData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DihedralData.h; sourceTree = "<group>"; };
+		DAE7A6C5183C68D700805975 /* ExecutionConfiguration.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ExecutionConfiguration.cc; sourceTree = "<group>"; };
+		DAE7A6C6183C68D700805975 /* ExecutionConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExecutionConfiguration.h; sourceTree = "<group>"; };
+		DAE7A6C7183C68D700805975 /* GPUArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GPUArray.h; sourceTree = "<group>"; };
+		DAE7A6C8183C68D700805975 /* GPUBufferMapped.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GPUBufferMapped.h; sourceTree = "<group>"; };
+		DAE7A6C9183C68D700805975 /* GPUFlags.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GPUFlags.h; sourceTree = "<group>"; };
+		DAE7A6CA183C68D700805975 /* GPUVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GPUVector.h; sourceTree = "<group>"; };
+		DAE7A6CB183C68D700805975 /* HOOMDBinaryInitializer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HOOMDBinaryInitializer.cc; sourceTree = "<group>"; };
+		DAE7A6CC183C68D700805975 /* HOOMDBinaryInitializer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HOOMDBinaryInitializer.h; sourceTree = "<group>"; };
+		DAE7A6CD183C68D700805975 /* HOOMDInitializer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HOOMDInitializer.cc; sourceTree = "<group>"; };
+		DAE7A6CE183C68D700805975 /* HOOMDInitializer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HOOMDInitializer.h; sourceTree = "<group>"; };
+		DAE7A6CF183C68D700805975 /* Initializers.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Initializers.cc; sourceTree = "<group>"; };
+		DAE7A6D0183C68D700805975 /* Initializers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Initializers.h; sourceTree = "<group>"; };
+		DAE7A6D1183C68D700805975 /* IntegratorData.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntegratorData.cc; sourceTree = "<group>"; };
+		DAE7A6D2183C68D700805975 /* IntegratorData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IntegratorData.h; sourceTree = "<group>"; };
+		DAE7A6D3183C68D700805975 /* ParticleData.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ParticleData.cc; sourceTree = "<group>"; };
+		DAE7A6D4183C68D700805975 /* ParticleData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ParticleData.h; sourceTree = "<group>"; };
+		DAE7A6D5183C68D700805975 /* ParticleGroup.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ParticleGroup.cc; sourceTree = "<group>"; };
+		DAE7A6D6183C68D700805975 /* ParticleGroup.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ParticleGroup.h; sourceTree = "<group>"; };
+		DAE7A6D7183C68D700805975 /* RandomGenerator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RandomGenerator.cc; sourceTree = "<group>"; };
+		DAE7A6D8183C68D700805975 /* RandomGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RandomGenerator.h; sourceTree = "<group>"; };
+		DAE7A6D9183C68D700805975 /* RigidBodyGroup.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RigidBodyGroup.cc; sourceTree = "<group>"; };
+		DAE7A6DA183C68D700805975 /* RigidBodyGroup.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RigidBodyGroup.h; sourceTree = "<group>"; };
+		DAE7A6DB183C68D700805975 /* RigidData.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RigidData.cc; sourceTree = "<group>"; };
+		DAE7A6DC183C68D700805975 /* RigidData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RigidData.h; sourceTree = "<group>"; };
+		DAE7A6DD183C68D700805975 /* SnapshotSystemData.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SnapshotSystemData.cc; sourceTree = "<group>"; };
+		DAE7A6DE183C68D700805975 /* SnapshotSystemData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SnapshotSystemData.h; sourceTree = "<group>"; };
+		DAE7A6DF183C68D700805975 /* SystemDefinition.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SystemDefinition.cc; sourceTree = "<group>"; };
+		DAE7A6E0183C68D700805975 /* SystemDefinition.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SystemDefinition.h; sourceTree = "<group>"; };
+		DAE7A6E1183C68D700805975 /* WallData.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WallData.cc; sourceTree = "<group>"; };
+		DAE7A6E2183C68D700805975 /* WallData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WallData.h; sourceTree = "<group>"; };
+		DAE7A6E4183C68D700805975 /* _kiss_fft_guts.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _kiss_fft_guts.h; sourceTree = "<group>"; };
+		DAE7A6E5183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A6E6183C68D700805975 /* cudacpu_host_defines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cudacpu_host_defines.h; sourceTree = "<group>"; };
+		DAE7A6E7183C68D700805975 /* cudacpu_vector_functions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cudacpu_vector_functions.h; sourceTree = "<group>"; };
+		DAE7A6E8183C68D700805975 /* cudacpu_vector_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cudacpu_vector_types.h; sourceTree = "<group>"; };
+		DAE7A6E9183C68D700805975 /* imd.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imd.cc; sourceTree = "<group>"; };
+		DAE7A6EA183C68D700805975 /* imd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imd.h; sourceTree = "<group>"; };
+		DAE7A6EB183C68D700805975 /* kiss_fft.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kiss_fft.cc; sourceTree = "<group>"; };
+		DAE7A6EC183C68D700805975 /* kiss_fft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kiss_fft.h; sourceTree = "<group>"; };
+		DAE7A6ED183C68D700805975 /* kiss_fftnd.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kiss_fftnd.cc; sourceTree = "<group>"; };
+		DAE7A6EE183C68D700805975 /* kiss_fftnd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kiss_fftnd.h; sourceTree = "<group>"; };
+		DAE7A6EF183C68D700805975 /* saruprng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = saruprng.h; sourceTree = "<group>"; };
+		DAE7A6F0183C68D700805975 /* saruprngCUDA.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = saruprngCUDA.h; sourceTree = "<group>"; };
+		DAE7A6F1183C68D700805975 /* vmdsock.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vmdsock.cc; sourceTree = "<group>"; };
+		DAE7A6F2183C68D700805975 /* vmdsock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vmdsock.h; sourceTree = "<group>"; };
+		DAE7A6F3183C68D700805975 /* WorkQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WorkQueue.h; sourceTree = "<group>"; };
+		DAE7A6F4183C68D700805975 /* xmlParser.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = xmlParser.cc; sourceTree = "<group>"; };
+		DAE7A6F5183C68D700805975 /* xmlParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xmlParser.h; sourceTree = "<group>"; };
+		DAE7A6F7183C68D700805975 /* AllBondPotentials.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AllBondPotentials.h; sourceTree = "<group>"; };
+		DAE7A6F8183C68D700805975 /* AllPairPotentials.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AllPairPotentials.h; sourceTree = "<group>"; };
+		DAE7A6F9183C68D700805975 /* AllTripletPotentials.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AllTripletPotentials.h; sourceTree = "<group>"; };
+		DAE7A6FA183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A6FB183C68D700805975 /* EvaluatorBondFENE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorBondFENE.h; sourceTree = "<group>"; };
+		DAE7A6FC183C68D700805975 /* EvaluatorBondHarmonic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorBondHarmonic.h; sourceTree = "<group>"; };
+		DAE7A6FD183C68D700805975 /* EvaluatorPairDPDLJThermo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairDPDLJThermo.h; sourceTree = "<group>"; };
+		DAE7A6FE183C68D700805975 /* EvaluatorPairDPDThermo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairDPDThermo.h; sourceTree = "<group>"; };
+		DAE7A6FF183C68D700805975 /* EvaluatorPairEwald.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairEwald.h; sourceTree = "<group>"; };
+		DAE7A700183C68D700805975 /* EvaluatorPairForceShiftedLJ.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairForceShiftedLJ.h; sourceTree = "<group>"; };
+		DAE7A701183C68D700805975 /* EvaluatorPairGauss.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairGauss.h; sourceTree = "<group>"; };
+		DAE7A702183C68D700805975 /* EvaluatorPairLJ.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairLJ.h; sourceTree = "<group>"; };
+		DAE7A703183C68D700805975 /* EvaluatorPairMoliere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairMoliere.h; sourceTree = "<group>"; };
+		DAE7A704183C68D700805975 /* EvaluatorPairMorse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairMorse.h; sourceTree = "<group>"; };
+		DAE7A705183C68D700805975 /* EvaluatorPairSLJ.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairSLJ.h; sourceTree = "<group>"; };
+		DAE7A706183C68D700805975 /* EvaluatorPairYukawa.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairYukawa.h; sourceTree = "<group>"; };
+		DAE7A707183C68D700805975 /* EvaluatorPairZBL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorPairZBL.h; sourceTree = "<group>"; };
+		DAE7A708183C68D700805975 /* EvaluatorTersoff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EvaluatorTersoff.h; sourceTree = "<group>"; };
+		DAE7A709183C68D700805975 /* PotentialBond.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialBond.h; sourceTree = "<group>"; };
+		DAE7A70A183C68D700805975 /* PotentialBondGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialBondGPU.h; sourceTree = "<group>"; };
+		DAE7A70B183C68D700805975 /* PotentialPair.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialPair.h; sourceTree = "<group>"; };
+		DAE7A70C183C68D700805975 /* PotentialPairDPDThermo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialPairDPDThermo.h; sourceTree = "<group>"; };
+		DAE7A70D183C68D700805975 /* PotentialPairDPDThermoGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PotentialPairDPDThermoGPU.cuh; sourceTree = "<group>"; };
+		DAE7A70E183C68D700805975 /* PotentialPairDPDThermoGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialPairDPDThermoGPU.h; sourceTree = "<group>"; };
+		DAE7A70F183C68D700805975 /* PotentialPairGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialPairGPU.h; sourceTree = "<group>"; };
+		DAE7A710183C68D700805975 /* PotentialTersoff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialTersoff.h; sourceTree = "<group>"; };
+		DAE7A711183C68D700805975 /* PotentialTersoffGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PotentialTersoffGPU.h; sourceTree = "<group>"; };
+		DAE7A713183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A714183C68D700805975 /* hoomd_module.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hoomd_module.cc; sourceTree = "<group>"; };
+		DAE7A716183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A717183C68D700805975 /* System.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = System.cc; sourceTree = "<group>"; };
+		DAE7A718183C68D700805975 /* System.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = System.h; sourceTree = "<group>"; };
+		DAE7A71A183C68D700805975 /* BoxResizeUpdater.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BoxResizeUpdater.cc; sourceTree = "<group>"; };
+		DAE7A71B183C68D700805975 /* BoxResizeUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BoxResizeUpdater.h; sourceTree = "<group>"; };
+		DAE7A71C183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A71D183C68D700805975 /* Enforce2DUpdater.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Enforce2DUpdater.cc; sourceTree = "<group>"; };
+		DAE7A71E183C68D700805975 /* Enforce2DUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Enforce2DUpdater.h; sourceTree = "<group>"; };
+		DAE7A71F183C68D700805975 /* FIREEnergyMinimizer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIREEnergyMinimizer.cc; sourceTree = "<group>"; };
+		DAE7A720183C68D700805975 /* FIREEnergyMinimizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FIREEnergyMinimizer.h; sourceTree = "<group>"; };
+		DAE7A721183C68D700805975 /* FIREEnergyMinimizerRigid.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIREEnergyMinimizerRigid.cc; sourceTree = "<group>"; };
+		DAE7A722183C68D700805975 /* FIREEnergyMinimizerRigid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FIREEnergyMinimizerRigid.h; sourceTree = "<group>"; };
+		DAE7A723183C68D700805975 /* IntegrationMethodTwoStep.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntegrationMethodTwoStep.cc; sourceTree = "<group>"; };
+		DAE7A724183C68D700805975 /* IntegrationMethodTwoStep.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IntegrationMethodTwoStep.h; sourceTree = "<group>"; };
+		DAE7A725183C68D700805975 /* Integrator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Integrator.cc; sourceTree = "<group>"; };
+		DAE7A726183C68D700805975 /* Integrator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Integrator.h; sourceTree = "<group>"; };
+		DAE7A727183C68D700805975 /* IntegratorTwoStep.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntegratorTwoStep.cc; sourceTree = "<group>"; };
+		DAE7A728183C68D700805975 /* IntegratorTwoStep.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IntegratorTwoStep.h; sourceTree = "<group>"; };
+		DAE7A729183C68D700805975 /* SFCPackUpdater.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SFCPackUpdater.cc; sourceTree = "<group>"; };
+		DAE7A72A183C68D700805975 /* SFCPackUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SFCPackUpdater.h; sourceTree = "<group>"; };
+		DAE7A72B183C68D700805975 /* TempRescaleUpdater.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TempRescaleUpdater.cc; sourceTree = "<group>"; };
+		DAE7A72C183C68D700805975 /* TempRescaleUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TempRescaleUpdater.h; sourceTree = "<group>"; };
+		DAE7A72D183C68D700805975 /* TwoStepBDNVT.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepBDNVT.cc; sourceTree = "<group>"; };
+		DAE7A72E183C68D700805975 /* TwoStepBDNVT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepBDNVT.h; sourceTree = "<group>"; };
+		DAE7A72F183C68D700805975 /* TwoStepBDNVTRigid.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepBDNVTRigid.cc; sourceTree = "<group>"; };
+		DAE7A730183C68D700805975 /* TwoStepBDNVTRigid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepBDNVTRigid.h; sourceTree = "<group>"; };
+		DAE7A731183C68D700805975 /* TwoStepBerendsen.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepBerendsen.cc; sourceTree = "<group>"; };
+		DAE7A732183C68D700805975 /* TwoStepBerendsen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepBerendsen.h; sourceTree = "<group>"; };
+		DAE7A733183C68D700805975 /* TwoStepNPHRigid.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNPHRigid.cc; sourceTree = "<group>"; };
+		DAE7A734183C68D700805975 /* TwoStepNPHRigid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNPHRigid.h; sourceTree = "<group>"; };
+		DAE7A735183C68D700805975 /* TwoStepNPTMTK.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNPTMTK.cc; sourceTree = "<group>"; };
+		DAE7A736183C68D700805975 /* TwoStepNPTMTK.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNPTMTK.h; sourceTree = "<group>"; };
+		DAE7A737183C68D700805975 /* TwoStepNPTRigid.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNPTRigid.cc; sourceTree = "<group>"; };
+		DAE7A738183C68D700805975 /* TwoStepNPTRigid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNPTRigid.h; sourceTree = "<group>"; };
+		DAE7A739183C68D700805975 /* TwoStepNVE.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNVE.cc; sourceTree = "<group>"; };
+		DAE7A73A183C68D700805975 /* TwoStepNVE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNVE.h; sourceTree = "<group>"; };
+		DAE7A73B183C68D700805975 /* TwoStepNVERigid.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNVERigid.cc; sourceTree = "<group>"; };
+		DAE7A73C183C68D700805975 /* TwoStepNVERigid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNVERigid.h; sourceTree = "<group>"; };
+		DAE7A73D183C68D700805975 /* TwoStepNVT.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNVT.cc; sourceTree = "<group>"; };
+		DAE7A73E183C68D700805975 /* TwoStepNVT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNVT.h; sourceTree = "<group>"; };
+		DAE7A73F183C68D700805975 /* TwoStepNVTRigid.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNVTRigid.cc; sourceTree = "<group>"; };
+		DAE7A740183C68D700805975 /* TwoStepNVTRigid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNVTRigid.h; sourceTree = "<group>"; };
+		DAE7A741183C68D700805975 /* Updater.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Updater.cc; sourceTree = "<group>"; };
+		DAE7A742183C68D700805975 /* Updater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Updater.h; sourceTree = "<group>"; };
+		DAE7A743183C68D700805975 /* ZeroMomentumUpdater.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ZeroMomentumUpdater.cc; sourceTree = "<group>"; };
+		DAE7A744183C68D700805975 /* ZeroMomentumUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZeroMomentumUpdater.h; sourceTree = "<group>"; };
+		DAE7A746183C68D700805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A747183C68D700805975 /* Enforce2DUpdaterGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Enforce2DUpdaterGPU.cc; sourceTree = "<group>"; };
+		DAE7A748183C68D700805975 /* Enforce2DUpdaterGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Enforce2DUpdaterGPU.h; sourceTree = "<group>"; };
+		DAE7A749183C68D700805975 /* FIREEnergyMinimizerGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIREEnergyMinimizerGPU.cc; sourceTree = "<group>"; };
+		DAE7A74A183C68D700805975 /* FIREEnergyMinimizerGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FIREEnergyMinimizerGPU.h; sourceTree = "<group>"; };
+		DAE7A74B183C68D700805975 /* FIREEnergyMinimizerRigidGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIREEnergyMinimizerRigidGPU.cc; sourceTree = "<group>"; };
+		DAE7A74C183C68D700805975 /* FIREEnergyMinimizerRigidGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FIREEnergyMinimizerRigidGPU.h; sourceTree = "<group>"; };
+		DAE7A74D183C68D700805975 /* TwoStepBDNVTGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepBDNVTGPU.cc; sourceTree = "<group>"; };
+		DAE7A74E183C68D700805975 /* TwoStepBDNVTGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepBDNVTGPU.h; sourceTree = "<group>"; };
+		DAE7A74F183C68D700805975 /* TwoStepBDNVTRigidGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepBDNVTRigidGPU.cc; sourceTree = "<group>"; };
+		DAE7A750183C68D700805975 /* TwoStepBDNVTRigidGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepBDNVTRigidGPU.h; sourceTree = "<group>"; };
+		DAE7A751183C68D700805975 /* TwoStepBerendsenGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepBerendsenGPU.cc; sourceTree = "<group>"; };
+		DAE7A752183C68D700805975 /* TwoStepBerendsenGPU.cu */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepBerendsenGPU.cu; sourceTree = "<group>"; };
+		DAE7A753183C68D700805975 /* TwoStepBerendsenGPU.cuh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TwoStepBerendsenGPU.cuh; sourceTree = "<group>"; };
+		DAE7A754183C68D700805975 /* TwoStepBerendsenGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepBerendsenGPU.h; sourceTree = "<group>"; };
+		DAE7A755183C68D700805975 /* TwoStepNPHRigidGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNPHRigidGPU.cc; sourceTree = "<group>"; };
+		DAE7A756183C68D700805975 /* TwoStepNPHRigidGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNPHRigidGPU.h; sourceTree = "<group>"; };
+		DAE7A757183C68D700805975 /* TwoStepNPTMTKGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNPTMTKGPU.cc; sourceTree = "<group>"; };
+		DAE7A758183C68D700805975 /* TwoStepNPTMTKGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNPTMTKGPU.h; sourceTree = "<group>"; };
+		DAE7A759183C68D700805975 /* TwoStepNPTRigidGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNPTRigidGPU.cc; sourceTree = "<group>"; };
+		DAE7A75A183C68D700805975 /* TwoStepNPTRigidGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNPTRigidGPU.h; sourceTree = "<group>"; };
+		DAE7A75B183C68D700805975 /* TwoStepNVEGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNVEGPU.cc; sourceTree = "<group>"; };
+		DAE7A75C183C68D800805975 /* TwoStepNVEGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNVEGPU.h; sourceTree = "<group>"; };
+		DAE7A75D183C68D800805975 /* TwoStepNVERigidGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNVERigidGPU.cc; sourceTree = "<group>"; };
+		DAE7A75E183C68D800805975 /* TwoStepNVERigidGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNVERigidGPU.h; sourceTree = "<group>"; };
+		DAE7A75F183C68D800805975 /* TwoStepNVTGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNVTGPU.cc; sourceTree = "<group>"; };
+		DAE7A760183C68D800805975 /* TwoStepNVTGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNVTGPU.h; sourceTree = "<group>"; };
+		DAE7A761183C68D800805975 /* TwoStepNVTRigidGPU.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TwoStepNVTRigidGPU.cc; sourceTree = "<group>"; };
+		DAE7A762183C68D800805975 /* TwoStepNVTRigidGPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TwoStepNVTRigidGPU.h; sourceTree = "<group>"; };
+		DAE7A764183C68D800805975 /* ClockSource.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ClockSource.cc; sourceTree = "<group>"; };
+		DAE7A765183C68D800805975 /* ClockSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ClockSource.h; sourceTree = "<group>"; };
+		DAE7A766183C68D800805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A767183C68D800805975 /* HOOMDMath.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HOOMDMath.cc; sourceTree = "<group>"; };
+		DAE7A768183C68D800805975 /* HOOMDMath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HOOMDMath.h; sourceTree = "<group>"; };
+		DAE7A769183C68D800805975 /* HOOMDMPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HOOMDMPI.h; sourceTree = "<group>"; };
+		DAE7A76A183C68D800805975 /* HOOMDVersion.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HOOMDVersion.cc; sourceTree = "<group>"; };
+		DAE7A76B183C68D800805975 /* HOOMDVersion.h.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = HOOMDVersion.h.in; sourceTree = "<group>"; };
+		DAE7A76C183C68D800805975 /* Index1D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Index1D.h; sourceTree = "<group>"; };
+		DAE7A76D183C68D800805975 /* Messenger.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Messenger.cc; sourceTree = "<group>"; };
+		DAE7A76E183C68D800805975 /* Messenger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Messenger.h; sourceTree = "<group>"; };
+		DAE7A76F183C68D800805975 /* PathUtils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PathUtils.cc; sourceTree = "<group>"; };
+		DAE7A770183C68D800805975 /* PathUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PathUtils.h; sourceTree = "<group>"; };
+		DAE7A771183C68D800805975 /* Profiler.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Profiler.cc; sourceTree = "<group>"; };
+		DAE7A772183C68D800805975 /* Profiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Profiler.h; sourceTree = "<group>"; };
+		DAE7A773183C68D800805975 /* QuaternionMath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QuaternionMath.h; sourceTree = "<group>"; };
+		DAE7A774183C68D800805975 /* SignalHandler.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SignalHandler.cc; sourceTree = "<group>"; };
+		DAE7A775183C68D800805975 /* SignalHandler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SignalHandler.h; sourceTree = "<group>"; };
+		DAE7A776183C68D800805975 /* TextureTools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TextureTools.h; sourceTree = "<group>"; };
+		DAE7A777183C68D800805975 /* Variant.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Variant.cc; sourceTree = "<group>"; };
+		DAE7A778183C68D800805975 /* Variant.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Variant.h; sourceTree = "<group>"; };
+		DAE7A7ED183C793D00805975 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		DAE7A7EF183C793D00805975 /* __init__.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = __init__.py; sourceTree = "<group>"; };
+		DAE7A7F1183C793D00805975 /* .gitignore */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		DAE7A7F2183C793D00805975 /* __init__.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = __init__.py; sourceTree = "<group>"; };
+		DAE7A7F3183C793D00805975 /* analyze.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = analyze.py; sourceTree = "<group>"; };
+		DAE7A7F4183C793D00805975 /* angle.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = angle.py; sourceTree = "<group>"; };
+		DAE7A7F5183C793D00805975 /* benchmark.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = benchmark.py; sourceTree = "<group>"; };
+		DAE7A7F6183C793D00805975 /* bond.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = bond.py; sourceTree = "<group>"; };
+		DAE7A7F7183C793D00805975 /* charge.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = charge.py; sourceTree = "<group>"; };
+		DAE7A7F8183C793D00805975 /* comm.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = comm.py; sourceTree = "<group>"; };
+		DAE7A7F9183C793D00805975 /* compute.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = compute.py; sourceTree = "<group>"; };
+		DAE7A7FA183C793D00805975 /* constrain.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = constrain.py; sourceTree = "<group>"; };
+		DAE7A7FB183C793D00805975 /* data.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = data.py; sourceTree = "<group>"; };
+		DAE7A7FC183C793D00805975 /* dihedral.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = dihedral.py; sourceTree = "<group>"; };
+		DAE7A7FD183C793D00805975 /* dump.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = dump.py; sourceTree = "<group>"; };
+		DAE7A7FE183C793D00805975 /* external.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = external.py; sourceTree = "<group>"; };
+		DAE7A7FF183C793D00805975 /* force.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = force.py; sourceTree = "<group>"; };
+		DAE7A800183C793D00805975 /* globals.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = globals.py; sourceTree = "<group>"; };
+		DAE7A801183C793D00805975 /* group.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = group.py; sourceTree = "<group>"; };
+		DAE7A802183C793D00805975 /* improper.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = improper.py; sourceTree = "<group>"; };
+		DAE7A803183C793D00805975 /* init.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = init.py; sourceTree = "<group>"; };
+		DAE7A804183C793D00805975 /* integrate.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = integrate.py; sourceTree = "<group>"; };
+		DAE7A805183C793D00805975 /* option.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = option.py; sourceTree = "<group>"; };
+		DAE7A806183C793D00805975 /* pair.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = pair.py; sourceTree = "<group>"; };
+		DAE7A807183C793D00805975 /* tune.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = tune.py; sourceTree = "<group>"; };
+		DAE7A808183C793D00805975 /* update.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = update.py; sourceTree = "<group>"; };
+		DAE7A809183C793D00805975 /* util.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = util.py; sourceTree = "<group>"; };
+		DAE7A80A183C793D00805975 /* variant.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = variant.py; sourceTree = "<group>"; };
+		DAE7A80B183C793D00805975 /* wall.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = wall.py; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DAE7A5DE183C689B00805975 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DAE7A5D8183C689B00805975 = {
+			isa = PBXGroup;
+			children = (
+				DAE7A7EC183C793D00805975 /* python-module */,
+				DAE7A5ED183C68D700805975 /* libhoomd */,
+				DAE7A5E3183C689B00805975 /* HOOMD */,
+				DAE7A5E2183C689B00805975 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DAE7A5E2183C689B00805975 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A5E1183C689B00805975 /* HOOMD */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DAE7A5E3183C689B00805975 /* HOOMD */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A5E4183C689B00805975 /* main.cpp */,
+				DAE7A5E6183C689B00805975 /* HOOMD.1 */,
+			);
+			path = HOOMD;
+			sourceTree = "<group>";
+		};
+		DAE7A5ED183C68D700805975 /* libhoomd */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A5EE183C68D700805975 /* analyzers */,
+				DAE7A602183C68D700805975 /* api */,
+				DAE7A607183C68D700805975 /* CMakeLists.txt */,
+				DAE7A608183C68D700805975 /* communication */,
+				DAE7A610183C68D700805975 /* computes */,
+				DAE7A644183C68D700805975 /* computes_gpu */,
+				DAE7A66D183C68D700805975 /* cuda */,
+				DAE7A6BC183C68D700805975 /* data_structures */,
+				DAE7A6E3183C68D700805975 /* extern */,
+				DAE7A6F6183C68D700805975 /* potentials */,
+				DAE7A712183C68D700805975 /* python */,
+				DAE7A715183C68D700805975 /* system */,
+				DAE7A719183C68D700805975 /* updaters */,
+				DAE7A745183C68D700805975 /* updaters_gpu */,
+				DAE7A763183C68D800805975 /* utils */,
+			);
+			name = libhoomd;
+			path = ../../libhoomd;
+			sourceTree = "<group>";
+		};
+		DAE7A5EE183C68D700805975 /* analyzers */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A5EF183C68D700805975 /* Analyzer.cc */,
+				DAE7A5F0183C68D700805975 /* Analyzer.h */,
+				DAE7A5F1183C68D700805975 /* CMakeLists.txt */,
+				DAE7A5F2183C68D700805975 /* DCDDumpWriter.cc */,
+				DAE7A5F3183C68D700805975 /* DCDDumpWriter.h */,
+				DAE7A5F4183C68D700805975 /* HOOMDBinaryDumpWriter.cc */,
+				DAE7A5F5183C68D700805975 /* HOOMDBinaryDumpWriter.h */,
+				DAE7A5F6183C68D700805975 /* HOOMDDumpWriter.cc */,
+				DAE7A5F7183C68D700805975 /* HOOMDDumpWriter.h */,
+				DAE7A5F8183C68D700805975 /* IMDInterface.cc */,
+				DAE7A5F9183C68D700805975 /* IMDInterface.h */,
+				DAE7A5FA183C68D700805975 /* Logger.cc */,
+				DAE7A5FB183C68D700805975 /* Logger.h */,
+				DAE7A5FC183C68D700805975 /* MOL2DumpWriter.cc */,
+				DAE7A5FD183C68D700805975 /* MOL2DumpWriter.h */,
+				DAE7A5FE183C68D700805975 /* MSDAnalyzer.cc */,
+				DAE7A5FF183C68D700805975 /* MSDAnalyzer.h */,
+				DAE7A600183C68D700805975 /* PDBDumpWriter.cc */,
+				DAE7A601183C68D700805975 /* PDBDumpWriter.h */,
+			);
+			path = analyzers;
+			sourceTree = "<group>";
+		};
+		DAE7A602183C68D700805975 /* api */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A603183C68D700805975 /* CMakeLists.txt */,
+				DAE7A604183C68D700805975 /* hoomd-config.sh.in */,
+				DAE7A605183C68D700805975 /* hoomd.h */,
+				DAE7A606183C68D700805975 /* hoomd_config.h.in */,
+			);
+			path = api;
+			sourceTree = "<group>";
+		};
+		DAE7A608183C68D700805975 /* communication */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A609183C68D700805975 /* CMakeLists.txt */,
+				DAE7A60A183C68D700805975 /* Communicator.cc */,
+				DAE7A60B183C68D700805975 /* Communicator.h */,
+				DAE7A60C183C68D700805975 /* CommunicatorGPU.cc */,
+				DAE7A60D183C68D700805975 /* CommunicatorGPU.h */,
+				DAE7A60E183C68D700805975 /* DomainDecomposition.cc */,
+				DAE7A60F183C68D700805975 /* DomainDecomposition.h */,
+			);
+			path = communication;
+			sourceTree = "<group>";
+		};
+		DAE7A610183C68D700805975 /* computes */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A611183C68D700805975 /* AllExternalPotentials.h */,
+				DAE7A612183C68D700805975 /* BondTablePotential.cc */,
+				DAE7A613183C68D700805975 /* BondTablePotential.h */,
+				DAE7A614183C68D700805975 /* CellList.cc */,
+				DAE7A615183C68D700805975 /* CellList.h */,
+				DAE7A616183C68D700805975 /* CGCMMAngleForceCompute.cc */,
+				DAE7A617183C68D700805975 /* CGCMMAngleForceCompute.h */,
+				DAE7A618183C68D700805975 /* CGCMMForceCompute.cc */,
+				DAE7A619183C68D700805975 /* CGCMMForceCompute.h */,
+				DAE7A61A183C68D700805975 /* CMakeLists.txt */,
+				DAE7A61B183C68D700805975 /* Compute.cc */,
+				DAE7A61C183C68D700805975 /* Compute.h */,
+				DAE7A61D183C68D700805975 /* ComputeThermo.cc */,
+				DAE7A61E183C68D700805975 /* ComputeThermo.h */,
+				DAE7A61F183C68D700805975 /* ComputeThermoTypes.h */,
+				DAE7A620183C68D700805975 /* ConstExternalFieldDipoleForceCompute.cc */,
+				DAE7A621183C68D700805975 /* ConstExternalFieldDipoleForceCompute.h */,
+				DAE7A622183C68D700805975 /* ConstForceCompute.cc */,
+				DAE7A623183C68D700805975 /* ConstForceCompute.h */,
+				DAE7A624183C68D700805975 /* ConstraintSphere.cc */,
+				DAE7A625183C68D700805975 /* ConstraintSphere.h */,
+				DAE7A626183C68D700805975 /* EAMForceCompute.cc */,
+				DAE7A627183C68D700805975 /* EAMForceCompute.h */,
+				DAE7A628183C68D700805975 /* EvaluatorConstraint.h */,
+				DAE7A629183C68D700805975 /* EvaluatorConstraintSphere.h */,
+				DAE7A62A183C68D700805975 /* EvaluatorExternalPeriodic.h */,
+				DAE7A62B183C68D700805975 /* ForceCompute.cc */,
+				DAE7A62C183C68D700805975 /* ForceCompute.h */,
+				DAE7A62D183C68D700805975 /* ForceConstraint.cc */,
+				DAE7A62E183C68D700805975 /* ForceConstraint.h */,
+				DAE7A62F183C68D700805975 /* HarmonicAngleForceCompute.cc */,
+				DAE7A630183C68D700805975 /* HarmonicAngleForceCompute.h */,
+				DAE7A631183C68D700805975 /* HarmonicDihedralForceCompute.cc */,
+				DAE7A632183C68D700805975 /* HarmonicDihedralForceCompute.h */,
+				DAE7A633183C68D700805975 /* HarmonicImproperForceCompute.cc */,
+				DAE7A634183C68D700805975 /* HarmonicImproperForceCompute.h */,
+				DAE7A635183C68D700805975 /* LJWallForceCompute.cc */,
+				DAE7A636183C68D700805975 /* LJWallForceCompute.h */,
+				DAE7A637183C68D700805975 /* NeighborList.cc */,
+				DAE7A638183C68D700805975 /* NeighborList.h */,
+				DAE7A639183C68D700805975 /* NeighborListBinned.cc */,
+				DAE7A63A183C68D700805975 /* NeighborListBinned.h */,
+				DAE7A63B183C68D700805975 /* PotentialExternal.h */,
+				DAE7A63C183C68D700805975 /* PPPMForceCompute.cc */,
+				DAE7A63D183C68D700805975 /* PPPMForceCompute.h */,
+				DAE7A63E183C68D700805975 /* TableAngleForceCompute.cc */,
+				DAE7A63F183C68D700805975 /* TableAngleForceCompute.h */,
+				DAE7A640183C68D700805975 /* TableDihedralForceCompute.cc */,
+				DAE7A641183C68D700805975 /* TableDihedralForceCompute.h */,
+				DAE7A642183C68D700805975 /* TablePotential.cc */,
+				DAE7A643183C68D700805975 /* TablePotential.h */,
+			);
+			path = computes;
+			sourceTree = "<group>";
+		};
+		DAE7A644183C68D700805975 /* computes_gpu */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A645183C68D700805975 /* BondTablePotentialGPU.cc */,
+				DAE7A646183C68D700805975 /* BondTablePotentialGPU.h */,
+				DAE7A647183C68D700805975 /* CellListGPU.cc */,
+				DAE7A648183C68D700805975 /* CellListGPU.cu */,
+				DAE7A649183C68D700805975 /* CellListGPU.cuh */,
+				DAE7A64A183C68D700805975 /* CellListGPU.h */,
+				DAE7A64B183C68D700805975 /* CGCMMAngleForceComputeGPU.cc */,
+				DAE7A64C183C68D700805975 /* CGCMMAngleForceComputeGPU.h */,
+				DAE7A64D183C68D700805975 /* CGCMMForceComputeGPU.cc */,
+				DAE7A64E183C68D700805975 /* CGCMMForceComputeGPU.h */,
+				DAE7A64F183C68D700805975 /* CMakeLists.txt */,
+				DAE7A650183C68D700805975 /* ComputeThermoGPU.cc */,
+				DAE7A651183C68D700805975 /* ComputeThermoGPU.h */,
+				DAE7A652183C68D700805975 /* ConstraintSphereGPU.cc */,
+				DAE7A653183C68D700805975 /* ConstraintSphereGPU.h */,
+				DAE7A654183C68D700805975 /* EAMForceComputeGPU.cc */,
+				DAE7A655183C68D700805975 /* EAMForceComputeGPU.h */,
+				DAE7A656183C68D700805975 /* HarmonicAngleForceComputeGPU.cc */,
+				DAE7A657183C68D700805975 /* HarmonicAngleForceComputeGPU.h */,
+				DAE7A658183C68D700805975 /* HarmonicDihedralForceComputeGPU.cc */,
+				DAE7A659183C68D700805975 /* HarmonicDihedralForceComputeGPU.h */,
+				DAE7A65A183C68D700805975 /* HarmonicImproperForceComputeGPU.cc */,
+				DAE7A65B183C68D700805975 /* HarmonicImproperForceComputeGPU.h */,
+				DAE7A65C183C68D700805975 /* NeighborListGPU.cc */,
+				DAE7A65D183C68D700805975 /* NeighborListGPU.cu */,
+				DAE7A65E183C68D700805975 /* NeighborListGPU.cuh */,
+				DAE7A65F183C68D700805975 /* NeighborListGPU.h */,
+				DAE7A660183C68D700805975 /* NeighborListGPUBinned.cc */,
+				DAE7A661183C68D700805975 /* NeighborListGPUBinned.cu */,
+				DAE7A662183C68D700805975 /* NeighborListGPUBinned.cuh */,
+				DAE7A663183C68D700805975 /* NeighborListGPUBinned.h */,
+				DAE7A664183C68D700805975 /* PotentialExternalGPU.h */,
+				DAE7A665183C68D700805975 /* PPPMForceComputeGPU.cc */,
+				DAE7A666183C68D700805975 /* PPPMForceComputeGPU.h */,
+				DAE7A667183C68D700805975 /* TableAngleForceComputeGPU.cc */,
+				DAE7A668183C68D700805975 /* TableAngleForceComputeGPU.h */,
+				DAE7A669183C68D700805975 /* TableDihedralForceComputeGPU.cc */,
+				DAE7A66A183C68D700805975 /* TableDihedralForceComputeGPU.h */,
+				DAE7A66B183C68D700805975 /* TablePotentialGPU.cc */,
+				DAE7A66C183C68D700805975 /* TablePotentialGPU.h */,
+			);
+			path = computes_gpu;
+			sourceTree = "<group>";
+		};
+		DAE7A66D183C68D700805975 /* cuda */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A66E183C68D700805975 /* AllDriverPotentialBondGPU.cu */,
+				DAE7A66F183C68D700805975 /* AllDriverPotentialBondGPU.cuh */,
+				DAE7A670183C68D700805975 /* AllDriverPotentialExternalGPU.cu */,
+				DAE7A671183C68D700805975 /* AllDriverPotentialExternalGPU.cuh */,
+				DAE7A672183C68D700805975 /* AllDriverPotentialPairGPU.cu */,
+				DAE7A673183C68D700805975 /* AllDriverPotentialPairGPU.cuh */,
+				DAE7A674183C68D700805975 /* AngleData.cu */,
+				DAE7A675183C68D700805975 /* AngleData.cuh */,
+				DAE7A676183C68D700805975 /* BondData.cu */,
+				DAE7A677183C68D700805975 /* BondData.cuh */,
+				DAE7A678183C68D700805975 /* BondTablePotentialGPU.cu */,
+				DAE7A679183C68D700805975 /* BondTablePotentialGPU.cuh */,
+				DAE7A67A183C68D700805975 /* CGCMMAngleForceGPU.cu */,
+				DAE7A67B183C68D700805975 /* CGCMMAngleForceGPU.cuh */,
+				DAE7A67C183C68D700805975 /* CGCMMForceGPU.cu */,
+				DAE7A67D183C68D700805975 /* CGCMMForceGPU.cuh */,
+				DAE7A67E183C68D700805975 /* CMakeLists.txt */,
+				DAE7A67F183C68D700805975 /* CommunicatorGPU.cu */,
+				DAE7A680183C68D700805975 /* CommunicatorGPU.cuh */,
+				DAE7A681183C68D700805975 /* ComputeThermoGPU.cu */,
+				DAE7A682183C68D700805975 /* ComputeThermoGPU.cuh */,
+				DAE7A683183C68D700805975 /* ConstraintSphereGPU.cu */,
+				DAE7A684183C68D700805975 /* ConstraintSphereGPU.cuh */,
+				DAE7A685183C68D700805975 /* DihedralData.cu */,
+				DAE7A686183C68D700805975 /* DihedralData.cuh */,
+				DAE7A687183C68D700805975 /* DriverTersoffGPU.cu */,
+				DAE7A688183C68D700805975 /* DriverTersoffGPU.cuh */,
+				DAE7A689183C68D700805975 /* EAMForceGPU.cu */,
+				DAE7A68A183C68D700805975 /* EAMForceGPU.cuh */,
+				DAE7A68B183C68D700805975 /* Enforce2DUpdaterGPU.cu */,
+				DAE7A68C183C68D700805975 /* Enforce2DUpdaterGPU.cuh */,
+				DAE7A68D183C68D700805975 /* FIREEnergyMinimizerGPU.cu */,
+				DAE7A68E183C68D700805975 /* FIREEnergyMinimizerGPU.cuh */,
+				DAE7A68F183C68D700805975 /* FIREEnergyMinimizerRigidGPU.cu */,
+				DAE7A690183C68D700805975 /* FIREEnergyMinimizerRigidGPU.cuh */,
+				DAE7A691183C68D700805975 /* HarmonicAngleForceGPU.cu */,
+				DAE7A692183C68D700805975 /* HarmonicAngleForceGPU.cuh */,
+				DAE7A693183C68D700805975 /* HarmonicDihedralForceGPU.cu */,
+				DAE7A694183C68D700805975 /* HarmonicDihedralForceGPU.cuh */,
+				DAE7A695183C68D700805975 /* HarmonicImproperForceGPU.cu */,
+				DAE7A696183C68D700805975 /* HarmonicImproperForceGPU.cuh */,
+				DAE7A697183C68D700805975 /* Integrator.cu */,
+				DAE7A698183C68D700805975 /* Integrator.cuh */,
+				DAE7A699183C68D700805975 /* ParticleData.cuh */,
+				DAE7A69A183C68D700805975 /* ParticleGroup.cu */,
+				DAE7A69B183C68D700805975 /* ParticleGroup.cuh */,
+				DAE7A69C183C68D700805975 /* PotentialBondGPU.cuh */,
+				DAE7A69D183C68D700805975 /* PotentialExternalGPU.cuh */,
+				DAE7A69E183C68D700805975 /* PotentialPairGPU.cuh */,
+				DAE7A69F183C68D700805975 /* PotentialTersoffGPU.cuh */,
+				DAE7A6A0183C68D700805975 /* PPPMForceGPU.cu */,
+				DAE7A6A1183C68D700805975 /* PPPMForceGPU.cuh */,
+				DAE7A6A2183C68D700805975 /* RigidData.cu */,
+				DAE7A6A3183C68D700805975 /* RigidData.cuh */,
+				DAE7A6A4183C68D700805975 /* TableAngleForceGPU.cu */,
+				DAE7A6A5183C68D700805975 /* TableAngleForceGPU.cuh */,
+				DAE7A6A6183C68D700805975 /* TableDihedralForceGPU.cu */,
+				DAE7A6A7183C68D700805975 /* TableDihedralForceGPU.cuh */,
+				DAE7A6A8183C68D700805975 /* TablePotentialGPU.cu */,
+				DAE7A6A9183C68D700805975 /* TablePotentialGPU.cuh */,
+				DAE7A6AA183C68D700805975 /* TwoStepBDNVTGPU.cu */,
+				DAE7A6AB183C68D700805975 /* TwoStepBDNVTGPU.cuh */,
+				DAE7A6AC183C68D700805975 /* TwoStepBDNVTRigidGPU.cu */,
+				DAE7A6AD183C68D700805975 /* TwoStepBDNVTRigidGPU.cuh */,
+				DAE7A6AE183C68D700805975 /* TwoStepNPHRigidGPU.cu */,
+				DAE7A6AF183C68D700805975 /* TwoStepNPHRigidGPU.cuh */,
+				DAE7A6B0183C68D700805975 /* TwoStepNPTMTKGPU.cu */,
+				DAE7A6B1183C68D700805975 /* TwoStepNPTMTKGPU.cuh */,
+				DAE7A6B2183C68D700805975 /* TwoStepNPTRigidGPU.cu */,
+				DAE7A6B3183C68D700805975 /* TwoStepNPTRigidGPU.cuh */,
+				DAE7A6B4183C68D700805975 /* TwoStepNVEGPU.cu */,
+				DAE7A6B5183C68D700805975 /* TwoStepNVEGPU.cuh */,
+				DAE7A6B6183C68D700805975 /* TwoStepNVERigidGPU.cu */,
+				DAE7A6B7183C68D700805975 /* TwoStepNVERigidGPU.cuh */,
+				DAE7A6B8183C68D700805975 /* TwoStepNVTGPU.cu */,
+				DAE7A6B9183C68D700805975 /* TwoStepNVTGPU.cuh */,
+				DAE7A6BA183C68D700805975 /* TwoStepNVTRigidGPU.cu */,
+				DAE7A6BB183C68D700805975 /* TwoStepNVTRigidGPU.cuh */,
+			);
+			path = cuda;
+			sourceTree = "<group>";
+		};
+		DAE7A6BC183C68D700805975 /* data_structures */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A6BD183C68D700805975 /* AngleData.cc */,
+				DAE7A6BE183C68D700805975 /* AngleData.h */,
+				DAE7A6BF183C68D700805975 /* BondData.cc */,
+				DAE7A6C0183C68D700805975 /* BondData.h */,
+				DAE7A6C1183C68D700805975 /* BoxDim.h */,
+				DAE7A6C2183C68D700805975 /* CMakeLists.txt */,
+				DAE7A6C3183C68D700805975 /* DihedralData.cc */,
+				DAE7A6C4183C68D700805975 /* DihedralData.h */,
+				DAE7A6C5183C68D700805975 /* ExecutionConfiguration.cc */,
+				DAE7A6C6183C68D700805975 /* ExecutionConfiguration.h */,
+				DAE7A6C7183C68D700805975 /* GPUArray.h */,
+				DAE7A6C8183C68D700805975 /* GPUBufferMapped.h */,
+				DAE7A6C9183C68D700805975 /* GPUFlags.h */,
+				DAE7A6CA183C68D700805975 /* GPUVector.h */,
+				DAE7A6CB183C68D700805975 /* HOOMDBinaryInitializer.cc */,
+				DAE7A6CC183C68D700805975 /* HOOMDBinaryInitializer.h */,
+				DAE7A6CD183C68D700805975 /* HOOMDInitializer.cc */,
+				DAE7A6CE183C68D700805975 /* HOOMDInitializer.h */,
+				DAE7A6CF183C68D700805975 /* Initializers.cc */,
+				DAE7A6D0183C68D700805975 /* Initializers.h */,
+				DAE7A6D1183C68D700805975 /* IntegratorData.cc */,
+				DAE7A6D2183C68D700805975 /* IntegratorData.h */,
+				DAE7A6D3183C68D700805975 /* ParticleData.cc */,
+				DAE7A6D4183C68D700805975 /* ParticleData.h */,
+				DAE7A6D5183C68D700805975 /* ParticleGroup.cc */,
+				DAE7A6D6183C68D700805975 /* ParticleGroup.h */,
+				DAE7A6D7183C68D700805975 /* RandomGenerator.cc */,
+				DAE7A6D8183C68D700805975 /* RandomGenerator.h */,
+				DAE7A6D9183C68D700805975 /* RigidBodyGroup.cc */,
+				DAE7A6DA183C68D700805975 /* RigidBodyGroup.h */,
+				DAE7A6DB183C68D700805975 /* RigidData.cc */,
+				DAE7A6DC183C68D700805975 /* RigidData.h */,
+				DAE7A6DD183C68D700805975 /* SnapshotSystemData.cc */,
+				DAE7A6DE183C68D700805975 /* SnapshotSystemData.h */,
+				DAE7A6DF183C68D700805975 /* SystemDefinition.cc */,
+				DAE7A6E0183C68D700805975 /* SystemDefinition.h */,
+				DAE7A6E1183C68D700805975 /* WallData.cc */,
+				DAE7A6E2183C68D700805975 /* WallData.h */,
+			);
+			path = data_structures;
+			sourceTree = "<group>";
+		};
+		DAE7A6E3183C68D700805975 /* extern */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A6E4183C68D700805975 /* _kiss_fft_guts.h */,
+				DAE7A6E5183C68D700805975 /* CMakeLists.txt */,
+				DAE7A6E6183C68D700805975 /* cudacpu_host_defines.h */,
+				DAE7A6E7183C68D700805975 /* cudacpu_vector_functions.h */,
+				DAE7A6E8183C68D700805975 /* cudacpu_vector_types.h */,
+				DAE7A6E9183C68D700805975 /* imd.cc */,
+				DAE7A6EA183C68D700805975 /* imd.h */,
+				DAE7A6EB183C68D700805975 /* kiss_fft.cc */,
+				DAE7A6EC183C68D700805975 /* kiss_fft.h */,
+				DAE7A6ED183C68D700805975 /* kiss_fftnd.cc */,
+				DAE7A6EE183C68D700805975 /* kiss_fftnd.h */,
+				DAE7A6EF183C68D700805975 /* saruprng.h */,
+				DAE7A6F0183C68D700805975 /* saruprngCUDA.h */,
+				DAE7A6F1183C68D700805975 /* vmdsock.cc */,
+				DAE7A6F2183C68D700805975 /* vmdsock.h */,
+				DAE7A6F3183C68D700805975 /* WorkQueue.h */,
+				DAE7A6F4183C68D700805975 /* xmlParser.cc */,
+				DAE7A6F5183C68D700805975 /* xmlParser.h */,
+			);
+			path = extern;
+			sourceTree = "<group>";
+		};
+		DAE7A6F6183C68D700805975 /* potentials */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A6F7183C68D700805975 /* AllBondPotentials.h */,
+				DAE7A6F8183C68D700805975 /* AllPairPotentials.h */,
+				DAE7A6F9183C68D700805975 /* AllTripletPotentials.h */,
+				DAE7A6FA183C68D700805975 /* CMakeLists.txt */,
+				DAE7A6FB183C68D700805975 /* EvaluatorBondFENE.h */,
+				DAE7A6FC183C68D700805975 /* EvaluatorBondHarmonic.h */,
+				DAE7A6FD183C68D700805975 /* EvaluatorPairDPDLJThermo.h */,
+				DAE7A6FE183C68D700805975 /* EvaluatorPairDPDThermo.h */,
+				DAE7A6FF183C68D700805975 /* EvaluatorPairEwald.h */,
+				DAE7A700183C68D700805975 /* EvaluatorPairForceShiftedLJ.h */,
+				DAE7A701183C68D700805975 /* EvaluatorPairGauss.h */,
+				DAE7A702183C68D700805975 /* EvaluatorPairLJ.h */,
+				DAE7A703183C68D700805975 /* EvaluatorPairMoliere.h */,
+				DAE7A704183C68D700805975 /* EvaluatorPairMorse.h */,
+				DAE7A705183C68D700805975 /* EvaluatorPairSLJ.h */,
+				DAE7A706183C68D700805975 /* EvaluatorPairYukawa.h */,
+				DAE7A707183C68D700805975 /* EvaluatorPairZBL.h */,
+				DAE7A708183C68D700805975 /* EvaluatorTersoff.h */,
+				DAE7A709183C68D700805975 /* PotentialBond.h */,
+				DAE7A70A183C68D700805975 /* PotentialBondGPU.h */,
+				DAE7A70B183C68D700805975 /* PotentialPair.h */,
+				DAE7A70C183C68D700805975 /* PotentialPairDPDThermo.h */,
+				DAE7A70D183C68D700805975 /* PotentialPairDPDThermoGPU.cuh */,
+				DAE7A70E183C68D700805975 /* PotentialPairDPDThermoGPU.h */,
+				DAE7A70F183C68D700805975 /* PotentialPairGPU.h */,
+				DAE7A710183C68D700805975 /* PotentialTersoff.h */,
+				DAE7A711183C68D700805975 /* PotentialTersoffGPU.h */,
+			);
+			path = potentials;
+			sourceTree = "<group>";
+		};
+		DAE7A712183C68D700805975 /* python */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A713183C68D700805975 /* CMakeLists.txt */,
+				DAE7A714183C68D700805975 /* hoomd_module.cc */,
+			);
+			path = python;
+			sourceTree = "<group>";
+		};
+		DAE7A715183C68D700805975 /* system */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A716183C68D700805975 /* CMakeLists.txt */,
+				DAE7A717183C68D700805975 /* System.cc */,
+				DAE7A718183C68D700805975 /* System.h */,
+			);
+			path = system;
+			sourceTree = "<group>";
+		};
+		DAE7A719183C68D700805975 /* updaters */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A71A183C68D700805975 /* BoxResizeUpdater.cc */,
+				DAE7A71B183C68D700805975 /* BoxResizeUpdater.h */,
+				DAE7A71C183C68D700805975 /* CMakeLists.txt */,
+				DAE7A71D183C68D700805975 /* Enforce2DUpdater.cc */,
+				DAE7A71E183C68D700805975 /* Enforce2DUpdater.h */,
+				DAE7A71F183C68D700805975 /* FIREEnergyMinimizer.cc */,
+				DAE7A720183C68D700805975 /* FIREEnergyMinimizer.h */,
+				DAE7A721183C68D700805975 /* FIREEnergyMinimizerRigid.cc */,
+				DAE7A722183C68D700805975 /* FIREEnergyMinimizerRigid.h */,
+				DAE7A723183C68D700805975 /* IntegrationMethodTwoStep.cc */,
+				DAE7A724183C68D700805975 /* IntegrationMethodTwoStep.h */,
+				DAE7A725183C68D700805975 /* Integrator.cc */,
+				DAE7A726183C68D700805975 /* Integrator.h */,
+				DAE7A727183C68D700805975 /* IntegratorTwoStep.cc */,
+				DAE7A728183C68D700805975 /* IntegratorTwoStep.h */,
+				DAE7A729183C68D700805975 /* SFCPackUpdater.cc */,
+				DAE7A72A183C68D700805975 /* SFCPackUpdater.h */,
+				DAE7A72B183C68D700805975 /* TempRescaleUpdater.cc */,
+				DAE7A72C183C68D700805975 /* TempRescaleUpdater.h */,
+				DAE7A72D183C68D700805975 /* TwoStepBDNVT.cc */,
+				DAE7A72E183C68D700805975 /* TwoStepBDNVT.h */,
+				DAE7A72F183C68D700805975 /* TwoStepBDNVTRigid.cc */,
+				DAE7A730183C68D700805975 /* TwoStepBDNVTRigid.h */,
+				DAE7A731183C68D700805975 /* TwoStepBerendsen.cc */,
+				DAE7A732183C68D700805975 /* TwoStepBerendsen.h */,
+				DAE7A733183C68D700805975 /* TwoStepNPHRigid.cc */,
+				DAE7A734183C68D700805975 /* TwoStepNPHRigid.h */,
+				DAE7A735183C68D700805975 /* TwoStepNPTMTK.cc */,
+				DAE7A736183C68D700805975 /* TwoStepNPTMTK.h */,
+				DAE7A737183C68D700805975 /* TwoStepNPTRigid.cc */,
+				DAE7A738183C68D700805975 /* TwoStepNPTRigid.h */,
+				DAE7A739183C68D700805975 /* TwoStepNVE.cc */,
+				DAE7A73A183C68D700805975 /* TwoStepNVE.h */,
+				DAE7A73B183C68D700805975 /* TwoStepNVERigid.cc */,
+				DAE7A73C183C68D700805975 /* TwoStepNVERigid.h */,
+				DAE7A73D183C68D700805975 /* TwoStepNVT.cc */,
+				DAE7A73E183C68D700805975 /* TwoStepNVT.h */,
+				DAE7A73F183C68D700805975 /* TwoStepNVTRigid.cc */,
+				DAE7A740183C68D700805975 /* TwoStepNVTRigid.h */,
+				DAE7A741183C68D700805975 /* Updater.cc */,
+				DAE7A742183C68D700805975 /* Updater.h */,
+				DAE7A743183C68D700805975 /* ZeroMomentumUpdater.cc */,
+				DAE7A744183C68D700805975 /* ZeroMomentumUpdater.h */,
+			);
+			path = updaters;
+			sourceTree = "<group>";
+		};
+		DAE7A745183C68D700805975 /* updaters_gpu */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A746183C68D700805975 /* CMakeLists.txt */,
+				DAE7A747183C68D700805975 /* Enforce2DUpdaterGPU.cc */,
+				DAE7A748183C68D700805975 /* Enforce2DUpdaterGPU.h */,
+				DAE7A749183C68D700805975 /* FIREEnergyMinimizerGPU.cc */,
+				DAE7A74A183C68D700805975 /* FIREEnergyMinimizerGPU.h */,
+				DAE7A74B183C68D700805975 /* FIREEnergyMinimizerRigidGPU.cc */,
+				DAE7A74C183C68D700805975 /* FIREEnergyMinimizerRigidGPU.h */,
+				DAE7A74D183C68D700805975 /* TwoStepBDNVTGPU.cc */,
+				DAE7A74E183C68D700805975 /* TwoStepBDNVTGPU.h */,
+				DAE7A74F183C68D700805975 /* TwoStepBDNVTRigidGPU.cc */,
+				DAE7A750183C68D700805975 /* TwoStepBDNVTRigidGPU.h */,
+				DAE7A751183C68D700805975 /* TwoStepBerendsenGPU.cc */,
+				DAE7A752183C68D700805975 /* TwoStepBerendsenGPU.cu */,
+				DAE7A753183C68D700805975 /* TwoStepBerendsenGPU.cuh */,
+				DAE7A754183C68D700805975 /* TwoStepBerendsenGPU.h */,
+				DAE7A755183C68D700805975 /* TwoStepNPHRigidGPU.cc */,
+				DAE7A756183C68D700805975 /* TwoStepNPHRigidGPU.h */,
+				DAE7A757183C68D700805975 /* TwoStepNPTMTKGPU.cc */,
+				DAE7A758183C68D700805975 /* TwoStepNPTMTKGPU.h */,
+				DAE7A759183C68D700805975 /* TwoStepNPTRigidGPU.cc */,
+				DAE7A75A183C68D700805975 /* TwoStepNPTRigidGPU.h */,
+				DAE7A75B183C68D700805975 /* TwoStepNVEGPU.cc */,
+				DAE7A75C183C68D800805975 /* TwoStepNVEGPU.h */,
+				DAE7A75D183C68D800805975 /* TwoStepNVERigidGPU.cc */,
+				DAE7A75E183C68D800805975 /* TwoStepNVERigidGPU.h */,
+				DAE7A75F183C68D800805975 /* TwoStepNVTGPU.cc */,
+				DAE7A760183C68D800805975 /* TwoStepNVTGPU.h */,
+				DAE7A761183C68D800805975 /* TwoStepNVTRigidGPU.cc */,
+				DAE7A762183C68D800805975 /* TwoStepNVTRigidGPU.h */,
+			);
+			path = updaters_gpu;
+			sourceTree = "<group>";
+		};
+		DAE7A763183C68D800805975 /* utils */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A764183C68D800805975 /* ClockSource.cc */,
+				DAE7A765183C68D800805975 /* ClockSource.h */,
+				DAE7A766183C68D800805975 /* CMakeLists.txt */,
+				DAE7A767183C68D800805975 /* HOOMDMath.cc */,
+				DAE7A768183C68D800805975 /* HOOMDMath.h */,
+				DAE7A769183C68D800805975 /* HOOMDMPI.h */,
+				DAE7A76A183C68D800805975 /* HOOMDVersion.cc */,
+				DAE7A76B183C68D800805975 /* HOOMDVersion.h.in */,
+				DAE7A76C183C68D800805975 /* Index1D.h */,
+				DAE7A76D183C68D800805975 /* Messenger.cc */,
+				DAE7A76E183C68D800805975 /* Messenger.h */,
+				DAE7A76F183C68D800805975 /* PathUtils.cc */,
+				DAE7A770183C68D800805975 /* PathUtils.h */,
+				DAE7A771183C68D800805975 /* Profiler.cc */,
+				DAE7A772183C68D800805975 /* Profiler.h */,
+				DAE7A773183C68D800805975 /* QuaternionMath.h */,
+				DAE7A774183C68D800805975 /* SignalHandler.cc */,
+				DAE7A775183C68D800805975 /* SignalHandler.h */,
+				DAE7A776183C68D800805975 /* TextureTools.h */,
+				DAE7A777183C68D800805975 /* Variant.cc */,
+				DAE7A778183C68D800805975 /* Variant.h */,
+			);
+			path = utils;
+			sourceTree = "<group>";
+		};
+		DAE7A7EC183C793D00805975 /* python-module */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A7ED183C793D00805975 /* CMakeLists.txt */,
+				DAE7A7EE183C793D00805975 /* hoomd_plugins */,
+				DAE7A7F0183C793D00805975 /* hoomd_script */,
+			);
+			name = "python-module";
+			path = "../../python-module";
+			sourceTree = "<group>";
+		};
+		DAE7A7EE183C793D00805975 /* hoomd_plugins */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A7EF183C793D00805975 /* __init__.py */,
+			);
+			path = hoomd_plugins;
+			sourceTree = "<group>";
+		};
+		DAE7A7F0183C793D00805975 /* hoomd_script */ = {
+			isa = PBXGroup;
+			children = (
+				DAE7A7F1183C793D00805975 /* .gitignore */,
+				DAE7A7F2183C793D00805975 /* __init__.py */,
+				DAE7A7F3183C793D00805975 /* analyze.py */,
+				DAE7A7F4183C793D00805975 /* angle.py */,
+				DAE7A7F5183C793D00805975 /* benchmark.py */,
+				DAE7A7F6183C793D00805975 /* bond.py */,
+				DAE7A7F7183C793D00805975 /* charge.py */,
+				DAE7A7F8183C793D00805975 /* comm.py */,
+				DAE7A7F9183C793D00805975 /* compute.py */,
+				DAE7A7FA183C793D00805975 /* constrain.py */,
+				DAE7A7FB183C793D00805975 /* data.py */,
+				DAE7A7FC183C793D00805975 /* dihedral.py */,
+				DAE7A7FD183C793D00805975 /* dump.py */,
+				DAE7A7FE183C793D00805975 /* external.py */,
+				DAE7A7FF183C793D00805975 /* force.py */,
+				DAE7A800183C793D00805975 /* globals.py */,
+				DAE7A801183C793D00805975 /* group.py */,
+				DAE7A802183C793D00805975 /* improper.py */,
+				DAE7A803183C793D00805975 /* init.py */,
+				DAE7A804183C793D00805975 /* integrate.py */,
+				DAE7A805183C793D00805975 /* option.py */,
+				DAE7A806183C793D00805975 /* pair.py */,
+				DAE7A807183C793D00805975 /* tune.py */,
+				DAE7A808183C793D00805975 /* update.py */,
+				DAE7A809183C793D00805975 /* util.py */,
+				DAE7A80A183C793D00805975 /* variant.py */,
+				DAE7A80B183C793D00805975 /* wall.py */,
+			);
+			path = hoomd_script;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DAE7A5E0183C689B00805975 /* HOOMD */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DAE7A5EA183C689B00805975 /* Build configuration list for PBXNativeTarget "HOOMD" */;
+			buildPhases = (
+				DAE7A5DD183C689B00805975 /* Sources */,
+				DAE7A5DE183C689B00805975 /* Frameworks */,
+				DAE7A5DF183C689B00805975 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HOOMD;
+			productName = HOOMD;
+			productReference = DAE7A5E1183C689B00805975 /* HOOMD */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DAE7A5D9183C689B00805975 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0500;
+				ORGANIZATIONNAME = "Paul Dodd";
+			};
+			buildConfigurationList = DAE7A5DC183C689B00805975 /* Build configuration list for PBXProject "HOOMD" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = DAE7A5D8183C689B00805975;
+			productRefGroup = DAE7A5E2183C689B00805975 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DAE7A5E0183C689B00805975 /* HOOMD */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DAE7A5DD183C689B00805975 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAE7A7C7183C68D800805975 /* Integrator.cc in Sources */,
+				DAE7A788183C68D800805975 /* CGCMMForceCompute.cc in Sources */,
+				DAE7A79A183C68D800805975 /* TablePotential.cc in Sources */,
+				DAE7A77D183C68D800805975 /* IMDInterface.cc in Sources */,
+				DAE7A7E0183C68D800805975 /* TwoStepNVEGPU.cc in Sources */,
+				DAE7A7B8183C68D800805975 /* SnapshotSystemData.cc in Sources */,
+				DAE7A79B183C68D800805975 /* BondTablePotentialGPU.cc in Sources */,
+				DAE7A781183C68D800805975 /* PDBDumpWriter.cc in Sources */,
+				DAE7A7BD183C68D800805975 /* kiss_fftnd.cc in Sources */,
+				DAE7A790183C68D800805975 /* ForceConstraint.cc in Sources */,
+				DAE7A782183C68D800805975 /* Communicator.cc in Sources */,
+				DAE7A783183C68D800805975 /* CommunicatorGPU.cc in Sources */,
+				DAE7A7A5183C68D800805975 /* NeighborListGPU.cc in Sources */,
+				DAE7A7AB183C68D800805975 /* AngleData.cc in Sources */,
+				DAE7A7C1183C68D800805975 /* System.cc in Sources */,
+				DAE7A7BA183C68D800805975 /* WallData.cc in Sources */,
+				DAE7A7D3183C68D800805975 /* TwoStepNVT.cc in Sources */,
+				DAE7A7BB183C68D800805975 /* imd.cc in Sources */,
+				DAE7A7A2183C68D800805975 /* HarmonicAngleForceComputeGPU.cc in Sources */,
+				DAE7A785183C68D800805975 /* BondTablePotential.cc in Sources */,
+				DAE7A7EA183C68D800805975 /* SignalHandler.cc in Sources */,
+				DAE7A7BE183C68D800805975 /* vmdsock.cc in Sources */,
+				DAE7A7DC183C68D800805975 /* TwoStepBerendsenGPU.cc in Sources */,
+				DAE7A7CA183C68D800805975 /* TempRescaleUpdater.cc in Sources */,
+				DAE7A7E2183C68D800805975 /* TwoStepNVTGPU.cc in Sources */,
+				DAE7A7C9183C68D800805975 /* SFCPackUpdater.cc in Sources */,
+				DAE7A780183C68D800805975 /* MSDAnalyzer.cc in Sources */,
+				DAE7A7EB183C68D800805975 /* Variant.cc in Sources */,
+				DAE7A7D0183C68D800805975 /* TwoStepNPTRigid.cc in Sources */,
+				DAE7A78D183C68D800805975 /* ConstraintSphere.cc in Sources */,
+				DAE7A794183C68D800805975 /* LJWallForceCompute.cc in Sources */,
+				DAE7A77E183C68D800805975 /* Logger.cc in Sources */,
+				DAE7A7D1183C68D800805975 /* TwoStepNVE.cc in Sources */,
+				DAE7A7A7183C68D800805975 /* PPPMForceComputeGPU.cc in Sources */,
+				DAE7A7DD183C68D800805975 /* TwoStepNPHRigidGPU.cc in Sources */,
+				DAE7A7AC183C68D800805975 /* BondData.cc in Sources */,
+				DAE7A7CD183C68D800805975 /* TwoStepBerendsen.cc in Sources */,
+				DAE7A7E5183C68D800805975 /* HOOMDMath.cc in Sources */,
+				DAE7A7C8183C68D800805975 /* IntegratorTwoStep.cc in Sources */,
+				DAE7A793183C68D800805975 /* HarmonicImproperForceCompute.cc in Sources */,
+				DAE7A792183C68D800805975 /* HarmonicDihedralForceCompute.cc in Sources */,
+				DAE7A7DB183C68D800805975 /* TwoStepBDNVTRigidGPU.cc in Sources */,
+				DAE7A79F183C68D800805975 /* ComputeThermoGPU.cc in Sources */,
+				DAE7A787183C68D800805975 /* CGCMMAngleForceCompute.cc in Sources */,
+				DAE7A7B4183C68D800805975 /* ParticleGroup.cc in Sources */,
+				DAE7A796183C68D800805975 /* NeighborListBinned.cc in Sources */,
+				DAE7A77F183C68D800805975 /* MOL2DumpWriter.cc in Sources */,
+				DAE7A7B6183C68D800805975 /* RigidBodyGroup.cc in Sources */,
+				DAE7A7A3183C68D800805975 /* HarmonicDihedralForceComputeGPU.cc in Sources */,
+				DAE7A7B2183C68D800805975 /* IntegratorData.cc in Sources */,
+				DAE7A797183C68D800805975 /* PPPMForceCompute.cc in Sources */,
+				DAE7A7CE183C68D800805975 /* TwoStepNPHRigid.cc in Sources */,
+				DAE7A784183C68D800805975 /* DomainDecomposition.cc in Sources */,
+				DAE7A78A183C68D800805975 /* ComputeThermo.cc in Sources */,
+				DAE7A7B0183C68D800805975 /* HOOMDInitializer.cc in Sources */,
+				DAE7A7A9183C68D800805975 /* TableDihedralForceComputeGPU.cc in Sources */,
+				DAE7A7C2183C68D800805975 /* BoxResizeUpdater.cc in Sources */,
+				DAE7A7BF183C68D800805975 /* xmlParser.cc in Sources */,
+				DAE7A7D8183C68D800805975 /* FIREEnergyMinimizerGPU.cc in Sources */,
+				DAE7A789183C68D800805975 /* Compute.cc in Sources */,
+				DAE7A7E9183C68D800805975 /* Profiler.cc in Sources */,
+				DAE7A7CF183C68D800805975 /* TwoStepNPTMTK.cc in Sources */,
+				DAE7A7AD183C68D800805975 /* DihedralData.cc in Sources */,
+				DAE7A7B3183C68D800805975 /* ParticleData.cc in Sources */,
+				DAE7A7C3183C68D800805975 /* Enforce2DUpdater.cc in Sources */,
+				DAE7A78C183C68D800805975 /* ConstForceCompute.cc in Sources */,
+				DAE7A795183C68D800805975 /* NeighborList.cc in Sources */,
+				DAE7A7A8183C68D800805975 /* TableAngleForceComputeGPU.cc in Sources */,
+				DAE7A7D9183C68D800805975 /* FIREEnergyMinimizerRigidGPU.cc in Sources */,
+				DAE7A79E183C68D800805975 /* CGCMMForceComputeGPU.cc in Sources */,
+				DAE7A7A1183C68D800805975 /* EAMForceComputeGPU.cc in Sources */,
+				DAE7A7B7183C68D800805975 /* RigidData.cc in Sources */,
+				DAE7A7D5183C68D800805975 /* Updater.cc in Sources */,
+				DAE7A7C6183C68D800805975 /* IntegrationMethodTwoStep.cc in Sources */,
+				DAE7A7AA183C68D800805975 /* TablePotentialGPU.cc in Sources */,
+				DAE7A7AF183C68D800805975 /* HOOMDBinaryInitializer.cc in Sources */,
+				DAE7A7E6183C68D800805975 /* HOOMDVersion.cc in Sources */,
+				DAE7A791183C68D800805975 /* HarmonicAngleForceCompute.cc in Sources */,
+				DAE7A7B1183C68D800805975 /* Initializers.cc in Sources */,
+				DAE7A7E3183C68D800805975 /* TwoStepNVTRigidGPU.cc in Sources */,
+				DAE7A7D7183C68D800805975 /* Enforce2DUpdaterGPU.cc in Sources */,
+				DAE7A7E8183C68D800805975 /* PathUtils.cc in Sources */,
+				DAE7A7CC183C68D800805975 /* TwoStepBDNVTRigid.cc in Sources */,
+				DAE7A7B9183C68D800805975 /* SystemDefinition.cc in Sources */,
+				DAE7A7C5183C68D800805975 /* FIREEnergyMinimizerRigid.cc in Sources */,
+				DAE7A5E5183C689B00805975 /* main.cpp in Sources */,
+				DAE7A7CB183C68D800805975 /* TwoStepBDNVT.cc in Sources */,
+				DAE7A7D6183C68D800805975 /* ZeroMomentumUpdater.cc in Sources */,
+				DAE7A78B183C68D800805975 /* ConstExternalFieldDipoleForceCompute.cc in Sources */,
+				DAE7A77C183C68D800805975 /* HOOMDDumpWriter.cc in Sources */,
+				DAE7A7C4183C68D800805975 /* FIREEnergyMinimizer.cc in Sources */,
+				DAE7A7D2183C68D800805975 /* TwoStepNVERigid.cc in Sources */,
+				DAE7A7D4183C68D800805975 /* TwoStepNVTRigid.cc in Sources */,
+				DAE7A7DF183C68D800805975 /* TwoStepNPTRigidGPU.cc in Sources */,
+				DAE7A7BC183C68D800805975 /* kiss_fft.cc in Sources */,
+				DAE7A786183C68D800805975 /* CellList.cc in Sources */,
+				DAE7A7E4183C68D800805975 /* ClockSource.cc in Sources */,
+				DAE7A78E183C68D800805975 /* EAMForceCompute.cc in Sources */,
+				DAE7A79D183C68D800805975 /* CGCMMAngleForceComputeGPU.cc in Sources */,
+				DAE7A7A4183C68D800805975 /* HarmonicImproperForceComputeGPU.cc in Sources */,
+				DAE7A779183C68D800805975 /* Analyzer.cc in Sources */,
+				DAE7A7DE183C68D800805975 /* TwoStepNPTMTKGPU.cc in Sources */,
+				DAE7A799183C68D800805975 /* TableDihedralForceCompute.cc in Sources */,
+				DAE7A77A183C68D800805975 /* DCDDumpWriter.cc in Sources */,
+				DAE7A798183C68D800805975 /* TableAngleForceCompute.cc in Sources */,
+				DAE7A7AE183C68D800805975 /* ExecutionConfiguration.cc in Sources */,
+				DAE7A77B183C68D800805975 /* HOOMDBinaryDumpWriter.cc in Sources */,
+				DAE7A7C0183C68D800805975 /* hoomd_module.cc in Sources */,
+				DAE7A78F183C68D800805975 /* ForceCompute.cc in Sources */,
+				DAE7A7E7183C68D800805975 /* Messenger.cc in Sources */,
+				DAE7A7A6183C68D800805975 /* NeighborListGPUBinned.cc in Sources */,
+				DAE7A7DA183C68D800805975 /* TwoStepBDNVTGPU.cc in Sources */,
+				DAE7A7A0183C68D800805975 /* ConstraintSphereGPU.cc in Sources */,
+				DAE7A7E1183C68D800805975 /* TwoStepNVERigidGPU.cc in Sources */,
+				DAE7A7B5183C68D800805975 /* RandomGenerator.cc in Sources */,
+				DAE7A79C183C68D800805975 /* CellListGPU.cc in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		DAE7A5E8183C689B00805975 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		DAE7A5E9183C689B00805975 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		DAE7A5EB183C689B00805975 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		DAE7A5EC183C689B00805975 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DAE7A5DC183C689B00805975 /* Build configuration list for PBXProject "HOOMD" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAE7A5E8183C689B00805975 /* Debug */,
+				DAE7A5E9183C689B00805975 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DAE7A5EA183C689B00805975 /* Build configuration list for PBXNativeTarget "HOOMD" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAE7A5EB183C689B00805975 /* Debug */,
+				DAE7A5EC183C689B00805975 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DAE7A5D9183C689B00805975 /* Project object */;
+}
