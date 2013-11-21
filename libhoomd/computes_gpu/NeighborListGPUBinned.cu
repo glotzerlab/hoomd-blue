@@ -62,10 +62,11 @@ scalar4_tex_t cell_xyzf_1d_tex;
 
 //! Warp-centric scan
 template<int NT>
-struct warp_scan {
-    enum { capacity = (2 * NT + 1) };
+struct warp_scan
+    {
+    enum { capacity = NT > 1 ? (2 * NT + 1) : 1};
 
-    __device__ static int Scan(int tid, int x, volatile int *shared, int* total)
+    __device__ static int Scan(int tid, unsigned char x, volatile unsigned char *shared, unsigned char* total)
         {
         shared[tid] = x;
         int first = 0;
@@ -87,7 +88,7 @@ struct warp_scan {
         // no syncthreads here (inside warp)
         return x;
         }
-};
+    };
 
 //! Kernel call for generating neighbor list on the GPU (shared memory version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
@@ -172,7 +173,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     int my_cell = ci(ib,jb,kb);
 
     // shared memory (volatile is required, since we are doing warp-centric)
-    volatile extern __shared__ int sh[];
+    volatile extern __shared__ unsigned char sh[];
 
     // index of current neighbor
     unsigned int cur_adj = 0;
@@ -271,9 +272,9 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
             }
 
         // no syncthreads here, we assume threads_per_particle < warp size
-        int flag = (neighbor != NO_NEIGHBOR) ? 1 : 0;
+        unsigned char flag = (neighbor != NO_NEIGHBOR) ? 1 : 0;
         // scan over flags
-        int n;
+        unsigned char n;
         int k = warp_scan<threads_per_particle>::Scan(threadIdx.x % threads_per_particle,
             flag, &sh[cta_offs], &n);
 
@@ -325,7 +326,7 @@ void launcher(unsigned int *d_nlist,
               unsigned int n_blocks,
               unsigned int block_size)
     {
-    unsigned int shared_size = warp_scan<cur_tpp>::capacity*sizeof(int)*(block_size/cur_tpp);
+    unsigned int shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
     if (tpp == cur_tpp && cur_tpp != 0)
         {
