@@ -190,21 +190,16 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     // current index in cell
     int cur_offset = threadIdx.x % threads_per_particle;
 
-    // sentinel value
-    const unsigned int NO_NEIGHBOR = 0xffffffff;
-
     bool done = false;
 
     // total number of neighbors
     unsigned int nneigh = 0;
 
-    // required number of neighbors
-    unsigned int n_neigh_needed = 0;
-
     while (! done)
         {
         // initalize with default
-        unsigned int neighbor = NO_NEIGHBOR;
+        unsigned int neighbor;
+        unsigned char has_neighbor = 0;
 
         // advance neighbor cell
         while (cur_offset >= neigh_size && !done )
@@ -268,22 +263,22 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
                 }
 
             // store result in shared memory
-            if (drsq <= (r_maxsq + sqshift) && !excluded) neighbor = cur_neigh;
+            if (drsq <= (r_maxsq + sqshift) && !excluded)
+                {
+                neighbor = cur_neigh;
+                has_neighbor = 1;
+                }
             }
 
         // no syncthreads here, we assume threads_per_particle < warp size
-        unsigned char flag = (neighbor != NO_NEIGHBOR) ? 1 : 0;
+
         // scan over flags
         unsigned char n;
         int k = warp_scan<threads_per_particle>::Scan(threadIdx.x % threads_per_particle,
-            flag, &sh[cta_offs], &n);
+            has_neighbor, &sh[cta_offs], &n);
 
-        if (nneigh + n < nli.getH())
-            {
-            if (flag) d_nlist[nli(my_pidx, nneigh + k)] = neighbor;
-            }
-        else
-            n_neigh_needed = nneigh + n;
+        if (has_neighbor && nneigh + k < nli.getH())
+            d_nlist[nli(my_pidx, nneigh + k)] = neighbor;
 
         // increment total neighbor count
         nneigh += n;
@@ -291,8 +286,10 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
 
     if (threadIdx.x % threads_per_particle == 0)
         {
-        if (n_neigh_needed)
-            atomicMax(&d_conditions[0], n_neigh_needed);
+        // flag if we need to grow the neighbor list
+        if (nneigh >= nli.getH())
+            atomicMax(&d_conditions[0], nneigh);
+
         d_n_neigh[my_pidx] = nneigh;
         d_last_updated_pos[my_pidx] = my_postype;
         }
@@ -300,7 +297,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
 
 //! recursive template to launch neighborlist with given template parameters
 template<int cur_tpp>
-void launcher(unsigned int *d_nlist,
+inline void launcher(unsigned int *d_nlist,
               unsigned int *d_n_neigh,
               Scalar4 *d_last_updated_pos,
               unsigned int *d_conditions,
@@ -448,7 +445,7 @@ void launcher(unsigned int *d_nlist,
 
 //! template specialization to terminate recursion
 template<>
-void launcher<min_threads_per_particle-1>(unsigned int *d_nlist,
+inline void launcher<min_threads_per_particle-1>(unsigned int *d_nlist,
               unsigned int *d_n_neigh,
               Scalar4 *d_last_updated_pos,
               unsigned int *d_conditions,

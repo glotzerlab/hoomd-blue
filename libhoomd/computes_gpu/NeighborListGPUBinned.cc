@@ -227,6 +227,16 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
             throw std::runtime_error("Error building neighbor list");
             }
 
+        //! We are using warp synchronous programming, so the number of threads must
+        //! divide the warp size (max_threads_per_particle)
+        if (max_threads_per_particle % m_threads_per_particle)
+            {
+            m_exec_conf->msg->error() << "nlist.*: Number of threads per particle must divide " << max_threads_per_particle
+                << "." << std::endl;
+            throw std::runtime_error("Error building neighbor list");
+            }
+
+
         if (m_threads_per_particle > max_threads_per_particle)
             {
             m_exec_conf->msg->error() << "nlist.*: Maximum number of threads per particle is "
