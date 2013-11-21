@@ -63,8 +63,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for neighbor list generation on the GPU
 */
 
+#define WARP_SIZE 32
 const unsigned int min_threads_per_particle=1;
-const unsigned int max_threads_per_particle=32;
+const unsigned int max_threads_per_particle=WARP_SIZE;
 
 //! Kernel driver for gpu_compute_nlist_shared_kernel()
 cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,

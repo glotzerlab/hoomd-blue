@@ -64,10 +64,38 @@ scalar4_tex_t cell_xyzf_1d_tex;
 template<int NT>
 struct warp_scan
     {
+    #if __CUDA_ARCH__ >= 300
+    enum { capacity = 0 }; // uses no shared memory
+    #else
     enum { capacity = NT > 1 ? (2 * NT + 1) : 1};
+    #endif
 
     __device__ static int Scan(int tid, unsigned char x, volatile unsigned char *shared, unsigned char* total)
         {
+        #if __CUDA_ARCH__ >= 300
+        // Kepler version
+        unsigned int laneid;
+        //This command gets the lane ID within the current warp
+        asm("mov.u32 %0, %%laneid;" : "=r"(laneid));
+
+        int first = laneid - tid;
+
+        #pragma unroll
+        for(int offset = 1; offset < NT; offset += offset)
+            {
+            int y = __shfl(x,(first + tid - offset) &(WARP_SIZE -1));
+            if(tid >= offset) x += y;
+            }
+
+        // all threads get the total from the last thread in the cta
+        *total = __shfl(x,first + NT - 1);
+
+        // shift by one (exclusive scan)
+        int y = __shfl(x,(first + tid - 1) &(WARP_SIZE-1));
+        x = tid ? y : 0;
+
+        #else // __CUDA_ARCH__ >= 300
+
         shared[tid] = x;
         int first = 0;
         // no syncthreads here (inside warp)
@@ -83,8 +111,9 @@ struct warp_scan
             }
         *total = shared[first + NT - 1];
 
+        // shift by one (exclusive scan)
         x = tid ? shared[first + tid - 1] : 0;
-
+        #endif
         // no syncthreads here (inside warp)
         return x;
         }
@@ -296,6 +325,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     }
 
 //! recursive template to launch neighborlist with given template parameters
+/* \tparam cur_tpp Number of threads per particle (assumed to be power of two) */
 template<int cur_tpp>
 inline void launcher(unsigned int *d_nlist,
               unsigned int *d_n_neigh,
@@ -414,7 +444,7 @@ inline void launcher(unsigned int *d_nlist,
         }
     else
         {
-        launcher<cur_tpp-1>(d_nlist,
+        launcher<cur_tpp/2>(d_nlist,
                      d_n_neigh,
                      d_last_updated_pos,
                      d_conditions,
@@ -445,7 +475,7 @@ inline void launcher(unsigned int *d_nlist,
 
 //! template specialization to terminate recursion
 template<>
-inline void launcher<min_threads_per_particle-1>(unsigned int *d_nlist,
+inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               unsigned int *d_n_neigh,
               Scalar4 *d_last_updated_pos,
               unsigned int *d_conditions,
