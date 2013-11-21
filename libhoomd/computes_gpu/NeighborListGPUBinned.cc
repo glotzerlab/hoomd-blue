@@ -89,6 +89,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     dca_cell_xyzf = NULL;
     dca_cell_tdb = NULL;
     m_block_size = 64;
+    m_threads_per_particle = 4;
 
     // When running on compute 1.x, textures are allocated with the height equal to the number of cells
     // limit the number of cells to the maximum texture dimension
@@ -219,23 +220,21 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_diameter,
                                  m_cl->getGhostWidth());
         #else
-        unsigned int threads_per_particle =4;
-
-        if (m_block_size % threads_per_particle)
+        if (m_block_size % m_threads_per_particle)
             {
             m_exec_conf->msg->error() << "nlist.*: Block size must be a multiple of threads per particle."
                 << std::endl;
             throw std::runtime_error("Error building neighbor list");
             }
 
-        if (threads_per_particle > max_threads_per_particle)
+        if (m_threads_per_particle > max_threads_per_particle)
             {
             m_exec_conf->msg->error() << "nlist.*: Maximum number of threads per particle is "
                 << max_threads_per_particle << "." << std::endl;
             throw std::runtime_error("Error building neighbor list");
             }
 
-        if (threads_per_particle < min_threads_per_particle)
+        if (m_threads_per_particle < min_threads_per_particle)
             {
             m_exec_conf->msg->error() << "nlist.*: Minimum number of threads per particle is "
                 << min_threads_per_particle << "." << std::endl;
@@ -261,7 +260,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellAdjIndexer(),
                                  box,
                                  rmaxsq,
-                                 threads_per_particle,
+                                 m_threads_per_particle,
                                  m_block_size,
                                  m_filter_body,
                                  m_filter_diameter,
@@ -384,5 +383,6 @@ void export_NeighborListGPUBinned()
     class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
                      ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
                     .def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
+                    .def("setNumThreads", &NeighborListGPUBinned::setNumThreads)
                      ;
     }

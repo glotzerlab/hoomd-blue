@@ -92,6 +92,12 @@ class NeighborListGPUBinned : public NeighborListGPU
             m_block_size = block_size;
             }
 
+        //! Set the number of threads per particle
+        void setNumThreads(unsigned int threads_per_particle)
+            {
+            m_threads_per_particle = threads_per_particle;
+            }
+
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
 
@@ -109,6 +115,7 @@ class NeighborListGPUBinned : public NeighborListGPU
         uint3 m_last_dim;                   //!< The last dimensions allocated for the cell list tex2D arrays
         unsigned int m_last_cell_Nmax;      //!< The last Nmax allocated for the cell list tex2D arrays
         unsigned int m_block_size;          //!< Block size to execute on the GPU
+        unsigned int m_threads_per_particle;//!< Number of threads per particle
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
