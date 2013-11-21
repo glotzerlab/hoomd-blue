@@ -195,7 +195,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (exec_conf->getComputeCapability() >= 200)
         {
-        #if 1
+        #if 0
         gpu_compute_nlist_binned(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,
@@ -219,8 +219,29 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_diameter,
                                  m_cl->getGhostWidth());
         #else
-        unsigned int max_shared_neighbors = 8;
         unsigned int threads_per_particle =4;
+
+        if (m_block_size % threads_per_particle)
+            {
+            m_exec_conf->msg->error() << "nlist.*: Block size must be a multiple of threads per particle."
+                << std::endl;
+            throw std::runtime_error("Error building neighbor list");
+            }
+
+        if (threads_per_particle > max_threads_per_particle)
+            {
+            m_exec_conf->msg->error() << "nlist.*: Maximum number of threads per particle is "
+                << max_threads_per_particle << "." << std::endl;
+            throw std::runtime_error("Error building neighbor list");
+            }
+
+        if (threads_per_particle < min_threads_per_particle)
+            {
+            m_exec_conf->msg->error() << "nlist.*: Minimum number of threads per particle is "
+                << min_threads_per_particle << "." << std::endl;
+            throw std::runtime_error("Error building neighbor list");
+            }
+
 
         gpu_compute_nlist_binned_shared(d_nlist.data,
                                  d_n_neigh.data,
@@ -240,8 +261,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellAdjIndexer(),
                                  box,
                                  rmaxsq,
-                                 max_shared_neighbors,
                                  threads_per_particle,
+                                 m_block_size,
                                  m_filter_body,
                                  m_filter_diameter,
                                  m_cl->getGhostWidth());

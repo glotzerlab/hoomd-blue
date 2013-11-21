@@ -60,6 +60,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Texture for reading d_cell_xyzf
 scalar4_tex_t cell_xyzf_1d_tex;
 
+//! Warp-centric scan
+template<int NT>
+struct warp_scan {
+    enum { capacity = (2 * NT + 1) };
+
+    __device__ static int Scan(int tid, int x, volatile int *shared, int* total)
+        {
+        shared[tid] = x;
+        int first = 0;
+        // no syncthreads here (inside warp)
+
+        #pragma unroll
+        for(int offset = 1; offset < NT; offset += offset)
+            {
+            if(tid >= offset)
+                x = shared[first + tid - offset] + x;
+            first = NT - first;
+            shared[first + tid] = x;
+            // no syncthreads here (inside warp)
+            }
+        *total = shared[first + NT - 1];
+
+        x = tid ? shared[first + tid - 1] : 0;
+
+        // no syncthreads here (inside warp)
+        return x;
+        }
+};
+
 //! Kernel call for generating neighbor list on the GPU (shared memory version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \param d_nlist Neighbor list data structure to write
@@ -85,7 +114,7 @@ scalar4_tex_t cell_xyzf_1d_tex;
 
     \note optimized for Fermi
 */
-template<unsigned char flags>
+template<unsigned char flags, int threads_per_particle>
 __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
                                                     unsigned int *d_n_neigh,
                                                     Scalar4 *d_last_updated_pos,
@@ -105,15 +134,16 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
                                                     const BoxDim box,
                                                     const Scalar r_maxsq,
                                                     const Scalar r_max,
-                                                    const Scalar3 ghost_width,
-                                                    const unsigned int threads_per_particle,
-                                                    const unsigned int max_shared_neighbors)
+                                                    const Scalar3 ghost_width)
     {
     bool filter_body = flags & 1;
     bool filter_diameter = flags & 2;
 
-    // each thread block is going to compute the neighbor list for a single particle
-    int my_pidx = blockIdx.x;
+    // each set of threads_per_particle threads is going to compute the neighbor list for a single particle
+    int my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
+
+    // return early if out of bounds
+    if (my_pidx >= N) return;
 
     // first, determine which bin this particle belongs to
     Scalar4 my_postype = d_pos[my_pidx];
@@ -141,58 +171,69 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
 
     int my_cell = ci(ib,jb,kb);
 
-    // determine index of adjacent bin
-    unsigned int cur_adj = threadIdx.x/threads_per_particle;
+    // shared memory (volatile is required, since we are doing warp-centric)
+    volatile extern __shared__ int sh[];
 
-    int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
-    unsigned int size = d_cell_size[neigh_cell];
+    // index of current neighbor
+    unsigned int cur_adj = 0;
 
-    // access shared memory
-    extern __shared__ unsigned int shmem[];
+    // current cell
+    unsigned int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
 
-    // total numbers of neighbors in the whole thread block
-    unsigned int &n_neigh_tot = shmem[0];
+    // size of current cell
+    unsigned int neigh_size = d_cell_size[neigh_cell];
 
-    // initialize with zero
-    if (threadIdx.x == 0) n_neigh_tot = 0;
+    // offset of cta in shared memory
+    int cta_offs = (threadIdx.x/threads_per_particle)*warp_scan<threads_per_particle>::capacity;
 
-    // neighbors per thread counter
-    unsigned int *sh_nneigh = &shmem[1];
+    // current index in cell
+    int cur_offset = threadIdx.x % threads_per_particle;
 
-    // initialize shared counter to zero
-    sh_nneigh[threadIdx.x] = 0;
+    // sentinel value
+    const unsigned int NO_NEIGHBOR = 0xffffffff;
 
-    // array of neighbors per thread
-    unsigned int *sh_neighbors = &shmem[blockDim.x + 1];
+    bool done = false;
 
-    // start at this cell list entry
-    unsigned int start_offs =  threadIdx.x % threads_per_particle;
+    // total number of neighbors
+    unsigned int nneigh = 0;
 
-    // run up to max cell list element
-    // (make sure all threads of a block participate in the loop)
-    unsigned int loop_max = cli.getW();
+    // required number of neighbors
+    unsigned int n_neigh_needed = 0;
 
-    if (loop_max% threads_per_particle) loop_max = threads_per_particle*(1+loop_max/threads_per_particle);
-
-    while (start_offs < loop_max)
+    while (! done)
         {
-        // process batches of max_shared_neigbhors
-        unsigned int end_offs = start_offs + max_shared_neighbors*threads_per_particle;
+        // initalize with default
+        unsigned int neighbor = NO_NEIGHBOR;
 
-        // do not read past end of cell
-        end_offs = (end_offs < size) ? end_offs : size;
+        // advance neighbor cell
+        while (cur_offset >= neigh_size && !done )
+            {
+            cur_offset -= neigh_size;
+            cur_adj++;
+            if (cur_adj < cadji.getW())
+                {
+                neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
+                neigh_size = d_cell_size[neigh_cell];
+                }
+            else
+                // we are past the end of the cell neighbors
+                done = true;
+            }
 
-        // number of neighbors counter
-        unsigned int nneigh = 0;
+        // if the first thread in the cta has no work, terminate the loop
+        if (done && !(threadIdx.x % threads_per_particle)) break;
 
-        // now, we are set to loop through the array
-        for (unsigned int cur_offset = start_offs; cur_offset < end_offs; cur_offset+=threads_per_particle)
+        if (!done)
             {
             Scalar4 cur_xyzf = texFetchScalar4(d_cell_xyzf, cell_xyzf_1d_tex, cli(cur_offset, neigh_cell));
 
             Scalar4 cur_tdb = make_scalar4(0, 0, 0, 0);
             if (filter_diameter || filter_body)
                 cur_tdb = d_cell_tdb[cli(cur_offset, neigh_cell)];
+
+            // advance cur_offset
+            cur_offset += threads_per_particle;
+
             unsigned int neigh_body = __scalar_as_int(cur_tdb.z);
             Scalar neigh_diameter = cur_tdb.y;
 
@@ -226,63 +267,212 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
                 }
 
             // store result in shared memory
-            if (drsq <= (r_maxsq + sqshift) && !excluded)
-                {
-                sh_neighbors[nneigh*blockDim.x+threadIdx.x] = cur_neigh;
-                nneigh++;
-                }
+            if (drsq <= (r_maxsq + sqshift) && !excluded) neighbor = cur_neigh;
             }
 
-        // store number of neighbors in shared memory
-        sh_nneigh[threadIdx.x] = nneigh;
+        // no syncthreads here, we assume threads_per_particle < warp size
+        int flag = (neighbor != NO_NEIGHBOR) ? 1 : 0;
+        // scan over flags
+        int n;
+        int k = warp_scan<threads_per_particle>::Scan(threadIdx.x % threads_per_particle,
+            flag, &sh[cta_offs], &n);
 
-        // make sure all threads have written their neighbor counts
-        __syncthreads();
-
-        // every thread writes out its own neighbors to global mem, but needs to find out at which
-        // position in the neighbor list to write to
-        unsigned int out_idx = n_neigh_tot;
-        for (unsigned int tidx = 0; tidx < threadIdx.x; ++tidx)
-            out_idx += sh_nneigh[tidx];
-
-        // max neighbor list position accessed by this thread
-        unsigned int n_neigh_needed = out_idx + nneigh;
-        if (n_neigh_needed <= nli.getH())
+        if (nneigh + n < nli.getH())
             {
-            // flush neighbors to global mem
-            for (unsigned int ineigh = 0; ineigh < nneigh; ++ineigh)
-                {
-                unsigned int neighbor = sh_neighbors[ineigh*blockDim.x+threadIdx.x];
-                d_nlist[nli(my_pidx, out_idx+ineigh)] = neighbor;
-                }
+            if (flag) d_nlist[nli(my_pidx, nneigh + k)] = neighbor;
             }
         else
-            atomicMax(&d_conditions[0], n_neigh_needed);
+            n_neigh_needed = nneigh + n;
 
-        // make sure n_neigh_tot doesn't get updated before its old value has been read by all other threads
-        __syncthreads();
+        // increment total neighbor count
+        nneigh += n;
+        } // end while
 
-        // thread zero computes the total number of neighbors
-        if (threadIdx.x == 0)
-            {
-            for (unsigned int tidx = 0; tidx < blockDim.x; ++tidx)
-                n_neigh_tot += sh_nneigh[tidx];
-            }
-
-        // necessary to avoid race condition (other threads updating sh_nneigh during the reduction)
-        __syncthreads();
-
-        // advance start_offs
-        start_offs += max_shared_neighbors*threads_per_particle;
-        } // end while (start_offs < size)
-
-    // write out number of neighbors to global memory
-    if (threadIdx.x == 0)
+    if (threadIdx.x % threads_per_particle == 0)
         {
-        d_n_neigh[my_pidx] = n_neigh_tot;
+        if (n_neigh_needed)
+            atomicMax(&d_conditions[0], n_neigh_needed);
+        d_n_neigh[my_pidx] = nneigh;
         d_last_updated_pos[my_pidx] = my_postype;
         }
     }
+
+//! recursive template to launch neighborlist with given template parameters
+template<int cur_tpp>
+void launcher(unsigned int *d_nlist,
+              unsigned int *d_n_neigh,
+              Scalar4 *d_last_updated_pos,
+              unsigned int *d_conditions,
+              const Index2D nli,
+              const Scalar4 *d_pos,
+              const unsigned int *d_body,
+              const Scalar *d_diameter,
+              const unsigned int N,
+              const unsigned int *d_cell_size,
+              const Scalar4 *d_cell_xyzf,
+              const Scalar4 *d_cell_tdb,
+              const unsigned int *d_cell_adj,
+              const Index3D ci,
+              const Index2D cli,
+              const Index2D cadji,
+              const BoxDim box,
+              const Scalar r_maxsq,
+              const Scalar r_max,
+              const Scalar3 ghost_width,
+              unsigned int tpp,
+              bool filter_diameter,
+              bool filter_body,
+              unsigned int n_blocks,
+              unsigned int block_size)
+    {
+    unsigned int shared_size = warp_scan<cur_tpp>::capacity*sizeof(int)*(block_size/cur_tpp);
+
+    if (tpp == cur_tpp && cur_tpp != 0)
+        {
+        if (!filter_diameter && !filter_body)
+            gpu_compute_nlist_binned_shared_kernel<0,cur_tpp><<<n_blocks, block_size,shared_size>>>(d_nlist,
+                                                                             d_n_neigh,
+                                                                             d_last_updated_pos,
+                                                                             d_conditions,
+                                                                             nli,
+                                                                             d_pos,
+                                                                             d_body,
+                                                                             d_diameter,
+                                                                             N,
+                                                                             d_cell_size,
+                                                                             d_cell_xyzf,
+                                                                             d_cell_tdb,
+                                                                             d_cell_adj,
+                                                                             ci,
+                                                                             cli,
+                                                                             cadji,
+                                                                             box,
+                                                                             r_maxsq,
+                                                                             sqrtf(r_maxsq),
+                                                                             ghost_width);
+        else if (!filter_diameter && filter_body)
+            gpu_compute_nlist_binned_shared_kernel<1,cur_tpp><<<n_blocks, block_size,shared_size>>>(d_nlist,
+                                                                             d_n_neigh,
+                                                                             d_last_updated_pos,
+                                                                             d_conditions,
+                                                                             nli,
+                                                                             d_pos,
+                                                                             d_body,
+                                                                             d_diameter,
+                                                                             N,
+                                                                             d_cell_size,
+                                                                             d_cell_xyzf,
+                                                                             d_cell_tdb,
+                                                                             d_cell_adj,
+                                                                             ci,
+                                                                             cli,
+                                                                             cadji,
+                                                                             box,
+                                                                             r_maxsq,
+                                                                             sqrtf(r_maxsq),
+                                                                             ghost_width);
+        else if (filter_diameter && !filter_body)
+             gpu_compute_nlist_binned_shared_kernel<2,cur_tpp><<<n_blocks, block_size,shared_size>>>(d_nlist,
+                                                                             d_n_neigh,
+                                                                             d_last_updated_pos,
+                                                                             d_conditions,
+                                                                             nli,
+                                                                             d_pos,
+                                                                             d_body,
+                                                                             d_diameter,
+                                                                             N,
+                                                                             d_cell_size,
+                                                                             d_cell_xyzf,
+                                                                             d_cell_tdb,
+                                                                             d_cell_adj,
+                                                                             ci,
+                                                                             cli,
+                                                                             cadji,
+                                                                             box,
+                                                                             r_maxsq,
+                                                                             sqrtf(r_maxsq),
+                                                                             ghost_width);
+        else if (filter_diameter && filter_body)
+             gpu_compute_nlist_binned_shared_kernel<3,cur_tpp><<<n_blocks, block_size,shared_size>>>(d_nlist,
+                                                                             d_n_neigh,
+                                                                             d_last_updated_pos,
+                                                                             d_conditions,
+                                                                             nli,
+                                                                             d_pos,
+                                                                             d_body,
+                                                                             d_diameter,
+                                                                             N,
+                                                                             d_cell_size,
+                                                                             d_cell_xyzf,
+                                                                             d_cell_tdb,
+                                                                             d_cell_adj,
+                                                                             ci,
+                                                                             cli,
+                                                                             cadji,
+                                                                             box,
+                                                                             r_maxsq,
+                                                                             sqrtf(r_maxsq),
+                                                                             ghost_width);
+        }
+    else
+        {
+        launcher<cur_tpp-1>(d_nlist,
+                     d_n_neigh,
+                     d_last_updated_pos,
+                     d_conditions,
+                     nli,
+                     d_pos,
+                     d_body,
+                     d_diameter,
+                     N,
+                     d_cell_size,
+                     d_cell_xyzf,
+                     d_cell_tdb,
+                     d_cell_adj,
+                     ci,
+                     cli,
+                     cadji,
+                     box,
+                     r_maxsq,
+                     sqrtf(r_maxsq),
+                     ghost_width,
+                     tpp,
+                     filter_diameter,
+                     filter_body,
+                     n_blocks,
+                     block_size
+                     );
+        }
+    }
+
+//! template specialization to terminate recursion
+template<>
+void launcher<min_threads_per_particle-1>(unsigned int *d_nlist,
+              unsigned int *d_n_neigh,
+              Scalar4 *d_last_updated_pos,
+              unsigned int *d_conditions,
+              const Index2D nli,
+              const Scalar4 *d_pos,
+              const unsigned int *d_body,
+              const Scalar *d_diameter,
+              const unsigned int N,
+              const unsigned int *d_cell_size,
+              const Scalar4 *d_cell_xyzf,
+              const Scalar4 *d_cell_tdb,
+              const unsigned int *d_cell_adj,
+              const Index3D ci,
+              const Index2D cli,
+              const Index2D cadji,
+              const BoxDim box,
+              const Scalar r_maxsq,
+              const Scalar r_max,
+              const Scalar3 ghost_width,
+              unsigned int tpp,
+              bool filter_diameter,
+              bool filter_body,
+              unsigned int n_blocks,
+              unsigned int block_size)
+    { }
 
 cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
@@ -302,18 +492,14 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                      const Index2D& cadji,
                                      const BoxDim& box,
                                      const Scalar r_maxsq,
-                                     const unsigned int max_shared_neighbors,
                                      const unsigned int threads_per_particle,
+                                     const unsigned int block_size,
                                      bool filter_body,
                                      bool filter_diameter,
                                      const Scalar3& ghost_width)
     {
-
-    int n_blocks = N;
-
-    int block_size = cadji.getW()*threads_per_particle;
-
-    size_t shared_size = sizeof(unsigned int)*(1+block_size*(1 + max_shared_neighbors));
+    int n_blocks = N/(block_size/threads_per_particle);
+    if (N % (block_size/threads_per_particle)) ++n_blocks;
 
     // bind the position texture
     cell_xyzf_1d_tex.normalized = false;
@@ -322,107 +508,32 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
     if (error != cudaSuccess)
         return error;
 
-    if (!filter_diameter && !filter_body)
-        {
-        gpu_compute_nlist_binned_shared_kernel<0><<<n_blocks, block_size, shared_size>>>(d_nlist,
-                                                                         d_n_neigh,
-                                                                         d_last_updated_pos,
-                                                                         d_conditions,
-                                                                         nli,
-                                                                         d_pos,
-                                                                         d_body,
-                                                                         d_diameter,
-                                                                         N,
-                                                                         d_cell_size,
-                                                                         d_cell_xyzf,
-                                                                         d_cell_tdb,
-                                                                         d_cell_adj,
-                                                                         ci,
-                                                                         cli,
-                                                                         cadji,
-                                                                         box,
-                                                                         r_maxsq,
-                                                                         sqrtf(r_maxsq),
-                                                                         ghost_width,
-                                                                         threads_per_particle,
-                                                                         max_shared_neighbors);
-        }
-    if (!filter_diameter && filter_body)
-        {
-        gpu_compute_nlist_binned_shared_kernel<1><<<n_blocks, block_size,shared_size>>>(d_nlist,
-                                                                         d_n_neigh,
-                                                                         d_last_updated_pos,
-                                                                         d_conditions,
-                                                                         nli,
-                                                                         d_pos,
-                                                                         d_body,
-                                                                         d_diameter,
-                                                                         N,
-                                                                         d_cell_size,
-                                                                         d_cell_xyzf,
-                                                                         d_cell_tdb,
-                                                                         d_cell_adj,
-                                                                         ci,
-                                                                         cli,
-                                                                         cadji,
-                                                                         box,
-                                                                         r_maxsq,
-                                                                         sqrtf(r_maxsq),
-                                                                         ghost_width,
-                                                                         threads_per_particle,
-                                                                         max_shared_neighbors);
-        }
-    if (filter_diameter && !filter_body)
-        {
-        gpu_compute_nlist_binned_shared_kernel<2><<<n_blocks, block_size,shared_size>>>(d_nlist,
-                                                                         d_n_neigh,
-                                                                         d_last_updated_pos,
-                                                                         d_conditions,
-                                                                         nli,
-                                                                         d_pos,
-                                                                         d_body,
-                                                                         d_diameter,
-                                                                         N,
-                                                                         d_cell_size,
-                                                                         d_cell_xyzf,
-                                                                         d_cell_tdb,
-                                                                         d_cell_adj,
-                                                                         ci,
-                                                                         cli,
-                                                                         cadji,
-                                                                         box,
-                                                                         r_maxsq,
-                                                                         sqrtf(r_maxsq),
-                                                                         ghost_width,
-                                                                         threads_per_particle,
-                                                                         max_shared_neighbors);
-        }
-    if (filter_diameter && filter_body)
-        {
-        gpu_compute_nlist_binned_shared_kernel<3><<<n_blocks, block_size,shared_size>>>(d_nlist,
-                                                                         d_n_neigh,
-                                                                         d_last_updated_pos,
-                                                                         d_conditions,
-                                                                         nli,
-                                                                         d_pos,
-                                                                         d_body,
-                                                                         d_diameter,
-                                                                         N,
-                                                                         d_cell_size,
-                                                                         d_cell_xyzf,
-                                                                         d_cell_tdb,
-                                                                         d_cell_adj,
-                                                                         ci,
-                                                                         cli,
-                                                                         cadji,
-                                                                         box,
-                                                                         r_maxsq,
-                                                                         sqrtf(r_maxsq),
-                                                                         ghost_width,
-                                                                         threads_per_particle,
-                                                                         max_shared_neighbors);
-        }
-
+    launcher<max_threads_per_particle>(d_nlist,
+                                   d_n_neigh,
+                                   d_last_updated_pos,
+                                   d_conditions,
+                                   nli,
+                                   d_pos,
+                                   d_body,
+                                   d_diameter,
+                                   N,
+                                   d_cell_size,
+                                   d_cell_xyzf,
+                                   d_cell_tdb,
+                                   d_cell_adj,
+                                   ci,
+                                   cli,
+                                   cadji,
+                                   box,
+                                   r_maxsq,
+                                   sqrtf(r_maxsq),
+                                   ghost_width,
+                                   threads_per_particle,
+                                   filter_diameter,
+                                   filter_body,
+                                   n_blocks,
+                                   block_size
+                                   );
 
     return cudaSuccess;
     }
