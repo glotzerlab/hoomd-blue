@@ -79,7 +79,6 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
 
-    gpu_setup_compute_nlist_binned();
     CHECK_CUDA_ERROR();
 
     // default to 0 last allocated quantities
@@ -88,9 +87,22 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     dca_cell_adj = NULL;
     dca_cell_xyzf = NULL;
     dca_cell_tdb = NULL;
-    m_block_size = 64;
-    m_threads_per_particle = 4;
 
+    // initialize autotuner
+    // the full block size and threads_per_particle matrix is searched,
+    // encoded as block_size*10000 + threads_per_particle
+    std::vector<unsigned int> valid_params;
+    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        {
+        int s=1;
+        while (s <= this->m_exec_conf->dev_prop.warpSize)
+            {
+            valid_params.push_back(block_size*10000 + s);
+            s = s * 2;
+            }
+        }
+
+    m_tuner.reset(new Autotuner(valid_params, 5, 1e6, "nlist_binned", this->m_exec_conf));
     // When running on compute 1.x, textures are allocated with the height equal to the number of cells
     // limit the number of cells to the maximum texture dimension
     if (exec_conf->getComputeCapability() < 200)
@@ -196,60 +208,10 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (exec_conf->getComputeCapability() >= 200)
         {
-        #if 0
-        gpu_compute_nlist_binned(d_nlist.data,
-                                 d_n_neigh.data,
-                                 d_last_pos.data,
-                                 m_conditions.getDeviceFlags(),
-                                 m_nlist_indexer,
-                                 d_pos.data,
-                                 d_body.data,
-                                 d_diameter.data,
-                                 m_pdata->getN(),
-                                 d_cell_size.data,
-                                 d_cell_xyzf.data,
-                                 d_cell_tdb.data,
-                                 d_cell_adj.data,
-                                 m_cl->getCellIndexer(),
-                                 m_cl->getCellListIndexer(),
-                                 m_cl->getCellAdjIndexer(),
-                                 box,
-                                 rmaxsq,
-                                 m_block_size,
-                                 m_filter_body,
-                                 m_filter_diameter,
-                                 m_cl->getGhostWidth());
-        #else
-        if (m_block_size % m_threads_per_particle)
-            {
-            m_exec_conf->msg->error() << "nlist: Block size must be a multiple of number of threads per particle."
-                << std::endl;
-            throw std::runtime_error("Error building neighbor list");
-            }
-
-        //! We are using warp synchronous programming, so the number of threads must
-        //! divide the warp size (max_threads_per_particle)
-        if (max_threads_per_particle % m_threads_per_particle)
-            {
-            m_exec_conf->msg->error() << "nlist: Number of threads per particle must divide " << max_threads_per_particle
-                << "." << std::endl;
-            throw std::runtime_error("Error building neighbor list");
-            }
-
-
-        if (m_threads_per_particle > max_threads_per_particle)
-            {
-            m_exec_conf->msg->error() << "nlist: Maximum number of threads per particle is "
-                << max_threads_per_particle << "." << std::endl;
-            throw std::runtime_error("Error building neighbor list");
-            }
-
-        if (m_threads_per_particle < min_threads_per_particle)
-            {
-            m_exec_conf->msg->error() << "nlist: Minimum number of threads per particle is "
-                << min_threads_per_particle << "." << std::endl;
-            throw std::runtime_error("Error building neighbor list");
-            }
+        this->m_tuner->begin();
+        unsigned int param = this->m_tuner->getParam();
+        unsigned int block_size = param / 10000;
+        unsigned int threads_per_particle = param % 10000;
 
         gpu_compute_nlist_binned_shared(d_nlist.data,
                                  d_n_neigh.data,
@@ -269,12 +231,12 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellAdjIndexer(),
                                  box,
                                  rmaxsq,
-                                 m_threads_per_particle,
-                                 m_block_size,
+                                 threads_per_particle,
+                                 block_size,
                                  m_filter_body,
                                  m_filter_diameter,
                                  m_cl->getGhostWidth());
-        #endif
+        this->m_tuner->end();
         }
     else
         {
@@ -392,6 +354,6 @@ void export_NeighborListGPUBinned()
     class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
                      ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
                     .def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
-                    .def("setNumThreadsPerParticle", &NeighborListGPUBinned::setNumThreadsPerParticle)
+                    .def("setTuningPeriod", &NeighborListGPUBinned::setTuningPeriod)
                      ;
     }
