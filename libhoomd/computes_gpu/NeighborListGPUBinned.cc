@@ -222,7 +222,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         #else
         if (m_block_size % m_threads_per_particle)
             {
-            m_exec_conf->msg->error() << "nlist.*: Block size must be a multiple of threads per particle."
+            m_exec_conf->msg->error() << "nlist: Block size must be a multiple of number of threads per particle."
                 << std::endl;
             throw std::runtime_error("Error building neighbor list");
             }
@@ -231,7 +231,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         //! divide the warp size (max_threads_per_particle)
         if (max_threads_per_particle % m_threads_per_particle)
             {
-            m_exec_conf->msg->error() << "nlist.*: Number of threads per particle must divide " << max_threads_per_particle
+            m_exec_conf->msg->error() << "nlist: Number of threads per particle must divide " << max_threads_per_particle
                 << "." << std::endl;
             throw std::runtime_error("Error building neighbor list");
             }
@@ -239,18 +239,17 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
         if (m_threads_per_particle > max_threads_per_particle)
             {
-            m_exec_conf->msg->error() << "nlist.*: Maximum number of threads per particle is "
+            m_exec_conf->msg->error() << "nlist: Maximum number of threads per particle is "
                 << max_threads_per_particle << "." << std::endl;
             throw std::runtime_error("Error building neighbor list");
             }
 
         if (m_threads_per_particle < min_threads_per_particle)
             {
-            m_exec_conf->msg->error() << "nlist.*: Minimum number of threads per particle is "
+            m_exec_conf->msg->error() << "nlist: Minimum number of threads per particle is "
                 << min_threads_per_particle << "." << std::endl;
             throw std::runtime_error("Error building neighbor list");
             }
-
 
         gpu_compute_nlist_binned_shared(d_nlist.data,
                                  d_n_neigh.data,
@@ -393,6 +392,6 @@ void export_NeighborListGPUBinned()
     class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
                      ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
                     .def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
-                    .def("setNumThreads", &NeighborListGPUBinned::setNumThreads)
+                    .def("setNumThreadsPerParticle", &NeighborListGPUBinned::setNumThreadsPerParticle)
                      ;
     }

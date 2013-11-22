@@ -93,7 +93,7 @@ class NeighborListGPUBinned : public NeighborListGPU
             }
 
         //! Set the number of threads per particle
-        void setNumThreads(unsigned int threads_per_particle)
+        void setNumThreadsPerParticle(unsigned int threads_per_particle)
             {
             m_threads_per_particle = threads_per_particle;
             }

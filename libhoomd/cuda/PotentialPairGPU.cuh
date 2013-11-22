@@ -68,6 +68,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_PAIR_GPU_CUH__
 #define __POTENTIAL_PAIR_GPU_CUH__
 
+//! Maximum number of threads (width of a warp)
+const unsigned int gpu_pair_force_max_tpp = 32;
+
+//! CTA reduce
+template<int NT>
+struct warp_reduce
+    {
+    // shared memory usage
+    enum { capacity = NT };
+
+    template<typename T>
+    __device__ static T Reduce(int tid, T x, volatile T* shared)
+        {
+        shared[tid] = x;
+
+        #pragma unroll
+        for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
+            {
+            if (tid < dest_count)
+                {
+                x += shared[dest_count + tid];
+                shared[tid] = x;
+                }
+             }
+        T total = shared[0];
+        return total;
+        }
+    };
+
 //! Wrapps arguments to gpu_cgpf
 struct pair_args_t
     {
@@ -89,7 +118,8 @@ struct pair_args_t
               const unsigned int _ntypes,
               const unsigned int _block_size,
               const unsigned int _shift_mode,
-              const unsigned int _compute_virial)
+              const unsigned int _compute_virial,
+              const unsigned int _threads_per_particle)
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
@@ -107,7 +137,8 @@ struct pair_args_t
                   ntypes(_ntypes),
                   block_size(_block_size),
                   shift_mode(_shift_mode),
-                  compute_virial(_compute_virial)
+                  compute_virial(_compute_virial),
+                  threads_per_particle(_threads_per_particle)
         {
         };
 
@@ -129,6 +160,7 @@ struct pair_args_t
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int shift_mode;  //!< The potential energy shift mode
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
+    const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 1 warp)
     };
 
 #ifdef NVCC
@@ -141,7 +173,7 @@ scalar_tex_t pdata_diam_tex;
 //! Texture for reading particle charges
 scalar_tex_t pdata_charge_tex;
 
-//! Kernel for calculating pair forces
+//! Kernel for calculating pair forces (shared memory version)
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
     forces for each pair is handled via the template class \a evaluator.
 
@@ -177,8 +209,8 @@ scalar_tex_t pdata_charge_tex;
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator, unsigned int shift_mode, unsigned int compute_virial >
-__global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned int threads_per_particle>
+__global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
                                                const unsigned int virial_pitch,
                                                const unsigned int N,
@@ -218,7 +250,7 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
     __syncthreads();
 
     // start by identifying which particle we are to handle
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int idx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
 
     if (idx >= N)
         return;
@@ -252,18 +284,16 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
     Scalar virialyz = Scalar(0.0);
     Scalar virialzz = Scalar(0.0);
 
-    // prefetch neighbor index
     unsigned int cur_j = 0;
-    unsigned int next_j = d_nlist[nli(idx, 0)];
-
+    unsigned int next_j = d_nlist[nli(idx, threadIdx.x%threads_per_particle)];
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
     // inside the loop
     #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
+    for (int neigh_idx = threadIdx.x%threads_per_particle; neigh_idx < nli.getH(); neigh_idx+=threads_per_particle)
     #else
-    for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
+    for (int neigh_idx = threadIdx.x%threads_per_particle; neigh_idx < n_neigh; neigh_idx+=threads_per_particle)
     #endif
         {
         #if (__CUDA_ARCH__ < 200)
@@ -271,9 +301,9 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
         #endif
             {
             // read the current neighbor index (MEM TRANSFER: 4 bytes)
-            // prefetch the next value and set the current one
             cur_j = next_j;
-            next_j = d_nlist[nli(idx, neigh_idx+1)];
+            if (neigh_idx+threads_per_particle < n_neigh)
+                next_j = d_nlist[nli(idx, neigh_idx+threads_per_particle)];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
             Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
@@ -385,25 +415,165 @@ __global__ void gpu_compute_pair_forces_kernel(Scalar4 *d_force,
 
     // potential energy per particle must be halved
     force.w *= Scalar(0.5);
+
+    // we need to access a separate portion of shared memory to avoid race conditions
+    const unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements();
+
+    // need to declare as volatile, because we are using warp-synchronous programming
+    volatile Scalar *sh = (Scalar *) &s_data[shared_bytes];
+
+    unsigned int cta_offs = (threadIdx.x/threads_per_particle)*warp_reduce<threads_per_particle>::capacity;
+
+    // reduce force over threads in cta
+    force.x = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, force.x, &sh[cta_offs]);
+    force.y = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, force.y, &sh[cta_offs]);
+    force.z = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, force.z, &sh[cta_offs]);
+    force.w = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, force.w, &sh[cta_offs]);
+
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    d_force[idx] = force;
+    if (threadIdx.x % threads_per_particle == 0)
+        d_force[idx] = force;
 
     if (compute_virial)
         {
-        d_virial[0*virial_pitch+idx] = virialxx;
-        d_virial[1*virial_pitch+idx] = virialxy;
-        d_virial[2*virial_pitch+idx] = virialxz;
-        d_virial[3*virial_pitch+idx] = virialyy;
-        d_virial[4*virial_pitch+idx] = virialyz;
-        d_virial[5*virial_pitch+idx] = virialzz;
+        virialxx = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, virialxx, &sh[cta_offs]);
+        virialxy = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, virialxy, &sh[cta_offs]);
+        virialxz = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, virialxz, &sh[cta_offs]);
+        virialyy = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, virialyy, &sh[cta_offs]);
+        virialyz = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, virialyz, &sh[cta_offs]);
+        virialzz = warp_reduce<threads_per_particle>::Reduce(threadIdx.x % threads_per_particle, virialzz, &sh[cta_offs]);
+
+        // if we are the first thread in the cta, write out virial to global mem
+        if (threadIdx.x %threads_per_particle == 0)
+            {
+            d_virial[0*virial_pitch+idx] = virialxx;
+            d_virial[1*virial_pitch+idx] = virialxy;
+            d_virial[2*virial_pitch+idx] = virialxz;
+            d_virial[3*virial_pitch+idx] = virialyy;
+            d_virial[4*virial_pitch+idx] = virialyz;
+            d_virial[5*virial_pitch+idx] = virialzz;
+            }
         }
     }
+
+//! Recursive template to invoke the kernel with the right template parameters
+/*! \tpp max_tpp Maximum number of threads per particle (has to be a power of two)
+ */
+template<class evaluator, int max_tpp>
+struct gpu_pair_force_launcher
+    {
+    static void launch(Scalar4 *d_force,
+                  Scalar *d_virial,
+                  const unsigned int virial_pitch,
+                  const unsigned int N,
+                  const Scalar4 *d_pos,
+                  const Scalar *d_diameter,
+                  const Scalar *d_charge,
+                  const BoxDim box,
+                  const unsigned int *d_n_neigh,
+                  const unsigned int *d_nlist,
+                  const Index2D nli,
+                  const typename evaluator::param_type *d_params,
+                  const Scalar *d_rcutsq,
+                  const Scalar *d_ronsq,
+                  const unsigned int ntypes,
+                  unsigned int n_blocks,
+                  unsigned int block_size,
+                  unsigned int shared_bytes,
+                  unsigned int threads_per_particle,
+                  bool compute_virial,
+                  unsigned int shift_mode
+                  )
+        {
+        if (threads_per_particle == max_tpp)
+            {
+            int reduce_bytes = warp_reduce<max_tpp>::capacity*sizeof(Scalar)*block_size/max_tpp;
+            shared_bytes += reduce_bytes;
+
+            // run the kernel
+            if (compute_virial)
+                {
+                switch (shift_mode)
+                    {
+                    case 0:
+                        gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1,max_tpp>
+                          <<<n_blocks, block_size, shared_bytes>>>(d_force, d_virial, virial_pitch, N, d_pos, d_diameter, d_charge, box, d_n_neigh, d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes);
+                        break;
+                    case 1:
+                        gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1,max_tpp>
+                          <<<n_blocks, block_size, shared_bytes>>>(d_force, d_virial, virial_pitch, N, d_pos, d_diameter, d_charge, box, d_n_neigh, d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes);
+                        break;
+                    case 2:
+                        gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1,max_tpp>
+                          <<<n_blocks, block_size, shared_bytes>>>(d_force, d_virial, virial_pitch, N, d_pos, d_diameter, d_charge, box, d_n_neigh, d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            else
+                {
+                switch (shift_mode)
+                    {
+                    case 0:
+                        gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0,max_tpp>
+                          <<<n_blocks, block_size, shared_bytes>>>(d_force, d_virial, virial_pitch, N, d_pos, d_diameter, d_charge, box, d_n_neigh, d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes);
+                        break;
+                    case 1:
+                        gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0,max_tpp>
+                          <<<n_blocks, block_size, shared_bytes>>>(d_force, d_virial, virial_pitch, N, d_pos, d_diameter, d_charge, box, d_n_neigh, d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes);
+                        break;
+                    case 2:
+                        gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0,max_tpp>
+                          <<<n_blocks, block_size, shared_bytes>>>(d_force, d_virial, virial_pitch, N, d_pos, d_diameter, d_charge, box, d_n_neigh, d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+        else
+            {
+            // instantiate and launch template for max_tpp/2
+            gpu_pair_force_launcher<evaluator, max_tpp/2>::launch(d_force,d_virial,virial_pitch,N,d_pos,d_diameter,d_charge,box, d_n_neigh,d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes,n_blocks, block_size, shared_bytes,threads_per_particle,compute_virial,shift_mode);
+            }
+        }
+    };
+
+//! Partial template specialziation to terminate recursion (max_tpp == 0)
+template<class evaluator>
+struct gpu_pair_force_launcher<evaluator, 0> {
+    static void launch(
+              Scalar4 *d_force,
+              Scalar *d_virial,
+              const unsigned int virial_pitch,
+              const unsigned int N,
+              const Scalar4 *d_pos,
+              const Scalar *d_diameter,
+              const Scalar *d_charge,
+              const BoxDim box,
+              const unsigned int *d_n_neigh,
+              const unsigned int *d_nlist,
+              const Index2D nli,
+              const typename evaluator::param_type *d_params,
+              const Scalar *d_rcutsq,
+              const Scalar *d_ronsq,
+              const unsigned int ntypes,
+              unsigned int n_blocks,
+              unsigned int block_size,
+              unsigned int shared_bytes,
+              unsigned int threads_per_particle,
+              bool compute_virial,
+              unsigned int shift_mode
+              )
+        { }
+    };
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param pair_args Other arugments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
 
-    This is just a driver function for gpu_compute_pair_forces_kernel(), see it for details.
+    This is just a driver function for gpu_compute_pair_forces_shared_kernel(), see it for details.
 */
 template< class evaluator >
 cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
@@ -414,9 +584,12 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     assert(pair_args.d_ronsq);
     assert(pair_args.ntypes > 0);
 
+    // threads per particle
+
     // setup the grid to run the kernel
-    dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
-    dim3 threads(pair_args.block_size, 1, 1);
+    unsigned int block_size = pair_args.block_size;
+    unsigned int tpp = pair_args.threads_per_particle;
+    unsigned int n_blocks = pair_args.N / (block_size/tpp) + 1;
 
     // bind the position texture
     pdata_pos_tex.normalized = false;
@@ -442,48 +615,29 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                 * typpair_idx.getNumElements();
 
-    // run the kernel
-    if (pair_args.compute_virial)
-        {
-        switch (pair_args.shift_mode)
-            {
-            case 0:
-                gpu_compute_pair_forces_kernel<evaluator, 0, 1>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
-                break;
-            case 1:
-                gpu_compute_pair_forces_kernel<evaluator, 1, 1>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
-                break;
-            case 2:
-                gpu_compute_pair_forces_kernel<evaluator, 2, 1>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
-                break;
-            default:
-                return cudaErrorUnknown;
-            }
-        }
-    else
-        {
-        switch (pair_args.shift_mode)
-            {
-            case 0:
-                gpu_compute_pair_forces_kernel<evaluator, 0, 0>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
-                break;
-            case 1:
-                gpu_compute_pair_forces_kernel<evaluator, 1, 0>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
-                break;
-            case 2:
-                gpu_compute_pair_forces_kernel<evaluator, 2, 0>
-                  <<<grid, threads, shared_bytes>>>(pair_args.d_force, pair_args.d_virial, pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter, pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist, pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes);
-                break;
-            default:
-                return cudaErrorUnknown;
-            }
-        }
-
+    // Launch kernel via recursive template
+    gpu_pair_force_launcher<evaluator, gpu_pair_force_max_tpp>::launch(
+        pair_args.d_force,
+        pair_args.d_virial,
+        pair_args.virial_pitch,
+        pair_args.N,
+        pair_args.d_pos,
+        pair_args.d_diameter,
+        pair_args.d_charge,
+        pair_args.box,
+        pair_args.d_n_neigh,
+        pair_args.d_nlist,
+        pair_args.nli,
+        d_params,
+        pair_args.d_rcutsq,
+        pair_args.d_ronsq,
+        pair_args.ntypes,
+        n_blocks,
+        block_size,
+        shared_bytes,
+        tpp,
+        pair_args.compute_virial,
+        pair_args.shift_mode);
 
     return cudaSuccess;
     }

@@ -106,8 +106,19 @@ class PotentialPairGPU : public PotentialPair<evaluator>
             {
             m_block_size = block_size;
             }
+
+        //! Set the number of threads per particle to execute on the GPU
+        /*! \param threads_per_particl Number of threads per particle
+            \a threads_per_particle must be a power of two and smaller than 32.
+         */
+        void setNumThreadsPerParticle(int threads_per_particle)
+            {
+            m_threads_per_particle = threads_per_particle;
+            }
+
     protected:
         unsigned int m_block_size;  //!< Block size to execute on the GPU
+        unsigned int m_threads_per_particle; //!< Number of threads to execute for each particle
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -118,7 +129,7 @@ template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
-    : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
+    : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64), m_threads_per_particle(1)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
@@ -146,6 +157,33 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
         this->m_exec_conf->msg->error() << "PotentialPairGPU cannot handle a half neighborlist"
                   << std::endl;
         throw std::runtime_error("Error computing forces in PotentialPairGPU");
+        }
+
+    // some sanity checks
+    if (m_block_size % m_threads_per_particle)
+        {
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Block size must be a multiple of the "
+            << "number of threads per particle."
+            << std::endl;
+        throw std::runtime_error("Error building neighbor list");
+        }
+    if (gpu_pair_force_max_tpp % m_threads_per_particle)
+        {
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Number of threads per particle must divide "
+            << gpu_pair_force_max_tpp << "." << std::endl;
+        throw std::runtime_error("Error building neighbor list");
+        }
+    if (m_threads_per_particle > gpu_pair_force_max_tpp)
+        {
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Maximum number of threads per particle is "
+            << gpu_pair_force_max_tpp << "." << std::endl;
+        throw std::runtime_error("Error building neighbor list");
+        }
+    if (m_threads_per_particle < 1)
+        {
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Minimum number of threads per particle is 1"
+            << std::endl;
+        throw std::runtime_error("Error building neighbor list");
         }
 
     // access the neighbor list
@@ -188,7 +226,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          this->m_pdata->getNTypes(),
                          m_block_size,
                          this->m_shift_mode,
-                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]),
+                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                         m_threads_per_particle),
              d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
@@ -207,6 +246,7 @@ template < class T, class Base > void export_PotentialPairGPU(const std::string&
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
               .def("setBlockSize", &T::setBlockSize)
+              .def("setNumThreadsPerParticle", &T::setNumThreadsPerParticle)
               ;
     }
 
