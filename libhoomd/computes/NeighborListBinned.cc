@@ -106,14 +106,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     {
     m_cl->compute(timestep);
 
-    // check that at least 3x3x3 cells are computed
     uint3 dim = m_cl->getDim();
-    if (dim.x < 3 || dim.y < 3 || (m_sysdef->getNDimensions() != 2 && dim.z < 3))
-        {
-        m_exec_conf->msg->error() << "nlist: O(N) neighbor list doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl;
-        throw runtime_error("Error computing neighbor list");
-        }
-
     Scalar3 ghost_width = m_cl->getGhostWidth();
 
     if (m_prof)

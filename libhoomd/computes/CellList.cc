@@ -337,11 +337,17 @@ void CellList::initializeMemory()
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
 
+    // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
+    uint3 n_unique_neighbors = m_dim;
+    n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
+    n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
+    n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
+
     unsigned int n_adj;
     if (m_sysdef->getNDimensions() == 2)
-        n_adj = (m_radius*2+1)*(m_radius*2+1);
+        n_adj = n_unique_neighbors.x * n_unique_neighbors.y;
     else
-        n_adj = (m_radius*2+1)*(m_radius*2+1)*(m_radius*2+1);
+        n_adj = n_unique_neighbors.x * n_unique_neighbors.y * n_unique_neighbors.z;
 
     m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
 
@@ -404,13 +410,17 @@ void CellList::initializeCellAdj()
 
     ArrayHandle<unsigned int> h_cell_adj(m_cell_adj, access_location::host, access_mode::overwrite);
 
+    // per cell temporary storage of neighbors
+    std::vector<unsigned int> adj;
+
     // loop over all cells
     for (int k = 0; k < int(m_dim.z); k++)
         for (int j = 0; j < int(m_dim.y); j++)
             for (int i = 0; i < int(m_dim.x); i++)
                 {
                 unsigned int cur_cell = m_cell_indexer(i,j,k);
-                unsigned int offset = 0;
+
+                adj.clear();
 
                 // loop over neighboring cells
                 // need signed integer values for performing index calculations with negative values
@@ -441,13 +451,17 @@ void CellList::initializeCellAdj()
                                 wrapk += mz;
 
                             unsigned int neigh_cell = m_cell_indexer(wrapi, wrapj, wrapk);
-                            h_cell_adj.data[m_cell_adj_indexer(offset, cur_cell)] = neigh_cell;
-                            offset++;
+                            adj.push_back(neigh_cell);
                             }
 
                 // sort the adj list for each cell
-                sort(&h_cell_adj.data[m_cell_adj_indexer(0, cur_cell)],
-                     &h_cell_adj.data[m_cell_adj_indexer(offset, cur_cell)]);
+                sort(adj.begin(), adj.end());
+
+                // remove duplicate entries
+                adj.erase(unique(adj.begin(), adj.end()),adj.end());
+
+                // copy to adj array
+                copy(adj.begin(), adj.end(), &h_cell_adj.data[m_cell_adj_indexer(0, cur_cell)]);
                 }
 
     if (m_prof)

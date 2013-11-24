@@ -340,27 +340,12 @@ class nlist:
         box = globals.system_definition.getParticleData().getBox();
         min_width_for_bin = (default_r_buff + r_cut)*3.0;
 
-        # only check the z dimesion of the box in 3D systems
-        is_small_box = box.getL().x < min_width_for_bin or box.getL().y < min_width_for_bin;
-        if globals.system_definition.getNDimensions() == 3:
-            is_small_box = is_small_box or box.getL().z < min_width_for_bin;
-        if  is_small_box:
-            if globals.system_definition.getParticleData().getN() >= 2000:
-                globals.msg.warning("At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an\n");
-                globals.msg.warning("EXTREMELY SLOW O(N^2) calculation for the neighbor list.\n");
-            else:
-                globals.msg.notice(2, "The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation.\n");
-
-            mode = "nsq";
-
         # create the C++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             if mode == "binned":
                 cl_c = hoomd.CellList(globals.system_definition);
                 globals.system.addCompute(cl_c, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
-            elif mode == "nsq":
-                self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
             else:
                 globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
@@ -370,9 +355,6 @@ class nlist:
                 globals.system.addCompute(cl_g, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
                 self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
-                self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
-            elif mode == "nsq":
-                self.cpp_nlist = hoomd.NeighborListGPU(globals.system_definition, r_cut, default_r_buff)
                 self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             else:
                 globals.msg.error("Invalid neighbor list mode\n");
