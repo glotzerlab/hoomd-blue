@@ -1669,6 +1669,7 @@ void export_CommunicatorGPU()
     class_<CommunicatorGPU, bases<Communicator>, boost::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
            init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<DomainDecomposition> >())
+            .def("setMaxStages",&CommunicatorGPU::setMaxStages)
     ;
     }
 

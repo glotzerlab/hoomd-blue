@@ -110,36 +110,15 @@ class CommunicatorGPU : public Communicator
 
         //@}
 
-    protected:
-        //! Perform the first part of the communication (exchange of message sizes)
-        void communicateStepOne(unsigned int dir,
-                                unsigned int *n_send_ptls_corner,
-                                unsigned int *n_send_ptls_edge,
-                                unsigned int *n_send_ptls_face,
-                                unsigned int *n_recv_ptls_face,
-                                unsigned int *n_recv_ptls_edge,
-                                unsigned int *n_recv_ptls_local,
-                                bool unique_destination);
-
-        //! Perform the first part of the communication (exchange of particle data)
-        void communicateStepTwo(unsigned int face,
-                                char *corner_send_buf,
-                                char *edge_send_buf,
-                                char *face_send_buf,
-                                const unsigned int cpitch,
-                                const unsigned int epitch,
-                                const unsigned int fpitch,
-                                char *local_recv_buf,
-                                const unsigned int *n_send_ptls_corner,
-                                const unsigned int *n_send_ptls_edge,
-                                const unsigned int *n_send_ptls_face,
-                                const unsigned int local_recv_buf_size,
-                                const unsigned int n_tot_recv_ptls_local,
-                                const unsigned int element_size,
-                                bool unique_destination);
-
-        //! Check that restrictions on bond lengths etc. are not violated
-        void checkValid(unsigned int timestep);
+        //! Set maximum number of communication stages
+        /*! \param max_stages Maximum number of communication stages
+         */
+        void setMaxStages(unsigned int max_stages)
+            {
+            m_max_stages = max_stages;
+            initializeCommunicationStages();
+            forceMigrate();
+            }
 
     private:
         /* General communication */
