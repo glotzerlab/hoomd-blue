@@ -160,7 +160,7 @@ __device__ inline Scalar texFetchScalar(const Scalar *ptr, texture<int2, 1> tex_
 __device__ inline Scalar2 texFetchScalar2(const Scalar2* ptr, texture<int4, 1> tex_ref, unsigned int ii)
     {
     #if __CUDA_ARCH__ >= 350
-    return = __ldg(ptr+ii);
+    return __ldg(ptr+ii);
     #else
     int4 val = tex1Dfetch(tex_ref, ii);
     return make_scalar2(__hiloint2double(val.y, val.x),
