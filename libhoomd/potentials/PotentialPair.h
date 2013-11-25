@@ -177,7 +177,7 @@ class PotentialPair : public ForceCompute
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
         
-        //! Friend function to compute the force and energy between a pair of particles.
+        //! Function to compute the force and energy between a pair of particles.
         void computeForcesAndEngergyOfParticlePair( const unsigned int& tag1,
                                                     const unsigned int& tag2,
                                                     Scalar& force_divr,
@@ -613,7 +613,7 @@ void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const un
                                                                         Scalar& force_divr,
                                                                         Scalar& pair_eng)
 {
-
+    // printf("\n Computing Energy \n");
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_rtags(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
@@ -652,7 +652,7 @@ void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const un
 
     // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
     Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-    Scalar3 dx = pi - pj;
+    Scalar3 dx = box.minImage(pi) - box.minImage(pj);
 
     // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
     unsigned int typej = __scalar_as_int(h_pos.data[j].w);
@@ -667,8 +667,9 @@ void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const un
         qj = h_charge.data[j];
 
     // apply periodic boundary conditions
+    //printf("pj.x = %f, pj.y = %f, pj.z = %f \n", pj.x, pj.y, pj.z);
     dx = box.minImage(dx);
-
+    //printf("pi.x = %f, pi.y = %f, pi.z = %f \n", pi.x, pi.y, pi.z);
     // calculate r_ij squared (FLOPS: 5)
     Scalar rsq = dot(dx, dx);
 
@@ -695,6 +696,7 @@ void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const un
     // compute the force and potential energy
 //    Scalar force_divr = Scalar(0.0);
 //    Scalar pair_eng = Scalar(0.0);
+    //printf("rsq = %f, rcutsq= %f, lj1 = %f, lj2 = %f",rsq, rcutsq, param.x, param.y);
     evaluator eval(rsq, rcutsq, param);
     if (evaluator::needsDiameter())
         eval.setDiameter(di, dj);
@@ -702,9 +704,12 @@ void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const un
         eval.setCharge(qi, qj);
 
     bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-
+    
+    //printf("rsq = %f, rcutsq= %f, u = %f \n",rsq, rcutsq, pair_eng);
+    
     if (evaluated)
         {
+        
         // modify the potential for xplor shifting
         if (m_shift_mode == xplor)
             {
