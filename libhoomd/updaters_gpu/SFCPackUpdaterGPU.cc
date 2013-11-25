@@ -94,9 +94,7 @@ SFCPackUpdaterGPU::SFCPackUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef)
     m_gpu_particle_bins.swap(gpu_particle_bins);
 
     // create at ModernGPU context
-    int dev;
-    cudaGetDevice(&dev); // this is a kludge until we figure out how to attach MGPU to an existing context
-    m_mgpu_context = mgpu::CreateCudaDevice(dev);
+    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
     }
 
 /*! reallocate the internal arrays

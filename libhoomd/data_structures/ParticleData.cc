@@ -161,6 +161,11 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
+
+    #ifdef ENABLE_CUDA
+    // create at ModernGPU context
+    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+    #endif
     }
 
 /*! Loads particle data from the snapshot into the internal arrays.
@@ -214,6 +219,11 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
+
+    #ifdef ENABLE_CUDA
+    // create at ModernGPU context
+    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+    #endif
     }
 
 
@@ -2175,6 +2185,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
                            d_tag_alt.data,
                            d_out.data,
                            max_n_out,
+                           m_mgpu_context,
                            m_cached_alloc);
            }
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();

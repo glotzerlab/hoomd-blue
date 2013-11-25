@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BoxDim.h"
 
 #include "cached_allocator.h"
+#include "moderngpu/util/mgpucontext.h"
 
 /*! \file ParticleData.cuh
     \brief Declares GPU kernel code and data structure functions used by ParticleData
@@ -117,6 +118,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     unsigned int *d_tag_alt,
                     pdata_element *d_out,
                     unsigned int max_n_out,
+                    mgpu::ContextPtr mgpu_context,
                     cached_allocator& alloc);
 
 //! Update reverse-lookup tabs

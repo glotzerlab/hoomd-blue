@@ -109,9 +109,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     gpu_communicator_initialize_cache_config();
 
     // create at ModernGPU context
-    int dev;
-    cudaGetDevice(&dev); // this is a kludge until we figure out how to attach MGPU to an existing context
-    m_mgpu_context = mgpu::CreateCudaDevice(dev);
+    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
     }
 
 //! Destructor

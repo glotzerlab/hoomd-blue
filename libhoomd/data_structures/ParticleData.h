@@ -964,7 +964,8 @@ class ParticleData : boost::noncopyable
         int3 m_o_image;                              //!< Tracks the origin image
 
         #ifdef ENABLE_CUDA
-        cached_allocator m_cached_alloc;             //!< Cached allocator for ParticleData's internal Thrust GPU code
+        cached_allocator m_cached_alloc;             //!< Cached allocator for GPU code
+        mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
         #endif
 
         //! Helper function to allocate particle data

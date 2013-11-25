@@ -52,8 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 
-#include "clipped_range.h"
-
 /*! \file ParticleData.cu
     \brief ImplementsGPU kernel code and data structure functions used by ParticleData
 */
@@ -61,11 +59,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 
 #include <thrust/iterator/zip_iterator.h>
-#include <thrust/iterator/retag.h>
 #include <thrust/iterator/counting_iterator.h>
-#include <thrust/functional.h>
+#include <thrust/iterator/permutation_iterator.h>
 #include <thrust/device_ptr.h>
-#include <thrust/partition.h>
+
+#include "moderngpu/kernels/scan.cuh"
 
 //! A tuple of pdata pointers
 typedef thrust::tuple <
@@ -80,25 +78,8 @@ typedef thrust::tuple <
     thrust::device_ptr<Scalar4>        // orientation
     > pdata_it_tuple_gpu;
 
-//! A tuple of pdata pointers (const version)
-typedef thrust::tuple <
-    thrust::device_ptr<const unsigned int>,  // tag
-    thrust::device_ptr<const Scalar4>,       // pos
-    thrust::device_ptr<const Scalar4>,       // vel
-    thrust::device_ptr<const Scalar3>,       // accel
-    thrust::device_ptr<const Scalar>,        // charge
-    thrust::device_ptr<const Scalar>,        // diameter
-    thrust::device_ptr<const int3>,          // image
-    thrust::device_ptr<const unsigned int>,  // body
-    thrust::device_ptr<const Scalar4>        // orientation
-    > pdata_it_tuple_gpu_const;
-
 //! A zip iterator for filtering particle data
 typedef thrust::zip_iterator<pdata_it_tuple_gpu> pdata_zip_gpu;
-
-//! A zip iterator for filtering particle data (const version)
-typedef thrust::zip_iterator<pdata_it_tuple_gpu_const> pdata_zip_gpu_const;
-
 
 //! A tuple of pdata fields
 typedef thrust::tuple <
@@ -113,43 +94,74 @@ typedef thrust::tuple <
     Scalar4        // orientation
     > pdata_tuple_gpu;
 
-//! A predicate to select pdata tuples by rtag
-struct combined_tuple_select_rtag_gpu
+//! Kernel to partition particle data
+__global__ void gpu_scatter_particle_data_kernel(
+    const unsigned int N,
+    const Scalar4 *d_pos,
+    const Scalar4 *d_vel,
+    const Scalar3 *d_accel,
+    const Scalar *d_charge,
+    const Scalar *d_diameter,
+    const int3 *d_image,
+    const unsigned int *d_body,
+    const Scalar4 *d_orientation,
+    const unsigned int *d_tag,
+    unsigned int *d_rtag,
+    Scalar4 *d_pos_alt,
+    Scalar4 *d_vel_alt,
+    Scalar3 *d_accel_alt,
+    Scalar *d_charge_alt,
+    Scalar *d_diameter_alt,
+    int3 *d_image_alt,
+    unsigned int *d_body_alt,
+    Scalar4 *d_orientation_alt,
+    unsigned int *d_tag_alt,
+    pdata_element *d_out,
+    const unsigned int *d_scan)
     {
-    //! Constructor
-    combined_tuple_select_rtag_gpu(thrust::device_ptr<unsigned int> _rtag_ptr, const unsigned int _compare)
-        :  rtag_ptr(_rtag_ptr), compare(_compare)
-        { }
+    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
-    //! Returns true if the remove flag is set for a particle
-    __device__ bool operator() (const thrust::tuple<pdata_tuple_gpu,pdata_element> t) const
-        {
-        unsigned int tag = thrust::get<0>(thrust::get<0>(t));
-        return rtag_ptr[tag] == compare;
-        }
+    if (idx >= N) return;
 
-    thrust::device_ptr<unsigned int> rtag_ptr; //!< Reverse-lookup table
-    const unsigned int compare;                //!< rtag value to compare to
-    };
+    unsigned int tag = d_tag[idx];
+    bool remove = d_rtag[tag] == NOT_LOCAL;
 
-//! A converter from a tuple of pdata entries to a pdata_element
-struct to_pdata_element_gpu : public thrust::unary_function<const pdata_tuple_gpu,const pdata_element>
-    {
-    __device__ const pdata_element operator() (const pdata_tuple_gpu t)
+    unsigned int scan_remove = d_scan[idx];
+    unsigned int scan_keep = idx - scan_remove;
+
+    if (remove)
         {
         pdata_element p;
+        p.pos = d_pos[idx];
+        p.vel = d_vel[idx];
+        p.accel = d_accel[idx];
+        p.charge = d_charge[idx];
+        p.diameter = d_diameter[idx];
+        p.image = d_image[idx];
+        p.body = d_body[idx];
+        p.orientation = d_orientation[idx];
+        p.tag = tag;
+        d_out[scan_remove] = p;
+        }
+    else
+        {
+        d_pos_alt[scan_keep] = d_pos[idx];
+        d_vel_alt[scan_keep] = d_vel[idx];
+        d_accel_alt[scan_keep] = d_accel[idx];
+        d_charge_alt[scan_keep] = d_charge[idx];
+        d_diameter_alt[scan_keep] = d_diameter[idx];
+        d_image_alt[scan_keep] = d_image[idx];
+        d_body_alt[scan_keep] = d_body[idx];
+        d_orientation_alt[scan_keep] = d_orientation[idx];
+        d_tag_alt[scan_keep] = tag;
+        }
+    }
 
-        p.tag = thrust::get<0>(t);
-        p.pos = thrust::get<1>(t);
-        p.vel = thrust::get<2>(t);
-        p.accel = thrust::get<3>(t);
-        p.charge = thrust::get<4>(t);
-        p.diameter = thrust::get<5>(t);
-        p.image = thrust::get<6>(t);
-        p.body = thrust::get<7>(t);
-        p.orientation = thrust::get<8>(t);
-
-        return p;
+struct gpu_pdata_not_local : thrust::unary_function<unsigned int, unsigned int>
+    {
+    __device__ unsigned int operator() (unsigned int rtag)
+        {
+        return rtag == NOT_LOCAL ? 1 : 0;
         }
     };
 
@@ -199,93 +211,63 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     unsigned int *d_tag_alt,
                     pdata_element *d_out,
                     unsigned int max_n_out,
+                    mgpu::ContextPtr mgpu_context,
                     cached_allocator& alloc)
     {
-    // wrap device arrays into thrust ptr
-    thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
-    thrust::device_ptr<const Scalar4> vel_ptr(d_vel);
-    thrust::device_ptr<const Scalar3> accel_ptr(d_accel);
-    thrust::device_ptr<const Scalar> charge_ptr(d_charge);
-    thrust::device_ptr<const Scalar> diameter_ptr(d_diameter);
-    thrust::device_ptr<const int3> image_ptr(d_image);
-    thrust::device_ptr<const unsigned int> body_ptr(d_body);
-    thrust::device_ptr<const Scalar4> orientation_ptr(d_orientation);
+    unsigned int n_out;
+
+    // allocate temp array for scan results
+    unsigned int *d_tmp = (unsigned int *)alloc.allocate(N*sizeof(unsigned int));
+
     thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
-
-    // wrap output device arrays into thrust ptr
-    thrust::device_ptr<Scalar4> pos_alt_ptr(d_pos_alt);
-    thrust::device_ptr<Scalar4> vel_alt_ptr(d_vel_alt);
-    thrust::device_ptr<Scalar3> accel_alt_ptr(d_accel_alt);
-    thrust::device_ptr<Scalar> charge_alt_ptr(d_charge_alt);
-    thrust::device_ptr<Scalar> diameter_alt_ptr(d_diameter_alt);
-    thrust::device_ptr<int3> image_alt_ptr(d_image_alt);
-    thrust::device_ptr<unsigned int> body_alt_ptr(d_body_alt);
-    thrust::device_ptr<Scalar4> orientation_alt_ptr(d_orientation_alt);
-    thrust::device_ptr<unsigned int> tag_alt_ptr(d_tag_alt);
-
-    // wrap output array
-    thrust::device_ptr<pdata_element> out_ptr(d_out);
-
-    // wrap reverse-lookup table
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-    // Construct zip iterator for input
-    pdata_zip_gpu_const pdata_begin(
-       thrust::make_tuple(
-            tag_ptr,
-            pos_ptr,
-            vel_ptr,
-            accel_ptr,
-            charge_ptr,
-            diameter_ptr,
-            image_ptr,
-            body_ptr,
-            orientation_ptr
-            )
-        );
+    // pointer from tag into rtag
+    thrust::permutation_iterator<
+        thrust::device_ptr<unsigned int>, thrust::device_ptr<const unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
 
-    // Construct zip iterator for output
-    pdata_zip_gpu pdata_alt_begin(
-       thrust::make_tuple(
-            tag_alt_ptr,
-            pos_alt_ptr,
-            vel_alt_ptr,
-            accel_alt_ptr,
-            charge_alt_ptr,
-            diameter_alt_ptr,
-            image_alt_ptr,
-            body_alt_ptr,
-            orientation_alt_ptr
-            )
-        );
+    mgpu::Scan<mgpu::MgpuScanTypeExc>(
+        thrust::make_transform_iterator(rtag_prm, gpu_pdata_not_local()),
+        N, (unsigned int) 0, mgpu::plus<unsigned int>(), (unsigned int *)NULL, &n_out, d_tmp, *mgpu_context);
 
-    // set up transform iterator to compact particle data into records
-    typedef thrust::transform_iterator<to_pdata_element_gpu, pdata_zip_gpu_const > transform_it;
-    transform_it in_transform(pdata_begin);
+    // Don't write past end of buffer
+    if (n_out <= max_n_out)
+        {
+        // partition particle data into local and removed particles
+        unsigned int block_size =512;
+        unsigned int n_blocks = N/block_size;
+        if (N%block_size) n_blocks++;
 
-    // Combine two input streams
-    thrust::zip_iterator<thrust::tuple<pdata_zip_gpu_const, transform_it> >
-        in(thrust::make_tuple(pdata_begin, in_transform));
+        gpu_scatter_particle_data_kernel<<<n_blocks, block_size>>>(
+            N,
+            d_pos,
+            d_vel,
+            d_accel,
+            d_charge,
+            d_diameter,
+            d_image,
+            d_body,
+            d_orientation,
+            d_tag,
+            d_rtag,
+            d_pos_alt,
+            d_vel_alt,
+            d_accel_alt,
+            d_charge_alt,
+            d_diameter_alt,
+            d_image_alt,
+            d_body_alt,
+            d_orientation_alt,
+            d_tag_alt,
+            d_out,
+            d_tmp);
+        }
 
-    // Output stream 1
-    typedef thrust::zip_iterator<thrust::tuple< thrust::discard_iterator< >, thrust::device_ptr<pdata_element> > >
-        out_it_1;
-    out_it_1 out_1(thrust::make_tuple(thrust::make_discard_iterator(), out_ptr));
-
-    // Output stream 2
-    typedef thrust::zip_iterator<thrust::tuple< pdata_zip_gpu, thrust::discard_iterator<> > > out_it_2;
-    out_it_2 out_2(thrust::make_tuple(pdata_alt_begin, thrust::make_discard_iterator()));
-
-    // Clip output stream 1
-    clipped_range<out_it_1> clip(out_1, out_1 + max_n_out);
-
-    // partition input into two outputs (local particles and removed particles)
-    thrust::pair<clipped_range<out_it_1>::iterator, out_it_2> res =
-        thrust::stable_partition_copy(thrust::cuda::par(alloc), in, in+N, clip.begin(),
-        out_2, combined_tuple_select_rtag_gpu(rtag_ptr,NOT_LOCAL));
+    // deallocate tmp array
+    alloc.deallocate((char *)d_tmp,0);
 
     // return elements written to output stream
-    return res.first - clip.begin();
+    return n_out;
     }
 
 //! A tuple combining tag and a pdata element
