@@ -85,7 +85,11 @@ typedef texture<Scalar4, 1, cudaReadModeElementType> scalar4_tex_t;
 */
 __device__ inline Scalar texFetchScalar(const Scalar *ptr, texture<Scalar, 1> tex_ref, unsigned int ii)
     {
+    #if __CUDA_ARCH__ >= 350
+    return __ldg(ptr+ii);
+    #else
     return tex1Dfetch(tex_ref, ii);
+    #endif
     }
 
 //! Fetch a Scalar2 value from texture memory.
@@ -98,7 +102,11 @@ __device__ inline Scalar texFetchScalar(const Scalar *ptr, texture<Scalar, 1> te
 */
 __device__ inline Scalar2 texFetchScalar2(const Scalar2 *ptr, texture<Scalar2, 1> tex_ref, unsigned int ii)
     {
+    #if __CUDA_ARCH__ >= 350
+    return __ldg(ptr+ii);
+    #else
     return tex1Dfetch(tex_ref, ii);
+    #endif
     }
 
 //! Fetch a Scalar4 value from texture memory.
@@ -111,7 +119,11 @@ __device__ inline Scalar2 texFetchScalar2(const Scalar2 *ptr, texture<Scalar2, 1
 */
 __device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, texture<Scalar4, 1> tex_ref, unsigned int ii)
     {
+    #if __CUDA_ARCH__ >= 350
+    return __ldg(ptr+ii);
+    #else
     return tex1Dfetch(tex_ref, ii);
+    #endif
     }
 
 #else
@@ -129,8 +141,12 @@ typedef texture<int4, 1, cudaReadModeElementType> scalar4_tex_t;
 */
 __device__ inline Scalar texFetchScalar(const Scalar *ptr, texture<int2, 1> tex_ref, unsigned int ii)
     {
+    #if __CUDA_ARCH__ >= 350
+    return __ldg(ptr+ii);
+    #else
     int2 val = tex1Dfetch(tex_ref, ii);
     return Scalar(__hiloint2double(val.y, val.x));
+    #endif
     }
 
 //! Fetch a Scalar2 value from texture memory.
@@ -143,9 +159,13 @@ __device__ inline Scalar texFetchScalar(const Scalar *ptr, texture<int2, 1> tex_
 */
 __device__ inline Scalar2 texFetchScalar2(const Scalar2* ptr, texture<int4, 1> tex_ref, unsigned int ii)
     {
+    #if __CUDA_ARCH__ >= 350
+    return = __ldg(ptr+ii);
+    #else
     int4 val = tex1Dfetch(tex_ref, ii);
     return make_scalar2(__hiloint2double(val.y, val.x),
                         __hiloint2double(val.w, val.z));
+    #endif
     }
 
 //! Fetch a Scalar4 value from texture memory.
@@ -159,8 +179,13 @@ __device__ inline Scalar2 texFetchScalar2(const Scalar2* ptr, texture<int4, 1> t
 __device__ inline Scalar4 texFetchScalar4(const Scalar4 *ptr, texture<int4, 1> tex_ref, unsigned int ii)
     {
     unsigned int idx = 2*ii;
+    #if __CUDA_ARCH__ >= 350
+    int4 part1 = __ldg(((int4 *)ptr)+idx);;
+    int4 part2 = __ldg(((int4 *)ptr)+idx+1);;
+    #else
     int4 part1 = tex1Dfetch(tex_ref, idx);
     int4 part2 = tex1Dfetch(tex_ref, idx+1);
+    #endif
     return make_scalar4(__hiloint2double(part1.y, part1.x),
                         __hiloint2double(part1.w, part1.z),
                         __hiloint2double(part2.y, part2.x),

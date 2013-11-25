@@ -591,6 +591,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     unsigned int tpp = pair_args.threads_per_particle;
     unsigned int n_blocks = pair_args.N / (block_size/tpp) + 1;
 
+    #if __CUDA_ARCH__ <= 300
     // bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
@@ -610,6 +611,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * (pair_args.N+pair_args.n_ghost));
     if (error != cudaSuccess)
         return error;
+    #endif // on SM 3.5 we use __ldg
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))

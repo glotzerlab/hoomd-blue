@@ -529,12 +529,14 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
     int n_blocks = N/(block_size/threads_per_particle);
     if (N % (block_size/threads_per_particle)) ++n_blocks;
 
+    #if __CUDA_ARCH__ <= 300
     // bind the position texture
     cell_xyzf_1d_tex.normalized = false;
     cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*(cli.getNumElements()));
     if (error != cudaSuccess)
         return error;
+    #endif // on SM 3.5 we use __ldg
 
     launcher<max_threads_per_particle>(d_nlist,
                                    d_n_neigh,
