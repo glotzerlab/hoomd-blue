@@ -59,12 +59,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ParticleData.h"
-#include "BondData.h"
 #include "WallData.h"
 #include "RigidData.h"
+#include "IntegratorData.h"
+#include "BondedGroupData.h"
+#include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
-#include "IntegratorData.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -78,6 +79,22 @@ class Communicator;
 
 //! Forward declaration of SnapshotSytemData
 class SnapshotSystemData;
+
+//! Define BondData
+extern char name_bond_data[];
+typedef BondedGroupData<2, uint2, name_bond_data> BondDataNew;
+
+//! Define AngleData
+extern char name_angle_data[];
+typedef BondedGroupData<3, uint3, name_angle_data> AngleDataNew;
+
+//! Define DihedralData
+extern char name_dihedral_data[];
+typedef BondedGroupData<4, uint4, name_dihedral_data> DihedralDataNew;
+
+//! Define ImproperData
+extern char name_improper_data[];
+typedef BondedGroupData<4, uint4, name_improper_data> ImproperDataNew;
 
 //! Container class for all data needed to define the MD system
 /*! SystemDefinition is a big bucket where all of the data defining the MD system goes.

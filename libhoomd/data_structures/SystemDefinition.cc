@@ -70,6 +70,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+//! Names of bonded groups
+char name_bond_data[] = "bond";
+char name_angle_data[] = "angle";
+char name_dihedral_data[] = "dihedral";
+char name_improper_data[] = "improper";
+
 /*! \post All shared pointers contained in SystemDefinition are NULL
 */
 SystemDefinition::SystemDefinition()

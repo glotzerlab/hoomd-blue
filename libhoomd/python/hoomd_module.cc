@@ -441,6 +441,10 @@ BOOST_PYTHON_MODULE(hoomd)
     export_AngleData();
     export_DihedralData();
     export_SnapshotSystemData();
+    export_BondedGroupData<BondDataNew>("BondDataNew");
+    export_BondedGroupData<AngleDataNew>("AngleDataNew");
+    export_BondedGroupData<DihedralDataNew>("DihedralDataNew");
+    export_BondedGroupData<ImproperDataNew>("ImproperDataNew");
 
     // initializers
     export_RandomInitializer();
