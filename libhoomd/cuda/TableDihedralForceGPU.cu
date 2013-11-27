@@ -251,7 +251,7 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         // compute index into the table and read in values
         unsigned int value_i = floor(value_f);
         Scalar2 VT0 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_dihedral_type));
-        Scalar2 VT1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i, cur_dihedral_type));
+        Scalar2 VT1 = texFetchScalar2(d_tables, tables_tex, table_value(value_i+1, cur_dihedral_type));
         // unpack the data
         Scalar V0 = VT0.x;
         Scalar V1 = VT1.x;
