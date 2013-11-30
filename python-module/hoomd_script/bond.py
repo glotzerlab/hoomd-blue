@@ -193,7 +193,7 @@ class coeff:
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getBondData().getNBondTypes();
+        ntypes = globals.system_definition.getBondData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));
@@ -271,7 +271,7 @@ class _bond(force._force):
            raise RuntimeError("Error updating force coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getBondData().getNBondTypes();
+        ntypes = globals.system_definition.getBondData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));
@@ -318,7 +318,7 @@ class harmonic(_bond):
         _bond.__init__(self);
 
         # check that some bonds are defined
-        if globals.system_definition.getBondData().getNumBonds() == 0:
+        if globals.system_definition.getBondData().getNGlobal() == 0:
             globals.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
 
@@ -387,7 +387,7 @@ class fene(_bond):
         util.print_status_line();
 
         # check that some bonds are defined
-        if globals.system_definition.getBondData().getNumBonds() == 0:
+        if globals.system_definition.getBondData().getN() == 0:
             globals.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
 
@@ -568,7 +568,7 @@ class table(force._force):
             raise RuntimeError("Error updating bond coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getBondData().getNBondTypes();
+        ntypes = globals.system_definition.getBondData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getBondData().getNameByType(i));

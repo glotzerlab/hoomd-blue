@@ -502,10 +502,10 @@ void NeighborList::addExclusionsFromBonds()
         bcast(bonds, 0, m_exec_conf->getMPICommunicator());
         }
     else
-        bonds = snapshot.groups;
-#else
-    bonds = snapshot.groups;
 #endif
+        {
+        bonds = snapshot.groups;
+        }
 
     // for each bond
     for (unsigned int i = 0; i < bonds.size(); i++)

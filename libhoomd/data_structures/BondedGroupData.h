@@ -392,7 +392,7 @@ template<unsigned int group_size,typename tags_element, const char *name>
 BondedGroupData<group_size, tags_element, name>::BondedGroupData(
     boost::shared_ptr<ParticleData> pdata,
     unsigned int n_group_types)
-    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_nglobal(0)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_nglobal(0), m_groups_dirty(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name<< ") " << endl;
 
@@ -419,7 +419,7 @@ template<unsigned int group_size,typename tags_element, const char *name>
 BondedGroupData<group_size, tags_element, name>::BondedGroupData(
     boost::shared_ptr<ParticleData> pdata,
     const Snapshot& snapshot)
-    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_nglobal(0)
+    : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_nglobal(0), m_groups_dirty(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name << ") " << endl;
 
@@ -511,9 +511,6 @@ void BondedGroupData<group_size, tags_element, name>::initializeFromSnapshot(con
         {
         m_type_mapping = snapshot.type_mapping;
 
-        // set global number of bonded groups
-        m_nglobal = snapshot.groups.size();
-
         for (unsigned group_idx = 0; group_idx < snapshot.groups.size(); group_idx++)
             addBondedGroup(snapshot.type_id[group_idx], snapshot.groups[group_idx]);
         }
@@ -545,12 +542,12 @@ unsigned int BondedGroupData<group_size, tags_element, name>::addBondedGroup(
 
     for (unsigned int i = 0; i < group_size; ++i)
         for (unsigned int j = 0; j < group_size; ++j)
-            if (t.tags[i] == t.tags[j])
+            if (i != j && t.tags[i] == t.tags[j])
                 {
                 std::ostringstream oss;
                 oss << "The same particle can only occur once in a " << name << ": ";
-                for (unsigned int j = 0; j < group_size; ++j)
-                    oss << t.tags[j] << ((j != group_size - 1) ? "," : "");
+                for (unsigned int k = 0; k < group_size; ++k)
+                    oss << t.tags[k] << ((k != group_size - 1) ? "," : "");
                 oss << std::endl;
                 m_exec_conf->msg->error() << oss.str();
                 throw runtime_error(std::string("Error adding ") + name);
@@ -593,7 +590,7 @@ unsigned int BondedGroupData<group_size, tags_element, name>::addBondedGroup(
     else
         {
         // Otherwise, generate a new tag
-        tag = getN();
+        tag = getNGlobal();
 
         // add new reverse-lookup tag
         assert(m_bond_rtag.size() == m_bonds.size());
@@ -603,7 +600,7 @@ unsigned int BondedGroupData<group_size, tags_element, name>::addBondedGroup(
             m_group_rtag.push_back(GROUP_NOT_LOCAL);
         }
 
-     assert(tag <= m_recycled_tags.size() + getNGlobal());
+    assert(tag <= m_recycled_tags.size() + getNGlobal());
 
     m_groups.push_back(member_tags);
     m_group_type.push_back(type_id);
@@ -942,6 +939,8 @@ void BondedGroupData<group_size, tags_element, name>::rebuildIndexLookupTable()
     }
 
 /*! \param snapshot Snapshot that will contain the group data
+ *
+ *  Data in the snapshot is in tag order, where non-existant tags are skipped
  */
 template<unsigned int group_size,typename tags_element, const char *name>
 void BondedGroupData<group_size, tags_element, name>::takeSnapshot(Snapshot& snapshot) const
@@ -957,8 +956,20 @@ void BondedGroupData<group_size, tags_element, name>::takeSnapshot(Snapshot& sna
     else
     #endif
         {
+        std::map<unsigned int, unsigned int> rtag_map;
+
+        assert(getN() == getNGlobal());
         for (unsigned int group_idx = 0; group_idx < getN(); group_idx++)
             {
+            unsigned int tag = m_group_tag[group_idx];
+            assert(m_group_rtag[tag] == group_idx);
+
+            rtag_map.insert(std::pair<unsigned int,unsigned int>(tag, group_idx));
+            }
+        std::map<unsigned int, unsigned int>::iterator rtag_it;
+        for (rtag_it = rtag_map.begin(); rtag_it != rtag_map.end(); ++rtag_it)
+            {
+            unsigned int group_idx = rtag_it->second;
             snapshot.groups[group_idx] = m_groups[group_idx];
             snapshot.type_id[group_idx] = m_group_type[group_idx];
             }
