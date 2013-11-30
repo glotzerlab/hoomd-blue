@@ -64,7 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "RigidData.h"
 #include "SystemDefinition.h"
-#include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
 #include "ExecutionConfiguration.h"
@@ -436,12 +435,11 @@ BOOST_PYTHON_MODULE(hoomd)
     export_RigidData();
     export_SnapshotRigidData();
     export_ExecutionConfiguration();
-    export_BondData();
     export_SystemDefinition();
     export_AngleData();
     export_DihedralData();
     export_SnapshotSystemData();
-    export_BondedGroupData<BondDataNew>("BondDataNew");
+    export_BondedGroupData<BondData>("BondData");
     export_BondedGroupData<AngleDataNew>("AngleDataNew");
     export_BondedGroupData<DihedralDataNew>("DihedralDataNew");
     export_BondedGroupData<ImproperDataNew>("ImproperDataNew");

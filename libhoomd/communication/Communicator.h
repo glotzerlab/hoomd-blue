@@ -67,7 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 #include "GPUVector.h"
 #include "ParticleData.h"
-#include "BondData.h"
 #include "DomainDecomposition.h"
 
 #include <boost/shared_ptr.hpp>
@@ -537,9 +536,6 @@ class Communicator
     private:
         std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent
         std::vector<pdata_element> m_recvbuf;  //!< Buffer for particles that are received
-
-        std::vector<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
-        std::vector<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
 
         bool m_is_first_step;                    //!< True if no communication has yet occured
 

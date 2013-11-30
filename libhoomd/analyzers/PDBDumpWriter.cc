@@ -79,7 +79,6 @@ using namespace boost::python;
 #include <stdio.h>
 
 #include "PDBDumpWriter.h"
-#include "BondData.h"
 
 using namespace std;
 using namespace boost;
@@ -242,10 +241,10 @@ void PDBDumpWriter::writeFile(std::string fname)
 
         // grab the bond data
         boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-        for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
+        for (unsigned int i = 0; i < bond_data->getN(); i++)
             {
-            Bond bond = bond_data->getBond(i);
-            snprintf(buf, linesize, "CONECT%1$5d%2$5d\n", bond.a, bond.b);
+            uint2 bond = bond_data->getMembersByIndex(i);
+            snprintf(buf, linesize, "CONECT%1$5d%2$5d\n", bond.x, bond.y);
             f << buf;
             }
         }

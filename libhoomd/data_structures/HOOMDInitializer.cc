@@ -227,7 +227,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     /*
      * Initialize bond data
      */
-    SnapshotBondData& bdata = snapshot->bond_data;
+    BondData::Snapshot& bdata = snapshot->bond_data;
 
     // allocate memory in snapshot
     bdata.resize(m_bonds.size());
@@ -235,8 +235,8 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     // loop through all the bonds and add a bond for each
     for (unsigned int i = 0; i < m_bonds.size(); i++)
         {
-        bdata.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
-        bdata.type_id[i] = m_bonds[i].type;
+        bdata.groups[i] = m_bonds[i];
+        bdata.type_id[i] = m_bond_types[i];
         }
 
     bdata.type_mapping = m_bond_type_mapping;
@@ -814,7 +814,10 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
         unsigned int a, b;
         parser >> type_name >> a >> b;
         if (parser.good())
-            m_bonds.push_back(Bond(getBondTypeId(type_name), a, b));
+            {
+            m_bonds.push_back(make_uint2(a, b));
+            m_bond_types.push_back(getBondTypeId(type_name));
+            }
         }
     }
 

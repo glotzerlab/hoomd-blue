@@ -122,7 +122,7 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<Syst
         }
 
      // allocate and zero device memory
-    GPUArray<typename evaluator::param_type> params(this->m_bond_data->getNBondTypes(), this->exec_conf);
+    GPUArray<typename evaluator::param_type> params(this->m_bond_data->getNTypes(), this->exec_conf);
     this->m_params.swap(params);
 
      // allocate flags storage on the GPU
@@ -155,11 +155,12 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
+    #if 0 //FIXME
         {
         const GPUArray<uint2>& gpu_bond_list = this->m_bond_data->getGPUBondList();
 
         ArrayHandle<uint2> d_gpu_bondlist(gpu_bond_list, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(),
+        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNGroupssArray(),
                                                  access_location::device, access_mode::read);
 
         // access the flags array for overwriting
@@ -197,6 +198,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
             }
         }
 
+    #endif
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 

@@ -89,14 +89,14 @@ BondTablePotential::BondTablePotential(boost::shared_ptr<SystemDefinition> sysde
 
 
     // allocate storage for the tables and parameters
-    GPUArray<Scalar2> tables(m_table_width, m_bond_data->getNBondTypes(), exec_conf);
+    GPUArray<Scalar2> tables(m_table_width, m_bond_data->getNTypes(), exec_conf);
     m_tables.swap(tables);
-    GPUArray<Scalar4> params(m_bond_data->getNBondTypes(), exec_conf);
+    GPUArray<Scalar4> params(m_bond_data->getNTypes(), exec_conf);
     m_params.swap(params);
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables.getPitch(),m_bond_data->getNBondTypes());
+    Index2D table_value(m_tables.getPitch(),m_bond_data->getNTypes());
     m_table_value = table_value;
 
 
@@ -127,7 +127,7 @@ void BondTablePotential::setTable(unsigned int type,
     {
 
     // make sure the type is valid
-    if (type >= m_bond_data->getNBondTypes())
+    if (type >= m_bond_data->getNTypes())
         {
         m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
         throw runtime_error("Error setting parameters in PotentialBond");
@@ -223,18 +223,18 @@ void BondTablePotential::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
 
     // for each of the bonds
-    const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
+    const unsigned int size = (unsigned int)m_bond_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const Bond& bond = m_bond_data->getBond(i);
-        assert(bond.a < m_pdata->getN());
-        assert(bond.b < m_pdata->getN());
+        const uint2 bond = m_bond_data->getMembersByIndex(i);
+        assert(bond.x < m_pdata->getN());
+        assert(bond.y < m_pdata->getN());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[bond.a];
-        unsigned int idx_b = h_rtag.data[bond.b];
+        unsigned int idx_a = h_rtag.data[bond.x];
+        unsigned int idx_b = h_rtag.data[bond.y];
         assert(idx_a < m_pdata->getN());
         assert(idx_b < m_pdata->getN());
 
@@ -247,7 +247,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
         dx = box.minImage(dx);
 
         // access needed parameters
-        Scalar4 params = h_params.data[bond.type];
+        unsigned int type = m_bond_data->getTypeByIndex(i);
+        Scalar4 params = h_params.data[type];
         Scalar rmin = params.x;
         Scalar rmax = params.y;
         Scalar delta_r = params.z;
@@ -267,8 +268,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
 
             /// Here we use the table!!
             unsigned int value_i = (unsigned int)floor(value_f);
-            Scalar2 VF0 = h_tables.data[m_table_value(value_i, bond.type)];
-            Scalar2 VF1 = h_tables.data[m_table_value(value_i+1, bond.type)];
+            Scalar2 VF0 = h_tables.data[m_table_value(value_i, type)];
+            Scalar2 VF1 = h_tables.data[m_table_value(value_i+1, type)];
             // unpack the data
             Scalar V0 = VF0.x;
             Scalar V1 = VF1.x;

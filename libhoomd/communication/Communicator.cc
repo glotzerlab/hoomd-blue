@@ -429,49 +429,6 @@ void Communicator::exchangeGhosts()
      */
     boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
 
-    if (bdata->getNumBondsGlobal())
-        {
-        // Send incomplete bond member to the nearest plane in all directions
-        const GPUVector<uint2>& btable = bdata->getBondTable();
-        ArrayHandle<uint2> h_btable(btable, access_location::host, access_mode::read);
-        ArrayHandle<unsigned char> h_plan(m_plan, access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-
-        unsigned nbonds = bdata->getNumBonds();
-        unsigned int N = m_pdata->getN();
-        for (unsigned int bond_idx = 0; bond_idx < nbonds; bond_idx++)
-            {
-            uint2 bond = h_btable.data[bond_idx];
-
-            unsigned int tag1 = bond.x;
-            unsigned int tag2 = bond.y;
-            unsigned int idx1 = h_rtag.data[tag1];
-            unsigned int idx2 = h_rtag.data[tag2];
-
-            if ((idx1 >= N) && (idx2 < N))
-                {
-                Scalar4 postype = h_pos.data[idx2];
-                Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-                Scalar3 f = box.makeFraction(pos);
-                h_plan.data[idx2] |= (f.x > Scalar(0.5)) ? send_east : send_west;
-                h_plan.data[idx2] |= (f.y > Scalar(0.5)) ? send_north : send_south;
-                h_plan.data[idx2] |= (f.z > Scalar(0.5)) ? send_up : send_down;
-
-                }
-            else if ((idx1 < N) && (idx2 >= N))
-                {
-                Scalar4 postype = h_pos.data[idx1];
-                Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-                Scalar3 f = box.makeFraction(pos);
-                h_plan.data[idx1] |= (f.x > Scalar(0.5)) ? send_east : send_west;
-                h_plan.data[idx1] |= (f.y > Scalar(0.5)) ? send_north : send_south;
-                h_plan.data[idx1] |= (f.z > Scalar(0.5)) ? send_up : send_down;
-                }
-            }
-        }
-
-
     /*
      * Mark non-bonded atoms for sending
      */

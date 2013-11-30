@@ -188,10 +188,28 @@ class BondedGroupData : boost::noncopyable
         const std::string getNameByType(unsigned int type) const;
 
         //! Get the members of a bonded group by tag
+        const tags_element getMembersByIndex(unsigned int group_idx) const;
+
+        //! Get the members of a bonded group by tag
         const tags_element getMembersByTag(unsigned int tag) const;
 
+        //! Get the members of a bonded group by tag
+        unsigned int getTypeByIndex(unsigned int group_idx) const;
+
+        //! Return group table
+        const GPUArray<tags_element>& getMembersArray() const
+            {
+            return m_groups;
+            }
+
+        //! Return group table
+        const GPUArray<unsigned int>& getTypesArray() const
+            {
+            return m_group_type;
+            }
+
         //! Return two-dimensional group-by-ptl-index lookup table
-        const GPUArray<unsigned int>& getParticleGroupLookupTable()
+        const GPUArray<unsigned int>& getGroupsByParticleArray()
             {
             // rebuild lookup table if necessary
             if (m_groups_dirty)
@@ -204,7 +222,7 @@ class BondedGroupData : boost::noncopyable
             }
 
         //! Return two-dimensional group-by-ptl-index lookup table
-        const Index2D& getParticleGroupLookupIndexer()
+        const Index2D& getGroupsByParticleIndexer()
             {
             // rebuild lookup table if necessary
             if (m_groups_dirty)
@@ -214,6 +232,12 @@ class BondedGroupData : boost::noncopyable
                 }
 
             return m_idx_lookup_indexer;
+            }
+
+        //! Return list of number of groups per particle
+        const GPUArray<unsigned int>& getNGroupsArray()
+            {
+            return m_n_groups;
             }
 
         //! Return list of group tags
@@ -295,6 +319,12 @@ class BondedGroupData : boost::noncopyable
             unsigned int tags[group_size];
             } tags_t;
 
+        //! Helper function to transfer bonded groups connected to a single particle
+        /*! \param tag Tag of particle that moves between domains
+            \param old_rank Old MPI rank for particle
+            \param new_rank New MPI rank
+         */
+        void moveParticleBonds(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration for CUDA context
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
@@ -643,7 +673,7 @@ unsigned int BondedGroupData<group_size, tags_element, name>::getTypeByTag(unsig
     }
 
 /*! \param tag Tag of bonded group
- * \returns Type id of bonded group
+ * \returns Member tags of bonded group
  */
 template<unsigned int group_size,typename tags_element, const char *name>
 const tags_element BondedGroupData<group_size, tags_element, name>::getMembersByTag(unsigned int tag) const
@@ -694,6 +724,26 @@ const tags_element BondedGroupData<group_size, tags_element, name>::getMembersBy
         }
 
     return g;
+    }
+
+/*! \param idx Tag of bonded group
+ * \return Member tags of bonded group
+ */
+template<unsigned int group_size,typename tags_element, const char *name>
+unsigned int BondedGroupData<group_size, tags_element, name>::getTypeByIndex(unsigned int group_idx) const
+    {
+    assert (group_idx < getN());
+    return m_group_type[group_idx];
+    }
+
+/*! \param idx Tag of bonded group
+ * \return Type of bonded group
+ */
+template<unsigned int group_size,typename tags_element, const char *name>
+const tags_element BondedGroupData<group_size, tags_element, name>::getMembersByIndex(unsigned int group_idx) const
+    {
+    assert (group_idx < getN());
+    return m_groups[group_idx];
     }
 
 /*! \param tag Tag of bonded group to remove

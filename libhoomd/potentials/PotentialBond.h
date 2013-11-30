@@ -58,7 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include "ForceCompute.h"
-#include "BondData.h"
 #include "GPUArray.h"
 
 #include <vector>
@@ -128,7 +127,7 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
     m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
-    GPUArray<param_type> params(m_bond_data->getNBondTypes(), exec_conf);
+    GPUArray<param_type> params(m_bond_data->getNTypes(), exec_conf);
     m_params.swap(params);
     }
 
@@ -147,7 +146,7 @@ template<class evaluator >
 void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& param)
     {
     // make sure the type is valid
-    if (type >= m_bond_data->getNBondTypes())
+    if (type >= m_bond_data->getNTypes())
         {
         this->m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
         throw runtime_error("Error setting parameters in PotentialBond");
@@ -230,13 +229,13 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     for (unsigned int i = 0; i< 6; i++)
         bond_virial[i]=Scalar(0.0);
 
-    ArrayHandle<uint2> h_bonds(m_bond_data->getBondTable(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_type(m_bond_data->getBondTypes(), access_location::host, access_mode::read);
+    ArrayHandle<uint2> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_type(m_bond_data->getTypesArray(), access_location::host, access_mode::read);
 
     unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
 
     // for each of the bonds
-    const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
+    const unsigned int size = (unsigned int)m_bond_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond

@@ -211,13 +211,6 @@ void CommunicatorGPU::allocateBuffers()
 
     GPUVector<unsigned int> neigh_counts(m_exec_conf);
     m_neigh_counts.swap(neigh_counts);
-
-    // Allocate buffers for bond migration
-    GPUVector<bond_element> gpu_bond_sendbuf(m_exec_conf,mapped);
-    m_gpu_bond_sendbuf.swap(gpu_bond_sendbuf);
-
-    GPUVector<bond_element> gpu_bond_recvbuf(m_exec_conf,mapped);
-    m_gpu_bond_recvbuf.swap(gpu_bond_recvbuf);
     }
 
 void CommunicatorGPU::initializeNeighborArrays()

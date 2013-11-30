@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "ParticleData.cuh"
-#include "BondData.cuh"
 
 #include "cached_allocator.h"
 #include "Index1D.h"
@@ -117,38 +116,6 @@ enum gpu_corner_flags
     };
 #endif
 
-//! Mark particles in incomplete bonds for sending
-void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
-                                          unsigned char *d_plan,
-                                          const Scalar4 *d_pos,
-                                          const unsigned int *d_rtag,
-                                          const unsigned int N,
-                                          const unsigned int n_bonds,
-                                          const BoxDim& box);
-
-void gpu_send_bonds(const unsigned int n_bonds,
-                    const unsigned int n_particles,
-                    const uint2 *d_bonds,
-                    const unsigned int *d_bond_type,
-                    const unsigned int *d_bond_tag,
-                    const unsigned int *d_rtag,
-                    const unsigned int *d_ptl_plan,
-                    unsigned int *d_bond_remove_mask,
-                    bond_element *d_face_send_buf,
-                    unsigned int face_send_buf_pitch,
-                    bond_element *d_edge_send_buf,
-                    unsigned int edge_send_buf_pitch,
-                    bond_element *d_corner_send_buf,
-                    unsigned int corner_send_buf_pitch,
-                    unsigned int *d_n_send_bonds_face,
-                    unsigned int *d_n_send_bonds_edge,
-                    unsigned int *d_n_send_bonds_corner,
-                    const unsigned int max_send_bonds_face,
-                    const unsigned int max_send_bonds_edge,
-                    const unsigned int max_send_bonds_corner,
-                    unsigned int *d_n_remove_bonds,
-                    unsigned int *d_condition);
-
 //! Mark particles that have left the local box for sending
 void gpu_stage_particles(const unsigned int n,
                          const Scalar4 *d_pos,
@@ -186,14 +153,6 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
 void gpu_wrap_particles(const unsigned int n_recv,
                         pdata_element *d_in,
                         const BoxDim& box);
-
-//! Select bonds for sending
-void gpu_select_bonds(unsigned int n_bonds,
-                      const uint2 *d_bonds,
-                      const unsigned int *d_bond_tag,
-                      unsigned int *d_bond_rtag,
-                      const unsigned int *d_rtag,
-                      cached_allocator& alloc);
 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls,

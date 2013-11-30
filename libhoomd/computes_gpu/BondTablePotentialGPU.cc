@@ -123,9 +123,11 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
         {
+        #if 0 //FIXME
         // Access the bond table for reading
-        ArrayHandle<uint2> d_gpu_bondlist(this->m_bond_data->getGPUBondList(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(), access_location::device, access_mode::read);
+        ArrayHandle<uint2> d_particle_lookup_table(this->m_bond_data->getParticleLookupTable(), access_location::device, access_mode::read);
+        ArrayHandle<uint2> d_gpu_bondlist(this->m_bond_data->getParticleLookupTable(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::device, access_mode::read);
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
 
@@ -147,6 +149,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
                              m_table_value,
                              d_flags.data,
                              m_block_size);
+        #endif
         }
 
 

@@ -75,7 +75,6 @@ using namespace boost::python;
 #endif
 
 #include "HOOMDBinaryDumpWriter.h"
-#include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
 #include "WallData.h"
@@ -249,7 +248,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // Output the bonds to the binary file
     {
     //write out type mapping
-    ntypes = m_sysdef->getBondData()->getNBondTypes();
+    ntypes = m_sysdef->getBondData()->getNTypes();
     f.write((char*)&ntypes, sizeof(unsigned int));
     for (unsigned int i = 0; i < ntypes; i++)
         {
@@ -257,17 +256,18 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         write_string(f, name);
         }
 
-    unsigned int nb = m_sysdef->getBondData()->getNumBonds();
+    unsigned int nb = m_sysdef->getBondData()->getN();
     f.write((char*)&nb, sizeof(unsigned int));
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
     // loop over all bonds and write them out
-    for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
+    for (unsigned int i = 0; i < bond_data->getN(); i++)
         {
-        Bond bond = bond_data->getBond(i);
-        f.write((char*)&bond.type, sizeof(unsigned int));
-        f.write((char*)&bond.a, sizeof(unsigned int));
-        f.write((char*)&bond.b, sizeof(unsigned int));
+        uint2 bond = bond_data->getMembersByIndex(i);
+        unsigned int type = bond_data->getTypeByIndex(i);
+        f.write((char*)&type, sizeof(unsigned int));
+        f.write((char*)&bond.x, sizeof(unsigned int));
+        f.write((char*)&bond.y, sizeof(unsigned int));
         }
     }
 

@@ -65,7 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "RigidData.h"
 #include "SystemDefinition.h"
-#include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
 #include "ExecutionConfiguration.h"

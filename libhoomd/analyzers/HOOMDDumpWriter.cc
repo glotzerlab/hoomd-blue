@@ -69,7 +69,6 @@ using namespace boost::python;
 #include <boost/shared_ptr.hpp>
 
 #include "HOOMDDumpWriter.h"
-#include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
 #include "WallData.h"
@@ -216,7 +215,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     m_pdata->takeSnapshot(snapshot);
 
-    SnapshotBondData bdata_snapshot(m_sysdef->getBondData()->getNumBondsGlobal());
+    BondData::Snapshot bdata_snapshot(m_sysdef->getBondData()->getNGlobal());
 
     if (m_output_bond)
         {
@@ -411,13 +410,13 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the bond flag is true, output the bonds to the xml file
     if (m_output_bond)
         {
-        f << "<bond num=\"" << bdata_snapshot.bonds.size() << "\">" << "\n";
+        f << "<bond num=\"" << bdata_snapshot.groups.size() << "\">" << "\n";
         boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
         // loop over all bonds and write them out
-        for (unsigned int i = 0; i < bdata_snapshot.bonds.size(); i++)
+        for (unsigned int i = 0; i < bdata_snapshot.groups.size(); i++)
             {
-            uint2 bond = bdata_snapshot.bonds[i];
+            uint2 bond = bdata_snapshot.groups[i];
             unsigned int bond_type = bdata_snapshot.type_id[i];
             f << bond_data->getNameByType(bond_type) << " " << bond.x << " " << bond.y << "\n";
             }

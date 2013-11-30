@@ -53,7 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "ForceCompute.h"
-#include "BondData.h"
 #include "Index1D.h"
 #include "GPUArray.h"
 

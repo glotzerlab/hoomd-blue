@@ -50,8 +50,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "BondData.cuh"
 #include "ParticleData.cuh"
+#include "BondData.cuh"
 
 #ifdef WIN32
 #include <cassert>

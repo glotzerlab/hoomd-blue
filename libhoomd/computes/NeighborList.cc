@@ -62,7 +62,6 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 
 #include "NeighborList.h"
-#include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
 
@@ -488,7 +487,7 @@ void NeighborList::addExclusionsFromBonds()
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
     // access bond data by snapshot
-    SnapshotBondData snapshot(bond_data->getNumBondsGlobal());
+    BondData::Snapshot snapshot(bond_data->getNGlobal());
     bond_data->takeSnapshot(snapshot);
 
     // broadcast global bond list
@@ -498,14 +497,14 @@ void NeighborList::addExclusionsFromBonds()
     if (m_pdata->getDomainDecomposition())
         {
         if (m_exec_conf->getRank() == 0)
-            bonds = snapshot.bonds;
+            bonds = snapshot.groups;
 
         bcast(bonds, 0, m_exec_conf->getMPICommunicator());
         }
     else
-        bonds = snapshot.bonds;
+        bonds = snapshot.groups;
 #else
-    bonds = snapshot.bonds;
+    bonds = snapshot.groups;
 #endif
 
     // for each bond
@@ -575,10 +574,14 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
  */
 void NeighborList::addOneThreeExclusionsFromTopology()
     {
+    m_exec_conf->msg->error() << "Feature temporarily unsupported" << std::endl;
+    throw std::runtime_error("Unsupported feature.");
+
+    #if 0
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
     const unsigned int myNAtoms = m_pdata->getN();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
-    const unsigned int nBonds = bond_data->getNumBonds();
+    const unsigned int nBonds = bond_data->getN();
 
     if (nBonds == 0)
         {
@@ -593,7 +596,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
     for (unsigned int i = 0; i < nBonds; i++)
         {
         // loop over all bonds and make a 1D exlcusion map
-        Bond bondi = bond_data->getBond(i);
+        uint2 = bond_data->getMembersByTag(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
@@ -638,6 +641,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
         }
     // free temp memory
     delete[] localBondList;
+    #endif
     }
 
 /*! Add topologically derived exclusions for dihedrals
@@ -651,10 +655,14 @@ void NeighborList::addOneThreeExclusionsFromTopology()
  */
 void NeighborList::addOneFourExclusionsFromTopology()
     {
+    m_exec_conf->msg->error() << "Feature temporarily unsupported" << std::endl;
+    throw std::runtime_error("Unsupported feature.");
+
+#if 0
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
     const unsigned int myNAtoms = m_pdata->getN();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
-    const unsigned int nBonds = bond_data->getNumBonds();
+    const unsigned int nBonds = bond_data->getN();
 
     if (nBonds == 0)
         {
@@ -723,6 +731,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
         }
     // free temp memory
     delete[] localBondList;
+    #endif
     }
 
 

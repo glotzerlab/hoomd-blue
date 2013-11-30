@@ -140,8 +140,6 @@ class CommunicatorGPU : public Communicator
         GPUVector<pdata_element> m_gpu_recvbuf;        //!< Receive buffer for particle data
 
         GPUVector<unsigned int> m_send_keys;           //!< Destination rank for particles
-        GPUVector<bond_element> m_gpu_bond_sendbuf;    //!< Buffer for bonds that are sent
-        GPUVector<bond_element> m_gpu_bond_recvbuf;    //!< Buffer for bonds that are received
 
         /* Ghost communication */
         GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< List of ghost particles tags per stage, ordered by neighbor

@@ -60,7 +60,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "WallData.h"
-#include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
 #include "RigidData.h"
@@ -143,7 +142,8 @@ class HOOMDBinaryInitializer
         std::vector< unsigned int > m_type_array;   //!< type values for all particles loaded
         std::vector< Scalar > m_charge_array;       //!< charge of the particles loaded
         std::vector< Wall > m_walls;                //!< walls loaded from the file
-        std::vector< Bond > m_bonds;                //!< Bonds read in from the file
+        std::vector< uint2 > m_bonds;               //!< Bonds read in from the file
+        std::vector< unsigned int > m_bond_types;   //!< Bonds types read in from the file
         std::vector< Angle > m_angles;              //!< Angle read in from the file
         std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
         std::vector< Dihedral > m_impropers;        //!< Improper read in from the file

@@ -63,7 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RigidData.h"
 #include "IntegratorData.h"
 #include "BondedGroupData.h"
-#include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
 
@@ -82,7 +81,7 @@ class SnapshotSystemData;
 
 //! Define BondData
 extern char name_bond_data[];
-typedef BondedGroupData<2, uint2, name_bond_data> BondDataNew;
+typedef BondedGroupData<2, uint2, name_bond_data> BondData;
 
 //! Define AngleData
 extern char name_angle_data[];
