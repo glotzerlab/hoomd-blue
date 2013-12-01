@@ -79,22 +79,6 @@ class Communicator;
 //! Forward declaration of SnapshotSytemData
 class SnapshotSystemData;
 
-//! Define BondData
-extern char name_bond_data[];
-typedef BondedGroupData<2, uint2, name_bond_data> BondData;
-
-//! Define AngleData
-extern char name_angle_data[];
-typedef BondedGroupData<3, uint3, name_angle_data> AngleDataNew;
-
-//! Define DihedralData
-extern char name_dihedral_data[];
-typedef BondedGroupData<4, uint4, name_dihedral_data> DihedralDataNew;
-
-//! Define ImproperData
-extern char name_improper_data[];
-typedef BondedGroupData<4, uint4, name_improper_data> ImproperDataNew;
-
 //! Container class for all data needed to define the MD system
 /*! SystemDefinition is a big bucket where all of the data defining the MD system goes.
     Everything is stored as a shared pointer for quick and easy access from within C++

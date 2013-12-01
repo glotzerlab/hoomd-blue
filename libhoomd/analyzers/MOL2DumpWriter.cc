@@ -68,6 +68,7 @@ using namespace boost::python;
 #include <boost/shared_ptr.hpp>
 
 #include "MOL2DumpWriter.h"
+#include "BondedGroupData.h"
 
 using namespace std;
 

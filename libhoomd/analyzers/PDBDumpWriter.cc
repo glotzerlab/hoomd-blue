@@ -79,6 +79,7 @@ using namespace boost::python;
 #include <stdio.h>
 
 #include "PDBDumpWriter.h"
+#include "BondedGroupData.h"
 
 using namespace std;
 using namespace boost;

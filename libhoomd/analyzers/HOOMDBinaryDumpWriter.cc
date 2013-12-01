@@ -75,6 +75,7 @@ using namespace boost::python;
 #endif
 
 #include "HOOMDBinaryDumpWriter.h"
+#include "BondedGroupData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
 #include "WallData.h"

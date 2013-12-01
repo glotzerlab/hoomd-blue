@@ -54,6 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include "BondTablePotential.h"
+#include "BondedGroupData.h"
 
 #include <stdexcept>
 
