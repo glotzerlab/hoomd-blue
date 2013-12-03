@@ -434,7 +434,6 @@ void ExecutionConfiguration::printGPUStats()
     int dev;
     cudaGetDevice(&dev);
 
-    s << " Rank " << getRank();
     s << " [" << dev << "]";
     s << setw(22) << dev_prop.name;
 
@@ -757,7 +756,7 @@ void ExecutionConfiguration::setupStats()
         #ifdef ENABLE_OPENMP
         ostringstream s;
         // We print this information in rank oder
-        s << "Rank " << getRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        s << "OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
         msg->collectiveNoticeStr(1,s.str());
         #endif
         }

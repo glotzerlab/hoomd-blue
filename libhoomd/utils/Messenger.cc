@@ -208,15 +208,36 @@ void Messenger::collectiveNoticeStr(unsigned int level, const std::string& msg) 
         }
 
 #ifdef ENABLE_MPI
-    if (!m_has_mpi_comm || m_rank == 0)
+    if (m_has_mpi_comm && m_rank == 0 && rank_notices.size() > 1)
+        {
+        // Output notices in rank order, combining similar ones
+        std::vector<std::string>::iterator notice_it;
+        std::string last_msg = rank_notices[0];
+        int last_output_rank = -1;
+        for (notice_it = rank_notices.begin(); notice_it != rank_notices.end() + 1; notice_it++)
+            {
+            if (notice_it == rank_notices.end() || *notice_it != last_msg)
+                {
+                int rank = notice_it - rank_notices.begin();
+                // output message for accumulated ranks
+                if (last_output_rank+1 == rank-1)
+                    notice(level) << "Rank " << last_output_rank << ": " << last_msg;
+                else
+                    notice(level) << "Ranks " << last_output_rank + 1 << "-" << rank-1 << ": " << last_msg;
+
+                if (notice_it != rank_notices.end())
+                    {
+                    last_msg = *notice_it;
+                    last_output_rank = rank-1;
+                    }
+                }
+            }
+        }
+    else if (! m_has_mpi_comm || m_rank == 0)
 #endif
         {
-        // Output notices in rank order
-        std::vector<std::string>::iterator notice_it;
-        for (notice_it = rank_notices.begin(); notice_it != rank_notices.end(); notice_it++)
-            {
-            notice(level) << *notice_it;
-            }
+        // output without prefix
+        notice(level) << rank_notices[0];
         }
     }
 
