@@ -551,12 +551,22 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     catch (std::exception const & ex)
         {
         #ifdef ENABLE_MPI
-        // tear down other ranks in a controlled way
-        MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
-        #else
-        // re-throw original exception 
-        throw ex;
+        if (m_sysdef->getParticleData()->getDomainDecomposition() && m_exec_conf->msg->isLocked())
+            {
+            // tear down other ranks in a controlled way, but only if we are the rank that displayed an error
+            // so that eventual error messages are flushed correctly
+            if (m_exec_conf->msg->hasLock())
+                MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
+            else
+                // otherwise just wait
+                MPI_Barrier(m_exec_conf->getMPICommunicator());
+            }
+        else
         #endif
+            {
+            // re-throw original exception 
+            throw ex;
+            }
         }
 
     #ifdef ENABLE_MPI

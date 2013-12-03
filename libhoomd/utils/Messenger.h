@@ -373,6 +373,22 @@ class Messenger
             if (m_has_mpi_comm)
                 openSharedFile();
             }
+
+        //! Returns true if this if this rank has exclusive stdout access for error messages
+        bool hasLock() const
+            {
+            return m_has_lock;
+            }
+
+        //! Returns true if any process has locked the output
+        bool isLocked() const
+            {
+            int flag;
+            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0,0, m_mpi_win);
+            MPI_Get(&flag, 1, MPI_INT, 0, 0, 1, MPI_INT, m_mpi_win);
+            MPI_Win_unlock(0, m_mpi_win);
+            return flag;
+            }
 #endif
 
         //! Open stdout and stderr again, closing any open file
