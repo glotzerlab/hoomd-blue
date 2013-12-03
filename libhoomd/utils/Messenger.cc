@@ -88,6 +88,8 @@ Messenger::Messenger()
 #ifdef ENABLE_MPI
     m_shared_filename = "";
     m_has_mpi_comm = false;
+    m_error_flag = 0;
+    m_has_lock = false;
 #endif
 
     // preliminarily initialize rank and partiton
@@ -116,9 +118,19 @@ std::ostream& Messenger::error() const
     #ifdef ENABLE_MPI
     if (m_has_mpi_comm)
         {
-        // we put a MPI_Bcast here to block other processes generating the same error message
-        int tmp = 0;
-        MPI_Bcast(&tmp, 1, MPI_INT, m_rank, m_mpi_comm);
+        int one = 1;
+        int flag;
+        // atomically increment flag
+        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0,0, m_mpi_win);
+        MPI_Accumulate(&one, 1, MPI_INT, 0, 0, 1, MPI_INT, MPI_SUM, m_mpi_win);
+        MPI_Get(&flag, 1, MPI_INT, 0, 0, 1, MPI_INT, m_mpi_win);
+        MPI_Win_unlock(0, m_mpi_win);
+
+        // we have access to stdout if we are the first process to access the counter
+        m_has_lock = m_has_lock || (flag == 1);
+        
+        // if we do not have exclusive access to stdout, return NULL stream
+        if (! m_has_lock) return *m_nullstream;
         }
     #endif
     if (m_err_prefix != string(""))
@@ -305,6 +317,17 @@ void mpi_io::close()
 
     m_file_open = false;
     }
+
+void Messenger::initializeSharedMem()
+    {
+    MPI_Win_create(&m_error_flag, sizeof(int), sizeof(int), MPI_INFO_NULL, m_mpi_comm, &m_mpi_win);
+    }
+
+void Messenger::releaseSharedMem()
+    {
+    MPI_Win_free(&m_mpi_win);
+    }
+
 #endif
 
 void export_Messenger()
