@@ -113,6 +113,14 @@ Messenger::~Messenger()
 std::ostream& Messenger::error() const
     {
     assert(m_err_stream);
+    #ifdef ENABLE_MPI
+    if (m_has_mpi_comm)
+        {
+        // we put a MPI_Bcast here to block other processes generating the same error message
+        int tmp = 0;
+        MPI_Bcast(&tmp, 1, MPI_INT, m_rank, m_mpi_comm);
+        }
+    #endif
     if (m_err_prefix != string(""))
         *m_err_stream << m_err_prefix << " RANK " << m_rank << ": ";
     return *m_err_stream;
