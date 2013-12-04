@@ -243,7 +243,16 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     __syncthreads();
 
     // start by identifying which particle we are to handle
-    unsigned int idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
+    unsigned int idx;
+    if (blockIdx.y > 1)
+        {
+        // if we have blocks in the y-direction, the fermi-workaround is in place
+        idx = (blockIdx.x + blockIdx.y * 65535) * ((blockDim.y*65535)/tpp) + threadIdx.x/tpp;
+        }
+    else
+        {
+        idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
+        }
 
     if (idx >= N)
         return;
@@ -460,6 +469,14 @@ int get_max_block_size(T func)
     return max_threads;
     }
 
+template<typename T>
+int get_compute_capability(T func)
+    {
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, func);
+    return attr.binaryVersion;
+    } 
+
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param pair_args Other arugments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
@@ -507,7 +524,6 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                 * typpair_idx.getNumElements();
 
-    unsigned int n_blocks;
 
     // Launch kernel
     if (pair_args.compute_virial)
@@ -517,14 +533,24 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             case 0:
                 {
                 static int max_block_size = -1;
+                static int sm = -1;
                 if (max_block_size == -1)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>);
+                if (sm == -1)
+                    sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>);
+
                 block_size = block_size < max_block_size ? block_size : max_block_size;
-                n_blocks = pair_args.N / (block_size/tpp) + 1;
+                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+                if (sm < 30 && grid.x > 65535)
+                    {
+                    grid.y = grid.x/65535 + 1;
+                    grid.x = 65535;
+                    }
+
                 shared_bytes += sizeof(Scalar)*block_size;
 
                 gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>
-                  <<<n_blocks, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
+                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
                   pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
@@ -534,14 +560,24 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             case 1:
                 {
                 static int max_block_size = -1;
+                static int sm = -1;
                 if (max_block_size == -1)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>);
+                if (sm == -1)
+                    sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>);
+
                 block_size = block_size < max_block_size ? block_size : max_block_size;
-                n_blocks = pair_args.N / (block_size/tpp) + 1;
+                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+                if (sm < 30 && grid.x > 65535)
+                    {
+                    grid.y = grid.x/65535 + 1;
+                    grid.x = 65535;
+                    }
+
                 shared_bytes += sizeof(Scalar)*block_size;
 
-               gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>
-                  <<<n_blocks, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
+                gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>
+                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
                   pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
@@ -551,14 +587,24 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             case 2:
                 {
                 static int max_block_size = -1;
+                static int sm = -1;
                 if (max_block_size == -1)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>);
+                if (sm == -1)
+                    sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>);
+
                 block_size = block_size < max_block_size ? block_size : max_block_size;
-                n_blocks = pair_args.N / (block_size/tpp) + 1;
+                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+                if (sm < 30 && grid.x > 65535)
+                    {
+                    grid.y = grid.x/65535 + 1;
+                    grid.x = 65535;
+                    }
+
                 shared_bytes += sizeof(Scalar)*block_size;
 
                 gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>
-                  <<<n_blocks, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
+                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
                   pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
@@ -576,14 +622,24 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             case 0:
                 {
                 static int max_block_size = -1;
+                static int sm = -1;
                 if (max_block_size == -1)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>);
+                if (sm == -1)
+                    sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>);
+
                 block_size = block_size < max_block_size ? block_size : max_block_size;
-                n_blocks = pair_args.N / (block_size/tpp) + 1;
+                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+                if (sm < 30 && grid.x > 65535)
+                    {
+                    grid.y = grid.x/65535 + 1;
+                    grid.x = 65535;
+                    }
+
                 shared_bytes += sizeof(Scalar)*block_size;
 
                 gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>
-                  <<<n_blocks, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
+                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
                   pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
@@ -593,14 +649,24 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             case 1:
                 {
                 static int max_block_size = -1;
+                static int sm = -1;
                 if (max_block_size == -1)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>);
+                if (sm == -1)
+                    sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>);
+
                 block_size = block_size < max_block_size ? block_size : max_block_size;
-                n_blocks = pair_args.N / (block_size/tpp) + 1;
+                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+                if (sm < 30 && grid.x > 65535)
+                    {
+                    grid.y = grid.x/65535 + 1;
+                    grid.x = 65535;
+                    }
+
                 shared_bytes += sizeof(Scalar)*block_size;
 
                 gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>
-                  <<<n_blocks, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
+                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
                   pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
@@ -610,14 +676,24 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             case 2:
                 {
                 static int max_block_size = -1;
+                static int sm = -1;
                 if (max_block_size == -1)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>);
+                if (sm == -1)
+                    sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>);
+
                 block_size = block_size < max_block_size ? block_size : max_block_size;
-                n_blocks = pair_args.N / (block_size/tpp) + 1;
+                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+                if (sm < 30 && grid.x > 65535)
+                    {
+                    grid.y = grid.x/65535 + 1;
+                    grid.x = 65535;
+                    }
+
                 shared_bytes += sizeof(Scalar)*block_size;
 
                 gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>
-                  <<<n_blocks, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
+                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
                   pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
