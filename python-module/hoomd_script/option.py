@@ -121,10 +121,10 @@ def _parse_command_line():
     parser.add_option("--notice-level", dest="notice_level", help="Minimum level of notice messages to print");
     parser.add_option("--msg-file", dest="msg_file", help="Name of file to write messages to");
     parser.add_option("--shared-msg-file", dest="shared_msg_file", help="(MPI only) Name of shared file to write message to (append partition #)");
-    parser.add_option("--nrank", dest="nrank", help="(MPI only) Number of ranks to include in a partition");
-    parser.add_option("--nx", dest="nx", help="(MPI only) Number of domains along the x-direction");
-    parser.add_option("--ny", dest="ny", help="(MPI only) Number of domains along the y-direction");
-    parser.add_option("--nz", dest="nz", help="(MPI only) Number of domains along the z-direction");
+    parser.add_option("--nrank", dest="nrank", help="(MPI) Number of ranks to include in a partition");
+    parser.add_option("--nx", dest="nx", help="(MPI) Number of domains along the x-direction");
+    parser.add_option("--ny", dest="ny", help="(MPI) Number of domains along the y-direction");
+    parser.add_option("--nz", dest="nz", help="(MPI) Number of domains along the z-direction");
     parser.add_option("--linear", dest="linear", action="store_true", default=False, help="(MPI only) Force a slab (1D) decomposition along the z-direction");
     parser.add_option("--user", dest="user", help="User options");
 
@@ -233,7 +233,12 @@ def _parse_command_line():
         if not hoomd.is_MPI_available():
             globals.msg.error("The --nrank option is only avaible in MPI builds.\n");
             raise RuntimeError('Error setting option');
-        globals.options.nrank = int(cmd_options.nrank);
+        # check validity
+        nrank = int(cmd_options.nrank)
+        if (hoomd.ExecutionConfiguration.getNRanksGlobal() % nrank):
+            globals.msg.error("Total number of ranks is not a multiple of --nrank\n");
+            raise RuntimeError('Error checking option');
+        globals.options.nrank = nrank
 
     if cmd_options.user is not None:
         globals.options.user = shlex.split(cmd_options.user);

@@ -94,7 +94,7 @@ Messenger::Messenger()
 
     // preliminarily initialize rank and partiton
     #ifdef ENABLE_MPI
-    setRank(ExecutionConfiguration::guessRank(),0);
+    setRank(ExecutionConfiguration::getRankGlobal(),0);
     #else
     setRank(0,0);
     #endif
