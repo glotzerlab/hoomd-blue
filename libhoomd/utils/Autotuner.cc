@@ -25,7 +25,7 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
                      const std::string& name,
                      boost::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name), m_parameters(parameters),
-      m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0),
+      m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0), m_params_good(true),
       m_exec_conf(exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << nsamples << " " << period << " " << name << endl;
@@ -103,7 +103,6 @@ Autotuner::Autotuner(unsigned int start,
         throw std::runtime_error("Error initializing autotuner");
         }
     m_samples.resize(m_parameters.size());
-    m_sample_median.resize(m_parameters.size());
 
     for (unsigned int i = 0; i < m_parameters.size(); i++)
         {
@@ -146,14 +145,39 @@ void Autotuner::begin()
 void Autotuner::end()
     {
     #ifdef ENABLE_CUDA
+    m_params_good = true;
+
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
         {
         cudaEventRecord(m_stop, 0);
         cudaEventSynchronize(m_stop);
-        cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
-        m_exec_conf->msg->notice(10) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
-                                     << ") = " << m_samples[m_current_element][m_current_sample] << endl;
+
+        // catch errors resulting from invalid parameters
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess)
+            {
+            // remove this parameter from set of valid parameters
+            if (m_parameters.size() > 1)
+                {
+                m_exec_conf->msg->notice(10) << "Autotuner " << m_name << ": Removing t(" << m_current_param
+                    << ") from list of valid parameters" << endl;
+                m_parameters.erase(m_parameters.begin()+m_current_element);
+                m_samples.erase(m_samples.begin()+m_current_element);
+                m_params_good = false;
+                }
+            else
+                // if there are no more parameters left, we can only hope the error will be handled by the caller
+                return;
+            }
+
+        if (m_params_good)
+            {
+            // record elapsed time
+            cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
+            m_exec_conf->msg->notice(10) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
+                                         << ") = " << m_samples[m_current_element][m_current_sample] << endl;
+            }
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -167,10 +191,10 @@ void Autotuner::end()
         m_current_sample++;
 
         // if we hit the end of the samples, reset and move on to the next element
-        if (m_current_sample >= m_nsamples)
+        if (m_current_sample >= m_nsamples || ! m_params_good)
             {
             m_current_sample = 0;
-            m_current_element++;
+            if (m_params_good) m_current_element++;
 
             // if we hit the end of the elements, transition to the IDLE state and compute the optimal parameter
             if (m_current_element >= m_parameters.size())
@@ -189,7 +213,7 @@ void Autotuner::end()
     else if (m_state == SCANNING)
         {
         // move on to the next element
-        m_current_element++;
+        if (m_params_good) m_current_element++;
 
         // if we hit the end of the elements, transition to the IDLE state and compute the optimal parameter, and move
         // on to the next sample for next time
@@ -232,6 +256,8 @@ unsigned int Autotuner::computeOptimalParameter()
     {
     // start by computing the median for each element
     std::vector<float> v;
+    m_sample_median.resize(m_parameters.size());
+
     for (unsigned int i = 0; i < m_parameters.size(); i++)
         {
         v = m_samples[i];

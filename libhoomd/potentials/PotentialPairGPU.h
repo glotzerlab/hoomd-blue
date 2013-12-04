@@ -189,36 +189,41 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
-    this->m_tuner->begin();
-    unsigned int param = this->m_tuner->getParam();
-    unsigned int block_size = param / 10000;
-    unsigned int threads_per_particle = param % 10000;
+    do
+        {
+        this->m_tuner->begin();
+        unsigned int param = this->m_tuner->getParam();
+        unsigned int block_size = param / 10000;
+        unsigned int threads_per_particle = param % 10000;
 
-    gpu_cgpf(pair_args_t(d_force.data,
-                         d_virial.data,
-                         this->m_virial.getPitch(),
-                         this->m_pdata->getN(),
-                         this->m_pdata->getNGhosts(),
-                         d_pos.data,
-                         d_diameter.data,
-                         d_charge.data,
-                         box,
-                         d_n_neigh.data,
-                         d_nlist.data,
-                         nli,
-                         d_rcutsq.data,
-                         d_ronsq.data,
-                         this->m_pdata->getNTypes(),
-                         block_size,
-                         this->m_shift_mode,
-                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                         threads_per_particle),
-             d_params.data);
+        gpu_cgpf(pair_args_t(d_force.data,
+                             d_virial.data,
+                             this->m_virial.getPitch(),
+                             this->m_pdata->getN(),
+                             this->m_pdata->getNGhosts(),
+                             d_pos.data,
+                             d_diameter.data,
+                             d_charge.data,
+                             box,
+                             d_n_neigh.data,
+                             d_nlist.data,
+                             nli,
+                             d_rcutsq.data,
+                             d_ronsq.data,
+                             this->m_pdata->getNTypes(),
+                             block_size,
+                             this->m_shift_mode,
+                             flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                             threads_per_particle),
+                 d_params.data);
+
+        this->m_tuner->end();
+        }
+    while (m_tuner->hasValidParameters() && !this->m_tuner->paramsGood()); // try again if launch params were invalid
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    this->m_tuner->end();
-
+ 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 

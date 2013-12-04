@@ -115,6 +115,18 @@ class Autotuner
             m_period = period;
             }
 
+        //! Return true if last kernel call succeeded
+        bool paramsGood()
+            {
+            return m_params_good;
+            }
+
+        //! Return true if we still have valid parameters
+        bool hasValidParameters()
+            {
+            return m_parameters.size();
+            }
+
     protected:
         unsigned int computeOptimalParameter();
 
@@ -139,6 +151,7 @@ class Autotuner
         unsigned int m_current_element; //!< Index of current parameter sampled
         unsigned int m_calls;           //!< Count of the number of calls since the last sample
         unsigned int m_current_param;   //!< Value of the current parameter
+        bool m_params_good;             //!< True if kernel call returned OK
 
         std::vector< std::vector< float > > m_samples;  //!< Raw sample data for each element
         std::vector< float > m_sample_median;           //!< Current sample median for each element
