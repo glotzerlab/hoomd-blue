@@ -157,14 +157,15 @@ void Autotuner::end()
         cudaError_t err = cudaGetLastError();
         if (err != cudaSuccess)
             {
+            m_params_good = false;
+
             // remove this parameter from set of valid parameters
-            if (m_parameters.size() > 1)
+            if (m_parameters.size())
                 {
                 m_exec_conf->msg->notice(10) << "Autotuner " << m_name << ": Removing t(" << m_current_param
                     << ") from list of valid parameters" << endl;
                 m_parameters.erase(m_parameters.begin()+m_current_element);
                 m_samples.erase(m_samples.begin()+m_current_element);
-                m_params_good = false;
                 }
             else
                 // if there are no more parameters left, we can only hope the error will be handled by the caller
