@@ -116,13 +116,13 @@ class Autotuner
             }
 
         //! Return true if last kernel call succeeded
-        inline bool paramsGood()
+        bool paramsGood()
             {
             return m_params_good;
             }
 
         //! Return true if we still have valid parameters
-        inline bool hasValidParameters()
+        bool hasValidParameters()
             {
             return m_parameters.size();
             }
