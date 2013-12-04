@@ -106,8 +106,7 @@ struct ExecutionConfiguration : boost::noncopyable
                            bool ignore_display=false,
                            boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
 #ifdef ENABLE_MPI
-                           , bool init_mpi = false,
-                           unsigned int n_ranks = 0
+                           , unsigned int n_ranks = 0
 #endif
                            );
 
@@ -118,8 +117,7 @@ struct ExecutionConfiguration : boost::noncopyable
                            bool ignore_display=false,
                            boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
 #ifdef ENABLE_MPI
-                           , bool init_mpi = false,
-                           unsigned int n_ranks = 0
+                           , unsigned int n_ranks = 0
 #endif
                            );
 
@@ -132,11 +130,6 @@ struct ExecutionConfiguration : boost::noncopyable
         return m_mpi_comm;
         }
 #endif
-
-    //! Guess rank of this processor
-    /*! \returns Rank guessed from common environment variables, 0 is default
-     */
-    static unsigned int guessRank(boost::shared_ptr<Messenger> msg=boost::shared_ptr<Messenger>());
 
     //! Guess local rank of this processor, used for GPU initialization
     /*! \returns Local rank guessed from common environment variables
@@ -195,11 +188,28 @@ struct ExecutionConfiguration : boost::noncopyable
         return m_rank;
         }
 
-#ifdef ENABLE_MPI
+    #ifdef ENABLE_MPI
+    //! Return the global rank of this processor
+    static unsigned int getRankGlobal()
+        {
+        int rank;
+        // get rank on world communicator
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        return rank;
+        }
+
+    //! Return the global communicator size
+    static unsigned int getNRanksGlobal()
+        {
+        int size;
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+        return size;
+        }
+
     //! Returns the partition number of this processor
     unsigned int getPartition() const
         {
-        return m_partition;
+        return getRankGlobal()/m_n_rank;
         }
 
     //! Return the number of ranks in this partition
@@ -216,7 +226,7 @@ struct ExecutionConfiguration : boost::noncopyable
         {
         m_mpi_comm = mpi_comm;
         }
-#endif
+    #endif
 
 private:
 #ifdef ENABLE_CUDA
@@ -247,15 +257,13 @@ private:
 #endif
 
 #ifdef ENABLE_MPI
-    void initializeMPI(unsigned int n_ranks);               //!< Initialize MPI environment
+    void initializeMPI();                  //!< Initialize MPI environment
 
-    unsigned int m_partition;                               //!< The partition number
-
-    MPI_Comm m_mpi_comm;                                    //!< The MPI communicator
-    bool m_has_initialized_mpi;                             //!< True if we have initialized MPI ourselves
+    MPI_Comm m_mpi_comm;                   //!< The MPI communicator
+    unsigned int m_n_rank;                 //!< Ranks per partition
 #endif
 
-    unsigned int m_rank;                                    //!< Rank of this processor (0 if running in single-processor mode)
+    unsigned int m_rank;                   //!< Rank of this processor (0 if running in single-processor mode)
 
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();

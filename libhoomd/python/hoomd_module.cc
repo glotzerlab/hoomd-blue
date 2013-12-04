@@ -391,12 +391,44 @@ void cuda_profile_stop()
     #endif
     }
 
+#ifdef ENABLE_MPI
+//! Environment variables needed for setting up MPI
+char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
+
+//! Initialize the MPI environment
+void initialize_mpi()
+    {
+    #ifdef ENABLE_MPI_CUDA
+    // if we are using an MPI-CUDA implementation, enable this feature
+    // before the MPI_Init
+    putenv(env_enable_mpi_cuda);
+    #endif
+
+    // initalize MPI
+    MPI_Init(0, (char ***) NULL);
+    }
+
+//! Finalize MPI environment
+void finalize_mpi()
+    {
+    MPI_Finalize();
+    }
+#endif
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
 BOOST_PYTHON_MODULE(hoomd)
     {
+    #ifdef ENABLE_MPI
+    // initialize MPI early
+    initialize_mpi();
+
+    // register clean-up function
+    Py_AtExit(finalize_mpi);
+    #endif
+
     // write out the version information on the module import
     output_version_info(false);
     def("find_vmd", &find_vmd);

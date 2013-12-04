@@ -163,9 +163,11 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     m_o_image = make_int3(0,0,0);
 
     #ifdef ENABLE_CUDA
-    // create at ModernGPU context
     if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
         m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
     #endif
     }
 
@@ -222,9 +224,11 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     m_o_image = make_int3(0,0,0);
 
     #ifdef ENABLE_CUDA
-    // create at ModernGPU context
     if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
         m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
     #endif
     }
 
@@ -611,12 +615,11 @@ void ParticleData::reallocate(unsigned int max_n)
     }
 
 /*! \return true If and only if all particles are in the simulation box
-    \note This function is only called in debug builds
 */
 bool ParticleData::inBox()
     {
-    Scalar3 lo = m_box.getLo();
-    Scalar3 hi = m_box.getHi();
+    Scalar3 lo = m_global_box.getLo();
+    Scalar3 hi = m_global_box.getHi();
 
     const Scalar tol = Scalar(1e-5);
 
@@ -624,7 +627,7 @@ bool ParticleData::inBox()
     for (unsigned int i = 0; i < getN(); i++)
         {
         Scalar3 pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        Scalar3 f = m_box.makeFraction(pos);
+        Scalar3 f = m_global_box.makeFraction(pos);
         if (f.x < -tol || f.x > Scalar(1.0)+tol)
             {
             m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
@@ -659,6 +662,8 @@ bool ParticleData::inBox()
  */
 void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
+    m_exec_conf->msg->notice(4) << "ParticleData: initializing from snapshot" << std::endl;
+
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
         {
@@ -716,42 +721,52 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 throw std::runtime_error("Error initializing ParticleData");
                 }
 
-            Scalar3 scale = m_global_box.getL() / m_box.getL();
             const Index3D& di = m_decomposition->getDomainIndexer();
+            unsigned int n_ranks = m_exec_conf->getNRanks();
 
             // loop over particles in snapshot, place them into domains
             for (std::vector<Scalar3>::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
                 {
-                // first move possible outliers into the box
-                Scalar3 pos = *it;
-                int3 image = snapshot.image[it-snapshot.pos.begin()];
-
-                m_global_box.wrap(pos,image);
-
                 // determine domain the particle is placed into
-                Scalar3 f = m_global_box.makeFraction(pos,make_scalar3(0.0,0.0,0.0));
-                int i= (unsigned int) (f.x * scale.x);
-                int j= (unsigned int) (f.y * scale.y);
-                int k= (unsigned int) (f.z * scale.z);
+                Scalar3 pos = *it;
+                Scalar3 f = m_global_box.makeFraction(pos);
+                int i= f.x * ((Scalar)di.getW());
+                int j= f.y * ((Scalar)di.getH());
+                int k= f.z * ((Scalar)di.getD());
 
-                // treat particles lying exactly on the boundary
+                // wrap particles that are exactly on a boundary
+                // this doesn't change their position, but the communication
+                // algorithm will take care of this
                 if (i == (int) di.getW())
-                    i--;
+                    i = 0;
 
                 if (j == (int) di.getH())
-                    j--;
+                    j = 0;
 
                 if (k == (int) di.getD())
-                    k--;
+                    k = 0;
 
                 unsigned int rank = di(i,j,k);
-
-                assert(rank <= m_exec_conf->getNRanks());
-
                 unsigned int tag = it - snapshot.pos.begin() ;
+
+                if (rank >= n_ranks)
+                    {
+                    m_exec_conf->msg->error() << "init.*: Particle " << tag << " out of bounds." << std::endl;
+                    m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
+                    m_exec_conf->msg->error() << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
+                    m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
+                    m_exec_conf->msg->error() << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
+                    Scalar3 lo = m_global_box.getLo();
+                    Scalar3 hi = m_global_box.getHi();
+                    m_exec_conf->msg->error() << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
+                    m_exec_conf->msg->error() << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+
+                    throw std::runtime_error("Error initializing from snapshot.");
+                    }
+
                 // fill up per-processor data structures
                 pos_proc[rank].push_back(pos);
-                image_proc[rank].push_back(image);
+                image_proc[rank].push_back(snapshot.image[tag]);
                 vel_proc[rank].push_back(snapshot.vel[tag]);
                 accel_proc[rank].push_back(snapshot.accel[tag]);
                 type_proc[rank].push_back(snapshot.type[tag]);
@@ -922,6 +937,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 */
 void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     {
+    m_exec_conf->msg->notice(4) << "ParticleData: taking snapshot" << std::endl;
     // allocate memory in snapshot
     snapshot.resize(getNGlobal());
 
@@ -1020,22 +1036,24 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
         if (rank == root)
             {
-            std::map<unsigned int, unsigned int>::iterator it;
 
+            unsigned int n_ranks = m_exec_conf->getNRanks();
+            assert(rtag_map_proc.size() == n_ranks);
+
+            // create single map of all particle ranks and indices
+            std::map<unsigned int, std::pair<unsigned int, unsigned int> > rank_rtag_map;
+            std::map<unsigned int, unsigned int>::iterator it;
+            for (unsigned int irank = 0; irank < n_ranks; ++irank)
+                for (it = rtag_map_proc[irank].begin(); it != rtag_map_proc[irank].end(); ++it)
+                    rank_rtag_map.insert(std::pair<unsigned int, std::pair<unsigned int, unsigned int> >(
+                        it->first, std::pair<unsigned int, unsigned int>(irank, it->second)));
+
+            // add particles to snapshot
+            std::map<unsigned int, std::pair<unsigned int, unsigned int> >::iterator rank_rtag_it;
             for (unsigned int tag = 0; tag < getNGlobal(); tag++)
                 {
-                bool found = false;
-                unsigned int rank;
-                for (rank = 0; rank < (unsigned int) size; rank ++)
-                    {
-                    it = rtag_map_proc[rank].find(tag);
-                    if (it != rtag_map_proc[rank].end())
-                        {
-                        found = true;
-                        break;
-                        }
-                    }
-                if (! found)
+                rank_rtag_it = rank_rtag_map.find(tag);
+                if (rank_rtag_it == rank_rtag_map.end())
                     {
                     m_exec_conf->msg->error()
                         << endl << "Could not find particle " << tag << " on any processor. "
@@ -1044,7 +1062,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                     }
 
                 // rank contains the processor rank on which the particle was found
-                unsigned int idx = it->second;
+                std::pair<unsigned int, unsigned int> rank_idx = rank_rtag_it->second;
+                unsigned int rank = rank_idx.first;
+                unsigned int idx = rank_idx.second;
 
                 snapshot.pos[tag] = pos_proc[rank][idx];
                 snapshot.vel[tag] = vel_proc[rank][idx];

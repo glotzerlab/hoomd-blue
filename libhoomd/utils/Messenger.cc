@@ -88,11 +88,13 @@ Messenger::Messenger()
 #ifdef ENABLE_MPI
     m_shared_filename = "";
     m_has_mpi_comm = false;
+    m_error_flag = 0;
+    m_has_lock = false;
 #endif
 
     // preliminarily initialize rank and partiton
     #ifdef ENABLE_MPI
-    setRank(ExecutionConfiguration::guessRank(),0);
+    setRank(ExecutionConfiguration::getRankGlobal(),0);
     #else
     setRank(0,0);
     #endif
@@ -113,6 +115,24 @@ Messenger::~Messenger()
 std::ostream& Messenger::error() const
     {
     assert(m_err_stream);
+    #ifdef ENABLE_MPI
+    if (m_has_mpi_comm)
+        {
+        int one = 1;
+        int flag;
+        // atomically increment flag
+        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0,0, m_mpi_win);
+        MPI_Accumulate(&one, 1, MPI_INT, 0, 0, 1, MPI_INT, MPI_SUM, m_mpi_win);
+        MPI_Get(&flag, 1, MPI_INT, 0, 0, 1, MPI_INT, m_mpi_win);
+        MPI_Win_unlock(0, m_mpi_win);
+
+        // we have access to stdout if we are the first process to access the counter
+        m_has_lock = m_has_lock || (flag == 1);
+        
+        // if we do not have exclusive access to stdout, return NULL stream
+        if (! m_has_lock) return *m_nullstream;
+        }
+    #endif
     if (m_err_prefix != string(""))
         *m_err_stream << m_err_prefix << " RANK " << m_rank << ": ";
     return *m_err_stream;
@@ -188,15 +208,36 @@ void Messenger::collectiveNoticeStr(unsigned int level, const std::string& msg) 
         }
 
 #ifdef ENABLE_MPI
-    if (!m_has_mpi_comm || m_rank == 0)
+    if (m_has_mpi_comm && m_rank == 0 && rank_notices.size() > 1)
+        {
+        // Output notices in rank order, combining similar ones
+        std::vector<std::string>::iterator notice_it;
+        std::string last_msg = rank_notices[0];
+        int last_output_rank = -1;
+        for (notice_it = rank_notices.begin(); notice_it != rank_notices.end() + 1; notice_it++)
+            {
+            if (notice_it == rank_notices.end() || *notice_it != last_msg)
+                {
+                int rank = notice_it - rank_notices.begin();
+                // output message for accumulated ranks
+                if (last_output_rank+1 == rank-1)
+                    notice(level) << "Rank " << last_output_rank + 1 << ": " << last_msg;
+                else
+                    notice(level) << "Ranks " << last_output_rank + 1 << "-" << rank-1 << ": " << last_msg;
+
+                if (notice_it != rank_notices.end())
+                    {
+                    last_msg = *notice_it;
+                    last_output_rank = rank-1;
+                    }
+                }
+            }
+        }
+    else if (! m_has_mpi_comm || m_rank == 0)
 #endif
         {
-        // Output notices in rank order
-        std::vector<std::string>::iterator notice_it;
-        for (notice_it = rank_notices.begin(); notice_it != rank_notices.end(); notice_it++)
-            {
-            notice(level) << *notice_it;
-            }
+        // output without prefix
+        notice(level) << rank_notices[0];
         }
     }
 
@@ -297,6 +338,17 @@ void mpi_io::close()
 
     m_file_open = false;
     }
+
+void Messenger::initializeSharedMem()
+    {
+    MPI_Win_create(&m_error_flag, sizeof(int), sizeof(int), MPI_INFO_NULL, m_mpi_comm, &m_mpi_win);
+    }
+
+void Messenger::releaseSharedMem()
+    {
+    MPI_Win_free(&m_mpi_win);
+    }
+
 #endif
 
 void export_Messenger()

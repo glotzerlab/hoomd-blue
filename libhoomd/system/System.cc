@@ -454,94 +454,118 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     else
         m_integrator->prepRun(m_cur_tstep);
 
-    // handle time steps
-    for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
+    // catch exceptions during simulation
+    try
         {
-        // check the clock and output a status line if needed
-        uint64_t cur_time = m_clk.getTime();
-
-        // check if the time limit has exceeded
-        if (limit_hours != 0.0f)
+        // handle time steps
+        for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
             {
-            if (m_cur_tstep % limit_multiple == 0)
+            // check the clock and output a status line if needed
+            uint64_t cur_time = m_clk.getTime();
+
+            // check if the time limit has exceeded
+            if (limit_hours != 0.0f)
                 {
-                unsigned int end_run = 0;
-                int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
-                if (int64_t(cur_time) - initial_time > time_limit)
-                    end_run = 1;
-
-#ifdef ENABLE_MPI
-                // if any processor wants to end the run, end it on all processors
-                if (m_comm)
-                    MPI_Allreduce(MPI_IN_PLACE, &end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-#endif
-
-                if (end_run)
+                if (m_cur_tstep % limit_multiple == 0)
                     {
-                    m_exec_conf->msg->notice(2) << "Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
+                    unsigned int end_run = 0;
+                    int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
+                    if (int64_t(cur_time) - initial_time > time_limit)
+                        end_run = 1;
+
+    #ifdef ENABLE_MPI
+                    // if any processor wants to end the run, end it on all processors
+                    if (m_comm)
+                        MPI_Allreduce(MPI_IN_PLACE, &end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+    #endif
+
+                    if (end_run)
+                        {
+                        m_exec_conf->msg->notice(2) << "Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
+                        break;
+                        }
+                    }
+                }
+            // execute python callback, if present and needed
+            // a negative return value indicates immediate end of run.
+            if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
+                {
+                boost::python::object rv = callback(m_cur_tstep);
+                extract<int> extracted_rv(rv);
+                if (extracted_rv.check() && extracted_rv() < 0)
+                    {
+                    m_exec_conf->msg->notice(2) << "End of run requested by python callback at step "
+                         << m_cur_tstep << " / " << m_end_tstep << endl;
                     break;
                     }
                 }
-            }
-        // execute python callback, if present and needed
-        // a negative return value indicates immediate end of run.
-        if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
-            {
-            boost::python::object rv = callback(m_cur_tstep);
-            extract<int> extracted_rv(rv);
-            if (extracted_rv.check() && extracted_rv() < 0)
+
+            if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
                 {
-                m_exec_conf->msg->notice(2) << "End of run requested by python callback at step "
-                     << m_cur_tstep << " / " << m_end_tstep << endl;
-                break;
+                if (!m_quiet_run)
+                    generateStatusLine();
+                m_last_status_time = cur_time;
+                m_last_status_tstep = m_cur_tstep;
+
+                // check for any CUDA errors
+                #ifdef ENABLE_CUDA
+                if (m_exec_conf->isCUDAEnabled())
+                    {
+                    CHECK_CUDA_ERROR();
+                    }
+                #endif
+                }
+
+            // execute analyzers
+            vector<analyzer_item>::iterator analyzer;
+            for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+                {
+                if (analyzer->shouldExecute(m_cur_tstep))
+                    analyzer->m_analyzer->analyze(m_cur_tstep);
+                }
+
+            // execute updaters
+            vector<updater_item>::iterator updater;
+            for (updater =  m_updaters.begin(); updater != m_updaters.end(); ++updater)
+                {
+                if (updater->shouldExecute(m_cur_tstep))
+                    updater->m_updater->update(m_cur_tstep);
+                }
+
+            // look ahead to the next time step and see which analyzers and updaters will be executed
+            // or together all of their requested PDataFlags to determine the flags to set for this time step
+            m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep+1));
+
+            // execute the integrator
+            if (m_integrator)
+                m_integrator->update(m_cur_tstep);
+
+            // quit if cntrl-C was pressed
+            if (g_sigint_recvd)
+                {
+                g_sigint_recvd = 0;
+                return;
                 }
             }
-
-        if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
+        } // end try
+    catch (std::exception const & ex)
+        {
+        #ifdef ENABLE_MPI
+        if (m_sysdef->getParticleData()->getDomainDecomposition() && m_exec_conf->msg->isLocked())
             {
-            if (!m_quiet_run)
-                generateStatusLine();
-            m_last_status_time = cur_time;
-            m_last_status_tstep = m_cur_tstep;
-
-            // check for any CUDA errors
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled())
-                {
-                CHECK_CUDA_ERROR();
-                }
-            #endif
+            // tear down other ranks in a controlled way, but only if we are the rank that displayed an error
+            // so that eventual error messages are flushed correctly
+            if (m_exec_conf->msg->hasLock())
+                MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
+            else
+                // otherwise just wait
+                MPI_Barrier(m_exec_conf->getMPICommunicator());
             }
-
-        // execute analyzers
-        vector<analyzer_item>::iterator analyzer;
-        for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+        else
+        #endif
             {
-            if (analyzer->shouldExecute(m_cur_tstep))
-                analyzer->m_analyzer->analyze(m_cur_tstep);
-            }
-
-        // execute updaters
-        vector<updater_item>::iterator updater;
-        for (updater =  m_updaters.begin(); updater != m_updaters.end(); ++updater)
-            {
-            if (updater->shouldExecute(m_cur_tstep))
-                updater->m_updater->update(m_cur_tstep);
-            }
-
-        // look ahead to the next time step and see which analyzers and updaters will be executed
-        // or together all of their requested PDataFlags to determine the flags to set for this time step
-        m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep+1));
-
-        // execute the integrator
-        if (m_integrator)
-            m_integrator->update(m_cur_tstep);
-
-        // quit if cntrl-C was pressed
-        if (g_sigint_recvd)
-            {
-            g_sigint_recvd = 0;
-            return;
+            // re-throw original exception 
+            throw ex;
             }
         }
 

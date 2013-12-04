@@ -232,12 +232,17 @@ class Messenger
          */
         void setMPICommunicator(const MPI_Comm mpi_comm)
             {
+            assert(!m_has_mpi_comm);
+
             m_mpi_comm = mpi_comm;
             m_has_mpi_comm = true;
 
             // open shared log file if necessary
             if (m_shared_filename != "")
                 openSharedFile();
+
+            // initialize RMA memory for error messages
+            initializeSharedMem();
             }
 
         //! Tear down messaging using MPI
@@ -245,6 +250,8 @@ class Messenger
             {
             if (m_shared_filename != "")
                 openStd();
+
+            releaseSharedMem();
 
             m_has_mpi_comm = false;
             }
@@ -366,6 +373,22 @@ class Messenger
             if (m_has_mpi_comm)
                 openSharedFile();
             }
+
+        //! Returns true if this if this rank has exclusive stdout access for error messages
+        bool hasLock() const
+            {
+            return m_has_lock;
+            }
+
+        //! Returns true if any process has locked the output
+        bool isLocked() const
+            {
+            int flag;
+            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0,0, m_mpi_win);
+            MPI_Get(&flag, 1, MPI_INT, 0, 0, 1, MPI_INT, m_mpi_win);
+            MPI_Win_unlock(0, m_mpi_win);
+            return flag;
+            }
 #endif
 
         //! Open stdout and stderr again, closing any open file
@@ -393,8 +416,18 @@ class Messenger
         MPI_Comm m_mpi_comm;            //!< The MPI communicator
         bool m_has_mpi_comm;            //!< True if MPI communicator has been set
 
+        MPI_Win m_mpi_win;              //!< MPI Window for atomic printing of error messages
+        int *m_error_flag;              //!< Flag on (on processor 0) to lock stdout
+        mutable bool m_has_lock;        //!< True if this rank has exclusive access to stdout 
+
         //! Open a shared file for error, warning, and notice streams
         void openSharedFile();
+
+        //! Initialize RMA
+        void initializeSharedMem();
+
+        //! Free RMA
+        void releaseSharedMem();
 #endif
     };
 
