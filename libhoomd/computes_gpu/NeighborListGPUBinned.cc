@@ -200,38 +200,35 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (exec_conf->getComputeCapability() >= 200)
         {
-        do {
-            this->m_tuner->begin();
-            unsigned int param = this->m_tuner->getParam();
-            unsigned int block_size = param / 10000;
-            unsigned int threads_per_particle = param % 10000;
+        this->m_tuner->begin();
+        unsigned int param = this->m_tuner->getParam();
+        unsigned int block_size = param / 10000;
+        unsigned int threads_per_particle = param % 10000;
 
-            gpu_compute_nlist_binned_shared(d_nlist.data,
-                                     d_n_neigh.data,
-                                     d_last_pos.data,
-                                     m_conditions.getDeviceFlags(),
-                                     m_nlist_indexer,
-                                     d_pos.data,
-                                     d_body.data,
-                                     d_diameter.data,
-                                     m_pdata->getN(),
-                                     d_cell_size.data,
-                                     d_cell_xyzf.data,
-                                     d_cell_tdb.data,
-                                     d_cell_adj.data,
-                                     m_cl->getCellIndexer(),
-                                     m_cl->getCellListIndexer(),
-                                     m_cl->getCellAdjIndexer(),
-                                     box,
-                                     rmaxsq,
-                                     threads_per_particle,
-                                     block_size,
-                                     m_filter_body,
-                                     m_filter_diameter,
-                                     m_cl->getGhostWidth());
-            this->m_tuner->end();
-            }
-        while (m_tuner->hasValidParameters() && !this->m_tuner->paramsGood()); // try again if launch params were invalid
+        gpu_compute_nlist_binned_shared(d_nlist.data,
+                                 d_n_neigh.data,
+                                 d_last_pos.data,
+                                 m_conditions.getDeviceFlags(),
+                                 m_nlist_indexer,
+                                 d_pos.data,
+                                 d_body.data,
+                                 d_diameter.data,
+                                 m_pdata->getN(),
+                                 d_cell_size.data,
+                                 d_cell_xyzf.data,
+                                 d_cell_tdb.data,
+                                 d_cell_adj.data,
+                                 m_cl->getCellIndexer(),
+                                 m_cl->getCellListIndexer(),
+                                 m_cl->getCellAdjIndexer(),
+                                 box,
+                                 rmaxsq,
+                                 threads_per_particle,
+                                 block_size,
+                                 m_filter_body,
+                                 m_filter_diameter,
+                                 m_cl->getGhostWidth());
+        this->m_tuner->end();
         }
     else
         {
