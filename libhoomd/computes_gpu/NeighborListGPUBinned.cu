@@ -170,7 +170,16 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     bool filter_diameter = flags & 2;
 
     // each set of threads_per_particle threads is going to compute the neighbor list for a single particle
-    int my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
+    int my_pidx;
+    if (gridDim.y > 1)
+        {
+        // fermi workaround
+        my_pidx = (blockIdx.x + blockIdx.y*65535) * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
+        }
+    else
+        {
+        my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
+        }
 
     // return early if out of bounds
     if (my_pidx >= N) return;
@@ -336,6 +345,13 @@ int get_max_block_size(T func)
     return max_threads;
     }
 
+template<typename T>
+int get_compute_capability(T func)
+    {
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, func);
+    return attr.binaryVersion;
+    } 
 
 //! recursive template to launch neighborlist with given template parameters
 /* \tparam cur_tpp Number of threads per particle (assumed to be power of two) */
@@ -366,20 +382,29 @@ inline void launcher(unsigned int *d_nlist,
               unsigned int block_size)
     {
     unsigned int shared_size;
-    unsigned int n_blocks;
 
     if (tpp == cur_tpp && cur_tpp != 0)
         {
         if (!filter_diameter && !filter_body)
             {
             static int max_block_size = -1;
+            static int sm = -1;
             if (max_block_size == -1)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<0,cur_tpp>);
+            if (sm == -1)
+                sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<0,cur_tpp>);
+
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            n_blocks = N / (block_size/tpp) + 1;
+            dim3 grid(N / (block_size/tpp) + 1);
+            if (sm < 30 && grid.x > 65535)
+                {
+                grid.y = grid.x/65535 + 1;
+                grid.x = 65535;
+                }
+
             shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
-            gpu_compute_nlist_binned_shared_kernel<0,cur_tpp><<<n_blocks, block_size,shared_size>>>(d_nlist,
+            gpu_compute_nlist_binned_shared_kernel<0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,
@@ -403,13 +428,23 @@ inline void launcher(unsigned int *d_nlist,
         else if (!filter_diameter && filter_body)
             {
             static int max_block_size = -1;
+            static int sm = -1;
             if (max_block_size == -1)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<1,cur_tpp>);
+            if (sm == -1)
+                sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<1,cur_tpp>);
+
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            n_blocks = N / (block_size/tpp) + 1;
+            dim3 grid(N / (block_size/tpp) + 1);
+            if (sm < 30 && grid.x > 65535)
+                {
+                grid.y = grid.x/65535 + 1;
+                grid.x = 65535;
+                }
+
             shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
-            gpu_compute_nlist_binned_shared_kernel<1,cur_tpp><<<n_blocks, block_size,shared_size>>>(d_nlist,
+            gpu_compute_nlist_binned_shared_kernel<1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,
@@ -433,14 +468,23 @@ inline void launcher(unsigned int *d_nlist,
         else if (filter_diameter && !filter_body)
             {
             static int max_block_size = -1;
+            static int sm = -1;
             if (max_block_size == -1)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
+            if (sm == -1)
+                sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
+
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            n_blocks = N / (block_size/tpp) + 1;
+            dim3 grid(N / (block_size/tpp) + 1);
+            if (sm < 30 && grid.x > 65535)
+                {
+                grid.y = grid.x/65535 + 1;
+                grid.x = 65535;
+                }
+
             shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
-
-            gpu_compute_nlist_binned_shared_kernel<2,cur_tpp><<<n_blocks, block_size,shared_size>>>(d_nlist,
+            gpu_compute_nlist_binned_shared_kernel<2,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,
@@ -464,14 +508,23 @@ inline void launcher(unsigned int *d_nlist,
         else if (filter_diameter && filter_body)
             {
             static int max_block_size = -1;
+            static int sm = -1;
             if (max_block_size == -1)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
+            if (sm == -1)
+                sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
+
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            n_blocks = N / (block_size/tpp) + 1;
+            dim3 grid(N / (block_size/tpp) + 1);
+            if (sm < 30 && grid.x > 65535)
+                {
+                grid.y = grid.x/65535 + 1;
+                grid.x = 65535;
+                }
+
             shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
-
-            gpu_compute_nlist_binned_shared_kernel<3,cur_tpp><<<n_blocks, block_size,shared_size>>>(d_nlist,
+            gpu_compute_nlist_binned_shared_kernel<3,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,

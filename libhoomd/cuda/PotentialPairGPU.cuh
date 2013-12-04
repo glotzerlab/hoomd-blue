@@ -244,10 +244,10 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 
     // start by identifying which particle we are to handle
     unsigned int idx;
-    if (blockIdx.y > 1)
+    if (gridDim.y > 1)
         {
         // if we have blocks in the y-direction, the fermi-workaround is in place
-        idx = (blockIdx.x + blockIdx.y * 65535) * ((blockDim.y*65535)/tpp) + threadIdx.x/tpp;
+        idx = (blockIdx.x + blockIdx.y * 65535) * (blockDim.x/tpp) + threadIdx.x/tpp;
         }
     else
         {
