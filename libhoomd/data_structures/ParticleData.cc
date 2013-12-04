@@ -163,8 +163,11 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     m_o_image = make_int3(0,0,0);
 
     #ifdef ENABLE_CUDA
-    // create at ModernGPU context
-    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
     #endif
     }
 
@@ -221,8 +224,11 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     m_o_image = make_int3(0,0,0);
 
     #ifdef ENABLE_CUDA
-    // create at ModernGPU context
-    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
     #endif
     }
 
