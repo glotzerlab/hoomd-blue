@@ -59,6 +59,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "Index1D.h"
 
+#ifdef ENABLE_CUDA
+#include "BondedGroupData.cuh"
+#endif
+
 //! Names of bonded groups
 char name_bond_data[] = "bond";
 char name_angle_data[] = "angle";
@@ -80,7 +84,8 @@ BondedGroupData<group_size, group_t, name>::BondedGroupData(
     unsigned int n_group_types)
     : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_nglobal(0), m_groups_dirty(true)
     {
-    m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name<< ") " << endl;
+    m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name<< "s, n=" << group_size << ") "
+        << endl;
 
     // connect to particle sort signal
     m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, group_t, name>::setDirty, this));
@@ -168,6 +173,16 @@ void BondedGroupData<group_size, group_t, name>::initialize()
     #ifdef ENABLE_MPI
     GPUVector<unsigned int> group_ranks_alt(m_exec_conf);
     m_group_ranks_alt.swap(group_ranks_alt);
+    #endif
+
+    #ifdef ENABLE_CUDA
+    // allocate condition variable
+    GPUArray<unsigned int> condition(1, m_exec_conf);
+    m_condition.swap(condition);
+    
+    ArrayHandle<unsigned int> h_condition(m_condition, access_location::host, access_mode::overwrite);
+    *h_condition.data = 0;
+    m_next_flag = 1;
     #endif
     }
 
@@ -541,9 +556,9 @@ template<unsigned int group_size,typename group_t, const char *name>
 void BondedGroupData<group_size, group_t, name>::rebuildGPUTable()
     {
     #ifdef ENABLE_CUDA
-    //if (m_exec_conf->isCUDAEnabled())
-    //    rebuildGPUTableGPU();
-    //else
+    if (m_exec_conf->isCUDAEnabled())
+        rebuildGPUTableGPU();
+    else
     #endif
         {
         if (m_prof) m_prof->push("update " + std::string(name) + " table");
@@ -630,6 +645,61 @@ void BondedGroupData<group_size, group_t, name>::rebuildGPUTable()
         if (m_prof) m_prof->pop();
         }
     }
+
+#ifdef ENABLE_CUDA
+template<unsigned int group_size,typename group_t, const char *name>
+void BondedGroupData<group_size, group_t, name>::rebuildGPUTableGPU()
+    {
+    if (m_prof) m_prof->push(m_exec_conf, "update " + std::string(name) + " table");
+
+    // resize groups counter
+    m_n_groups.resize(m_pdata->getN());
+
+    bool done = false;
+    while (!done)
+        {
+        unsigned int flag = 0;
+
+            {
+            ArrayHandle<group_t> d_groups(m_groups, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_type(m_group_type, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_n_groups(m_n_groups, access_location::device, access_mode::overwrite);
+            ArrayHandle<group_t> d_gpu_table(m_gpu_table, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
+            
+            // fill group table on GPU
+            gpu_update_group_table<group_size, group_t>(
+                m_groups.size(),
+                m_pdata->getN(),
+                d_groups.data,
+                d_group_type.data,
+                d_rtag.data,
+                d_n_groups.data,
+                m_gpu_table_indexer.getH(),
+                d_condition.data,
+                m_next_flag,
+                flag,
+                d_gpu_table.data,
+                m_gpu_table_indexer.getW(),
+                m_cached_alloc);
+            } 
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+
+        if (flag == m_next_flag)
+            {
+            // grow array by incrementing groups per particle
+            m_gpu_table_indexer = Index2D(m_pdata->getN(), m_gpu_table_indexer.getH()+1);
+            m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
+            m_next_flag++;
+            }
+        else
+            done = true;
+        }
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+#endif
 
 /*! \param snapshot Snapshot that will contain the group data
  *

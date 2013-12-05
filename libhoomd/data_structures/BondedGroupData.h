@@ -79,6 +79,10 @@ using namespace boost::python;
 #include <string>
 #include <sstream>
 
+#ifdef ENABLE_CUDA
+#include "cached_allocator.h"
+#endif
+
 //! Forward declarations
 class ParticleData;
 
@@ -392,6 +396,10 @@ class BondedGroupData : boost::noncopyable
         #ifdef ENABLE_CUDA
         //! Helper function to rebuild lookup by index table on the GPU
         void rebuildGPUTableGPU();
+
+        GPUArray<unsigned int> m_condition;          //!< Condition variable for rebuilding GPU table on the GPU
+        unsigned int m_next_flag;                    //!< Next flag value for GPU table rebuild
+        cached_allocator m_cached_alloc;             //!< Cached allocator for temporary arrays on the GPU
         #endif
     };
 
