@@ -735,16 +735,29 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 int k= f.z * ((Scalar)di.getD());
 
                 // wrap particles that are exactly on a boundary
-                // this doesn't change their position, but the communication
-                // algorithm will take care of this
+                // we only need to wrap in the negative direction, since
+                // processor ids are rounded toward zero
+                char3 flags = make_char3(0,0,0);
                 if (i == (int) di.getW())
+                    {
                     i = 0;
+                    flags.x = 1;
+                    }
 
                 if (j == (int) di.getH())
+                    {
                     j = 0;
+                    flags.y = 1;
+                    }
 
                 if (k == (int) di.getD())
+                    {
                     k = 0;
+                    flags.z = 1;
+                    }
+                
+                int3 img = snapshot.image[tag];
+                m_global_box.wrap(pos, img, flags);
 
                 unsigned int rank = di(i,j,k);
                 unsigned int tag = it - snapshot.pos.begin() ;
@@ -766,7 +779,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
                 // fill up per-processor data structures
                 pos_proc[rank].push_back(pos);
-                image_proc[rank].push_back(snapshot.image[tag]);
+                image_proc[rank].push_back(img);
                 vel_proc[rank].push_back(snapshot.vel[tag]);
                 accel_proc[rank].push_back(snapshot.accel[tag]);
                 type_proc[rank].push_back(snapshot.type[tag]);
