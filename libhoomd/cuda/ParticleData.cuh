@@ -117,6 +117,8 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     Scalar4 *d_orientation_alt,
                     unsigned int *d_tag_alt,
                     pdata_element *d_out,
+                    unsigned int *d_comm_flags,
+                    unsigned int *d_comm_flags_out,
                     unsigned int max_n_out,
                     mgpu::ContextPtr mgpu_context,
                     cached_allocator& alloc);
@@ -142,5 +144,6 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
+                    unsigned int *d_comm_flags,
                     cached_allocator& alloc);
 #endif

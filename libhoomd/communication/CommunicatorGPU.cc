@@ -137,6 +137,10 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<pdata_element> gpu_recvbuf(m_exec_conf,mapped);
     m_gpu_recvbuf.swap(gpu_recvbuf);
 
+    // Communciation flags for every particle sent
+    GPUVector<unsigned int> comm_flags(m_exec_conf);
+    m_comm_flags.swap(comm_flags);
+
     // Key for every particle sent
     GPUVector<unsigned int> send_keys(m_exec_conf);
     m_send_keys.swap(send_keys);
@@ -484,16 +488,14 @@ void CommunicatorGPU::migrateParticles()
         {
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_comm_flag(m_pdata->getCommFlags(), access_location::device, access_mode::readwrite);
 
             assert(stage < m_comm_mask.size());
 
             // mark all particles which have left the box for sending (rtag=NOT_LOCAL)
             gpu_stage_particles(m_pdata->getN(),
                 d_pos.data,
-                d_tag.data,
-                d_rtag.data,
+                d_comm_flag.data,
                 m_pdata->getBox(),
                 m_comm_mask[stage],
                 m_cached_alloc);
@@ -504,7 +506,7 @@ void CommunicatorGPU::migrateParticles()
             }
 
         // fill send buffer
-        m_pdata->removeParticlesGPU(m_gpu_sendbuf);
+        m_pdata->removeParticlesGPU(m_gpu_sendbuf, m_comm_flags);
 
         const Index3D& di = m_decomposition->getDomainIndexer();
         // determine local particles that are to be sent to neighboring processors and fill send buffer

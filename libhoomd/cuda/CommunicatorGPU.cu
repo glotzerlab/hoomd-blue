@@ -201,28 +201,20 @@ struct get_migrate_key_gpu : public thrust::unary_function<const pdata_element, 
  */
 void gpu_stage_particles(const unsigned int N,
                          const Scalar4 *d_pos,
-                         const unsigned int *d_tag,
-                         unsigned int *d_rtag,
+                         unsigned int *d_comm_flag,
                          const BoxDim& box,
                          const unsigned int comm_mask,
                          cached_allocator& alloc)
     {
     // Wrap particle data arrays
     thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
-    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
-
-    // Wrap rtag array
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-
-    // pointer from tag into rtag
-    thrust::permutation_iterator<
-        thrust::device_ptr<unsigned int>, thrust::device_ptr<const unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
+    thrust::device_ptr<unsigned int> comm_flag_ptr(d_comm_flag);
 
     // set flag for particles that are to be sent
     thrust::replace_if(thrust::cuda::par(alloc),
-        rtag_prm, rtag_prm + N, pos_ptr,
+        comm_flag_ptr, comm_flag_ptr + N, pos_ptr,
         select_particle_migrate_gpu(box,comm_mask),
-        NOT_LOCAL);
+        1); // currently simply set to unity
     }
 
 /*! \param nsend Number of particles in buffer

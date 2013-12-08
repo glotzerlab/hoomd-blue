@@ -228,23 +228,14 @@ void Communicator::migrateParticles()
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_comm_flag(m_pdata->getCommFlags(), access_location::host, access_mode::readwrite);
 
             // mark all particles which have left the box for sending (rtag=NOT_LOCAL)
             unsigned int N = m_pdata->getN();
             select_particle_migrate pred(box, dir, h_pos.data);
 
             for (unsigned int idx = 0; idx < N; ++idx)
-                {
-                assert(h_tag.data[idx] < m_pdata->getNGlobal());
-                unsigned int tag = h_tag.data[idx];
-
-                if (pred(idx))
-                    {
-                    h_rtag.data[tag] = NOT_LOCAL;
-                    }
-                }
+                if (pred(idx)) h_comm_flag.data[idx] = 1; // currently just set to unity
             }
 
         boost::shared_ptr<BondData> bdata(m_sysdef->getBondData());
@@ -299,7 +290,8 @@ void Communicator::migrateParticles()
         #endif
 
         // fill send buffer
-        m_pdata->removeParticles(m_sendbuf);
+        std::vector<unsigned int> comm_flag_out; // not currently used
+        m_pdata->removeParticles(m_sendbuf, comm_flag_out);
 
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
 

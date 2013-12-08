@@ -119,8 +119,7 @@ enum gpu_corner_flags
 //! Mark particles that have left the local box for sending
 void gpu_stage_particles(const unsigned int n,
                          const Scalar4 *d_pos,
-                         const unsigned int *d_tag,
-                         unsigned int *d_rtag,
+                         unsigned int *d_comm_flag,
                          const BoxDim& box,
                          const unsigned int comm_mask,
                          cached_allocator& alloc);

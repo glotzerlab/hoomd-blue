@@ -138,6 +138,7 @@ class CommunicatorGPU : public Communicator
         /* Particle migration */
         GPUVector<pdata_element> m_gpu_sendbuf;        //!< Send buffer for particle data
         GPUVector<pdata_element> m_gpu_recvbuf;        //!< Receive buffer for particle data
+        GPUVector<unsigned int> m_comm_flags;          //!< Output buffer for communication flags
 
         GPUVector<unsigned int> m_send_keys;           //!< Destination rank for particles
 

@@ -75,7 +75,8 @@ typedef thrust::tuple <
     thrust::device_ptr<Scalar>,        // diameter
     thrust::device_ptr<int3>,          // image
     thrust::device_ptr<unsigned int>,  // body
-    thrust::device_ptr<Scalar4>        // orientation
+    thrust::device_ptr<Scalar4>,       // orientation
+    thrust::device_ptr<unsigned int>   // communication flags
     > pdata_it_tuple_gpu;
 
 //! A zip iterator for filtering particle data
@@ -91,7 +92,8 @@ typedef thrust::tuple <
     Scalar,        // diameter
     int3,          // image
     unsigned int,  // body
-    Scalar4        // orientation
+    Scalar4,       // orientation
+    unsigned int   // communication flags
     > pdata_tuple_gpu;
 
 //! Kernel to partition particle data
@@ -117,14 +119,15 @@ __global__ void gpu_scatter_particle_data_kernel(
     Scalar4 *d_orientation_alt,
     unsigned int *d_tag_alt,
     pdata_element *d_out,
+    unsigned int *d_comm_flags,
+    unsigned int *d_comm_flags_out,
     const unsigned int *d_scan)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
     if (idx >= N) return;
 
-    unsigned int tag = d_tag[idx];
-    bool remove = d_rtag[tag] == NOT_LOCAL;
+    bool remove = d_comm_flags[idx];
 
     unsigned int scan_remove = d_scan[idx];
     unsigned int scan_keep = idx - scan_remove;
@@ -140,8 +143,12 @@ __global__ void gpu_scatter_particle_data_kernel(
         p.image = d_image[idx];
         p.body = d_body[idx];
         p.orientation = d_orientation[idx];
-        p.tag = tag;
+        p.tag = d_tag[idx];
         d_out[scan_remove] = p;
+        d_comm_flags_out[scan_remove] = d_comm_flags[idx];
+
+        // reset communication flags
+        d_comm_flags[idx] = 0;
         }
     else
         {
@@ -153,15 +160,16 @@ __global__ void gpu_scatter_particle_data_kernel(
         d_image_alt[scan_keep] = d_image[idx];
         d_body_alt[scan_keep] = d_body[idx];
         d_orientation_alt[scan_keep] = d_orientation[idx];
-        d_tag_alt[scan_keep] = tag;
+        d_tag_alt[scan_keep] = d_tag[idx];
         }
+
     }
 
-struct gpu_pdata_not_local : thrust::unary_function<unsigned int, unsigned int>
+struct gpu_comm_flag_set : thrust::unary_function<unsigned int, unsigned int>
     {
-    __device__ unsigned int operator() (unsigned int rtag)
+    __device__ unsigned int operator() (unsigned int comm_flag)
         {
-        return rtag == NOT_LOCAL ? 1 : 0;
+        return comm_flag ? 1 : 0;
         }
     };
 
@@ -210,6 +218,8 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     Scalar4 *d_orientation_alt,
                     unsigned int *d_tag_alt,
                     pdata_element *d_out,
+                    unsigned int *d_comm_flags,
+                    unsigned int *d_comm_flags_out,
                     unsigned int max_n_out,
                     mgpu::ContextPtr mgpu_context,
                     cached_allocator& alloc)
@@ -219,15 +229,10 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     // allocate temp array for scan results
     unsigned int *d_tmp = (unsigned int *)alloc.allocate(N*sizeof(unsigned int));
 
-    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-
-    // pointer from tag into rtag
-    thrust::permutation_iterator<
-        thrust::device_ptr<unsigned int>, thrust::device_ptr<const unsigned int> > rtag_prm(rtag_ptr, tag_ptr);
+    thrust::device_ptr<const unsigned int> comm_flags_ptr(d_comm_flags);
 
     mgpu::Scan<mgpu::MgpuScanTypeExc>(
-        thrust::make_transform_iterator(rtag_prm, gpu_pdata_not_local()),
+        thrust::make_transform_iterator(comm_flags_ptr, gpu_comm_flag_set()),
         N, (unsigned int) 0, mgpu::plus<unsigned int>(), (unsigned int *)NULL, &n_out, d_tmp, *mgpu_context);
 
     // Don't write past end of buffer
@@ -260,6 +265,8 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             d_orientation_alt,
             d_tag_alt,
             d_out,
+            d_comm_flags,
+            d_comm_flags_out,
             d_tmp);
         }
 
@@ -269,12 +276,6 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     // return elements written to output stream
     return n_out;
     }
-
-//! A tuple combining tag and a pdata element
-typedef thrust::tuple<
-    unsigned int,
-    const pdata_element
-    > idx_pdata_element_gpu;
 
 void gpu_pdata_update_rtags(
     const unsigned int *d_tag,
@@ -308,7 +309,8 @@ struct to_pdata_tuple_gpu : public thrust::unary_function<const pdata_element, p
             p.diameter,
             p.image,
             p.body,
-            p.orientation
+            p.orientation,
+            0 // communication flags
             );
         }
     };
@@ -327,6 +329,7 @@ struct to_pdata_tuple_gpu : public thrust::unary_function<const pdata_element, p
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
     \param d_in Device array of packed input particle data
+    \param d_comm_flags Device array of communication flags (pdata)
 */
 void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     const unsigned int num_add_ptls,
@@ -341,6 +344,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
+                    unsigned int *d_comm_flags,
                     cached_allocator& alloc)
     {
     // wrap device arrays into thrust ptr
@@ -353,6 +357,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
     thrust::device_ptr<unsigned int> body_ptr(d_body);
     thrust::device_ptr<Scalar4> orientation_ptr(d_orientation);
     thrust::device_ptr<unsigned int> tag_ptr(d_tag);
+    thrust::device_ptr<unsigned int> comm_flags_ptr(d_comm_flags);
 
     // wrap input array
     thrust::device_ptr<const pdata_element> in_ptr(d_in);
@@ -368,7 +373,8 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
             diameter_ptr,
             image_ptr,
             body_ptr,
-            orientation_ptr
+            orientation_ptr,
+            comm_flags_ptr
             )
         );
     pdata_zip_gpu pdata_end = pdata_begin + old_nparticles;

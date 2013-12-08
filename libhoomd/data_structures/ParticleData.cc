@@ -448,6 +448,15 @@ void ParticleData::allocate(unsigned int N)
     m_net_torque.swap(net_torque);
     GPUArray< Scalar4 > orientation(N, m_exec_conf);
     m_orientation.swap(orientation);
+
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        GPUArray< unsigned int > comm_flags(N, m_exec_conf);
+        m_comm_flags.swap(comm_flags);
+        }
+    #endif
+
     m_inertia_tensor.resize(N);
 
     // allocate alternate particle data arrays (for swapping in-out)
@@ -592,6 +601,10 @@ void ParticleData::reallocate(unsigned int max_n)
     m_net_torque.resize(max_n);
     m_orientation.resize(max_n);
     m_inertia_tensor.resize(max_n);
+
+    #ifdef ENABLE_MPI
+    if (m_decomposition) m_comm_flags.resize(max_n);
+    #endif
 
     if (! m_pos_alt.isNull())
         {
@@ -848,6 +861,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_comm_flag(m_comm_flags, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
 
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
@@ -862,6 +876,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_rtag.data[tag[idx]] = idx;
             h_body.data[idx] = body[idx];
             h_orientation.data[idx] = orientation[idx];
+
+            h_comm_flag.data[idx] = 0; // initialize with zero
             }
 
         // reset ghost particle number
@@ -1500,14 +1516,15 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 {
                     {
                     // mark for sending
-                    ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
-                    h_rtag.data[tag] = NOT_LOCAL;
+                    ArrayHandle<unsigned int> h_comm_flag(getCommFlags(), access_location::host, access_mode::readwrite);
+                    h_comm_flag.data[tag] = 1;
                     }
 
                 std::vector<pdata_element> buf;
 
                 // retrieve particle data
-                removeParticles(buf);
+                std::vector<unsigned int> comm_flags; // not used here
+                removeParticles(buf,comm_flags);
 
                 assert(buf.size() >= 1);
 
@@ -1878,6 +1895,15 @@ struct pdata_select : std::unary_function<const pdata_tuple, bool>
     const unsigned int compare;  //!< The value to compare the rtag to
     };
 
+//! Select non-zero communication lags
+struct comm_flag_select : std::unary_function<const unsigned int, bool>
+    {
+    bool operator() (const unsigned int comm_flag) const
+        {
+        return comm_flag;
+        }
+    };
+
 //! A predicate to select particles by rtag (NOT_LOCAL)
 struct pdata_element_select : std::unary_function<const pdata_element, bool>
     {
@@ -1942,7 +1968,7 @@ struct to_pdata_element : public std::unary_function<const pdata_tuple, pdata_el
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticles(std::vector<pdata_element>& out)
+void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<unsigned int>& comm_flags)
     {
     if (m_prof) m_prof->push("pack");
 
@@ -1951,24 +1977,27 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out)
         {
         // access particle data tags and rtags
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_comm_flags(getCommFlags(), access_location::host, access_mode::read);
 
-        // count particles to be removed
+        // set all rtags of ptls with comm_flag != 0 to NOT_LOCAL and count removed particles
         unsigned int N = getN();
-
-        for (unsigned int idx = 0; idx < N; idx++)
-            {
-            unsigned int tag = h_tag.data[idx];
-            assert(tag < getNGlobal());
-            if (h_rtag.data[tag] == NOT_LOCAL) num_remove_ptls++;
-            }
+        for (unsigned int i = 0; i < N; ++i)
+            if (h_comm_flags.data[i])
+                {
+                unsigned int tag = h_tag.data[i];
+                assert(tag < getNGlobal());
+                h_rtag.data[tag] = NOT_LOCAL;
+                num_remove_ptls++;
+                }
         }
 
     unsigned int old_nparticles = getN();
     unsigned int new_nparticles = m_nparticles - num_remove_ptls;
 
-    // resize output buffer
+    // resize output buffers
     out.resize(num_remove_ptls);
+    comm_flags.resize(num_remove_ptls);
 
     // resize particle data using amortized O(1) array resizing
     resize(new_nparticles);
@@ -1986,6 +2015,8 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out)
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
 
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::read);
+
+        ArrayHandle<unsigned int> h_comm_flags(getCommFlags(), access_location::host, access_mode::readwrite);
 
         ArrayHandle<Scalar4> h_pos_alt(m_pos_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_vel_alt(m_vel_alt, access_location::host, access_mode::overwrite);
@@ -2026,6 +2057,13 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out)
         std::remove_copy_if(pdata_begin, pdata_end, pdata_alt_begin,
             pdata_select(h_rtag.data,NOT_LOCAL));
 
+        // write out non-zero communication flags
+        std::remove_copy_if(h_comm_flags.data, h_comm_flags.data + old_nparticles, comm_flags.begin(),
+            std::not1(comm_flag_select()));
+
+        // reset communication flags to zero
+        std::fill(h_comm_flags.data, h_comm_flags.data + new_nparticles, 0);
+
         // set up a transformation from pdata to packed format
         // copy to output buf in packed form
         std::remove_copy_if(boost::make_transform_iterator(pdata_begin, to_pdata_element()),
@@ -2033,11 +2071,6 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out)
             out.begin(),
             std::not1(pdata_element_select(h_rtag.data,NOT_LOCAL)));
         }
-
-    // we do not fill net force, net virial, and net torque, so swap twice
-    m_net_force.swap(m_net_force_alt);
-    m_net_virial.swap(m_net_virial_alt);
-    m_net_torque.swap(m_net_torque_alt);
 
     // swap particle data arrays
     swapPositions();
@@ -2095,6 +2128,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::readwrite);
 
         pdata_zip pdata_begin = boost::make_tuple(
             h_tag.data,
@@ -2111,6 +2145,9 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
 
         // add new particles at the end
         std::transform(in.begin(), in.end(), pdata_add_begin, to_pdata_tuple());
+
+        // reset communication flags
+        std::fill(h_comm_flags.data + old_nparticles, h_comm_flags.data + new_nparticles, 0);
 
         // recompute rtags
         for (unsigned int idx = 0; idx < m_nparticles; ++idx)
@@ -2134,18 +2171,22 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
  *        no ghost particles are present, because ghost particle values
  *        are undefined after calling this method.
  */
-void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
+void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<unsigned int> &comm_flags)
     {
     if (m_prof) m_prof->push(m_exec_conf, "pack");
 
     // this is the maximum number of elements we can possibly write to out
     unsigned int max_n_out = out.getNumElements();
+    if (comm_flags.getNumElements() < max_n_out)
+        max_n_out = comm_flags.getNumElements();
 
     // allocate array if necessary
     if (! max_n_out)
         {
         out.resize(1);
+        comm_flags.resize(1);
         max_n_out = out.getNumElements();
+        if (comm_flags.getNumElements() < max_n_out) max_n_out = comm_flags.getNumElements();
         }
 
     // number of particles that are to be written out
@@ -2178,6 +2219,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
         ArrayHandle<Scalar4> d_orientation_alt(m_orientation_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
 
+        ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_comm_flags_out(comm_flags, access_location::device, access_mode::overwrite);
+
         // Access reverse-lookup table
         ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::read);
 
@@ -2206,6 +2250,8 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
                            d_orientation_alt.data,
                            d_tag_alt.data,
                            d_out.data,
+                           d_comm_flags.data,
+                           d_comm_flags_out.data,
                            max_n_out,
                            m_mgpu_context,
                            m_cached_alloc);
@@ -2214,11 +2260,13 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out)
 
         // resize output vector
         out.resize(n_out);
+        comm_flags.resize(n_out);
 
         // was the array large enough?
         if (n_out <= max_n_out) done = true;
 
         max_n_out = out.getNumElements();
+        if (comm_flags.getNumElements() < max_n_out) max_n_out = comm_flags.getNumElements();
         }
 
     // update particle number (no need to shrink arrays)
@@ -2273,6 +2321,7 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
         ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
 
         // Access input array
         ArrayHandle<pdata_element> d_in(in, access_location::device, access_mode::read);
@@ -2292,6 +2341,7 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
             d_tag.data,
             d_rtag.data,
             d_in.data,
+            d_comm_flags.data,
             m_cached_alloc);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())

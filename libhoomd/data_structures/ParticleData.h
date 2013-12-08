@@ -332,7 +332,8 @@ struct pdata_element
     During the simulation particles may enter or leave the box, therefore the number of \a local particles may change.
     To account for this, the size of the particle data arrays is dynamically updated using amortized doubling of the array sizes. To add particles to
     the domain, the addParticles() method is called, and the arrays are resized if necessary. Particles are retrieved
-    and removed from the local particle data arrays using removeParticles().
+    and removed from the local particle data arrays using removeParticles(). To flag particles for removal, set the
+    communication flag (m_comm_flags) for that particle to a non-zero value.
 
     In addition, since many other classes maintain internal arrays holding data for every particle (such as neighbor lists etc.), these
     arrays need to be resized, too, if the particle number changes. Everytime the particle data arrays are reallocated, a
@@ -669,10 +670,15 @@ class ParticleData : boost::noncopyable
         //! Get the orientation array
         const GPUArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
 
-#ifdef ENABLE_MPI
+        #ifdef ENABLE_MPI
+        //! Get the communication flags array
+        const GPUArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
+        #endif
+
+        #ifdef ENABLE_MPI
         //! Find the processor that owns a particle
         unsigned int getOwnerRank(unsigned int tag) const;
-#endif
+        #endif
 
         //! Get the current position of a particle
         Scalar3 getPosition(unsigned int tag) const;
@@ -832,17 +838,18 @@ class ParticleData : boost::noncopyable
 
         //! Pack particle data into a buffer
         /*! \param out Buffer into which particle data is packed
+         *  \param comm_flags Buffer into which communication flags is packed
          *
-         *  Packs all particles for which rtag==NOT_LOCAL into a buffer
+         *  Packs all particles for which comm_flag>0 into a buffer
          *  and remove them from the particle data
          *
-         *  The out buffer is automatically resized to accomodate the data.
+         *  The output buffers are automatically resized to accomodate the data.
          *
          *  \post The particle data arrays remain compact. Any ghost atoms
          *        are invalidated. (call removeAllGhostAtoms() before or after
          *        this method).
          */
-        void removeParticles(std::vector<pdata_element>& out);
+        void removeParticles(std::vector<pdata_element>& out, std::vector<unsigned int>& comm_flags);
 
         //! Remove particles from local domain and add new particle data
         /*! \param in List of particle data elements to fill the particle data with
@@ -852,17 +859,18 @@ class ParticleData : boost::noncopyable
         #ifdef ENABLE_CUDA
         //! Pack particle data into a buffer (GPU version)
         /*! \param out Buffer into which particle data is packed
+         *  \param comm_flags Buffer into which communication flags is packed
          *
-         *  Pack all particles for which rtag==NOT_LOCAL into a buffer
+         *  Pack all particles for which comm_flag >0 into a buffer
          *  and remove them from the particle data
          *
-         *  The out buffer is automatically resized to accomodate the data.
+         *  The output buffers are automatically resized to accomodate the data.
          *
          *  \post The particle data arrays remain compact. Any ghost atoms
          *        are invalidated. (call removeAllGhostAtoms() before or after
          *        this method).
          */
-        void removeParticlesGPU(GPUVector<pdata_element>& out);
+        void removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<unsigned int>& comm_flags);
 
         //! Remove particles from local domain and add new particle data (GPU version)
         /*! \param in List of particle data elements to fill the particle data with
@@ -926,6 +934,10 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
         GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
+        #ifdef ENABLE_MPI
+        GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
+        #endif
+
 
         /* Alternate particle data arrays are provided for fast swapping in and out of particle data
            The size of these arrays is updated in sync with the main particle data arrays.
