@@ -631,8 +631,8 @@ void ParticleData::reallocate(unsigned int max_n)
 */
 bool ParticleData::inBox()
     {
-    Scalar3 lo = m_global_box.getLo();
-    Scalar3 hi = m_global_box.getHi();
+    Scalar3 lo = m_box.getLo();
+    Scalar3 hi = m_box.getHi();
 
     const Scalar tol = Scalar(1e-5);
 
@@ -640,7 +640,7 @@ bool ParticleData::inBox()
     for (unsigned int i = 0; i < getN(); i++)
         {
         Scalar3 pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        Scalar3 f = m_global_box.makeFraction(pos);
+        Scalar3 f = m_box.makeFraction(pos);
         if (f.x < -tol || f.x > Scalar(1.0)+tol)
             {
             m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
@@ -748,16 +748,29 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 int k= f.z * ((Scalar)di.getD());
 
                 // wrap particles that are exactly on a boundary
-                // this doesn't change their position, but the communication
-                // algorithm will take care of this
+                // we only need to wrap in the negative direction, since
+                // processor ids are rounded toward zero
+                char3 flags = make_char3(0,0,0);
                 if (i == (int) di.getW())
+                    {
                     i = 0;
+                    flags.x = 1;
+                    }
 
                 if (j == (int) di.getH())
+                    {
                     j = 0;
+                    flags.y = 1;
+                    }
 
                 if (k == (int) di.getD())
+                    {
                     k = 0;
+                    flags.z = 1;
+                    }
+                
+                int3 img = snapshot.image[tag];
+                m_global_box.wrap(pos, img, flags);
 
                 unsigned int rank = di(i,j,k);
                 unsigned int tag = it - snapshot.pos.begin() ;
@@ -779,7 +792,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
                 // fill up per-processor data structures
                 pos_proc[rank].push_back(pos);
-                image_proc[rank].push_back(snapshot.image[tag]);
+                image_proc[rank].push_back(img);
                 vel_proc[rank].push_back(snapshot.vel[tag]);
                 accel_proc[rank].push_back(snapshot.accel[tag]);
                 type_proc[rank].push_back(snapshot.type[tag]);
@@ -944,6 +957,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
+
+    m_exec_conf->msg->notice(4) << "ParticleData: finished initializing from snapshot" << std::endl;
     }
 
 //! take a particle data snapshot
@@ -1126,6 +1141,8 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         }
 
     snapshot.type_mapping = m_type_mapping;
+
+    m_exec_conf->msg->notice(4) << "ParticleData: finished taking snapshot" << std::endl;
     }
 
 //! Add ghost particles at the end of the local particle data
