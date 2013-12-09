@@ -618,8 +618,8 @@ void ParticleData::reallocate(unsigned int max_n)
 */
 bool ParticleData::inBox()
     {
-    Scalar3 lo = m_global_box.getLo();
-    Scalar3 hi = m_global_box.getHi();
+    Scalar3 lo = m_box.getLo();
+    Scalar3 hi = m_box.getHi();
 
     const Scalar tol = Scalar(1e-5);
 
@@ -627,7 +627,7 @@ bool ParticleData::inBox()
     for (unsigned int i = 0; i < getN(); i++)
         {
         Scalar3 pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        Scalar3 f = m_global_box.makeFraction(pos);
+        Scalar3 f = m_box.makeFraction(pos);
         if (f.x < -tol || f.x > Scalar(1.0)+tol)
             {
             m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
