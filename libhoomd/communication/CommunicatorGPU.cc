@@ -387,9 +387,8 @@ void CommunicatorGPU::initializeCommunicationStages()
     }
 
 //! Select a particle for migration
-struct get_migrate_key : public std::unary_function<const pdata_element, std::pair<unsigned int, pdata_element> >
+struct get_migrate_key : public std::unary_function<const unsigned int, unsigned int >
     {
-    const BoxDim box;        //!< Local simulation box dimensions
     const uint3 my_pos;      //!< My domain decomposition position
     const Index3D di;        //!< Domain indexer
     const unsigned int mask; //!< Mask of allowed directions
@@ -397,35 +396,29 @@ struct get_migrate_key : public std::unary_function<const pdata_element, std::pa
     //! Constructor
     /*!
      */
-    get_migrate_key(const BoxDim & _box, const uint3 _my_pos, const Index3D _di, const unsigned int _mask)
-        : box(_box), my_pos(_my_pos), di(_di), mask(_mask)
+    get_migrate_key(const uint3 _my_pos, const Index3D _di, const unsigned int _mask)
+        : my_pos(_my_pos), di(_di), mask(_mask)
         { }
 
     //! Generate key for a sent particle
-    std::pair<unsigned int, pdata_element> operator()(const pdata_element p)
+    unsigned int operator()(const unsigned int flags)
         {
-        Scalar4 postype = p.pos;
-        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-        Scalar3 f = box.makeFraction(pos);
-
         int ix, iy, iz;
         ix = iy = iz = 0;
 
-        // we allow for a tolerance, large enough so we don't loose particles
-        const Scalar tol(1e-5);
-        if (f.x >= Scalar(1.0)-tol && (mask & Communicator::send_east))
+        if ((flags & Communicator::send_east) && (mask & Communicator::send_east))
             ix = 1;
-        else if (f.x < tol && (mask & Communicator::send_west))
+        else if ((flags & Communicator::send_west) && (mask & Communicator::send_west))
             ix = -1;
 
-        if (f.y >= Scalar(1.0)-tol && (mask & Communicator::send_north))
+        if ((flags & Communicator::send_north) && (mask & Communicator::send_north))
             iy = 1;
-        else if (f.y < tol && (mask & Communicator::send_south))
+        else if ((flags & Communicator::send_south) && (mask & Communicator::send_south))
             iy = -1;
 
-        if (f.z >= Scalar(1.0)-tol && (mask & Communicator::send_up))
+        if ((flags & Communicator::send_up) && (mask & Communicator::send_up))
             iz = 1;
-        else if (f.z < tol && (mask & Communicator::send_down))
+        else if ((flags & Communicator::send_down) && (mask & Communicator::send_down))
             iz = -1;
 
         // sanity check: particle has to be sent somewhere
@@ -453,7 +446,7 @@ struct get_migrate_key : public std::unary_function<const pdata_element, std::pa
         else if (k < 0)
             k += di.getD();
 
-        return std::pair<unsigned int,pdata_element>(di(i,j,k),p);
+        return di(i,j,k);
         }
 
      };
@@ -523,9 +516,11 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> d_begin(m_begin, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_end(m_end, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_unique_neighbors(m_unique_neighbors, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::read);
 
             gpu_sort_migrating_particles(m_gpu_sendbuf.size(),
                        d_gpu_sendbuf.data,
+                       d_comm_flags.data,
                        di,
                        mypos,
                        m_pdata->getBox(),
@@ -547,13 +542,15 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::read);
 
             typedef std::multimap<unsigned int,pdata_element> key_t;
             key_t keys;
 
             // generate keys
-            std::transform(h_gpu_sendbuf.data, h_gpu_sendbuf.data + m_gpu_sendbuf.size(), std::inserter(keys,keys.begin()),
-                get_migrate_key(m_pdata->getBox(), mypos, di, m_comm_mask[stage]));
+            get_migrate_key t(mypos, di, m_comm_mask[stage]); 
+            for (unsigned int i = 0; i < m_comm_flags.size(); ++i)
+                keys.insert(std::pair<unsigned int, pdata_element>(t(h_comm_flags.data[i]),h_gpu_sendbuf.data[i]));
 
             // Find start and end indices
             for (unsigned int i = 0; i < m_n_unique_neigh; ++i)
