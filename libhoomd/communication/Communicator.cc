@@ -66,15 +66,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::python;
 
-//! This is a lookup from corner to plan
-unsigned int corner_plan_lookup[NCORNER];
-
-//! Lookup from edge to plan
-unsigned int edge_plan_lookup[NEDGE];
-
-//! Lookup from face to plan
-unsigned int face_plan_lookup[NFACE];
-
 //! Select a particle for migration
 struct select_particle_migrate : public std::unary_function<const unsigned int, bool>
     {
@@ -157,6 +148,12 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
 
     // connect to particle sort signal
     m_sort_connection = m_pdata->connectParticleSort(boost::bind(&Communicator::forceMigrate, this));
+
+    /*
+     * Bonded group communication
+     */
+    m_bonds_changed = true;
+    m_bond_connection = m_sysdef->getBondData()->connectGroupNumChange(boost::bind(&Communicator::setBondsChanged, this));
     }
 
 //! Destructor
@@ -164,6 +161,7 @@ Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying Communicator";
     m_sort_connection.disconnect();
+    m_bond_connection.disconnect();
     }
 
 //! Interface to the communication methods.

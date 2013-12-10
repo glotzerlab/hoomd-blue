@@ -156,8 +156,11 @@ void BondedGroupData<group_size, group_t, name>::initialize()
     m_n_groups.swap(n_groups);
 
     #ifdef ENABLE_MPI
-    GPUVector<unsigned int> group_ranks(m_exec_conf);
-    m_group_ranks.swap(group_ranks);
+    if (m_pdata->getDomainDecomposition())
+        {
+        GPUVector<ranks_t> group_ranks(m_exec_conf);
+        m_group_ranks.swap(group_ranks);
+        }
     #endif
 
     // allocate stand-by arrays
@@ -171,8 +174,11 @@ void BondedGroupData<group_size, group_t, name>::initialize()
     m_groups_alt.swap(groups_alt);
 
     #ifdef ENABLE_MPI
-    GPUVector<unsigned int> group_ranks_alt(m_exec_conf);
-    m_group_ranks_alt.swap(group_ranks_alt);
+    if (m_pdata->getDomainDecomposition())
+        {
+        GPUVector<ranks_t> group_ranks_alt(m_exec_conf);
+        m_group_ranks_alt.swap(group_ranks_alt);
+        }
     #endif
 
     #ifdef ENABLE_CUDA
@@ -204,8 +210,41 @@ void BondedGroupData<group_size, group_t, name>::initializeFromSnapshot(const Sn
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        // ...
+        // broadcast to all processors (temporarily)
+        std::vector<group_t> all_groups;
+        std::vector<unsigned int> all_type;
+        std::vector<std::string> type_mapping;
+
+        if (m_exec_conf->getRank() == 0)
+            {
+            all_groups = snapshot.groups;
+            all_type = snapshot.type_id;
+            type_mapping = snapshot.type_mapping;
+            }
+
+        bcast(all_groups, 0, m_exec_conf->getMPICommunicator());
+        bcast(all_type, 0, m_exec_conf->getMPICommunicator());
+        bcast(type_mapping, 0, m_exec_conf->getMPICommunicator());
+
+        // set global number of bonded groups
+        m_nglobal = all_groups.size();
+        m_group_rtag.resize(m_nglobal);
+
         m_groups_dirty = true;
+
+            {
+            // reset reverse lookup tags
+            ArrayHandle<unsigned int> h_group_rtag(m_group_rtag, access_location::host, access_mode::overwrite);
+
+            for (unsigned int tag = 0; tag < m_nglobal; ++tag)
+                h_group_rtag.data[tag] = GROUP_NOT_LOCAL;
+            }
+
+        // now iterate over groups and add those that have local particles
+        for (unsigned int group_tag = 0; group_tag < m_nglobal; ++group_tag)
+            addBondedGroup(all_type[group_tag], all_groups[group_tag]);
+            
+        m_type_mapping = type_mapping;
         }
     else
     #endif
@@ -286,7 +325,10 @@ unsigned int BondedGroupData<group_size, group_t, name>::addBondedGroup(
         m_recycled_tags.pop();
 
         // update reverse-lookup tag to point to end of local group data
-        if (is_local) m_group_rtag[tag] = getN();
+        if (is_local)
+            m_group_rtag[tag] = getN();
+        
+        assert(is_local || m_group_rtag[tag] == GROUP_NOT_LOCAL);
         }
     else
         {
@@ -303,15 +345,38 @@ unsigned int BondedGroupData<group_size, group_t, name>::addBondedGroup(
 
     assert(tag <= m_recycled_tags.size() + getNGlobal());
 
-    m_groups.push_back(member_tags);
-    m_group_type.push_back(type_id);
+    if (is_local)
+        {
+        m_groups.push_back(member_tags);
+        m_group_type.push_back(type_id);
+        m_group_tag.push_back(tag);
+        #ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            typedef union
+                {
+                ranks_t data;
+                unsigned int r[group_size];
+                } ranks_idx_t;
 
-    m_group_tag.push_back(tag);
+            ranks_idx_t ranks;
+            // initialize with zero
+            for (unsigned int i = 0; i < group_size; ++i)
+                ranks.r[i] = 0;
+
+            m_group_ranks.push_back(ranks.data);
+            }
+        #endif
+        }
 
     // increment number of bonded groups
     m_nglobal++;
 
+    // set flag to rebuild GPU table
     m_groups_dirty = true;
+
+    // notifiy observers
+    m_group_num_change_signal();
 
     return tag;
     }
@@ -510,13 +575,21 @@ void BondedGroupData<group_size, group_t, name>::removeBondedGroup(unsigned int 
         m_groups.pop_back();
         m_group_type.pop_back();
         m_group_tag.pop_back();
+        #ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            m_group_ranks.pop_back();
+        #endif
         }
 
     // maintain a stack of deleted group tags for future recycling
     m_recycled_tags.push(tag);
     m_nglobal--;
 
+    // set flag to trigger rebuild of GPU table
     m_groups_dirty = true;
+
+    // notifiy observers
+    m_group_num_change_signal();
     }
 
 /*! \param name Type name

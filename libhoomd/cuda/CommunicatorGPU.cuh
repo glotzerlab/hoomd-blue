@@ -252,4 +252,21 @@ void gpu_compute_ghost_rtags(unsigned int first_idx,
      unsigned int n_ghost,
      const unsigned int *d_tag,
      unsigned int *d_rtag);
+
+//! Mark groups for sending
+template<unsigned int group_size, typename group_t, typename ranks_t>
+void gpu_mark_groups(
+    unsigned int N,
+    const unsigned int *d_comm_flags,
+    unsigned int n_groups,
+    const group_t *d_members,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_rtag,
+    ranks_t *d_group_ranks,
+    unsigned int *d_rank_mask,
+    const unsigned int *d_rtag,
+    const Index3D di,
+    uint3 my_pos,
+    bool incomplete);
+
 #endif // ENABLE_MPI

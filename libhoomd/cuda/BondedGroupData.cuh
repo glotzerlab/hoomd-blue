@@ -56,6 +56,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cached_allocator.h"
 
+#ifdef NVCC
+//! Sentinel value
+const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
+#endif
+
 template<unsigned int group_size, typename group_t>
 void gpu_update_group_table(
     const unsigned int n_groups,

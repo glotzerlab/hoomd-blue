@@ -67,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 #include "GPUVector.h"
 #include "ParticleData.h"
+#include "BondedGroupData.h"
 #include "DomainDecomposition.h"
 
 #include <boost/shared_ptr.hpp>
@@ -90,63 +91,6 @@ class SystemDefinition;
 class Profiler;
 class BoxDim;
 class ParticleData;
-
-/* Routing tables
-
-   The routing tables determine the communication pattern. For every communication step indicated by
-   the value of the first index in the routing table, a boolean value indicates whether information
-   is routed from the source (second index) to the destination (third index, optional).
-
-   Possible types of sources are corner, edge and face buffers, possible types of destinations
-   are edge, face and local buffers.
-
-   During a communication step, the following steps occur:
-    - corner data, which is relevant to neighboring boxes along three axes, is sent in one
-     direction, and then stored as edge data.
-    - edge data, which is relevant to neigboring boxes along two axes, is sent and then
-      stored as face data
-    - face data is directly forwarded along one direction to a local receive buffer of the neighboring box.
-
-   If multiple source buffers are routed to the same destination buffer in a single or in subsequent
-   communication steps, they will occur in the destination buffer in the following order:
-
-   1) buffers originating from 'corner' regions
-   2) buffers originating from 'edge' regions
-   3) buffers originating from 'face' regions
-
-   Received data in a buffer is always contiguously stored and appended to existing local data in the above order.
-
-   \note: These tables are currently not used by the base class
- */
-struct RoutingTable
-    {
-    //! Routing from corner to edge for particle migration, for every send direction
-    bool m_route_corner_edge[NFACE][NCORNER][NEDGE];
-
-    //! Additional routing from corner to face for ghost replication
-    bool m_route_corner_face[NFACE][NCORNER][NFACE];
-
-    //! Additional routing from corner to local for ghost replication
-    bool m_route_corner_local[NFACE][NCORNER];
-
-    //! Routing from edge to face for particle migration
-    bool m_route_edge_face[NFACE][NEDGE][NFACE];
-
-    //! Additional routing from edge to local for ghost replication
-    bool m_route_edge_local[NFACE][NEDGE];
-
-    //! Routing from face to local
-    bool m_route_face_local[NFACE];
-    };
-
-//! This is a lookup from corner to plan
-extern unsigned int corner_plan_lookup[];
-
-//! Lookup from edge to plan
-extern unsigned int edge_plan_lookup[];
-
-//! Lookup from face to plan
-extern unsigned int face_plan_lookup[];
 
 //! Optional flags to enable communication of certain ParticleData fields for ghost particles
 struct comm_flag
@@ -402,13 +346,6 @@ class Communicator
          */
         virtual void exchangeGhosts();
 
-        /*! Returns the routing table
-         */
-        inline const RoutingTable& getRoutingTable() const
-            {
-            return m_routing_table;
-            }
-
         //! \name Enumerations
         //@{
 
@@ -435,34 +372,6 @@ class Communicator
             send_south = 8,
             send_up = 16,
             send_down = 32
-            };
-
-        enum edgeEnum
-            {
-            edge_east_north = 0 ,
-            edge_east_south,
-            edge_east_up,
-            edge_east_down,
-            edge_west_north,
-            edge_west_south,
-            edge_west_up,
-            edge_west_down,
-            edge_north_up,
-            edge_north_down,
-            edge_south_up,
-            edge_south_down
-            };
-
-        enum cornerEnum
-            {
-            corner_east_north_up = 0,
-            corner_east_north_down,
-            corner_east_south_up,
-            corner_east_south_down,
-            corner_west_north_up,
-            corner_west_north_down,
-            corner_west_south_up,
-            corner_west_south_down
             };
 
         //@}
@@ -529,9 +438,15 @@ class Communicator
         boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
             m_requested_flags;  //!< List of functions that may request ghost communication flags
 
-        RoutingTable m_routing_table;            //!< The routing table
-
         CommFlags m_flags;                       //!< The ghost communication flags
+
+        /* Bonded group communication */
+        bool m_bonds_changed;                          //!< True if bond information needs to be refreshed
+        boost::signals2::connection m_bond_connection; //!< Connection to connect to BondData addition/removal of bonds
+        void setBondsChanged()
+            {
+            m_bonds_changed = true;
+            }
 
     private:
         std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent

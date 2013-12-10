@@ -76,6 +76,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_max_stages(1),
       m_num_stages(0),
       m_comm_mask(0),
+      m_bond_comm(m_pdata, m_sysdef->getBondData()),
       m_last_flags(0)
     {
     // find out if this is a 1D decomposition
@@ -451,6 +452,59 @@ struct get_migrate_key : public std::unary_function<const unsigned int, unsigned
 
      };
 
+//! Constructor
+template<class group_data>
+BondedGroupCommunicatorGPU<group_data>::BondedGroupCommunicatorGPU(boost::shared_ptr<ParticleData> pdata,
+    boost::shared_ptr<group_data> gdata)
+    : m_pdata(pdata), m_gdata(gdata), m_exec_conf(pdata->getExecConf())
+    {
+    GPUVector<unsigned int> rank_mask(m_exec_conf);
+    m_rank_mask.swap(rank_mask);
+
+    // the size of the bit field must be larger or equal the group size
+    assert(sizeof(unsigned int) >= group_data::size);
+    }
+
+//! Mark groups for sending
+template<class group_data>
+void BondedGroupCommunicatorGPU<group_data>::markGroupsForSending(bool incomplete)
+    {
+    if (m_gdata->getNGlobal())
+        {
+        // resize bitmasks
+        m_rank_mask.resize(m_gdata->getN());
+
+            {
+            ArrayHandle<unsigned int> d_comm_flags(m_pdata->getCommFlags(), access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::type> d_members(m_gdata->getMembersArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+
+            Index3D di = m_pdata->getDomainDecomposition()->getDomainIndexer();
+            uint3 my_pos = di.getTriple(m_exec_conf->getRank());
+
+            // mark groups that have members leaving this domain
+            gpu_mark_groups<group_data::size>(
+                m_pdata->getN(),
+                d_comm_flags.data,
+                m_gdata->getN(),
+                d_members.data,
+                d_group_tag.data,
+                d_group_rtag.data,
+                d_group_ranks.data,
+                d_rank_mask.data,
+                d_rtag.data,
+                di,
+                my_pos,
+                incomplete);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+        }
+    }
+
 //! Transfer particles between neighboring domains
 void CommunicatorGPU::migrateParticles()
     {
@@ -497,6 +551,11 @@ void CommunicatorGPU::migrateParticles()
                 CHECK_CUDA_ERROR();
 
             }
+
+        /*
+         * Bonded group communication, determine groups to be sent
+         */
+        m_bond_comm.markGroupsForSending(m_bonds_changed);
 
         // fill send buffer
         m_pdata->removeParticlesGPU(m_gpu_sendbuf, m_comm_flags);

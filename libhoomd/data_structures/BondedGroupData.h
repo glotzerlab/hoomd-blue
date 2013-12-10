@@ -97,9 +97,15 @@ template<unsigned int group_size, typename group_t, const char *name>
 class BondedGroupData : boost::noncopyable
     {
     public:
+        //! Group size
+        enum { size = group_size } Enum;
+
+        //! Group data element type
+        typedef group_t type;
+
         #ifdef ENABLE_MPI
         //! Type for storing per-member ranks
-        typedef struct { unsigned int rank[group_size];} ranks_t;
+        typedef group_t ranks_t;
 
         //! Packed group entry for communication
         typedef struct
@@ -188,6 +194,12 @@ class BondedGroupData : boost::noncopyable
             return m_type_mapping.size();
             }
 
+        //! Return name of this template
+        static std::string getName()
+            {
+            return std::string(name);
+            }
+
         //! Get the type id by type name
         unsigned int getTypeByName(const std::string &type_name) const;
 
@@ -242,13 +254,13 @@ class BondedGroupData : boost::noncopyable
             }
 
         //! Return list of number of groups per particle
-        const GPUArray<unsigned int>& getNGroupsArray()
+        const GPUArray<unsigned int>& getNGroupsArray() const
             {
             return m_n_groups;
             }
 
         //! Return list of group tags
-        const GPUArray<unsigned int>& getTags()
+        const GPUArray<unsigned int>& getTags() const
             {
             return m_group_tag;
             }
@@ -258,6 +270,14 @@ class BondedGroupData : boost::noncopyable
             {
             return m_group_rtag;
             }
+
+        #ifdef ENABLE_MPI
+        //! Return auxillary array of member particle ranks
+        const GPUArray<ranks_t>& getRanksArray() const
+            {
+            return m_group_ranks;
+            }
+        #endif
 
         #ifdef ENABLE_MPI
         //! Add new groups to local processor
@@ -318,6 +338,13 @@ class BondedGroupData : boost::noncopyable
             m_prof = prof;
             }
 
+        //! Connects a function to be called every time the global number of bonded groups changes
+        boost::signals2::connection connectGroupNumChange(
+            const boost::function<void ()> &func)
+            {
+            return m_group_num_change_signal.connect(func);
+            }
+
     protected:
         //! A union to access the data elements' components by index
         typedef union
@@ -362,7 +389,7 @@ class BondedGroupData : boost::noncopyable
         std::vector<std::string> m_type_mapping;     //!< Mapping of types of bonded groups
 
         #ifdef ENABLE_MPI
-        GPUVector<unsigned int> m_group_ranks;       //!< 2D list of group member ranks
+        GPUVector<ranks_t> m_group_ranks;       //!< 2D list of group member ranks
         #endif
 
         /* alternate (stand-by) arrays for swapping in reordered groups */
@@ -370,19 +397,20 @@ class BondedGroupData : boost::noncopyable
         GPUVector<unsigned int> m_group_type_alt;       //!< List of group types (swap-in)
         GPUVector<unsigned int> m_group_tag_alt;     //!< List of group tags (swap-in)
         #ifdef ENABLE_MPI
-        GPUVector<unsigned int> m_group_ranks_alt;   //!< 2D list of group member ranks (swap-in)
+        GPUVector<ranks_t> m_group_ranks_alt;   //!< 2D list of group member ranks (swap-in)
         #endif
 
         unsigned int m_nglobal;                      //!< Global number of groups
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed groups
         boost::shared_ptr<Profiler> m_prof;          //!< Profiler
 
-        //! Initialize internal memory
-        void initialize();
-
     private:
         bool m_groups_dirty;                         //!< Is it necessary to rebuild the lookup-by-index table?
         boost::signals2::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+        boost::signals2::signal<void ()> m_group_num_change_signal; //!< Signal that is triggered when groups are added or deleted (globally)
+
+        //! Initialize internal memory
+        void initialize();
 
         //! Set a flag to trigger rebuild of index table
         void setDirty()

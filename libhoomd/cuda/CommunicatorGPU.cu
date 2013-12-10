@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
+#include "BondedGroupData.cuh"
 
 #include <thrust/replace.h>
 #include <thrust/device_ptr.h>
@@ -331,7 +332,6 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
                     delete_tags_ptr,
                     rtag_ptr);
     }
-
 
 //! Kernel to select ghost atoms due to non-bonded interactions
 struct make_ghost_exchange_plan_gpu : thrust::unary_function<const Scalar4, unsigned int>
@@ -784,5 +784,205 @@ void gpu_compute_ghost_rtags(
     thrust::scatter(idx, idx + n_ghost, tag_ptr, rtag_ptr);
     }
 
+/*!
+ * Routines for communication of bonded groups
+ */
+template<unsigned int group_size, typename group_t, typename ranks_t>
+__global__ void gpu_mark_groups_kernel(
+    unsigned int N,
+    const unsigned int *d_comm_flags,
+    unsigned int n_groups,
+    const group_t *d_members,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_rtag,
+    ranks_t *d_group_ranks,
+    unsigned int *d_rank_mask,
+    const unsigned int *d_rtag,
+    const Index3D di,
+    uint3 my_pos,
+    bool incomplete)
+    {
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-#endif
+    if (group_idx >= n_groups) return;
+
+    typedef union
+        {
+        unsigned int tag[group_size];
+        group_t data;
+        } group_tags_t;
+
+    typedef union
+        {
+        unsigned int ranks[group_size];
+        ranks_t data;
+        } group_ranks_t;
+
+    // Load group
+    group_tags_t g;
+    g.data = d_members[group_idx];
+
+    group_ranks_t r;
+    r.data = d_group_ranks[group_idx];
+
+    // loop through members of group
+    bool flag_send = false;
+
+    // initialize bit field
+    unsigned int mask = 0;
+    
+    unsigned int my_rank = di(my_pos.x, my_pos.y, my_pos.z);
+
+    for (unsigned int i = 0; i < group_size; ++i)
+        {
+        unsigned int tag = g.tag[i];
+        unsigned int pidx = d_rtag[tag];
+      
+        if (incomplete)
+            {
+            // if we are initially filling out rank information, send when there's a non-local member 
+            if (pidx == NOT_LOCAL)
+                flag_send = true;
+            else
+                {
+                // fill out rank for local ptls
+                r.ranks[i] = my_rank;
+                mask |= (1 << i);
+                }
+            }
+        else if (pidx != NOT_LOCAL)
+            {
+            // local ptl
+            unsigned int flags = d_comm_flags[pidx];
+
+            if (flags)
+                {
+                // the local particle is moving between domains
+                flag_send = true;
+                mask |= (1 << i);
+
+                // parse communication flags
+                int ix, iy, iz;
+                ix = iy = iz = 0;
+
+                if (flags & send_east)
+                    ix = 1;
+                else if (flags & send_west)
+                    ix = -1;
+
+                if (flags & send_north)
+                    iy = 1;
+                else if (flags & send_south)
+                    iy = -1;
+
+                if (flags & send_up)
+                    iz = 1;
+                else if (flags & send_down)
+                    iz = -1;
+
+                int i = my_pos.x;
+                int j = my_pos.y;
+                int k = my_pos.z;
+
+                i += ix;
+                if (i == (int)di.getW())
+                    i = 0;
+                else if (i < 0)
+                    i += di.getW();
+
+                j += iy;
+                if (j == (int) di.getH())
+                    j = 0;
+                else if (j < 0)
+                    j += di.getH();
+
+                k += iz;
+                if (k == (int) di.getD())
+                    k = 0;
+                else if (k < 0)
+                    k += di.getD();
+
+                // update ranks information
+                r.ranks[i] = di(i,j,k);
+                }
+            }
+        } // end for
+
+    // write out ranks
+    d_group_ranks[group_idx] = r.data;
+
+    // write out bitmask
+    d_rank_mask[group_idx] = mask;
+
+    if (flag_send)
+        {
+        // mark group for sending
+        unsigned int group_tag = d_group_tag[group_idx];
+        d_group_rtag[group_tag] = GROUP_NOT_LOCAL;
+        }
+    }
+
+/*! \param N Number of particles
+    \param d_comm_flags Array of communication flags
+    \param n_groups Number of local groups
+    \param d_members Array of group member tags
+    \param d_group_tag Array of group tags
+    \param d_group_rtag Array of group rtags
+    \param d_group_ranks Auxillary array of group member ranks
+    \param d_rtag Particle data reverse-lookup table for tags
+    \param di Domain decomposition indexer
+    \param my_pos Integer triple of domain coordinates
+    \param incomplete If true, initially update auxillary rank information
+ */
+template<unsigned int group_size, typename group_t, typename ranks_t>
+void gpu_mark_groups(
+    unsigned int N,
+    const unsigned int *d_comm_flags,
+    unsigned int n_groups,
+    const group_t *d_members,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_rtag,
+    ranks_t *d_group_ranks,
+    unsigned int *d_rank_mask,
+    const unsigned int *d_rtag,
+    const Index3D di,
+    uint3 my_pos,
+    bool incomplete)
+    {
+    unsigned int block_size = 512;
+    unsigned int n_blocks = n_groups/block_size + 1;
+
+    gpu_mark_groups_kernel<group_size><<<block_size, n_blocks>>>(N,
+        d_comm_flags,
+        n_groups,
+        d_members,
+        d_group_tag,
+        d_group_rtag,
+        d_group_ranks,
+        d_rank_mask,
+        d_rtag,
+        di,
+        my_pos,
+        incomplete);
+    }
+
+/*
+ *! Explicit template instantiations 
+ */
+
+//! BondData
+template void gpu_mark_groups<2, uint2, uint2>(
+    unsigned int N,
+    const unsigned int *d_comm_flags,
+    unsigned int n_groups,
+    const uint2 *d_members,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_rtag,
+    uint2 *d_group_ranks,
+    unsigned int *d_rank_mask,
+    const unsigned int *d_rtag,
+    const Index3D di,
+    uint3 my_pos,
+    bool incomplete);
+
+#endif // ENABLE_MPI

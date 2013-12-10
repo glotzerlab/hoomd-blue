@@ -55,7 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <thrust/scan.h>
 #include <thrust/iterator/constant_iterator.h>
-#include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
 
 /*! \file BondedGroupData.cu
