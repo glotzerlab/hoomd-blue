@@ -595,14 +595,13 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         // resize send buffers
         m_ranks_sendbuf.resize(send_map.size());
 
-        #if 0
             {
             // access send buffers
             ArrayHandle<rank_element_t> h_ranks_sendbuf(m_ranks_sendbuf, access_location::host, access_mode::overwrite);
 
             // output send data sorted by rank
             unsigned int n = 0;
-            for (map_t::iterator it = send_map.begin(); it != send_map.end(); ++it)
+            for (typename map_t::iterator it = send_map.begin(); it != send_map.end(); ++it)
                 {
                 h_ranks_sendbuf.data[n] = it->second;
                 n++;
@@ -615,13 +614,12 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             // Find start and end indices
             for (unsigned int i = 0; i < m_comm.m_n_unique_neigh; ++i)
                 {
-                map_t::iterator lower = send_map.lower_bound(h_unique_neighbors.data[i]);
-                map_t::iterator upper = send_map.upper_bound(h_unique_neighbors.data[i]);
+                typename map_t::iterator lower = send_map.lower_bound(h_unique_neighbors.data[i]);
+                typename map_t::iterator upper = send_map.upper_bound(h_unique_neighbors.data[i]);
                 h_begin.data[i] = std::distance(send_map.begin(),lower);
                 h_end.data[i] = std::distance(send_map.begin(),upper);
                 }
             }
-        #endif
         #endif
 
         /*
