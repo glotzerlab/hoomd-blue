@@ -231,8 +231,6 @@ void gpu_mark_groups(
     const unsigned int *d_comm_flags,
     unsigned int n_groups,
     const group_t *d_members,
-    const unsigned int *d_group_tag,
-    unsigned int *d_group_rtag,
     ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
@@ -248,7 +246,6 @@ template<typename ranks_t, typename rank_element_t>
 void gpu_scatter_ranks(
     unsigned int n_groups,
     const unsigned int *d_group_tag,
-    const unsigned int *d_group_rtag,
     const ranks_t *d_group_ranks,
     const unsigned int *d_rank_mask,
     const unsigned int *d_scan,
@@ -261,5 +258,18 @@ void gpu_update_ranks_table(
     unsigned int *d_group_rtag,
     unsigned int n_recv,
     const rank_element_t *d_ranks_recvbuf);
- 
+
+template<unsigned int group_size, typename group_t, typename ranks_t, typename packed_t>
+void gpu_scatter_and_mark_groups_for_removal(
+    unsigned int n_groups,
+    const group_t *d_groups,
+    const unsigned int *d_group_type,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_rtag,
+    const ranks_t *d_group_ranks,
+    unsigned int *d_rank_mask,
+    unsigned int my_rank,
+    const unsigned int *d_scan,
+    packed_t *d_out_groups);
+
 #endif // ENABLE_MPI

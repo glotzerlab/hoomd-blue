@@ -63,15 +63,31 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Sentinel value
 const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
 
+//! Storage for group members (GPU declaration)
 template<unsigned int group_size>
 union group_storage
     {
     unsigned int tag[group_size]; // access 'tags'
     unsigned int idx[group_size]; // access 'indices'
     };
+
+//! Packed group entry for communication (GPU declaration)
+template<unsigned int group_size>
+struct packed_storage
+    {
+    group_storage<group_size> tags;  //!< Member tags
+    unsigned int type;               //!< Type of bonded group
+    unsigned int group_tag;          //!< Tag of this group
+    group_storage<group_size> ranks; //!< Current list of member ranks
+    };
 #else
+//! Forward declaration of group_storage
 template<unsigned int group_size>
 union group_storage;
+
+//! Forward declaration of packed_storage
+template<unsigned int group_size>
+struct packed_storage;
 #endif
 
 template<unsigned int group_size, typename group_t>

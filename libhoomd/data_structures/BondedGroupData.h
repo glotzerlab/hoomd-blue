@@ -97,6 +97,18 @@ union group_storage
     };
 
 #ifdef ENABLE_MPI
+//! Packed group entry for communication
+template<unsigned int group_size>
+struct packed_storage
+    {
+    group_storage<group_size> tags;  //!< Member tags
+    unsigned int type;               //!< Type of bonded group
+    unsigned int group_tag;          //!< Tag of this group
+    group_storage<group_size> ranks; //!< Current list of member ranks
+    };
+#endif
+
+#ifdef ENABLE_MPI
 BOOST_CLASS_IMPLEMENTATION(group_storage<2>,boost::serialization::object_serializable)
 namespace boost
    {
@@ -134,14 +146,7 @@ class BondedGroupData : boost::noncopyable
         #ifdef ENABLE_MPI
         //! Type for storing per-member ranks
         typedef group_t ranks_t;
-
-        //! Packed group entry for communication
-        typedef struct
-            {
-            group_t tags;              //!< Member tags
-            unsigned int type;              //!< Type of bonded group
-            ranks_t ranks;                  //!< Current list of member ranks
-            } packed_t;
+        typedef packed_storage<group_size> packed_t;
         #endif
 
         //! Handy structure for passing around and initializing the group data
@@ -243,17 +248,119 @@ class BondedGroupData : boost::noncopyable
         //! Get the members of a bonded group by tag
         unsigned int getTypeByIndex(unsigned int group_idx) const;
 
-        //! Return group table
-        const GPUArray<group_t>& getMembersArray() const
+        /*
+         * Access to data structures
+         */
+
+        //! Return group table (const)
+        const GPUVector<group_t>& getMembersArray() const
             {
             return m_groups;
             }
 
-        //! Return group table
-        const GPUArray<unsigned int>& getTypesArray() const
+        //! Return group table (const)
+        const GPUVector<unsigned int>& getTypesArray() const
             {
             return m_group_type;
             }
+
+        //! Return list of group tags (const)
+        const GPUVector<unsigned int>& getTags() const
+            {
+            return m_group_tag;
+            }
+
+        //! Return reverse-lookup table (group tag-> group index) (const)
+        const GPUVector<unsigned int>& getRTags() const
+            {
+            return m_group_rtag;
+            }
+
+        #ifdef ENABLE_MPI
+        //! Return auxillary array of member particle ranks (const)
+        const GPUVector<ranks_t>& getRanksArray() const
+            {
+            return m_group_ranks;
+            }
+        #endif
+
+        /* 
+         * Alternate arrays used for reordering data
+         * \sa ParticleData
+         *
+         * \note The only method to modify the size of the group table is by
+         * swapping in a new version of the group data.
+         *
+         * The alternate arrays are returned as non-const versions
+         * to enable resizing the underlying GPUVectors before swapping.
+         */
+
+        //! Return group table (swap-in)
+        GPUVector<group_t>& getAltMembersArray()
+            {
+            // resize to size of primary groups array
+            m_groups_alt.resize(m_groups.size());
+            return m_groups_alt;
+            }
+
+        //! Return group table (swap-in)
+        GPUVector<unsigned int>& getAltTypesArray()
+            {
+            // resize to size of primary group types array
+            m_group_type_alt.resize(m_group_type.size());
+            return m_group_type_alt;
+            }
+
+        //! Return list of group tags (swap-in)
+        GPUVector<unsigned int>& getAltTags()
+            {
+            // resize to size of primary group tags array
+            m_group_tag_alt.resize(m_group_tag.size());
+            return m_group_tag_alt;
+            }
+
+        #ifdef ENABLE_MPI
+        //! Return auxillary array of member particle ranks
+        GPUVector<ranks_t>& getAltRanksArray()
+            {
+            m_group_ranks_alt.resize(m_group_ranks.size());
+            return m_group_ranks_alt;
+            }
+        #endif
+
+        //! Swap group member arrays
+        void swapMemberArrays()
+            {
+            assert(!m_groups_alt.isNull());
+            m_groups.swap(m_groups_alt);
+            }
+
+        //! Swap group type arrays
+        void swapTypeArrays()
+            {
+            assert(!m_group_type_alt.isNull());
+            m_group_type.swap(m_group_type_alt);
+            }
+
+        //! Swap group tag arrays
+        void swapTagArrrays()
+            {
+            assert(!m_group_tag_alt.isNull());
+            m_group_tag.swap(m_group_tag_alt);
+            }
+
+        #ifdef ENABLE_MPI
+        //! Swap group ranks arrays
+        void swapRankArrays()
+            {
+            assert(!m_group_ranks_alt.isNull());
+            m_group_ranks.swap(m_group_ranks_alt);
+            }
+        #endif
+
+        /* 
+         * GPU group table
+         */
 
         //! Return GPU bonded groups list
         const GPUArray<group_t>& getGPUTable()
@@ -287,64 +394,9 @@ class BondedGroupData : boost::noncopyable
             return m_n_groups;
             }
 
-        //! Return list of group tags
-        const GPUArray<unsigned int>& getTags() const
-            {
-            return m_group_tag;
-            }
-
-        //! Return reverse-lookup table (group tag-> group index)
-        const GPUArray<unsigned int>& getRTags() const
-            {
-            return m_group_rtag;
-            }
-
-        #ifdef ENABLE_MPI
-        //! Return auxillary array of member particle ranks
-        const GPUArray<ranks_t>& getRanksArray() const
-            {
-            return m_group_ranks;
-            }
-        #endif
-
-        #ifdef ENABLE_MPI
-        //! Add new groups to local processor
-        /*! \param in Buffer containing the group entries to be added
-         *
-         *  \pre The elements of the input buffer need to contain up-to-date rank information
-         *  There must not be any duplicates in the input buffer of groups that already exist locally,
-         *  a condition which can be assured by checking the ranks field of the group entry prior
-         *  to adding/communicating.
-         *
-         *  \post The local group table contains the unpacked groups in addition
+        /*
+         * add/remove groups globally
          */
-        void addGroups(const std::vector<packed_t>& in);
-
-        //! Pack groups into buffer which have non-local particle members and remove left over groups
-        /*! Groups packed into the output buffer are those for which any particle rtag is NOT_LOCAL.
-         * Any groups for which ALL particle rtags are NOT_LOCAL are removed.
-         *
-         * \post the out array is resized as necessary
-         */
-        void removeGroups(std::vector<packed_t>& out);
-
-        #ifdef ENABLE_CUDA
-        //! Add new groups to local processor
-        /*! \param in Buffer containing the group entries to be added
-         *
-         *  \pre The elements of the input buffer need to contain up-to-date information on member ranks.
-         *  There must not be any duplicates in the input buffer of groups that already exist locally,
-         *  a condition that can be assured by checking the ranks field of the group for the local/destination rank
-         *  entry prior to adding/communicating.
-         *
-         *  \post The local group table contains the unpacked groups in addition
-         */
-        void addGroupsGPU(GPUArray<packed_t>& in);
-
-        //! Pack groups into buffer which have non-local particle members and remove left over groups
-        void removeGroupsGPU(GPUArray<packed_t>& out);
-        #endif
-        #endif
 
         //! Add a single bonded group on all processors
         /*! \param type_id Type of group to add

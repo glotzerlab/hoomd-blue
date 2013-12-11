@@ -130,7 +130,7 @@ class CommunicatorGPU : public Communicator
                 typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
 
                 //! Constructor
-                GroupCommunicatorGPU(CommunicatorGPU& comm, boost::shared_ptr<group_data> gdata);
+                GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, boost::shared_ptr<group_data> gdata);
 
                 //! Migrate groups
                 /*! \param incomplete If true, mark all groups that have non-local members and update local
@@ -143,12 +143,12 @@ class CommunicatorGPU : public Communicator
                 void migrateGroups(bool incomplete);
 
             private:
-                CommunicatorGPU& m_comm;                                //!< The outer class
+                CommunicatorGPU& m_gpu_comm;                            //!< The outer class
                 boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
                 boost::shared_ptr<group_data> m_gdata;                  //!< The group data
 
                 GPUVector<unsigned int> m_rank_mask;                    //!< Bitfield for every group to keep track of updated rank fields
-                GPUVector<unsigned int> m_scratch;                      //!< Temporary array for exclusive scan of group membership information
+                GPUVector<unsigned int> m_scan;                         //!< Temporary array for exclusive scan of group membership information
 
                 GPUVector<rank_element_t> m_ranks_out;                  //!< Packed ranks data
                 GPUVector<rank_element_t> m_ranks_sendbuf;              //!< Send buffer for ranks information 
