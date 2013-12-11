@@ -497,7 +497,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         unsigned int n_out;
             {
             ArrayHandle<unsigned int> d_comm_flags(m_comm.m_pdata->getCommFlags(), access_location::device, access_mode::read);
-            ArrayHandle<typename group_data::type> d_members(m_gdata->getMembersArray(), access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::group_t> d_members(m_gdata->getMembersArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::readwrite);

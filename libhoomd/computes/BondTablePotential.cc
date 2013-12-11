@@ -228,14 +228,14 @@ void BondTablePotential::computeForces(unsigned int timestep)
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const uint2 bond = m_bond_data->getMembersByIndex(i);
-        assert(bond.x < m_pdata->getN());
-        assert(bond.y < m_pdata->getN());
+        const BondData::group_t bond = m_bond_data->getMembersByIndex(i);
+        assert(bond.tag[0] < m_pdata->getN());
+        assert(bond.tag[1] < m_pdata->getN());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[bond.x];
-        unsigned int idx_b = h_rtag.data[bond.y];
+        unsigned int idx_a = h_rtag.data[bond.tag[0]];
+        unsigned int idx_b = h_rtag.data[bond.tag[1]];
         assert(idx_a < m_pdata->getN());
         assert(idx_b < m_pdata->getN());
 

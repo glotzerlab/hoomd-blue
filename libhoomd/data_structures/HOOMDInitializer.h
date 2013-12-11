@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AngleData.h"
 #include "DihedralData.h"
 #include "xmlParser.h"
+#include "BondedGroupData.h"
 
 #include <string>
 #include <vector>
@@ -219,7 +220,7 @@ class HOOMDInitializer
         std::vector< unsigned int > m_body_array;   //!< body values for all particles loaded
         std::vector< Scalar > m_charge_array;       //!< charge of the particles loaded
         std::vector< Wall > m_walls;                //!< walls loaded from the file
-        std::vector< uint2 > m_bonds;               //!< Bonds read in from the file
+        std::vector< BondData::group_t > m_bonds;   //!< Bonds read in from the file
         std::vector< unsigned int> m_bond_types;    //!< Bond types read in from the file
         std::vector< Angle > m_angles;              //!< Angle read in from the file
         std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file

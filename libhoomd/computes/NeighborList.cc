@@ -491,7 +491,7 @@ void NeighborList::addExclusionsFromBonds()
     bond_data->takeSnapshot(snapshot);
 
     // broadcast global bond list
-    std::vector<uint2> bonds;
+    std::vector<BondData::group_t> bonds;
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -510,7 +510,7 @@ void NeighborList::addExclusionsFromBonds()
     // for each bond
     for (unsigned int i = 0; i < bonds.size(); i++)
         // add an exclusion
-        addExclusion(bonds[i].x, bonds[i].y);
+        addExclusion(bonds[i].tag[0], bonds[i].tag[1]);
     }
 
 /*! After calling addExclusionsFromAngles(), all angles specified in the attached ParticleData will be added to the

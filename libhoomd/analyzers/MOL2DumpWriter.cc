@@ -170,8 +170,8 @@ void MOL2DumpWriter::writeFile(std::string fname)
         {
         for (unsigned int i = 0; i < bond_data->getN(); i++)
             {
-            uint2 b = bond_data->getMembersByIndex(i);
-            f << i+1 << " " << b.x+1 << " " << b.y+1 << " 1" << "\n";
+            BondData::group_t b = bond_data->getMembersByIndex(i);
+            f << i+1 << " " << b.tag[0]+1 << " " << b.tag[1]+1 << " 1" << "\n";
             }
         }
     else

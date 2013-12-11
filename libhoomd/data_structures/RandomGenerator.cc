@@ -393,7 +393,9 @@ boost::shared_ptr<SnapshotSystemData> RandomGenerator::getSnapshot() const
     bdata_snap.resize(m_data.m_bonds.size());
     for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)
         {
-        bdata_snap.groups[i] = make_uint2(m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b);
+        BondData::group_t bond;
+        bond.tag[0] = m_data.m_bonds[i].tag_a; bond.tag[1] = m_data.m_bonds[i].tag_b;
+        bdata_snap.groups[i] = bond;
         bdata_snap.type_id[i] = m_data.m_bonds[i].type_id;
         }
 

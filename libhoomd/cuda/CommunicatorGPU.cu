@@ -57,7 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
-#include "BondedGroupData.cuh"
 
 #include <thrust/replace.h>
 #include <thrust/device_ptr.h>
@@ -806,24 +805,10 @@ __global__ void gpu_mark_groups_kernel(
 
     if (group_idx >= n_groups) return;
 
-    typedef union
-        {
-        unsigned int tag[group_size];
-        group_t data;
-        } group_tags_t;
-
-    typedef union
-        {
-        unsigned int ranks[group_size];
-        ranks_t data;
-        } group_ranks_t;
-
     // Load group
-    group_tags_t g;
-    g.data = d_members[group_idx];
+    group_t g = d_members[group_idx];
 
-    group_ranks_t r;
-    r.data = d_group_ranks[group_idx];
+    ranks_t r = d_group_ranks[group_idx];
 
     // loop through members of group
     bool flag_send = false;
@@ -846,7 +831,7 @@ __global__ void gpu_mark_groups_kernel(
             else
                 {
                 // fill out rank for local ptls
-                r.ranks[i] = my_rank;
+                r.idx[i] = my_rank;
                 mask |= (1 << i);
                 }
             }
@@ -903,13 +888,13 @@ __global__ void gpu_mark_groups_kernel(
                     k += di.getD();
 
                 // update ranks information
-                r.ranks[i] = di(i,j,k);
+                r.idx[i] = di(i,j,k);
                 }
             }
         } // end for
 
     // write out ranks
-    d_group_ranks[group_idx] = r.data;
+    d_group_ranks[group_idx] = r;
 
     // write out bitmask
     d_rank_mask[group_idx] = mask;
@@ -1048,18 +1033,11 @@ __global__ void gpu_update_ranks_table_kernel(
 
     if (recv_idx >= n_recv) return;
 
-    typedef union
-        {
-        unsigned int ranks[group_size];
-        ranks_t data;
-        } group_ranks_t;
-   
     rank_element_t el = d_ranks_recvbuf[recv_idx];
     unsigned int tag = el.tag;
     unsigned int gidx = d_group_rtag[tag];
 
-    group_ranks_t new_ranks;
-    new_ranks.data = el.ranks;
+    ranks_t new_ranks = el.ranks;
     unsigned int mask = el.mask;
 
     for (unsigned int i = 0; i < group_size; ++i)
@@ -1068,8 +1046,8 @@ __global__ void gpu_update_ranks_table_kernel(
 
         if (update)
             {
-            group_ranks_t *r = (group_ranks_t *) &d_group_ranks[gidx];
-            r->ranks[i] = new_ranks.ranks[i];
+            unsigned int& r = d_group_ranks[gidx].idx[i];
+            r = new_ranks.idx[i];
             }
         }
     }
@@ -1099,14 +1077,14 @@ void gpu_update_ranks_table(
  */
 
 //! BondData
-template void gpu_mark_groups<2, uint2, uint2>(
+template void gpu_mark_groups<2, group_storage<2>, group_storage<2> >(
     unsigned int N,
     const unsigned int *d_comm_flags,
     unsigned int n_groups,
-    const uint2 *d_members,
+    const group_storage<2> *d_members,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
-    uint2 *d_group_ranks,
+    group_storage<2> *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
     unsigned int *d_scan,
@@ -1120,16 +1098,16 @@ template void gpu_scatter_ranks(
     unsigned int n_groups,
     const unsigned int *d_group_tag,
     const unsigned int *d_group_rtag,
-    const uint2 *d_group_ranks,
+    const group_storage<2> *d_group_ranks,
     const unsigned int *d_rank_mask,
     const unsigned int *d_scan,
-    struct rank_element<uint2> *d_out_ranks);
+    struct rank_element<group_storage<2> > *d_out_ranks);
 
 template void gpu_update_ranks_table<2>(
     unsigned int n_groups,
-    uint2 *d_group_ranks,
+    group_storage<2> *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int n_recv,
-    const rank_element<uint2> *d_ranks_recvbuf);
+    const rank_element<group_storage<2> > *d_ranks_recvbuf);
  
 #endif // ENABLE_MPI

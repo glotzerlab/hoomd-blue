@@ -436,7 +436,9 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&a, sizeof(unsigned int));
         f.read((char*)&b, sizeof(unsigned int));
 
-        m_bonds.push_back(make_uint2(a, b));
+        BondData::group_t bond;
+        bond.tag[0] = a; bond.tag[1] = b;
+        m_bonds.push_back(bond);
         m_bond_types.push_back(typ);
         }
     }

@@ -86,6 +86,34 @@ using namespace boost::python;
 //! Forward declarations
 class ParticleData;
 
+//! Storage data type for group members
+/*! We use a union to emphasize it that can contain either particle
+ * tags or particle indices or other information */
+template<unsigned int group_size>
+union group_storage
+    {
+    unsigned int tag[group_size];
+    unsigned int idx[group_size];
+    };
+
+#ifdef ENABLE_MPI
+BOOST_CLASS_IMPLEMENTATION(group_storage<2>,boost::serialization::object_serializable)
+namespace boost
+   {
+   //! Serialization functions for group data types
+   namespace serialization
+        {
+        //! Serialization of group_storage<2> (bonds)
+        template<class Archive>
+        void serialize(Archive & ar, group_storage<2> & s, const unsigned int version)
+            {
+            ar & s.tag[0];
+            ar & s.tag[1];
+            }
+        }
+    }
+#endif
+
 /*! BondedGroupData is a generic storage class for small particle groups of fixed
  *  size N=2,3,4..., such as bonds, angles or dihedrals, which form part of a molecule.
  *
@@ -93,7 +121,7 @@ class ParticleData;
  *  \tpp group_t Compact storage for n group member tags or indices, e.g. uint2,...
  *  \tpp name Name of element, i.e. bond, angle, dihedral, ..
  */
-template<unsigned int group_size, typename group_t, const char *name>
+template<unsigned int group_size, const char *name>
 class BondedGroupData : boost::noncopyable
     {
     public:
@@ -101,7 +129,7 @@ class BondedGroupData : boost::noncopyable
         enum { size = group_size } Enum;
 
         //! Group data element type
-        typedef group_t type;
+        typedef union group_storage<group_size> group_t;
 
         #ifdef ENABLE_MPI
         //! Type for storing per-member ranks
@@ -346,27 +374,6 @@ class BondedGroupData : boost::noncopyable
             }
 
     protected:
-        //! A union to access the data elements' components by index
-        typedef union
-            {
-            group_t data;
-            unsigned int tags[group_size];
-            } tags_t;
-
-        //! A union for storing group members by particle index, for fast access on the GPU
-        /*! The first n-1  entries are indices of the particles that form the bonded group,
-         * except the current particle index, the last entry stores the group type.
-         */
-        typedef union
-            {
-            struct
-                {
-                unsigned int idx[group_size-1]; //!< Indices of n-1 other group members
-                unsigned int type;              //!< Type of bonded group
-                } type_idx;
-            group_t group;                      //!< Storage as group data type
-            } pidx_group;
-
         #ifdef ENABLE_MPI
         //! Helper function to transfer bonded groups connected to a single particle
         /*! \param tag Tag of particle that moves between domains
@@ -441,7 +448,7 @@ void export_BondedGroupData(std::string name);
 
 //! Define BondData
 extern char name_bond_data[];
-typedef BondedGroupData<2, uint2, name_bond_data> BondData;
+typedef BondedGroupData<2, name_bond_data> BondData;
 
 #if 0
 //! Define AngleData

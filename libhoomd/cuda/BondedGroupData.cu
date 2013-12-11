@@ -78,32 +78,16 @@ __global__ void gpu_count_groups_kernel(
     unsigned int group_idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (group_idx >= n_groups) return;
    
-    typedef union
-        {
-        unsigned int tag[group_size];
-        group_t g;
-        } tag_t;
+    group_t g = d_group_table[group_idx];
 
-    tag_t group;
-    group.g = d_group_table[group_idx];
-
-    typedef union
-        {
-        struct
-            {
-            unsigned int idx[group_size - 1];
-            unsigned int type;
-            } idx_type;
-        group_t data;
-        } pidx_group;
-
-    pidx_group p;
-    p.idx_type.type = d_group_type[group_idx];
+    group_t p;
+    // last element = group type
+    p.idx[group_size-1] = d_group_type[group_idx];
 
     #pragma unroll
     for (unsigned int i = 0; i < group_size; ++i)
         {
-        unsigned int tag_i = group.tag[i];
+        unsigned int tag_i = g.tag[i];
         unsigned int pidx_i = d_rtag[tag_i];
 
         // construct compact group representation, excluding particle index i
@@ -112,13 +96,13 @@ __global__ void gpu_count_groups_kernel(
         for (unsigned int k = 0; k < group_size; ++k)
             {
             if (i == k) continue;
-            unsigned int tag_k = group.tag[k];
+            unsigned int tag_k = g.tag[k];
             unsigned int pidx_k = d_rtag[tag_k];
-            p.idx_type.idx[j++] = pidx_k;
+            p.idx[j++] = pidx_k;
             }
 
         // write out to temporary array
-        d_scratch_g[i*n_groups+group_idx] = p.data;
+        d_scratch_g[i*n_groups+group_idx] = p;
         d_scratch_idx[i*n_groups+group_idx] = pidx_i;
 
         // atomically increment number of groups
@@ -239,10 +223,10 @@ void gpu_update_group_table(
  */
 
 //! BondData
-template void gpu_update_group_table<2, uint2>(
+template void gpu_update_group_table<2>(
     const unsigned int n_groups,
     const unsigned int N,
-    const uint2 *d_group_table,
+    const union group_storage<2> *d_group_table,
     const unsigned int *d_group_type,
     const unsigned int *d_rtag,
     unsigned int *d_n_groups,
@@ -250,7 +234,7 @@ template void gpu_update_group_table<2, uint2>(
     unsigned int *d_condition,
     unsigned int next_flag,
     unsigned int &flag,
-    uint2 *d_pidx_group_table,
+    union group_storage<2> *d_pidx_group_table,
     const unsigned int pidx_group_table_pitch,
     cached_allocator& alloc
     );

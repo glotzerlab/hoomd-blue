@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "ParticleData.cuh"
+#include "BondedGroupData.cuh"
 
 #include "cached_allocator.h"
 #include "Index1D.h"

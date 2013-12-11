@@ -264,11 +264,11 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // loop over all bonds and write them out
     for (unsigned int i = 0; i < bond_data->getN(); i++)
         {
-        uint2 bond = bond_data->getMembersByIndex(i);
+        BondData::group_t bond = bond_data->getMembersByIndex(i);
         unsigned int type = bond_data->getTypeByIndex(i);
         f.write((char*)&type, sizeof(unsigned int));
-        f.write((char*)&bond.x, sizeof(unsigned int));
-        f.write((char*)&bond.y, sizeof(unsigned int));
+        f.write((char*)&bond.tag[0], sizeof(unsigned int));
+        f.write((char*)&bond.tag[1], sizeof(unsigned int));
         }
     }
 

@@ -156,10 +156,10 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
         {
-        const GPUArray<uint2>& gpu_bond_list = this->m_bond_data->getGPUTable();
+        const GPUArray<typename BondData::group_t>& gpu_bond_list = this->m_bond_data->getGPUTable();
         const Index2D& gpu_table_indexer = this->m_bond_data->getGPUTableIndexer();
 
-        ArrayHandle<uint2> d_gpu_bondlist(gpu_bond_list, access_location::device, access_mode::read);
+        ArrayHandle<typename BondData::group_t> d_gpu_bondlist(gpu_bond_list, access_location::device, access_mode::read);
         ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNGroupsArray(),
                                                  access_location::device, access_mode::read);
 

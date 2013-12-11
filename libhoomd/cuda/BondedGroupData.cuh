@@ -56,9 +56,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cached_allocator.h"
 
+#ifndef __BONDED_GROUP_DATA_CUH__
+#define __BONDED_GROUP_DATA_CUH__
+
 #ifdef NVCC
 //! Sentinel value
 const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
+
+template<unsigned int group_size>
+union group_storage
+    {
+    unsigned int tag[group_size]; // access 'tags'
+    unsigned int idx[group_size]; // access 'indices'
+    };
+#else
+template<unsigned int group_size>
+union group_storage;
 #endif
 
 template<unsigned int group_size, typename group_t>
@@ -77,3 +90,4 @@ void gpu_update_group_table(
     const unsigned int pidx_group_table_pitch,
     cached_allocator& alloc
     );
+#endif // __BONDED_GROUP_DATA_CUH__

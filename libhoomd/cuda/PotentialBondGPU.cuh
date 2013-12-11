@@ -55,6 +55,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include "TextureTools.h"
 
+#include "BondedGroupData.cuh"
+
 #ifdef WIN32
 #include <cassert>
 #else
@@ -81,7 +83,7 @@ struct bond_args_t
               const Scalar *_d_charge,
               const Scalar *_d_diameter,
               const BoxDim& _box,
-              const uint2 *_d_gpu_bondlist,
+              const group_storage<2> *_d_gpu_bondlist,
               const Index2D & _gpu_table_indexer,
               const unsigned int *_d_gpu_n_bonds,
               const unsigned int _n_bond_types,
@@ -112,7 +114,7 @@ struct bond_args_t
     const Scalar *d_charge;            //!< particle charges
     const Scalar *d_diameter;          //!< particle diameters
     const BoxDim& box;            //!< Simulation box in GPU format
-    const uint2 *d_gpu_bondlist;       //!< List of bonds stored on the GPU
+    const group_storage<2> *d_gpu_bondlist;       //!< List of bonds stored on the GPU
     const Index2D& gpu_table_indexer;  //!< Indexer of 2D bond list
     const unsigned int *d_gpu_n_bonds; //!< List of number of bonds stored on the GPU
     const unsigned int n_bond_types;   //!< Number of bond types in the simulation
@@ -162,7 +164,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
                                                const Scalar *d_charge,
                                                const Scalar *d_diameter,
                                                const BoxDim box,
-                                               const uint2 *blist,
+                                               const group_storage<2> *blist,
                                                const Index2D blist_idx,
                                                const unsigned int *n_bonds_list,
                                                const unsigned int n_bond_type,
@@ -221,10 +223,10 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         {
         // MEM TRANSFER: 8 bytes
         // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint2 cur_bond = blist[blist_idx(idx, bond_idx)];
+        volatile union group_storage<2> cur_bond = blist[blist_idx(idx, bond_idx)];
 
-        int cur_bond_idx = cur_bond.x;
-        int cur_bond_type = cur_bond.y;
+        int cur_bond_idx = cur_bond.idx[0];
+        int cur_bond_type = cur_bond.idx[1];
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
         Scalar4 neigh_postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_bond_idx);

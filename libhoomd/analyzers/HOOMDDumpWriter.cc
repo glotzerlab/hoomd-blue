@@ -416,9 +416,9 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         // loop over all bonds and write them out
         for (unsigned int i = 0; i < bdata_snapshot.groups.size(); i++)
             {
-            uint2 bond = bdata_snapshot.groups[i];
+            BondData::group_t bond = bdata_snapshot.groups[i];
             unsigned int bond_type = bdata_snapshot.type_id[i];
-            f << bond_data->getNameByType(bond_type) << " " << bond.x << " " << bond.y << "\n";
+            f << bond_data->getNameByType(bond_type) << " " << bond.tag[0] << " " << bond.tag[1] << "\n";
             }
 
         f << "</bond>" << "\n";
