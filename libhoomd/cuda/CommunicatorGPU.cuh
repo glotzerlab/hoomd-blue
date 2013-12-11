@@ -74,46 +74,16 @@ enum gpu_send_flags
     send_down = 32
     };
 
-//! List of valid edges of the local simulation box
-enum gpu_edge_flags
+template<typename ranks_t>
+struct rank_element
     {
-    edge_east_north = 0 ,
-    edge_east_south,
-    edge_east_up,
-    edge_east_down,
-    edge_west_north,
-    edge_west_south,
-    edge_west_up,
-    edge_west_down,
-    edge_north_up,
-    edge_north_down,
-    edge_south_up,
-    edge_south_down
+    ranks_t ranks;
+    unsigned int mask;
+    unsigned int tag;
     };
-
-//! List of valid faces of the local simulation box
-enum gpu_face_flags
-    {
-    face_east = 0,
-    face_west,
-    face_north,
-    face_south,
-    face_up,
-    face_down
-    };
-
-//! List of valid corners of the local simulation box
-enum gpu_corner_flags
-    {
-    corner_east_north_up = 0,
-    corner_east_north_down,
-    corner_east_south_up,
-    corner_east_south_down,
-    corner_west_north_up,
-    corner_west_north_down,
-    corner_west_south_up,
-    corner_west_south_down
-    };
+#else
+template<typename ranks_t>
+struct rank_element;
 #endif
 
 //! Mark particles that have left the local box for sending
@@ -265,8 +235,30 @@ void gpu_mark_groups(
     ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
+    unsigned int *d_scan,
+    unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
-    bool incomplete);
+    bool incomplete,
+    mgpu::ContextPtr mgpu_context);
 
+//! Compact rank information for groups that have been marked for sending
+template<typename ranks_t, typename rank_element_t>
+void gpu_scatter_ranks(
+    unsigned int n_groups,
+    const unsigned int *d_group_tag,
+    const unsigned int *d_group_rtag,
+    const ranks_t *d_group_ranks,
+    const unsigned int *d_rank_mask,
+    const unsigned int *d_scan,
+    rank_element_t *d_out_ranks);
+
+template<unsigned int group_size, typename ranks_t, typename rank_element_t>
+void gpu_update_ranks_table(
+    unsigned int n_groups,
+    ranks_t *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int n_recv,
+    const rank_element_t *d_ranks_recvbuf);
+ 
 #endif // ENABLE_MPI

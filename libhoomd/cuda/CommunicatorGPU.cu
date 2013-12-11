@@ -922,6 +922,14 @@ __global__ void gpu_mark_groups_kernel(
         }
     }
 
+struct gpu_select_group_not_local : thrust::unary_function<unsigned int, bool>
+    {
+    __device__ bool operator() (unsigned int rtag) const
+        {
+        return rtag == GROUP_NOT_LOCAL;
+        }
+    };
+
 /*! \param N Number of particles
     \param d_comm_flags Array of communication flags
     \param n_groups Number of local groups
@@ -945,9 +953,12 @@ void gpu_mark_groups(
     ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
+    unsigned int *d_scan,
+    unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
-    bool incomplete)
+    bool incomplete,
+    mgpu::ContextPtr mgpu_context)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
@@ -964,8 +975,125 @@ void gpu_mark_groups(
         di,
         my_pos,
         incomplete);
+
+    thrust::device_ptr<unsigned int> group_rtag_ptr(d_group_rtag);
+    thrust::device_ptr<const unsigned int> group_tag_ptr(d_group_tag);
+
+    // scan over marked groups
+    mgpu::Scan<mgpu::MgpuScanTypeExc>(
+        thrust::make_transform_iterator(
+            thrust::make_permutation_iterator(group_rtag_ptr, group_tag_ptr), gpu_select_group_not_local()),
+        n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(), (unsigned int *)NULL, &n_out, d_scan, *mgpu_context);
     }
 
+template<typename ranks_t, typename rank_element_t>
+__global__ void gpu_scatter_ranks_kernel(
+    unsigned int n_groups,
+    const unsigned int *d_group_tag,
+    const unsigned int *d_group_rtag,
+    const ranks_t *d_group_ranks,
+    const unsigned int *d_rank_mask,
+    const unsigned int *d_scan,
+    rank_element_t *d_out_ranks)
+    {
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (group_idx >= n_groups) return;
+
+    unsigned int tag = d_group_tag[group_idx];
+    bool send = d_group_rtag[tag] == GROUP_NOT_LOCAL;
+
+    if (send)
+        {
+        unsigned int out_idx = d_scan[group_idx];
+        rank_element_t el;
+        el.ranks = d_group_ranks[group_idx];
+        el.mask = d_rank_mask[group_idx];
+        el.tag = tag;
+        d_out_ranks[out_idx] = el;
+        }
+    }
+
+template<typename ranks_t, typename rank_element_t>
+void gpu_scatter_ranks(
+    unsigned int n_groups,
+    const unsigned int *d_group_tag,
+    const unsigned int *d_group_rtag,
+    const ranks_t *d_group_ranks,
+    const unsigned int *d_rank_mask,
+    const unsigned int *d_scan,
+    rank_element_t *d_out_ranks)
+    {
+    unsigned int block_size = 512;
+    unsigned int n_blocks = n_groups/block_size + 1;
+
+    gpu_scatter_ranks_kernel<<<block_size, n_blocks>>>(n_groups,
+        d_group_tag,
+        d_group_rtag,
+        d_group_ranks,
+        d_rank_mask,
+        d_scan,
+        d_out_ranks);
+    }
+
+template<unsigned int group_size, typename ranks_t, typename rank_element_t>
+__global__ void gpu_update_ranks_table_kernel(
+    unsigned int n_groups,
+    ranks_t *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int n_recv,
+    const rank_element_t *d_ranks_recvbuf
+    )
+    {
+    unsigned int recv_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (recv_idx >= n_recv) return;
+
+    typedef union
+        {
+        unsigned int ranks[group_size];
+        ranks_t data;
+        } group_ranks_t;
+   
+    rank_element_t el = d_ranks_recvbuf[recv_idx];
+    unsigned int tag = el.tag;
+    unsigned int gidx = d_group_rtag[tag];
+
+    group_ranks_t new_ranks;
+    new_ranks.data = el.ranks;
+    unsigned int mask = el.mask;
+
+    for (unsigned int i = 0; i < group_size; ++i)
+        {
+        bool update = mask & (1 << i);
+
+        if (update)
+            {
+            group_ranks_t *r = (group_ranks_t *) &d_group_ranks[gidx];
+            r->ranks[i] = new_ranks.ranks[i];
+            }
+        }
+    }
+
+template<unsigned int group_size, typename ranks_t, typename rank_element_t>
+void gpu_update_ranks_table(
+    unsigned int n_groups,
+    ranks_t *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int n_recv,
+    const rank_element_t *d_ranks_recvbuf
+    )
+    {
+    unsigned int block_size = 512;
+    unsigned int n_blocks = n_groups/block_size + 1;
+
+    gpu_update_ranks_table_kernel<group_size><<<n_blocks, block_size>>>(
+        n_groups,
+        d_group_ranks,
+        d_group_rtag,
+        n_recv,
+        d_ranks_recvbuf);
+    }
+ 
 /*
  *! Explicit template instantiations 
  */
@@ -981,8 +1109,27 @@ template void gpu_mark_groups<2, uint2, uint2>(
     uint2 *d_group_ranks,
     unsigned int *d_rank_mask,
     const unsigned int *d_rtag,
+    unsigned int *d_scan,
+    unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
-    bool incomplete);
+    bool incomplete,
+    mgpu::ContextPtr mgpu_context);
 
+template void gpu_scatter_ranks(
+    unsigned int n_groups,
+    const unsigned int *d_group_tag,
+    const unsigned int *d_group_rtag,
+    const uint2 *d_group_ranks,
+    const unsigned int *d_rank_mask,
+    const unsigned int *d_scan,
+    struct rank_element<uint2> *d_out_ranks);
+
+template void gpu_update_ranks_table<2>(
+    unsigned int n_groups,
+    uint2 *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int n_recv,
+    const rank_element<uint2> *d_ranks_recvbuf);
+ 
 #endif // ENABLE_MPI

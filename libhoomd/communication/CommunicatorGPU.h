@@ -73,42 +73,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \ingroup communication
 */
 
-//! Helper class to perform the communication tasks related to bonded groups
-template<class group_data>
-class BondedGroupCommunicatorGPU
+//! A compact storage for rank information
+template<typename ranks_t>
+struct rank_element
     {
-    public:
-        //! Constructor
-        BondedGroupCommunicatorGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<group_data> gdata);
-
-        //! Mark groups for sending
-        /*! \param incomplete If true, mark all groups that have non-local members and update local
-         *         member rank information. Otherwise, mark only groups flagged for communication
-         *         in particle data
-         * 
-         * A group is marked for sending by setting its rtag to GROUP_NOT_LOCAL, and by updating
-         * the rank information with the destination ranks (or the local ranks if incomplete=true)
-         */
-        void markGroupsForSending(bool incomplete);
-
-    private:
-        boost::shared_ptr<ParticleData> m_pdata;               //!< The particle data
-        boost::shared_ptr<group_data> m_gdata;                 //!< The group data
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
-
-        GPUVector<unsigned int> m_rank_mask;                   //!< Bitfield for every group to keep track of updated rank fields
+    ranks_t ranks;
+    unsigned int mask;
+    unsigned int tag;
     };
 
 //! Class that handles MPI communication (GPU version)
-/*! CommunicatorGPU uses a GPU optimized version of the basic Plimpton communication scheme implemented in the base
-    class Communicator.
-
-    Basically, particles are pre-sorted into face, edge and corner buffers depending whether they neighbor one, two or three
-    boxes. The full algorithm will be documented in a forthcoming publication.
-
-    This scheme guarantees that in between every of the six communication steps, no extra scanning of particle buffers needs
-    to be done and only buffer copying on the host is involved. Since for MPI, data needs to reside on the host anyway,
-    this avoids unnecessary copying of data between the GPU and the host.
+/*! CommunicatorGPU is the GPU implementation of the base communication class.
 */
 class CommunicatorGPU : public Communicator
     {
@@ -146,6 +121,40 @@ class CommunicatorGPU : public Communicator
             forceMigrate();
             }
 
+    protected:
+        //! Helper class to perform the communication tasks related to bonded groups
+        template<class group_data>
+        class GroupCommunicatorGPU
+            {
+            public:
+                typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
+
+                //! Constructor
+                GroupCommunicatorGPU(CommunicatorGPU& comm, boost::shared_ptr<group_data> gdata);
+
+                //! Migrate groups
+                /*! \param incomplete If true, mark all groups that have non-local members and update local
+                 *         member rank information. Otherwise, mark only groups flagged for communication
+                 *         in particle data
+                 * 
+                 * A group is marked for sending by setting its rtag to GROUP_NOT_LOCAL, and by updating
+                 * the rank information with the destination ranks (or the local ranks if incomplete=true)
+                 */
+                void migrateGroups(bool incomplete);
+
+            private:
+                CommunicatorGPU& m_comm;                                //!< The outer class
+                boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
+                boost::shared_ptr<group_data> m_gdata;                  //!< The group data
+
+                GPUVector<unsigned int> m_rank_mask;                    //!< Bitfield for every group to keep track of updated rank fields
+                GPUVector<unsigned int> m_scratch;                      //!< Temporary array for exclusive scan of group membership information
+
+                GPUVector<rank_element_t> m_ranks_out;                  //!< Packed ranks data
+                GPUVector<rank_element_t> m_ranks_sendbuf;              //!< Send buffer for ranks information 
+                GPUVector<rank_element_t> m_ranks_recvbuf;              //!< Recv buffer for ranks information
+            };
+
     private:
         /* General communication */
         GPUArray<unsigned int> m_begin;                //!< Begin index for every neighbor in send buf
@@ -169,7 +178,8 @@ class CommunicatorGPU : public Communicator
         GPUVector<unsigned int> m_send_keys;           //!< Destination rank for particles
 
         /* Communication of bonded groups */
-        BondedGroupCommunicatorGPU<BondData> m_bond_comm;   //!< Communication helper for bonds
+        GroupCommunicatorGPU<BondData> m_bond_comm;    //!< Communication helper for bonds
+        friend class GroupCommunicatorGPU<BondData>;
 
         /* Ghost communication */
         GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< List of ghost particles tags per stage, ordered by neighbor

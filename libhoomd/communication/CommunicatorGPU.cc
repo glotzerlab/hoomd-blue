@@ -76,7 +76,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_max_stages(1),
       m_num_stages(0),
       m_comm_mask(0),
-      m_bond_comm(m_pdata, m_sysdef->getBondData()),
+      m_bond_comm(*this, m_sysdef->getBondData()),
       m_last_flags(0)
     {
     // find out if this is a 1D decomposition
@@ -454,41 +454,63 @@ struct get_migrate_key : public std::unary_function<const unsigned int, unsigned
 
 //! Constructor
 template<class group_data>
-BondedGroupCommunicatorGPU<group_data>::BondedGroupCommunicatorGPU(boost::shared_ptr<ParticleData> pdata,
-    boost::shared_ptr<group_data> gdata)
-    : m_pdata(pdata), m_gdata(gdata), m_exec_conf(pdata->getExecConf())
+CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(CommunicatorGPU& comm, boost::shared_ptr<group_data> gdata)
+    : m_comm(comm), m_exec_conf(m_comm.m_exec_conf), m_gdata(gdata)
     {
-    GPUVector<unsigned int> rank_mask(m_exec_conf);
+    // accelerate copying of data for host MPI
+    #ifdef ENABLE_MPI_CUDA
+    bool mapped = false;
+    #else
+    bool mapped = true;
+    #endif
+
+    GPUVector<unsigned int> rank_mask(m_comm.m_exec_conf);
     m_rank_mask.swap(rank_mask);
 
+    GPUVector<unsigned int> scratch(m_comm.m_exec_conf);
+    m_scratch.swap(scratch);
+
+    GPUVector<rank_element_t> ranks_out(m_comm.m_exec_conf,mapped);
+    m_ranks_out.swap(ranks_out);
+
+    GPUVector<rank_element_t> ranks_sendbuf(m_comm.m_exec_conf);
+    m_ranks_sendbuf.swap(ranks_sendbuf);
+
     // the size of the bit field must be larger or equal the group size
-    assert(sizeof(unsigned int) >= group_data::size);
+    assert(sizeof(unsigned int)*8 >= group_data::size);
     }
 
-//! Mark groups for sending
+//! Migrate groups
 template<class group_data>
-void BondedGroupCommunicatorGPU<group_data>::markGroupsForSending(bool incomplete)
+void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incomplete)
     {
     if (m_gdata->getNGlobal())
         {
+        if (m_comm.m_prof) m_comm.m_prof->push(m_exec_conf, m_gdata->getName());
+
         // resize bitmasks
         m_rank_mask.resize(m_gdata->getN());
 
+        // resize temporary arry
+        m_scratch.resize(m_gdata->getN());
+
+        unsigned int n_out;
             {
-            ArrayHandle<unsigned int> d_comm_flags(m_pdata->getCommFlags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_comm_flags(m_comm.m_pdata->getCommFlags(), access_location::device, access_mode::read);
             ArrayHandle<typename group_data::type> d_members(m_gdata->getMembersArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rtag(m_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
 
-            Index3D di = m_pdata->getDomainDecomposition()->getDomainIndexer();
-            uint3 my_pos = di.getTriple(m_exec_conf->getRank());
+            Index3D di = m_comm.m_pdata->getDomainDecomposition()->getDomainIndexer();
+            uint3 my_pos = di.getTriple(m_comm.m_exec_conf->getRank());
 
             // mark groups that have members leaving this domain
             gpu_mark_groups<group_data::size>(
-                m_pdata->getN(),
+                m_comm.m_pdata->getN(),
                 d_comm_flags.data,
                 m_gdata->getN(),
                 d_members.data,
@@ -497,10 +519,245 @@ void BondedGroupCommunicatorGPU<group_data>::markGroupsForSending(bool incomplet
                 d_group_ranks.data,
                 d_rank_mask.data,
                 d_rtag.data,
+                d_scratch.data,
+                n_out, 
                 di,
                 my_pos,
-                incomplete);
-            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+                incomplete,
+                m_comm.m_mgpu_context);
+ 
+            if (m_comm.m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+        // resize output array
+        m_ranks_out.resize(n_out);
+
+            {
+            ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
+
+            ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::read);
+
+            ArrayHandle<rank_element_t> d_ranks_out(m_ranks_out, access_location::device, access_mode::overwrite);
+
+            ArrayHandle<unsigned int> d_scratch(m_scratch, access_location::device, access_mode::read);
+
+            // scatter groups into output arrays according to scan result (d_scratch)
+            gpu_scatter_ranks(
+                m_gdata->getN(),
+                d_group_tag.data,
+                d_group_rtag.data,
+                d_group_ranks.data,
+                d_rank_mask.data,
+                d_scratch.data,
+                d_ranks_out.data);
+
+            if (m_comm.m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+        #ifdef ENABLE_MPI_CUDA
+        #else
+        // fill host send buffers on host
+        unsigned int my_rank = m_comm.m_exec_conf->getRank();
+
+        typedef std::multimap<unsigned int, rank_element_t> map_t;
+        map_t send_map;
+
+            {
+            // access output buffers
+            ArrayHandle<rank_element_t> h_ranks_out(m_ranks_out, access_location::host, access_mode::read);
+
+            typedef union
+                {
+                typename group_data::ranks_t data;
+                unsigned int rank[group_data::size];
+                } ranks_idx_t;
+
+            for (unsigned int i = 0; i < n_out; ++i)
+                {
+                rank_element_t el = h_ranks_out.data[i];
+                ranks_idx_t r;
+                r.data = el.ranks;
+                unsigned int mask = el.mask;
+
+                for (unsigned int j = 0; j < group_data::size; ++j)
+                    {
+                    unsigned int rank = r.rank[j];
+                    bool updated = mask & (1 << j);
+                    // send out to ranks different from ours
+                    if (rank != my_rank && !updated)
+                        send_map.insert(std::make_pair(rank, el));
+                    }
+                }
+            }
+
+        // resize send buffers
+        m_ranks_sendbuf.resize(send_map.size());
+
+        #if 0
+            {
+            // access send buffers
+            ArrayHandle<rank_element_t> h_ranks_sendbuf(m_ranks_sendbuf, access_location::host, access_mode::overwrite);
+
+            // output send data sorted by rank
+            unsigned int n = 0;
+            for (map_t::iterator it = send_map.begin(); it != send_map.end(); ++it)
+                {
+                h_ranks_sendbuf.data[n] = it->second;
+                n++;
+                }
+
+            ArrayHandle<unsigned int> h_unique_neighbors(m_comm.m_unique_neighbors, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_begin(m_comm.m_begin, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_end(m_comm.m_end, access_location::host, access_mode::overwrite);
+
+            // Find start and end indices
+            for (unsigned int i = 0; i < m_comm.m_n_unique_neigh; ++i)
+                {
+                map_t::iterator lower = send_map.lower_bound(h_unique_neighbors.data[i]);
+                map_t::iterator upper = send_map.upper_bound(h_unique_neighbors.data[i]);
+                h_begin.data[i] = std::distance(send_map.begin(),lower);
+                h_end.data[i] = std::distance(send_map.begin(),upper);
+                }
+            }
+        #endif
+        #endif
+
+        /*
+         * communicate rank information
+         */
+        unsigned int n_send_groups[m_comm.m_n_unique_neigh];
+        unsigned int n_recv_groups[m_comm.m_n_unique_neigh];
+        unsigned int offs[m_comm.m_n_unique_neigh];
+        unsigned int n_recv_tot = 0;
+
+            {
+            ArrayHandle<unsigned int> h_begin(m_comm.m_begin, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_end(m_comm.m_end, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_unique_neighbors(m_comm.m_unique_neighbors, access_location::host, access_mode::read);
+
+            unsigned int send_bytes = 0;
+            unsigned int recv_bytes = 0;
+            if (m_comm.m_prof) m_comm.m_prof->push(m_exec_conf, "MPI send/recv");
+
+            // compute send counts
+            for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
+                n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
+
+            MPI_Request req[2*m_comm.m_n_unique_neigh];
+            MPI_Status stat[2*m_comm.m_n_unique_neigh];
+
+            unsigned int nreq = 0;
+
+            // loop over neighbors
+            for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
+                {
+                // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
+
+                MPI_Isend(&n_send_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_comm.m_mpi_comm, & req[nreq++]);
+                MPI_Irecv(&n_recv_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_comm.m_mpi_comm, & req[nreq++]);
+                send_bytes += sizeof(unsigned int);
+                recv_bytes += sizeof(unsigned int);
+                } // end neighbor loop
+
+            MPI_Waitall(nreq, req, stat);
+
+            // sum up receive counts
+            for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
+                {
+                if (ineigh == 0)
+                    offs[ineigh] = 0;
+                else
+                    offs[ineigh] = offs[ineigh-1] + n_recv_groups[ineigh-1];
+
+                n_recv_tot += n_recv_groups[ineigh];
+                }
+
+            if (m_comm.m_prof) m_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
+            }
+
+        // Resize receive buffer
+        m_ranks_recvbuf.resize(n_recv_tot);
+
+            {
+            ArrayHandle<unsigned int> h_begin(m_comm.m_begin, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_end(m_comm.m_end, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_unique_neighbors(m_comm.m_unique_neighbors, access_location::host, access_mode::read);
+
+            if (m_comm.m_prof) m_comm.m_prof->push(m_exec_conf,"MPI send/recv");
+
+            #ifdef ENABLE_MPI_CUDA
+            ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<rank_element_t> ranks_recvbuf_handle(m_ranks_recvbuf, access_location::device, access_mode::overwrite);
+            #else
+            ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<rank_element_t> ranks_recvbuf_handle(m_ranks_recvbuf, access_location::host, access_mode::overwrite);
+            #endif
+
+            std::vector<MPI_Request> reqs;
+            MPI_Request req;
+
+            unsigned int send_bytes = 0;
+            unsigned int recv_bytes = 0;
+
+            // loop over neighbors
+            for (unsigned int ineigh = 0; ineigh < m_comm.m_n_unique_neigh; ineigh++)
+                {
+                // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
+
+                // exchange particle data
+                if (n_send_groups[ineigh])
+                    {
+                    MPI_Isend(ranks_sendbuf_handle.data+h_begin.data[ineigh],
+                        n_send_groups[ineigh]*sizeof(rank_element_t),
+                        MPI_BYTE,
+                        neighbor,
+                        1,
+                        m_comm.m_mpi_comm,
+                        &req);
+                    reqs.push_back(req);
+                    }
+                send_bytes+= n_send_groups[ineigh]*sizeof(rank_element_t);
+
+                if (n_recv_groups[ineigh])
+                    {
+                    MPI_Irecv(ranks_recvbuf_handle.data+offs[ineigh],
+                        n_recv_groups[ineigh]*sizeof(rank_element_t),
+                        MPI_BYTE,
+                        neighbor,
+                        1,
+                        m_comm.m_mpi_comm,
+                        &req);
+                    reqs.push_back(req);
+                    }
+                recv_bytes += n_recv_groups[ineigh]*sizeof(rank_element_t);
+                }
+
+            std::vector<MPI_Status> stats(reqs.size());
+            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+
+            if (m_comm.m_prof) m_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
+            }
+
+        if (m_comm.m_prof) m_comm.m_prof->pop(m_exec_conf);
+
+            {
+            // access receive buffers
+            ArrayHandle<rank_element_t> d_ranks_recvbuf(m_ranks_recvbuf, access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
+
+            // update local rank information
+            gpu_update_ranks_table<group_data::size>(
+                m_gdata->getN(),
+                d_group_ranks.data,
+                d_group_rtag.data,
+                n_recv_tot,
+                d_ranks_recvbuf.data);
+            if (m_comm.m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
         }
     }
@@ -555,7 +812,7 @@ void CommunicatorGPU::migrateParticles()
         /*
          * Bonded group communication, determine groups to be sent
          */
-        m_bond_comm.markGroupsForSending(m_bonds_changed);
+        m_bond_comm.migrateGroups(m_bonds_changed);
 
         // fill send buffer
         m_pdata->removeParticlesGPU(m_gpu_sendbuf, m_comm_flags);
