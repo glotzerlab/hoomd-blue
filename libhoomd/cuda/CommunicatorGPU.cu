@@ -1086,7 +1086,7 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
         d_rank_mask[group_idx] = 0;
 
         // if group is no longer local, flag for removal
-        if (!is_local) d_group_rtag[el.tag] = GROUP_NOT_LOCAL;
+        if (!is_local) d_group_rtag[el.group_tag] = GROUP_NOT_LOCAL;
         }
     }
 
@@ -1106,7 +1106,7 @@ void gpu_scatter_and_mark_groups_for_removal(
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
 
-    gpu_scatter_ranks_kernel<<<block_size, n_blocks>>>(n_groups,
+    gpu_scatter_and_mark_groups_for_removal_kernel<group_size><<<block_size, n_blocks>>>(n_groups,
         d_groups,
         d_group_type,
         d_group_tag,
@@ -1153,15 +1153,14 @@ template void gpu_update_ranks_table<2>(
     unsigned int n_recv,
     const rank_element<group_storage<2> > *d_ranks_recvbuf);
  
-template<unsigned int group_size>
-void gpu_scatter_and_mark_groups_for_removal(
+template void gpu_scatter_and_mark_groups_for_removal<2>(
     unsigned int n_groups,
     const group_storage<2> *d_groups,
     const unsigned int *d_group_type,
     const unsigned int *d_group_tag,
     unsigned int *d_group_rtag,
     const group_storage<2> *d_group_ranks,
-    const unsigned int *d_rank_mask,
+    unsigned int *d_rank_mask,
     unsigned int my_rank,
     const unsigned int *d_scan,
     packed_storage<2> *d_out_groups);

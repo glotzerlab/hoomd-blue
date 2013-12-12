@@ -128,6 +128,7 @@ class CommunicatorGPU : public Communicator
             {
             public:
                 typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
+                typedef typename group_data::packed_t group_element_t;
 
                 //! Constructor
                 GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, boost::shared_ptr<group_data> gdata);
@@ -153,6 +154,10 @@ class CommunicatorGPU : public Communicator
                 GPUVector<rank_element_t> m_ranks_out;                  //!< Packed ranks data
                 GPUVector<rank_element_t> m_ranks_sendbuf;              //!< Send buffer for ranks information 
                 GPUVector<rank_element_t> m_ranks_recvbuf;              //!< Recv buffer for ranks information
+
+                GPUVector<group_element_t> m_groups_out;                //!< Packed group data
+                GPUVector<group_element_t> m_groups_sendbuf;            //!< Send buffer for groups
+                GPUVector<group_element_t> m_groups_recvbuf;            //!< Recv buffer for groups
             };
 
     private:

@@ -473,8 +473,20 @@ CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(Communic
     GPUVector<rank_element_t> ranks_out(m_gpu_comm.m_exec_conf,mapped);
     m_ranks_out.swap(ranks_out);
 
-    GPUVector<rank_element_t> ranks_sendbuf(m_gpu_comm.m_exec_conf);
+    GPUVector<rank_element_t> ranks_sendbuf(m_gpu_comm.m_exec_conf,mapped);
     m_ranks_sendbuf.swap(ranks_sendbuf);
+
+    GPUVector<rank_element_t> ranks_recvbuf(m_gpu_comm.m_exec_conf,mapped);
+    m_ranks_recvbuf.swap(ranks_sendbuf);
+
+    GPUVector<group_element_t> groups_out(m_gpu_comm.m_exec_conf,mapped);
+    m_groups_out.swap(groups_out);
+
+    GPUVector<group_element_t> groups_sendbuf(m_gpu_comm.m_exec_conf,mapped);
+    m_groups_sendbuf.swap(groups_sendbuf);
+
+    GPUVector<group_element_t> groups_recvbuf(m_gpu_comm.m_exec_conf,mapped);
+    m_groups_recvbuf.swap(groups_sendbuf);
 
     // the size of the bit field must be larger or equal the group size
     assert(sizeof(unsigned int)*8 >= group_data::size);
@@ -742,6 +754,31 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 n_recv_tot,
                 d_ranks_recvbuf.data);
             if (m_gpu_comm.m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+            {
+            ArrayHandle<typename group_data::group_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_type(m_gdata->getTypesArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::read);
+            ArrayHandle<group_element_t> d_groups_out(m_groups_out, access_location::device, access_mode::overwrite);
+
+            // scatter groups to be sent into output buffer, mark groups that have no local members for removal
+            gpu_scatter_and_mark_groups_for_removal<group_data::size>(
+                m_gdata->getN(),
+                d_groups.data,
+                d_group_type.data,
+                d_group_tag.data,
+                d_group_rtag.data,
+                d_group_ranks.data,
+                d_rank_mask.data,
+                m_exec_conf->getRank(),
+                d_scan.data,
+                d_groups_out.data);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
         }
     }
