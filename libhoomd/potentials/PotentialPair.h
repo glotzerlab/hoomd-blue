@@ -606,7 +606,7 @@ CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timeste
 #endif
 
 
-//! Friend function to compute the force and energy between a pair of particles.
+//! function to compute the force and energy between a pair of particles.
 template< class evaluator >
 void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const unsigned int& tag1,
                                                                         const unsigned int& tag2,
@@ -652,8 +652,8 @@ void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const un
 
     // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
     Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-    Scalar3 dx = box.minImage(pi) - box.minImage(pj);
-
+    Scalar3 dx = pi-pj; //box.minImage(pi) - box.minImage(pj);
+    
     // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
     unsigned int typej = __scalar_as_int(h_pos.data[j].w);
     assert(typej < m_pdata->getNTypes());
@@ -667,9 +667,9 @@ void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const un
         qj = h_charge.data[j];
 
     // apply periodic boundary conditions
-    //printf("pj.x = %f, pj.y = %f, pj.z = %f \n", pj.x, pj.y, pj.z);
+    // printf("dx.x = %f, dx.y = %f, dx.z = %f \n", dx.x, dx.y, dx.z);
     dx = box.minImage(dx);
-    //printf("pi.x = %f, pi.y = %f, pi.z = %f \n", pi.x, pi.y, pi.z);
+    // printf("pi.x = %f, pi.y = %f, pi.z = %f \n", dx.x, dx.y, dx.z);
     // calculate r_ij squared (FLOPS: 5)
     Scalar rsq = dot(dx, dx);
 
@@ -705,7 +705,10 @@ void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const un
 
     bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
     
-    //printf("rsq = %f, rcutsq= %f, u = %f \n",rsq, rcutsq, pair_eng);
+//    if(rsq > rcutsq)
+//    {
+//        printf("rsq = %f, rcutsq= %f, u = %f \n",rsq, rcutsq, pair_eng);
+//    }
     
     if (evaluated)
         {
