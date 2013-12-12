@@ -895,9 +895,9 @@ __global__ void gpu_mark_groups_kernel(
 
 struct gpu_select_group : thrust::unary_function<unsigned int, unsigned int>
     {
-    __device__ bool operator() (unsigned int rtag) const
+    __device__ unsigned int operator() (unsigned int rank_mask) const
         {
-        return rtag == GROUP_NOT_LOCAL ? 1 : 0;
+        return rank_mask ? 1 : 0;
         }
     };
 
@@ -1118,6 +1118,226 @@ void gpu_scatter_and_mark_groups_for_removal(
         d_out_groups);
     }
 
+struct gpu_select_group_local : thrust::unary_function<unsigned int, unsigned int>
+    {
+    __device__ unsigned int operator() (unsigned int rtag) const
+        {
+        return (rtag != GROUP_NOT_LOCAL) ? 1 : 0;
+        }
+    };
+
+template<typename group_t, typename ranks_t>
+__global__ void gpu_remove_groups_kernel(
+    unsigned int n_groups,
+    const group_t *d_groups,
+    group_t *d_groups_alt,
+    const unsigned int *d_group_type,
+    unsigned int *d_group_type_alt,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_tag_alt,
+    const ranks_t *d_group_ranks,
+    ranks_t *d_group_ranks_alt,
+    unsigned int *d_group_rtag,
+    const unsigned int *d_tmp)
+    {
+    unsigned int group_idx = blockIdx.x*blockDim.x + threadIdx.x;
+
+    if (group_idx >= n_groups) return;
+
+    unsigned int group_tag = d_group_tag[group_idx];
+    bool keep = (d_group_rtag[group_tag] != GROUP_NOT_LOCAL);
+
+    unsigned int out_idx =  d_tmp[group_idx];
+
+    if (keep)
+        {
+        // scatter into output array
+        d_groups_alt[out_idx] = d_groups[group_idx];
+        d_group_type_alt[out_idx] = d_group_type[group_idx];
+        d_group_tag_alt[out_idx] = group_tag;
+        d_group_ranks_alt[out_idx] = d_group_ranks[group_idx];
+        
+        // rebuild rtags
+        d_group_rtag[group_tag] = out_idx;
+        }
+    }
+
+template<typename group_t, typename ranks_t>
+void gpu_remove_groups(unsigned int n_groups,
+    const group_t *d_groups,
+    group_t *d_groups_alt,
+    const unsigned int *d_group_type,
+    unsigned int *d_group_type_alt,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_tag_alt,
+    const ranks_t *d_group_ranks,
+    ranks_t *d_group_ranks_alt,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    cached_allocator& alloc,
+    mgpu::ContextPtr mgpu_context)
+    {
+    thrust::device_ptr<const unsigned int> rtag_ptr(d_group_rtag);
+    thrust::device_ptr<const unsigned int> tag_ptr(d_group_tag);
+
+    // allocate temporary memory
+    unsigned int *d_tmp = (unsigned int *)alloc.allocate(n_groups*sizeof(unsigned int));
+
+    // scan over marked groups
+    mgpu::Scan<mgpu::MgpuScanTypeExc>(
+        thrust::make_transform_iterator(
+            thrust::make_permutation_iterator(rtag_ptr, tag_ptr), gpu_select_group_local()),
+        n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(), (unsigned int *)NULL, &new_ngroups, d_tmp, *mgpu_context);
+
+    unsigned int block_size = 512;
+    unsigned int n_blocks = n_groups/block_size + 1;
+ 
+    gpu_remove_groups_kernel<<<block_size, n_blocks>>>(
+        n_groups,
+        d_groups,
+        d_groups_alt,
+        d_group_type,
+        d_group_type_alt,
+        d_group_tag,
+        d_group_tag_alt,
+        d_group_ranks,
+        d_group_ranks_alt,
+        d_group_rtag,
+        d_tmp);
+
+    alloc.deallocate((char *)d_tmp,0);
+    }
+
+template<typename packed_t, typename group_t, typename ranks_t>
+__global__ void gpu_update_groups_kernel(
+    unsigned int n_recv,
+    const packed_t *d_groups_in,
+    group_t *d_groups,
+    unsigned int *d_group_type,
+    unsigned int *d_group_tag,
+    ranks_t *d_group_ranks,
+    const unsigned int *d_group_rtag)
+    {
+    unsigned int recv_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (recv_idx >= n_recv) return;
+
+    packed_t el = d_groups_in[recv_idx];
+
+    unsigned int rtag = d_group_rtag[el.group_tag];
+    if (rtag != GROUP_NOT_LOCAL)
+        {
+        // update existing group
+        d_groups[rtag] = el.tags;
+        d_group_type[rtag] = el.type;
+        //d_group_tag[rtag] = el.group_tag;
+        d_group_ranks[rtag] = el.ranks;
+        }
+    }
+
+template<typename packed_t, typename group_t, typename ranks_t>
+__global__ void gpu_add_groups_kernel(
+    unsigned int n_recv,
+    unsigned int n_groups,
+    const packed_t *d_groups_in,
+    const unsigned int *d_scan,
+    group_t *d_groups,
+    unsigned int *d_group_type,
+    unsigned int *d_group_tag,
+    ranks_t *d_group_ranks,
+    unsigned int *d_group_rtag)
+    {
+    unsigned int recv_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (recv_idx >= n_recv) return;
+
+    packed_t el = d_groups_in[recv_idx];
+
+    unsigned int tag = el.group_tag;
+    unsigned int rtag = d_group_rtag[tag];
+    if (rtag == GROUP_NOT_LOCAL)
+        {
+        unsigned int add_idx = n_groups + d_scan[recv_idx];
+        // update existing group
+        d_groups[add_idx] = el.tags;
+        d_group_type[add_idx] = el.type;
+        d_group_tag[add_idx] = tag;
+        d_group_ranks[add_idx] = el.ranks;
+
+        // update reverse-lookup table
+        d_group_rtag[tag] = tag;
+        }
+    }
+
+template<typename packed_t>
+struct gpu_select_group_not_local : thrust::unary_function<packed_t, unsigned int>
+    {
+    //! Constructor
+    gpu_select_group_not_local(const unsigned int *_d_group_rtag)
+        : d_group_rtag(_d_group_rtag)
+        { }
+
+    __device__ unsigned int operator() (const packed_t el) const
+        {
+        return (d_group_rtag[el.group_tag] == GROUP_NOT_LOCAL) ? 1 : 0;
+        }
+
+    const unsigned int *d_group_rtag; //!< Reverse-lookup table
+    };
+
+
+template<typename packed_t, typename group_t, typename ranks_t>
+void gpu_add_groups(unsigned int n_groups,
+    unsigned int n_recv,
+    const packed_t *d_groups_in,
+    group_t *d_groups,
+    unsigned int *d_group_type,
+    unsigned int *d_group_tag,
+    ranks_t *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    cached_allocator &alloc,
+    mgpu::ContextPtr mgpu_context)
+    {
+    unsigned int block_size = 512;
+    unsigned int n_blocks = n_recv/block_size + 1;
+
+    // update locally existing groups
+    gpu_update_groups_kernel<<<n_blocks, block_size>>>(n_recv,
+        d_groups_in,
+        d_groups,
+        d_group_type,
+        d_group_tag,
+        d_group_ranks,
+        d_group_rtag);
+
+    // allocate temporary memory
+    unsigned int *d_tmp = (unsigned int *)alloc.allocate(n_groups*sizeof(unsigned int));
+
+    thrust::device_ptr<const packed_t> groups_in_ptr(d_groups_in);
+
+    unsigned int n_unique;
+
+    // scan over input groups, select those which are not already local
+    mgpu::Scan<mgpu::MgpuScanTypeExc>(
+        thrust::make_transform_iterator(groups_in_ptr, gpu_select_group_not_local<packed_t>(d_group_rtag)),
+        n_recv, (unsigned int) 0, mgpu::plus<unsigned int>(), (unsigned int *)NULL, &n_unique, d_tmp, *mgpu_context);
+
+    new_ngroups = n_groups + n_unique;
+
+    // add new groups at the end
+    gpu_add_groups_kernel<<<n_blocks, block_size>>>(n_recv,
+        n_groups,
+        d_groups_in,
+        d_tmp,
+        d_groups,
+        d_group_type,
+        d_group_tag,
+        d_group_ranks,
+        d_group_rtag);
+
+    alloc.deallocate((char *)d_tmp,0);
+    }
 
 /*
  *! Explicit template instantiations for BondData (n=2)
@@ -1164,4 +1384,31 @@ template void gpu_scatter_and_mark_groups_for_removal<2>(
     unsigned int my_rank,
     const unsigned int *d_scan,
     packed_storage<2> *d_out_groups);
+
+template void gpu_remove_groups(unsigned int n_groups,
+    const group_storage<2> *d_groups,
+    group_storage<2> *d_groups_alt,
+    const unsigned int *d_group_type,
+    unsigned int *d_group_type_alt,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_tag_alt,
+    const group_storage<2> *d_group_ranks,
+    group_storage<2> *d_group_ranks_alt,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    cached_allocator& alloc,
+    mgpu::ContextPtr mgpu_context);
+
+template void gpu_add_groups(unsigned int n_groups,
+    unsigned int n_recv,
+    const packed_storage<2> *d_groups_in,
+    group_storage<2> *d_groups,
+    unsigned int *d_group_type,
+    unsigned int *d_group_tag,
+    group_storage<2> *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    cached_allocator &alloc,
+    mgpu::ContextPtr mgpu_context);
+ 
 #endif // ENABLE_MPI

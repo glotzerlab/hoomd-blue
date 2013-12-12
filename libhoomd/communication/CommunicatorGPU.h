@@ -158,6 +158,7 @@ class CommunicatorGPU : public Communicator
                 GPUVector<group_element_t> m_groups_out;                //!< Packed group data
                 GPUVector<group_element_t> m_groups_sendbuf;            //!< Send buffer for groups
                 GPUVector<group_element_t> m_groups_recvbuf;            //!< Recv buffer for groups
+                GPUVector<group_element_t> m_groups_in;                 //!< Input buffer of unique groups
             };
 
     private:

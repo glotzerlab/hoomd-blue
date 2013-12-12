@@ -488,6 +488,9 @@ CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(Communic
     GPUVector<group_element_t> groups_recvbuf(m_gpu_comm.m_exec_conf,mapped);
     m_groups_recvbuf.swap(groups_sendbuf);
 
+    GPUVector<group_element_t> groups_in(m_gpu_comm.m_exec_conf, mapped);
+    m_groups_in.swap(groups_in);
+
     // the size of the bit field must be larger or equal the group size
     assert(sizeof(unsigned int)*8 >= group_data::size);
     }
@@ -621,7 +624,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         #endif
 
         /*
-         * communicate rank information
+         * communicate rank information (phase 1)
          */
         unsigned int n_send_groups[m_gpu_comm.m_n_unique_neigh];
         unsigned int n_recv_groups[m_gpu_comm.m_n_unique_neigh];
@@ -780,6 +783,311 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 d_groups_out.data);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
+
+        unsigned int new_ngroups;
+            {
+            // access primary arrays to read from
+            ArrayHandle<typename group_data::group_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_type(m_gdata->getTypesArray(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
+
+            // access alternate arrays to write to
+            ArrayHandle<typename group_data::group_t> d_groups_alt(m_gdata->getAltMembersArray(), access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_group_type_alt(m_gdata->getAltTypesArray(), access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_group_tag_alt(m_gdata->getAltTags(), access_location::device, access_mode::overwrite);
+            ArrayHandle<typename group_data::ranks_t> d_group_ranks_alt(m_gdata->getAltRanksArray(), access_location::device, access_mode::overwrite);
+
+            // access rtags
+            ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
+
+            // remove groups from local table
+            gpu_remove_groups(m_gdata->getN(),
+                d_groups.data,
+                d_groups_alt.data,
+                d_group_type.data,
+                d_group_type_alt.data,
+                d_group_tag.data,
+                d_group_tag_alt.data,
+                d_group_ranks.data,
+                d_group_ranks_alt.data,
+                d_group_rtag.data,
+                new_ngroups,
+                m_gpu_comm.m_cached_alloc,
+                m_gpu_comm.m_mgpu_context);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            } 
+        
+        // resize alternate arrays to number of groups
+        GPUVector<typename group_data::group_t>& alt_groups_array = m_gdata->getAltMembersArray();
+        GPUVector<unsigned int>& alt_group_type_array = m_gdata->getAltTypesArray();
+        GPUVector<unsigned int>& alt_group_tag_array = m_gdata->getAltTags();
+        GPUVector<typename group_data::ranks_t>& alt_group_ranks_array = m_gdata->getAltRanksArray();
+
+        assert(new_ngroups <= m_gdata->getN());
+        alt_groups_array.resize(new_ngroups);
+        alt_group_type_array.resize(new_ngroups);
+        alt_group_tag_array.resize(new_ngroups);
+        alt_group_ranks_array.resize(new_ngroups);
+
+        // make alternate arrays current
+        m_gdata->swapMemberArrays();
+        m_gdata->swapTypeArrays();
+        m_gdata->swapTagArrays();
+        m_gdata->swapRankArrays();
+
+        #ifdef ENABLE_MPI_CUDA
+        #else
+        // fill host send buffers on host
+        typedef std::multimap<unsigned int, group_element_t> group_map_t;
+        group_map_t group_send_map;
+
+            {
+            // access output buffers
+            ArrayHandle<group_element_t> h_groups_out(m_groups_out, access_location::host, access_mode::read);
+
+            // access rank output buffer
+            ArrayHandle<rank_element_t> h_ranks_out(m_ranks_out, access_location::host, access_mode::read);
+
+            for (unsigned int i = 0; i < n_out; ++i)
+                {
+                group_element_t el_g = h_groups_out.data[i];
+                typename group_data::group_t t = el_g.tags;
+                rank_element_t el_r = h_ranks_out.data[i];
+                typename group_data::ranks_t r = el_r.ranks;
+                unsigned int mask = el_r.mask;
+
+                for (unsigned int j = 0; j < group_data::size; ++j)
+                    {
+                    unsigned int rank = r.idx[j];
+                    bool updated = mask & (1 << j);
+                    // send only if rank has been updated by us
+                    if (updated)
+                        group_send_map.insert(std::make_pair(rank, el_g));
+                    }
+                }
+            }
+
+        // resize send buffers
+        m_groups_sendbuf.resize(group_send_map.size());
+
+            {
+            // access send buffers
+            ArrayHandle<group_element_t> h_groups_sendbuf(m_groups_sendbuf, access_location::host, access_mode::overwrite);
+
+            // output send data sorted by rank
+            unsigned int n = 0;
+            for (typename group_map_t::iterator it = group_send_map.begin(); it != group_send_map.end(); ++it)
+                {
+                h_groups_sendbuf.data[n] = it->second;
+                n++;
+                }
+
+            ArrayHandle<unsigned int> h_unique_neighbors(m_gpu_comm.m_unique_neighbors, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_begin(m_gpu_comm.m_begin, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_end(m_gpu_comm.m_end, access_location::host, access_mode::overwrite);
+
+            // Find start and end indices
+            for (unsigned int i = 0; i < m_gpu_comm.m_n_unique_neigh; ++i)
+                {
+                typename group_map_t::iterator lower = group_send_map.lower_bound(h_unique_neighbors.data[i]);
+                typename group_map_t::iterator upper = group_send_map.upper_bound(h_unique_neighbors.data[i]);
+                h_begin.data[i] = std::distance(group_send_map.begin(),lower);
+                h_end.data[i] = std::distance(group_send_map.begin(),upper);
+                }
+            }
+        #endif
+
+        /*
+         * communicate groups (phase 2)
+         */
+
+            {
+            ArrayHandle<unsigned int> h_begin(m_gpu_comm.m_begin, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_end(m_gpu_comm.m_end, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_unique_neighbors(m_gpu_comm.m_unique_neighbors, access_location::host, access_mode::read);
+
+            unsigned int send_bytes = 0;
+            unsigned int recv_bytes = 0;
+            if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->push(m_exec_conf, "MPI send/recv");
+
+            // compute send counts
+            for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
+                n_send_groups[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
+
+            MPI_Request req[2*m_gpu_comm.m_n_unique_neigh];
+            MPI_Status stat[2*m_gpu_comm.m_n_unique_neigh];
+
+            unsigned int nreq = 0;
+
+            // loop over neighbors
+            for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
+                {
+                // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
+
+                MPI_Isend(&n_send_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
+                MPI_Irecv(&n_recv_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
+                send_bytes += sizeof(unsigned int);
+                recv_bytes += sizeof(unsigned int);
+                } // end neighbor loop
+
+            MPI_Waitall(nreq, req, stat);
+
+            // sum up receive counts
+            for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
+                {
+                if (ineigh == 0)
+                    offs[ineigh] = 0;
+                else
+                    offs[ineigh] = offs[ineigh-1] + n_recv_groups[ineigh-1];
+
+                n_recv_tot = 0;
+                n_recv_tot += n_recv_groups[ineigh];
+                }
+
+            if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
+            }
+
+        // Resize receive buffer
+        m_groups_recvbuf.resize(n_recv_tot);
+
+            {
+            ArrayHandle<unsigned int> h_begin(m_gpu_comm.m_begin, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_end(m_gpu_comm.m_end, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_unique_neighbors(m_gpu_comm.m_unique_neighbors, access_location::host, access_mode::read);
+
+            if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->push(m_exec_conf,"MPI send/recv");
+
+            #ifdef ENABLE_MPI_CUDA
+            ArrayHandle<group_element_t> groups_sendbuf_handle(m_groups_sendbuf, access_location::device, access_mode::read);
+            ArrayHandle<group_element_t> groups_recvbuf_handle(m_groups_recvbuf, access_location::device, access_mode::overwrite);
+            #else
+            ArrayHandle<group_element_t> groups_sendbuf_handle(m_groups_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<group_element_t> groups_recvbuf_handle(m_groups_recvbuf, access_location::host, access_mode::overwrite);
+            #endif
+
+            std::vector<MPI_Request> reqs;
+            MPI_Request req;
+
+            unsigned int send_bytes = 0;
+            unsigned int recv_bytes = 0;
+
+            // loop over neighbors
+            for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ineigh++)
+                {
+                // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
+
+                // exchange particle data
+                if (n_send_groups[ineigh])
+                    {
+                    MPI_Isend(groups_sendbuf_handle.data+h_begin.data[ineigh],
+                        n_send_groups[ineigh]*sizeof(group_element_t),
+                        MPI_BYTE,
+                        neighbor,
+                        1,
+                        m_gpu_comm.m_mpi_comm,
+                        &req);
+                    reqs.push_back(req);
+                    }
+                send_bytes+= n_send_groups[ineigh]*sizeof(group_element_t);
+
+                if (n_recv_groups[ineigh])
+                    {
+                    MPI_Irecv(groups_recvbuf_handle.data+offs[ineigh],
+                        n_recv_groups[ineigh]*sizeof(group_element_t),
+                        MPI_BYTE,
+                        neighbor,
+                        1,
+                        m_gpu_comm.m_mpi_comm,
+                        &req);
+                    reqs.push_back(req);
+                    }
+                recv_bytes += n_recv_groups[ineigh]*sizeof(group_element_t);
+                }
+
+            std::vector<MPI_Status> stats(reqs.size());
+            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+
+            if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
+            }
+
+        if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf);
+
+        unsigned int n_recv_unique = 0;
+        #ifdef ENABLE_MPI_CUDA
+        #else
+            {
+            ArrayHandle<group_element_t> h_groups_recvbuf(m_groups_recvbuf, access_location::host, access_mode::read);
+
+            // use a std::map, i.e. single-key, to filter out duplicate groups in input buffer
+            typedef std::map<unsigned int, group_element_t> recv_map_t;
+            recv_map_t recv_map;
+
+            for (unsigned int recv_idx = 0; recv_idx < n_recv_tot; recv_idx++)
+                {
+                group_element_t el = h_groups_recvbuf.data[recv_idx];
+                unsigned int tag= el.group_tag;
+                recv_map.insert(std::make_pair(tag, el));
+                }
+
+            // resize input array of unique groups
+            m_groups_in.resize(recv_map.size());
+
+            // write out unique groups
+            ArrayHandle<group_element_t> h_groups_in(m_groups_in, access_location::host, access_mode::overwrite);
+            for (typename recv_map_t::iterator it = recv_map.begin(); it != recv_map.end(); ++it)
+                h_groups_in.data[n_recv_unique++] = it->second;
+            }
+        #endif
+
+        unsigned int old_ngroups = m_gdata->getN();
+        new_ngroups = old_ngroups + n_recv_unique;
+
+        // resize group arrays to accomodate additional groups (there can still be duplicates with local groups)
+        GPUVector<typename group_data::group_t>& groups_array = m_gdata->getMembersArray();
+        GPUVector<unsigned int>& group_type_array = m_gdata->getTypesArray();
+        GPUVector<unsigned int>& group_tag_array = m_gdata->getTags();
+        GPUVector<typename group_data::ranks_t>& group_ranks_array = m_gdata->getRanksArray();
+
+        assert(new_ngroups <= m_gdata->getN());
+        groups_array.resize(new_ngroups);
+        group_type_array.resize(new_ngroups);
+        group_tag_array.resize(new_ngroups);
+        group_ranks_array.resize(new_ngroups);
+
+            {
+            ArrayHandle<group_element_t> d_groups_in(m_groups_in, access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::group_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_group_type(m_gdata->getTypesArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
+
+            // add new groups, updating groups that are already present locally
+            gpu_add_groups(old_ngroups,
+                n_recv_unique,
+                d_groups_in.data,
+                d_groups.data,
+                d_group_type.data,
+                d_group_tag.data,
+                d_group_ranks.data,
+                d_group_rtag.data,
+                new_ngroups,
+                m_gpu_comm.m_cached_alloc,
+                m_gpu_comm.m_mgpu_context);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+            }
+
+        // resize arrays to final size
+        groups_array.resize(new_ngroups);
+        group_type_array.resize(new_ngroups);
+        group_tag_array.resize(new_ngroups);
+        group_ranks_array.resize(new_ngroups);
+
+        // indicate that bond table has changed
+        m_gdata->setDirty();
         }
     }
 

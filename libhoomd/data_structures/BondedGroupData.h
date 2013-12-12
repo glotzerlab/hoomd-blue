@@ -284,12 +284,41 @@ class BondedGroupData : boost::noncopyable
             }
         #endif
 
+        //! Return group table (const)
+        GPUVector<group_t>& getMembersArray()
+            {
+            return m_groups;
+            }
+
+        //! Return group table (const)
+        GPUVector<unsigned int>& getTypesArray()
+            {
+            return m_group_type;
+            }
+
+        //! Return list of group tags (const)
+        GPUVector<unsigned int>& getTags()
+            {
+            return m_group_tag;
+            }
+
+        //! Return reverse-lookup table (group tag-> group index) (const)
+        GPUVector<unsigned int>& getRTags()
+            {
+            return m_group_rtag;
+            }
+
+        #ifdef ENABLE_MPI
+        //! Return auxillary array of member particle ranks (const)
+        GPUVector<ranks_t>& getRanksArray()
+            {
+            return m_group_ranks;
+            }
+        #endif
+
         /* 
          * Alternate arrays used for reordering data
          * \sa ParticleData
-         *
-         * \note The only method to modify the size of the group table is by
-         * swapping in a new version of the group data.
          *
          * The alternate arrays are returned as non-const versions
          * to enable resizing the underlying GPUVectors before swapping.
@@ -343,7 +372,7 @@ class BondedGroupData : boost::noncopyable
             }
 
         //! Swap group tag arrays
-        void swapTagArrrays()
+        void swapTagArrays()
             {
             assert(!m_group_tag_alt.isNull());
             m_group_tag.swap(m_group_tag_alt);
@@ -425,6 +454,12 @@ class BondedGroupData : boost::noncopyable
             return m_group_num_change_signal.connect(func);
             }
 
+        //! Set a flag to trigger rebuild of index table
+        void setDirty()
+            {
+            m_groups_dirty = true;
+            }
+
     protected:
         #ifdef ENABLE_MPI
         //! Helper function to transfer bonded groups connected to a single particle
@@ -470,12 +505,6 @@ class BondedGroupData : boost::noncopyable
 
         //! Initialize internal memory
         void initialize();
-
-        //! Set a flag to trigger rebuild of index table
-        void setDirty()
-            {
-            m_groups_dirty = true;
-            }
 
         //! Helper function to rebuild lookup by index table
         void rebuildGPUTable();

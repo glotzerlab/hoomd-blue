@@ -272,4 +272,32 @@ void gpu_scatter_and_mark_groups_for_removal(
     const unsigned int *d_scan,
     packed_t *d_out_groups);
 
+template<typename group_t, typename ranks_t>
+void gpu_remove_groups(unsigned int n_groups,
+    const group_t *d_groups,
+    group_t *d_groups_alt,
+    const unsigned int *d_group_type,
+    unsigned int *d_group_type_alt,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_tag_alt,
+    const ranks_t *d_group_ranks,
+    ranks_t *d_group_ranks_alt,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    cached_allocator& alloc,
+    mgpu::ContextPtr mgpu_context);
+
+template<typename packed_t, typename group_t, typename ranks_t>
+void gpu_add_groups(unsigned int n_groups,
+    unsigned int n_recv,
+    const packed_t *d_groups_in,
+    group_t *d_groups,
+    unsigned int *d_group_type,
+    unsigned int *d_group_tag,
+    ranks_t *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    cached_allocator &alloc,
+    mgpu::ContextPtr mgpu_context);
+
 #endif // ENABLE_MPI
