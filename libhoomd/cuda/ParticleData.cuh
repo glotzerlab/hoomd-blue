@@ -123,13 +123,6 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     mgpu::ContextPtr mgpu_context,
                     cached_allocator& alloc);
 
-//! Update reverse-lookup tabs
-void gpu_pdata_update_rtags(
-    const unsigned int *d_tag,
-    unsigned int *d_rtag,
-    const unsigned int N,
-    cached_allocator& alloc);
-
 //! Update particle data with new particles
 void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     const unsigned int num_add_ptls,

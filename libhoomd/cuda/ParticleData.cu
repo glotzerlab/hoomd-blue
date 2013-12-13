@@ -149,6 +149,9 @@ __global__ void gpu_scatter_particle_data_kernel(
 
         // reset communication flags
         d_comm_flags[idx] = 0;
+
+        // reset rtag
+        d_rtag[p.tag] = NOT_LOCAL;
         }
     else
         {
@@ -160,7 +163,11 @@ __global__ void gpu_scatter_particle_data_kernel(
         d_image_alt[scan_keep] = d_image[idx];
         d_body_alt[scan_keep] = d_body[idx];
         d_orientation_alt[scan_keep] = d_orientation[idx];
-        d_tag_alt[scan_keep] = d_tag[idx];
+        unsigned int tag = d_tag[idx];
+        d_tag_alt[scan_keep] = tag;
+
+        // update rtag
+        d_rtag[tag] = scan_keep;
         }
 
     }
@@ -276,21 +283,6 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     // return elements written to output stream
     return n_out;
     }
-
-void gpu_pdata_update_rtags(
-    const unsigned int *d_tag,
-    unsigned int *d_rtag,
-    const unsigned int N,
-    cached_allocator& alloc)
-    {
-    thrust::device_ptr<const unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-
-    // update rtags
-    thrust::counting_iterator<unsigned int> idx(0);
-    thrust::scatter(thrust::cuda::par(alloc), idx, idx + N, tag_ptr, rtag_ptr);
-    }
-
 
 //! A converter from pdata_element to a tuple of tag and a tuple of pdata entries
 /*! Writes the tag into the rtag table at the same time

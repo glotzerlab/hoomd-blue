@@ -582,6 +582,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     // set ghost exchange flags for position
     CommFlags flags(0);
     flags[comm_flag::position] = 1;
+    flags[comm_flag::tag] = 1;
     comm->setFlags(flags);
 
     // exchange ghosts
@@ -2423,6 +2424,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
     flags[comm_flag::orientation] = 1;
     flags[comm_flag::charge] = 1;
     flags[comm_flag::diameter] = 1;
+    flags[comm_flag::tag] = 1;
     comm->setFlags(flags);
 
     // reset numbers of ghosts

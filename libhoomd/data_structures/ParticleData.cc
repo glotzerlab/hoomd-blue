@@ -855,9 +855,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 h_rtag.data[tag] = NOT_LOCAL;
             }
 
-        // allocate particle data such that we can accomodate the particles (only if necessary)
-        if (m_max_nparticles < m_nparticles)
-            allocate(m_nparticles);
+        // allocate particle data such that we can accomodate the particles
+        allocate(m_nparticles);
 
         // we have to allocate even if the number of particles on a processor
         // is zero, so that the arrays can be resized later
@@ -1189,12 +1188,12 @@ unsigned int ParticleData::getOwnerRank(unsigned int tag) const
 
     if (n_found == 0)
         {
-        m_exec_conf->msg->error() << endl << "Could not find particle " << tag << " on any processor." << endl << endl;
+        m_exec_conf->msg->error() << "Could not find particle " << tag << " on any processor." << endl << endl;
         throw std::runtime_error("Error accessing particle data.");
         }
     else if (n_found > 1)
        {
-        m_exec_conf->msg->error() << endl << "Found particle " << tag << " on multiple processors." << endl << endl;
+        m_exec_conf->msg->error() << "Found particle " << tag << " on multiple processors." << endl << endl;
         throw std::runtime_error("Error accessing particle data.");
        }
 
@@ -2237,14 +2236,14 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
         ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
 
         ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_comm_flags_out(comm_flags, access_location::device, access_mode::overwrite);
 
         // Access reverse-lookup table
-        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
 
             {
             // Access output array
             ArrayHandle<pdata_element> d_out(out, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_comm_flags_out(comm_flags, access_location::device, access_mode::overwrite);
 
             n_out = gpu_pdata_remove(getN(),
                            d_pos.data,
@@ -2299,14 +2298,6 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
     swapBodies();
     swapOrientations();
     swapTags();
-
-        {
-        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
-
-        // update reverse-lookup table
-        gpu_pdata_update_rtags(d_tag.data, d_rtag.data, getN(), m_cached_alloc);
-        }
 
     // notify subscribers
     notifyParticleSort();

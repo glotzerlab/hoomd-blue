@@ -333,7 +333,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
         tag = getNGlobal();
 
         // add new reverse-lookup tag
-        assert(m_bond_rtag.size() == m_bonds.size());
+        assert(m_group_rtag.size() == m_groups.size());
         if (is_local)
             m_group_rtag.push_back(getN());
         else
@@ -485,7 +485,7 @@ void BondedGroupData<group_size, Group, name>::removeBondedGroup(unsigned int ta
                       MPI_SUM,
                       m_exec_conf->getMPICommunicator());
 
-        assert(res <= group_size);
+        assert((unsigned int) res <= group_size);
         is_available = res;
         }
     #endif
