@@ -359,7 +359,8 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
                                               Scalar external_virial_xz,
                                               Scalar external_virial_yy,
                                               Scalar external_virial_yz,
-                                              Scalar external_virial_zz)
+                                              Scalar external_virial_zz,
+                                              bool twod)
     {
     Scalar final_sum[6];
 
@@ -409,8 +410,7 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
         // fill out the GPUArray
         // we have thus far calculated the sum of the kinetic part of the pressure tensor
         // and the virial part, the definition includes an inverse factor of the box volume
-        Scalar3 L = box.getL();
-        Scalar V = L.x * L.y * L.z;
+        Scalar V = box.getVolume(twod);
 
         d_properties[thermo_index::pressure_xx] = final_sum[0]/V;
         d_properties[thermo_index::pressure_xy] = final_sum[1]/V;
@@ -511,7 +511,8 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                                                                args.external_virial_xz,
                                                                                args.external_virial_yy,
                                                                                args.external_virial_yz,
-                                                                               args.external_virial_zz
+                                                                               args.external_virial_zz,
+                                                                               args.D == 2
                                                                                );
         }
 
