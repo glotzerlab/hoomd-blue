@@ -89,6 +89,8 @@ struct MPISetup
     //! Cleanup
     ~MPISetup()
         {
+        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>();
+        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>();
         MPI_Finalize();
         }
 

@@ -1455,7 +1455,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
             BOOST_CHECK_EQUAL(bdata->getN(), 0);
 
                 {
-                // we should own no bonds
+                // we should not own any bonds
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
                 BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
@@ -2172,6 +2172,7 @@ CommFlags comm_flag_request(unsigned int timestep)
     {
     CommFlags flags(0);
     flags[comm_flag::position] = 1;
+    flags[comm_flag::tag] = 1;
     return flags;
     }
 
@@ -2211,7 +2212,6 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
     SnapshotParticleData snap(n);
     snap.type_mapping.push_back("A");
-    snap.type_mapping.push_back("B");
 
     srand(12345);
     for (unsigned int i = 0; i < n; ++i)
@@ -2305,7 +2305,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                     has_ghost_2 = true;
 
                 //  particle is either in both systems' ghost layers or in none
-                BOOST_CHECK((has_ghost_1 && has_ghost_2) || (!has_ghost_1 && !has_ghost_2));
+                BOOST_REQUIRE((has_ghost_1 && has_ghost_2) || (!has_ghost_1 && !has_ghost_2));
 
                 if (has_ghost_1 && has_ghost_2)
                     {

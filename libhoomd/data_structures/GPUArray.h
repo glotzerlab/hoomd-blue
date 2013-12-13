@@ -933,12 +933,12 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
         // check that a GPU is actually specified
         if (!m_exec_conf)
             {
-            std::cerr << "Reqesting device aquire, but we have no execution configuration" << std::endl;
+            std::cerr << "Requesting device aquire, but we have no execution configuration" << std::endl;
             throw std::runtime_error("Error acquiring data");
             }
         if (!m_exec_conf->isCUDAEnabled())
             {
-            m_exec_conf->msg->error() << "Reqesting device aquire, but no GPU in the Execution Configuration" << std::endl;
+            m_exec_conf->msg->error() << "Requesting device aquire, but no GPU in the Execution Configuration" << std::endl;
             throw std::runtime_error("Error acquiring data");
             }
 

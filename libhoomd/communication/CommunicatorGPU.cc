@@ -477,7 +477,7 @@ CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(Communic
     m_ranks_sendbuf.swap(ranks_sendbuf);
 
     GPUVector<rank_element_t> ranks_recvbuf(m_gpu_comm.m_exec_conf,mapped);
-    m_ranks_recvbuf.swap(ranks_sendbuf);
+    m_ranks_recvbuf.swap(ranks_recvbuf);
 
     GPUVector<group_element_t> groups_out(m_gpu_comm.m_exec_conf,mapped);
     m_groups_out.swap(groups_out);
@@ -575,6 +575,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             {
             // access output buffers
             ArrayHandle<rank_element_t> h_ranks_out(m_ranks_out, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_unique_neighbors(m_gpu_comm.m_unique_neighbors, access_location:: host, access_mode::read);
 
             for (unsigned int i = 0; i < n_out; ++i)
                 {
@@ -582,14 +583,20 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 typename group_data::ranks_t r = el.ranks;
                 unsigned int mask = el.mask;
 
-                for (unsigned int j = 0; j < group_data::size; ++j)
-                    {
-                    unsigned int rank = r.idx[j];
-                    bool updated = mask & (1 << j);
-                    // send out to ranks different from ours
-                    if (rank != my_rank && !updated)
-                        send_map.insert(std::make_pair(rank, el));
-                    }
+                if (incomplete)
+                    // in initialization, send to all neighbors
+                    for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ++ineigh)
+                        send_map.insert(std::make_pair(h_unique_neighbors.data[ineigh], el));
+                else
+                    // send to other ranks owning the bond
+                    for (unsigned int j = 0; j < group_data::size; ++j)
+                        {
+                        unsigned int rank = r.idx[j];
+                        bool updated = mask & (1 << j);
+                        // send out to ranks different from ours
+                        if (rank != my_rank && !updated)
+                            send_map.insert(std::make_pair(rank, el));
+                        }
                 }
             }
 
@@ -759,6 +766,9 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             if (m_gpu_comm.m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
+        // resize output buffer
+        m_groups_out.resize(n_out);
+
             {
             ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_group_type(m_gdata->getTypesArray(), access_location::device, access_mode::read);
@@ -902,6 +912,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
          * communicate groups (phase 2)
          */
 
+       n_recv_tot = 0;
             {
             ArrayHandle<unsigned int> h_begin(m_gpu_comm.m_begin, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_end(m_gpu_comm.m_end, access_location::host, access_mode::read);
@@ -942,7 +953,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 else
                     offs[ineigh] = offs[ineigh-1] + n_recv_groups[ineigh-1];
 
-                n_recv_tot = 0;
                 n_recv_tot += n_recv_groups[ineigh];
                 }
 
@@ -1051,7 +1061,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         GPUVector<unsigned int>& group_tag_array = m_gdata->getTags();
         GPUVector<typename group_data::ranks_t>& group_ranks_array = m_gdata->getRanksArray();
 
-        assert(new_ngroups <= m_gdata->getN());
         groups_array.resize(new_ngroups);
         group_type_array.resize(new_ngroups);
         group_tag_array.resize(new_ngroups);
@@ -1142,6 +1151,7 @@ void CommunicatorGPU::migrateParticles()
          * Bonded group communication, determine groups to be sent
          */
         m_bond_comm.migrateGroups(m_bonds_changed);
+        m_bonds_changed = false;
 
         // fill send buffer
         m_pdata->removeParticlesGPU(m_gpu_sendbuf, m_comm_flags);

@@ -247,8 +247,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
         {
         // partition particle data into local and removed particles
         unsigned int block_size =512;
-        unsigned int n_blocks = N/block_size;
-        if (N%block_size) n_blocks++;
+        unsigned int n_blocks = N/block_size+1;
 
         gpu_scatter_particle_data_kernel<<<n_blocks, block_size>>>(
             N,

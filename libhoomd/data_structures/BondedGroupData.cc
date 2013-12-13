@@ -99,6 +99,9 @@ BondedGroupData<group_size, Group, name>::BondedGroupData(
         std::string type_name = std::string(name) + std::string(suffix);
         m_type_mapping.push_back(type_name);
         }
+
+    // initialize data structures
+    initialize();
     }
 
 /*! \param exec_conf Execution configuration
@@ -134,6 +137,8 @@ BondedGroupData<group_size, Group, name>::~BondedGroupData()
 template<unsigned int group_size, typename Group, const char *name>
 void BondedGroupData<group_size, Group, name>::initialize()
     {
+    m_nglobal = 0;
+
     // allocate arrays
     GPUVector<members_t> groups(m_exec_conf);
     m_groups.swap(groups);
@@ -203,7 +208,7 @@ void BondedGroupData<group_size, Group, name>::initializeFromSnapshot(const Snap
         throw std::runtime_error(std::string("Error initializing ") + name + std::string(" data."));
         }
 
-    // initialize data structures
+    // re-initialize data structures
     initialize();
 
     #ifdef ENABLE_MPI
@@ -225,22 +230,8 @@ void BondedGroupData<group_size, Group, name>::initializeFromSnapshot(const Snap
         bcast(all_type, 0, m_exec_conf->getMPICommunicator());
         bcast(type_mapping, 0, m_exec_conf->getMPICommunicator());
 
-        // set global number of bonded groups
-        m_nglobal = all_groups.size();
-        m_group_rtag.resize(m_nglobal);
-
-        m_groups_dirty = true;
-
-            {
-            // reset reverse lookup tags
-            ArrayHandle<unsigned int> h_group_rtag(m_group_rtag, access_location::host, access_mode::overwrite);
-
-            for (unsigned int tag = 0; tag < m_nglobal; ++tag)
-                h_group_rtag.data[tag] = GROUP_NOT_LOCAL;
-            }
-
-        // now iterate over groups and add those that have local particles
-        for (unsigned int group_tag = 0; group_tag < m_nglobal; ++group_tag)
+        // iterate over groups and add those that have local particles
+        for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
             addBondedGroup(Group(all_type[group_tag], all_groups[group_tag]));
             
         m_type_mapping = type_mapping;
@@ -333,7 +324,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
         tag = getNGlobal();
 
         // add new reverse-lookup tag
-        assert(m_group_rtag.size() == m_groups.size());
+        assert(m_group_rtag.size() == getNGlobal());
         if (is_local)
             m_group_rtag.push_back(getN());
         else

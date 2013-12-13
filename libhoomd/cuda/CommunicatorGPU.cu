@@ -825,63 +825,61 @@ __global__ void gpu_mark_groups_kernel(
             // local ptl
             if (incomplete)
                 {
-                // for initial set up, update rank information for all local ptls
+                // initially, update rank information for all local ptls
                 r.idx[i] = my_rank;
                 mask |= (1 << i);
                 }
-            else
+
+            unsigned int flags = d_comm_flags[pidx];
+
+            if (flags)
                 {
-                unsigned int flags = d_comm_flags[pidx];
+                // the local particle is going to be sent to a different domain
+                mask |= (1 << i);
 
-                if (flags)
-                    {
-                    // the local particle is going to be sent to a different domain
-                    mask |= (1 << i);
+                // parse communication flags
+                int ix, iy, iz;
+                ix = iy = iz = 0;
 
-                    // parse communication flags
-                    int ix, iy, iz;
-                    ix = iy = iz = 0;
+                if (flags & send_east)
+                    ix = 1;
+                else if (flags & send_west)
+                    ix = -1;
 
-                    if (flags & send_east)
-                        ix = 1;
-                    else if (flags & send_west)
-                        ix = -1;
+                if (flags & send_north)
+                    iy = 1;
+                else if (flags & send_south)
+                    iy = -1;
 
-                    if (flags & send_north)
-                        iy = 1;
-                    else if (flags & send_south)
-                        iy = -1;
+                if (flags & send_up)
+                    iz = 1;
+                else if (flags & send_down)
+                    iz = -1;
 
-                    if (flags & send_up)
-                        iz = 1;
-                    else if (flags & send_down)
-                        iz = -1;
+                int ni = my_pos.x;
+                int nj = my_pos.y;
+                int nk = my_pos.z;
 
-                    int i = my_pos.x;
-                    int j = my_pos.y;
-                    int k = my_pos.z;
+                ni += ix;
+                if (ni == (int)di.getW())
+                    ni = 0;
+                else if (ni < 0)
+                    ni += di.getW();
 
-                    i += ix;
-                    if (i == (int)di.getW())
-                        i = 0;
-                    else if (i < 0)
-                        i += di.getW();
+                nj += iy;
+                if (nj == (int) di.getH())
+                    nj = 0;
+                else if (nj < 0)
+                    nj += di.getH();
 
-                    j += iy;
-                    if (j == (int) di.getH())
-                        j = 0;
-                    else if (j < 0)
-                        j += di.getH();
+                nk += iz;
+                if (nk == (int) di.getD())
+                    nk = 0;
+                else if (nk < 0)
+                    nk += di.getD();
 
-                    k += iz;
-                    if (k == (int) di.getD())
-                        k = 0;
-                    else if (k < 0)
-                        k += di.getD();
-
-                    // update ranks information
-                    r.idx[i] = di(i,j,k);
-                    }
+                // update ranks information
+                r.idx[i] = di(ni,nj,nk);
                 }
             }
         } // end for
@@ -1012,18 +1010,18 @@ __global__ void gpu_update_ranks_table_kernel(
     rank_element_t el = d_ranks_recvbuf[recv_idx];
     unsigned int tag = el.tag;
     unsigned int gidx = d_group_rtag[tag];
-
-    ranks_t new_ranks = el.ranks;
-    unsigned int mask = el.mask;
-
-    for (unsigned int i = 0; i < group_size; ++i)
+    
+    if (gidx != GROUP_NOT_LOCAL)
         {
-        bool update = mask & (1 << i);
+        ranks_t new_ranks = el.ranks;
+        unsigned int mask = el.mask;
 
-        if (update)
+        for (unsigned int i = 0; i < group_size; ++i)
             {
-            unsigned int& r = d_group_ranks[gidx].idx[i];
-            r = new_ranks.idx[i];
+            bool update = mask & (1 << i);
+
+            if (update)
+                d_group_ranks[gidx].idx[i] = new_ranks.idx[i];
             }
         }
     }
@@ -1038,7 +1036,7 @@ void gpu_update_ranks_table(
     )
     {
     unsigned int block_size = 512;
-    unsigned int n_blocks = n_groups/block_size + 1;
+    unsigned int n_blocks = n_recv/block_size + 1;
 
     gpu_update_ranks_table_kernel<group_size><<<n_blocks, block_size>>>(
         n_groups,
@@ -1265,7 +1263,7 @@ __global__ void gpu_add_groups_kernel(
         d_group_ranks[add_idx] = el.ranks;
 
         // update reverse-lookup table
-        d_group_rtag[tag] = tag;
+        d_group_rtag[tag] = add_idx;
         }
     }
 
@@ -1312,7 +1310,7 @@ void gpu_add_groups(unsigned int n_groups,
         d_group_rtag);
 
     // allocate temporary memory
-    unsigned int *d_tmp = (unsigned int *)alloc.allocate(n_groups*sizeof(unsigned int));
+    unsigned int *d_tmp = (unsigned int *)alloc.allocate(n_recv*sizeof(unsigned int));
 
     thrust::device_ptr<const packed_t> groups_in_ptr(d_groups_in);
 
@@ -1326,7 +1324,8 @@ void gpu_add_groups(unsigned int n_groups,
     new_ngroups = n_groups + n_unique;
 
     // add new groups at the end
-    gpu_add_groups_kernel<<<n_blocks, block_size>>>(n_recv,
+    gpu_add_groups_kernel<<<n_blocks, block_size>>>(
+        n_recv,
         n_groups,
         d_groups_in,
         d_tmp,
