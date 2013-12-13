@@ -491,7 +491,7 @@ void NeighborList::addExclusionsFromBonds()
     bond_data->takeSnapshot(snapshot);
 
     // broadcast global bond list
-    std::vector<BondData::group_t> bonds;
+    std::vector<BondData::members_t> bonds;
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())

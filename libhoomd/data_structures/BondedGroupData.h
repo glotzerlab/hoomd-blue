@@ -130,10 +130,9 @@ namespace boost
  *  size N=2,3,4..., such as bonds, angles or dihedrals, which form part of a molecule.
  *
  *  \tpp group_size Size of groups
- *  \tpp group_t Compact storage for n group member tags or indices, e.g. uint2,...
  *  \tpp name Name of element, i.e. bond, angle, dihedral, ..
  */
-template<unsigned int group_size, const char *name>
+template<unsigned int group_size, typename Group, const char *name>
 class BondedGroupData : boost::noncopyable
     {
     public:
@@ -141,11 +140,11 @@ class BondedGroupData : boost::noncopyable
         enum { size = group_size } Enum;
 
         //! Group data element type
-        typedef union group_storage<group_size> group_t;
+        typedef union group_storage<group_size> members_t;
 
         #ifdef ENABLE_MPI
         //! Type for storing per-member ranks
-        typedef group_t ranks_t;
+        typedef members_t ranks_t;
         typedef packed_storage<group_size> packed_t;
         #endif
 
@@ -186,7 +185,7 @@ class BondedGroupData : boost::noncopyable
                 }
 
             std::vector<unsigned int> type_id;             //!< Stores type for each group
-            std::vector<group_t> groups;     //!< Stores the data for each group
+            std::vector<members_t> groups;     //!< Stores the data for each group
             std::vector<std::string> type_mapping;         //!< Names of group types
             };
 
@@ -239,11 +238,11 @@ class BondedGroupData : boost::noncopyable
         //! Get the type name by id
         const std::string getNameByType(unsigned int type) const;
 
-        //! Get the members of a bonded group by tag
-        const group_t getMembersByIndex(unsigned int group_idx) const;
+        //! Return a bonded group by tag
+        const Group getGroupByTag(unsigned int tag) const;
 
-        //! Get the members of a bonded group by tag
-        const group_t getMembersByTag(unsigned int tag) const;
+        //! Get the members of a bonded group by index
+        const members_t getMembersByIndex(unsigned int group_idx) const;
 
         //! Get the members of a bonded group by tag
         unsigned int getTypeByIndex(unsigned int group_idx) const;
@@ -253,7 +252,7 @@ class BondedGroupData : boost::noncopyable
          */
 
         //! Return group table (const)
-        const GPUVector<group_t>& getMembersArray() const
+        const GPUVector<members_t>& getMembersArray() const
             {
             return m_groups;
             }
@@ -285,7 +284,7 @@ class BondedGroupData : boost::noncopyable
         #endif
 
         //! Return group table (const)
-        GPUVector<group_t>& getMembersArray()
+        GPUVector<members_t>& getMembersArray()
             {
             return m_groups;
             }
@@ -325,7 +324,7 @@ class BondedGroupData : boost::noncopyable
          */
 
         //! Return group table (swap-in)
-        GPUVector<group_t>& getAltMembersArray()
+        GPUVector<members_t>& getAltMembersArray()
             {
             // resize to size of primary groups array
             m_groups_alt.resize(m_groups.size());
@@ -392,7 +391,7 @@ class BondedGroupData : boost::noncopyable
          */
 
         //! Return GPU bonded groups list
-        const GPUArray<group_t>& getGPUTable()
+        const GPUArray<members_t>& getGPUTable()
             {
             // rebuild lookup table if necessary
             if (m_groups_dirty)
@@ -432,7 +431,7 @@ class BondedGroupData : boost::noncopyable
          * \param member_tags All particle tag that are members of this bonded group
          * \returns Tag of newly added bond
          */
-        unsigned int addBondedGroup(unsigned int type_id, group_t member_tags);
+        unsigned int addBondedGroup(Group g);
 
         //! Remove a single bonded group from all processors
         /*! \param tag Tag of bonded group to remove
@@ -473,11 +472,11 @@ class BondedGroupData : boost::noncopyable
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration for CUDA context
         boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
 
-        GPUVector<group_t> m_groups;            //!< List of groups
+        GPUVector<members_t> m_groups;            //!< List of groups
         GPUVector<unsigned int> m_group_type;        //!< List of group types
         GPUVector<unsigned int> m_group_tag;         //!< List of group tags
         GPUVector<unsigned int> m_group_rtag;        //!< Global reverse-lookup table for group tags
-        GPUVector<group_t> m_gpu_table;              //!< Storage for groups by particle index for access on the GPU
+        GPUVector<members_t> m_gpu_table;            //!< Storage for groups by particle index for access on the GPU
         Index2D m_gpu_table_indexer;                 //!< Indexer for GPU table
         GPUVector<unsigned int> m_n_groups;          //!< Number of entries in lookup table per particle
         std::vector<std::string> m_type_mapping;     //!< Mapping of types of bonded groups
@@ -487,7 +486,7 @@ class BondedGroupData : boost::noncopyable
         #endif
 
         /* alternate (stand-by) arrays for swapping in reordered groups */
-        GPUVector<group_t> m_groups_alt;           //!< List of groups (swap-in)
+        GPUVector<members_t> m_groups_alt;           //!< List of groups (swap-in)
         GPUVector<unsigned int> m_group_type_alt;       //!< List of group types (swap-in)
         GPUVector<unsigned int> m_group_tag_alt;     //!< List of group tags (swap-in)
         #ifdef ENABLE_MPI
@@ -520,16 +519,72 @@ class BondedGroupData : boost::noncopyable
     };
 
 //! Exports BondData to python
-template<class T>
-void export_BondedGroupData(std::string name);
+template<class T, class Group>
+void export_BondedGroupData(std::string name, std::string snapshot_name);
 
 /*!
  * Typedefs for template instantiations
  */
 
-//! Define BondData
+/*
+ * BondData
+ */
 extern char name_bond_data[];
-typedef BondedGroupData<2, name_bond_data> BondData;
+
+// Definition of a bond
+struct Bond {
+    typedef group_storage<2> members_t;
+
+    //! Constructor
+    /*! \param type Type of bond
+     * \param _a First bond member
+     * \param _b Second bond member
+     */
+    Bond(unsigned int _type, unsigned int _a, unsigned int _b)
+        : type(_type), a(_a), b(_b)
+        { }
+
+    //! Constructor that takes a members_t (used internally by BondData)
+    /*! \param type
+     *  \param members group members
+     */
+    Bond(unsigned int _type, members_t _members)
+        : type(_type), a(_members.tag[0]), b(_members.tag[1])
+        { }
+
+
+    //! This helper function needs to be provided for the templated BondData to work correctly
+    members_t get_members() const
+        {
+        members_t m;
+        m.tag[0] = a;
+        m.tag[1] = b;
+        return m;
+        }
+
+    //! This helper function needs to be provided for the templated BondData to work correctly
+    unsigned int get_type() const
+        {
+        return type;
+        }
+
+    //! This helper function needs to be provided for the templated BondData to work correctly
+    static void export_to_python()
+        {
+        boost::python::class_<Bond>("Bond", init<unsigned int, unsigned int, unsigned int>())
+            .def_readonly("type", &Bond::type)
+            .def_readonly("a", &Bond::a)
+            .def_readonly("b", &Bond::b)
+        ;
+        }
+
+    unsigned int type;  //!< Group type
+    unsigned int a;     //!< First bond member
+    unsigned int b;     //!< Second bond member
+    };
+
+//! Definition of BondData
+typedef BondedGroupData<2, Bond, name_bond_data> BondData;
 
 #if 0
 //! Define AngleData

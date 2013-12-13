@@ -228,7 +228,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const BondData::group_t bond = m_bond_data->getMembersByIndex(i);
+        const BondData::members_t bond = m_bond_data->getMembersByIndex(i);
         assert(bond.tag[0] < m_pdata->getN());
         assert(bond.tag[1] < m_pdata->getN());
 

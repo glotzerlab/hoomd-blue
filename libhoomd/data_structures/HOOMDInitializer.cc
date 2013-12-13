@@ -815,7 +815,7 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
         parser >> type_name >> a >> b;
         if (parser.good())
             {
-            BondData::group_t bond;
+            BondData::members_t bond;
             bond.tag[0] = a; bond.tag[1] = b;
             m_bonds.push_back(bond);
             m_bond_types.push_back(getBondTypeId(type_name));

@@ -512,7 +512,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         unsigned int n_out;
             {
             ArrayHandle<unsigned int> d_comm_flags(m_gpu_comm.m_pdata->getCommFlags(), access_location::device, access_mode::read);
-            ArrayHandle<typename group_data::group_t> d_members(m_gdata->getMembersArray(), access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::members_t> d_members(m_gdata->getMembersArray(), access_location::device, access_mode::read);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
@@ -760,7 +760,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             }
 
             {
-            ArrayHandle<typename group_data::group_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_group_type(m_gdata->getTypesArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
@@ -787,13 +787,13 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         unsigned int new_ngroups;
             {
             // access primary arrays to read from
-            ArrayHandle<typename group_data::group_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_group_type(m_gdata->getTypesArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::read);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
 
             // access alternate arrays to write to
-            ArrayHandle<typename group_data::group_t> d_groups_alt(m_gdata->getAltMembersArray(), access_location::device, access_mode::overwrite);
+            ArrayHandle<typename group_data::members_t> d_groups_alt(m_gdata->getAltMembersArray(), access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_group_type_alt(m_gdata->getAltTypesArray(), access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_group_tag_alt(m_gdata->getAltTags(), access_location::device, access_mode::overwrite);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks_alt(m_gdata->getAltRanksArray(), access_location::device, access_mode::overwrite);
@@ -819,7 +819,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             } 
         
         // resize alternate arrays to number of groups
-        GPUVector<typename group_data::group_t>& alt_groups_array = m_gdata->getAltMembersArray();
+        GPUVector<typename group_data::members_t>& alt_groups_array = m_gdata->getAltMembersArray();
         GPUVector<unsigned int>& alt_group_type_array = m_gdata->getAltTypesArray();
         GPUVector<unsigned int>& alt_group_tag_array = m_gdata->getAltTags();
         GPUVector<typename group_data::ranks_t>& alt_group_ranks_array = m_gdata->getAltRanksArray();
@@ -852,7 +852,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             for (unsigned int i = 0; i < n_out; ++i)
                 {
                 group_element_t el_g = h_groups_out.data[i];
-                typename group_data::group_t t = el_g.tags;
+                typename group_data::members_t t = el_g.tags;
                 rank_element_t el_r = h_ranks_out.data[i];
                 typename group_data::ranks_t r = el_r.ranks;
                 unsigned int mask = el_r.mask;
@@ -1046,7 +1046,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         new_ngroups = old_ngroups + n_recv_unique;
 
         // resize group arrays to accomodate additional groups (there can still be duplicates with local groups)
-        GPUVector<typename group_data::group_t>& groups_array = m_gdata->getMembersArray();
+        GPUVector<typename group_data::members_t>& groups_array = m_gdata->getMembersArray();
         GPUVector<unsigned int>& group_type_array = m_gdata->getTypesArray();
         GPUVector<unsigned int>& group_tag_array = m_gdata->getTags();
         GPUVector<typename group_data::ranks_t>& group_ranks_array = m_gdata->getRanksArray();
@@ -1059,7 +1059,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
             {
             ArrayHandle<group_element_t> d_groups_in(m_groups_in, access_location::device, access_mode::read);
-            ArrayHandle<typename group_data::group_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_group_type(m_gdata->getTypesArray(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::readwrite);

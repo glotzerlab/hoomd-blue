@@ -472,7 +472,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_AngleData();
     export_DihedralData();
     export_SnapshotSystemData();
-    export_BondedGroupData<BondData>("BondData");
+    export_BondedGroupData<BondData,Bond>("BondData","BondDataSnapshot");
     #if 0
     export_BondedGroupData<AngleData>("AngleData");
     export_BondedGroupData<DihedralData>("DihedralData");

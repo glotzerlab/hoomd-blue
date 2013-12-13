@@ -229,7 +229,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     for (unsigned int i = 0; i< 6; i++)
         bond_virial[i]=Scalar(0.0);
 
-    ArrayHandle<typename BondData::group_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
+    ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_type(m_bond_data->getTypesArray(), access_location::host, access_mode::read);
 
     unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
@@ -239,7 +239,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const typename BondData::group_t& bond = h_bonds.data[i];
+        const typename BondData::members_t& bond = h_bonds.data[i];
         assert(bond.tag[0] < m_pdata->getNGlobal());
         assert(bond.tag[1] < m_pdata->getNGlobal());
 
