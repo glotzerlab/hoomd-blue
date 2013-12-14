@@ -564,7 +564,6 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::read);
 
     unsigned int n_ex = h_n_ex_tag.data[tag1];
-    m_exec_conf->msg->notice(1) << "Checking exclusions " << tag1 << " " << tag2 << std::endl;
     for (unsigned int i = 0; i < n_ex; i++)
         {
         if (h_ex_list_tag.data[m_ex_list_indexer_tag(tag1,i)] == tag2)
