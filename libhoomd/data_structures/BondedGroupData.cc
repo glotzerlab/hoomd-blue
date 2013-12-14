@@ -572,17 +572,16 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
 
         ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
-        m_n_groups.resize(m_pdata->getN());
+        m_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
         unsigned int num_groups_max = 0;
             {
             ArrayHandle<unsigned int> h_n_groups(m_n_groups, access_location::host, access_mode::overwrite);
 
+            unsigned int N = m_pdata->getN()+m_pdata->getNGhosts();
             // count the number of bonds per particle
             // start by initializing the n_bonds values to 0
-            memset(h_n_groups.data, 0, sizeof(unsigned int) * m_pdata->getN());
-
-            unsigned int N = m_pdata->getN();
+            memset(h_n_groups.data, 0, sizeof(unsigned int) * N);
 
             // loop through the particles and count the number of bonds based on each particle index
             for (unsigned int cur_group = 0; cur_group < getN(); cur_group++)
@@ -593,8 +592,15 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
                     unsigned int tag = g.tag[i];
                     unsigned int idx = h_rtag.data[tag];
 
-                    // count only local bond members
-                    if (idx < N) h_n_groups.data[idx]++;
+                    if (idx == NOT_LOCAL)
+                        {
+                        // incomplete group
+                        m_exec_conf->msg->error() << name << ".*: Group "
+                            << m_group_tag[cur_group] << " incomplete." << std::endl << std::endl;
+                        throw std::runtime_error("Error building GPU group table.");
+                        }
+
+                    h_n_groups.data[idx]++;
                     }
                 }
 
@@ -605,7 +611,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
             }
 
         // resize lookup table
-        m_gpu_table_indexer = Index2D(m_pdata->getN(), num_groups_max);
+        m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), num_groups_max);
         m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
 
             {
@@ -657,7 +663,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
     if (m_prof) m_prof->push(m_exec_conf, "update " + std::string(name) + " table");
 
     // resize groups counter
-    m_n_groups.resize(m_pdata->getN());
+    m_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
     bool done = false;
     while (!done)
@@ -675,7 +681,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
             // fill group table on GPU
             gpu_update_group_table<group_size, members_t>(
                 m_groups.size(),
-                m_pdata->getN(),
+                m_pdata->getN()+m_pdata->getNGhosts(),
                 d_groups.data,
                 d_group_type.data,
                 d_rtag.data,
@@ -690,10 +696,19 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
             } 
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 
+        if (flag >= m_next_flag+1)
+            {
+            // incomplete group detected
+            unsigned int group_idx = flag - m_next_flag - 1;
+            m_exec_conf->msg->error() << name << ".*: Group " << m_group_tag[group_idx] << " incomplete."
+                << std::endl << std::endl;
+            throw std::runtime_error("Error building GPU group table.");
+            }
+
         if (flag == m_next_flag)
             {
             // grow array by incrementing groups per particle
-            m_gpu_table_indexer = Index2D(m_pdata->getN(), m_gpu_table_indexer.getH()+1);
+            m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), m_gpu_table_indexer.getH()+1);
             m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
             m_next_flag++;
             }

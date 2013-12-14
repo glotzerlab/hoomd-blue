@@ -90,6 +90,10 @@ __global__ void gpu_count_groups_kernel(
         unsigned int tag_i = g.tag[i];
         unsigned int pidx_i = d_rtag[tag_i];
 
+        // detect incomplete groups
+        if (pidx_i == NOT_LOCAL)
+            atomicMax(d_condition, next_flag+1+group_idx);
+
         // construct compact group representation, excluding particle index i
         unsigned int j = 0;
         #pragma unroll
@@ -98,6 +102,7 @@ __global__ void gpu_count_groups_kernel(
             if (i == k) continue;
             unsigned int tag_k = g.tag[k];
             unsigned int pidx_k = d_rtag[tag_k];
+
             p.idx[j++] = pidx_k;
             }
 
@@ -106,11 +111,13 @@ __global__ void gpu_count_groups_kernel(
         d_scratch_idx[i*n_groups+group_idx] = pidx_i;
 
         // atomically increment number of groups
-        unsigned int n = atomicInc(&d_n_groups[pidx_i],0xffffffff);
+        unsigned int n = 0;
+        if (pidx_i != NOT_LOCAL)
+           n = atomicInc(&d_n_groups[pidx_i],0xffffffff);
 
         if (n >= max_n_groups)
             // set flag to indicate we need to grow the output array
-            *d_condition = next_flag;
+            atomicMax(d_condition,next_flag);
         }
     }
 
@@ -175,7 +182,7 @@ void gpu_update_group_table(
     // read back flag
     cudaMemcpy(&flag, d_condition, sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
-    if (! (flag == next_flag))
+    if (! (flag >= next_flag))
         {
         // we are good, fill group table
 

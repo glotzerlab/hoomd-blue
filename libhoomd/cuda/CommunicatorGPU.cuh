@@ -224,6 +224,11 @@ void gpu_compute_ghost_rtags(unsigned int first_idx,
      const unsigned int *d_tag,
      unsigned int *d_rtag);
 
+//! Reset ghost plans
+void gpu_reset_exchange_plan(
+    unsigned int N,
+    unsigned int *d_plan);
+ 
 //! Mark groups for sending
 template<unsigned int group_size, typename group_t, typename ranks_t>
 void gpu_mark_groups(
@@ -300,4 +305,14 @@ void gpu_add_groups(unsigned int n_groups,
     cached_allocator &alloc,
     mgpu::ContextPtr mgpu_context);
 
+template<unsigned int group_size, typename members_t, typename ranks_t>
+void gpu_mark_bonded_ghosts(
+    unsigned int n_groups,
+    members_t *d_groups,
+    ranks_t *d_ranks,
+    const unsigned int *d_rtag,
+    unsigned int *d_plan,
+    Index3D& di,
+    uint3 my_pos);
+ 
 #endif // ENABLE_MPI

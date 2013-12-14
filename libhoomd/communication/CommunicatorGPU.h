@@ -143,6 +143,12 @@ class CommunicatorGPU : public Communicator
                  */
                 void migrateGroups(bool incomplete);
 
+                //! Mark ghost particles
+                /* All particles that need to be sent as ghosts because they are members
+                 * of incomplete groups are marked, and destination ranks are compute accordingly.
+                 */
+                void markGhostParticles(const GPUArray<unsigned int>& plans);
+
             private:
                 CommunicatorGPU& m_gpu_comm;                            //!< The outer class
                 boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration

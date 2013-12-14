@@ -1100,6 +1100,33 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         }
     }
 
+
+//! Mark ghost particles
+template<class group_data>
+void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(const GPUArray<unsigned int>& plans)
+    {
+    if (m_gdata->getNGlobal())
+        {
+        ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
+        ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_plan(plans, access_location::device, access_mode::readwrite);
+
+        Index3D di = m_gpu_comm.m_pdata->getDomainDecomposition()->getDomainIndexer();
+        uint3 my_pos = di.getTriple(m_exec_conf->getRank());
+
+        gpu_mark_bonded_ghosts<group_data::size>(
+            m_gdata->getN(),
+            d_groups.data,
+            d_group_ranks.data,
+            d_rtag.data,
+            d_plan.data,
+            di,
+            my_pos);
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        }  
+    }
+
 //! Transfer particles between neighboring domains
 void CommunicatorGPU::migrateParticles()
     {
@@ -1361,92 +1388,6 @@ void CommunicatorGPU::migrateParticles()
         // remove particles that were sent and fill particle data with received particles
         m_pdata->addParticlesGPU(m_gpu_recvbuf);
 
-    #if 0
-            /*
-             * Communicate bonds
-             */
-
-            /*
-             * Select bonds for sending
-             */
-            boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
-
-            if (bdata->getNumBondsGlobal())
-                {
-                // Access reverse-lookup table for particle tags
-                ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-
-                // Access bond data
-                ArrayHandle<uint2> d_bonds(bdata->getBondTable(), access_location::device, access_mode::read);
-                ArrayHandle<unsigned int> d_bond_rtag(bdata->getBondRTags(), access_location::device, access_mode::readwrite);
-                ArrayHandle<unsigned int> d_bond_tag(bdata->getBondTags(), access_location::device, access_mode::read);
-
-                // select bonds for migration
-                gpu_select_bonds(bdata->getNumBonds(),
-                                 d_bonds.data,
-                                 d_bond_tag.data,
-                                 d_bond_rtag.data,
-                                 d_rtag.data,
-                                 m_cached_alloc);
-                if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-                }
-
-            if (bdata->getNumBondsGlobal())
-                {
-                // fill send buffer for bond data
-                bdata->retrieveBondsGPU(m_gpu_bond_sendbuf);
-
-                unsigned int n_send_bonds = m_gpu_bond_sendbuf.size();
-                unsigned int n_recv_bonds;
-
-                if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
-
-                // exchange size of messages
-                MPI_Isend(&n_send_bonds, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & reqs[0]);
-                MPI_Irecv(&n_recv_bonds, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
-                MPI_Waitall(2, reqs, status);
-
-                if (m_prof) m_prof->pop(m_exec_conf);
-
-                m_gpu_bond_recvbuf.resize(n_recv_bonds);
-
-                    {
-                    if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
-
-                    // exchange bond data
-                    #ifdef ENABLE_MPI_CUDA
-                    ArrayHandle<bond_element> bond_sendbuf_handle(m_gpu_bond_sendbuf, access_location::device, access_mode::read);
-                    ArrayHandle<bond_element> bond_recvbuf_handle(m_gpu_bond_recvbuf, access_location::device, access_mode::overwrite);
-                    #else
-                    ArrayHandle<bond_element> bond_sendbuf_handle(m_gpu_bond_sendbuf, access_location::host, access_mode::read);
-                    ArrayHandle<bond_element> bond_recvbuf_handle(m_gpu_bond_recvbuf, access_location::host, access_mode::overwrite);
-                    #endif
-
-                    MPI_Isend(bond_sendbuf_handle.data,
-                              n_send_bonds*sizeof(bond_element),
-                              MPI_BYTE,
-                              send_neighbor,
-                              1,
-                              m_mpi_comm,
-                              & reqs[0]);
-                    MPI_Irecv(bond_recvbuf_handle.data,
-                              n_recv_bonds*sizeof(bond_element),
-                              MPI_BYTE,
-                              recv_neighbor,
-                              1,
-                              m_mpi_comm,
-                              & reqs[1]);
-                    MPI_Waitall(2, reqs, status);
-
-                    if (m_prof) m_prof->pop(m_exec_conf);
-                    }
-
-                // unpack data and remove bonds that have left the domain
-                bdata->addRemoveBondsGPU(m_gpu_bond_recvbuf);
-                } // end bond communication
-
-            } // end dir loop
-    #endif
         } // end communication stage
 
     if (m_prof) m_prof->pop(m_exec_conf);
@@ -1458,34 +1399,6 @@ void CommunicatorGPU::exchangeGhosts()
     if (m_prof) m_prof->push(m_exec_conf, "comm_ghost_exch");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
-
-#if 0
-    /*
-     * Mark particles that are part of incomplete bonds for sending
-     */
-    boost::shared_ptr<BondData> bdata = m_sysdef->getBondData();
-
-    if (bdata->getNumBondsGlobal())
-        {
-        // Send incomplete bond member to the nearest plane in all directions
-        const GPUVector<uint2>& btable = bdata->getBondTable();
-        ArrayHandle<uint2> d_btable(btable, access_location::device, access_mode::read);
-        ArrayHandle<unsigned char> d_plan(m_plan, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
-
-        gpu_mark_particles_in_incomplete_bonds(d_btable.data,
-                                               d_plan.data,
-                                               d_pos.data,
-                                               d_rtag.data,
-                                               m_pdata->getN(),
-                                               bdata->getNumBonds(),
-                                               m_pdata->getBox());
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        }
-#endif
 
     // the ghost layer must be at_least m_r_ghost wide along every lattice direction
     Scalar3 ghost_fraction = m_r_ghost/m_pdata->getBox().getNearestPlaneDistance();
@@ -1520,10 +1433,22 @@ void CommunicatorGPU::exchangeGhosts()
         // make room for plans
         m_ghost_plan.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
+            { 
+            ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
+
+            // reset plans
+            gpu_reset_exchange_plan(
+                m_pdata->getN() + m_pdata->getNGhosts(),
+                d_ghost_plan.data);
+            }
+
+        // mark particles that are members of incomplete of bonds as ghosts
+        m_bond_comm.markGhostParticles(m_ghost_plan);
+
             {
             // compute plans for all particles, including already received ghosts
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::readwrite);
 
             gpu_make_ghost_exchange_plan(d_ghost_plan.data,
                                          m_pdata->getN()+m_pdata->getNGhosts(),

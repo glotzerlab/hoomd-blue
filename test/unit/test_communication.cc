@@ -2075,6 +2075,11 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
+    // communicate tags, necessary for gpu bond table
+    CommFlags flags(0);
+    flags[comm_flag::tag] = 1;
+    comm->setFlags(flags);
+
     // width of ghost layer
     Scalar ghost_layer_width = Scalar(0.1);
     comm->setGhostLayerWidth(ghost_layer_width);
@@ -2089,15 +2094,13 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     // we should have zero ghost particles
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
 
+    // migrate particles (to initialize bond rank table)
+    comm->migrateParticles();
+
     // exchange ghost particles
     comm->exchangeGhosts();
 
-    // rebuild bond list
-    pdata->notifyParticleSort();
-
         {
-        bdata->getGPUTable();
-
         // all bonds should be complete, every processor should have three bonds
         ArrayHandle<BondData::members_t> h_gpu_bondlist(bdata->getGPUTable(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_n_bonds(bdata->getNGroupsArray(), access_location::host, access_mode::read);
@@ -2613,13 +2616,11 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
-#if 0
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
     }
-#endif
 BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);

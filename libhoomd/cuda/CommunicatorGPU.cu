@@ -333,43 +333,44 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
     }
 
 //! Kernel to select ghost atoms due to non-bonded interactions
-struct make_ghost_exchange_plan_gpu : thrust::unary_function<const Scalar4, unsigned int>
+__global__ void gpu_make_ghost_exchange_plan_kernel(
+    unsigned int N,
+    const Scalar4 *d_postype,
+    unsigned int *d_plan,
+    const BoxDim box,
+    Scalar3 ghost_fraction,
+    unsigned int mask
+    )
     {
-    const BoxDim box;       //!< Local box
-    Scalar3 ghost_fraction; //!< Fractional width of ghost layer
-    unsigned int mask;      //!< Mask of allowed communication directions
+    unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    //! Constructor
-    make_ghost_exchange_plan_gpu(const BoxDim& _box, Scalar3 _ghost_fraction, unsigned int _mask)
-        : box(_box), ghost_fraction(_ghost_fraction), mask(_mask)
-        { }
+    if (idx >= N) return;
 
-    __device__ unsigned int operator() (const Scalar4 postype)
-        {
-        Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
-        Scalar3 f = box.makeFraction(pos);
+    Scalar4 postype = d_postype[idx];
+    Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
+    Scalar3 f = box.makeFraction(pos);
 
-        unsigned int plan = 0;
+    // load previous value
+    unsigned int plan = d_plan[idx];
 
-        // is particle inside ghost layer? set plan accordingly.
-        if (f.x >= Scalar(1.0) - ghost_fraction.x)
-            plan |= send_east;
-        if (f.x < ghost_fraction.x)
-            plan |= send_west;
-        if (f.y >= Scalar(1.0) - ghost_fraction.y)
-            plan |= send_north;
-        if (f.y < ghost_fraction.y)
-            plan |= send_south;
-        if (f.z >= Scalar(1.0) - ghost_fraction.z)
-            plan |= send_up;
-        if (f.z < ghost_fraction.z)
-            plan |= send_down;
+    // is particle inside ghost layer? set plan accordingly.
+    if (f.x >= Scalar(1.0) - ghost_fraction.x)
+        plan |= send_east;
+    if (f.x < ghost_fraction.x)
+        plan |= send_west;
+    if (f.y >= Scalar(1.0) - ghost_fraction.y)
+        plan |= send_north;
+    if (f.y < ghost_fraction.y)
+        plan |= send_south;
+    if (f.z >= Scalar(1.0) - ghost_fraction.z)
+        plan |= send_up;
+    if (f.z < ghost_fraction.z)
+        plan |= send_down;
 
-        // filter out non-communiating directions
-        plan &= mask;
+    // filter out non-communiating directions
+    plan &= mask;
 
-        return plan;
-        }
+    d_plan[idx] = plan;
     };
 
 //! Construct plans for sending non-bonded ghost particles
@@ -387,16 +388,16 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   unsigned int mask,
                                   cached_allocator& alloc)
     {
-    // wrap position array
-    thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
+    unsigned int block_size = 512;
+    unsigned int n_blocks = N/block_size + 1;
 
-    // wrap plan (output) array
-    thrust::device_ptr<unsigned int> plan_ptr(d_plan);
-
-    // compute plans
-    thrust::transform(thrust::cuda::par(alloc),
-        pos_ptr, pos_ptr + N, plan_ptr,
-        make_ghost_exchange_plan_gpu(box, ghost_fraction,mask));
+    gpu_make_ghost_exchange_plan_kernel<<<n_blocks, block_size>>>(
+        N,
+        d_pos,
+        d_plan,
+        box,
+        ghost_fraction,
+        mask);
     }
 
 //! Apply adjacency masks to plan and return number of matching neighbors
@@ -1338,6 +1339,95 @@ void gpu_add_groups(unsigned int n_groups,
     alloc.deallocate((char *)d_tmp,0);
     }
 
+template<unsigned int group_size, typename members_t, typename ranks_t>
+__global__ void gpu_mark_bonded_ghosts_kernel(
+    unsigned int n_groups,
+    members_t *d_groups,
+    ranks_t *d_ranks,
+    const unsigned int *d_rtag,
+    unsigned int *d_plan,
+    Index3D di,
+    uint3 my_pos)
+    {
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (group_idx >= n_groups) return;
+
+    // load group member tags
+    members_t g = d_groups[group_idx];
+
+    // load group member ranks
+    ranks_t r = d_ranks[group_idx];
+
+    unsigned int my_rank = di(my_pos.x,my_pos.y,my_pos.z);
+
+    for (unsigned int i = 0; i < group_size; ++i)
+        {
+        unsigned int rank = r.idx[i];
+        if (rank != my_rank)
+            {
+            // incomplete group
+
+            // send group to neighbor rank stored for that member
+            uint3 neigh_pos = di.getTriple(rank);
+
+            // only neighbors are considered for communication
+            unsigned int flags = 0;
+            if (neigh_pos.x == my_pos.x + 1 || (my_pos.x == di.getW()-1 && neigh_pos.x == 0))
+                flags |= send_east;
+            else if (neigh_pos.x == my_pos.x - 1 || (my_pos.x == 0 && neigh_pos.x == di.getW()-1))
+                flags |= send_west;
+            if (neigh_pos.y == my_pos.y + 1 || (my_pos.y == di.getH()-1 && neigh_pos.y == 0))
+                flags |= send_north;
+            else if (neigh_pos.y == my_pos.y - 1 || (my_pos.y == 0 && neigh_pos.y == di.getH()-1))
+                flags |= send_south;
+            if (neigh_pos.z == my_pos.z + 1 || (my_pos.z == di.getD()-1 && neigh_pos.z == 0))
+                flags |= send_up;
+            else if (neigh_pos.z == my_pos.z - 1 || (my_pos.z == 0 && neigh_pos.z == di.getD()-1))
+                flags |= send_down;
+
+            // Send all local members of the group to this neighbor
+            for (unsigned int j = 0; j < group_size; ++j)
+                {
+                unsigned int tag_j = g.tag[j];
+                unsigned int rtag_j = d_rtag[tag_j];
+
+                if (rtag_j != NOT_LOCAL)
+                    atomicOr(&d_plan[rtag_j], flags);
+                }
+            }
+        }
+    }
+
+template<unsigned int group_size, typename members_t, typename ranks_t>
+void gpu_mark_bonded_ghosts(
+    unsigned int n_groups,
+    members_t *d_groups,
+    ranks_t *d_ranks,
+    const unsigned int *d_rtag,
+    unsigned int *d_plan,
+    Index3D& di,
+    uint3 my_pos)
+    {
+    unsigned int block_size = 512;
+    unsigned int n_blocks = n_groups/block_size + 1;
+
+    gpu_mark_bonded_ghosts_kernel<group_size><<<n_blocks, block_size>>>(
+        n_groups,
+        d_groups,
+        d_ranks,
+        d_rtag,
+        d_plan,
+        di,
+        my_pos);
+    }
+
+void gpu_reset_exchange_plan(
+    unsigned int N,
+    unsigned int *d_plan)
+    {
+    cudaMemsetAsync(d_plan, 0, sizeof(unsigned int)*N);
+    }
 /*
  *! Explicit template instantiations for BondData (n=2)
  */
@@ -1409,5 +1499,14 @@ template void gpu_add_groups(unsigned int n_groups,
     unsigned int &new_ngroups,
     cached_allocator &alloc,
     mgpu::ContextPtr mgpu_context);
- 
+
+template void gpu_mark_bonded_ghosts<2>(
+    unsigned int n_groups,
+    group_storage<2> *d_groups,
+    group_storage<2> *d_ranks,
+    const unsigned int *d_rtag,
+    unsigned int *d_plan,
+    Index3D& di,
+    uint3 my_pos);
+
 #endif // ENABLE_MPI
