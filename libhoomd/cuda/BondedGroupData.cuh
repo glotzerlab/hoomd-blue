@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "cached_allocator.h"
+#include "moderngpu/util/mgpucontext.h"
 
 #ifndef __BONDED_GROUP_DATA_CUH__
 #define __BONDED_GROUP_DATA_CUH__
@@ -104,6 +105,7 @@ void gpu_update_group_table(
     unsigned int &flag,
     group_t *d_pidx_group_table,
     const unsigned int pidx_group_table_pitch,
-    cached_allocator& alloc
+    cached_allocator& alloc,
+    mgpu::ContextPtr mgpu_context
     );
 #endif // __BONDED_GROUP_DATA_CUH__

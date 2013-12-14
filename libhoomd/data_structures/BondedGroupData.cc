@@ -102,6 +102,14 @@ BondedGroupData<group_size, Group, name>::BondedGroupData(
 
     // initialize data structures
     initialize();
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
+    #endif
     }
 
 /*! \param exec_conf Execution configuration
@@ -119,6 +127,14 @@ BondedGroupData<group_size, Group, name>::BondedGroupData(
     // connect to particle sort signal
     m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name>::setDirty,
         this));
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
+    #endif
 
     // initialize data structures
     initialize();
@@ -693,7 +709,8 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
                 flag,
                 d_gpu_table.data,
                 m_gpu_table_indexer.getW(),
-                m_cached_alloc);
+                m_cached_alloc,
+                m_mgpu_context);
             } 
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 

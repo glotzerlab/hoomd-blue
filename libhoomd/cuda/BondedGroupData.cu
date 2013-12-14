@@ -57,6 +57,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/device_ptr.h>
 
+#include "moderngpu/kernels/mergesort.cuh"
+
 /*! \file BondedGroupData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
 */
@@ -153,7 +155,8 @@ void gpu_update_group_table(
     unsigned int &flag,
     group_t *d_pidx_group_table,
     const unsigned int pidx_group_table_pitch,
-    cached_allocator& alloc
+    cached_allocator& alloc,
+    mgpu::ContextPtr mgpu_context
     )
     {
     // allocate temporary buffers
@@ -187,18 +190,14 @@ void gpu_update_group_table(
         // we are good, fill group table
 
         // sort groups by particle index
-        thrust::device_ptr<unsigned int> scratch_idx_ptr(d_scratch_idx);
-        thrust::device_ptr<group_t> scratch_g_ptr(d_scratch_g);
-        thrust::stable_sort_by_key(thrust::cuda::par(alloc),
-            scratch_idx_ptr,
-            scratch_idx_ptr + group_size*n_groups,
-            scratch_g_ptr);
+        mgpu::MergesortPairs(d_scratch_idx, d_scratch_g, group_size*n_groups, *mgpu_context);
 
         // allocate temporary array
         unsigned int *d_offsets = (unsigned int *)alloc.allocate(group_size*n_groups*sizeof(unsigned int));
         thrust::device_ptr<unsigned int> offsets_ptr(d_offsets);
 
         // do a segmented prefix scan to determine dest offsets
+        thrust::device_ptr<unsigned int> scratch_idx_ptr(d_scratch_idx);
         thrust::constant_iterator<unsigned int> const_it(pidx_group_table_pitch);
         thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
             scratch_idx_ptr,
@@ -243,5 +242,6 @@ template void gpu_update_group_table<2>(
     unsigned int &flag,
     union group_storage<2> *d_pidx_group_table,
     const unsigned int pidx_group_table_pitch,
-    cached_allocator& alloc
+    cached_allocator& alloc,
+    mgpu::ContextPtr mgpu_context
     );

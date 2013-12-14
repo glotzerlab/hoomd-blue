@@ -81,6 +81,7 @@ using namespace boost::python;
 
 #ifdef ENABLE_CUDA
 #include "cached_allocator.h"
+#include "BondedGroupData.cuh"
 #endif
 
 //! Forward declarations
@@ -515,6 +516,7 @@ class BondedGroupData : boost::noncopyable
         GPUArray<unsigned int> m_condition;          //!< Condition variable for rebuilding GPU table on the GPU
         unsigned int m_next_flag;                    //!< Next flag value for GPU table rebuild
         cached_allocator m_cached_alloc;             //!< Cached allocator for temporary arrays on the GPU
+        mgpu::ContextPtr m_mgpu_context;                   //!< moderngpu context
         #endif
     };
 
