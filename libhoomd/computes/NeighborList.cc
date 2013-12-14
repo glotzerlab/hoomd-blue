@@ -190,6 +190,8 @@ NeighborList::~NeighborList()
 #ifdef ENABLE_MPI
     if (m_migrate_request_connection.connected())
         m_migrate_request_connection.disconnect();
+    if (m_comm_flags_request.connected())
+        m_comm_flags_request.disconnect();
 #endif
     }
 
@@ -1299,7 +1301,8 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
     if (!m_comm)
         {
         // only add the migrate request on the first call
-        comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
+        m_migrate_request_connection = comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
+        m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
         }
 
     if (comm)

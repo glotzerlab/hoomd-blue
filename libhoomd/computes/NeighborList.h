@@ -429,9 +429,10 @@ class NeighborList : public Compute
 
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
-#ifdef ENABLE_MPI
+        #ifdef ENABLE_MPI
         boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
-#endif
+        boost::signals2::connection m_comm_flags_request;         //!< Connection to request ghost particle fields
+        #endif
 
         //! Performs the distance check
         virtual bool distanceCheck();
@@ -447,6 +448,16 @@ class NeighborList : public Compute
 
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
+
+        #ifdef ENABLE_MPI
+        CommFlags getRequestedCommFlags(unsigned int timestep)
+            {
+            // exclusions require ghost particle tags
+            CommFlags flags(0);
+            if (m_exclusions_set) flags[comm_flag::tag] = 1;
+            return flags;
+            }
+        #endif
 
     private:
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
