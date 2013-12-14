@@ -53,11 +53,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "BondedGroupData.cuh"
 
-#include <thrust/scan.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/device_ptr.h>
-
+#include "moderngpu/kernels/scan.cuh"
 #include "moderngpu/kernels/mergesort.cuh"
+#include "moderngpu/kernels/intervalmove.cuh"
 
 /*! \file BondedGroupData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables
@@ -129,7 +127,8 @@ __global__ void gpu_group_scatter_kernel(
     const group_t *d_scratch_g,
     const unsigned int *d_scratch_idx,
     const unsigned int *d_offset,
-    group_t *d_pidx_group_table
+    group_t *d_pidx_group_table,
+    unsigned int pidx_group_table_pitch
     )
     {
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -137,7 +136,7 @@ __global__ void gpu_group_scatter_kernel(
     if (i >= n_scratch) return;
 
     unsigned int pidx = d_scratch_idx[i];
-    unsigned int offset = d_offset[i] + pidx;
+    unsigned int offset = d_offset[i]*pidx_group_table_pitch + pidx;
     d_pidx_group_table[offset] = d_scratch_g[i];
     }
 
@@ -194,16 +193,17 @@ void gpu_update_group_table(
 
         // allocate temporary array
         unsigned int *d_offsets = (unsigned int *)alloc.allocate(group_size*n_groups*sizeof(unsigned int));
-        thrust::device_ptr<unsigned int> offsets_ptr(d_offsets);
+        // determine output offsets of segments
+        unsigned int *d_seg_offsets = (unsigned int *)alloc.allocate(N*sizeof(unsigned int));
+	    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_n_groups, N, (unsigned int) 0, mgpu::plus<unsigned int>(),
+            (unsigned int *) NULL, (unsigned int *)NULL, d_seg_offsets,*mgpu_context);
 
-        // do a segmented prefix scan to determine dest offsets
-        thrust::device_ptr<unsigned int> scratch_idx_ptr(d_scratch_idx);
-        thrust::constant_iterator<unsigned int> const_it(pidx_group_table_pitch);
-        thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
-            scratch_idx_ptr,
-            scratch_idx_ptr + group_size*n_groups,
-            const_it,
-            offsets_ptr);
+        // use IntervalMove to perform a segmented scan of d_scratch_idx,
+        // using sement offsets as an input
+        mgpu::constant_iterator<unsigned int> const_it(0);
+        mgpu::counting_iterator<unsigned int> count_it(0);
+        mgpu::IntervalMove(group_size*n_groups, const_it, d_seg_offsets, d_seg_offsets, N,
+            count_it, d_offsets, *mgpu_context);
 
         // scatter groups to destinations
         block_size = 512;
@@ -214,9 +214,11 @@ void gpu_update_group_table(
             d_scratch_g,
             d_scratch_idx,
             d_offsets,
-            d_pidx_group_table);
+            d_pidx_group_table,
+            pidx_group_table_pitch);
  
         alloc.deallocate((char *) d_offsets,0);
+        alloc.deallocate((char *) d_seg_offsets, 0);
         } 
 
     // release temporary arrays
