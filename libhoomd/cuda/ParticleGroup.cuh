@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "cached_allocator.h"
+#include "moderngpu/util/mgpucontext.h"
 
 /*! \file ParticleGroup.cuh
     \brief Contains GPU kernel code used by ParticleGroup
@@ -71,7 +72,8 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_tag,
                                    unsigned int &num_local_members,
-                                   cached_allocator& alloc);
+                                   cached_allocator& alloc,
+                                   mgpu::ContextPtr mgpu_context);
 
 
 #endif

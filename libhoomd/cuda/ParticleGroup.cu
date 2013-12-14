@@ -50,20 +50,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#include <thrust/device_ptr.h>
-#include <thrust/fill.h>
-#include <thrust/copy.h>
-#include <thrust/scatter.h>
-#include <thrust/iterator/permutation_iterator.h>
-#include <thrust/iterator/constant_iterator.h>
-
 #include "ParticleData.cuh"
 
-#ifdef WIN32
-#include <cassert>
-#else
-#include <assert.h>
-#endif
+#include "moderngpu/kernels/scan.cuh"
 
 /*! \file ParticleGroup.cu
     \brief Contains GPU kernel code used by ParticleGroup
@@ -84,6 +73,19 @@ __global__ void gpu_rebuild_index_list_kernel(unsigned int N,
     d_is_member[idx] = d_is_member_tag[tag];
     }
 
+__global__ void gpu_scatter_member_indices(unsigned int N,
+    const unsigned int *d_scan,
+    const unsigned char *d_is_member,
+    unsigned *d_member_idx)
+    {
+    unsigned int idx = blockIdx.x*blockDim.x+threadIdx.x;
+
+    if (idx >= N) return;
+
+    if (d_is_member[idx])
+        d_member_idx[d_scan[idx]] = idx;
+    }
+
 //! GPU method for rebuilding the index list of a ParticleGroup
 /*! \param N number of local particles
     \param d_is_member_tag Global lookup table for tag -> group membership
@@ -98,7 +100,8 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_tag,
                                    unsigned int &num_local_members,
-                                   cached_allocator& alloc)
+                                   cached_allocator& alloc,
+                                   mgpu::ContextPtr mgpu_context)
     {
     assert(d_is_member);
     assert(d_is_member_tag);
@@ -106,19 +109,25 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
     assert(d_tag);
 
     unsigned int block_size = 512;
-    gpu_rebuild_index_list_kernel<<<N/block_size+1,block_size>>>(N,
-                                                                 d_tag,
-                                                                 d_is_member_tag,
-                                                                 d_is_member);
+    unsigned int n_blocks = N/block_size + 1;
+    gpu_rebuild_index_list_kernel<<<n_blocks,block_size>>>(N,
+                                                         d_tag,
+                                                         d_is_member_tag,
+                                                         d_is_member);
 
-    thrust::device_ptr<unsigned char> is_member_ptr(d_is_member);
-    thrust::device_ptr<unsigned int> member_idx_ptr(d_member_idx);
+    // allocate temporary array
+    unsigned int *d_tmp = (unsigned int *)alloc.allocate(N*sizeof(unsigned int));
 
-    thrust::counting_iterator<unsigned int> idx(0);
+    // compute member_idx offsets
+    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_is_member, N, (unsigned int) 0, mgpu::plus<unsigned int>(),
+        (unsigned int *) NULL, &num_local_members, d_tmp, *mgpu_context);
+
 
     // fill member_idx array
-    num_local_members = thrust::copy_if(thrust::cuda::par(alloc),
-        idx, idx + N, is_member_ptr, member_idx_ptr, thrust::identity<unsigned char>()) - member_idx_ptr;
+    gpu_scatter_member_indices<<<n_blocks, block_size>>>(N, d_tmp, d_is_member, d_member_idx);
+
+    // release temporary array
+    alloc.deallocate((char *) d_tmp,0);
 
     return cudaSuccess;
     }

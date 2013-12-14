@@ -275,6 +275,14 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
     GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
 
+    #ifdef ENABLE_CUDA
+    if (m_pdata->getExecConf()->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
+    #endif
+
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
 
@@ -321,6 +329,14 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
 
     GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
+
+    #ifdef ENABLE_CUDA
+    if (m_pdata->getExecConf()->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
+    #endif
 
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
@@ -610,7 +626,8 @@ void ParticleGroup::rebuildIndexListGPU() const
                            d_member_idx.data,
                            d_tag.data,
                            m_num_local_members,
-                           m_cached_allocator);
+                           m_cached_allocator,
+                           m_mgpu_context);
         }
     else
         m_num_local_members = 0;

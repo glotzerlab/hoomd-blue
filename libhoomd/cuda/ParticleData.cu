@@ -376,11 +376,11 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
     typedef thrust::counting_iterator<unsigned int> count_it;
 
     // add new particles at the end, writing rtags at the same time
-    thrust::transform(thrust::cuda::par(alloc),in_ptr, in_ptr + num_add_ptls, pdata_end, to_pdata_tuple_gpu());
+    thrust::transform(in_ptr, in_ptr + num_add_ptls, pdata_end, to_pdata_tuple_gpu());
 
     // update rtags
     thrust::counting_iterator<unsigned int> idx(old_nparticles);
-    thrust::scatter(thrust::cuda::par(alloc), idx, idx + num_add_ptls, tag_ptr+old_nparticles, rtag_ptr);
+    thrust::scatter(idx, idx + num_add_ptls, tag_ptr+old_nparticles, rtag_ptr);
     }
 
 #endif // ENABLE_MPI

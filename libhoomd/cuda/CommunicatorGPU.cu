@@ -203,8 +203,7 @@ void gpu_stage_particles(const unsigned int N,
     thrust::device_ptr<unsigned int> comm_flag_ptr(d_comm_flag);
 
     // set flag for particles that are to be sent
-    thrust::transform(thrust::cuda::par(alloc),
-        pos_ptr, pos_ptr + N, comm_flag_ptr,
+    thrust::transform(pos_ptr, pos_ptr + N, comm_flag_ptr,
         select_particle_migrate_gpu(box,comm_mask));
     }
 
