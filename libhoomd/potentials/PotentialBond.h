@@ -225,7 +225,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // get a local copy of the simulation box too
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
