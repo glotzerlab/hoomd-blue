@@ -135,14 +135,22 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
+    
+    // this violates O(N/P) memory scaling
+    // in the future this should be done using a hash table
     GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
-    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
-    m_n_ex_idx.swap(n_ex_idx);
     GPUArray<unsigned int> ex_list_tag(m_pdata->getNGlobal(), 1, exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
+
+    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
+    m_n_ex_idx.swap(n_ex_idx);
     GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, exec_conf);
     m_ex_list_idx.swap(ex_list_idx);
+
+    // reset exclusions
+    clearExclusions();
+
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), 1);
     m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), 1);
 
@@ -365,7 +373,7 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::readwrite);
 
-        // add tag2 to tag1's exculsion list
+        // add tag2 to tag1's exclusion list
         unsigned int pos1 = h_n_ex_tag.data[tag1];
         assert(pos1 < m_ex_list_indexer.getH());
         h_ex_list_tag.data[m_ex_list_indexer_tag(tag1,pos1)] = tag2;
@@ -388,7 +396,7 @@ void NeighborList::clearExclusions()
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
-    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getN());
+    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getNGlobal());
     memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_pdata->getN());
     m_exclusions_set = false;
 
@@ -436,7 +444,7 @@ void NeighborList::countExclusions()
     for (unsigned int c=0; c <= MAX_COUNT_EXCLUDED+1; ++c)
         excluded_count[c] = 0;
 
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
         {
         num_excluded = h_n_ex_tag.data[i];
 
@@ -556,6 +564,7 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::read);
 
     unsigned int n_ex = h_n_ex_tag.data[tag1];
+    m_exec_conf->msg->notice(1) << "Checking exclusions " << tag1 << " " << tag2 << std::endl;
     for (unsigned int i = 0; i < n_ex; i++)
         {
         if (h_ex_list_tag.data[m_ex_list_indexer_tag(tag1,i)] == tag2)

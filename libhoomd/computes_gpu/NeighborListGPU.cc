@@ -299,6 +299,7 @@ void NeighborListGPU::updateExListIdx()
     {
     if (m_prof)
         m_prof->push(m_exec_conf,"update-ex");
+
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
@@ -316,6 +317,7 @@ void NeighborListGPU::updateExListIdx()
                               d_ex_list_idx.data,
                               m_ex_list_indexer,
                               m_pdata->getN());
+    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
