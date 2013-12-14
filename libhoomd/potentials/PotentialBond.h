@@ -100,6 +100,11 @@ class PotentialBond : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+        #ifdef ENABLE_MPI
+        //! Get ghost particle fields requested by this pair potential
+        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        #endif
+
     protected:
         GPUArray<param_type> m_params;              //!< Bond parameters per type
         boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
@@ -349,6 +354,22 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->pop();
     }
+
+#ifdef ENABLE_MPI
+/*! \param timestep Current time step
+ */
+template < class evaluator >
+CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timestep)
+    {
+    CommFlags flags = CommFlags(0);
+
+    flags[comm_flag::tag] = 1;
+
+    flags |= ForceCompute::getRequestedCommFlags(timestep);
+
+    return flags;
+    }
+#endif
 
 //! Exports the PotentialBond class to python
 /*! \param name Name of the class in the exported python module

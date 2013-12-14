@@ -217,24 +217,21 @@ void BondedGroupData<group_size, Group, name>::initializeFromSnapshot(const Snap
         // broadcast to all processors (temporarily)
         std::vector<members_t> all_groups;
         std::vector<unsigned int> all_type;
-        std::vector<std::string> type_mapping;
 
         if (m_exec_conf->getRank() == 0)
             {
             all_groups = snapshot.groups;
             all_type = snapshot.type_id;
-            type_mapping = snapshot.type_mapping;
+            m_type_mapping = snapshot.type_mapping;
             }
 
         bcast(all_groups, 0, m_exec_conf->getMPICommunicator());
         bcast(all_type, 0, m_exec_conf->getMPICommunicator());
-        bcast(type_mapping, 0, m_exec_conf->getMPICommunicator());
+        bcast(m_type_mapping, 0, m_exec_conf->getMPICommunicator());
 
         // iterate over groups and add those that have local particles
         for (unsigned int group_tag = 0; group_tag < all_groups.size(); ++group_tag)
             addBondedGroup(Group(all_type[group_tag], all_groups[group_tag]));
-            
-        m_type_mapping = type_mapping;
         }
     else
     #endif
@@ -283,7 +280,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 
     if (type >= m_type_mapping.size())
         {
-        m_exec_conf->msg->error() << "Invalid " << name << " type! " << type << ", the  number of types is "
+        m_exec_conf->msg->error() << "Invalid " << name << " type " << type << "! The  number of types is "
             << m_type_mapping.size() << std::endl;
         throw std::runtime_error(std::string("Error adding ") + name);
         }
@@ -369,7 +366,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 template<unsigned int group_size, typename Group, const char *name>
 const Group BondedGroupData<group_size, Group, name>::getGroupByTag(unsigned int tag) const
     {
-    // Find position of bond in bonds list
+    // Find position of bonded group in list
     unsigned int group_idx = m_group_rtag[tag];
 
     unsigned int type;
@@ -579,11 +576,11 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
             ArrayHandle<unsigned int> h_n_groups(m_n_groups, access_location::host, access_mode::overwrite);
 
             unsigned int N = m_pdata->getN()+m_pdata->getNGhosts();
-            // count the number of bonds per particle
-            // start by initializing the n_bonds values to 0
+            // count the number of bonded groups per particle
+            // start by initializing the n_groups values to 0
             memset(h_n_groups.data, 0, sizeof(unsigned int) * N);
 
-            // loop through the particles and count the number of bonds based on each particle index
+            // loop through the particles and count the number of groups based on each particle index
             for (unsigned int cur_group = 0; cur_group < getN(); cur_group++)
                 {
                 members_t g = m_groups[cur_group];
@@ -604,7 +601,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
                     }
                 }
 
-            // find the maximum number of bonds
+            // find the maximum number of groups
             for (unsigned int i = 0; i < N; i++)
                 if (h_n_groups.data[i] > num_groups_max)
                     num_groups_max = h_n_groups.data[i];
@@ -619,8 +616,8 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
             ArrayHandle<members_t> h_gpu_table(m_gpu_table, access_location::host, access_mode::overwrite);
 
             // now, update the actual table
-            // zero the number of bonds counter (again)
-            memset(h_n_groups.data, 0, sizeof(unsigned int) * m_pdata->getN());
+            // zero the number of bonded groups counter (again)
+            memset(h_n_groups.data, 0, sizeof(unsigned int) * (m_pdata->getN()+m_pdata->getNGhosts()));
 
             // loop through all group and add them to each column in the list
             for (unsigned int cur_group = 0; cur_group < getN(); cur_group++)
@@ -664,6 +661,10 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
 
     // resize groups counter
     m_n_groups.resize(m_pdata->getN()+m_pdata->getNGhosts());
+
+    // resize GPU table to current number of particles
+    m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), m_gpu_table_indexer.getH());
+    m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
 
     bool done = false;
     while (!done)
@@ -730,24 +731,85 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
     // allocate memory in snapshot
     snapshot.resize(getNGlobal());
 
+    std::map<unsigned int, unsigned int> rtag_map;
+
+    for (unsigned int group_idx = 0; group_idx < getN(); group_idx++)
+        {
+        unsigned int tag = m_group_tag[group_idx];
+        assert(m_group_rtag[tag] == group_idx);
+
+        rtag_map.insert(std::pair<unsigned int,unsigned int>(tag, group_idx));
+        }
+
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        //..
+        // gather local data
+        std::vector<unsigned int> types; // Group types
+        std::vector<members_t> members;  // Group members
+
+        for (unsigned int group_idx  = 0; group_idx < getN(); ++group_idx)
+            {
+            types.push_back(m_group_type[group_idx]);
+            members.push_back(m_groups[group_idx]);
+            }
+
+        std::vector< std::vector<unsigned int> > types_proc;     // Group types of every processor
+        std::vector< std::vector<members_t> > members_proc;      // Group members of every processor
+
+        std::vector< std::map<unsigned int, unsigned int> > rtag_map_proc; // List of reverse-lookup maps
+
+        unsigned int size = m_exec_conf->getNRanks();
+
+        // resize arrays to accumulate group data of all ranks
+        types_proc.resize(size);
+        members_proc.resize(size);
+        rtag_map_proc.resize(size);
+
+        // gather all processors' data
+        gather_v(types, types_proc, 0, m_exec_conf->getMPICommunicator());
+        gather_v(members, members_proc, 0, m_exec_conf->getMPICommunicator());
+        gather_v(rtag_map, rtag_map_proc, 0, m_exec_conf->getMPICommunicator());
+
+        if (m_exec_conf->getRank() == 0)
+            {
+            assert(rtag_map_proc.size() == size);
+
+            // create single map of all group ranks and indices
+            // groups present on more than one processor will count as one group
+            std::map<unsigned int, std::pair<unsigned int, unsigned int> > rank_rtag_map;
+            std::map<unsigned int, unsigned int>::iterator it;
+            for (unsigned int irank = 0; irank < size; ++irank)
+                for (it = rtag_map_proc[irank].begin(); it != rtag_map_proc[irank].end(); ++it)
+                    rank_rtag_map.insert(std::make_pair(it->first, std::make_pair(irank, it->second)));
+
+            // add groups to snapshot
+            std::map<unsigned int, std::pair<unsigned int, unsigned int> >::iterator rank_rtag_it;
+            for (unsigned int group_tag = 0; group_tag < getNGlobal(); group_tag++)
+                {
+                rank_rtag_it = rank_rtag_map.find(group_tag);
+                if (rank_rtag_it == rank_rtag_map.end())
+                    {
+                    m_exec_conf->msg->error()
+                        << endl << "Could not find " << name << " " << group_tag << " on any processor. "
+                        << endl << endl;
+                    throw std::runtime_error("Error gathering "+std::string(name)+"s");
+                    }
+
+                // rank contains the processor rank on which the particle was found
+                std::pair<unsigned int, unsigned int> rank_idx = rank_rtag_it->second;
+                unsigned int rank = rank_idx.first;
+                unsigned int idx = rank_idx.second;
+
+                snapshot.type_id[group_tag] = types_proc[rank][idx];
+                snapshot.groups[group_tag] = members_proc[rank][idx];
+                }
+            }
         }
     else
     #endif
         {
-        std::map<unsigned int, unsigned int> rtag_map;
-
         assert(getN() == getNGlobal());
-        for (unsigned int group_idx = 0; group_idx < getN(); group_idx++)
-            {
-            unsigned int tag = m_group_tag[group_idx];
-            assert(m_group_rtag[tag] == group_idx);
-
-            rtag_map.insert(std::pair<unsigned int,unsigned int>(tag, group_idx));
-            }
         std::map<unsigned int, unsigned int>::iterator rtag_it;
         for (rtag_it = rtag_map.begin(); rtag_it != rtag_map.end(); ++rtag_it)
             {

@@ -350,8 +350,7 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(
     Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
     Scalar3 f = box.makeFraction(pos);
 
-    // load previous value
-    unsigned int plan = d_plan[idx];
+    unsigned int plan = 0;
 
     // is particle inside ghost layer? set plan accordingly.
     if (f.x >= Scalar(1.0) - ghost_fraction.x)
@@ -400,6 +399,29 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
         mask);
     }
 
+__device__ unsigned int get_direction_mask(unsigned int plan)
+    {
+    unsigned int mask = 0;
+    for (int ix = -1; ix <= 1; ix++)
+        for (int iy = -1; iy <= 1; iy++)
+            for (int iz = -1; iz <= 1; iz++)
+                {
+                unsigned int flags = 0;
+                if (ix == 1) flags |= send_east;
+                if (ix == -1) flags |= send_west;
+                if (iy == 1) flags |= send_north;
+                if (iy == -1) flags |= send_south;
+                if (iz == 1) flags |= send_up;
+                if (iz == -1) flags |= send_down;
+    
+                unsigned int dir = ((iz+1)*3+(iy+1))*3+(ix + 1);
+                if (flags && (flags & plan) == flags)
+                    mask |= (1 << dir);
+                }
+
+    return mask;
+    }
+
 //! Apply adjacency masks to plan and return number of matching neighbors
 struct num_neighbors_gpu
     {
@@ -413,10 +435,12 @@ struct num_neighbors_gpu
     __device__ unsigned int operator() (unsigned int plan)
         {
         unsigned int count = 0;
+        unsigned int mask = get_direction_mask(plan);
         for (unsigned int i = 0; i < nneigh; i++)
             {
             unsigned int adj = adj_ptr[i];
-            if ((adj & plan) == adj) count++;
+            
+            if (adj & mask) count++;
             }
         return count;
         }
@@ -430,12 +454,6 @@ struct get_neighbor_rank_n : thrust::unary_function<
     thrust::device_ptr<const unsigned int> neighbor_ptr;
     const unsigned int nneigh;
 
-    __host__ __device__ get_neighbor_rank_n(thrust::device_ptr<const unsigned int> _adj_ptr,
-        thrust::device_ptr<const unsigned int> _neighbor_ptr,
-        unsigned int _nneigh)
-        : adj_ptr(_adj_ptr), neighbor_ptr(_neighbor_ptr), nneigh(_nneigh)
-        { }
-
     __host__ __device__ get_neighbor_rank_n(const unsigned int *_d_adj,
         const unsigned int *_d_neighbor,
         unsigned int _nneigh)
@@ -445,32 +463,15 @@ struct get_neighbor_rank_n : thrust::unary_function<
         { }
 
 
-    __device__ unsigned int operator() (thrust::tuple<unsigned int, unsigned int> t)
-        {
-        unsigned int plan = thrust::get<0>(t);
-        unsigned int n = thrust::get<1>(t);
-        unsigned int count = 0;
-        unsigned int ineigh;
-        for (ineigh = 0; ineigh < nneigh; ineigh++)
-            {
-            unsigned int adj = adj_ptr[ineigh];
-            if ((adj & plan) == adj)
-                {
-                if (count == n) break;
-                count++;
-                }
-            }
-        return neighbor_ptr[ineigh];
-        }
-
     __device__ unsigned int operator() (unsigned int plan, unsigned int n)
         {
         unsigned int count = 0;
         unsigned int ineigh;
+        unsigned int mask = get_direction_mask(plan);
         for (ineigh = 0; ineigh < nneigh; ineigh++)
             {
             unsigned int adj = adj_ptr[ineigh];
-            if ((adj & plan) == adj)
+            if (adj & mask)
                 {
                 if (count == n) break;
                 count++;
@@ -608,22 +609,18 @@ void gpu_exchange_ghosts_make_indices(
     const unsigned int *d_ghost_plan,
     const unsigned int *d_tag,
     const unsigned int *d_adj,
-    const unsigned int *d_neighbors,
     const unsigned int *d_unique_neighbors,
     const unsigned int *d_counts,
     unsigned int *d_ghost_idx,
+    unsigned int *d_ghost_neigh,
     unsigned int *d_ghost_begin,
     unsigned int *d_ghost_end,
-    unsigned int nneigh,
     unsigned int n_unique_neigh,
     unsigned int n_out,
     unsigned int mask,
     mgpu::ContextPtr mgpu_context,
     cached_allocator& alloc)
     {
-    // temporary array for output neighbor ranks
-    unsigned int *d_out_neighbors = (unsigned int *)alloc.allocate(n_out*sizeof(unsigned int));
-
     /*
      * expand each tag by the number of neighbors to send the corresponding ptl to
      * and assign each copy to a different neighbor
@@ -633,20 +630,17 @@ void gpu_exchange_ghosts_make_indices(
     gpu_expand_neighbors(n_out,
         d_counts,
         d_tag, d_ghost_plan, N, d_ghost_idx,
-        d_neighbors, d_adj, nneigh,
-        d_out_neighbors,
+        d_unique_neighbors, d_adj, n_unique_neigh,
+        d_ghost_neigh,
         *mgpu_context);
 
     // sort tags by neighbors
-    if (n_out) mgpu::LocalitySortPairs(d_out_neighbors, d_ghost_idx, n_out, *mgpu_context);
+    if (n_out) mgpu::LocalitySortPairs(d_ghost_neigh, d_ghost_idx, n_out, *mgpu_context);
 
     mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_unique_neighbors, n_unique_neigh,
-        d_out_neighbors, n_out, d_ghost_begin, *mgpu_context);
+        d_ghost_neigh, n_out, d_ghost_begin, *mgpu_context);
     mgpu::SortedSearch<mgpu::MgpuBoundsUpper>(d_unique_neighbors, n_unique_neigh,
-        d_out_neighbors, n_out, d_ghost_end, *mgpu_context);
-
-    // deallocate temporary arrays
-    alloc.deallocate((char *)d_out_neighbors,0);
+        d_ghost_neigh, n_out, d_ghost_end, *mgpu_context);
     }
 
 template<typename T>
@@ -732,8 +726,8 @@ struct wrap_ghost_pos_gpu : public thrust::unary_function<Scalar4, Scalar4>
     \param box Box for which to apply boundary conditions
  */
 void gpu_wrap_ghosts(const unsigned int n_recv,
-                        Scalar4 *d_pos,
-                        const BoxDim& box)
+                     Scalar4 *d_pos,
+                     BoxDim box)
     {
     // Wrap device ptr
     thrust::device_ptr<Scalar4> pos_ptr(d_pos);
@@ -1347,7 +1341,8 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
     const unsigned int *d_rtag,
     unsigned int *d_plan,
     Index3D di,
-    uint3 my_pos)
+    uint3 my_pos,
+    unsigned int mask)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -1375,16 +1370,18 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
             unsigned int flags = 0;
             if (neigh_pos.x == my_pos.x + 1 || (my_pos.x == di.getW()-1 && neigh_pos.x == 0))
                 flags |= send_east;
-            else if (neigh_pos.x == my_pos.x - 1 || (my_pos.x == 0 && neigh_pos.x == di.getW()-1))
+            if (neigh_pos.x == my_pos.x - 1 || (my_pos.x == 0 && neigh_pos.x == di.getW()-1))
                 flags |= send_west;
             if (neigh_pos.y == my_pos.y + 1 || (my_pos.y == di.getH()-1 && neigh_pos.y == 0))
                 flags |= send_north;
-            else if (neigh_pos.y == my_pos.y - 1 || (my_pos.y == 0 && neigh_pos.y == di.getH()-1))
+            if (neigh_pos.y == my_pos.y - 1 || (my_pos.y == 0 && neigh_pos.y == di.getH()-1))
                 flags |= send_south;
             if (neigh_pos.z == my_pos.z + 1 || (my_pos.z == di.getD()-1 && neigh_pos.z == 0))
                 flags |= send_up;
-            else if (neigh_pos.z == my_pos.z - 1 || (my_pos.z == 0 && neigh_pos.z == di.getD()-1))
+            if (neigh_pos.z == my_pos.z - 1 || (my_pos.z == 0 && neigh_pos.z == di.getD()-1))
                 flags |= send_down;
+
+            flags &= mask;
 
             // Send all local members of the group to this neighbor
             for (unsigned int j = 0; j < group_size; ++j)
@@ -1407,7 +1404,8 @@ void gpu_mark_bonded_ghosts(
     const unsigned int *d_rtag,
     unsigned int *d_plan,
     Index3D& di,
-    uint3 my_pos)
+    uint3 my_pos,
+    unsigned int mask)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
@@ -1419,7 +1417,8 @@ void gpu_mark_bonded_ghosts(
         d_rtag,
         d_plan,
         di,
-        my_pos);
+        my_pos,
+        mask);
     }
 
 void gpu_reset_exchange_plan(
@@ -1507,6 +1506,7 @@ template void gpu_mark_bonded_ghosts<2>(
     const unsigned int *d_rtag,
     unsigned int *d_plan,
     Index3D& di,
-    uint3 my_pos);
+    uint3 my_pos,
+    unsigned int mask);
 
 #endif // ENABLE_MPI

@@ -454,14 +454,15 @@ class BoxDim
         //! Wrap a vector back into the box
         /*! \param w Vector to wrap, updated to the minimum image obeying the periodic settings
             \param img Image of the vector, updated to reflect the new image
+            \param flags Vector of flags to force wrapping along certain directions
             \post \a img and \a v are updated appropriately
             \note \a v must not extend more than 1 image beyond the box
             \note This is a special version that wraps a Scalar4 (the 4th element is left alone)
         */
-        HOSTDEVICE void wrap(Scalar4& w, int3& img) const
+        HOSTDEVICE void wrap(Scalar4& w, int3& img, char3 flags = make_char3(0,0,0)) const
             {
             Scalar3 v = make_scalar3(w.x, w.y, w.z);
-            wrap(v, img);
+            wrap(v, img,flags);
             w.x = v.x;
             w.y = v.y;
             w.z = v.z;

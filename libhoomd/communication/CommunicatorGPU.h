@@ -146,8 +146,11 @@ class CommunicatorGPU : public Communicator
                 //! Mark ghost particles
                 /* All particles that need to be sent as ghosts because they are members
                  * of incomplete groups are marked, and destination ranks are compute accordingly.
+                 *
+                 * \param plans Array of particle plans to write to
+                 * \param mask Mask for allowed sending directions
                  */
-                void markGhostParticles(const GPUArray<unsigned int>& plans);
+                void markGhostParticles(const GPUArray<unsigned int>& plans, unsigned int mask);
 
             private:
                 CommunicatorGPU& m_gpu_comm;                            //!< The outer class
@@ -215,6 +218,7 @@ class CommunicatorGPU : public Communicator
         GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf
 
         GPUVector<unsigned int> m_ghost_idx;          //!< Indices of ghosts to send
+        GPUVector<unsigned int> m_ghost_neigh;        //!< Neighbor ranks for every ghost particle
         GPUVector<unsigned int> m_ghost_plan;         //!< Plans for every particle
         std::vector<unsigned int> m_idx_offs;         //!< Per-stage offset into ghost idx list
 

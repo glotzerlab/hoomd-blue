@@ -214,6 +214,9 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<unsigned int> ghost_idx(m_exec_conf);
     m_ghost_idx.swap(ghost_idx);
 
+    GPUVector<unsigned int> ghost_neigh(m_exec_conf);
+    m_ghost_neigh.swap(ghost_neigh);
+
     GPUVector<unsigned int> neigh_counts(m_exec_conf);
     m_neigh_counts.swap(neigh_counts);
     }
@@ -221,12 +224,6 @@ void CommunicatorGPU::allocateBuffers()
 void CommunicatorGPU::initializeNeighborArrays()
     {
     Index3D di= m_decomposition->getDomainIndexer();
-
-    // determine allowed communication directions
-    unsigned int allowed_directions = 0;
-    if (di.getW() > 1) allowed_directions |= send_east | send_west;
-    if (di.getH() > 1) allowed_directions |= send_north | send_south;
-    if (di.getD() > 1) allowed_directions |= send_up | send_down;
 
     uint3 mypos = di.getTriple(m_exec_conf->getRank());
     int l = mypos.x;
@@ -247,6 +244,9 @@ void CommunicatorGPU::initializeNeighborArrays()
         else if (i < 0)
             i += di.getW();
 
+        // only if communicating along x-direction
+        if (ix && di.getW() == 1) continue;
+
         for (int iy=-1; iy <= 1; iy++)
             {
             int j = iy + m;
@@ -256,6 +256,8 @@ void CommunicatorGPU::initializeNeighborArrays()
             else if (j < 0)
                 j += di.getH();
 
+            // only if communicating along y-direction
+            if (iy && di.getH() == 1) continue;
 
             for (int iz=-1; iz <= 1; iz++)
                 {
@@ -266,24 +268,14 @@ void CommunicatorGPU::initializeNeighborArrays()
                 else if (k < 0)
                     k += di.getD();
 
-                unsigned int mask = 0;
-                if (ix == -1)
-                    mask |= send_west;
-                else if (ix == 1)
-                    mask |= send_east;
+                // only if communicating along y-direction
+                if (iz && di.getD() == 1) continue;
 
-                if (iy == -1)
-                    mask |= send_south;
-                else if (iy == 1)
-                    mask |= send_north;
+                // exclude ourselves
+                if (!ix && !iy && !iz) continue;
 
-                if (iz == -1)
-                    mask |= send_down;
-                else if (iz == 1)
-                    mask |= send_up;
-
-                // skip neighbor if we are not communicating
-                if (!mask || ! ((mask & allowed_directions) == mask)) continue;
+                unsigned int dir = ((iz+1)*3+(iy+1))*3+(ix + 1);
+                unsigned int mask = 1 << dir;
 
                 unsigned int neighbor = di(i,j,k);
                 h_neighbors.data[m_nneigh] = neighbor;
@@ -295,12 +287,29 @@ void CommunicatorGPU::initializeNeighborArrays()
 
     ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::overwrite);
 
-    // filter neighbors
-    std::copy(h_neighbors.data, h_neighbors.data + m_nneigh, h_unique_neighbors.data);
-    std::sort(h_unique_neighbors.data, h_unique_neighbors.data + m_nneigh);
+    // filter neighbors, combining adjacency masks
+    std::map<unsigned int, unsigned int> neigh_map;
+    for (unsigned int i = 0; i < m_nneigh; ++i)
+        {
+        unsigned int m = 0;
 
-    // remove duplicates
-    m_n_unique_neigh = std::unique(h_unique_neighbors.data, h_unique_neighbors.data + m_nneigh) - h_unique_neighbors.data;
+        for (unsigned int j = 0; j < m_nneigh; ++j)
+            if (h_neighbors.data[j] == h_neighbors.data[i])
+                m |= h_adj_mask.data[j];
+
+        // std::map inserts the same key only once
+        neigh_map.insert(std::make_pair(h_neighbors.data[i], m));
+        }
+
+    m_n_unique_neigh = neigh_map.size();
+
+    n = 0;
+    for (std::map<unsigned int, unsigned int>::iterator it = neigh_map.begin(); it != neigh_map.end(); ++it)
+        {
+        h_unique_neighbors.data[n] = it->first;
+        h_adj_mask.data[n] = it->second;
+        n++;
+        }
     }
 
 void CommunicatorGPU::initializeCommunicationStages()
@@ -323,7 +332,6 @@ void CommunicatorGPU::initializeCommunicationStages()
         }
 
     // accesss neighbors and adjacency  array
-    ArrayHandle<unsigned int> h_neighbors(m_neighbors, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_adj_mask(m_adj_mask, access_location::host, access_mode::read);
 
     Index3D di= m_decomposition->getDomainIndexer();
@@ -333,9 +341,10 @@ void CommunicatorGPU::initializeCommunicationStages()
 
     m_comm_mask.resize(m_max_stages);
 
+    #if 0
     // loop through neighbors to determine the communication stages
     unsigned int max_stage = 0;
-    for (unsigned int ineigh = 0; ineigh < m_nneigh; ++ineigh)
+    for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
         {
         int stage = 0;
         int n = -1;
@@ -375,15 +384,20 @@ void CommunicatorGPU::initializeCommunicationStages()
     // assign stages to unique neighbors
     for (unsigned int i= 0; i < m_n_unique_neigh; i++)
         for (unsigned int istage = 0; istage < m_num_stages; ++istage)
-            // compare adjacency masks of (non-unique) neighbors to mask for this stage
-            for (unsigned int j = 0; j < m_nneigh; ++j)
-                if (h_unique_neighbors.data[i] == h_neighbors.data[j]
-                    && (h_adj_mask.data[j] &m_comm_mask[istage]) == h_adj_mask.data[j])
-                    {
-                    m_stages[i] = istage;
-                    break; // associate neighbor with stage of lowest index
-                    }
-
+            // compare adjacency masks of neighbors to mask for this stage
+            if ((h_adj_mask.data[i] & m_comm_mask[istage]) == h_adj_mask.data[i])
+                {
+                m_stages[i] = istage;
+                break; // associate neighbor with stage of lowest index
+                }
+    #else
+    m_comm_mask[0] = 0;
+    if (di.getW() > 1) m_comm_mask[0] |= (Communicator::send_east | Communicator::send_west);
+    if (di.getH() > 1) m_comm_mask[0] |= (Communicator::send_north| Communicator::send_south);
+    if (di.getD() > 1) m_comm_mask[0] |= (Communicator::send_up | Communicator::send_down);
+    m_stages.resize(m_n_unique_neigh,0);
+    m_num_stages = 1;
+    #endif
     m_exec_conf->msg->notice(5) << "ComunicatorGPU: " << m_num_stages << " communication stages." << std::endl;
     }
 
@@ -748,8 +762,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             }
 
-        if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf);
-
             {
             // access receive buffers
             ArrayHandle<rank_element_t> d_ranks_recvbuf(m_ranks_recvbuf, access_location::device, access_mode::read);
@@ -1023,8 +1035,6 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             }
 
-        if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf);
-
         unsigned int n_recv_unique = 0;
         #ifdef ENABLE_MPI_CUDA
         #else
@@ -1097,13 +1107,17 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
         // indicate that bond table has changed
         m_gdata->setDirty();
+
+        if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf);
         }
     }
 
 
 //! Mark ghost particles
 template<class group_data>
-void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(const GPUArray<unsigned int>& plans)
+void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
+    const GPUArray<unsigned int>& plans,
+    unsigned int mask)
     {
     if (m_gdata->getNGlobal())
         {
@@ -1122,7 +1136,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(const
             d_rtag.data,
             d_plan.data,
             di,
-            my_pos);
+            my_pos,
+            mask);
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }  
     }
@@ -1433,22 +1448,10 @@ void CommunicatorGPU::exchangeGhosts()
         // make room for plans
         m_ghost_plan.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
-            { 
-            ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
-
-            // reset plans
-            gpu_reset_exchange_plan(
-                m_pdata->getN() + m_pdata->getNGhosts(),
-                d_ghost_plan.data);
-            }
-
-        // mark particles that are members of incomplete of bonds as ghosts
-        m_bond_comm.markGhostParticles(m_ghost_plan);
-
             {
             // compute plans for all particles, including already received ghosts
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::readwrite);
+            ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
 
             gpu_make_ghost_exchange_plan(d_ghost_plan.data,
                                          m_pdata->getN()+m_pdata->getNGhosts(),
@@ -1461,6 +1464,10 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
+
+        // mark particles that are members of incomplete of bonds as ghosts
+        m_bond_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
+
 
         // resize temporary number of neighbors array
         m_neigh_counts.resize(m_pdata->getN()+m_pdata->getNGhosts());
@@ -1477,7 +1484,7 @@ void CommunicatorGPU::exchangeGhosts()
                     d_ghost_plan.data,
                     d_adj_mask.data,
                     d_neigh_counts.data,
-                    m_nneigh,
+                    m_n_unique_neigh,
                     m_mgpu_context);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
@@ -1493,8 +1500,9 @@ void CommunicatorGPU::exchangeGhosts()
         for (unsigned int istage = 0; istage <= stage; ++istage)
             if (m_n_send_ghosts_tot[istage] > n_max) n_max = m_n_send_ghosts_tot[istage];
 
-        // make room for ghost indices
+        // make room for ghost indices and neighbor ranks
         m_ghost_idx.resize(m_idx_offs[stage] + m_n_send_ghosts_tot[stage]);
+        m_ghost_neigh.resize(m_idx_offs[stage] + m_n_send_ghosts_tot[stage]);
 
         if (flags[comm_flag::tag]) m_tag_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::position]) m_pos_ghost_sendbuf.resize(n_max);
@@ -1507,12 +1515,12 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_adj_mask(m_adj_mask, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_neigh_counts(m_neigh_counts, access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_neighbors(m_neighbors, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_unique_neighbors(m_unique_neighbors, access_location::device, access_mode::read);
 
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
             ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_ghost_neigh(m_ghost_neigh, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_ghost_begin(m_ghost_begin, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_ghost_end(m_ghost_end, access_location::device, access_mode::overwrite);
 
@@ -1522,13 +1530,12 @@ void CommunicatorGPU::exchangeGhosts()
                 d_ghost_plan.data,
                 d_tag.data,
                 d_adj_mask.data,
-                d_neighbors.data,
                 d_unique_neighbors.data,
                 d_neigh_counts.data,
                 d_ghost_idx.data + m_idx_offs[stage],
+                d_ghost_neigh.data + m_idx_offs[stage],
                 d_ghost_begin.data + stage*m_n_unique_neigh,
                 d_ghost_end.data + stage*m_n_unique_neigh,
-                m_nneigh,
                 m_n_unique_neigh,
                 m_n_send_ghosts_tot[stage],
                 m_comm_mask[stage],
@@ -2218,13 +2225,14 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             {
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
 
-            // shifted global box
+            // global box
             const BoxDim& shifted_box = getShiftedBox();
 
             // wrap received ghosts
             gpu_wrap_ghosts(m_n_recv_ghosts_tot[stage],
                 d_pos.data+first_idx,
                 shifted_box);
+
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
         } // end main communication loop

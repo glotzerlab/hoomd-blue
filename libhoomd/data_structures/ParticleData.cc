@@ -737,6 +737,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             const Index3D& di = m_decomposition->getDomainIndexer();
             unsigned int n_ranks = m_exec_conf->getNRanks();
 
+            BoxDim global_box = m_global_box;
+
             // loop over particles in snapshot, place them into domains
             for (std::vector<Scalar3>::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
                 {
@@ -770,7 +772,11 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                     }
                 
                 int3 img = snapshot.image[tag];
-                m_global_box.wrap(pos, img, flags);
+
+                // only wrap if the particles is on one of the boundaries
+                uchar3 periodic = make_uchar3(flags.x,flags.y,flags.z);
+                global_box.setPeriodic(periodic);
+                global_box.wrap(pos, img, flags);
 
                 unsigned int rank = di(i,j,k);
                 unsigned int tag = it - snapshot.pos.begin() ;
