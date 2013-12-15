@@ -58,9 +58,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 
+#include <iterator>
+
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
-#include <thrust/iterator/transform_iterator.h>
 #include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
 
@@ -173,13 +174,16 @@ __global__ void gpu_scatter_particle_data_kernel(
 
     }
 
-struct gpu_comm_flag_set : thrust::unary_function<unsigned int, unsigned int>
+__global__ void gpu_select_sent_particles(
+    unsigned int N,
+    unsigned int *d_comm_flags,
+    unsigned int *d_tmp)
     {
-    __device__ unsigned int operator() (unsigned int comm_flag)
-        {
-        return comm_flag ? 1 : 0;
-        }
-    };
+    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+
+    if (idx >= N) return;
+    d_tmp[idx] = d_comm_flags[idx] ? 1 : 0;
+    }
 
 /*! \param N Number of local particles
     \param d_pos Device array of particle positions
@@ -234,11 +238,20 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     {
     unsigned int n_out;
 
-    thrust::device_ptr<const unsigned int> comm_flags_ptr(d_comm_flags);
+    // partition particle data into local and removed particles
+    unsigned int block_size =512;
+    unsigned int n_blocks = N/block_size+1;
 
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(
-        thrust::make_transform_iterator(comm_flags_ptr, gpu_comm_flag_set()),
-        N, (unsigned int) 0, mgpu::plus<unsigned int>(), (unsigned int *)NULL, &n_out, d_tmp, *mgpu_context);
+    // select nonzero communication flags
+    gpu_select_sent_particles<<<n_blocks, block_size>>>(
+        N,
+        d_comm_flags,
+        d_tmp);
+
+    // perform a scan over the array of ones and zeroes
+    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp,
+        N, (unsigned int) 0, mgpu::plus<unsigned int>(),
+        (unsigned int *)NULL, &n_out, d_tmp, *mgpu_context);
 
     // Don't write past end of buffer
     if (n_out <= max_n_out)

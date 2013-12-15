@@ -545,12 +545,12 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 d_rank_mask.data,
                 d_rtag.data,
                 d_scan.data,
-                n_out, 
+                n_out,
                 di,
                 my_pos,
                 incomplete,
                 m_gpu_comm.m_mgpu_context);
- 
+
             if (m_gpu_comm.m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
@@ -788,7 +788,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::readwrite);
             ArrayHandle<group_element_t> d_groups_out(m_groups_out, access_location::device, access_mode::overwrite);
 
             // scatter groups to be sent into output buffer, mark groups that have no local members for removal
@@ -820,13 +820,12 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<unsigned int> d_group_tag_alt(m_gdata->getAltTags(), access_location::device, access_mode::overwrite);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks_alt(m_gdata->getAltRanksArray(), access_location::device, access_mode::overwrite);
 
+            ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::readwrite);
+
             // access rtags
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
 
             unsigned int ngroups = m_gdata->getN();
-
-            // get temp buffer
-            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), ngroups);
 
             // remove groups from local table
             gpu_remove_groups(ngroups,
@@ -840,11 +839,11 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 d_group_ranks_alt.data,
                 d_group_rtag.data,
                 new_ngroups,
-                d_tmp.data,
+                d_scan.data,
                 m_gpu_comm.m_mgpu_context);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-            } 
-        
+            }
+
         // resize alternate arrays to number of groups
         GPUVector<typename group_data::members_t>& alt_groups_array = m_gdata->getAltMembersArray();
         GPUVector<unsigned int>& alt_group_type_array = m_gdata->getAltTypesArray();

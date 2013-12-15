@@ -58,15 +58,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
 
-#include <thrust/replace.h>
 #include <thrust/device_ptr.h>
 #include <thrust/scatter.h>
-#include <thrust/count.h>
+#include <thrust/gather.h>
 #include <thrust/transform.h>
 #include <thrust/copy.h>
-#include <thrust/sort.h>
-#include <thrust/scan.h>
-#include <thrust/binary_search.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 
@@ -414,42 +410,42 @@ __device__ unsigned int get_direction_mask(unsigned int plan)
     }
 
 //! Apply adjacency masks to plan and return number of matching neighbors
-struct num_neighbors_gpu
+__global__ void  gpu_ghost_neighbor_counts(
+    unsigned int N,
+    const unsigned int *d_ghost_plan,
+    unsigned int *d_counts,
+    const unsigned int * d_adj,
+    unsigned int nneigh)
     {
-    thrust::device_ptr<const unsigned int> adj_ptr;
-    const unsigned int nneigh;
+    unsigned int idx = blockIdx.x *blockDim.x + threadIdx.x;
+    if (idx >= N) return;
 
-    num_neighbors_gpu(thrust::device_ptr<const unsigned int> _adj_ptr, unsigned int _nneigh)
-        : adj_ptr(_adj_ptr), nneigh(_nneigh)
-        { }
+    unsigned int plan = d_ghost_plan[idx];
+    unsigned int count = 0;
+    unsigned int mask = get_direction_mask(plan);
 
-    __device__ unsigned int operator() (unsigned int plan)
+    for (unsigned int i = 0; i < nneigh; i++)
         {
-        unsigned int count = 0;
-        unsigned int mask = get_direction_mask(plan);
-        for (unsigned int i = 0; i < nneigh; i++)
-            {
-            unsigned int adj = adj_ptr[i];
-            
-            if (adj & mask) count++;
-            }
-        return count;
+        unsigned int adj = d_adj[i];
+
+        if (adj & mask) count++;
         }
+
+    d_counts[idx] = count;
     };
 
 //! Apply adjacency masks to plan and integer and return nth matching neighbor rank
-struct get_neighbor_rank_n : thrust::unary_function<
-    thrust::tuple<unsigned int, unsigned int>, unsigned int >
+struct get_neighbor_rank_n
     {
-    thrust::device_ptr<const unsigned int> adj_ptr;
-    thrust::device_ptr<const unsigned int> neighbor_ptr;
+    const unsigned int *d_adj;
+    const unsigned int *d_neighbor;
     const unsigned int nneigh;
 
     __host__ __device__ get_neighbor_rank_n(const unsigned int *_d_adj,
         const unsigned int *_d_neighbor,
         unsigned int _nneigh)
-        : adj_ptr(thrust::device_ptr<const unsigned int>(_d_adj)),
-          neighbor_ptr(thrust::device_ptr<const unsigned int>(_d_neighbor)),
+        : d_adj(_d_adj),
+          d_neighbor(_d_neighbor),
           nneigh(_nneigh)
         { }
 
@@ -461,14 +457,14 @@ struct get_neighbor_rank_n : thrust::unary_function<
         unsigned int mask = get_direction_mask(plan);
         for (ineigh = 0; ineigh < nneigh; ineigh++)
             {
-            unsigned int adj = adj_ptr[ineigh];
+            unsigned int adj = d_adj[ineigh];
             if (adj & mask)
                 {
                 if (count == n) break;
                 count++;
                 }
             }
-        return neighbor_ptr[ineigh];
+        return d_neighbor[ineigh];
         }
     };
 
@@ -480,12 +476,16 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
     unsigned int nneigh,
     mgpu::ContextPtr mgpu_context)
     {
-    thrust::device_ptr<const unsigned int> ghost_plan_ptr(d_ghost_plan);
-    thrust::device_ptr<const unsigned int> adj_ptr(d_adj);
-    thrust::device_ptr<unsigned int> counts_ptr(d_counts);
+    unsigned int block_size = 512;
+    unsigned int n_blocks = N/block_size + 1;
 
     // compute neighbor counts
-    thrust::transform(ghost_plan_ptr, ghost_plan_ptr + N, counts_ptr, num_neighbors_gpu(adj_ptr, nneigh));
+    gpu_ghost_neighbor_counts<<<n_blocks, block_size>>>(
+        N,
+        d_ghost_plan,
+        d_counts,
+        d_adj,
+        nneigh);
 
     // determine output size
     unsigned int total = 0;
@@ -779,6 +779,7 @@ __global__ void gpu_mark_groups_kernel(
     const group_t *d_members,
     ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
+    unsigned int *d_scan,
     const unsigned int *d_rtag,
     const Index3D di,
     uint3 my_pos,
@@ -793,10 +794,8 @@ __global__ void gpu_mark_groups_kernel(
 
     ranks_t r = d_group_ranks[group_idx];
 
-
     // initialize bit field
     unsigned int mask = 0;
-    
     unsigned int my_rank = di(my_pos.x, my_pos.y, my_pos.z);
 
     // loop through members of group
@@ -804,7 +803,7 @@ __global__ void gpu_mark_groups_kernel(
         {
         unsigned int tag = g.tag[i];
         unsigned int pidx = d_rtag[tag];
-     
+
         if (pidx != NOT_LOCAL)
             {
             // local ptl
@@ -874,15 +873,10 @@ __global__ void gpu_mark_groups_kernel(
 
     // write out bitmask
     d_rank_mask[group_idx] = mask;
-    }
 
-struct gpu_select_group : thrust::unary_function<unsigned int, unsigned int>
-    {
-    __device__ unsigned int operator() (unsigned int rank_mask) const
-        {
-        return rank_mask ? 1 : 0;
-        }
-    };
+    // set zero-one input for scan
+    d_scan[group_idx] = mask ? 1 : 0;
+    }
 
 /*! \param N Number of particles
     \param d_comm_flags Array of communication flags
@@ -921,6 +915,7 @@ void gpu_mark_groups(
         d_members,
         d_group_ranks,
         d_rank_mask,
+        d_scan,
         d_rtag,
         di,
         my_pos,
@@ -929,9 +924,8 @@ void gpu_mark_groups(
     thrust::device_ptr<unsigned int> rank_mask_ptr(d_rank_mask);
 
     // scan over marked groups
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(
-        thrust::make_transform_iterator(rank_mask_ptr, gpu_select_group()),
-        n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(), (unsigned int *)NULL, &n_out, d_scan, *mgpu_context);
+    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_scan, n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(),
+        (unsigned int *)NULL, &n_out, d_scan, *mgpu_context);
     }
 
 template<typename ranks_t, typename rank_element_t>
@@ -1041,7 +1035,7 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
     const ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
     unsigned int my_rank,
-    const unsigned int *d_scan,
+    unsigned int *d_scan,
     packed_t *d_out_groups)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1049,6 +1043,7 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
 
     bool send = d_rank_mask[group_idx];
 
+    unsigned int flag = 1;
     if (send)
         {
         unsigned int out_idx = d_scan[group_idx];
@@ -1069,8 +1064,15 @@ __global__ void gpu_scatter_and_mark_groups_for_removal_kernel(
         d_rank_mask[group_idx] = 0;
 
         // if group is no longer local, flag for removal
-        if (!is_local) d_group_rtag[el.group_tag] = GROUP_NOT_LOCAL;
+        if (!is_local)
+            {
+            d_group_rtag[el.group_tag] = GROUP_NOT_LOCAL;
+            flag = 0;
+            }
         }
+
+    // update zero-one array (zero == remove group, one == retain group)
+    d_scan[group_idx] = flag;
     }
 
 template<unsigned int group_size, typename group_t, typename ranks_t, typename packed_t>
@@ -1083,7 +1085,7 @@ void gpu_scatter_and_mark_groups_for_removal(
     const ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
     unsigned int my_rank,
-    const unsigned int *d_scan,
+    unsigned int *d_scan,
     packed_t *d_out_groups)
     {
     unsigned int block_size = 512;
@@ -1101,14 +1103,6 @@ void gpu_scatter_and_mark_groups_for_removal(
         d_out_groups);
     }
 
-struct gpu_select_group_local : thrust::unary_function<unsigned int, unsigned int>
-    {
-    __device__ unsigned int operator() (unsigned int rtag) const
-        {
-        return (rtag != GROUP_NOT_LOCAL) ? 1 : 0;
-        }
-    };
-
 template<typename group_t, typename ranks_t>
 __global__ void gpu_remove_groups_kernel(
     unsigned int n_groups,
@@ -1121,7 +1115,7 @@ __global__ void gpu_remove_groups_kernel(
     const ranks_t *d_group_ranks,
     ranks_t *d_group_ranks_alt,
     unsigned int *d_group_rtag,
-    const unsigned int *d_tmp)
+    const unsigned int *d_scan)
     {
     unsigned int group_idx = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -1130,7 +1124,7 @@ __global__ void gpu_remove_groups_kernel(
     unsigned int group_tag = d_group_tag[group_idx];
     bool keep = (d_group_rtag[group_tag] != GROUP_NOT_LOCAL);
 
-    unsigned int out_idx =  d_tmp[group_idx];
+    unsigned int out_idx =  d_scan[group_idx];
 
     if (keep)
         {
@@ -1139,7 +1133,7 @@ __global__ void gpu_remove_groups_kernel(
         d_group_type_alt[out_idx] = d_group_type[group_idx];
         d_group_tag_alt[out_idx] = group_tag;
         d_group_ranks_alt[out_idx] = d_group_ranks[group_idx];
-        
+
         // rebuild rtags
         d_group_rtag[group_tag] = out_idx;
         }
@@ -1157,21 +1151,16 @@ void gpu_remove_groups(unsigned int n_groups,
     ranks_t *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
-    unsigned int *d_tmp,
+    unsigned int *d_scan,
     mgpu::ContextPtr mgpu_context)
     {
-    thrust::device_ptr<const unsigned int> rtag_ptr(d_group_rtag);
-    thrust::device_ptr<const unsigned int> tag_ptr(d_group_tag);
-
     // scan over marked groups
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(
-        thrust::make_transform_iterator(
-            thrust::make_permutation_iterator(rtag_ptr, tag_ptr), gpu_select_group_local()),
-        n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(), (unsigned int *)NULL, &new_ngroups, d_tmp, *mgpu_context);
+    mgpu::Scan<mgpu::MgpuScanTypeExc>( d_scan, n_groups, (unsigned int) 0,
+        mgpu::plus<unsigned int>(), (unsigned int *)NULL, &new_ngroups, d_scan, *mgpu_context);
 
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
- 
+
     gpu_remove_groups_kernel<<<block_size, n_blocks>>>(
         n_groups,
         d_groups,
@@ -1183,7 +1172,7 @@ void gpu_remove_groups(unsigned int n_groups,
         d_group_ranks,
         d_group_ranks_alt,
         d_group_rtag,
-        d_tmp);
+        d_scan);
     }
 
 template<typename packed_t, typename group_t, typename ranks_t>
@@ -1194,15 +1183,17 @@ __global__ void gpu_update_groups_kernel(
     unsigned int *d_group_type,
     unsigned int *d_group_tag,
     ranks_t *d_group_ranks,
-    const unsigned int *d_group_rtag)
+    const unsigned int *d_group_rtag,
+    unsigned int *d_scan)
     {
     unsigned int recv_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (recv_idx >= n_recv) return;
 
     packed_t el = d_groups_in[recv_idx];
 
     unsigned int rtag = d_group_rtag[el.group_tag];
+    unsigned int flag = 1;
     if (rtag != GROUP_NOT_LOCAL)
         {
         // update existing group
@@ -1210,7 +1201,11 @@ __global__ void gpu_update_groups_kernel(
         d_group_type[rtag] = el.type;
         //d_group_tag[rtag] = el.group_tag;
         d_group_ranks[rtag] = el.ranks;
+        flag = 0;
         }
+
+    // write out zero-one array
+    d_scan[recv_idx] = flag;
     }
 
 template<typename packed_t, typename group_t, typename ranks_t>
@@ -1226,7 +1221,7 @@ __global__ void gpu_add_groups_kernel(
     unsigned int *d_group_rtag)
     {
     unsigned int recv_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (recv_idx >= n_recv) return;
 
     packed_t el = d_groups_in[recv_idx];
@@ -1247,23 +1242,6 @@ __global__ void gpu_add_groups_kernel(
         }
     }
 
-template<typename packed_t>
-struct gpu_select_group_not_local : thrust::unary_function<packed_t, unsigned int>
-    {
-    //! Constructor
-    gpu_select_group_not_local(const unsigned int *_d_group_rtag)
-        : d_group_rtag(_d_group_rtag)
-        { }
-
-    __device__ unsigned int operator() (const packed_t el) const
-        {
-        return (d_group_rtag[el.group_tag] == GROUP_NOT_LOCAL) ? 1 : 0;
-        }
-
-    const unsigned int *d_group_rtag; //!< Reverse-lookup table
-    };
-
-
 template<typename packed_t, typename group_t, typename ranks_t>
 void gpu_add_groups(unsigned int n_groups,
     unsigned int n_recv,
@@ -1281,22 +1259,21 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int n_blocks = n_recv/block_size + 1;
 
     // update locally existing groups
-    gpu_update_groups_kernel<<<n_blocks, block_size>>>(n_recv,
+    gpu_update_groups_kernel<<<n_blocks, block_size>>>(
+        n_recv,
         d_groups_in,
         d_groups,
         d_group_type,
         d_group_tag,
         d_group_ranks,
-        d_group_rtag);
-
-    thrust::device_ptr<const packed_t> groups_in_ptr(d_groups_in);
+        d_group_rtag,
+        d_tmp);
 
     unsigned int n_unique;
 
     // scan over input groups, select those which are not already local
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(
-        thrust::make_transform_iterator(groups_in_ptr, gpu_select_group_not_local<packed_t>(d_group_rtag)),
-        n_recv, (unsigned int) 0, mgpu::plus<unsigned int>(), (unsigned int *)NULL, &n_unique, d_tmp, *mgpu_context);
+    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp, n_recv, (unsigned int) 0, mgpu::plus<unsigned int>(),
+        (unsigned int *)NULL, &n_unique, d_tmp, *mgpu_context);
 
     new_ngroups = n_groups + n_unique;
 
@@ -1450,7 +1427,7 @@ template void gpu_scatter_and_mark_groups_for_removal<2>(
     const group_storage<2> *d_group_ranks,
     unsigned int *d_rank_mask,
     unsigned int my_rank,
-    const unsigned int *d_scan,
+    unsigned int *d_scan,
     packed_storage<2> *d_out_groups);
 
 template void gpu_remove_groups(unsigned int n_groups,
@@ -1464,7 +1441,7 @@ template void gpu_remove_groups(unsigned int n_groups,
     group_storage<2> *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
-    unsigned int *d_tmp,
+    unsigned int *d_scan,
     mgpu::ContextPtr mgpu_context);
 
 template void gpu_add_groups(unsigned int n_groups,

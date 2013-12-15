@@ -14,9 +14,9 @@ if (ENABLE_CUDA)
     # Find Thrust
     find_package(Thrust)
 
-    if (${THRUST_VERSION} VERSION_LESS 1.6.0)
-        message(SEND_ERROR "Thrust version ${THRUST_VERSION} found, >= 1.6.0 is required")
-    endif (${THRUST_VERSION} VERSION_LESS 1.6.0)
+    if (${THRUST_VERSION} VERSION_LESS 1.5.0)
+        message(SEND_ERROR "Thrust version ${THRUST_VERSION} found, >= 1.5.0 is required")
+    endif (${THRUST_VERSION} VERSION_LESS 1.5.0)
 
     # first thrust, then CUDA (to allow for local thrust installation
     # that overrides CUDA toolkit)

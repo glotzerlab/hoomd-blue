@@ -271,7 +271,7 @@ void gpu_scatter_and_mark_groups_for_removal(
     const ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
     unsigned int my_rank,
-    const unsigned int *d_scan,
+    unsigned int *d_scan,
     packed_t *d_out_groups);
 
 template<typename group_t, typename ranks_t>
@@ -286,7 +286,7 @@ void gpu_remove_groups(unsigned int n_groups,
     ranks_t *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
-    unsigned int *d_tmp,
+    unsigned int *d_scan,
     mgpu::ContextPtr mgpu_context);
 
 template<typename packed_t, typename group_t, typename ranks_t>
