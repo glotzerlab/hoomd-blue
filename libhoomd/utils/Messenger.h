@@ -232,10 +232,7 @@ class Messenger
          */
         void setMPICommunicator(const MPI_Comm mpi_comm)
             {
-            assert(!m_has_mpi_comm);
-
             m_mpi_comm = mpi_comm;
-            m_has_mpi_comm = true;
 
             // open shared log file if necessary
             if (m_shared_filename != "")
@@ -252,8 +249,6 @@ class Messenger
                 openStd();
 
             releaseSharedMem();
-
-            m_has_mpi_comm = false;
             }
 #endif
 
@@ -370,8 +365,7 @@ class Messenger
             {
             m_shared_filename = fname;
 
-            if (m_has_mpi_comm)
-                openSharedFile();
+            openSharedFile();
             }
 
         //! Returns true if this if this rank has exclusive stdout access for error messages
@@ -414,7 +408,6 @@ class Messenger
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file
         MPI_Comm m_mpi_comm;            //!< The MPI communicator
-        bool m_has_mpi_comm;            //!< True if MPI communicator has been set
 
         MPI_Win m_mpi_win;              //!< MPI Window for atomic printing of error messages
         int *m_error_flag;              //!< Flag on (on processor 0) to lock stdout

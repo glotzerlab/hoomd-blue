@@ -86,8 +86,9 @@ Messenger::Messenger()
     m_notice_prefix  = "notice";
 
 #ifdef ENABLE_MPI
+    // initial value
+    m_mpi_comm = MPI_COMM_WORLD;
     m_shared_filename = "";
-    m_has_mpi_comm = false;
     m_error_flag = 0;
     m_has_lock = false;
 #endif
@@ -116,7 +117,6 @@ std::ostream& Messenger::error() const
     {
     assert(m_err_stream);
     #ifdef ENABLE_MPI
-    if (m_has_mpi_comm)
         {
         int one = 1;
         int flag;
@@ -196,49 +196,49 @@ void Messenger::collectiveNoticeStr(unsigned int level, const std::string& msg) 
     {
     std::vector<std::string> rank_notices;
 
-#ifdef ENABLE_MPI
-    if (m_has_mpi_comm)
-        {
-        gather_v(msg, rank_notices, 0, m_mpi_comm);
-        }
-    else
-#endif
-        {
-        rank_notices.push_back(msg);
-        }
+    #ifdef ENABLE_MPI
+    gather_v(msg, rank_notices, 0, m_mpi_comm);
+    #else
+    rank_notices.push_back(msg);
+    #endif
 
-#ifdef ENABLE_MPI
-    if (m_has_mpi_comm && m_rank == 0 && rank_notices.size() > 1)
+    #ifdef ENABLE_MPI
+    if (m_rank == 0)
         {
-        // Output notices in rank order, combining similar ones
-        std::vector<std::string>::iterator notice_it;
-        std::string last_msg = rank_notices[0];
-        int last_output_rank = -1;
-        for (notice_it = rank_notices.begin(); notice_it != rank_notices.end() + 1; notice_it++)
+        if (rank_notices.size() > 1)
             {
-            if (notice_it == rank_notices.end() || *notice_it != last_msg)
+            // Output notices in rank order, combining similar ones
+            std::vector<std::string>::iterator notice_it;
+            std::string last_msg = rank_notices[0];
+            int last_output_rank = -1;
+            for (notice_it = rank_notices.begin(); notice_it != rank_notices.end() + 1; notice_it++)
                 {
-                int rank = notice_it - rank_notices.begin();
-                // output message for accumulated ranks
-                if (last_output_rank+1 == rank-1)
-                    notice(level) << "Rank " << last_output_rank + 1 << ": " << last_msg;
-                else
-                    notice(level) << "Ranks " << last_output_rank + 1 << "-" << rank-1 << ": " << last_msg;
-
-                if (notice_it != rank_notices.end())
+                if (notice_it == rank_notices.end() || *notice_it != last_msg)
                     {
-                    last_msg = *notice_it;
-                    last_output_rank = rank-1;
+                    int rank = notice_it - rank_notices.begin();
+                    // output message for accumulated ranks
+                    if (last_output_rank+1 == rank-1)
+                        notice(level) << "Rank " << last_output_rank + 1 << ": " << last_msg;
+                    else
+                        notice(level) << "Ranks " << last_output_rank + 1 << "-" << rank-1 << ": " << last_msg;
+
+                    if (notice_it != rank_notices.end())
+                        {
+                        last_msg = *notice_it;
+                        last_output_rank = rank-1;
+                        }
                     }
                 }
             }
+        else
+    #endif
+            {
+            // output without prefix
+            notice(level) << rank_notices[0];
+            }
+    #ifdef ENABLE_MPI
         }
-    else if (! m_has_mpi_comm || m_rank == 0)
-#endif
-        {
-        // output without prefix
-        notice(level) << rank_notices[0];
-        }
+    #endif
     }
 
 /*! \param level Notice level
@@ -270,8 +270,6 @@ void Messenger::openFile(const std::string& fname)
 */
 void Messenger::openSharedFile()
     {
-    assert(m_has_mpi_comm);
-
     std::ostringstream oss;
     oss << m_shared_filename << "." << m_partition;
     boost::iostreams::stream<mpi_io> *mpi_ios = new boost::iostreams::stream<mpi_io>((const MPI_Comm&) m_mpi_comm, oss.str());
