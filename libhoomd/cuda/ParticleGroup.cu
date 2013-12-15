@@ -100,7 +100,7 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_tag,
                                    unsigned int &num_local_members,
-                                   cached_allocator& alloc,
+                                   unsigned int *d_tmp,
                                    mgpu::ContextPtr mgpu_context)
     {
     assert(d_is_member);
@@ -115,19 +115,12 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                                          d_is_member_tag,
                                                          d_is_member);
 
-    // allocate temporary array
-    unsigned int *d_tmp = (unsigned int *)alloc.allocate(N*sizeof(unsigned int));
-
     // compute member_idx offsets
     mgpu::Scan<mgpu::MgpuScanTypeExc>(d_is_member, N, (unsigned int) 0, mgpu::plus<unsigned int>(),
         (unsigned int *) NULL, &num_local_members, d_tmp, *mgpu_context);
 
-
     // fill member_idx array
     gpu_scatter_member_indices<<<n_blocks, block_size>>>(N, d_tmp, d_is_member, d_member_idx);
-
-    // release temporary array
-    alloc.deallocate((char *) d_tmp,0);
 
     return cudaSuccess;
     }

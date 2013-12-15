@@ -154,14 +154,13 @@ void gpu_update_group_table(
     unsigned int &flag,
     group_t *d_pidx_group_table,
     const unsigned int pidx_group_table_pitch,
-    cached_allocator& alloc,
+    group_t *d_scratch_g,
+    unsigned int *d_scratch_idx,
+    unsigned int *d_offsets,
+    unsigned int *d_seg_offsets,
     mgpu::ContextPtr mgpu_context
     )
     {
-    // allocate temporary buffers
-    group_t *d_scratch_g = (group_t *)alloc.allocate(group_size*n_groups*sizeof(group_t));
-    unsigned int *d_scratch_idx = (unsigned int *)alloc.allocate(group_size*n_groups*sizeof(unsigned int));
-
     // construct scratch table by expanding the group table by particle index
     unsigned int block_size = 512;
     unsigned n_blocks = n_groups / block_size + 1;
@@ -191,10 +190,6 @@ void gpu_update_group_table(
         // sort groups by particle index
         mgpu::MergesortPairs(d_scratch_idx, d_scratch_g, group_size*n_groups, *mgpu_context);
 
-        // allocate temporary array
-        unsigned int *d_offsets = (unsigned int *)alloc.allocate(group_size*n_groups*sizeof(unsigned int));
-        // determine output offsets of segments
-        unsigned int *d_seg_offsets = (unsigned int *)alloc.allocate(N*sizeof(unsigned int));
 	    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_n_groups, N, (unsigned int) 0, mgpu::plus<unsigned int>(),
             (unsigned int *) NULL, (unsigned int *)NULL, d_seg_offsets,*mgpu_context);
 
@@ -216,14 +211,7 @@ void gpu_update_group_table(
             d_offsets,
             d_pidx_group_table,
             pidx_group_table_pitch);
- 
-        alloc.deallocate((char *) d_offsets,0);
-        alloc.deallocate((char *) d_seg_offsets, 0);
         } 
-
-    // release temporary arrays
-    alloc.deallocate((char *) d_scratch_g,0);
-    alloc.deallocate((char *) d_scratch_idx,0);
     }
 
 /*
@@ -244,6 +232,9 @@ template void gpu_update_group_table<2>(
     unsigned int &flag,
     union group_storage<2> *d_pidx_group_table,
     const unsigned int pidx_group_table_pitch,
-    cached_allocator& alloc,
+    group_storage<2> *d_scratch_g,
+    unsigned int *d_scratch_idx,
+    unsigned int *d_offsets,
+    unsigned int *d_seg_offsets,
     mgpu::ContextPtr mgpu_context
     );

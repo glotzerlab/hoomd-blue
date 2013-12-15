@@ -195,8 +195,7 @@ void gpu_stage_particles(const unsigned int N,
                          const Scalar4 *d_pos,
                          unsigned int *d_comm_flag,
                          const BoxDim& box,
-                         const unsigned int comm_mask,
-                         cached_allocator& alloc)
+                         const unsigned int comm_mask)
     {
     // Wrap particle data arrays
     thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
@@ -231,7 +230,8 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    const unsigned int nneigh,
                    const unsigned int mask,
                    mgpu::ContextPtr mgpu_context,
-                   cached_allocator& alloc)
+                   unsigned int *d_tmp,
+                   pdata_element *d_in_copy)
     {
     // Wrap input & output
     thrust::device_ptr<pdata_element> in_ptr(d_in);
@@ -243,10 +243,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
     thrust::transform(comm_flags_ptr, comm_flags_ptr + nsend, keys_ptr, get_migrate_key_gpu(my_pos, di,mask));
 
     // allocate temp arrays
-    unsigned int *d_tmp = (unsigned int *)alloc.allocate(nsend*sizeof(unsigned int));
     thrust::device_ptr<unsigned int> tmp_ptr(d_tmp);
-
-    pdata_element *d_in_copy = (pdata_element *)alloc.allocate(nsend*sizeof(pdata_element));
     thrust::device_ptr<pdata_element> in_copy_ptr(d_in_copy);
 
     // copy and fill with ascending integer sequence
@@ -265,10 +262,6 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
         thrust::raw_pointer_cast(keys_ptr), nsend, d_begin, *mgpu_context);
     mgpu::SortedSearch<mgpu::MgpuBoundsUpper>(d_neighbors, nneigh,
         thrust::raw_pointer_cast(keys_ptr), nsend, d_end, *mgpu_context);
-
-    // release temporary buffers
-    alloc.deallocate((char *)d_in_copy,0);
-    alloc.deallocate((char *)d_tmp,0);
     }
 
 //! Wrap a particle in a pdata_element
@@ -383,8 +376,7 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   const Scalar4 *d_pos,
                                   const BoxDim &box,
                                   Scalar3 ghost_fraction,
-                                  unsigned int mask,
-                                  cached_allocator& alloc)
+                                  unsigned int mask)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = N/block_size + 1;
@@ -617,8 +609,7 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int n_unique_neigh,
     unsigned int n_out,
     unsigned int mask,
-    mgpu::ContextPtr mgpu_context,
-    cached_allocator& alloc)
+    mgpu::ContextPtr mgpu_context)
     {
     /*
      * expand each tag by the number of neighbors to send the corresponding ptl to
@@ -1166,14 +1157,11 @@ void gpu_remove_groups(unsigned int n_groups,
     ranks_t *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
-    cached_allocator& alloc,
+    unsigned int *d_tmp,
     mgpu::ContextPtr mgpu_context)
     {
     thrust::device_ptr<const unsigned int> rtag_ptr(d_group_rtag);
     thrust::device_ptr<const unsigned int> tag_ptr(d_group_tag);
-
-    // allocate temporary memory
-    unsigned int *d_tmp = (unsigned int *)alloc.allocate(n_groups*sizeof(unsigned int));
 
     // scan over marked groups
     mgpu::Scan<mgpu::MgpuScanTypeExc>(
@@ -1196,8 +1184,6 @@ void gpu_remove_groups(unsigned int n_groups,
         d_group_ranks_alt,
         d_group_rtag,
         d_tmp);
-
-    alloc.deallocate((char *)d_tmp,0);
     }
 
 template<typename packed_t, typename group_t, typename ranks_t>
@@ -1288,7 +1274,7 @@ void gpu_add_groups(unsigned int n_groups,
     ranks_t *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
-    cached_allocator &alloc,
+    unsigned int *d_tmp,
     mgpu::ContextPtr mgpu_context)
     {
     unsigned int block_size = 512;
@@ -1302,9 +1288,6 @@ void gpu_add_groups(unsigned int n_groups,
         d_group_tag,
         d_group_ranks,
         d_group_rtag);
-
-    // allocate temporary memory
-    unsigned int *d_tmp = (unsigned int *)alloc.allocate(n_recv*sizeof(unsigned int));
 
     thrust::device_ptr<const packed_t> groups_in_ptr(d_groups_in);
 
@@ -1328,8 +1311,6 @@ void gpu_add_groups(unsigned int n_groups,
         d_group_tag,
         d_group_ranks,
         d_group_rtag);
-
-    alloc.deallocate((char *)d_tmp,0);
     }
 
 template<unsigned int group_size, typename members_t, typename ranks_t>
@@ -1483,7 +1464,7 @@ template void gpu_remove_groups(unsigned int n_groups,
     group_storage<2> *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
-    cached_allocator& alloc,
+    unsigned int *d_tmp,
     mgpu::ContextPtr mgpu_context);
 
 template void gpu_add_groups(unsigned int n_groups,
@@ -1495,7 +1476,7 @@ template void gpu_add_groups(unsigned int n_groups,
     group_storage<2> *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
-    cached_allocator &alloc,
+    unsigned int *d_tmp,
     mgpu::ContextPtr mgpu_context);
 
 template void gpu_mark_bonded_ghosts<2>(

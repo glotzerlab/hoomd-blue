@@ -337,7 +337,6 @@ class ParticleGroup
 
         GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
         #ifdef ENABLE_CUDA
-        mutable cached_allocator m_cached_allocator;    //!< Cached allocator for internally used GPU thrust code
         mgpu::ContextPtr m_mgpu_context;                //!< moderngpu context
         #endif
         //! Helper function to resize array of member tags

@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-#include "cached_allocator.h"
 #include "moderngpu/util/mgpucontext.h"
 
 /*! \file ParticleGroup.cuh
@@ -72,8 +71,6 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_tag,
                                    unsigned int &num_local_members,
-                                   cached_allocator& alloc,
+                                   unsigned int *d_tmp,
                                    mgpu::ContextPtr mgpu_context);
-
-
 #endif

@@ -56,7 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #include "BoxDim.h"
 
-#include "cached_allocator.h"
 #include "moderngpu/util/mgpucontext.h"
 
 /*! \file ParticleData.cuh
@@ -120,8 +119,8 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     unsigned int *d_comm_flags,
                     unsigned int *d_comm_flags_out,
                     unsigned int max_n_out,
-                    mgpu::ContextPtr mgpu_context,
-                    cached_allocator& alloc);
+                    unsigned int *d_tmp,
+                    mgpu::ContextPtr mgpu_context);
 
 //! Update particle data with new particles
 void gpu_pdata_add_particles(const unsigned int old_nparticles,
@@ -137,6 +136,5 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
-                    unsigned int *d_comm_flags,
-                    cached_allocator& alloc);
+                    unsigned int *d_comm_flags);
 #endif

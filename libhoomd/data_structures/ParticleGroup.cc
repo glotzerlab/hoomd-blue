@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include "ParticleGroup.cuh"
+#include "CachedAllocator.h"
 #endif
 
 #include <boost/python.hpp>
@@ -617,6 +618,9 @@ void ParticleGroup::rebuildIndexListGPU() const
     ArrayHandle<unsigned int> d_member_idx(m_member_idx, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
+    // get temporary buffer
+    ScopedAllocation<unsigned int> d_tmp(m_pdata->getExecConf()->getCachedAllocator(), m_pdata->getN());
+
     // reset membership properties
     if (m_member_tags.getNumElements() > 0)
         {
@@ -626,7 +630,7 @@ void ParticleGroup::rebuildIndexListGPU() const
                            d_member_idx.data,
                            d_tag.data,
                            m_num_local_members,
-                           m_cached_allocator,
+                           d_tmp.data,
                            m_mgpu_context);
         }
     else

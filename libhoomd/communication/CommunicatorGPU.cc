@@ -823,8 +823,13 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             // access rtags
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
 
+            unsigned int ngroups = m_gdata->getN();
+
+            // get temp buffer
+            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), ngroups);
+
             // remove groups from local table
-            gpu_remove_groups(m_gdata->getN(),
+            gpu_remove_groups(ngroups,
                 d_groups.data,
                 d_groups_alt.data,
                 d_group_type.data,
@@ -835,7 +840,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 d_group_ranks_alt.data,
                 d_group_rtag.data,
                 new_ngroups,
-                m_gpu_comm.m_cached_alloc,
+                d_tmp.data,
                 m_gpu_comm.m_mgpu_context);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             } 
@@ -1084,6 +1089,9 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
 
+            // get temp buffer
+            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), n_recv_unique);
+
             // add new groups, updating groups that are already present locally
             gpu_add_groups(old_ngroups,
                 n_recv_unique,
@@ -1094,7 +1102,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 d_group_ranks.data,
                 d_group_rtag.data,
                 new_ngroups,
-                m_gpu_comm.m_cached_alloc,
+                d_tmp.data,
                 m_gpu_comm.m_mgpu_context);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
@@ -1181,8 +1189,7 @@ void CommunicatorGPU::migrateParticles()
                 d_pos.data,
                 d_comm_flag.data,
                 m_pdata->getBox(),
-                m_comm_mask[stage],
-                m_cached_alloc);
+                m_comm_mask[stage]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -1215,6 +1222,12 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> d_unique_neighbors(m_unique_neighbors, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::read);
 
+            // get temporary buffers
+            unsigned int nsend = m_gpu_sendbuf.size();
+            CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+            ScopedAllocation<pdata_element> d_in_copy(alloc, nsend);
+            ScopedAllocation<unsigned int> d_tmp(alloc, nsend);
+
             gpu_sort_migrating_particles(m_gpu_sendbuf.size(),
                        d_gpu_sendbuf.data,
                        d_comm_flags.data,
@@ -1228,7 +1241,8 @@ void CommunicatorGPU::migrateParticles()
                        m_n_unique_neigh,
                        m_comm_mask[stage],
                        m_mgpu_context,
-                       m_cached_alloc);
+                       d_tmp,
+                       d_in_copy);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -1458,8 +1472,7 @@ void CommunicatorGPU::exchangeGhosts()
                                          d_pos.data,
                                          m_pdata->getBox(),
                                          ghost_fraction,
-                                         m_comm_mask[stage],
-                                         m_cached_alloc);
+                                         m_comm_mask[stage]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -1539,8 +1552,7 @@ void CommunicatorGPU::exchangeGhosts()
                 m_n_unique_neigh,
                 m_n_send_ghosts_tot[stage],
                 m_comm_mask[stage],
-                m_mgpu_context,
-                m_cached_alloc);
+                m_mgpu_context);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }

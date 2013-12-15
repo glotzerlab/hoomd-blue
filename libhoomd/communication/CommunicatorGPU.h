@@ -232,7 +232,6 @@ class CommunicatorGPU : public Communicator
         std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
         CommFlags m_last_flags;                       //! Flags of last ghost exchange
-        cached_allocator m_cached_alloc;              //!< Cached memory allocator for internal thrust code
         mgpu::ContextPtr m_mgpu_context;                    //!< MGPU context
 
         //! Helper function to allocate various buffers

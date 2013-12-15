@@ -58,7 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "BondedGroupData.cuh"
 
-#include "cached_allocator.h"
 #include "Index1D.h"
 
 #include "moderngpu/util/mgpucontext.h"
@@ -92,8 +91,7 @@ void gpu_stage_particles(const unsigned int n,
                          const Scalar4 *d_pos,
                          unsigned int *d_comm_flag,
                          const BoxDim& box,
-                         const unsigned int comm_mask,
-                         cached_allocator& alloc);
+                         const unsigned int comm_mask);
 
 /*! \param nsend Number of particles in buffer
     \param d_in Send buf (in-place sort)
@@ -117,7 +115,8 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    const unsigned int nneigh,
                    const unsigned int mask,
                    mgpu::ContextPtr mgpu_context,
-                   cached_allocator& alloc);
+                   unsigned int *d_tmp,
+                   pdata_element *d_in_copy);
 
 //! Apply boundary conditions
 void gpu_wrap_particles(const unsigned int n_recv,
@@ -135,8 +134,8 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   const Scalar4 *d_pos,
                                   const BoxDim& box,
                                   Scalar3 ghost_fraction,
-                                  unsigned int mask,
-                                  cached_allocator& alloc);
+                                  unsigned int mask);
+
 //! Get neighbor counts
 unsigned int gpu_exchange_ghosts_count_neighbors(
     unsigned int N,
@@ -161,8 +160,7 @@ void gpu_exchange_ghosts_make_indices(
     unsigned int n_unique_neigh,
     unsigned int n_out,
     unsigned int mask,
-    mgpu::ContextPtr mgpu_context,
-    cached_allocator& alloc);
+    mgpu::ContextPtr mgpu_context);
 
 //! Pack ghosts in output buffers
 void gpu_exchange_ghosts_pack(
@@ -288,7 +286,7 @@ void gpu_remove_groups(unsigned int n_groups,
     ranks_t *d_group_ranks_alt,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
-    cached_allocator& alloc,
+    unsigned int *d_tmp,
     mgpu::ContextPtr mgpu_context);
 
 template<typename packed_t, typename group_t, typename ranks_t>
@@ -301,7 +299,7 @@ void gpu_add_groups(unsigned int n_groups,
     ranks_t *d_group_ranks,
     unsigned int *d_group_rtag,
     unsigned int &new_ngroups,
-    cached_allocator &alloc,
+    unsigned int *d_tmp,
     mgpu::ContextPtr mgpu_context);
 
 template<unsigned int group_size, typename members_t, typename ranks_t>

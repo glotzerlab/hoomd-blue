@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include "BondedGroupData.cuh"
+#include "CachedAllocator.h"
 #endif
 
 //! Names of bonded groups
@@ -694,11 +695,20 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
             ArrayHandle<unsigned int> d_n_groups(m_n_groups, access_location::device, access_mode::overwrite);
             ArrayHandle<members_t> d_gpu_table(m_gpu_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
-            
+           
+            // allocate scratch buffers
+            const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+            unsigned int tmp_size = m_groups.size()*group_size;
+            unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
+            ScopedAllocation<members_t> d_scratch_g(alloc, tmp_size);
+            ScopedAllocation<unsigned int> d_scratch_idx(alloc, tmp_size);
+            ScopedAllocation<unsigned int> d_offsets(alloc, tmp_size);
+            ScopedAllocation<unsigned int> d_seg_offsets(alloc, nptl);
+
             // fill group table on GPU
             gpu_update_group_table<group_size, members_t>(
                 m_groups.size(),
-                m_pdata->getN()+m_pdata->getNGhosts(),
+                nptl,
                 d_groups.data,
                 d_group_type.data,
                 d_rtag.data,
@@ -709,7 +719,10 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
                 flag,
                 d_gpu_table.data,
                 m_gpu_table_indexer.getW(),
-                m_cached_alloc,
+                d_scratch_g.data,
+                d_scratch_idx.data,
+                d_offsets.data,
+                d_seg_offsets.data,
                 m_mgpu_context);
             } 
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();

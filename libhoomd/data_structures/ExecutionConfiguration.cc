@@ -83,6 +83,10 @@ using namespace boost::python;
 using namespace std;
 using namespace boost;
 
+#ifdef ENABLE_CUDA
+#include "CachedAllocator.h"
+#endif
+
 /*! \file ExecutionConfiguration.cc
     \brief Defines ExecutionConfiguration and related classes
 */
@@ -126,6 +130,9 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
         // local MPI rank as preferred GPU id
         int gpu_id_hint = m_system_compute_exclusive ? -1 : guessLocalRank();
         initializeGPU(gpu_id_hint, min_cpu);
+
+        // initialize cached allocator
+        m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
         }
     else
         exec_mode = CPU;
@@ -176,7 +183,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
+        {
         initializeGPU(gpu_id, min_cpu);
+
+        // initialize cached allocator
+        m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        } 
 #else
     if (exec_mode == GPU)
         {
@@ -200,6 +212,8 @@ ExecutionConfiguration::~ExecutionConfiguration()
     #if defined(ENABLE_CUDA)
     if (exec_mode == GPU)
         {
+        delete m_cached_alloc;
+
         cudaDeviceReset();
         }
     #endif

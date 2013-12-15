@@ -76,6 +76,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#ifdef ENABLE_CUDA
+//! Forward declaration
+class CachedAllocator;
+#endif
+
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
     ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU
@@ -228,6 +233,14 @@ struct ExecutionConfiguration : boost::noncopyable
         }
     #endif
 
+    #ifdef ENABLE_CUDA
+    //! Returns the cached allocator for temporary allocations
+    const CachedAllocator& getCachedAllocator() const
+        {
+        return *m_cached_alloc;
+        }
+    #endif
+
 private:
 #ifdef ENABLE_CUDA
     //! Initialize the GPU with the given id
@@ -264,6 +277,10 @@ private:
 #endif
 
     unsigned int m_rank;                   //!< Rank of this processor (0 if running in single-processor mode)
+
+    #ifdef ENABLE_CUDA
+    CachedAllocator *m_cached_alloc;       //!< Cached allocator for temporary allocations
+    #endif
 
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();

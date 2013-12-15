@@ -80,6 +80,10 @@ using namespace boost::python;
 #include "HOOMDMPI.h"
 #endif
 
+#ifdef ENABLE_CUDA
+#include "CachedAllocator.h"
+#endif
+
 #include <boost/bind.hpp>
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/iterator/transform_iterator.hpp>
@@ -2251,6 +2255,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
             ArrayHandle<pdata_element> d_out(out, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_comm_flags_out(comm_flags, access_location::device, access_mode::overwrite);
 
+            // get temporary buffer
+            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), getN());
+
             n_out = gpu_pdata_remove(getN(),
                            d_pos.data,
                            d_vel.data,
@@ -2275,8 +2282,8 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_comm_flags.data,
                            d_comm_flags_out.data,
                            max_n_out,
-                           m_mgpu_context,
-                           m_cached_alloc);
+                           d_tmp.data,
+                           m_mgpu_context);
            }
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 
@@ -2355,8 +2362,7 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
             d_tag.data,
             d_rtag.data,
             d_in.data,
-            d_comm_flags.data,
-            m_cached_alloc);
+            d_comm_flags.data);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

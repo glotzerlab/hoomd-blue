@@ -60,7 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
-#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
 
 #include "moderngpu/kernels/scan.cuh"
@@ -228,13 +229,10 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     unsigned int *d_comm_flags,
                     unsigned int *d_comm_flags_out,
                     unsigned int max_n_out,
-                    mgpu::ContextPtr mgpu_context,
-                    cached_allocator& alloc)
+                    unsigned int *d_tmp,
+                    mgpu::ContextPtr mgpu_context)
     {
     unsigned int n_out;
-
-    // allocate temp array for scan results
-    unsigned int *d_tmp = (unsigned int *)alloc.allocate(N*sizeof(unsigned int));
 
     thrust::device_ptr<const unsigned int> comm_flags_ptr(d_comm_flags);
 
@@ -275,9 +273,6 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             d_comm_flags_out,
             d_tmp);
         }
-
-    // deallocate tmp array
-    alloc.deallocate((char *)d_tmp,0);
 
     // return elements written to output stream
     return n_out;
@@ -335,8 +330,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
-                    unsigned int *d_comm_flags,
-                    cached_allocator& alloc)
+                    unsigned int *d_comm_flags)
     {
     // wrap device arrays into thrust ptr
     thrust::device_ptr<Scalar4> pos_ptr(d_pos);
@@ -375,7 +369,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
 
     typedef thrust::counting_iterator<unsigned int> count_it;
 
-    // add new particles at the end, writing rtags at the same time
+    // add new particles at the end
     thrust::transform(in_ptr, in_ptr + num_add_ptls, pdata_end, to_pdata_tuple_gpu());
 
     // update rtags
