@@ -221,7 +221,10 @@ class Messenger
             {
             // prefix all messages with rank information
             m_rank = rank;
-            m_notice_level = (m_rank == 0) ? m_default_notice_level :0;
+            #ifdef ENABLE_MPI
+            bcast(m_notice_level,0,m_mpi_comm);
+            if (m_rank != 0) m_notice_level = 0;
+            #endif
             m_partition = partition;
             }
 
@@ -265,8 +268,7 @@ class Messenger
         */
         void setNoticeLevel(unsigned int level)
             {
-            m_notice_level = level;
-            m_default_notice_level = level;
+            m_notice_level = (m_rank == 0) ? level : 0;
             }
 
         //! Set the error stream
@@ -400,7 +402,6 @@ class Messenger
         std::string m_notice_prefix;    //!< Prefix for notice messages
 
         unsigned int m_notice_level;    //!< Notice level
-        unsigned int m_default_notice_level; //!< Initial notice level
 
         unsigned int m_rank;            //!< The MPI rank (default 0)
         unsigned int m_partition;       //!< The MPI partition

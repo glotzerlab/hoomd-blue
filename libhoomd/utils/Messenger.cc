@@ -70,17 +70,16 @@ using namespace boost::python;
 
 /*! \post Warning and error streams are set to cerr
     \post The notice stream is set to cout
-    \post The notice level is set to 1
+    \post The notice level is set to 2
     \post prefixes are "error!!!!" , "warning!!" and "notice"
 */
 Messenger::Messenger()
-    : m_default_notice_level(2)
     {
     m_err_stream = &cerr;
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
     m_nullstream = boost::shared_ptr<nullstream>(new nullstream());
-    m_notice_level = m_default_notice_level;
+    m_notice_level = 2;
     m_err_prefix     = "**ERROR**";
     m_warning_prefix = "*Warning*";
     m_notice_prefix  = "notice";
