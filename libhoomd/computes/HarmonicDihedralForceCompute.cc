@@ -86,16 +86,16 @@ HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(boost::shared_ptr<Sys
     m_dihedral_data = m_sysdef->getDihedralData();
 
     // check for some silly errors a user could make
-    if (m_dihedral_data->getNDihedralTypes() == 0)
+    if (m_dihedral_data->getNTypes() == 0)
         {
         m_exec_conf->msg->error() << "dihedral.harmonic: No dihedral types specified" << endl;
         throw runtime_error("Error initializing HarmonicDihedralForceCompute");
         }
 
     // allocate the parameters
-    m_K = new Scalar[m_dihedral_data->getNDihedralTypes()];
-    m_sign = new Scalar[m_dihedral_data->getNDihedralTypes()];
-    m_multi = new Scalar[m_dihedral_data->getNDihedralTypes()];
+    m_K = new Scalar[m_dihedral_data->getNTypes()];
+    m_sign = new Scalar[m_dihedral_data->getNTypes()];
+    m_multi = new Scalar[m_dihedral_data->getNTypes()];
 
     }
 
@@ -121,7 +121,7 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
 void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity)
     {
     // make sure the type is valid
-    if (type >= m_dihedral_data->getNDihedralTypes())
+    if (type >= m_dihedral_data->getNTypes())
         {
         m_exec_conf->msg->error() << "dihedral.harmonic: Invalid dihedral type specified" << endl;
         throw runtime_error("Error setting parameters in HarmonicDihedralForceCompute");
@@ -196,26 +196,36 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
 
     // for each of the dihedrals
-    const unsigned int size = (unsigned int)m_dihedral_data->getNumDihedrals();
+    const unsigned int size = (unsigned int)m_dihedral_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the dihedral
-        const Dihedral& dihedral = m_dihedral_data->getDihedral(i);
-        assert(dihedral.a < m_pdata->getN());
-        assert(dihedral.b < m_pdata->getN());
-        assert(dihedral.c < m_pdata->getN());
-        assert(dihedral.d < m_pdata->getN());
+        const ImproperData::members_t& dihedral = m_dihedral_data->getMembersByIndex(i);
+        assert(dihedral.tag[0] < m_pdata->getNGlobal());
+        assert(dihedral.tag[1] < m_pdata->getNGlobal());
+        assert(dihedral.tag[2] < m_pdata->getNGlobal());
+        assert(dihedral.tag[3] < m_pdata->getNGlobal());
 
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints
-        unsigned int idx_a = h_rtag.data[dihedral.a];
-        unsigned int idx_b = h_rtag.data[dihedral.b];
-        unsigned int idx_c = h_rtag.data[dihedral.c];
-        unsigned int idx_d = h_rtag.data[dihedral.d];
-        assert(idx_a < m_pdata->getN());
-        assert(idx_b < m_pdata->getN());
-        assert(idx_c < m_pdata->getN());
-        assert(idx_d < m_pdata->getN());
+        unsigned int idx_a = h_rtag.data[dihedral.tag[0]];
+        unsigned int idx_b = h_rtag.data[dihedral.tag[1]];
+        unsigned int idx_c = h_rtag.data[dihedral.tag[2]];
+        unsigned int idx_d = h_rtag.data[dihedral.tag[3]];
+
+        // throw an error if this angle is incomplete
+        if (idx_a == NOT_LOCAL|| idx_b == NOT_LOCAL || idx_c == NOT_LOCAL || idx_d == NOT_LOCAL)
+            {
+            this->m_exec_conf->msg->error() << "dihedral.harmonic: dihedral " <<
+                dihedral.tag[0] << " " << dihedral.tag[1] << " " << dihedral.tag[2] << " " << dihedral.tag[3]
+                << " incomplete." << endl << endl;
+            throw std::runtime_error("Error in dihedral calculation");
+            }
+
+        assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_d < m_pdata->getN() + m_pdata->getNGhosts());
 
         // calculate d\vec{r}
         Scalar3 dab;
@@ -271,7 +281,8 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         if (c_abcd > 1.0) c_abcd = 1.0;
         if (c_abcd < -1.0) c_abcd = -1.0;
 
-        int multi = (int)m_multi[dihedral.type];
+        unsigned int dihedral_type = m_dihedral_data->getTypeByIndex(i);
+        int multi = (int)m_multi[dihedral_type];
         Scalar p = Scalar(1.0);
         Scalar dfab = Scalar(0.0);
         Scalar ddfab;
@@ -287,7 +298,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
 /////////////////////////
 
-        Scalar sign = m_sign[dihedral.type];
+        Scalar sign = m_sign[dihedral_type];
         p = p*sign;
         dfab = dfab*sign;
         dfab *= (Scalar)-multi;
@@ -319,7 +330,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar dthz = gbb*bbz;
 
 //      Scalar df = -m_K[dihedral.type] * dfab;
-        Scalar df = -m_K[dihedral.type] * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
+        Scalar df = -m_K[dihedral_type] * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
 
         Scalar sx2 = df*dtgx;
         Scalar sy2 = df*dtgy;
@@ -345,7 +356,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         // and accumlate the energy/virial
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
         //Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(1.0/4.0);
-        Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(0.125);  // the .125 term is (1/2)K * 1/4
+        Scalar dihedral_eng = p*m_K[dihedral_type]*Scalar(0.125);  // the .125 term is (1/2)K * 1/4
 
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // upper triangular version of virial tensor

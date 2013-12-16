@@ -261,7 +261,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     /*
      * Initialize dihedral data
      */
-    SnapshotDihedralData& ddata = snapshot->dihedral_data;
+    DihedralData::Snapshot& ddata = snapshot->dihedral_data;
 
     // allocate memory
     ddata.resize(m_dihedrals.size());
@@ -269,8 +269,8 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     // loop through all the dihedrals and add an dihedral for each
     for (unsigned int i = 0; i < m_dihedrals.size(); i++)
         {
-        ddata.dihedrals[i] = make_uint4(m_dihedrals[i].a,m_dihedrals[i].b,m_dihedrals[i].c, m_dihedrals[i].d);
-        ddata.type_id[i] = m_dihedrals[i].type;
+        ddata.groups[i] = m_dihedrals[i];
+        ddata.type_id[i] = m_dihedral_types[i];
         }
 
     ddata.type_mapping = m_dihedral_type_mapping;
@@ -278,7 +278,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     /*
      * Initialize improper data
      */
-    SnapshotDihedralData& idata = snapshot->improper_data;
+    ImproperData::Snapshot& idata = snapshot->improper_data;
 
     // allocate memory
     idata.resize(m_impropers.size());
@@ -286,8 +286,8 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     // loop through all the dihedrals and add an dihedral for each
     for (unsigned int i = 0; i < m_impropers.size(); i++)
         {
-        idata.dihedrals[i] = make_uint4(m_impropers[i].a,m_impropers[i].b,m_impropers[i].c, m_impropers[i].d);
-        idata.type_id[i] = m_impropers[i].type;
+        idata.groups[i] = m_impropers[i];
+        idata.type_id[i] = m_improper_types[i];
         }
 
     idata.type_mapping = m_improper_type_mapping;
@@ -876,7 +876,12 @@ void HOOMDInitializer::parseDihedralNode(const XMLNode &node)
         unsigned int a, b, c, d;
         parser >> type_name >> a >> b >> c >> d;
         if (parser.good())
-            m_dihedrals.push_back(Dihedral(getDihedralTypeId(type_name), a, b, c, d));
+            {
+            DihedralData::members_t dihedral;
+            dihedral.tag[0] = a; dihedral.tag[1] = b; dihedral.tag[2] = c; dihedral.tag[3] = d;
+            m_dihedrals.push_back(dihedral);
+            m_dihedral_types.push_back(getDihedralTypeId(type_name));
+            }
         }
     }
 
@@ -904,7 +909,12 @@ void HOOMDInitializer::parseImproperNode(const XMLNode &node)
         unsigned int a, b, c, d;
         parser >> type_name >> a >> b >> c >> d;
         if (parser.good())
-            m_impropers.push_back(Dihedral(getImproperTypeId(type_name), a, b, c, d));
+            {
+            ImproperData::members_t improper;
+            improper.tag[0] = a; improper.tag[1] = b; improper.tag[2] = c; improper.tag[3] = d;
+            m_impropers.push_back(improper);
+            m_improper_types.push_back(getImproperTypeId(type_name));
+            }
         }
     }
 

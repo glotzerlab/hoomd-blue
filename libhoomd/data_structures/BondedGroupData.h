@@ -112,6 +112,7 @@ struct packed_storage
 #ifdef ENABLE_MPI
 BOOST_CLASS_IMPLEMENTATION(group_storage<2>,boost::serialization::object_serializable)
 BOOST_CLASS_IMPLEMENTATION(group_storage<3>,boost::serialization::object_serializable)
+BOOST_CLASS_IMPLEMENTATION(group_storage<4>,boost::serialization::object_serializable)
 namespace boost
    {
    //! Serialization functions for group data types
@@ -132,6 +133,16 @@ namespace boost
             ar & s.tag[1];
             ar & s.tag[2];
             }
+        //! Serialization of group_storage<4> (dihedrals and impropers)
+        template<class Archive>
+        void serialize(Archive & ar, group_storage<4> & s, const unsigned int version)
+            {
+            ar & s.tag[0];
+            ar & s.tag[1];
+            ar & s.tag[2];
+            ar & s.tag[3];
+            }
+
         }
     }
 #endif
@@ -682,17 +693,135 @@ struct Angle {
 //! Definition of AngleData
 typedef BondedGroupData<3, Angle, name_angle_data> AngleData;
 
-
-#if 0
-//! Define DihedralData
+/*
+ * DihedralData
+ */
 extern char name_dihedral_data[];
-typedef BondedGroupData<4, uint4, name_dihedral_data> DihedralData;
-template<> void export_BondedGroupData<DihedralData>();
 
-//! Define ImproperData
+// Definition of an dihedral
+struct Dihedral {
+    typedef group_storage<4> members_t;
+
+    //! Constructor
+    /*! \param type Type of dihedral
+     * \param _a First dihedral member
+     * \param _b Second dihedral member
+     */
+    Dihedral(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, unsigned int _d)
+        : type(_type), a(_a), b(_b), c(_c), d(_d)
+        { }
+
+    //! Constructor that takes a members_t (used internally by DihedralData)
+    /*! \param type
+     *  \param members group members
+     */
+    Dihedral(unsigned int _type, members_t _members)
+        : type(_type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]), d(_members.tag[3])
+        { }
+
+
+    //! This helper function needs to be provided for the templated DihedralData to work correctly
+    members_t get_members() const
+        {
+        members_t m;
+        m.tag[0] = a;
+        m.tag[1] = b;
+        m.tag[2] = c;
+        m.tag[3] = d;
+        return m;
+        }
+
+    //! This helper function needs to be provided for the templated DihedralData to work correctly
+    unsigned int get_type() const
+        {
+        return type;
+        }
+
+    //! This helper function needs to be provided for the templated DihedralData to work correctly
+    static void export_to_python()
+        {
+        boost::python::class_<Dihedral>("Dihedral", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
+            .def_readonly("type", &Dihedral::type)
+            .def_readonly("a", &Dihedral::a)
+            .def_readonly("b", &Dihedral::b)
+            .def_readonly("c", &Dihedral::c)
+            .def_readonly("d", &Dihedral::d)
+        ;
+        }
+
+    unsigned int type;  //!< Group type
+    unsigned int a;     //!< First dihedral member
+    unsigned int b;     //!< Second dihedral member
+    unsigned int c;     //!< Third dihedral member
+    unsigned int d;     //!< Fourth dihedral member
+    };
+
+//! Definition of DihedralData
+typedef BondedGroupData<4, Dihedral, name_dihedral_data> DihedralData;
+
+/*
+ * ImproperData
+ */
 extern char name_improper_data[];
-typedef BondedGroupData<4, uint4, name_improper_data> ImproperData;
-template<> void export_BondedGroupData<ImproperData>();
-#endif
+
+// Definition of an improper
+struct Improper
+    {
+    typedef group_storage<4> members_t;
+
+    //! Constructor
+    /*! \param type Type of improper
+     * \param _a First improper member
+     * \param _b Second improper member
+     */
+    Improper(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, unsigned int _d)
+        : type(_type), a(_a), b(_b), c(_c), d(_d)
+        { }
+
+    //! Constructor that takes a members_t (used internally by ImproperData)
+    /*! \param type
+     *  \param members group members
+     */
+    Improper(unsigned int _type, members_t _members)
+        : type(_type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]), d(_members.tag[3])
+        { }
+
+    //! This helper function needs to be provided for the templated ImproperData to work correctly
+    members_t get_members() const
+        {
+        members_t m;
+        m.tag[0] = a;
+        m.tag[1] = b;
+        m.tag[2] = c;
+        m.tag[3] = d;
+        return m;
+        }
+
+    //! This helper function needs to be provided for the templated ImproperData to work correctly
+    unsigned int get_type() const
+        {
+        return type;
+        }
+
+    static void export_to_python()
+        {
+        boost::python::class_<Improper>("Improper", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
+            .def_readonly("type", &Improper::type)
+            .def_readonly("a", &Improper::a)
+            .def_readonly("b", &Improper::b)
+            .def_readonly("c", &Improper::c)
+            .def_readonly("d", &Improper::d)
+        ;
+        }
+
+    unsigned int type;  //!< Group type
+    unsigned int a;     //!< First improper member
+    unsigned int b;     //!< Second improper member
+    unsigned int c;     //!< Third improper member
+    unsigned int d;     //!< Fourth improper member
+    };
+
+//! Definition of ImproperData
+typedef BondedGroupData<4, Improper, name_improper_data> ImproperData;
 
 #endif

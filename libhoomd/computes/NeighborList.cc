@@ -63,7 +63,6 @@ using namespace boost::python;
 
 #include "NeighborList.h"
 #include "BondedGroupData.h"
-#include "DihedralData.h"
 
 #include <sstream>
 #include <fstream>
@@ -553,7 +552,7 @@ void NeighborList::addExclusionsFromAngles()
 
     // for each angle
     for (unsigned int i = 0; i < angles.size(); i++)
-        addExclusion(angles[i].tag[0], angles[i].tag[1]);
+        addExclusion(angles[i].tag[0], angles[i].tag[2]);
     }
 
 /*! After calling addExclusionsFromDihedrals(), all dihedrals specified in the attached ParticleData will be added to the
@@ -563,12 +562,30 @@ void NeighborList::addExclusionsFromDihedrals()
     {
     boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
-    // for each bond
-    for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
+    // access dihedral data by snapshot
+    DihedralData::Snapshot snapshot(dihedral_data->getNGlobal());
+    dihedral_data->takeSnapshot(snapshot);
+
+    // broadcast global dihedral list
+    std::vector<DihedralData::members_t> dihedrals;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        Dihedral dihedral = dihedral_data->getDihedral(i);
-        addExclusion(dihedral.a, dihedral.d);
+        if (m_exec_conf->getRank() == 0)
+            dihedrals = snapshot.groups;
+
+        bcast(dihedrals, 0, m_exec_conf->getMPICommunicator());
         }
+    else
+#endif
+        {
+        dihedrals = snapshot.groups;
+        }
+
+    // for each dihedral
+    for (unsigned int i = 0; i < dihedrals.size(); i++)
+        addExclusion(dihedrals[i].tag[0], dihedrals[i].tag[3]);
     }
 
 /*! \param tag1 First particle tag in the pair

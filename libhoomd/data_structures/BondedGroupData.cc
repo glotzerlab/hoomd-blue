@@ -1064,3 +1064,8 @@ template void export_BondedGroupData<BondData,Bond>(std::string name,std::string
 template class BondedGroupData<3, Angle, name_angle_data>;
 template void export_BondedGroupData<AngleData,Angle>(std::string name,std::string snapshot_name);
 
+template class BondedGroupData<4, Dihedral, name_angle_data>;
+template void export_BondedGroupData<DihedralData,Dihedral>(std::string name,std::string snapshot_name);
+
+template class BondedGroupData<4, Improper, name_angle_data>;
+template void export_BondedGroupData<ImproperData,Improper>(std::string name,std::string snapshot_name);

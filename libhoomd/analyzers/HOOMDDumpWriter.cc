@@ -70,7 +70,6 @@ using namespace boost::python;
 
 #include "HOOMDDumpWriter.h"
 #include "BondedGroupData.h"
-#include "DihedralData.h"
 #include "WallData.h"
 
 #ifdef ENABLE_MPI
@@ -220,6 +219,12 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     AngleData::Snapshot adata_snapshot(m_sysdef->getAngleData()->getNGlobal());
     if (m_output_angle) m_sysdef->getAngleData()->takeSnapshot(adata_snapshot);
+
+    DihedralData::Snapshot ddata_snapshot(m_sysdef->getDihedralData()->getNGlobal());
+    if (m_output_angle) m_sysdef->getDihedralData()->takeSnapshot(ddata_snapshot);
+
+    ImproperData::Snapshot idata_snapshot(m_sysdef->getImproperData()->getNGlobal());
+    if (m_output_angle) m_sysdef->getImproperData()->takeSnapshot(idata_snapshot);
 
 #ifdef ENABLE_MPI
     // only the root processor writes the output file
@@ -440,15 +445,16 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if dihedral is true, write out dihedrals to the xml file
     if (m_output_dihedral)
         {
-        f << "<dihedral num=\"" << m_sysdef->getDihedralData()->getNumDihedrals() << "\">" << "\n";
+        f << "<dihedral num=\"" << ddata_snapshot.groups.size() << "\">" << "\n";
         boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
         // loop over all angles and write them out
-        for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
+        for (unsigned int i = 0; i < ddata_snapshot.groups.size(); i++)
             {
-            Dihedral dihedral = dihedral_data->getDihedral(i);
-            f << dihedral_data->getNameByType(dihedral.type) << " " << dihedral.a  << " " << dihedral.b << " "
-            << dihedral.c << " " << dihedral.d << "\n";
+            DihedralData::members_t dihedral = ddata_snapshot.groups[i];
+            unsigned int dihedral_type = ddata_snapshot.type_id[i];
+            f << dihedral_data->getNameByType(dihedral_type) << " " << dihedral.tag[0]  << " " << dihedral.tag[1] << " "
+            << dihedral.tag[2] << " " << dihedral.tag[3] << "\n";
             }
 
         f << "</dihedral>" << "\n";
@@ -457,15 +463,16 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if improper is true, write out impropers to the xml file
     if (m_output_improper)
         {
-        f << "<improper num=\"" << m_sysdef->getImproperData()->getNumDihedrals() << "\">" << "\n";
-        boost::shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
+        f << "<improper num=\"" << idata_snapshot.groups.size() << "\">" << "\n";
+        boost::shared_ptr<ImproperData> improper_data = m_sysdef->getImproperData();
 
         // loop over all angles and write them out
-        for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
+        for (unsigned int i = 0; i < idata_snapshot.groups.size(); i++)
             {
-            Dihedral dihedral = improper_data->getDihedral(i);
-            f << improper_data->getNameByType(dihedral.type) << " " << dihedral.a  << " " << dihedral.b << " "
-            << dihedral.c << " " << dihedral.d << "\n";
+            ImproperData::members_t improper = idata_snapshot.groups[i];
+            unsigned int improper_type = idata_snapshot.type_id[i];
+            f << improper_data->getNameByType(improper_type) << " " << improper.tag[0]  << " " << improper.tag[1] << " "
+            << improper.tag[2] << " " << improper.tag[3] << "\n";
             }
 
         f << "</improper>" << "\n";

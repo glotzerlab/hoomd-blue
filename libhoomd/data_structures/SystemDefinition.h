@@ -63,7 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RigidData.h"
 #include "IntegratorData.h"
 #include "BondedGroupData.h"
-#include "DihedralData.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -175,7 +174,7 @@ class SystemDefinition
             return m_dihedral_data;
             }
         //! Access the improper data defined for the simulation
-        boost::shared_ptr<DihedralData> getImproperData()
+        boost::shared_ptr<ImproperData> getImproperData()
             {
             return m_improper_data;
             }
@@ -213,7 +212,7 @@ class SystemDefinition
         boost::shared_ptr<RigidData> m_rigid_data;          //!< Rigid bodies data for the system
         boost::shared_ptr<AngleData> m_angle_data;          //!< Angle data for the system
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data for the system
-        boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data for the system
+        boost::shared_ptr<ImproperData> m_improper_data;    //!< Improper data for the system
         boost::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
     };
 

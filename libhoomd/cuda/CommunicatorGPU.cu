@@ -1499,7 +1499,7 @@ template void gpu_update_ranks_table<3>(
     unsigned int *d_group_rtag,
     unsigned int n_recv,
     const rank_element<group_storage<3> > *d_ranks_recvbuf);
- 
+
 template void gpu_scatter_and_mark_groups_for_removal<3>(
     unsigned int n_groups,
     const group_storage<3> *d_groups,
@@ -1548,5 +1548,86 @@ template void gpu_mark_bonded_ghosts<3>(
     uint3 my_pos,
     unsigned int mask);
 
+/*
+ *! Explicit template instantiations for DihedralData and ImproperData (n=4)
+ */
+
+template void gpu_mark_groups<4, group_storage<4>, group_storage<4> >(
+    unsigned int N,
+    const unsigned int *d_comm_flags,
+    unsigned int n_groups,
+    const group_storage<4> *d_members,
+    group_storage<4> *d_group_ranks,
+    unsigned int *d_rank_mask,
+    const unsigned int *d_rtag,
+    unsigned int *d_scan,
+    unsigned int &n_out,
+    const Index3D di,
+    uint3 my_pos,
+    bool incomplete,
+    mgpu::ContextPtr mgpu_context);
+
+template void gpu_scatter_ranks(
+    unsigned int n_groups,
+    const unsigned int *d_group_tag,
+    const group_storage<4> *d_group_ranks,
+    const unsigned int *d_rank_mask,
+    const unsigned int *d_scan,
+    struct rank_element<group_storage<4> > *d_out_ranks);
+
+template void gpu_update_ranks_table<4>(
+    unsigned int n_groups,
+    group_storage<4> *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int n_recv,
+    const rank_element<group_storage<4> > *d_ranks_recvbuf);
+
+template void gpu_scatter_and_mark_groups_for_removal<4>(
+    unsigned int n_groups,
+    const group_storage<4> *d_groups,
+    const unsigned int *d_group_type,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_rtag,
+    const group_storage<4> *d_group_ranks,
+    unsigned int *d_rank_mask,
+    unsigned int my_rank,
+    unsigned int *d_scan,
+    packed_storage<4> *d_out_groups);
+
+template void gpu_remove_groups(unsigned int n_groups,
+    const group_storage<4> *d_groups,
+    group_storage<4> *d_groups_alt,
+    const unsigned int *d_group_type,
+    unsigned int *d_group_type_alt,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_tag_alt,
+    const group_storage<4> *d_group_ranks,
+    group_storage<4> *d_group_ranks_alt,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    unsigned int *d_scan,
+    mgpu::ContextPtr mgpu_context);
+
+template void gpu_add_groups(unsigned int n_groups,
+    unsigned int n_recv,
+    const packed_storage<4> *d_groups_in,
+    group_storage<4> *d_groups,
+    unsigned int *d_group_type,
+    unsigned int *d_group_tag,
+    group_storage<4> *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    unsigned int *d_tmp,
+    mgpu::ContextPtr mgpu_context);
+
+template void gpu_mark_bonded_ghosts<4>(
+    unsigned int n_groups,
+    group_storage<4> *d_groups,
+    group_storage<4> *d_ranks,
+    const unsigned int *d_rtag,
+    unsigned int *d_plan,
+    Index3D& di,
+    uint3 my_pos,
+    unsigned int mask);
 
 #endif // ENABLE_MPI

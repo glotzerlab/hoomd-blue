@@ -448,14 +448,30 @@ class Communicator
             m_bonds_changed = true;
             }
 
-        /* Bonds communication */
+        /* Angles communication */
         bool m_angles_changed;                          //!< True if angle information needs to be refreshed
         boost::signals2::connection m_angle_connection; //!< Connection to AngleData addition/removal of angles signal
         void setAnglesChanged()
             {
             m_angles_changed = true;
             }
- 
+
+        /* Dihedrals communication */
+        bool m_dihedrals_changed;                          //!< True if dihedral information needs to be refreshed
+        boost::signals2::connection m_dihedral_connection; //!< Connection to DihedralData addition/removal of dihedrals signal
+        void setDihedralsChanged()
+            {
+            m_dihedrals_changed = true;
+            }
+
+        /* Impropers communication */
+        bool m_impropers_changed;                          //!< True if improper information needs to be refreshed
+        boost::signals2::connection m_improper_connection; //!< Connection to ImproperData addition/removal of impropers signal
+        void setImpropersChanged()
+            {
+            m_impropers_changed = true;
+            }
+
     private:
         std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent
         std::vector<pdata_element> m_recvbuf;  //!< Buffer for particles that are received

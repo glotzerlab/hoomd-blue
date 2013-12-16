@@ -110,7 +110,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
 
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
-    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_improper_types));
+    m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
@@ -156,7 +156,7 @@ SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> s
 
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->dihedral_data));
 
-    m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->improper_data));
+    m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, snapshot->improper_data));
 
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
     }

@@ -89,15 +89,13 @@ TableDihedralForceCompute::TableDihedralForceCompute(boost::shared_ptr<SystemDef
         }
 
 
-
-
     // allocate storage for the tables and parameters
-    GPUArray<Scalar2> tables(m_table_width, m_dihedral_data->getNDihedralTypes(), exec_conf);
+    GPUArray<Scalar2> tables(m_table_width, m_dihedral_data->getNTypes(), exec_conf);
     m_tables.swap(tables);
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables.getPitch(),m_dihedral_data->getNDihedralTypes());
+    Index2D table_value(m_tables.getPitch(),m_dihedral_data->getNTypes());
     m_table_value = table_value;
 
     m_log_name = std::string("dihedral_table_energy") + log_suffix;
@@ -119,7 +117,7 @@ void TableDihedralForceCompute::setTable(unsigned int type,
     {
 
     // make sure the type is valid
-    if (type >= m_dihedral_data->getNDihedralTypes())
+    if (type >= m_dihedral_data->getNTypes())
         {
         cout << endl << "***Error! Invalid dihedral type specified" << endl << endl;
         throw runtime_error("Error setting parameters in PotentialDihedral");
@@ -202,26 +200,36 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
 
     // for each of the dihedrals
-    const unsigned int size = (unsigned int)m_dihedral_data->getNumDihedrals();
+    const unsigned int size = (unsigned int)m_dihedral_data->getNGlobal();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the dihedral
-        const Dihedral& dihedral = m_dihedral_data->getDihedral(i);
-        assert(dihedral.a < m_pdata->getN());
-        assert(dihedral.b < m_pdata->getN());
-        assert(dihedral.c < m_pdata->getN());
-        assert(dihedral.d < m_pdata->getN());
+        const DihedralData::members_t& dihedral = m_dihedral_data->getMembersByIndex(i);
+        assert(dihedral.tag[0] < m_pdata->getNGlobal());
+        assert(dihedral.tag[1] < m_pdata->getNGlobal());
+        assert(dihedral.tag[2] < m_pdata->getNGlobal());
+        assert(dihedral.tag[3] < m_pdata->getNGlobal());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[dihedral.a];
-        unsigned int idx_b = h_rtag.data[dihedral.b];
-        unsigned int idx_c = h_rtag.data[dihedral.c];
-        unsigned int idx_d = h_rtag.data[dihedral.d];
-        assert(idx_a < m_pdata->getN());
-        assert(idx_b < m_pdata->getN());
-        assert(idx_c < m_pdata->getN());
-        assert(idx_d < m_pdata->getN());
+        unsigned int idx_a = h_rtag.data[dihedral.tag[0]];
+        unsigned int idx_b = h_rtag.data[dihedral.tag[1]];
+        unsigned int idx_c = h_rtag.data[dihedral.tag[2]];
+        unsigned int idx_d = h_rtag.data[dihedral.tag[3]];
+
+        // throw an error if this angle is incomplete
+        if (idx_a == NOT_LOCAL|| idx_b == NOT_LOCAL || idx_c == NOT_LOCAL || idx_d == NOT_LOCAL)
+            {
+            this->m_exec_conf->msg->error() << "dihedral.harmonic: dihedral " <<
+                dihedral.tag[0] << " " << dihedral.tag[1] << " " << dihedral.tag[2] << " " << dihedral.tag[3]
+                << " incomplete." << endl << endl;
+            throw std::runtime_error("Error in dihedral calculation");
+            }
+
+        assert(idx_a < m_pdata->getN()+m_pdata->getNGhosts());
+        assert(idx_b < m_pdata->getN()+m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN()+m_pdata->getNGhosts());
+        assert(idx_d < m_pdata->getN()+m_pdata->getNGhosts());
 
         // calculate d\vec{r}
         Scalar3 dab;
@@ -308,9 +316,10 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         // compute index into the table and read in values
 
         /// Here we use the table!!
+        unsigned int dihedral_type = m_dihedral_data->getTypeByIndex(i);
         unsigned int value_i = (unsigned int)floor(value_f);
-        Scalar2 VT0 = h_tables.data[m_table_value(value_i, dihedral.type)];
-        Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, dihedral.type)];
+        Scalar2 VT0 = h_tables.data[m_table_value(value_i, dihedral_type)];
+        Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, dihedral_type)];
         // unpack the data
         Scalar V0 = VT0.x;
         Scalar V1 = VT1.x;

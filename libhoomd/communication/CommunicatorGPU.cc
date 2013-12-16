@@ -78,6 +78,8 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_comm_mask(0),
       m_bond_comm(*this, m_sysdef->getBondData()),
       m_angle_comm(*this, m_sysdef->getAngleData()),
+      m_dihedral_comm(*this, m_sysdef->getDihedralData()),
+      m_improper_comm(*this, m_sysdef->getImproperData()),
       m_last_flags(0)
     {
     // find out if this is a 1D decomposition
@@ -1207,6 +1209,14 @@ void CommunicatorGPU::migrateParticles()
         m_angle_comm.migrateGroups(m_angles_changed);
         m_angles_changed = false;
 
+        // Dihedrals
+        m_dihedral_comm.migrateGroups(m_dihedrals_changed);
+        m_dihedrals_changed = false;
+
+        // Dihedrals
+        m_improper_comm.migrateGroups(m_impropers_changed);
+        m_impropers_changed = false;
+
         // fill send buffer
         m_pdata->removeParticlesGPU(m_gpu_sendbuf, m_comm_flags);
 
@@ -1484,12 +1494,18 @@ void CommunicatorGPU::exchangeGhosts()
             }
 
         // mark particles that are members of incomplete of bonded groups as ghost
-        
+
         // bonds
         m_bond_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
 
         // angles
-        m_bond_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
+        m_angle_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
+
+        // dihedrals
+        m_dihedral_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
+
+        // impropers
+        m_improper_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
 
         // resize temporary number of neighbors array
         m_neigh_counts.resize(m_pdata->getN()+m_pdata->getNGhosts());

@@ -82,7 +82,7 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_p
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar4> params(m_dihedral_data->getNDihedralTypes(),exec_conf);
+    GPUArray<Scalar4> params(m_dihedral_data->getNTypes(),exec_conf);
     m_params.swap(params);
     }
 
@@ -119,13 +119,13 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Dihedral");
 
-    ArrayHandle<uint4> d_gpu_dihedral_list(m_dihedral_data->getGPUDihedralList(), access_location::device,access_mode::read);
-    ArrayHandle<unsigned int> d_n_dihedrals(m_dihedral_data->getNDihedralsArray(), access_location::device, access_mode::read);
-    ArrayHandle<uint1> d_dihedrals_ABCD(m_dihedral_data->getDihedralABCD(), access_location::device, access_mode::read);
+    ArrayHandle<DihedralData::members_t> d_gpu_dihedral_list(m_dihedral_data->getGPUTable(), access_location::device,access_mode::read);
+    ArrayHandle<unsigned int> d_n_dihedrals(m_dihedral_data->getNGroupsArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_dihedrals_ABCD(m_dihedral_data->getGPUPosTable(), access_location::device, access_mode::read);
 
     // the dihedral table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
@@ -140,10 +140,10 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
                                          box,
                                          d_gpu_dihedral_list.data,
                                          d_dihedrals_ABCD.data,
-                                         m_dihedral_data->getGPUDihedralList().getPitch(),
+                                         m_dihedral_data->getGPUTableIndexer().getW(),
                                          d_n_dihedrals.data,
                                          d_params.data,
-                                         m_dihedral_data->getNDihedralTypes(),
+                                         m_dihedral_data->getNTypes(),
                                          m_block_size);
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

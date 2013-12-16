@@ -99,8 +99,8 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
                                      const unsigned int N,
                                      const Scalar4 *device_pos,
                                      const BoxDim box,
-                                     const uint4 *dlist,
-                                     const uint1 *dihedral_ABCD,
+                                     const group_storage<4> *dlist,
+                                     const unsigned int *dihedral_ABCD,
                                      const unsigned int pitch,
                                      const unsigned int *n_dihedrals_list,
                                      const Scalar2 *d_tables,
@@ -134,14 +134,14 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
 
     for (int dihedral_idx = 0; dihedral_idx < n_dihedrals; dihedral_idx++)
         {
-        uint4 cur_dihedral = dlist[pitch*dihedral_idx + idx];
-        uint1 cur_ABCD = dihedral_ABCD[pitch*dihedral_idx + idx];
+        group_storage<4> cur_dihedral = dlist[pitch*dihedral_idx + idx];
+        unsigned int cur_ABCD = dihedral_ABCD[pitch*dihedral_idx + idx];
 
-        int cur_dihedral_x_idx = cur_dihedral.x;
-        int cur_dihedral_y_idx = cur_dihedral.y;
-        int cur_dihedral_z_idx = cur_dihedral.z;
-        int cur_dihedral_type = cur_dihedral.w;
-        int cur_dihedral_abcd = cur_ABCD.x;
+        int cur_dihedral_x_idx = cur_dihedral.idx[0];
+        int cur_dihedral_y_idx = cur_dihedral.idx[1];
+        int cur_dihedral_z_idx = cur_dihedral.idx[2];
+        int cur_dihedral_type = cur_dihedral.idx[3];
+        int cur_dihedral_abcd = cur_ABCD;
 
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 x_postype = device_pos[cur_dihedral_x_idx];
@@ -375,8 +375,8 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
                                      const unsigned int N,
                                      const Scalar4 *device_pos,
                                      const BoxDim &box,
-                                     const uint4 *dlist,
-                                     const uint1 *dihedral_ABCD,
+                                     const group_storage<4> *dlist,
+                                     const unsigned int *dihedral_ABCD,
                                      const unsigned int pitch,
                                      const unsigned int *n_dihedrals_list,
                                      const Scalar2 *d_tables,

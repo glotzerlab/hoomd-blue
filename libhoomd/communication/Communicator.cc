@@ -157,6 +157,12 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_angles_changed = true;
     m_angle_connection = m_sysdef->getAngleData()->connectGroupNumChange(boost::bind(&Communicator::setAnglesChanged, this));
+
+    m_dihedrals_changed = true;
+    m_dihedral_connection = m_sysdef->getDihedralData()->connectGroupNumChange(boost::bind(&Communicator::setDihedralsChanged, this));
+
+    m_impropers_changed = true;
+    m_improper_connection = m_sysdef->getImproperData()->connectGroupNumChange(boost::bind(&Communicator::setImpropersChanged, this));
     }
 
 //! Destructor

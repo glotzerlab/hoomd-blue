@@ -65,7 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RigidData.h"
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
-#include "DihedralData.h"
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
@@ -468,14 +467,11 @@ BOOST_PYTHON_MODULE(hoomd)
     export_SnapshotRigidData();
     export_ExecutionConfiguration();
     export_SystemDefinition();
-    export_DihedralData();
     export_SnapshotSystemData();
     export_BondedGroupData<BondData,Bond>("BondData","BondDataSnapshot");
     export_BondedGroupData<AngleData,Angle>("AngleData","AngleDataSnapshot");
-    #if 0
-    export_BondedGroupData<DihedralData>("DihedralData");
-    export_BondedGroupData<ImproperData>("ImproperData");
-    #endif
+    export_BondedGroupData<DihedralData,Dihedral>("DihedralData","DihedralDataSnapshot");
+    export_BondedGroupData<ImproperData,Improper>("ImproperData","ImproperDataSnapshot");
 
     // initializers
     export_RandomInitializer();

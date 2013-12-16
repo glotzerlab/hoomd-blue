@@ -199,6 +199,12 @@ class CommunicatorGPU : public Communicator
         GroupCommunicatorGPU<AngleData> m_angle_comm;  //!< Communication helper for angles
         friend class GroupCommunicatorGPU<AngleData>;
 
+        GroupCommunicatorGPU<DihedralData> m_dihedral_comm;  //!< Communication helper for dihedrals
+        friend class GroupCommunicatorGPU<DihedralData>;
+
+        GroupCommunicatorGPU<ImproperData> m_improper_comm;  //!< Communication helper for impropers
+        friend class GroupCommunicatorGPU<ImproperData>;
+
         /* Ghost communication */
         GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< List of ghost particles tags per stage, ordered by neighbor
         GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags

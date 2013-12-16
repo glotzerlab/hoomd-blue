@@ -312,5 +312,5 @@ void gpu_mark_bonded_ghosts(
     Index3D& di,
     uint3 my_pos,
     unsigned int mask);
- 
+
 #endif // ENABLE_MPI

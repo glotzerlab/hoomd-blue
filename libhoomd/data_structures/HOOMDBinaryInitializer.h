@@ -61,7 +61,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "BondedGroupData.h"
 #include "WallData.h"
-#include "DihedralData.h"
 #include "RigidData.h"
 #include "IntegratorData.h"
 #include "xmlParser.h"
@@ -146,8 +145,10 @@ class HOOMDBinaryInitializer
         std::vector< unsigned int > m_bond_types;   //!< Bonds types read in from the file
         std::vector< AngleData::members_t > m_angles; //!< Angle read in from the file
         std::vector< unsigned int>  m_angle_types;  //!< Angle types read in from the file
-        std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
-        std::vector< Dihedral > m_impropers;        //!< Improper read in from the file
+        std::vector< DihedralData::members_t > m_dihedrals; //!< Dihedral read in from the file
+        std::vector< unsigned int > m_dihedral_types; //!< Dihedral types read in from the file
+        std::vector< ImproperData::members_t > m_impropers;  //!< Improper read in from the file
+        std::vector< unsigned int > m_improper_types; //!< Improper types read in from the file
         std::vector< unsigned int > m_body_array;   //!< Body flag of the particles loaded
 
         unsigned int m_timestep;                    //!< The time stamp

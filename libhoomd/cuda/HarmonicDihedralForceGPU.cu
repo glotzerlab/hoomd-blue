@@ -52,7 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HarmonicDihedralForceGPU.cuh"
 #include "TextureTools.h"
-#include "DihedralData.cuh" // SERIOUSLY, DO I NEED THIS HERE??
 
 #ifdef WIN32
 #include <cassert>
@@ -97,8 +96,8 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
                                                  const Scalar4 *d_pos,
                                                  const Scalar4 *d_params,
                                                  BoxDim box,
-                                                 const uint4 *tlist,
-                                                 const uint1 *dihedral_ABCD,
+                                                 const group_storage<4> *tlist,
+                                                 const unsigned int *dihedral_ABCD,
                                                  const unsigned int pitch,
                                                  const unsigned int *n_dihedrals_list)
     {
@@ -127,14 +126,14 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
     // loop over all dihedrals
     for (int dihedral_idx = 0; dihedral_idx < n_dihedrals; dihedral_idx++)
         {
-        uint4 cur_dihedral = tlist[pitch*dihedral_idx + idx];
-        uint1 cur_ABCD = dihedral_ABCD[pitch*dihedral_idx + idx];
+        group_storage<4> cur_dihedral = tlist[pitch*dihedral_idx + idx];
+        unsigned int cur_ABCD = dihedral_ABCD[pitch*dihedral_idx + idx];
 
-        int cur_dihedral_x_idx = cur_dihedral.x;
-        int cur_dihedral_y_idx = cur_dihedral.y;
-        int cur_dihedral_z_idx = cur_dihedral.z;
-        int cur_dihedral_type = cur_dihedral.w;
-        int cur_dihedral_abcd = cur_ABCD.x;
+        int cur_dihedral_x_idx = cur_dihedral.idx[0];
+        int cur_dihedral_y_idx = cur_dihedral.idx[1];
+        int cur_dihedral_z_idx = cur_dihedral.idx[2];
+        int cur_dihedral_type = cur_dihedral.idx[3];
+        int cur_dihedral_abcd = cur_ABCD;
 
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 x_postype = d_pos[cur_dihedral_x_idx];
@@ -363,8 +362,8 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const BoxDim& box,
-                                                 const uint4 *tlist,
-                                                 const uint1 *dihedral_ABCD,
+                                                 const group_storage<4> *tlist,
+                                                 const unsigned int *dihedral_ABCD,
                                                  const unsigned int pitch,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar4 *d_params,

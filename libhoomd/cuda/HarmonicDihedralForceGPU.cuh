@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 #include "HOOMDMath.h"
+#include "BondedGroupData.cuh"
 
 /*! \file HarmonicDihedralForceGPU.cuh
     \brief Declares GPU kernel code for calculating the harmonic dihedral forces. Used by HarmonicDihedralForceComputeGPU.
@@ -67,8 +68,8 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const BoxDim& box,
-                                                 const uint4 *tlist,
-                                                 const uint1 *dihedral_ABCD,
+                                                 const group_storage<4> *tlist,
+                                                 const unsigned int *dihedral_ABCD,
                                                  const unsigned int pitch,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar4 *d_params,
