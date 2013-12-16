@@ -59,8 +59,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ParticleData.h"
+#include "BondedGroupData.h"
 #include "WallData.h"
-#include "AngleData.h"
 #include "DihedralData.h"
 #include "xmlParser.h"
 #include "BondedGroupData.h"
@@ -222,7 +222,8 @@ class HOOMDInitializer
         std::vector< Wall > m_walls;                //!< walls loaded from the file
         std::vector< BondData::members_t > m_bonds; //!< Bonds read in from the file
         std::vector< unsigned int> m_bond_types;    //!< Bond types read in from the file
-        std::vector< Angle > m_angles;              //!< Angle read in from the file
+        std::vector< AngleData::members_t > m_angles; //!< Angle read in from the file
+        std::vector< unsigned int > m_angle_types;  //!< Angle types read in from the file
         std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
         std::vector< Dihedral > m_impropers;        //!< Improper read in from the file
         unsigned int m_timestep;                    //!< The time stamp

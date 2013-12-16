@@ -86,15 +86,15 @@ HarmonicAngleForceCompute::HarmonicAngleForceCompute(boost::shared_ptr<SystemDef
     m_angle_data = m_sysdef->getAngleData();
 
     // check for some silly errors a user could make
-    if (m_angle_data->getNAngleTypes() == 0)
+    if (m_angle_data->getNTypes() == 0)
         {
         m_exec_conf->msg->error() << "angle.harmonic: No angle types specified" << endl;
         throw runtime_error("Error initializing HarmonicAngleForceCompute");
         }
 
     // allocate the parameters
-    m_K = new Scalar[m_angle_data->getNAngleTypes()];
-    m_t_0 = new Scalar[m_angle_data->getNAngleTypes()];
+    m_K = new Scalar[m_angle_data->getNTypes()];
+    m_t_0 = new Scalar[m_angle_data->getNTypes()];
     }
 
 HarmonicAngleForceCompute::~HarmonicAngleForceCompute()
@@ -116,7 +116,7 @@ HarmonicAngleForceCompute::~HarmonicAngleForceCompute()
 void HarmonicAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0)
     {
     // make sure the type is valid
-    if (type >= m_angle_data->getNAngleTypes())
+    if (type >= m_angle_data->getNTypes())
         {
         m_exec_conf->msg->error() << "angle.harmonic: Invalid angle type specified" << endl;
         throw runtime_error("Error setting parameters in HarmonicAngleForceCompute");
@@ -186,26 +186,35 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // get a local copy of the simulation box too
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim& box = m_pdata->getGlobalBox();
 
     // for each of the angles
-    const unsigned int size = (unsigned int)m_angle_data->getNumAngles();
+    const unsigned int size = (unsigned int)m_angle_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the angle
-        const Angle& angle = m_angle_data->getAngle(i);
-        assert(angle.a < m_pdata->getN());
-        assert(angle.b < m_pdata->getN());
-        assert(angle.c < m_pdata->getN());
+        const AngleData::members_t& angle = m_angle_data->getMembersByIndex(i);
+        assert(angle.tag[0] < m_pdata->getNGlobal());
+        assert(angle.tag[1] < m_pdata->getNGlobal());
+        assert(angle.tag[1] < m_pdata->getNGlobal());
 
-        // transform a, b, and c into indicies into the particle data arrays
+        // transform a, b, and c into indices into the particle data arrays
         // MEM TRANSFER: 6 ints
-        unsigned int idx_a = h_rtag.data[angle.a];
-        unsigned int idx_b = h_rtag.data[angle.b];
-        unsigned int idx_c = h_rtag.data[angle.c];
-        assert(idx_a < m_pdata->getN());
-        assert(idx_b < m_pdata->getN());
-        assert(idx_c < m_pdata->getN());
+        unsigned int idx_a = h_rtag.data[angle.tag[0]];
+        unsigned int idx_b = h_rtag.data[angle.tag[1]];
+        unsigned int idx_c = h_rtag.data[angle.tag[2]];
+
+        // throw an error if this angle is incomplete
+        if (idx_a == NOT_LOCAL|| idx_b == NOT_LOCAL || idx_c == NOT_LOCAL)
+            {
+            this->m_exec_conf->msg->error() << "angle.harmonic: angle " <<
+                angle.tag[0] << " " << angle.tag[1] << " " << angle.tag[2] << " incomplete." << endl << endl;
+            throw std::runtime_error("Error in angle calculation");
+            }
+
+        assert(idx_a < m_pdata->getN()+m_pdata->getNGhosts());
+        assert(idx_b < m_pdata->getN()+m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN()+m_pdata->getNGhosts());
 
         // calculate d\vec{r}
         Scalar3 dab;
@@ -249,8 +258,9 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
         s_abbc = 1.0/s_abbc;
 
         // actually calculate the force
-        Scalar dth = acos(c_abbc) - m_t_0[angle.type];
-        Scalar tk = m_K[angle.type]*dth;
+        unsigned int angle_type = m_angle_data->getTypeByIndex(i);
+        Scalar dth = acos(c_abbc) - m_t_0[angle_type];
+        Scalar tk = m_K[angle_type]*dth;
 
         Scalar a = -1.0 * tk * s_abbc;
         Scalar a11 = a*c_abbc/rsqab;
@@ -281,26 +291,36 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
         angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
 
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
-        h_force.data[idx_a].x += fab[0];
-        h_force.data[idx_a].y += fab[1];
-        h_force.data[idx_a].z += fab[2];
-        h_force.data[idx_a].w += angle_eng;
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*virial_pitch+idx_a]  += angle_virial[j];
+        // do not update ghost particles
+        if (idx_a < m_pdata->getN())
+            {
+            h_force.data[idx_a].x += fab[0];
+            h_force.data[idx_a].y += fab[1];
+            h_force.data[idx_a].z += fab[2];
+            h_force.data[idx_a].w += angle_eng;
+            for (int j = 0; j < 6; j++)
+                h_virial.data[j*virial_pitch+idx_a]  += angle_virial[j];
+            }
 
-        h_force.data[idx_b].x -= fab[0] + fcb[0];
-        h_force.data[idx_b].y -= fab[1] + fcb[1];
-        h_force.data[idx_b].z -= fab[2] + fcb[2];
-        h_force.data[idx_b].w += angle_eng;
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*virial_pitch+idx_b]  += angle_virial[j];
+        if (idx_b < m_pdata->getN())
+            {
+            h_force.data[idx_b].x -= fab[0] + fcb[0];
+            h_force.data[idx_b].y -= fab[1] + fcb[1];
+            h_force.data[idx_b].z -= fab[2] + fcb[2];
+            h_force.data[idx_b].w += angle_eng;
+            for (int j = 0; j < 6; j++)
+                h_virial.data[j*virial_pitch+idx_b]  += angle_virial[j];
+            }
 
-        h_force.data[idx_c].x += fcb[0];
-        h_force.data[idx_c].y += fcb[1];
-        h_force.data[idx_c].z += fcb[2];
-        h_force.data[idx_c].w += angle_eng;
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*virial_pitch+idx_c]  += angle_virial[j];
+        if (idx_c < m_pdata->getN())
+            {
+            h_force.data[idx_c].x += fcb[0];
+            h_force.data[idx_c].y += fcb[1];
+            h_force.data[idx_c].z += fcb[2];
+            h_force.data[idx_c].w += angle_eng;
+            for (int j = 0; j < 6; j++)
+                h_virial.data[j*virial_pitch+idx_c]  += angle_virial[j];
+            }
         }
 
     if (m_prof) m_prof->pop();

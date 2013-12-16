@@ -256,7 +256,8 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         // throw an error if this bond is incomplete
         if (idx_a >= max_local || idx_b >= max_local)
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": invalid bond." << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond " <<
+                bond.tag[0] << " " << bond.tag[1] << " incomplete." << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
 

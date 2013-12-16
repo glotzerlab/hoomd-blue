@@ -73,8 +73,6 @@ using namespace boost::python;
 
 #include "ParticleData.h"
 #include "Profiler.h"
-#include "AngleData.h"
-#include "DihedralData.h"
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"

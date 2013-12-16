@@ -116,8 +116,9 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
 
         {
         // Access the angle data for reading
-        ArrayHandle<uint4> d_gpu_anglelist(m_angle_data->getGPUAngleList(), access_location::device,access_mode::read);
-        ArrayHandle<unsigned int> d_gpu_n_angles(m_angle_data->getNAnglesArray(), access_location::device, access_mode::read);
+        ArrayHandle<group_storage<3> > d_gpu_anglelist(m_angle_data->getGPUTable(), access_location::device,access_mode::read);
+        ArrayHandle<unsigned int> d_gpu_angle_pos_list(m_angle_data->getGPUPosTable(), access_location::device,access_mode::read);
+        ArrayHandle<unsigned int> d_gpu_n_angles(m_angle_data->getNGroupsArray(), access_location::device, access_mode::read);
 
 
         // run the kernel on all GPUs in parallel
@@ -128,7 +129,8 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
                              d_pos.data,
                              box,
                              d_gpu_anglelist.data,
-                             m_angle_data->getGPUAngleList().getPitch(),
+                             d_gpu_angle_pos_list.data,
+                             m_angle_data->getGPUTableIndexer().getW(),
                              d_gpu_n_angles.data,
                              d_tables.data,
                              m_table_width,

@@ -76,7 +76,6 @@ using namespace boost::python;
 
 #include "HOOMDBinaryDumpWriter.h"
 #include "BondedGroupData.h"
-#include "AngleData.h"
 #include "DihedralData.h"
 #include "WallData.h"
 
@@ -275,7 +274,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // Output the angles to the binary file
     {
     //write out type mapping
-    ntypes = m_sysdef->getAngleData()->getNAngleTypes();
+    ntypes = m_sysdef->getAngleData()->getNTypes();
     f.write((char*)&ntypes, sizeof(unsigned int));
     for (unsigned int i = 0; i < ntypes; i++)
         {
@@ -283,20 +282,21 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         write_string(f, name);
         }
 
-    unsigned int na = m_sysdef->getAngleData()->getNumAngles();
+    unsigned int na = m_sysdef->getAngleData()->getN();
     f.write((char*)&na, sizeof(unsigned int));
 
     boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
     // loop over all angles and write them out
-    for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
+    for (unsigned int i = 0; i < angle_data->getN(); i++)
         {
-        Angle angle = angle_data->getAngle(i);
+        AngleData::members_t angle = angle_data->getMembersByIndex(i);
+        unsigned int type = angle_data->getTypeByIndex(i);
 
-        f.write((char*)&angle.type, sizeof(unsigned int));
-        f.write((char*)&angle.a, sizeof(unsigned int));
-        f.write((char*)&angle.b, sizeof(unsigned int));
-        f.write((char*)&angle.c, sizeof(unsigned int));
+        f.write((char*)&type, sizeof(unsigned int));
+        f.write((char*)&angle.tag[0], sizeof(unsigned int));
+        f.write((char*)&angle.tag[1], sizeof(unsigned int));
+        f.write((char*)&angle.tag[2], sizeof(unsigned int));
         }
     }
 

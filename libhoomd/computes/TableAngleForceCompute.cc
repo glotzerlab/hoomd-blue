@@ -83,7 +83,7 @@ TableAngleForceCompute::TableAngleForceCompute(boost::shared_ptr<SystemDefinitio
     m_angle_data = m_sysdef->getAngleData();
 
     // check for some silly errors a user could make
-    if (m_angle_data->getNAngleTypes() == 0)
+    if (m_angle_data->getNTypes() == 0)
         {
         m_exec_conf->msg->error() << "angle.table: No angle types specified" << endl;
         throw runtime_error("Error initializing TableAngleForceCompute");
@@ -100,12 +100,12 @@ TableAngleForceCompute::TableAngleForceCompute(boost::shared_ptr<SystemDefinitio
 
 
     // allocate storage for the tables and parameters
-    GPUArray<Scalar2> tables(m_table_width, m_angle_data->getNAngleTypes(), exec_conf);
+    GPUArray<Scalar2> tables(m_table_width, m_angle_data->getNTypes(), exec_conf);
     m_tables.swap(tables);
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables.getPitch(),m_angle_data->getNAngleTypes());
+    Index2D table_value(m_tables.getPitch(),m_angle_data->getNTypes());
     m_table_value = table_value;
 
     m_log_name = std::string("angle_table_energy") + log_suffix;
@@ -127,9 +127,9 @@ void TableAngleForceCompute::setTable(unsigned int type,
     {
 
     // make sure the type is valid
-    if (type >= m_angle_data->getNAngleTypes())
+    if (type >= m_angle_data->getNTypes())
         {
-        cout << endl << "***Error! Invalid angle type specified" << endl << endl;
+        m_exec_conf->msg->error() << "angle.table: Invalid angle type specified" << endl << endl;
         throw runtime_error("Error setting parameters in TableAngleForceCompute");
         }
 
@@ -212,23 +212,32 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
 
     // for each of the angles
-    const unsigned int size = (unsigned int)m_angle_data->getNumAngles();
+    const unsigned int size = (unsigned int)m_angle_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the angle
-        const Angle& angle = m_angle_data->getAngle(i);
-        assert(angle.a < m_pdata->getN());
-        assert(angle.b < m_pdata->getN());
-        assert(angle.c < m_pdata->getN());
+        const AngleData::members_t& angle = m_angle_data->getMembersByIndex(i);
+        assert(angle.tag[0] < m_pdata->getNGlobal());
+        assert(angle.tag[1] < m_pdata->getNGlobal());
+        assert(angle.tag[2] < m_pdata->getNGlobal());
 
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints
-        unsigned int idx_a = h_rtag.data[angle.a];
-        unsigned int idx_b = h_rtag.data[angle.b];
-        unsigned int idx_c = h_rtag.data[angle.c];
-        assert(idx_a < m_pdata->getN());
-        assert(idx_b < m_pdata->getN());
-        assert(idx_c < m_pdata->getN());
+        unsigned int idx_a = h_rtag.data[angle.tag[0]];
+        unsigned int idx_b = h_rtag.data[angle.tag[1]];
+        unsigned int idx_c = h_rtag.data[angle.tag[2]];
+
+        // throw an error if this angle is incomplete
+        if (idx_a == NOT_LOCAL|| idx_b == NOT_LOCAL || idx_c == NOT_LOCAL)
+            {
+            this->m_exec_conf->msg->error() << "angle.table: angle " <<
+                angle.tag[0] << " " << angle.tag[1] << " " << angle.tag[2] << " incomplete." << endl << endl;
+            throw std::runtime_error("Error in angle calculation");
+            }
+
+        assert(idx_a < m_pdata->getN()+m_pdata->getNGhosts());
+        assert(idx_b < m_pdata->getN()+m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN()+m_pdata->getNGhosts());
 
         // calculate d\vec{r}
         Scalar3 dab;
@@ -281,9 +290,10 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         // compute index into the table and read in values
 
         /// Here we use the table!!
+        unsigned int angle_type = m_angle_data->getTypeByIndex(i);
         unsigned int value_i = (unsigned int)floor(value_f);
-        Scalar2 VT0 = h_tables.data[m_table_value(value_i, angle.type)];
-        Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, angle.type)];
+        Scalar2 VT0 = h_tables.data[m_table_value(value_i, angle_type)];
+        Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, angle_type)];
         // unpack the data
         Scalar V0 = VT0.x;
         Scalar V1 = VT1.x;
@@ -329,27 +339,36 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
 
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
-        h_force.data[idx_a].x += fab[0];
-        h_force.data[idx_a].y += fab[1];
-        h_force.data[idx_a].z += fab[2];
-        h_force.data[idx_a].w += angle_eng;
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*virial_pitch+idx_a]  += angle_virial[j];
+        // only apply force to local atoms
+        if (idx_a < m_pdata->getN())
+            {
+            h_force.data[idx_a].x += fab[0];
+            h_force.data[idx_a].y += fab[1];
+            h_force.data[idx_a].z += fab[2];
+            h_force.data[idx_a].w += angle_eng;
+            for (int j = 0; j < 6; j++)
+                h_virial.data[j*virial_pitch+idx_a]  += angle_virial[j];
+            }
 
-        h_force.data[idx_b].x -= fab[0] + fcb[0];
-        h_force.data[idx_b].y -= fab[1] + fcb[1];
-        h_force.data[idx_b].z -= fab[2] + fcb[2];
-        h_force.data[idx_b].w += angle_eng;
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*virial_pitch+idx_b]  += angle_virial[j];
+        if (idx_b < m_pdata->getN())
+            {
+            h_force.data[idx_b].x -= fab[0] + fcb[0];
+            h_force.data[idx_b].y -= fab[1] + fcb[1];
+            h_force.data[idx_b].z -= fab[2] + fcb[2];
+            h_force.data[idx_b].w += angle_eng;
+            for (int j = 0; j < 6; j++)
+                h_virial.data[j*virial_pitch+idx_b]  += angle_virial[j];
+            }
 
-        h_force.data[idx_c].x += fcb[0];
-        h_force.data[idx_c].y += fcb[1];
-        h_force.data[idx_c].z += fcb[2];
-        h_force.data[idx_c].w += angle_eng;
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*virial_pitch+idx_c]  += angle_virial[j];
-
+        if (idx_c < m_pdata->getN())
+            {
+            h_force.data[idx_c].x += fcb[0];
+            h_force.data[idx_c].y += fcb[1];
+            h_force.data[idx_c].z += fcb[2];
+            h_force.data[idx_c].w += angle_eng;
+            for (int j = 0; j < 6; j++)
+                h_virial.data[j*virial_pitch+idx_c]  += angle_virial[j];
+            }
         }
 
     if (m_prof) m_prof->pop();

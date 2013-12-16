@@ -96,7 +96,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
                                      const BoxDim box,
-                                     const uint2 *blist,
+                                     const group_storage<2> *blist,
                                      const unsigned int pitch,
                                      const unsigned int *n_bonds_list,
                                      const unsigned int n_bond_type,
@@ -141,10 +141,10 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
         // MEM TRANSFER: 8 bytes
-        uint2 cur_bond = blist[pitch*bond_idx + idx];
+        group_storage<2> cur_bond = blist[pitch*bond_idx + idx];
 
-        int cur_bond_idx = cur_bond.x;
-        int cur_bond_type = cur_bond.y;
+        int cur_bond_idx = cur_bond.idx[0];
+        int cur_bond_type = cur_bond.idx[1];
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
         Scalar4 neigh_postype = d_pos[cur_bond_idx];
@@ -249,7 +249,7 @@ cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
                                      const BoxDim &box,
-                                     const uint2 *blist,
+                                     const group_storage<2> *blist,
                                      const unsigned int pitch,
                                      const unsigned int *n_bonds_list,
                                      const unsigned int n_bond_type,

@@ -261,3 +261,25 @@ template void gpu_update_group_table<2>(
     unsigned int *d_seg_offsets,
     mgpu::ContextPtr mgpu_context
     );
+
+//! AngleData
+template void gpu_update_group_table<3>(
+    const unsigned int n_groups,
+    const unsigned int N,
+    const union group_storage<3> *d_group_table,
+    const unsigned int *d_group_type,
+    const unsigned int *d_rtag,
+    unsigned int *d_n_groups,
+    unsigned int max_n_groups,
+    unsigned int *d_condition,
+    unsigned int next_flag,
+    unsigned int &flag,
+    group_storage<3> *d_pidx_group_table,
+    unsigned int *d_pidx_gpos_table,
+    const unsigned int pidx_group_table_pitch,
+    unsigned int *d_scratch_g,
+    unsigned int *d_scratch_idx,
+    unsigned int *d_offsets,
+    unsigned int *d_seg_offsets,
+    mgpu::ContextPtr mgpu_context
+    ); 

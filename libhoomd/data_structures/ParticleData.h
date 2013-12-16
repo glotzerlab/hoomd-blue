@@ -120,9 +120,6 @@ class Profiler;
 
 class WallData;
 
-// Forward declaration of AngleData
-class AngleData;
-
 // Forward declaration of DihedralData
 class DihedralData;
 

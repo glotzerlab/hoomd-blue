@@ -1028,3 +1028,6 @@ void export_BondedGroupData(std::string name, std::string snapshot_name)
 template class BondedGroupData<2, Bond, name_bond_data>;
 template void export_BondedGroupData<BondData,Bond>(std::string name,std::string snapshot_name);
 
+template class BondedGroupData<3, Angle, name_angle_data>;
+template void export_BondedGroupData<AngleData,Angle>(std::string name,std::string snapshot_name);
+

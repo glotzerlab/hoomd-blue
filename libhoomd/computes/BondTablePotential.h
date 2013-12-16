@@ -118,6 +118,19 @@ class BondTablePotential : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+        #ifdef ENABLE_MPI
+        //! Get ghost particle fields requested by this pair potential
+        /*! \param timestep Current time step
+        */
+        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+            {
+                CommFlags flags = CommFlags(0);
+                flags[comm_flag::tag] = 1;
+                flags |= ForceCompute::getRequestedCommFlags(timestep);
+                return flags;
+            }
+        #endif
+
     protected:
         boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
         unsigned int m_table_width;                 //!< Width of the tables in memory

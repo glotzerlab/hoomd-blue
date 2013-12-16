@@ -154,6 +154,9 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
      */
     m_bonds_changed = true;
     m_bond_connection = m_sysdef->getBondData()->connectGroupNumChange(boost::bind(&Communicator::setBondsChanged, this));
+
+    m_angles_changed = true;
+    m_angle_connection = m_sysdef->getAngleData()->connectGroupNumChange(boost::bind(&Communicator::setAnglesChanged, this));
     }
 
 //! Destructor
@@ -162,6 +165,7 @@ Communicator::~Communicator()
     m_exec_conf->msg->notice(5) << "Destroying Communicator";
     m_sort_connection.disconnect();
     m_bond_connection.disconnect();
+    m_angle_connection.disconnect();
     }
 
 //! Interface to the communication methods.

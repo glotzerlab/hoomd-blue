@@ -440,14 +440,22 @@ class Communicator
 
         CommFlags m_flags;                       //!< The ghost communication flags
 
-        /* Bonded group communication */
+        /* Bonds communication */
         bool m_bonds_changed;                          //!< True if bond information needs to be refreshed
-        boost::signals2::connection m_bond_connection; //!< Connection to connect to BondData addition/removal of bonds
+        boost::signals2::connection m_bond_connection; //!< Connection to BondData addition/removal of bonds signal
         void setBondsChanged()
             {
             m_bonds_changed = true;
             }
 
+        /* Bonds communication */
+        bool m_angles_changed;                          //!< True if angle information needs to be refreshed
+        boost::signals2::connection m_angle_connection; //!< Connection to AngleData addition/removal of angles signal
+        void setAnglesChanged()
+            {
+            m_angles_changed = true;
+            }
+ 
     private:
         std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent
         std::vector<pdata_element> m_recvbuf;  //!< Buffer for particles that are received

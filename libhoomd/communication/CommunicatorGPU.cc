@@ -77,6 +77,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_num_stages(0),
       m_comm_mask(0),
       m_bond_comm(*this, m_sysdef->getBondData()),
+      m_angle_comm(*this, m_sysdef->getAngleData()),
       m_last_flags(0)
     {
     // find out if this is a 1D decomposition
@@ -602,7 +603,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                     for (unsigned int ineigh = 0; ineigh < m_gpu_comm.m_n_unique_neigh; ++ineigh)
                         send_map.insert(std::make_pair(h_unique_neighbors.data[ineigh], el));
                 else
-                    // send to other ranks owning the bond
+                    // send to other ranks owning the bonded group
                     for (unsigned int j = 0; j < group_data::size; ++j)
                         {
                         unsigned int rank = r.idx[j];
@@ -1112,7 +1113,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         group_tag_array.resize(new_ngroups);
         group_ranks_array.resize(new_ngroups);
 
-        // indicate that bond table has changed
+        // indicate that group table has changed
         m_gdata->setDirty();
 
         if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf);
@@ -1198,8 +1199,13 @@ void CommunicatorGPU::migrateParticles()
         /*
          * Bonded group communication, determine groups to be sent
          */
+        // Bonds
         m_bond_comm.migrateGroups(m_bonds_changed);
         m_bonds_changed = false;
+
+        // Angles
+        m_angle_comm.migrateGroups(m_angles_changed);
+        m_angles_changed = false;
 
         // fill send buffer
         m_pdata->removeParticlesGPU(m_gpu_sendbuf, m_comm_flags);
@@ -1477,9 +1483,13 @@ void CommunicatorGPU::exchangeGhosts()
                 CHECK_CUDA_ERROR();
             }
 
-        // mark particles that are members of incomplete of bonds as ghosts
+        // mark particles that are members of incomplete of bonded groups as ghost
+        
+        // bonds
         m_bond_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
 
+        // angles
+        m_bond_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
 
         // resize temporary number of neighbors array
         m_neigh_counts.resize(m_pdata->getN()+m_pdata->getNGhosts());

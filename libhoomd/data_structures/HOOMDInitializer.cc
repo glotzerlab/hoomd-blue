@@ -244,7 +244,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     /*
      * Initialize angle data
      */
-    SnapshotAngleData& adata = snapshot->angle_data;
+    AngleData::Snapshot& adata = snapshot->angle_data;
 
     // allocate memory in snapshot
     adata.resize(m_angles.size());
@@ -252,8 +252,8 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     // loop through all the angles and add an angle for each
     for (unsigned int i = 0; i < m_angles.size(); i++)
         {
-        adata.angles[i] = make_uint3(m_angles[i].a,m_angles[i].b,m_angles[i].c);
-        adata.type_id[i] = m_angles[i].type;
+        adata.groups[i] = m_angles[i];
+        adata.type_id[i] = m_angle_types[i];
         }
 
     adata.type_mapping = m_angle_type_mapping;
@@ -843,7 +843,12 @@ void HOOMDInitializer::parseAngleNode(const XMLNode &node)
         unsigned int a, b, c;
         parser >> type_name >> a >> b >> c;
         if (parser.good())
-            m_angles.push_back(Angle(getAngleTypeId(type_name), a, b, c));
+            {
+            AngleData::members_t angle;
+            angle.tag[0] = a; angle.tag[1] = b; angle.tag[2] = c;
+            m_angles.push_back(angle);
+            m_angle_types.push_back(getAngleTypeId(type_name));
+            }
         }
     }
 

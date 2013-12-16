@@ -111,6 +111,7 @@ struct packed_storage
 
 #ifdef ENABLE_MPI
 BOOST_CLASS_IMPLEMENTATION(group_storage<2>,boost::serialization::object_serializable)
+BOOST_CLASS_IMPLEMENTATION(group_storage<3>,boost::serialization::object_serializable)
 namespace boost
    {
    //! Serialization functions for group data types
@@ -122,6 +123,14 @@ namespace boost
             {
             ar & s.tag[0];
             ar & s.tag[1];
+            }
+        //! Serialization of group_storage<3> (angles)
+        template<class Archive>
+        void serialize(Archive & ar, group_storage<3> & s, const unsigned int version)
+            {
+            ar & s.tag[0];
+            ar & s.tag[1];
+            ar & s.tag[2];
             }
         }
     }
@@ -606,12 +615,71 @@ struct Bond {
 //! Definition of BondData
 typedef BondedGroupData<2, Bond, name_bond_data> BondData;
 
-#if 0
-//! Define AngleData
+/*
+ * AngleData
+ */
 extern char name_angle_data[];
-typedef BondedGroupData<3, uint3, name_angle_data> AngleData;
-template<> void export_BondedGroupData<AngleData>();
 
+// Definition of an angle
+struct Angle {
+    typedef group_storage<3> members_t;
+
+    //! Constructor
+    /*! \param type Type of angle
+     * \param _a First angle member
+     * \param _b Second angle member
+     */
+    Angle(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c)
+        : type(_type), a(_a), b(_b), c(_c)
+        { }
+
+    //! Constructor that takes a members_t (used internally by AngleData)
+    /*! \param type
+     *  \param members group members
+     */
+    Angle(unsigned int _type, members_t _members)
+        : type(_type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2])
+        { }
+
+
+    //! This helper function needs to be provided for the templated AngleData to work correctly
+    members_t get_members() const
+        {
+        members_t m;
+        m.tag[0] = a;
+        m.tag[1] = b;
+        m.tag[2] = c;
+        return m;
+        }
+
+    //! This helper function needs to be provided for the templated AngleData to work correctly
+    unsigned int get_type() const
+        {
+        return type;
+        }
+
+    //! This helper function needs to be provided for the templated AngleData to work correctly
+    static void export_to_python()
+        {
+        boost::python::class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())
+            .def_readonly("type", &Angle::type)
+            .def_readonly("a", &Angle::a)
+            .def_readonly("b", &Angle::b)
+            .def_readonly("c", &Angle::b)
+        ;
+        }
+
+    unsigned int type;  //!< Group type
+    unsigned int a;     //!< First angle member
+    unsigned int b;     //!< Second angle member
+    unsigned int c;     //!< Third angle member
+    };
+
+//! Definition of AngleData
+typedef BondedGroupData<3, Angle, name_angle_data> AngleData;
+
+
+#if 0
 //! Define DihedralData
 extern char name_dihedral_data[];
 typedef BondedGroupData<4, uint4, name_dihedral_data> DihedralData;

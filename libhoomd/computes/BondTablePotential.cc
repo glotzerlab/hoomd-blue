@@ -217,7 +217,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // get a local copy of the simulation box too
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim& box = m_pdata->getGlobalBox();
 
     // access the table data
     ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
@@ -236,9 +236,19 @@ void BondTablePotential::computeForces(unsigned int timestep)
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[bond.tag[0]];
         unsigned int idx_b = h_rtag.data[bond.tag[1]];
-        assert(idx_a < m_pdata->getN());
-        assert(idx_b < m_pdata->getN());
+        assert(idx_a < m_pdata->getNGlobal());
+        assert(idx_b < m_pdata->getNGlobal());
 
+        // throw an error if this bond is incomplete
+        if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)
+            {
+            this->m_exec_conf->msg->error() << "bond.table: bond " <<
+                bond.tag[0] << " " << bond.tag[1] << " incomplete." << endl << endl;
+            throw std::runtime_error("Error in bond calculation");
+            }
+        assert(idx_a <= m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_b <= m_pdata->getN() + m_pdata->getNGhosts());
+ 
         Scalar3 pa = make_scalar3(h_pos.data[idx_a].x, h_pos.data[idx_a].y, h_pos.data[idx_a].z);
         Scalar3 pb = make_scalar3(h_pos.data[idx_b].x, h_pos.data[idx_b].y, h_pos.data[idx_b].z);
         Scalar3 dx = pb-pa;

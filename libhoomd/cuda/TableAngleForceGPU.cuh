@@ -55,7 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ParticleData.cuh"
-#include "AngleData.cuh"
+#include "BondedGroupData.cuh"
 #include "Index1D.h"
 #include "HOOMDMath.h"
 
@@ -69,7 +69,8 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
                                      const BoxDim &box,
-                                     const uint4 *alist,
+                                     const group_storage<3> *alist,
+                                     const unsigned int *apos_list,
                                      const unsigned int pitch,
                                      const unsigned int *n_angles_list,
                                      const Scalar2 *d_tables,

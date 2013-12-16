@@ -62,7 +62,7 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 
 #include "NeighborList.h"
-#include "AngleData.h"
+#include "BondedGroupData.h"
 #include "DihedralData.h"
 
 #include <sstream>
@@ -530,15 +530,33 @@ void NeighborList::addExclusionsFromAngles()
     {
     boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
-    // for each bond
-    for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
+    // access angle data by snapshot
+    AngleData::Snapshot snapshot(angle_data->getNGlobal());
+    angle_data->takeSnapshot(snapshot);
+
+    // broadcast global angle list
+    std::vector<AngleData::members_t> angles;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        Angle angle = angle_data->getAngle(i);
-        addExclusion(angle.a, angle.c);
+        if (m_exec_conf->getRank() == 0)
+            angles = snapshot.groups;
+
+        bcast(angles, 0, m_exec_conf->getMPICommunicator());
         }
+    else
+#endif
+        {
+        angles = snapshot.groups;
+        }
+
+    // for each angle
+    for (unsigned int i = 0; i < angles.size(); i++)
+        addExclusion(angles[i].tag[0], angles[i].tag[1]);
     }
 
-/*! After calling addExclusionsFromAngles(), all dihedrals specified in the attached ParticleData will be added to the
+/*! After calling addExclusionsFromDihedrals(), all dihedrals specified in the attached ParticleData will be added to the
     exclusion list. Only the two end particles in the dihedral are excluded from interacting.
 */
 void NeighborList::addExclusionsFromDihedrals()

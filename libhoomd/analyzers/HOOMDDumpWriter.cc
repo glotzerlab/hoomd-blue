@@ -69,7 +69,7 @@ using namespace boost::python;
 #include <boost/shared_ptr.hpp>
 
 #include "HOOMDDumpWriter.h"
-#include "AngleData.h"
+#include "BondedGroupData.h"
 #include "DihedralData.h"
 #include "WallData.h"
 
@@ -216,14 +216,10 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     m_pdata->takeSnapshot(snapshot);
 
     BondData::Snapshot bdata_snapshot(m_sysdef->getBondData()->getNGlobal());
+    if (m_output_bond) m_sysdef->getBondData()->takeSnapshot(bdata_snapshot);
 
-    if (m_output_bond)
-        {
-        // take a bond data snapshot
-        boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-
-        bond_data->takeSnapshot(bdata_snapshot);
-        }
+    AngleData::Snapshot adata_snapshot(m_sysdef->getAngleData()->getNGlobal());
+    if (m_output_angle) m_sysdef->getAngleData()->takeSnapshot(adata_snapshot);
 
 #ifdef ENABLE_MPI
     // only the root processor writes the output file
@@ -427,14 +423,15 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // if the angle flag is true, output the angles to the xml file
     if (m_output_angle)
         {
-        f << "<angle num=\"" << m_sysdef->getAngleData()->getNumAngles() << "\">" << "\n";
+        f << "<angle num=\"" << adata_snapshot.groups.size() << "\">" << "\n";
         boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
         // loop over all angles and write them out
-        for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
+        for (unsigned int i = 0; i < adata_snapshot.groups.size(); i++)
             {
-            Angle angle = angle_data->getAngle(i);
-            f << angle_data->getNameByType(angle.type) << " " << angle.a  << " " << angle.b << " " << angle.c << "\n";
+            AngleData::members_t angle = adata_snapshot.groups[i];
+            unsigned int angle_type = adata_snapshot.type_id[i];
+            f << angle_data->getNameByType(angle_type) << " " << angle.tag[0]  << " " << angle.tag[1] << " " << angle.tag[2] << "\n";
             }
 
         f << "</angle>" << "\n";

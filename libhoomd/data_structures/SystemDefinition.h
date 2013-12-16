@@ -63,7 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RigidData.h"
 #include "IntegratorData.h"
 #include "BondedGroupData.h"
-#include "AngleData.h"
 #include "DihedralData.h"
 
 #include <boost/shared_ptr.hpp>

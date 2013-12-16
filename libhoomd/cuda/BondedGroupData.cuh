@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-/*! \file BondedGroupData.cu
+/*! \file BondedGroupData.cuh
     \brief Defines the helper functions (GPU version) for updating the GPU bonded group tables
  */
 
