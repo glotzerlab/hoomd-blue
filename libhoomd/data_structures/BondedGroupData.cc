@@ -144,9 +144,6 @@ BondedGroupData<group_size, Group, name>::BondedGroupData(
         }
     #endif
 
-    // initialize data structures
-    initialize();
-
     // initialize from snapshot
     initializeFromSnapshot(snapshot);
 
@@ -174,6 +171,13 @@ template<unsigned int group_size, typename Group, const char *name>
 void BondedGroupData<group_size, Group, name>::initialize()
     {
     m_nglobal = 0;
+
+    // clear set of active tags
+    m_tag_set.clear();
+
+    // clear reservoir of recycled tags
+    while (! m_recycled_tags.empty())
+        m_recycled_tags.pop();
 
     // allocate arrays
     GPUVector<members_t> groups(m_exec_conf);
@@ -228,11 +232,13 @@ void BondedGroupData<group_size, Group, name>::initialize()
     // allocate condition variable
     GPUArray<unsigned int> condition(1, m_exec_conf);
     m_condition.swap(condition);
-    
+
     ArrayHandle<unsigned int> h_condition(m_condition, access_location::host, access_mode::overwrite);
     *h_condition.data = 0;
     m_next_flag = 1;
     #endif
+
+    m_tag_set.clear();
     }
 
 //! Initialize from a snapshot
@@ -296,7 +302,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
         if (member_tags.tag[i] >= m_pdata->getNGlobal())
             {
             std::ostringstream oss;
-            oss << "Particle tag out of bounds when attempting to add " << name << ": ";
+            oss << name << ".*: Particle tag out of bounds when attempting to add " << name << ": ";
             for (unsigned int j = 0; j < group_size; ++j)
                 oss << member_tags.tag[j] << ((j != group_size - 1) ? "," : "");
             oss << std::endl;
@@ -309,7 +315,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
             if (i != j && member_tags.tag[i] == member_tags.tag[j])
                 {
                 std::ostringstream oss;
-                oss << "The same particle can only occur once in a " << name << ": ";
+                oss << name << ".*: The same particle can only occur once in a " << name << ": ";
                 for (unsigned int k = 0; k < group_size; ++k)
                     oss << member_tags.tag[k] << ((k != group_size - 1) ? "," : "");
                 oss << std::endl;
@@ -319,8 +325,8 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 
     if (type >= m_type_mapping.size())
         {
-        m_exec_conf->msg->error() << "Invalid " << name << " type " << type << "! The  number of types is "
-            << m_type_mapping.size() << std::endl;
+        m_exec_conf->msg->error() << name << ".*: Invalid " << name << " type " << type
+            << "! The  number of types is " << m_type_mapping.size() << std::endl;
         throw std::runtime_error(std::string("Error adding ") + name);
         }
 
@@ -351,7 +357,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
         // update reverse-lookup tag to point to end of local group data
         if (is_local)
             m_group_rtag[tag] = getN();
-        
+
         assert(is_local || m_group_rtag[tag] == GROUP_NOT_LOCAL);
         }
     else
@@ -387,6 +393,9 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
         #endif
         }
 
+    // add to set of active tags
+    m_tag_set.insert(tag);
+
     // increment number of bonded groups
     m_nglobal++;
 
@@ -398,6 +407,26 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 
     return tag;
     }
+
+//! Return the nth active global tag
+/*! \param n Index of bond in global bond table
+ */
+template<unsigned int group_size, typename Group, const char *name>
+unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n) const
+    {
+   if (n >= getNGlobal())
+        {
+        m_exec_conf->msg->error() << name << ".*: " << name << " index " << n << " out of bounds!"
+            << "The number of " << name << "s is " << getNGlobal() << std::endl;
+        throw std::runtime_error(std::string("Error getting ") + name);
+        }
+
+    assert(m_tag_set.size() == getNGlobal());
+    std::set<unsigned int>::const_iterator it = m_tag_set.begin();
+    std::advance(it, n);
+    return *it;
+    }
+
 
 /*! \param tag Tag of bonded group
  * \returns the group
@@ -550,6 +579,9 @@ void BondedGroupData<group_size, Group, name>::removeBondedGroup(unsigned int ta
             m_group_ranks.pop_back();
         #endif
         }
+
+    // remove from set of active tags
+    m_tag_set.erase(tag);
 
     // maintain a stack of deleted group tags for future recycling
     m_recycled_tags.push(tag);
@@ -963,7 +995,7 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
             unsigned int tag;
             MPI_Irecv(&tag, 1, MPI_UNSIGNED, old_rank, 0, m_exec_conf->getMPICommunicator(), &req);
             MPI_Wait(&req, &stat);
-             
+
             members_t members;
             MPI_Irecv(&members, sizeof(members_t), MPI_BYTE, old_rank, 0, m_exec_conf->getMPICommunicator(), &req);
             MPI_Wait(&req, &stat);
@@ -973,7 +1005,7 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
             MPI_Wait(&req, &stat);
 
             bool is_local = m_group_rtag[tag] != NOT_LOCAL;
-           
+
             // if not already local
             if (! is_local)
                 {
@@ -984,7 +1016,7 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
                 m_group_type.push_back(type);
                 m_group_rtag[tag] = n;
                 }
-            } 
+            }
         }
 
     // notify observers
@@ -996,6 +1028,9 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
 template<class T, typename Group>
 void export_BondedGroupData(std::string name, std::string snapshot_name)
     {
+    // export group structure
+    Group::export_to_python();
+
     scope outer = class_<T, boost::shared_ptr<T> , boost::noncopyable>(name.c_str(),
         init<boost::shared_ptr<ParticleData>, unsigned int>())
         .def(init<boost::shared_ptr<ParticleData>, const typename T::Snapshot& >())
@@ -1004,6 +1039,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name)
         .def("getN", &T::getN)
         .def("getNGlobal", &T::getNGlobal)
         .def("getNTypes", &T::getNTypes)
+        .def("getNthTag", &T::getNthTag)
         .def("getGroupByTag", &T::getGroupByTag)
         .def("getTypeByName", &T::getTypeByName)
         .def("getNameByType", &T::getNameByType)
@@ -1019,10 +1055,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name)
         .def_readwrite("type_id", &Snapshot::type_id)
         .def_readwrite("type_mapping", &Snapshot::type_mapping)
         ;
-   
-    // export group structure
-    Group::export_to_python();
-    }
+   }
 
 //! Explicit template instantiations
 template class BondedGroupData<2, Bond, name_bond_data>;

@@ -15,11 +15,8 @@ class angle_cgcmm_tests (unittest.TestCase):
         self.polymers = [self.polymer1, self.polymer2]
         self.box = hoomd.BoxDim(35);
         self.separation=dict(A=0.35, B=0.35)
-        init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-
-        angle_data = globals.system_definition.getAngleData();
-        angle_data.addAngleType('angleA')
-        angle_data.addAngle(hoomd.Angle(0, 0, 1, 2));
+        sys=init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        sys.angles.add('angleA', 0, 1, 2)
         import __main__;
         __main__.sorter.set_params(grid=8)
 

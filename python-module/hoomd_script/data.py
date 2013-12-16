@@ -910,13 +910,13 @@ class bond_data:
     # \returns Unique tag identifying this bond
     def add(self, type, a, b):
         typeid = self.bdata.getTypeByName(type);
-        return self.bdata.addBond(hoomd.Bond(typeid, a, b));
+        return self.bdata.addBondedGroup(hoomd.Bond(typeid, a, b));
 
     ## \internal
     # \brief Remove a bond by tag
     # \param tag Unique tag of the bond to remove
     def remove(self, tag):
-        self.bdata.removeBond(tag);
+        self.bdata.removeBondedGroup(tag);
 
     ## \var bdata
     # \internal
@@ -943,20 +943,18 @@ class bond_data:
     def __delitem__(self, id):
         if id >= len(self) or id < 0:
             raise IndexError;
-
-        # Get the tag of the bond to delete
-        tag = self.bdata.getBondTag(id);
+        tag = self.bdata.getNthTag(id);
         self.bdata.removeBond(tag);
 
     ## \internal
     # \brief Get the number of bonds
     def __len__(self):
-        return self.bdata.getNumBondsGlobal();
+        return self.bdata.getNGlobal();
 
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNumBondsGlobal(), self.bdata.getNBondTypes());
+        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNGlobal(), self.bdata.getNBondTypes());
         return result
 
     ## \internal
@@ -1005,16 +1003,16 @@ class bond_data_proxy:
     # \brief Translate attribute accesses into the low level API function calls
     def __getattr__(self, name):
         if name == "a":
-            bond = self.bdata.getBondByTag(self.tag);
+            bond = self.bdata.getGroupByTag(self.tag);
             return bond.a;
         if name == "b":
-            bond = self.bdata.getBondByTag(self.tag);
+            bond = self.bdata.getGroupByTag(self.tag);
             return bond.b;
         if name == "typeid":
-            bond = self.bdata.getBondByTag(self.tag);
+            bond = self.bdata.getGroupByTag(self.tag);
             return bond.type;
         if name == "type":
-            bond = self.bdata.getBondByTag(self.tag);
+            bond = self.bdata.getGroupByTag(self.tag);
             typeid = bond.type;
             return self.bdata.getNameByType(typeid);
 
@@ -1079,13 +1077,13 @@ class angle_data:
     # \returns Unique tag identifying this bond
     def add(self, type, a, b, c):
         typeid = self.adata.getTypeByName(type);
-        return self.adata.addAngle(hoomd.Angle(typeid, a, b, c));
+        return self.adata.addBondedGroup(hoomd.Angle(typeid, a, b, c));
 
     ## \internal
     # \brief Remove an angle by tag
     # \param tag Unique tag of the angle to remove
     def remove(self, tag):
-        self.adata.removeAngle(tag);
+        self.adata.removeBondedGroup(tag);
 
     ## \var adata
     # \internal
@@ -1114,18 +1112,18 @@ class angle_data:
             raise IndexError;
 
         # Get the tag of the bond to delete
-        tag = self.adata.getAngleTag(id);
-        self.adata.removeAngle(tag);
+        tag = self.adata.getNthTag(id);
+        self.adata.removeBondedGroup(tag);
 
     ## \internal
     # \brief Get the number of angles
     def __len__(self):
-        return self.adata.getNumAngles();
+        return self.adata.getNGlobal();
 
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Angle Data for %d angles of %d typeid(s)" % (self.adata.getNumAngles(), self.adata.getNAngleTypes());
+        result = "Angle Data for %d angles of %d typeid(s)" % (self.adata.getNGlobal(), self.adata.getNTypes());
         return result;
 
     ## \internal
@@ -1150,7 +1148,7 @@ class angle_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class angle_data_proxy:
     ## \internal
     # \brief create a angle_data_proxy
@@ -1159,7 +1157,7 @@ class angle_data_proxy:
     # \param id index of this angle in \a adata (at time of proxy creation)
     def __init__(self, adata, id):
         self.adata = adata;
-        self.tag = self.adata.getAngleTag(id);
+        self.tag = self.adata.getNthTag(id);
 
     ## \internal
     # \brief Get an informal string representing the object
@@ -1177,20 +1175,20 @@ class angle_data_proxy:
     # \brief Translate attribute accesses into the low level API function calls
     def __getattr__(self, name):
         if name == "a":
-            bond = self.adata.getAngleByTag(self.tag);
-            return bond.a;
+            angle = self.adata.getGroupByTag(self.tag);
+            return angle.a;
         if name == "b":
-            bond = self.adata.getAngleByTag(self.tag);
-            return bond.b;
+            angle = self.adata.getGroupByTag(self.tag);
+            return angle.b;
         if name == "c":
-            bond = self.adata.getAngleByTag(self.tag);
-            return bond.c;
+            angle = self.adata.getGroupByTag(self.tag);
+            return angle.c;
         if name == "typeid":
-            bond = self.adata.getAngleByTag(self.tag);
-            return bond.type;
+            angle = self.adata.getGroupByTag(self.tag);
+            return angle.type;
         if name == "type":
-            bond = self.adata.getAngleByTag(self.tag);
-            typeid = bond.type;
+            angle = self.adata.getGroupByTag(self.tag);
+            typeid = angle.type;
             return self.adata.getNameByType(typeid);
 
         # if we get here, we haven't found any names that match, post an error

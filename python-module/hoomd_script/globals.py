@@ -130,3 +130,4 @@ def clear():
     import __main__;
     __main__.sorter = None;
     __main__.nlist = None;
+    exec_conf = None

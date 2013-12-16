@@ -163,7 +163,10 @@ class BondedGroupData : boost::noncopyable
             {
             //! Default constructor
             Snapshot()
-                { }
+                {
+                // provide default type mapping for one type
+                type_mapping.push_back(std::string(name) + "A");
+                }
 
             //! Constructor
             /*! \param n_groups Number of groups contained in the snapshot
@@ -227,9 +230,6 @@ class BondedGroupData : boost::noncopyable
             return m_nglobal;
             }
 
-        //! Get the type of a bonded group by tag
-        unsigned int getTypeByTag(unsigned int tag) const;
-
         //! Get the number of group types
         unsigned int getNTypes() const
             {
@@ -247,6 +247,9 @@ class BondedGroupData : boost::noncopyable
 
         //! Get the type name by id
         const std::string getNameByType(unsigned int type) const;
+
+        //! Return the nth active global tag
+        unsigned int getNthTag(unsigned int n) const;
 
         //! Return a bonded group by tag
         const Group getGroupByTag(unsigned int tag) const;
@@ -519,6 +522,7 @@ class BondedGroupData : boost::noncopyable
 
         unsigned int m_nglobal;                      //!< Global number of groups
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed groups
+        std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
         boost::shared_ptr<Profiler> m_prof;          //!< Profiler
 
     private:
@@ -665,7 +669,7 @@ struct Angle {
             .def_readonly("type", &Angle::type)
             .def_readonly("a", &Angle::a)
             .def_readonly("b", &Angle::b)
-            .def_readonly("c", &Angle::b)
+            .def_readonly("c", &Angle::c)
         ;
         }
 
