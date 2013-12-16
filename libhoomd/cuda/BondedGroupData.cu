@@ -76,7 +76,7 @@ __global__ void gpu_count_groups_kernel(
     {
     unsigned int group_idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (group_idx >= n_groups) return;
-   
+
     group_t g = d_group_table[group_idx];
 
     #pragma unroll
@@ -153,7 +153,7 @@ __global__ void gpu_group_scatter_kernel(
 
         p.idx[j++] = pidx_k;
         }
-  
+
     d_pidx_group_table[offset] = p;
     d_pidx_gpos_table[offset] = gpos;
     }
@@ -201,14 +201,14 @@ void gpu_update_group_table(
     // read back flag
     cudaMemcpy(&flag, d_condition, sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
-    if (! (flag >= next_flag))
+    if (! (flag >= next_flag) && n_groups)
         {
         // we are good, fill group table
 
         // sort groups by particle index
         mgpu::MergesortPairs(d_scratch_idx, d_scratch_g, group_size*n_groups, *mgpu_context);
 
-	    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_n_groups, N, (unsigned int) 0, mgpu::plus<unsigned int>(),
+        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_n_groups, N, (unsigned int) 0, mgpu::plus<unsigned int>(),
             (unsigned int *) NULL, (unsigned int *)NULL, d_seg_offsets,*mgpu_context);
 
         // use IntervalMove to perform a segmented scan of d_scratch_idx,
@@ -233,7 +233,7 @@ void gpu_update_group_table(
             d_pidx_group_table,
             d_pidx_gpos_table,
             pidx_group_table_pitch);
-        } 
+        }
     }
 
 /*

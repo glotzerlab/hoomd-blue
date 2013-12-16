@@ -123,7 +123,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
 
 
     // add a bond and check again
-    sysdef_2->getBondData()->addBond(Bond(0, 0,1));
+    sysdef_2->getBondData()->addBondedGroup(Bond(0, 0,1));
 
     // specify a table to interpolate
     vector<Scalar> V, F;
@@ -230,10 +230,10 @@ void bond_force_type_test(bondforce_creator bf_creator, boost::shared_ptr<Execut
     fc_2->setTable(1, V, F, 0.0, 2.0);
 
     // add a bond
-    sysdef_2->getBondData()->addBond(Bond(0, 0,1));
+    sysdef_2->getBondData()->addBondedGroup(Bond(0, 0,1));
 
     // add a second bond
-    sysdef_2->getBondData()->addBond(Bond(1, 1,2));
+    sysdef_2->getBondData()->addBondedGroup(Bond(1, 1,2));
 
     // compute and check
     fc_2->compute(0);

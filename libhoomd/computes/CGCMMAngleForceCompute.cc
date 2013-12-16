@@ -266,8 +266,8 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints
         unsigned int idx_a = h_rtag.data[angle.tag[0]];
-        unsigned int idx_b = h_rtag.data[angle.tag[0]];
-        unsigned int idx_c = h_rtag.data[angle.tag[0]];
+        unsigned int idx_b = h_rtag.data[angle.tag[1]];
+        unsigned int idx_c = h_rtag.data[angle.tag[2]];
 
         // throw an error if this angle is incomplete
         if (idx_a == NOT_LOCAL|| idx_b == NOT_LOCAL || idx_c == NOT_LOCAL)
@@ -276,7 +276,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
                 angle.tag[0] << " " << angle.tag[1] << " " << angle.tag[2] << " incomplete." << endl << endl;
             throw std::runtime_error("Error in angle calculation");
             }
-        
+
         assert(idx_a < m_pdata->getN()+m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN()+m_pdata->getNGhosts());
         assert(idx_c < m_pdata->getN()+m_pdata->getNGhosts());

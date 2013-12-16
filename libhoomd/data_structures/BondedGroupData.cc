@@ -727,7 +727,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
             ArrayHandle<members_t> d_gpu_table(m_gpu_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_gpu_pos_table(m_gpu_pos_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
-           
+
             // allocate scratch buffers
             const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
             unsigned int tmp_size = m_groups.size()*group_size;
@@ -757,7 +757,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
                 d_offsets.data,
                 d_seg_offsets.data,
                 m_mgpu_context);
-            } 
+            }
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 
         if (flag >= m_next_flag+1)
