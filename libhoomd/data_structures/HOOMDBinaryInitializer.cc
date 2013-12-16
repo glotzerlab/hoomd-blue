@@ -514,7 +514,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&d, sizeof(unsigned int));
 
         ImproperData::members_t improper;
-        improper.tag[0] = a; improper.tag[1] = b; improper.tag[2] = c; improper.tag[3];
+        improper.tag[0] = a; improper.tag[1] = b; improper.tag[2] = c; improper.tag[3] = d;
         m_impropers.push_back(improper);
         m_improper_types.push_back(typ);
         }
