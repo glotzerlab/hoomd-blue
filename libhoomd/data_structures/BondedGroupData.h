@@ -404,6 +404,19 @@ class BondedGroupData : boost::noncopyable
             return m_gpu_table;
             }
 
+        //! Return GPU list of particle in group position
+        const GPUArray<unsigned >& getGPUPosTable()
+            {
+            // rebuild lookup table if necessary
+            if (m_groups_dirty)
+                {
+                rebuildGPUTable();
+                m_groups_dirty = false;
+                }
+
+            return m_gpu_pos_table;
+            }
+ 
         //! Return two-dimensional group-by-ptl-index lookup table
         const Index2D& getGPUTableIndexer()
             {
@@ -478,6 +491,7 @@ class BondedGroupData : boost::noncopyable
         GPUVector<unsigned int> m_group_tag;         //!< List of group tags
         GPUVector<unsigned int> m_group_rtag;        //!< Global reverse-lookup table for group tags
         GPUVector<members_t> m_gpu_table;            //!< Storage for groups by particle index for access on the GPU
+        GPUVector<unsigned int> m_gpu_pos_table;     //!< Position of particle idx in group table
         Index2D m_gpu_table_indexer;                 //!< Indexer for GPU table
         GPUVector<unsigned int> m_n_groups;          //!< Number of entries in lookup table per particle
         std::vector<std::string> m_type_mapping;     //!< Mapping of types of bonded groups

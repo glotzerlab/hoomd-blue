@@ -188,9 +188,12 @@ void BondedGroupData<group_size, Group, name>::initialize()
     GPUVector<unsigned int> group_rtag(m_exec_conf);
     m_group_rtag.swap(group_rtag);
 
-    // Lookup table per particle index
+    // Lookup by particle index table
     GPUVector<members_t> gpu_table(m_exec_conf);
     m_gpu_table.swap(gpu_table);
+
+    GPUVector<unsigned int> gpu_pos_table(m_exec_conf);
+    m_gpu_pos_table.swap(gpu_pos_table);
 
     GPUVector<unsigned int> n_groups(m_exec_conf);
     m_n_groups.swap(n_groups);
@@ -646,10 +649,12 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
         // resize lookup table
         m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), num_groups_max);
         m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
+        m_gpu_pos_table.resize(m_gpu_table_indexer.getNumElements());
 
             {
             ArrayHandle<unsigned int> h_n_groups(m_n_groups, access_location::host, access_mode::overwrite);
             ArrayHandle<members_t> h_gpu_table(m_gpu_table, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_gpu_pos_table(m_gpu_pos_table, access_location::host, access_mode::overwrite);
 
             // now, update the actual table
             // zero the number of bonded groups counter (again)
@@ -672,15 +677,21 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
 
                     // list all group members j!=i in p.idx
                     unsigned int n = 0;
+                    unsigned int gpos = 0;
                     for (unsigned int j = 0; j < group_size; ++j)
                         {
-                        if (j == i) continue;
+                        if (j == i)
+                            {
+                            gpos = j;
+                            continue;
+                            }
                         unsigned int tag2 = g.tag[j];
                         unsigned int idx2 = h_rtag.data[tag2];
                         h.idx[n++] = idx2;
                         }
 
                     h_gpu_table.data[m_gpu_table_indexer(idx1, num)] = h;
+                    h_gpu_pos_table.data[m_gpu_table_indexer(idx1, num)] = gpos;
                     }
                 }
             }
@@ -701,6 +712,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
     // resize GPU table to current number of particles
     m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), m_gpu_table_indexer.getH());
     m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
+    m_gpu_pos_table.resize(m_gpu_table_indexer.getNumElements());
 
     bool done = false;
     while (!done)
@@ -713,13 +725,14 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_n_groups(m_n_groups, access_location::device, access_mode::overwrite);
             ArrayHandle<members_t> d_gpu_table(m_gpu_table, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_gpu_pos_table(m_gpu_pos_table, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_condition(m_condition, access_location::device, access_mode::readwrite);
            
             // allocate scratch buffers
             const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
             unsigned int tmp_size = m_groups.size()*group_size;
             unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
-            ScopedAllocation<members_t> d_scratch_g(alloc, tmp_size);
+            ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_scratch_idx(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_offsets(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_seg_offsets(alloc, nptl);
@@ -737,6 +750,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
                 m_next_flag,
                 flag,
                 d_gpu_table.data,
+                d_gpu_pos_table.data,
                 m_gpu_table_indexer.getW(),
                 d_scratch_g.data,
                 d_scratch_idx.data,
@@ -760,6 +774,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
             // grow array by incrementing groups per particle
             m_gpu_table_indexer = Index2D(m_pdata->getN()+m_pdata->getNGhosts(), m_gpu_table_indexer.getH()+1);
             m_gpu_table.resize(m_gpu_table_indexer.getNumElements());
+            m_gpu_pos_table.resize(m_gpu_table_indexer.getNumElements());
             m_next_flag++;
             }
         else
