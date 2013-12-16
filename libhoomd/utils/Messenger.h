@@ -221,9 +221,15 @@ class Messenger
             {
             // prefix all messages with rank information
             m_rank = rank;
+            m_nranks = 1;
             #ifdef ENABLE_MPI
             bcast(m_notice_level,0,m_mpi_comm);
+
+            // get communicator size
+            int nranks;
             if (m_rank != 0) m_notice_level = 0;
+            MPI_Comm_size(m_mpi_comm, &nranks);
+            m_nranks = nranks;
             #endif
             m_partition = partition;
             }
@@ -248,13 +254,18 @@ class Messenger
             initializeSharedMem();
             }
 
-        //! Tear down messaging using MPI
+        //! Revert to MPI_COMM_WORLD communicator
         void unsetMPICommunicator()
             {
             if (m_shared_filename != "")
                 openStd();
 
             releaseSharedMem();
+
+            m_mpi_comm = MPI_COMM_WORLD;
+
+            // initialize RMA memory for error messages
+            initializeSharedMem();
             }
 #endif
 
@@ -408,6 +419,7 @@ class Messenger
 
         unsigned int m_rank;            //!< The MPI rank (default 0)
         unsigned int m_partition;       //!< The MPI partition
+        unsigned int m_nranks;          //!< Number of ranks in communicator
 
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file

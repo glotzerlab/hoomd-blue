@@ -128,13 +128,15 @@ std::ostream& Messenger::error() const
 
         // we have access to stdout if we are the first process to access the counter
         m_has_lock = m_has_lock || (flag == 1);
-        
+
         // if we do not have exclusive access to stdout, return NULL stream
         if (! m_has_lock) return *m_nullstream;
         }
     #endif
     if (m_err_prefix != string(""))
-        *m_err_stream << m_err_prefix << " RANK " << m_rank << ": ";
+        *m_err_stream << m_err_prefix;
+    if (m_nranks > 1)
+        *m_err_stream << " (Rank " << m_rank << ") ";
     return *m_err_stream;
     }
 
@@ -154,7 +156,9 @@ std::ostream& Messenger::warning() const
     {
     assert(m_warning_stream);
     if (m_warning_prefix != string(""))
-        *m_warning_stream << m_warning_prefix << " RANK " << m_rank << ": ";
+        *m_warning_stream << m_warning_prefix;
+   if (m_nranks > 1)
+        *m_err_stream << " (Rank " << m_rank << ") ";
     return *m_warning_stream;
     }
 
