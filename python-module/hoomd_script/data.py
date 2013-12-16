@@ -1255,13 +1255,13 @@ class dihedral_data:
     # \returns Unique tag identifying this bond
     def add(self, type, a, b, c, d):
         typeid = self.ddata.getTypeByName(type);
-        return self.ddata.addDihedral(hoomd.Dihedral(typeid, a, b, c, d));
+        return self.ddata.addBondedGroup(hoomd.Dihedral(typeid, a, b, c, d));
 
     ## \internal
     # \brief Remove an dihedral by tag
     # \param tag Unique tag of the dihedral to remove
     def remove(self, tag):
-        self.ddata.removeDihedral(tag);
+        self.ddata.removeBondedGroup(tag);
 
     ## \var ddata
     # \internal
@@ -1290,18 +1290,18 @@ class dihedral_data:
             raise IndexError;
 
         # Get the tag of the bond to delete
-        tag = self.ddata.getDihedralTag(id);
-        self.ddata.removeDihedral(tag);
+        tag = self.ddata.getNthTag(id);
+        self.ddata.removeBondedGroup(tag);
 
     ## \internal
     # \brief Get the number of angles
     def __len__(self):
-        return self.ddata.getNumDihedrals();
+        return self.ddata.getNGlobal();
 
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Dihedral Data for %d angles of %d typeid(s)" % (self.ddata.getNumDihedrals(), self.ddata.getNDihedralTypes());
+        result = "Dihedral Data for %d angles of %d typeid(s)" % (self.ddata.getNGlobal(), self.ddata.getNTypes());
         return result;
 
     ## \internal
@@ -1336,7 +1336,7 @@ class dihedral_data_proxy:
     # \param id index of this dihedral in \a ddata (at time of proxy creation)
     def __init__(self, ddata, id):
         self.ddata = ddata;
-        self.tag = self.ddata.getDihedralTag(id);
+        self.tag = self.ddata.getNthTag(id);
 
     ## \internal
     # \brief Get an informal string representing the object
@@ -1355,23 +1355,23 @@ class dihedral_data_proxy:
     # \brief Translate attribute accesses into the low level API function calls
     def __getattr__(self, name):
         if name == "a":
-            bond = self.ddata.getDihedralByTag(self.tag);
-            return bond.a;
+            dihedral = self.ddata.getGroupByTag(self.tag);
+            return dihedral.a;
         if name == "b":
-            bond = self.ddata.getDihedralByTag(self.tag);
-            return bond.b;
+            dihedral = self.ddata.getGroupByTag(self.tag);
+            return dihedral.b;
         if name == "c":
-            bond = self.ddata.getDihedralByTag(self.tag);
-            return bond.c;
+            dihedral = self.ddata.getGroupByTag(self.tag);
+            return dihedral.c;
         if name == "d":
-            bond = self.ddata.getDihedralByTag(self.tag);
-            return bond.d;
+            dihedral = self.ddata.getGroupByTag(self.tag);
+            return dihedral.d;
         if name == "typeid":
-            bond = self.ddata.getDihedralByTag(self.tag);
-            return bond.type;
+            dihedral = self.ddata.getGroupByTag(self.tag);
+            return dihedral.type;
         if name == "type":
-            bond = self.ddata.getDihedralByTag(self.tag);
-            typeid = bond.type;
+            dihedral = self.ddata.getGroupByTag(self.tag);
+            typeid = dihedral.type;
             return self.ddata.getNameByType(typeid);
 
         # if we get here, we haven't found any names that match, post an error

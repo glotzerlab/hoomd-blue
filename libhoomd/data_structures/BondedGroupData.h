@@ -764,64 +764,7 @@ typedef BondedGroupData<4, Dihedral, name_dihedral_data> DihedralData;
  */
 extern char name_improper_data[];
 
-// Definition of an improper
-struct Improper
-    {
-    typedef group_storage<4> members_t;
-
-    //! Constructor
-    /*! \param type Type of improper
-     * \param _a First improper member
-     * \param _b Second improper member
-     */
-    Improper(unsigned int _type, unsigned int _a, unsigned int _b, unsigned int _c, unsigned int _d)
-        : type(_type), a(_a), b(_b), c(_c), d(_d)
-        { }
-
-    //! Constructor that takes a members_t (used internally by ImproperData)
-    /*! \param type
-     *  \param members group members
-     */
-    Improper(unsigned int _type, members_t _members)
-        : type(_type), a(_members.tag[0]), b(_members.tag[1]), c(_members.tag[2]), d(_members.tag[3])
-        { }
-
-    //! This helper function needs to be provided for the templated ImproperData to work correctly
-    members_t get_members() const
-        {
-        members_t m;
-        m.tag[0] = a;
-        m.tag[1] = b;
-        m.tag[2] = c;
-        m.tag[3] = d;
-        return m;
-        }
-
-    //! This helper function needs to be provided for the templated ImproperData to work correctly
-    unsigned int get_type() const
-        {
-        return type;
-        }
-
-    static void export_to_python()
-        {
-        boost::python::class_<Improper>("Improper", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
-            .def_readonly("type", &Improper::type)
-            .def_readonly("a", &Improper::a)
-            .def_readonly("b", &Improper::b)
-            .def_readonly("c", &Improper::c)
-            .def_readonly("d", &Improper::d)
-        ;
-        }
-
-    unsigned int type;  //!< Group type
-    unsigned int a;     //!< First improper member
-    unsigned int b;     //!< Second improper member
-    unsigned int c;     //!< Third improper member
-    unsigned int d;     //!< Fourth improper member
-    };
-
 //! Definition of ImproperData
-typedef BondedGroupData<4, Improper, name_improper_data> ImproperData;
+typedef BondedGroupData<4, Dihedral, name_improper_data> ImproperData;
 
 #endif

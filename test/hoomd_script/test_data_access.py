@@ -212,11 +212,11 @@ class bond_data_access_tests (unittest.TestCase):
         self.assertEqual(0, len(self.s.impropers));
 
         # add some impropers
-        b0 = self.s.impropers.add('dihedralA', 0, 1, 2, 3);
+        b0 = self.s.impropers.add('improperA', 0, 1, 2, 3);
         self.assertEqual(1, len(self.s.impropers));
-        b1 = self.s.impropers.add('dihedralA', 10, 11, 12, 13);
+        b1 = self.s.impropers.add('improperA', 10, 11, 12, 13);
         self.assertEqual(2, len(self.s.impropers));
-        b2 = self.s.impropers.add('dihedralB', 50, 20, 10, 1);
+        b2 = self.s.impropers.add('improperB', 50, 20, 10, 1);
         self.assertEqual(3, len(self.s.impropers));
 
         # check that we can get all bond parameters
@@ -244,7 +244,7 @@ class bond_data_access_tests (unittest.TestCase):
         self.assertEqual(20, self.s.impropers[0].b);
         self.assertEqual(10, self.s.impropers[0].c);
         self.assertEqual(1, self.s.impropers[0].d);
-        self.assertEqual('dihedralB', self.s.impropers[0].type);
+        self.assertEqual('improperB', self.s.impropers[0].type);
 
     def tearDown(self):
         del self.s
