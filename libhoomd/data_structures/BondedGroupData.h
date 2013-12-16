@@ -467,7 +467,7 @@ class BondedGroupData : boost::noncopyable
             \param old_rank Old MPI rank for particle
             \param new_rank New MPI rank
          */
-        void moveParticleBonds(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
+        void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
         #endif
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration for CUDA context
@@ -501,6 +501,11 @@ class BondedGroupData : boost::noncopyable
     private:
         bool m_groups_dirty;                         //!< Is it necessary to rebuild the lookup-by-index table?
         boost::signals2::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+
+        #ifdef ENABLE_MPI
+        boost::signals2::connection m_particle_move_connection;     //!< Connection to single particle move signal from ParticleData
+        #endif
+
         boost::signals2::signal<void ()> m_group_num_change_signal; //!< Signal that is triggered when groups are added or deleted (globally)
 
         //! Initialize internal memory

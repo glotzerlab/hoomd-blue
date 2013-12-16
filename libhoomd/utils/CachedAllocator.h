@@ -138,7 +138,7 @@ class CachedAllocator
         //! Free all allocated blocks
         void free_all() const
             {
-            m_exec_conf->msg->notice(5) << "CachedAlloctor: Cleaning up after ourselves"
+            m_exec_conf->msg->notice(5) << "CachedAllocator: Cleaning up after ourselves"
                 << std::endl;
 
             // deallocate all outstanding blocks in both lists

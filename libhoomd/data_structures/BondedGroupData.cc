@@ -89,6 +89,13 @@ BondedGroupData<group_size, Group, name>::BondedGroupData(
 
     // connect to particle sort signal
     m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name>::setDirty, this));
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_pdata->connectSingleParticleMove(
+            boost::bind(&BondedGroupData<group_size, Group, name>::moveParticleGroups, this, _1, _2, _3));
+        }
+    #endif
 
     // offer a default type mapping
     for (unsigned int i = 0; i < n_group_types; i++)
@@ -142,6 +149,14 @@ BondedGroupData<group_size, Group, name>::BondedGroupData(
 
     // initialize from snapshot
     initializeFromSnapshot(snapshot);
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_pdata->connectSingleParticleMove(
+            boost::bind(&BondedGroupData<group_size, Group, name>::moveParticleGroups, this, _1, _2, _3));
+        }
+    #endif
     }
 
 //! Destructor
@@ -149,6 +164,10 @@ template<unsigned int group_size, typename Group, const char *name>
 BondedGroupData<group_size, Group, name>::~BondedGroupData()
     {
     m_sort_connection.disconnect();
+    #ifdef ENABLE_MPI
+    if (m_particle_move_connection.connected())
+        m_particle_move_connection.disconnect();
+    #endif
     }
 
 template<unsigned int group_size, typename Group, const char *name>
@@ -852,6 +871,113 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
     snapshot.type_mapping = m_type_mapping;
     }
 
+#ifdef ENABLE_MPI
+template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank)
+    {
+    unsigned int my_rank = m_exec_conf->getRank();
+
+    // move groups connected to a particle
+    if (my_rank == old_rank)
+        {
+        std::vector<unsigned int> send_groups;
+
+        // create a list of groups connected to the particle
+        for (unsigned int group_idx = 0; group_idx < m_groups.size(); ++group_idx)
+            {
+            members_t members = m_groups[group_idx];
+            bool send = false;
+            for (unsigned int i = 0; i < group_size; ++i)
+                if (members.tag[i] == tag) send = true;
+            if (send) send_groups.push_back(group_idx);
+            }
+
+        MPI_Status stat;
+        MPI_Request req;
+        unsigned int num = send_groups.size();
+
+        MPI_Isend(&num, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+        MPI_Wait(&req, &stat);
+
+        for (std::vector<unsigned int>::iterator it = send_groups.begin(); it != send_groups.end(); ++it)
+            {
+            // send group properties to other rank
+            unsigned int group_tag = m_group_tag[*it];
+
+            MPI_Isend(&group_tag, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+            MPI_Wait(&req, &stat);
+            members_t members = m_groups[*it];
+            MPI_Isend(&members, sizeof(members_t), MPI_BYTE, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+            MPI_Wait(&req, &stat);
+            unsigned int type = m_group_type[*it];
+            MPI_Isend(&type, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+            MPI_Wait(&req, &stat);
+            }
+        // remove groups that are no longer local
+        for (std::vector<unsigned int>::iterator it = send_groups.begin(); it != send_groups.end(); ++it)
+            {
+            members_t members = m_groups[*it];
+            bool is_local = false;
+            for (unsigned int i = 0; i < group_size; ++i)
+                if (m_pdata->isParticleLocal(members.tag[i])) is_local = true;
+
+            if (!is_local)
+                {
+                unsigned int tag = m_group_tag[*it];
+                m_group_rtag[tag] = GROUP_NOT_LOCAL;
+
+                m_groups.erase(*it);
+                m_group_type.erase(*it);
+                m_group_ranks.erase(*it);
+                m_group_tag.erase(*it);
+                }
+            }
+        }
+    else if (my_rank == new_rank)
+        {
+        MPI_Status stat;
+        MPI_Request req;
+
+        // receive number of groups
+        unsigned int num;
+        MPI_Irecv(&num, 1, MPI_UNSIGNED, old_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+        MPI_Wait(&req, &stat);
+
+        for (unsigned int i =0; i < num; ++i)
+            {
+            unsigned int tag;
+            MPI_Irecv(&tag, 1, MPI_UNSIGNED, old_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+            MPI_Wait(&req, &stat);
+             
+            members_t members;
+            MPI_Irecv(&members, sizeof(members_t), MPI_BYTE, old_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+            MPI_Wait(&req, &stat);
+
+            unsigned int type;
+            MPI_Irecv(&type, 1, MPI_UNSIGNED, old_rank, 0, m_exec_conf->getMPICommunicator(), &req);
+            MPI_Wait(&req, &stat);
+
+            bool is_local = m_group_rtag[tag] != NOT_LOCAL;
+           
+            // if not already local
+            if (! is_local)
+                {
+                // append to end of group data
+                unsigned int n = m_groups.size();
+                m_group_tag.push_back(tag);
+                m_groups.push_back(members);
+                m_group_type.push_back(type);
+                m_group_rtag[tag] = n;
+                }
+            } 
+        }
+
+    // notify observers
+    m_group_num_change_signal();
+    m_groups_dirty = true;
+    }
+
+#endif
 template<class T, typename Group>
 void export_BondedGroupData(std::string name, std::string snapshot_name)
     {

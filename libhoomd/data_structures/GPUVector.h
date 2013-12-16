@@ -62,6 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __GPUVECTOR_H__
 
 #include "GPUArray.h"
+#include <algorithm>
 
 // The factor with which the array size is incremented
 #define RESIZE_FACTOR 9.f/8.f
@@ -140,6 +141,9 @@ template<class T> class GPUVector : public GPUArray<T>
         //! Remove an element from the end of the list
         virtual void pop_back();
 
+        //! Remove an element by index
+        virtual void erase(unsigned int i);
+ 
         //! Clear the list
         virtual void clear();
 
@@ -330,6 +334,26 @@ template<class T> void GPUVector<T>::pop_back()
     {
     assert(m_size);
     m_size--;
+    }
+
+//! Remove an element in the middle
+template<class T> void GPUVector<T>::erase(unsigned int i)
+    {
+    assert(i < m_size);
+    m_size --;
+    T *data = acquireHost(access_mode::readwrite);
+    T *res = data;
+    for (unsigned int n = 0; n < m_size; ++n)
+        {
+        if (n != i)
+            *res = *data;
+        else
+            data++;
+
+        data++;
+        res++;
+        }
+    GPUArray<T>::release();
     }
 
 //! Clear the list

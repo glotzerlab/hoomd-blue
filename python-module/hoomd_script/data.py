@@ -689,7 +689,7 @@ class particle_data_proxy:
             v.x = float(value[0]);
             v.y = float(value[1]);
             v.z = float(value[2]);
-            self.pdata.setPosition(self.tag, v);
+            self.pdata.setPosition(self.tag, v, True);
             return;
         if name == "velocity":
             v = hoomd.Scalar3();
