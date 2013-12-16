@@ -1,6 +1,6 @@
 //! name the boost unit test module
 #define BOOST_TEST_MODULE NVTUpdaterTestsMPI
-#include "MPITestSetup.h"
+#include "boost_utf_configure.h"
 
 #include "HOOMDMath.h"
 #include "ExecutionConfiguration.h"

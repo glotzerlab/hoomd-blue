@@ -50,7 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 
-#include "boost_utf_configure.h"
 #include "ExecutionConfiguration.h"
 
 //! Enable CUDA MPI if using MVAPICH2
@@ -74,23 +73,11 @@ struct MPISetup
         char **argv = boost::unit_test::framework::master_test_suite().argv;
 
         MPI_Init(&argc, &argv);
-
-#ifdef ENABLE_CUDA
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU, -1, false, false, boost::shared_ptr<Messenger>()));
-#endif
-        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU, -1, false, false, boost::shared_ptr<Messenger>()));
-
-
-#ifdef ENABLE_CUDA
-        exec_conf_gpu->setCUDAErrorChecking(true);
-#endif
         }
 
     //! Cleanup
     ~MPISetup()
         {
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>();
-        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>();
         MPI_Finalize();
         }
 

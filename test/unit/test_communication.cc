@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BOOST_TEST_MODULE CommunicationTests
 
 // this has to be included after naming the test module
-#include "MPITestSetup.h"
+#include "boost_utf_configure.h"
 
 #include "System.h"
 

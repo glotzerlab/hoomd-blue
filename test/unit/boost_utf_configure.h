@@ -74,6 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 
+
 #include <boost/version.hpp>
 #if (BOOST_VERSION >= 103400)
 #include <boost/test/unit_test.hpp>
@@ -113,3 +114,6 @@ const Scalar tol = Scalar(1e-2);
 
 //! Loose tolerance to be used with randomly generated and unpredictable comparisons
 Scalar loose_tol = Scalar(10);
+
+// helper functions to set up MPI environment
+#include "MPITestSetup.h"

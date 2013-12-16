@@ -235,6 +235,9 @@ class Messenger
          */
         void setMPICommunicator(const MPI_Comm mpi_comm)
             {
+            // clean up data associated with old communicator
+            releaseSharedMem();
+
             m_mpi_comm = mpi_comm;
 
             // open shared log file if necessary

@@ -87,6 +87,7 @@ Messenger::Messenger()
 #ifdef ENABLE_MPI
     // initial value
     m_mpi_comm = MPI_COMM_WORLD;
+    initializeSharedMem();
     m_shared_filename = "";
     m_error_flag = 0;
     m_has_lock = false;

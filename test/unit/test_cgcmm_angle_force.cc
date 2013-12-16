@@ -119,7 +119,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     }
 
     // add an angle and check again
-    sysdef_3->getAngleData()->addAngle(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
+    sysdef_3->getAngleData()->addBondedGroup(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
     fc_3->compute(1);
 
     {
@@ -198,8 +198,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     fc_6->setParams(0, 1.0, 0.785398, 1, 1.0, 2.0);
     fc_6->setParams(1, 2.0, 1.46, 2, 1.0, 2.0);
 
-    sysdef_6->getAngleData()->addAngle(Angle(0, 0,1,2));
-    sysdef_6->getAngleData()->addAngle(Angle(1, 3,4,5));
+    sysdef_6->getAngleData()->addBondedGroup(Angle(0, 0,1,2));
+    sysdef_6->getAngleData()->addBondedGroup(Angle(1, 3,4,5));
 
     fc_6->compute(0);
 
@@ -296,9 +296,9 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     fc_4->setParams(1, 12.3, 0.21112, 2, 1.0, 0.45);
     fc_4->setParams(2, 22.0, 0.3772, 3, 1.0, 0.65);
     // only add angles on the left, top, and bottom of the square
-    sysdef_4->getAngleData()->addAngle(Angle(0, 0,1,2));
-    sysdef_4->getAngleData()->addAngle(Angle(1, 1,2,3));
-    sysdef_4->getAngleData()->addAngle(Angle(0, 0,1,3));
+    sysdef_4->getAngleData()->addBondedGroup(Angle(0, 0,1,2));
+    sysdef_4->getAngleData()->addBondedGroup(Angle(1, 1,2,3));
+    sysdef_4->getAngleData()->addBondedGroup(Angle(0, 0,1,3));
 
     fc_4->compute(0);
 
@@ -368,7 +368,7 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
     // add angles
     for (unsigned int i = 0; i < N-2; i++)
         {
-        sysdef->getAngleData()->addAngle(Angle(0, i, i+1,i+2));
+        sysdef->getAngleData()->addBondedGroup(Angle(0, i, i+1,i+2));
         }
 
     // compute the forces
