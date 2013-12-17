@@ -238,7 +238,7 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
 
 #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
-    if (m_comm && !m_exec_conf->isRoot())
+    if (m_pdata->getDomainDecomposition() && !m_exec_conf->isRoot())
         {
         return;
         }
