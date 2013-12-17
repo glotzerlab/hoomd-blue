@@ -1024,6 +1024,12 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
                 m_group_tag.push_back(tag);
                 m_groups.push_back(members);
                 m_group_type.push_back(type);
+                ranks_t r;
+                for (unsigned int j = 0; j < group_size; j++)
+                    // initialize to zero
+                    r.idx[j] = 0;
+
+                m_group_ranks.push_back(r);
                 m_group_rtag[tag] = n;
                 }
             }
