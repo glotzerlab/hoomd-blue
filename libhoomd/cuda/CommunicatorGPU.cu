@@ -489,7 +489,11 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
 
     // determine output size
     unsigned int total = 0;
-    if (N) mgpu::ScanExc(d_counts, N, &total, *mgpu_context);
+    if (N)
+        mgpu::ScanExc(d_counts, N, &total, *mgpu_context);
+    else
+        total = 0;
+
     return total;
     }
 
@@ -615,6 +619,8 @@ void gpu_exchange_ghosts_make_indices(
      * expand each tag by the number of neighbors to send the corresponding ptl to
      * and assign each copy to a different neighbor
      */
+
+    if (N == 0) return;
 
     // allocate temporary array
     gpu_expand_neighbors(n_out,

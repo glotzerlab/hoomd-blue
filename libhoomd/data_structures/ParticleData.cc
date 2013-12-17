@@ -772,7 +772,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                     k = 0;
                     flags.z = 1;
                     }
-                
+
                 int3 img = snapshot.image[tag];
 
                 // only wrap if the particles is on one of the boundaries
@@ -863,13 +863,12 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 h_rtag.data[tag] = NOT_LOCAL;
             }
 
-        // allocate particle data such that we can accomodate the particles
-        allocate(m_nparticles);
-
         // we have to allocate even if the number of particles on a processor
         // is zero, so that the arrays can be resized later
-        if (m_nparticles == 0 && m_max_nparticles == 0)
+        if (m_nparticles == 0)
             allocate(1);
+        else
+            allocate(m_nparticles);
 
         // Load particle data
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
