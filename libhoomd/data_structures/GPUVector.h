@@ -340,19 +340,18 @@ template<class T> void GPUVector<T>::pop_back()
 template<class T> void GPUVector<T>::erase(unsigned int i)
     {
     assert(i < m_size);
-    m_size --;
     T *data = acquireHost(access_mode::readwrite);
     T *res = data;
     for (unsigned int n = 0; n < m_size; ++n)
         {
         if (n != i)
+            {
             *res = *data;
-        else
-            data++;
-
+            res++;
+            }
         data++;
-        res++;
         }
+    m_size--;
     GPUArray<T>::release();
     }
 

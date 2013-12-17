@@ -267,6 +267,7 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar
 
     // synchronize with rank zero
     bcast(rank, 0, m_exec_conf->getMPICommunicator());
+    return rank;
     }
 
 
