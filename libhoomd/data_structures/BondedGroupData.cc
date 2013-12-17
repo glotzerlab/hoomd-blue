@@ -663,8 +663,12 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
                     if (idx == NOT_LOCAL)
                         {
                         // incomplete group
-                        m_exec_conf->msg->error() << name << ".*: Group "
-                            << m_group_tag[cur_group] << " incomplete." << std::endl << std::endl;
+                        std::ostringstream oss;
+                        oss << name << ".*: " << name << " ";
+                        for (unsigned int k = 0; k < group_size; ++k)
+                            oss << g.tag[k] << ((k != group_size - 1) ? "," : "");
+                        oss << " incomplete!" << std::endl;
+                        m_exec_conf->msg->error() << oss.str();
                         throw std::runtime_error("Error building GPU group table.");
                         }
 
@@ -796,8 +800,14 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
             {
             // incomplete group detected
             unsigned int group_idx = flag - m_next_flag - 1;
-            m_exec_conf->msg->error() << name << ".*: Group " << m_group_tag[group_idx] << " incomplete."
-                << std::endl << std::endl;
+            members_t g = m_groups[group_idx];
+
+            std::ostringstream oss;
+            oss << name << ".*: " << name << " ";
+            for (unsigned int k = 0; k < group_size; ++k)
+                oss << g.tag[k] << ((k != group_size - 1) ? "," : "");
+            oss << " incomplete!" << std::endl;
+            m_exec_conf->msg->error() << oss.str();
             throw std::runtime_error("Error building GPU group table.");
             }
 
