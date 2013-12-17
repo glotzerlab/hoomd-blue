@@ -1540,7 +1540,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                     {
                     // mark for sending
                     ArrayHandle<unsigned int> h_comm_flag(getCommFlags(), access_location::host, access_mode::readwrite);
-                    h_comm_flag.data[tag] = 1;
+                    h_comm_flag.data[idx] = 1;
                     }
 
                 std::vector<pdata_element> buf;
