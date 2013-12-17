@@ -263,7 +263,10 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar
     unsigned iz = f.z*m_nz;
     if (iz == m_nz) iz = 0;
 
-    return m_index(ix, iy, iz);
+    unsigned int rank = m_index(ix, iy, iz);
+
+    // synchronize with rank zero
+    bcast(rank, 0, m_exec_conf->getMPICommunicator());
     }
 
 
