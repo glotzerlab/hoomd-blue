@@ -1026,10 +1026,11 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
 
 #endif
 template<class T, typename Group>
-void export_BondedGroupData(std::string name, std::string snapshot_name)
+void export_BondedGroupData(std::string name, std::string snapshot_name, bool export_struct)
     {
     // export group structure
-    Group::export_to_python();
+    if (export_struct)
+        Group::export_to_python();
 
     scope outer = class_<T, boost::shared_ptr<T> , boost::noncopyable>(name.c_str(),
         init<boost::shared_ptr<ParticleData>, unsigned int>())
@@ -1059,13 +1060,13 @@ void export_BondedGroupData(std::string name, std::string snapshot_name)
 
 //! Explicit template instantiations
 template class BondedGroupData<2, Bond, name_bond_data>;
-template void export_BondedGroupData<BondData,Bond>(std::string name,std::string snapshot_name);
+template void export_BondedGroupData<BondData,Bond>(std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<3, Angle, name_angle_data>;
-template void export_BondedGroupData<AngleData,Angle>(std::string name,std::string snapshot_name);
+template void export_BondedGroupData<AngleData,Angle>(std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<4, Dihedral, name_dihedral_data>;
-template void export_BondedGroupData<DihedralData,Dihedral>(std::string name,std::string snapshot_name);
+template void export_BondedGroupData<DihedralData,Dihedral>(std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<4, Dihedral, name_improper_data>;
-template void export_BondedGroupData<ImproperData,Dihedral>(std::string name,std::string snapshot_name);
+template void export_BondedGroupData<ImproperData,Dihedral>(std::string name,std::string snapshot_name, bool export_struct);

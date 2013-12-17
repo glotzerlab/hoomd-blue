@@ -564,7 +564,7 @@ class BondedGroupData : boost::noncopyable
 
 //! Exports BondData to python
 template<class T, class Group>
-void export_BondedGroupData(std::string name, std::string snapshot_name);
+void export_BondedGroupData(std::string name, std::string snapshot_name, bool export_struct=true);
 
 /*!
  * Typedefs for template instantiations

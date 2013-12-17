@@ -1149,7 +1149,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
             my_pos,
             mask);
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }  
+        }
     }
 
 //! Transfer particles between neighboring domains
