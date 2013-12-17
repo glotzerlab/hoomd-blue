@@ -946,7 +946,8 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
             bool send = false;
             for (unsigned int i = 0; i < group_size; ++i)
                 if (members.tag[i] == tag) send = true;
-            if (send) send_groups.push_back(group_idx);
+            unsigned int group_tag = m_group_tag[group_idx];
+            if (send) send_groups.push_back(group_tag);
             }
 
         MPI_Status stat;
@@ -959,34 +960,43 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
         for (std::vector<unsigned int>::iterator it = send_groups.begin(); it != send_groups.end(); ++it)
             {
             // send group properties to other rank
-            unsigned int group_tag = m_group_tag[*it];
+            unsigned int group_tag = *it;
+            unsigned int group_idx = m_group_rtag[*it];
+            assert(group_idx != GROUP_NOT_LOCAL);
 
             MPI_Isend(&group_tag, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
             MPI_Wait(&req, &stat);
-            members_t members = m_groups[*it];
+            members_t members = m_groups[group_idx];
             MPI_Isend(&members, sizeof(members_t), MPI_BYTE, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
             MPI_Wait(&req, &stat);
-            unsigned int type = m_group_type[*it];
+            unsigned int type = m_group_type[group_idx];
             MPI_Isend(&type, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
             MPI_Wait(&req, &stat);
             }
         // remove groups that are no longer local
         for (std::vector<unsigned int>::iterator it = send_groups.begin(); it != send_groups.end(); ++it)
             {
-            members_t members = m_groups[*it];
+            unsigned int group_tag = *it;
+            unsigned int group_idx = m_group_rtag[group_tag];
+            members_t members = m_groups[group_idx];
             bool is_local = false;
             for (unsigned int i = 0; i < group_size; ++i)
                 if (m_pdata->isParticleLocal(members.tag[i])) is_local = true;
 
             if (!is_local)
                 {
-                unsigned int tag = m_group_tag[*it];
-                m_group_rtag[tag] = GROUP_NOT_LOCAL;
+                m_group_rtag[group_tag] = GROUP_NOT_LOCAL;
 
-                m_groups.erase(*it);
-                m_group_type.erase(*it);
-                m_group_ranks.erase(*it);
-                m_group_tag.erase(*it);
+                m_groups.erase(group_idx);
+                m_group_type.erase(group_idx);
+                m_group_ranks.erase(group_idx);
+                m_group_tag.erase(group_idx);
+
+                // reindex rtags
+                ArrayHandle<unsigned int> h_group_rtag(m_group_rtag, access_location::host, access_mode::readwrite);
+                ArrayHandle<unsigned int> h_group_tag(m_group_tag, access_location::host, access_mode::read);
+                for (unsigned int i = 0; i < m_groups.size(); ++i)
+                    h_group_rtag.data[h_group_tag.data[i]] = i;
                 }
             }
         }
