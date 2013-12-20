@@ -489,10 +489,7 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
 
     // determine output size
     unsigned int total = 0;
-    if (N)
-        mgpu::ScanExc(d_counts, N, &total, *mgpu_context);
-    else
-        total = 0;
+    if (N) mgpu::ScanExc(d_counts, N, &total, *mgpu_context);
 
     return total;
     }
@@ -620,23 +617,29 @@ void gpu_exchange_ghosts_make_indices(
      * and assign each copy to a different neighbor
      */
 
-    if (N == 0) return;
+    if (n_out)
+        {
+        // allocate temporary array
+        gpu_expand_neighbors(n_out,
+            d_counts,
+            d_tag, d_ghost_plan, N, d_ghost_idx,
+            d_unique_neighbors, d_adj, n_unique_neigh,
+            d_ghost_neigh,
+            *mgpu_context);
 
-    // allocate temporary array
-    gpu_expand_neighbors(n_out,
-        d_counts,
-        d_tag, d_ghost_plan, N, d_ghost_idx,
-        d_unique_neighbors, d_adj, n_unique_neigh,
-        d_ghost_neigh,
-        *mgpu_context);
+        // sort tags by neighbors
+        mgpu::LocalitySortPairs(d_ghost_neigh, d_ghost_idx, n_out, *mgpu_context);
 
-    // sort tags by neighbors
-    if (n_out) mgpu::LocalitySortPairs(d_ghost_neigh, d_ghost_idx, n_out, *mgpu_context);
-
-    mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_unique_neighbors, n_unique_neigh,
-        d_ghost_neigh, n_out, d_ghost_begin, *mgpu_context);
-    mgpu::SortedSearch<mgpu::MgpuBoundsUpper>(d_unique_neighbors, n_unique_neigh,
-        d_ghost_neigh, n_out, d_ghost_end, *mgpu_context);
+        mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_unique_neighbors, n_unique_neigh,
+            d_ghost_neigh, n_out, d_ghost_begin, *mgpu_context);
+        mgpu::SortedSearch<mgpu::MgpuBoundsUpper>(d_unique_neighbors, n_unique_neigh,
+            d_ghost_neigh, n_out, d_ghost_end, *mgpu_context);
+        }
+    else
+        {
+        cudaMemset(d_ghost_begin, 0, sizeof(unsigned int)*n_unique_neigh);
+        cudaMemset(d_ghost_end, 0, sizeof(unsigned int)*n_unique_neigh);
+        }
     }
 
 template<typename T>

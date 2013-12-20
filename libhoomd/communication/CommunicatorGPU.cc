@@ -271,7 +271,7 @@ void CommunicatorGPU::initializeNeighborArrays()
                 else if (k < 0)
                     k += di.getD();
 
-                // only if communicating along y-direction
+                // only if communicating along z-direction
                 if (iz && di.getD() == 1) continue;
 
                 // exclude ourselves

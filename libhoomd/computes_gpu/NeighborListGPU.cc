@@ -288,6 +288,7 @@ void NeighborListGPU::filterNlist()
                      m_ex_list_indexer,
                      m_pdata->getN(),
                      m_block_size_filter);
+    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 
     if (m_prof)
         m_prof->pop(exec_conf);

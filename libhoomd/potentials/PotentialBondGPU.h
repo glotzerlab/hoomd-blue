@@ -170,7 +170,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                              d_virial.data,
                              this->m_virial.getPitch(),
                              this->m_pdata->getN(),
-                             this->m_pdata->getNGhosts(),
+                             this->m_pdata->getMaxN(),
                              d_pos.data,
                              d_charge.data,
                              d_diameter.data,

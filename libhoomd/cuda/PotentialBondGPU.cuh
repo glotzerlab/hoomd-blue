@@ -78,7 +78,7 @@ struct bond_args_t
               Scalar *_d_virial,
               const unsigned int _virial_pitch,
               const unsigned int _N,
-              const unsigned int _n_ghost,
+              const unsigned int _n_max,
               const Scalar4 *_d_pos,
               const Scalar *_d_charge,
               const Scalar *_d_diameter,
@@ -92,7 +92,7 @@ struct bond_args_t
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
                   N(_N),
-                  n_ghost(_n_ghost),
+                  n_max(_n_max),
                   d_pos(_d_pos),
                   d_charge(_d_charge),
                   d_diameter(_d_diameter),
@@ -109,7 +109,7 @@ struct bond_args_t
     Scalar *d_virial;                   //!< Virial to write out
     const unsigned int virial_pitch;   //!< pitch of 2D array of virial matrix elements
     unsigned int N;                    //!< number of particles
-    unsigned int n_ghost;              //!< number of ghost particles
+    unsigned int n_max;                //!< Size of local pdata arrays
     const Scalar4 *d_pos;              //!< particle positions
     const Scalar *d_charge;            //!< particle charges
     const Scalar *d_diameter;          //!< particle diameters
@@ -295,6 +295,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         d_virial[i*virial_pitch + idx] = virial[i];
     }
 
+#include <iostream>
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param bond_args Other arugments to pass onto the kernel
     \param d_params Parameters for the potential, stored per bond type
@@ -321,20 +322,20 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     // bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, bond_args.d_pos, sizeof(Scalar4)*(bond_args.N+bond_args.n_ghost));
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, bond_args.d_pos, sizeof(Scalar4)*(bond_args.n_max));
     if (error != cudaSuccess)
         return error;
 
     // bind the diamter texture
     pdata_diam_tex.normalized = false;
     pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.N+bond_args.n_ghost));
+    error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.n_max));
     if (error != cudaSuccess)
         return error;
 
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_charge_tex, bond_args.d_charge, sizeof(Scalar) * (bond_args.N+bond_args.n_ghost));
+    error = cudaBindTexture(0, pdata_charge_tex, bond_args.d_charge, sizeof(Scalar) * (bond_args.n_max));
     if (error != cudaSuccess)
         return error;
 
