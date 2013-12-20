@@ -217,7 +217,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const Scalar3& ghost_width)
     {
     unsigned int block_size = 256;
-    int n_blocks = (int)ceil(double(N+n_ghost)/double(block_size));
+    int n_blocks = (N+n_ghost)/block_size + 1;
 
     cudaError_t err;
     err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());
@@ -610,7 +610,7 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const Scalar3& ghost_width)
     {
     const unsigned int block_size = 64;
-    int n_blocks = (int)ceil(double(N+n_ghost)/(double)block_size);
+    int n_blocks = (N+n_ghost)/block_size + 1;
 
     cudaError_t err;
     err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());

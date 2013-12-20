@@ -202,8 +202,6 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
 void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];

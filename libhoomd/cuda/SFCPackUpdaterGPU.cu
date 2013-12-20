@@ -119,7 +119,7 @@ void gpu_generate_sorted_order(unsigned int N,
     {
     // maybe need to autotune, but SFCPackUpdater is called infrequently
     unsigned int block_size = 512;
-    unsigned int n_blocks = (N % block_size) ? N/block_size + 1 : N/block_size;
+    unsigned int n_blocks = N/block_size + 1;
 
     if (twod)
         gpu_sfc_bin_particles_kernel<true><<<n_blocks, block_size>>>(N, d_pos, d_particle_bins, d_traversal_order, n_grid, d_sorted_order, box);
@@ -127,7 +127,8 @@ void gpu_generate_sorted_order(unsigned int N,
         gpu_sfc_bin_particles_kernel<false><<<n_blocks, block_size>>>(N, d_pos, d_particle_bins, d_traversal_order, n_grid, d_sorted_order, box);
 
     // Sort particles
-    mgpu::MergesortPairs(d_particle_bins, d_sorted_order, N, *mgpu_context);
+    if (N)
+        mgpu::MergesortPairs(d_particle_bins, d_sorted_order, N, *mgpu_context);
     }
 
 //! Kernel to apply sorted order
@@ -216,7 +217,7 @@ void gpu_apply_sorted_order(
         )
     {
     unsigned int block_size = 512;
-    unsigned int n_blocks = (N % block_size) ? N/block_size + 1 : N/block_size;
+    unsigned int n_blocks = N/block_size + 1;
 
     gpu_apply_sorted_order_kernel<<<n_blocks, block_size>>>(N,
         d_sorted_order,
