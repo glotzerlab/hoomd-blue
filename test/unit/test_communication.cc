@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 
+#include "ExecutionConfiguration.h"
 #include "Communicator.h"
 #include "DomainDecomposition.h"
 
@@ -2561,19 +2562,19 @@ shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> s
 //! Tests particle distribution
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
     {
-    test_domain_decomposition(exec_conf_cpu);
+    test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_migrate(communicator_creator_base, exec_conf_cpu);
+    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_ghosts(communicator_creator_base, exec_conf_cpu);
+    test_communicator_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #if 0
@@ -2593,7 +2594,7 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_ghost_fields(communicator_creator_base, exec_conf_cpu);
+    test_communicator_ghost_fields(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 
@@ -2602,42 +2603,43 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
 //! Tests particle distribution on GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
     {
-    test_domain_decomposition(exec_conf_gpu);
+    test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_ghosts(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_ghosts(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
+
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_bonded_ghosts(communicator_creator_gpu,  boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_bond_exchange(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_bond_exchange(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_ghost_fields(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_ghost_fields(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE (communicator_compare_test )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     communicator_creator communicator_creator_cpu = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_cpu, exec_conf_gpu);
+    test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 

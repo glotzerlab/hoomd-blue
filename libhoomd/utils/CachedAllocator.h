@@ -115,7 +115,7 @@ class CachedAllocator
 
             // erase the allocated block from the allocated blocks map
             allocated_blocks_type::iterator iter = m_allocated_blocks.find(ptr);
-            assert(iter != allocated_blocks.end());
+            assert(iter != m_allocated_blocks.end());
             std::ptrdiff_t num_bytes = iter->second;
             m_allocated_blocks.erase(iter);
 

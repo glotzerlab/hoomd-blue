@@ -565,6 +565,10 @@ void BondedGroupData<group_size, Group, name>::removeBondedGroup(unsigned int ta
             {
             m_groups[id] = (members_t) m_groups[size-1];
             m_group_type[id] = (unsigned int) m_group_type[size-1];
+            #ifdef ENABLE_MPI
+            if (m_pdata->getDomainDecomposition())
+                m_group_ranks[id] = (ranks_t) m_group_ranks[size-1];
+            #endif
             unsigned int last_tag = m_group_tag[size-1];
             m_group_rtag[last_tag] = id;
             m_group_tag[id] = last_tag;
@@ -666,8 +670,8 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
                         std::ostringstream oss;
                         oss << name << ".*: " << name << " ";
                         for (unsigned int k = 0; k < group_size; ++k)
-                            oss << g.tag[k] << ((k != group_size - 1) ? "," : "");
-                        oss << " incomplete!" << std::endl;
+                            oss << g.tag[k] << ((k != group_size - 1) ? ", " : " ");
+                        oss << "incomplete!" << std::endl;
                         m_exec_conf->msg->error() << oss.str();
                         throw std::runtime_error("Error building GPU group table.");
                         }
@@ -805,7 +809,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
             std::ostringstream oss;
             oss << name << ".*: " << name << " ";
             for (unsigned int k = 0; k < group_size; ++k)
-                oss << g.tag[k] << ((k != group_size - 1) ? "," : "");
+                oss << g.tag[k] << ((k != group_size - 1) ? ", " : " ");
             oss << " incomplete!" << std::endl;
             m_exec_conf->msg->error() << oss.str();
             throw std::runtime_error("Error building GPU group table.");
@@ -961,7 +965,7 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
             {
             // send group properties to other rank
             unsigned int group_tag = *it;
-            unsigned int group_idx = m_group_rtag[*it];
+            unsigned int group_idx = m_group_rtag[group_tag];
             assert(group_idx != GROUP_NOT_LOCAL);
 
             MPI_Isend(&group_tag, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);

@@ -410,7 +410,7 @@ class BondedGroupData : boost::noncopyable
             }
         #endif
 
-        /* 
+        /*
          * GPU group table
          */
 
@@ -439,7 +439,7 @@ class BondedGroupData : boost::noncopyable
 
             return m_gpu_pos_table;
             }
- 
+
         //! Return two-dimensional group-by-ptl-index lookup table
         const Index2D& getGPUTableIndexer()
             {

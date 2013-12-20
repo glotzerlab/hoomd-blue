@@ -161,10 +161,11 @@ class CommunicatorGPU : public Communicator
                 GPUVector<unsigned int> m_scan;                         //!< Temporary array for exclusive scan of group membership information
 
                 GPUVector<rank_element_t> m_ranks_out;                  //!< Packed ranks data
-                GPUVector<rank_element_t> m_ranks_sendbuf;              //!< Send buffer for ranks information 
+                GPUVector<rank_element_t> m_ranks_sendbuf;              //!< Send buffer for ranks information
                 GPUVector<rank_element_t> m_ranks_recvbuf;              //!< Recv buffer for ranks information
 
                 GPUVector<group_element_t> m_groups_out;                //!< Packed group data
+                GPUVector<unsigned int> m_rank_mask_out;                //!< Output buffer for rank update bitfields
                 GPUVector<group_element_t> m_groups_sendbuf;            //!< Send buffer for groups
                 GPUVector<group_element_t> m_groups_recvbuf;            //!< Recv buffer for groups
                 GPUVector<group_element_t> m_groups_in;                 //!< Input buffer of unique groups

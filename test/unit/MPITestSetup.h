@@ -50,18 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 
-#include "ExecutionConfiguration.h"
+#include <mpi.h>
 
 //! Enable CUDA MPI if using MVAPICH2
 char env_str[] = "MV2_USE_CUDA=1";
-
-#ifdef ENABLE_CUDA
-//! Excution Configuration for GPU
-boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
-#endif
-
-//! Execution configuration on the CPU
-boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
 
 //! Fixture to setup and tear down MPI
 struct MPISetup

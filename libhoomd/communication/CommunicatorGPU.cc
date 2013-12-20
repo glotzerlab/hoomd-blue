@@ -499,6 +499,9 @@ CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(Communic
     GPUVector<group_element_t> groups_out(m_gpu_comm.m_exec_conf,mapped);
     m_groups_out.swap(groups_out);
 
+    GPUVector<unsigned int> rank_mask_out(m_gpu_comm.m_exec_conf,mapped);
+    m_rank_mask_out.swap(rank_mask_out);
+
     GPUVector<group_element_t> groups_sendbuf(m_gpu_comm.m_exec_conf,mapped);
     m_groups_sendbuf.swap(groups_sendbuf);
 
@@ -526,7 +529,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         // resize temporary arry
         m_scan.resize(m_gdata->getN());
 
-        unsigned int n_out;
+        unsigned int n_out_ranks;
             {
             ArrayHandle<unsigned int> d_comm_flags(m_gpu_comm.m_pdata->getCommFlags(), access_location::device, access_mode::read);
             ArrayHandle<typename group_data::members_t> d_members(m_gdata->getMembersArray(), access_location::device, access_mode::read);
@@ -548,7 +551,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 d_rank_mask.data,
                 d_rtag.data,
                 d_scan.data,
-                n_out,
+                n_out_ranks,
                 di,
                 my_pos,
                 incomplete,
@@ -558,25 +561,35 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             }
 
         // resize output array
-        m_ranks_out.resize(n_out);
+        m_ranks_out.resize(n_out_ranks);
 
+        unsigned int n_out_groups;
             {
             ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::members_t> d_members(m_gdata->getMembersArray(), access_location::device, access_mode::read);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::readwrite);
+
+            ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_comm_flags(m_gpu_comm.m_pdata->getCommFlags(), access_location::device, access_mode::readwrite);
 
             ArrayHandle<rank_element_t> d_ranks_out(m_ranks_out, access_location::device, access_mode::overwrite);
 
-            ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::readwrite);
 
-            // scatter groups into output arrays according to scan result (d_scan)
-            gpu_scatter_ranks(
+            // scatter groups into output arrays according to scan result (d_scan), determine send groups and scan
+            gpu_scatter_ranks_and_mark_send_groups<group_data::size>(
                 m_gdata->getN(),
                 d_group_tag.data,
                 d_group_ranks.data,
                 d_rank_mask.data,
+                d_members.data,
+                d_rtag.data,
+                d_comm_flags.data,
                 d_scan.data,
-                d_ranks_out.data);
+                n_out_groups,
+                d_ranks_out.data,
+                m_gpu_comm.m_mgpu_context);
 
             if (m_gpu_comm.m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
@@ -594,7 +607,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<rank_element_t> h_ranks_out(m_ranks_out, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_unique_neighbors(m_gpu_comm.m_unique_neighbors, access_location:: host, access_mode::read);
 
-            for (unsigned int i = 0; i < n_out; ++i)
+            for (unsigned int i = 0; i < n_out_ranks; ++i)
                 {
                 rank_element_t el = h_ranks_out.data[i];
                 typename group_data::ranks_t r = el.ranks;
@@ -768,7 +781,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             {
             // access receive buffers
             ArrayHandle<rank_element_t> d_ranks_recvbuf(m_ranks_recvbuf, access_location::device, access_mode::read);
-            ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
+            ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
 
             // update local rank information
@@ -782,7 +795,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             }
 
         // resize output buffer
-        m_groups_out.resize(n_out);
+        m_groups_out.resize(n_out_groups);
+        m_rank_mask_out.resize(n_out_groups);
 
             {
             ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
@@ -790,9 +804,12 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<unsigned int> d_group_tag(m_gdata->getTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_rank_mask(m_rank_mask, access_location::device, access_mode::readwrite);
             ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::readwrite);
             ArrayHandle<group_element_t> d_groups_out(m_groups_out, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_rank_mask_out(m_rank_mask_out, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_comm_flags(m_gpu_comm.m_pdata->getCommFlags(), access_location::device, access_mode::read);
 
             // scatter groups to be sent into output buffer, mark groups that have no local members for removal
             gpu_scatter_and_mark_groups_for_removal<group_data::size>(
@@ -803,9 +820,12 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 d_group_rtag.data,
                 d_group_ranks.data,
                 d_rank_mask.data,
+                d_rtag.data,
+                d_comm_flags.data,
                 m_exec_conf->getRank(),
                 d_scan.data,
-                d_groups_out.data);
+                d_groups_out.data,
+                d_rank_mask_out.data);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
@@ -826,7 +846,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::readwrite);
 
             // access rtags
-            ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_group_rtag(m_gdata->getRTags(), access_location::device, access_mode::readwrite);
 
             unsigned int ngroups = m_gdata->getN();
 
@@ -874,25 +894,19 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             {
             // access output buffers
             ArrayHandle<group_element_t> h_groups_out(m_groups_out, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rank_mask_out(m_rank_mask_out, access_location::host, access_mode::read);
 
-            // access rank output buffer
-            ArrayHandle<rank_element_t> h_ranks_out(m_ranks_out, access_location::host, access_mode::read);
-
-            for (unsigned int i = 0; i < n_out; ++i)
+            for (unsigned int i = 0; i < n_out_groups; ++i)
                 {
-                group_element_t el_g = h_groups_out.data[i];
-                typename group_data::members_t t = el_g.tags;
-                rank_element_t el_r = h_ranks_out.data[i];
-                typename group_data::ranks_t r = el_r.ranks;
-                unsigned int mask = el_r.mask;
+                group_element_t el = h_groups_out.data[i];
+                typename group_data::ranks_t ranks = el.ranks;
 
                 for (unsigned int j = 0; j < group_data::size; ++j)
                     {
-                    unsigned int rank = r.idx[j];
-                    bool updated = mask & (1 << j);
-                    // send only if rank has been updated by us
-                    if (updated)
-                        group_send_map.insert(std::make_pair(rank, el_g));
+                    unsigned int rank = ranks.idx[j];
+                    // are we sending to this rank?
+                    if (h_rank_mask_out.data[i] & (1 << j))
+                        group_send_map.insert(std::make_pair(rank, el));
                     }
                 }
             }
@@ -1274,7 +1288,7 @@ void CommunicatorGPU::migrateParticles()
             key_t keys;
 
             // generate keys
-            get_migrate_key t(mypos, di, m_comm_mask[stage]); 
+            get_migrate_key t(mypos, di, m_comm_mask[stage]);
             for (unsigned int i = 0; i < m_comm_flags.size(); ++i)
                 keys.insert(std::pair<unsigned int, pdata_element>(t(h_comm_flags.data[i]),h_gpu_sendbuf.data[i]));
 

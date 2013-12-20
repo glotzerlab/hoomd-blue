@@ -225,7 +225,7 @@ void gpu_compute_ghost_rtags(unsigned int first_idx,
 void gpu_reset_exchange_plan(
     unsigned int N,
     unsigned int *d_plan);
- 
+
 //! Mark groups for sending
 template<unsigned int group_size, typename group_t, typename ranks_t>
 void gpu_mark_groups(
@@ -244,14 +244,19 @@ void gpu_mark_groups(
     mgpu::ContextPtr mgpu_context);
 
 //! Compact rank information for groups that have been marked for sending
-template<typename ranks_t, typename rank_element_t>
-void gpu_scatter_ranks(
+template<unsigned int group_size, typename group_t, typename ranks_t, typename rank_element_t>
+void gpu_scatter_ranks_and_mark_send_groups(
     unsigned int n_groups,
     const unsigned int *d_group_tag,
     const ranks_t *d_group_ranks,
-    const unsigned int *d_rank_mask,
-    const unsigned int *d_scan,
-    rank_element_t *d_out_ranks);
+    unsigned int *d_rank_mask,
+    const group_t *d_groups,
+    const unsigned int *d_rtag,
+    const unsigned int *d_comm_flags,
+    unsigned int *d_scan,
+    unsigned int &n_send,
+    rank_element_t *d_out_ranks,
+    mgpu::ContextPtr mgpu_context);
 
 template<unsigned int group_size, typename ranks_t, typename rank_element_t>
 void gpu_update_ranks_table(
@@ -270,9 +275,12 @@ void gpu_scatter_and_mark_groups_for_removal(
     unsigned int *d_group_rtag,
     const ranks_t *d_group_ranks,
     unsigned int *d_rank_mask,
+    const unsigned int *d_rtag,
+    const unsigned int *d_comm_flags,
     unsigned int my_rank,
     unsigned int *d_scan,
-    packed_t *d_out_groups);
+    packed_t *d_out_groups,
+    unsigned int *d_out_rank_masks);
 
 template<typename group_t, typename ranks_t>
 void gpu_remove_groups(unsigned int n_groups,
