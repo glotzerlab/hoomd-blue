@@ -107,6 +107,10 @@ Messenger::~Messenger()
     m_err_stream = NULL;
     m_warning_stream = NULL;
     m_notice_stream = NULL;
+
+    #ifdef ENABLE_MPI
+    releaseSharedMem();
+    #endif
     }
 
 /*! \returns The error stream for use in printing error messages
