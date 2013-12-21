@@ -65,8 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <functional>
 
-using namespace boost::python;
-
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
@@ -2295,8 +2293,8 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 //! Export CommunicatorGPU class to python
 void export_CommunicatorGPU()
     {
-    class_<CommunicatorGPU, bases<Communicator>, boost::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
-           init<boost::shared_ptr<SystemDefinition>,
+    boost::python::class_<CommunicatorGPU, boost::python::bases<Communicator>, boost::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
+           boost::python::init<boost::shared_ptr<SystemDefinition>,
                 boost::shared_ptr<DomainDecomposition> >())
             .def("setMaxStages",&CommunicatorGPU::setMaxStages)
     ;

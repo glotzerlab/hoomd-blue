@@ -948,7 +948,12 @@ const BoxDim Communicator::getShiftedBox() const
     BoxDim shifted_box = m_pdata->getGlobalBox();
     Scalar3 f= make_scalar3(0.5,0.5,0.5);
 
-    Scalar3 shift = m_pdata->getBox().getL()/shifted_box.getL()/Scalar(2.0);
+    Scalar3 r_ghost=m_r_ghost*make_scalar3(1.0,1.0,1.0);
+    Scalar3 shift = (m_pdata->getBox().getNearestPlaneDistance()-r_ghost)/
+        shifted_box.getNearestPlaneDistance();
+
+    Scalar tol = 0.0001;
+    shift += tol*make_scalar3(1.0,1.0,1.0);
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         if (m_decomposition->isAtBoundary(dir) &&  isCommunicating(dir))

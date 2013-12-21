@@ -810,7 +810,7 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
             oss << name << ".*: " << name << " ";
             for (unsigned int k = 0; k < group_size; ++k)
                 oss << g.tag[k] << ((k != group_size - 1) ? ", " : " ");
-            oss << " incomplete!" << std::endl;
+            oss << "incomplete!" << std::endl;
             m_exec_conf->msg->error() << oss.str();
             throw std::runtime_error("Error building GPU group table.");
             }

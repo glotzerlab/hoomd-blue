@@ -455,6 +455,7 @@ struct get_neighbor_rank_n
         unsigned int count = 0;
         unsigned int ineigh;
         unsigned int mask = get_direction_mask(plan);
+
         for (ineigh = 0; ineigh < nneigh; ineigh++)
             {
             unsigned int adj = d_adj[ineigh];
@@ -930,7 +931,7 @@ void gpu_mark_groups(
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
 
-    gpu_mark_groups_kernel<group_size><<<block_size, n_blocks>>>(N,
+    gpu_mark_groups_kernel<group_size><<<n_blocks,block_size>>>(N,
         d_comm_flags,
         n_groups,
         d_members,
@@ -1011,7 +1012,7 @@ void gpu_scatter_ranks_and_mark_send_groups(
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
 
-    gpu_scatter_ranks_and_mark_send_groups_kernel<group_size><<<block_size, n_blocks>>>(n_groups,
+    gpu_scatter_ranks_and_mark_send_groups_kernel<group_size><<<n_blocks,block_size>>>(n_groups,
         d_group_tag,
         d_group_ranks,
         d_rank_mask,
@@ -1154,7 +1155,7 @@ void gpu_scatter_and_mark_groups_for_removal(
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
 
-    gpu_scatter_and_mark_groups_for_removal_kernel<group_size><<<block_size, n_blocks>>>(
+    gpu_scatter_and_mark_groups_for_removal_kernel<group_size><<<n_blocks, block_size>>>(
         n_groups,
         d_groups,
         d_group_type,
@@ -1228,7 +1229,7 @@ void gpu_remove_groups(unsigned int n_groups,
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
 
-    gpu_remove_groups_kernel<<<block_size, n_blocks>>>(
+    gpu_remove_groups_kernel<<<n_blocks,block_size>>>(
         n_groups,
         d_groups,
         d_groups_alt,
