@@ -287,7 +287,8 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     Scalar virialzz = Scalar(0.0);
 
     unsigned int cur_j = 0;
-    unsigned int next_j = d_nlist[nli(idx, threadIdx.x%tpp)];
+    unsigned int next_j = threadIdx.x%tpp < n_neigh ?
+        d_nlist[nli(idx, threadIdx.x%tpp)] : 0;
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
