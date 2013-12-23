@@ -450,7 +450,7 @@ struct get_neighbor_rank_n
         { }
 
 
-    __device__ unsigned int operator() (unsigned int plan, unsigned int n)
+    __device__ uint2 operator() (unsigned int plan, unsigned int n)
         {
         unsigned int count = 0;
         unsigned int ineigh;
@@ -465,7 +465,7 @@ struct get_neighbor_rank_n
                 count++;
                 }
             }
-        return d_neighbor[ineigh];
+        return make_uint2(d_neighbor[ineigh],d_adj[ineigh] & mask);
         }
     };
 
@@ -502,7 +502,7 @@ __global__ void gpu_expand_neighbors_kernel(const unsigned int n_out,
     const unsigned int *d_plan,
     const unsigned int n_offs,
     const int* mp_global,
-    unsigned int *d_idx_out,
+    uint2 *d_idx_adj_out,
     const unsigned int *d_neighbors,
     const unsigned int *d_adj,
     const unsigned int nneigh,
@@ -554,15 +554,16 @@ __global__ void gpu_expand_neighbors_kernel(const unsigned int n_out,
             int interval = sources[i];
             int rank = gid - intervals[interval - range.z];
             int plan = d_plan[interval];
-            neighbors[i] = getn(plan,rank);
+            uint2 neighbor_adj = getn(plan, rank);
+            neighbors[i] = neighbor_adj.x;
+
+            // write out values to global mem
+            d_idx_adj_out[gid] = make_uint2(sources[i], neighbor_adj.y);
             }
         }
 
-    // write out neighbors to global mem
+    // write out neighbors (keys) to global mem
     mgpu::DeviceRegToGlobal<NT, VT>(destCount, neighbors, tid, d_neighbors_out + range.x);
-
-    // store indices to global mem
-    mgpu::DeviceRegToGlobal<NT, VT>(destCount, sources, tid, d_idx_out + range.x);
     }
 
 void gpu_expand_neighbors(unsigned int n_out,
@@ -570,7 +571,7 @@ void gpu_expand_neighbors(unsigned int n_out,
     const unsigned int *d_tag,
     const unsigned int *d_plan,
     unsigned int n_offs,
-    unsigned int *d_idx_out,
+    uint2 *d_idx_adj_out,
     const unsigned int *d_neighbors,
     const unsigned int *d_adj,
     const unsigned int nneigh,
@@ -593,7 +594,7 @@ void gpu_expand_neighbors(unsigned int n_out,
 
     gpu_expand_neighbors_kernel<Tuning><<<numBlocks, launch.x, 0, context.Stream()>>>(
         n_out, (int *) d_offs, d_tag, d_plan, n_offs,
-        partitionsDevice->get(), d_idx_out,
+        partitionsDevice->get(), d_idx_adj_out,
         d_neighbors, d_adj, nneigh, d_neighbors_out);
     }
 
@@ -604,7 +605,7 @@ void gpu_exchange_ghosts_make_indices(
     const unsigned int *d_adj,
     const unsigned int *d_unique_neighbors,
     const unsigned int *d_counts,
-    unsigned int *d_ghost_idx,
+    uint2 *d_ghost_idx_adj,
     unsigned int *d_ghost_neigh,
     unsigned int *d_ghost_begin,
     unsigned int *d_ghost_end,
@@ -623,13 +624,13 @@ void gpu_exchange_ghosts_make_indices(
         // allocate temporary array
         gpu_expand_neighbors(n_out,
             d_counts,
-            d_tag, d_ghost_plan, N, d_ghost_idx,
+            d_tag, d_ghost_plan, N, d_ghost_idx_adj,
             d_unique_neighbors, d_adj, n_unique_neigh,
             d_ghost_neigh,
             *mgpu_context);
 
         // sort tags by neighbors
-        mgpu::LocalitySortPairs(d_ghost_neigh, d_ghost_idx, n_out, *mgpu_context);
+        mgpu::LocalitySortPairs(d_ghost_neigh, d_ghost_idx_adj, n_out, *mgpu_context);
 
         mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_unique_neighbors, n_unique_neigh,
             d_ghost_neigh, n_out, d_ghost_begin, *mgpu_context);
@@ -646,19 +647,98 @@ void gpu_exchange_ghosts_make_indices(
 template<typename T>
 __global__ void gpu_pack_kernel(
     unsigned int n_out,
-    const unsigned int *d_ghost_idx,
+    const uint2 *d_ghost_idx_adj,
     const T *in,
     T *out)
     {
     unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (buf_idx >= n_out) return;
-    unsigned int idx = d_ghost_idx[buf_idx];
+    unsigned int idx = d_ghost_idx_adj[buf_idx].x;
     out[buf_idx] = in[idx];
+    }
+
+__global__ void gpu_pack_wrap_kernel(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const Scalar4 *in,
+    Scalar4 *out,
+    Index3D di,
+    uint3 my_pos,
+    BoxDim box)
+    {
+    unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (buf_idx >= n_out) return;
+
+    uint2 idx_adj = d_ghost_idx_adj[buf_idx];
+    unsigned int idx = idx_adj.x;
+    unsigned int adj = idx_adj.y;
+   
+    // get direction triple from adjacency element
+    // wrap
+    uchar3 periodic = make_uchar3(0,0,0);
+    char3 wrap = make_char3(0,0,0);
+
+    const unsigned int mask_east = 1 << 2 | 1 << 5 | 1 << 8 | 1 << 11
+        | 1 << 14 | 1 << 17 | 1 << 20 | 1 << 23 | 1 << 26;
+    const unsigned int mask_west = mask_east >> 2;
+    const unsigned int mask_north = 1 << 6 | 1 << 7 | 1 << 8 | 1 << 15
+        | 1 << 16 | 1 << 17 | 1 << 24 | 1 << 25 | 1 << 26;
+    const unsigned int mask_south = mask_north >> 6;
+    const unsigned int mask_up = 1 << 18 | 1 << 19 | 1 << 20 | 1 << 21
+        | 1 << 22 | 1 << 23 | 1 << 24 | 1 << 25 | 1 << 26;
+    const unsigned int mask_down = mask_up >> 18;
+
+    if (di.getW() > 1)
+        {
+        if (my_pos.x == di.getW()-1 && (adj & mask_east))
+            {
+            wrap.x = 1;
+            periodic.x = 1;
+            }
+        else if (my_pos.x == 0 && (adj & mask_west))
+            {
+            wrap.x = -1;
+            periodic.x = 1;
+            }
+        }
+    if (di.getH() > 1)
+        {
+        if (my_pos.y == di.getH()-1 && (adj & mask_north))
+            {
+            wrap.y = 1;
+            periodic.y = 1;
+            }
+        else if (my_pos.y == 0 && (adj & mask_south))
+            {
+            wrap.y = -1;
+            periodic.y = 1;
+            }
+        }
+    if (di.getD() > 1)
+        {
+        if (my_pos.z == di.getD()-1 && (adj & mask_up))
+            {
+            wrap.z = 1;
+            periodic.z = 1;
+            }
+        else if (my_pos.z == 0 && (adj & mask_down))
+            {
+            wrap.z = -1;
+            periodic.z = 1;
+            }
+        }
+ 
+    box.setPeriodic(periodic);
+    int3 img = make_int3(0,0,0);
+    Scalar4 postype = in[idx];
+    box.wrap(postype, img, wrap);
+
+    out[buf_idx] = postype;
     }
 
 void gpu_exchange_ghosts_pack(
     unsigned int n_out,
-    const unsigned int *d_ghost_idx,
+    const uint2 *d_ghost_idx_adj,
     const unsigned int *d_tag,
     const Scalar4 *d_pos,
     const Scalar4 *d_vel,
@@ -676,16 +756,19 @@ void gpu_exchange_ghosts_pack(
     bool send_vel,
     bool send_charge,
     bool send_diameter,
-    bool send_orientation)
+    bool send_orientation,
+    const Index3D &di,
+    uint3 my_pos,
+    const BoxDim& box)
     {
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out/block_size + 1;
-    if (send_tag) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_tag, d_tag_sendbuf);
-    if (send_pos) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_pos, d_pos_sendbuf);
-    if (send_vel) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_vel, d_vel_sendbuf);
-    if (send_charge) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_charge, d_charge_sendbuf);
-    if (send_diameter) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_diameter, d_diameter_sendbuf);
-    if (send_orientation) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx, d_orientation, d_orientation_sendbuf);
+    if (send_tag) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_tag, d_tag_sendbuf);
+    if (send_pos) gpu_pack_wrap_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_pos, d_pos_sendbuf, di, my_pos, box);
+    if (send_vel) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_vel, d_vel_sendbuf);
+    if (send_charge) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_charge, d_charge_sendbuf);
+    if (send_diameter) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_diameter, d_diameter_sendbuf);
+    if (send_orientation) gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_orientation, d_orientation_sendbuf);
     }
 
 void gpu_communicator_initialize_cache_config()
@@ -693,47 +776,6 @@ void gpu_communicator_initialize_cache_config()
     cudaFuncSetCacheConfig(gpu_pack_kernel<Scalar>, cudaFuncCachePreferL1);
     cudaFuncSetCacheConfig(gpu_pack_kernel<Scalar4>, cudaFuncCachePreferL1);
     cudaFuncSetCacheConfig(gpu_pack_kernel<unsigned int>, cudaFuncCachePreferL1);
-    }
-
-//! Wrap particles
-struct wrap_ghost_pos_gpu : public thrust::unary_function<Scalar4, Scalar4>
-    {
-    const BoxDim box; //!< The box for which we are applying boundary conditions
-
-    //! Constructor
-    /*!
-     */
-    wrap_ghost_pos_gpu(const BoxDim _box)
-        : box(_box)
-        {
-        }
-
-    //! Wrap position Scalar4
-    /*! \param p The position
-     * \returns The wrapped position
-     */
-    __device__ Scalar4 operator()(Scalar4 p)
-        {
-        int3 image;
-        box.wrap(p,image);
-        return p;
-        }
-     };
-
-
-/*! \param n_recv Number of particles in buffer
-    \param d_pos The particle positions array
-    \param box Box for which to apply boundary conditions
- */
-void gpu_wrap_ghosts(const unsigned int n_recv,
-                     Scalar4 *d_pos,
-                     BoxDim box)
-    {
-    // Wrap device ptr
-    thrust::device_ptr<Scalar4> pos_ptr(d_pos);
-
-    // Apply box wrap to input buffer
-    thrust::transform(pos_ptr, pos_ptr + n_recv, pos_ptr, wrap_ghost_pos_gpu(box));
     }
 
 void gpu_exchange_ghosts_copy_buf(
@@ -944,8 +986,11 @@ void gpu_mark_groups(
         incomplete);
 
     // scan over marked groups
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_scan, n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(),
+    if (n_groups)
+        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_scan, n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(),
         (unsigned int *)NULL, &n_out, d_scan, *mgpu_context);
+    else
+        n_out = 0;
     }
 
 template<unsigned int group_size, typename group_t, typename ranks_t, typename rank_element_t>
@@ -1023,8 +1068,11 @@ void gpu_scatter_ranks_and_mark_send_groups(
         d_out_ranks);
 
     // scan over groups marked for sending
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_scan, n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(),
-        (unsigned int *)NULL, &n_send, d_scan, *mgpu_context);
+    if (n_groups)
+        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_scan, n_groups, (unsigned int) 0, mgpu::plus<unsigned int>(),
+            (unsigned int *)NULL, &n_send, d_scan, *mgpu_context);
+    else
+        n_send = 0;
     }
 
 template<unsigned int group_size, typename ranks_t, typename rank_element_t>
@@ -1054,7 +1102,8 @@ __global__ void gpu_update_ranks_table_kernel(
             bool update = mask & (1 << i);
 
             if (update)
-                d_group_ranks[gidx].idx[i] = new_ranks.idx[i];
+//                d_group_ranks[gidx].idx[i] = new_ranks.idx[i];
+                atomicExch(&d_group_ranks[gidx].idx[i],new_ranks.idx[i]);
             }
         }
     }
@@ -1223,8 +1272,11 @@ void gpu_remove_groups(unsigned int n_groups,
     mgpu::ContextPtr mgpu_context)
     {
     // scan over marked groups
-    mgpu::Scan<mgpu::MgpuScanTypeExc>( d_scan, n_groups, (unsigned int) 0,
-        mgpu::plus<unsigned int>(), (unsigned int *)NULL, &new_ngroups, d_scan, *mgpu_context);
+    if (n_groups)
+        mgpu::Scan<mgpu::MgpuScanTypeExc>( d_scan, n_groups, (unsigned int) 0,
+            mgpu::plus<unsigned int>(), (unsigned int *)NULL, &new_ngroups, d_scan, *mgpu_context);
+    else
+        new_ngroups = 0;
 
     unsigned int block_size = 512;
     unsigned int n_blocks = n_groups/block_size + 1;
@@ -1322,8 +1374,11 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int n_unique;
 
     // scan over input groups, select those which are not already local
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp, n_recv, (unsigned int) 0, mgpu::plus<unsigned int>(),
-        (unsigned int *)NULL, &n_unique, d_tmp, *mgpu_context);
+    if (n_recv)
+        mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp, n_recv, (unsigned int) 0, mgpu::plus<unsigned int>(),
+            (unsigned int *)NULL, &n_unique, d_tmp, *mgpu_context);
+    else
+        n_unique = 0;
 
     new_ngroups = n_groups + n_unique;
 

@@ -227,7 +227,7 @@ class CommunicatorGPU : public Communicator
         GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf
         GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf
 
-        GPUVector<unsigned int> m_ghost_idx;          //!< Indices of ghosts to send
+        GPUVector<uint2> m_ghost_idx_adj;             //!< Indices and adjacency relationships of ghosts to send
         GPUVector<unsigned int> m_ghost_neigh;        //!< Neighbor ranks for every ghost particle
         GPUVector<unsigned int> m_ghost_plan;         //!< Plans for every particle
         std::vector<unsigned int> m_idx_offs;         //!< Per-stage offset into ghost idx list

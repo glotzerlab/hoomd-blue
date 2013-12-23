@@ -949,8 +949,8 @@ const BoxDim Communicator::getShiftedBox() const
     Scalar3 f= make_scalar3(0.5,0.5,0.5);
 
     Scalar3 r_ghost=m_r_ghost*make_scalar3(1.0,1.0,1.0);
-    Scalar3 shift = (m_pdata->getBox().getNearestPlaneDistance()-r_ghost)/
-        shifted_box.getNearestPlaneDistance();
+    Scalar3 shift = m_pdata->getBox().getNearestPlaneDistance()/
+        shifted_box.getNearestPlaneDistance()/2.0;
 
     Scalar tol = 0.0001;
     shift += tol*make_scalar3(1.0,1.0,1.0);

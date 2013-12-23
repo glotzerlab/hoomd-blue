@@ -212,8 +212,8 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<unsigned int> ghost_plan(m_exec_conf);
     m_ghost_plan.swap(ghost_plan);
 
-    GPUVector<unsigned int> ghost_idx(m_exec_conf);
-    m_ghost_idx.swap(ghost_idx);
+    GPUVector<uint2> ghost_idx_adj(m_exec_conf);
+    m_ghost_idx_adj.swap(ghost_idx_adj);
 
     GPUVector<unsigned int> ghost_neigh(m_exec_conf);
     m_ghost_neigh.swap(ghost_neigh);
@@ -883,6 +883,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
         m_gdata->swapTagArrays();
         m_gdata->swapRankArrays();
 
+        assert(m_gdata->getN() == new_ngroups);
+
         #ifdef ENABLE_MPI_CUDA
         #else
         // fill host send buffers on host
@@ -1078,6 +1080,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<group_element_t> h_groups_in(m_groups_in, access_location::host, access_mode::overwrite);
             for (typename recv_map_t::iterator it = recv_map.begin(); it != recv_map.end(); ++it)
                 h_groups_in.data[n_recv_unique++] = it->second;
+            assert(n_recv_unique == recv_map.size());
             }
         #endif
 
@@ -1551,7 +1554,7 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_n_send_ghosts_tot[istage] > n_max) n_max = m_n_send_ghosts_tot[istage];
 
         // make room for ghost indices and neighbor ranks
-        m_ghost_idx.resize(m_idx_offs[stage] + m_n_send_ghosts_tot[stage]);
+        m_ghost_idx_adj.resize(m_idx_offs[stage] + m_n_send_ghosts_tot[stage]);
         m_ghost_neigh.resize(m_idx_offs[stage] + m_n_send_ghosts_tot[stage]);
 
         if (flags[comm_flag::tag]) m_tag_ghost_sendbuf.resize(n_max);
@@ -1569,7 +1572,7 @@ void CommunicatorGPU::exchangeGhosts()
 
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
-            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx, access_location::device, access_mode::overwrite);
+            ArrayHandle<uint2> d_ghost_idx_adj(m_ghost_idx_adj, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_ghost_neigh(m_ghost_neigh, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_ghost_begin(m_ghost_begin, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_ghost_end(m_ghost_end, access_location::device, access_mode::overwrite);
@@ -1582,7 +1585,7 @@ void CommunicatorGPU::exchangeGhosts()
                 d_adj_mask.data,
                 d_unique_neighbors.data,
                 d_neigh_counts.data,
-                d_ghost_idx.data + m_idx_offs[stage],
+                d_ghost_idx_adj.data + m_idx_offs[stage],
                 d_ghost_neigh.data + m_idx_offs[stage],
                 d_ghost_begin.data + stage*m_n_unique_neigh,
                 d_ghost_end.data + stage*m_n_unique_neigh,
@@ -1605,7 +1608,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
 
             // access ghost send indices
-            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx, access_location::device, access_mode::read);
+            ArrayHandle<uint2> d_ghost_idx_adj(m_ghost_idx_adj, access_location::device, access_mode::read);
 
             // access output buffers
             ArrayHandle<unsigned int> d_tag_ghost_sendbuf(m_tag_ghost_sendbuf, access_location::device, access_mode::overwrite);
@@ -1615,10 +1618,14 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> d_diameter_ghost_sendbuf(m_diameter_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf, access_location::device, access_mode::overwrite);
 
+            const BoxDim& global_box = m_pdata->getGlobalBox();
+            const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
+            uint3 my_pos = di.getTriple(m_exec_conf->getRank());
+
             // Pack ghosts into send buffers
             gpu_exchange_ghosts_pack(
                 m_n_send_ghosts_tot[stage],
-                d_ghost_idx.data + m_idx_offs[stage],
+                d_ghost_idx_adj.data + m_idx_offs[stage],
                 d_tag.data,
                 d_pos.data,
                 d_vel.data,
@@ -1636,7 +1643,10 @@ void CommunicatorGPU::exchangeGhosts()
                 flags[comm_flag::velocity],
                 flags[comm_flag::charge],
                 flags[comm_flag::diameter],
-                flags[comm_flag::orientation]);
+                flags[comm_flag::orientation],
+                di,
+                my_pos,
+                global_box);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
@@ -1991,21 +2001,6 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
-        if (flags[comm_flag::position])
-            {
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-
-            // shifted global box
-            const BoxDim& shifted_box = getShiftedBox();
-
-            // wrap received ghosts
-            gpu_wrap_ghosts(m_n_recv_ghosts_tot[stage],
-                d_pos.data+first_idx,
-                shifted_box);
-
-            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-            }
-
         if (flags[comm_flag::tag])
             {
             ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
@@ -2047,7 +2042,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
 
             // access ghost send indices
-            ArrayHandle<unsigned int> d_ghost_idx(m_ghost_idx, access_location::device, access_mode::read);
+            ArrayHandle<uint2> d_ghost_idx_adj(m_ghost_idx_adj, access_location::device, access_mode::read);
 
             // access output buffers
             ArrayHandle<unsigned int> d_tag_ghost_sendbuf(m_tag_ghost_sendbuf, access_location::device, access_mode::overwrite);
@@ -2055,10 +2050,14 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             ArrayHandle<Scalar4> d_vel_ghost_sendbuf(m_vel_ghost_sendbuf, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_orientation_ghost_sendbuf(m_orientation_ghost_sendbuf, access_location::device, access_mode::overwrite);
 
+            const BoxDim& global_box = m_pdata->getGlobalBox();
+            const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
+            uint3 my_pos = di.getTriple(m_exec_conf->getRank());
+
             // Pack ghosts into send buffers
             gpu_exchange_ghosts_pack(
                 m_n_send_ghosts_tot[stage],
-                d_ghost_idx.data + m_idx_offs[stage],
+                d_ghost_idx_adj.data + m_idx_offs[stage],
                 NULL,
                 d_pos.data,
                 d_vel.data,
@@ -2076,7 +2075,10 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
                 flags[comm_flag::velocity],
                 false,
                 false,
-                flags[comm_flag::orientation]);
+                flags[comm_flag::orientation],
+                di,
+                my_pos,
+                global_box);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
@@ -2270,20 +2272,6 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
-        if (flags[comm_flag::position])
-            {
-            ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-
-            // global box
-            const BoxDim& shifted_box = getShiftedBox();
-
-            // wrap received ghosts
-            gpu_wrap_ghosts(m_n_recv_ghosts_tot[stage],
-                d_pos.data+first_idx,
-                shifted_box);
-
-            if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-            }
         } // end main communication loop
 
     if (m_prof) m_prof->pop(m_exec_conf);

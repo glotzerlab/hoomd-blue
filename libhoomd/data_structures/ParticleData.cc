@@ -254,6 +254,9 @@ const BoxDim & ParticleData::getBox() const
 */
 void ParticleData::setGlobalBox(const BoxDim& box)
     {
+    assert(box.getPeriodic().x);
+    assert(box.getPeriodic().y);
+    assert(box.getPeriodic().z);
     m_global_box = box;
 
 #ifdef ENABLE_MPI

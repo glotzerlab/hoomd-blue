@@ -153,7 +153,7 @@ void gpu_exchange_ghosts_make_indices(
     const unsigned int *d_adj,
     const unsigned int *d_unique_neighbors,
     const unsigned int *d_counts,
-    unsigned int *d_ghost_idx,
+    uint2 *d_ghost_idx,
     unsigned int *d_ghost_neigh,
     unsigned int *d_ghost_begin,
     unsigned int *d_ghost_end,
@@ -165,7 +165,7 @@ void gpu_exchange_ghosts_make_indices(
 //! Pack ghosts in output buffers
 void gpu_exchange_ghosts_pack(
     unsigned int n_out,
-    const unsigned int *d_ghost_idx,
+    const uint2 *d_ghost_idx_adj,
     const unsigned int *d_tag,
     const Scalar4 *d_pos,
     const Scalar4 *d_vel,
@@ -183,15 +183,14 @@ void gpu_exchange_ghosts_pack(
     bool send_vel,
     bool send_charge,
     bool send_diameter,
-    bool send_orientation);
+    bool send_orientation,
+    const Index3D& di,
+    uint3 my_pos,
+    const BoxDim& box);
 
 //! Initialize cache configuration
 void gpu_communicator_initialize_cache_config();
 
-//! Wrap received ghost positions
-void gpu_wrap_ghosts(const unsigned int n_recv,
-                     Scalar4 *d_pos,
-                     BoxDim box);
 
 //! Copy receive buffers into particle data
 void gpu_exchange_ghosts_copy_buf(

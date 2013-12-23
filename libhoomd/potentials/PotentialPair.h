@@ -354,7 +354,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar>  h_virial(m_virial,access_location::host, access_mode::overwrite);
 
 
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim& box = m_pdata->getGlobalBox();
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
