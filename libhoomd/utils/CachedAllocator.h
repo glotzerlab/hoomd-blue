@@ -228,11 +228,11 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements) const
 
         while (m_num_bytes_tot > m_max_cached_bytes && m_free_blocks.size())
             {
-            // eliminate first cached block
-            free_blocks_type::iterator i = m_free_blocks.begin();
+            // eliminate largest cached block
+            free_blocks_type::reverse_iterator i = m_free_blocks.rbegin();
 
             m_exec_conf->msg->notice(10) << "CachedAllocator: maximum cache size "
-                << "reached; removing unsused block ("
+                << "reached; removing unused block ("
                 << float(i->first)/1024.0f/1024.0f << " MB)" << std::endl;
 
             // transform the pointer to cuda::pointer before calling cuda::free
@@ -240,7 +240,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements) const
             CHECK_CUDA_ERROR();
             m_num_bytes_tot -= i->first;
 
-            m_free_blocks.erase(i);
+            m_free_blocks.erase((++i).base());
             }
         }
 
