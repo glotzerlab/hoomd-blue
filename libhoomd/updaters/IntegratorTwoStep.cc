@@ -311,6 +311,9 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 #ifdef ENABLE_MPI
         if (m_comm)
             {
+            // force particle migration and ghost exchange
+            m_comm->forceMigrate();
+
             // perform communication
             m_comm->communicate(timestep);
             }
