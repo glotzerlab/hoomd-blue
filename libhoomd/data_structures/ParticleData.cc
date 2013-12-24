@@ -784,7 +784,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 global_box.wrap(pos, img, flags);
 
                 unsigned int rank = di(i,j,k);
-                unsigned int tag = it - snapshot.pos.begin() ;
+                unsigned int tag = it - snapshot.pos.begin();
 
                 if (rank >= n_ranks)
                     {

@@ -381,6 +381,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+
         // sanity check
         assert(typei < m_pdata->getNTypes());
 

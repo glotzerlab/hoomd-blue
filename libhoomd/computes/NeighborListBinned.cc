@@ -118,7 +118,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
-    const BoxDim& box = m_pdata->getGlobalBox();
+    const BoxDim& box = m_pdata->getBox();
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -147,6 +147,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     // for each local particle
     unsigned int nparticles = m_pdata->getN();
+
 #pragma omp parallel for schedule(dynamic, 100)
     for (int i = 0; i < (int)nparticles; i++)
         {

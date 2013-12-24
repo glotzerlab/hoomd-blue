@@ -402,7 +402,7 @@ __device__ unsigned int get_direction_mask(unsigned int plan)
                 if (iz == -1) flags |= send_down;
 
                 unsigned int dir = ((iz+1)*3+(iy+1))*3+(ix + 1);
-                if (flags && (flags & plan) == flags)
+                if ((flags & plan) == flags)
                     mask |= (1 << dir);
                 }
 

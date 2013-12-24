@@ -273,17 +273,6 @@ class NeighborList : public Compute
         //! Gives an estimate of the number of nearest neighbors per particle
         virtual Scalar estimateNNeigh();
 
-#ifdef ENABLE_MPI
-        //! Returns the width of the ghost layer in every spatial direction
-        Scalar getRGhost()
-            {
-            Scalar rmax = m_r_cut + m_r_buff;
-            if (!m_filter_diameter)
-                rmax += m_d_max - Scalar(1.0);
-            return rmax;
-            }
-#endif
-
         // @}
         //! \name Handle exclusions
         // @{
