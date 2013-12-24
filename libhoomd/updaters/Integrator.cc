@@ -271,6 +271,7 @@ void Integrator::computeAccelerations(unsigned int timestep)
         // Move particles between domains. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if additionally ghosts are updated every timestep
+        m_comm->forceMigrate();
         m_comm->communicate(timestep);
         }
 #endif
