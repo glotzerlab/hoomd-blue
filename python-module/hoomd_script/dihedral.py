@@ -182,12 +182,12 @@ class coeff:
         # get a list of types from the particle data
         ntypes = globals.system_definition.getDihedralData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getDihedralData().getNameByType(i));
 
         valid = True;
         # loop over all possible types and verify that all required variables are set
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type = type_list[i];
 
             if type not in self.values.keys():
@@ -434,14 +434,14 @@ class table(force._force):
 
     def update_dihedral_table(self, atype, func, coeff):
         # allocate arrays to store V and F
-        Vtable = hoomd.std_vector_float();
-        Ttable = hoomd.std_vector_float();
+        Vtable = hoomd.std_vector_scalar();
+        Ttable = hoomd.std_vector_scalar();
 
         # calculate dth
         dth = math.pi / float(self.width-1);
 
         # evaluate each point of the function
-        for i in xrange(0, self.width):
+        for i in range(0, self.width):
             theta = dth * i;
             (V,T) = func(theta, **coeff);
 
@@ -462,12 +462,12 @@ class table(force._force):
         # set all the params
         ntypes = globals.system_definition.getDihedralData().getNTypes();
         type_list = [];
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             type_list.append(globals.system_definition.getDihedralData().getNameByType(i));
 
 
         # loop through all of the unique type dihedrals and evaluate the table
-        for i in xrange(0,ntypes):
+        for i in range(0,ntypes):
             func = self.dihedral_coeff.get(type_list[i], "func");
             coeff = self.dihedral_coeff.get(type_list[i], "coeff");
 
@@ -530,7 +530,7 @@ class table(force._force):
 
           # check for even spacing
           dth = math.pi / float(self.width-1);
-          for i in xrange(0,self.width):
+          for i in range(0,self.width):
               theta =  dth * i;
               if math.fabs(theta - theta_table[i]) > 1e-3:
                   globals.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced\n");

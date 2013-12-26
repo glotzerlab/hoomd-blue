@@ -83,6 +83,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <i>specify an abritrary pair interaction, read from a file</i>\n
 11. \ref bond_table "Use any tabulated data or functional form for bond interactions" - demonstrates \link hoomd_script.bond.table bond.table\endlink<br>
     <i>specify an abritrary bond interaction, read from a file or an evaluated function</i>\n
+
+12. \ref angle_table "Use any tabulated data or functional form for angle interactions" - demonstrates \link hoomd_script.angle.table angle.table\endlink<br>
+    <i>specify an abritrary angle interaction, read from a file or an evaluated function</i>\n
+
+13. \ref dihedral_table "Use any tabulated data or functional form for dihedral interactions" - demonstrates \link hoomd_script.dihedral.table dihedral.table\endlink<br>
+    <i>specify an abritrary dihedral interaction, read from a file or an evaluated function</i>\n
 */
 
 /*! \example dump_dcd
@@ -151,12 +157,12 @@ Then go to the VMD command window and run the command
 imd connect localhost 54321
 \endcode
 The particles in the display window should begin moving. The display
-is of the current state of the simulation, updated in \b real-time. 
+is of the current state of the simulation, updated in \b real-time.
 The best visualization is obtained by setting the <i>Drawing Method</i> to VDW in
 VMD's <i>Graphical Representation</i> menu.
 
-Switch back to the terminal where hoomd is running and press CTRL-C to kill the 
-simulation. It is set to run for an extremely long time on purpose to allow 
+Switch back to the terminal where hoomd is running and press CTRL-C to kill the
+simulation. It is set to run for an extremely long time on purpose to allow
 ample time to launch VMD and issue the \c imd command.
 
 <hr>
@@ -166,7 +172,7 @@ ample time to launch VMD and issue the \c imd command.
 Here is a script that generates a system of bead-spring polymers that self-assemble
 into a hex phase when run for a few million time steps. The polymers are A6B7A6 block copolymers
 in an implicit solvent. The script also shows a few examples of how writing python
-code in the script can be handy: here the concentration \c phi_P is a parameter and 
+code in the script can be handy: here the concentration \c phi_P is a parameter and
 math operations are performed to calculate the length of the box.
 
 For more information on the model in this script, see<br>
@@ -174,7 +180,7 @@ For more information on the model in this script, see<br>
 J. Chem. Phys. \b 128, 184906 (2008); DOI:10.1063/1.2913522<br>
 http://link.aip.org/link/?JCPSA6/128/184906/1
 
-Any of the polymer systems in the paper could be easily run just by changing a few parameters in 
+Any of the polymer systems in the paper could be easily run just by changing a few parameters in
 this script.
 
 To run this example, copy the examples directory from share/hoomd/examples your hoomd installation directory.
@@ -290,7 +296,7 @@ $ vmd -hoomd box_resize_rigid.xml box_resize_rigid.dcd
 
 In a loop, this example performs a simulation of a Lennard-Jones liquid
 at different system sizes one after the other. It shows how the power of python
-code in a hoomd script can be utilized to accomplish complicated tasks. 
+code in a hoomd script can be utilized to accomplish complicated tasks.
 For more information on python and a tutorial on the python language,
 check out http://www.python.org.
 
@@ -343,7 +349,7 @@ $ hoomd -x init_create_empty
 /*! \example pair_table
 
 This example demonstrates how to use \link hoomd_script.pair.table pair.table\endlink to specify an arbitrary
-particle pair interaction, given a functional form for \f$ V(r) \f$ and \f$ F(r) = -\frac{\partial V}{\partial r}\f$. 
+particle pair interaction, given a functional form for \f$ V(r) \f$ and \f$ F(r) = -\frac{\partial V}{\partial r}\f$.
 
 First, write a python function which evaluates \f$ V(r) \f$ and \f$ F(r) \f$ in the following form
 ~~~~~~~~~~~~~{.py}
@@ -480,5 +486,9 @@ $ hoomd -x bond_table
 \endcode
 
 <hr>
+
+/*! \example angle_table */
+
+/*! \example dihedral_table */
 
 */

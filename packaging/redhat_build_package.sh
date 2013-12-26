@@ -14,7 +14,7 @@
 # Use the -f flag to prevent the script from performing an automatic update
 # of itself and the Makefile.
 #
-BRANCH=maint
+BRANCH=master
 PATH=/bin:/usr/bin:$PATH
 # $0 can't be relied upon to identify the name of this script...
 ME=redhat_build_package.sh
@@ -76,7 +76,7 @@ else
         # assume that this is opensuse and format accordingly
         destination="devel/incoming/"`/usr/bin/lsb_release -d | /usr/bin/awk '{print $2$3$4}' FS="[\t .]" | tr '[:upper:]' '[:lower:]'`
     fi
-    rsync -ue /usr/bin/ssh rpmbuild/RPMS/$ARCH/hoomd*.rpm joaander@foxx.engin.umich.edu:$destination/
+    rsync -ue /usr/bin/ssh rpmbuild/RPMS/$ARCH/hoomd*.rpm joaander@petry.engin.umich.edu:$destination/
 fi
 
 #clean up
