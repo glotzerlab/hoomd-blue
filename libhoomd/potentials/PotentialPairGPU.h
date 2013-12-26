@@ -176,7 +176,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(this->m_pdata->getCharges(), access_location::device, access_mode::read);
 
-    BoxDim box = this->m_pdata->getGlobalBox();
+    BoxDim box = this->m_pdata->getBox();
 
     // access parameters
     ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);

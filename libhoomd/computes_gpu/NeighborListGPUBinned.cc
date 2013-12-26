@@ -228,6 +228,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_body,
                                  m_filter_diameter,
                                  m_cl->getGhostWidth());
+        if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         this->m_tuner->end();
         }
     else
@@ -277,11 +278,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     m_filter_body,
                                     m_filter_diameter,
                                     m_cl->getGhostWidth());
-        }
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        {
-        CHECK_CUDA_ERROR();
+        if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
     if (m_prof)

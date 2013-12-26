@@ -149,7 +149,7 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
 
-    BoxDim box = this->m_pdata->getGlobalBox();
+    BoxDim box = this->m_pdata->getBox();
 
     // access parameters
     ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
