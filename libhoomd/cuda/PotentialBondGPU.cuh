@@ -172,12 +172,6 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= N)
-        return;
-
-    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_bonds =n_bonds_list[idx];
-
     // shared array for per bond type parameters
     extern __shared__ char s_data[];
     typename evaluator::param_type *s_params =
@@ -187,6 +181,12 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     if (threadIdx.x < n_bond_type)
        s_params[threadIdx.x] = d_params[threadIdx.x];
     __syncthreads();
+
+    if (idx >= N)
+        return;
+
+    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
+    int n_bonds =n_bonds_list[idx];
 
     // read in the position of our particle. (MEM TRANSFER: 16 bytes)
     Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
