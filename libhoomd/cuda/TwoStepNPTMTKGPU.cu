@@ -478,7 +478,6 @@ cudaError_t gpu_npt_mtk_temperature(Scalar *d_temperature,
     {
     assert(d_temperature);
     assert(d_vel);
-    assert(d_group_members);
     assert(d_scratch);
 
     dim3 grid(num_blocks,1,1);

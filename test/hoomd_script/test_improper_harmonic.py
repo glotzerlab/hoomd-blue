@@ -15,11 +15,8 @@ class improper_harmonic_tests (unittest.TestCase):
         self.polymers = [self.polymer1, self.polymer2]
         self.box = hoomd.BoxDim(35);
         self.separation=dict(A=0.35, B=0.35)
-        init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-
-        improper_data = globals.system_definition.getImproperData();
-        improper_data.addDihedralType('dihedralA')
-        improper_data.addDihedral(hoomd.Dihedral(0, 0, 1, 2, 3));
+        sys = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        sys.impropers.add('improperA',0, 1, 2, 3);
         import __main__;
         __main__.sorter.set_params(grid=8)
 
@@ -30,7 +27,7 @@ class improper_harmonic_tests (unittest.TestCase):
     # test setting coefficients
     def test_set_coeff(self):
         harmonic = improper.harmonic();
-        harmonic.set_coeff('dihedralA', k=30.0, chi=1.57)
+        harmonic.set_coeff('improperA', k=30.0, chi=1.57)
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);

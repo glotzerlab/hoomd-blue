@@ -167,7 +167,6 @@ void SFCPackUpdaterGPU::getSortedOrder3D()
 
     // sanity checks
     assert(m_gpu_particle_bins.getNumElements() >= m_pdata->getN());
-    assert(m_traversal_order.getNumElements() == m_grid*m_grid*m_grid);
 
     // access arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);

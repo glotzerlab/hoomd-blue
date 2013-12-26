@@ -619,14 +619,10 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
  */
 void NeighborList::addOneThreeExclusionsFromTopology()
     {
-    m_exec_conf->msg->error() << "Feature temporarily unsupported" << std::endl;
-    throw std::runtime_error("Unsupported feature.");
-
-    #if 0
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getN();
+    const unsigned int myNAtoms = m_pdata->getNGlobal();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
-    const unsigned int nBonds = bond_data->getN();
+    const unsigned int nBonds = bond_data->getNGlobal();
 
     if (nBonds == 0)
         {
@@ -641,11 +637,11 @@ void NeighborList::addOneThreeExclusionsFromTopology()
     for (unsigned int i = 0; i < nBonds; i++)
         {
         // loop over all bonds and make a 1D exlcusion map
-        uint2 = bond_data->getMembersByTag(i);
+        Bond bondi = bond_data->getGroupByTag(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
-        // next, incrememt the number of bonds, and update the tags
+        // next, incremement the number of bonds, and update the tags
         const unsigned int nBondsA = ++localBondList[tagA*MAXNBONDS];
         const unsigned int nBondsB = ++localBondList[tagB*MAXNBONDS];
 
@@ -686,7 +682,6 @@ void NeighborList::addOneThreeExclusionsFromTopology()
         }
     // free temp memory
     delete[] localBondList;
-    #endif
     }
 
 /*! Add topologically derived exclusions for dihedrals
@@ -700,14 +695,10 @@ void NeighborList::addOneThreeExclusionsFromTopology()
  */
 void NeighborList::addOneFourExclusionsFromTopology()
     {
-    m_exec_conf->msg->error() << "Feature temporarily unsupported" << std::endl;
-    throw std::runtime_error("Unsupported feature.");
-
-#if 0
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getN();
+    const unsigned int myNAtoms = m_pdata->getNGlobal();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
-    const unsigned int nBonds = bond_data->getN();
+    const unsigned int nBonds = bond_data->getNGlobal();
 
     if (nBonds == 0)
         {
@@ -722,7 +713,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     for (unsigned int i = 0; i < nBonds; i++)
         {
         // loop over all bonds and make a 1D exlcusion map
-        Bond bondi = bond_data->getBond(i);
+        Bond bondi = bond_data->getGroupByTag(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
@@ -751,7 +742,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     //  loop over all bonds
     for (unsigned int i = 0; i < nBonds; i++)
         {
-        Bond bondi = bond_data->getBond(i);
+        Bond bondi = bond_data->getGroupByTag(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
@@ -776,7 +767,6 @@ void NeighborList::addOneFourExclusionsFromTopology()
         }
     // free temp memory
     delete[] localBondList;
-    #endif
     }
 
 

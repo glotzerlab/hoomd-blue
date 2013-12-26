@@ -65,7 +65,7 @@ import sys;
 # \returns the number of MPI ranks in this partition
 # \note Returns 1 in non-mpi builds
 def get_num_ranks():
-    if HOOMD.is_MPI_available():
+    if hoomd.is_MPI_available():
         if init.is_initialized():
             return globals.exec_conf.getNRanks();
         else:
