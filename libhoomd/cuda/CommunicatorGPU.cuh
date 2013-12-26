@@ -314,6 +314,8 @@ void gpu_mark_bonded_ghosts(
     unsigned int n_groups,
     members_t *d_groups,
     ranks_t *d_ranks,
+    const Scalar4 *d_postype,
+    const BoxDim& box,
     const unsigned int *d_rtag,
     unsigned int *d_plan,
     Index3D& di,

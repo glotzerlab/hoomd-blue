@@ -1149,6 +1149,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
         ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
         ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_pos(m_gpu_comm.m_pdata->getPositions(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_plan(plans, access_location::device, access_mode::readwrite);
 
         Index3D di = m_gpu_comm.m_pdata->getDomainDecomposition()->getDomainIndexer();
@@ -1158,6 +1159,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
             m_gdata->getN(),
             d_groups.data,
             d_group_ranks.data,
+            d_pos.data,
+            m_gpu_comm.m_pdata->getBox(),
             d_rtag.data,
             d_plan.data,
             di,

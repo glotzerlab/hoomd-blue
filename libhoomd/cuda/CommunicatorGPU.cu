@@ -1400,6 +1400,8 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
     unsigned int n_groups,
     members_t *d_groups,
     ranks_t *d_ranks,
+    const Scalar4 *d_postype,
+    const BoxDim box,
     const unsigned int *d_rtag,
     unsigned int *d_plan,
     Index3D di,
@@ -1421,6 +1423,7 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
     for (unsigned int i = 0; i < group_size; ++i)
         {
         unsigned int rank = r.idx[i];
+
         if (rank != my_rank)
             {
             // incomplete group
@@ -1452,7 +1455,38 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
                 unsigned int rtag_j = d_rtag[tag_j];
 
                 if (rtag_j != NOT_LOCAL)
+                    {
+                    // disambiguate between positive and negative directions
+                    // based on position (this is necessary for boundary conditions
+                    // to be applied correctly)
+                    if (flags & send_east && flags & send_west)
+                        {
+                        Scalar4 postype = d_postype[rtag_j];
+                        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+                        Scalar3 f = box.makeFraction(pos);
+                        // remove one of the flags
+                        flags &= ~(f.x > Scalar(0.5) ? send_west : send_east);
+                        }
+                    if (flags & send_north && flags & send_south)
+                        {
+                        Scalar4 postype = d_postype[rtag_j];
+                        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+                        Scalar3 f = box.makeFraction(pos);
+                        // remove one of the flags
+                        flags &= ~(f.y > Scalar(0.5) ? send_south : send_north);
+                        } 
+                    if (flags & send_up && flags & send_down)
+                        {
+                        Scalar4 postype = d_postype[rtag_j];
+                        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+                        Scalar3 f = box.makeFraction(pos);
+                        // remove one of the flags
+                        flags &= ~(f.z > Scalar(0.5) ? send_down : send_up);
+                        } 
+
+                    // set ghost plans
                     atomicOr(&d_plan[rtag_j], flags);
+                    }
                 }
             }
         }
@@ -1463,6 +1497,8 @@ void gpu_mark_bonded_ghosts(
     unsigned int n_groups,
     members_t *d_groups,
     ranks_t *d_ranks,
+    const Scalar4 *d_postype,
+    const BoxDim& box,
     const unsigned int *d_rtag,
     unsigned int *d_plan,
     Index3D& di,
@@ -1476,6 +1512,8 @@ void gpu_mark_bonded_ghosts(
         n_groups,
         d_groups,
         d_ranks,
+        d_postype,
+        box,
         d_rtag,
         d_plan,
         di,
@@ -1573,6 +1611,8 @@ template void gpu_mark_bonded_ghosts<2>(
     unsigned int n_groups,
     group_storage<2> *d_groups,
     group_storage<2> *d_ranks,
+    const Scalar4 *d_postype,
+    const BoxDim& box,
     const unsigned int *d_rtag,
     unsigned int *d_plan,
     Index3D& di,
@@ -1663,6 +1703,8 @@ template void gpu_mark_bonded_ghosts<3>(
     unsigned int n_groups,
     group_storage<3> *d_groups,
     group_storage<3> *d_ranks,
+    const Scalar4 *d_postype,
+    const BoxDim& box,
     const unsigned int *d_rtag,
     unsigned int *d_plan,
     Index3D& di,
@@ -1753,6 +1795,8 @@ template void gpu_mark_bonded_ghosts<4>(
     unsigned int n_groups,
     group_storage<4> *d_groups,
     group_storage<4> *d_ranks,
+    const Scalar4 *d_postype,
+    const BoxDim& box,
     const unsigned int *d_rtag,
     unsigned int *d_plan,
     Index3D& di,
