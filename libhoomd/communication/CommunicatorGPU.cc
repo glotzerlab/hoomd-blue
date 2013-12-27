@@ -1257,7 +1257,7 @@ void CommunicatorGPU::migrateParticles()
 
             // get temporary buffers
             unsigned int nsend = m_gpu_sendbuf.size();
-            CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
+            const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
             ScopedAllocation<pdata_element> d_in_copy(alloc, nsend);
             ScopedAllocation<unsigned int> d_tmp(alloc, nsend);
 
@@ -1266,7 +1266,6 @@ void CommunicatorGPU::migrateParticles()
                        d_comm_flags.data,
                        di,
                        mypos,
-                       m_pdata->getBox(),
                        d_send_keys.data,
                        d_begin.data,
                        d_end.data,
@@ -1274,8 +1273,8 @@ void CommunicatorGPU::migrateParticles()
                        m_n_unique_neigh,
                        m_comm_mask[stage],
                        m_mgpu_context,
-                       d_tmp,
-                       d_in_copy);
+                       d_tmp.data,
+                       d_in_copy.data);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
