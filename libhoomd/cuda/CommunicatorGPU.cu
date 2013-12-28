@@ -1474,7 +1474,7 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
                         Scalar3 f = box.makeFraction(pos);
                         // remove one of the flags
                         flags &= ~(f.y > Scalar(0.5) ? send_south : send_north);
-                        } 
+                        }
                     if (flags & send_up && flags & send_down)
                         {
                         Scalar4 postype = d_postype[rtag_j];
@@ -1482,7 +1482,7 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
                         Scalar3 f = box.makeFraction(pos);
                         // remove one of the flags
                         flags &= ~(f.z > Scalar(0.5) ? send_down : send_up);
-                        } 
+                        }
 
                     // set ghost plans
                     atomicOr(&d_plan[rtag_j], flags);

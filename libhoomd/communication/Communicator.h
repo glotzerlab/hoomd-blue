@@ -92,6 +92,9 @@ class Profiler;
 class BoxDim;
 class ParticleData;
 
+// in 3d, there are 27 neighbors max.
+#define NEIGH_MAX 27
+
 //! Optional flags to enable communication of certain ParticleData fields for ghost particles
 struct comm_flag
     {
@@ -157,6 +160,15 @@ struct comm_flags_bitwise_or
 
         return return_value;
         }
+    };
+
+//! A compact storage for rank information
+template<typename ranks_t>
+struct rank_element
+    {
+    ranks_t ranks;
+    unsigned int mask;
+    unsigned int tag;
     };
 
 
@@ -377,6 +389,47 @@ class Communicator
         //@}
 
     protected:
+        //! Helper class to perform the communication tasks related to bonded groups
+        template<class group_data>
+        class GroupCommunicator
+            {
+            public:
+                typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
+                typedef typename group_data::packed_t group_element_t;
+
+                //! Constructor
+                GroupCommunicator(Communicator& comm, boost::shared_ptr<group_data> gdata);
+
+                //! Migrate groups
+                /*! \param incomplete If true, mark all groups that have non-local members and update local
+                 *         member rank information. Otherwise, mark only groups flagged for communication
+                 *         in particle data
+                 * 
+                 * A group is marked for sending by setting its rtag to GROUP_NOT_LOCAL, and by updating
+                 * the rank information with the destination ranks (or the local ranks if incomplete=true)
+                 */
+                void migrateGroups(bool incomplete);
+
+                //! Mark ghost particles
+                /* All particles that need to be sent as ghosts because they are members
+                 * of incomplete groups are marked, and destination ranks are compute accordingly.
+                 *
+                 * \param plans Array of particle plans to write to
+                 * \param mask Mask for allowed sending directions
+                 */
+                void markGhostParticles(const GPUArray<unsigned int>& plans, unsigned int mask);
+
+            private:
+                Communicator& m_comm;                            //!< The outer class
+                boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
+                boost::shared_ptr<group_data> m_gdata;           //!< The group data
+
+                std::vector<rank_element_t> m_ranks_sendbuf;     //!< Send buffer for rank elements
+                std::vector<rank_element_t> m_ranks_recvbuf;     //!< Receive buffer for rank elements
+
+                std::vector<typename group_data::packed_t> m_groups_sendbuf;     //!< Send buffer for group elements
+                std::vector<typename group_data::packed_t> m_groups_recvbuf;     //!< Receive buffer for group elements
+            };
 
         //! Returns true if we are communicating particles along a given direction
         /*! \param dir Direction to return dimensions for
@@ -413,12 +466,20 @@ class Communicator
 
         unsigned int m_is_at_boundary[6];      //!< Array of flags indicating whether this box lies at a global boundary
 
+        GPUArray<unsigned int> m_neighbors;            //!< Neighbor ranks
+        GPUArray<unsigned int> m_unique_neighbors;     //!< Neighbor ranks w/duplicates removed
+        GPUArray<unsigned int> m_adj_mask;             //!< Adjacency mask for every neighbor
+        unsigned int m_nneigh;                         //!< Number of neighbors
+        unsigned int m_n_unique_neigh;                 //!< Number of unique neighbors
+        GPUArray<unsigned int> m_begin;                //!< Begin index for every neighbor in send buf
+        GPUArray<unsigned int> m_end;                  //!< End index for every neighbor in send buf
+
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
         GPUVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
         GPUVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
-        GPUVector<unsigned char> m_plan_copybuf;  //!< Buffer for particle plans
+        GPUVector<unsigned int> m_plan_copybuf;  //!< Buffer for particle plans
         GPUVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
 
         GPUVector<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts
@@ -428,9 +489,8 @@ class Communicator
         BoxDim m_global_box;                     //!< Global simulation box
         Scalar m_r_ghost;                        //!< Width of ghost layer
         Scalar m_r_buff;                         //!< Width of skin layer
-        const float m_resize_factor;                //!< Factor used for amortized array resizing
 
-        GPUVector<unsigned char> m_plan;         //!< Array of per-direction flags that determine the sending route
+        GPUVector<unsigned int> m_plan;          //!< Array of per-direction flags that determine the sending route
 
         boost::signals2::signal<bool(unsigned int timestep), migrate_logical_or>
             m_migrate_requests; //!< List of functions that may request particle migration
@@ -476,10 +536,26 @@ class Communicator
         std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent
         std::vector<pdata_element> m_recvbuf;  //!< Buffer for particles that are received
 
+        /* Communication of bonded groups */
+        GroupCommunicator<BondData> m_bond_comm;    //!< Communication helper for bonds
+        friend class GroupCommunicator<BondData>;
+
+        GroupCommunicator<AngleData> m_angle_comm;  //!< Communication helper for angles
+        friend class GroupCommunicator<AngleData>;
+
+        GroupCommunicator<DihedralData> m_dihedral_comm;  //!< Communication helper for dihedrals
+        friend class GroupCommunicator<DihedralData>;
+
+        GroupCommunicator<ImproperData> m_improper_comm;  //!< Communication helper for impropers
+        friend class GroupCommunicator<ImproperData>;
+
         bool m_is_first_step;                    //!< True if no communication has yet occured
 
         //! Connection to the signal notifying when particles are resorted
         boost::signals2::connection m_sort_connection;
+
+        //! Helper function to initialize adjacency arrays
+        void initializeNeighborArrays();
     };
 
 

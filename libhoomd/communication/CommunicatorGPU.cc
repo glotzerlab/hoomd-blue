@@ -69,8 +69,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<DomainDecomposition> decomposition)
     : Communicator(sysdef, decomposition),
-      m_nneigh(0),
-      m_n_unique_neigh(0),
       m_max_stages(1),
       m_num_stages(0),
       m_comm_mask(0),
@@ -101,9 +99,6 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // allocate memory
     allocateBuffers();
 
-    // initialize data
-    initializeNeighborArrays();
-
     // initialize communciation stages
     initializeCommunicationStages();
 
@@ -112,6 +107,12 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     // create at ModernGPU context
     m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+
+    GPUArray<unsigned int> begin(NEIGH_MAX,m_exec_conf,true);
+    m_begin.swap(begin);
+
+    GPUArray<unsigned int> end(NEIGH_MAX,m_exec_conf,true);
+    m_end.swap(end);
     }
 
 //! Destructor
@@ -146,22 +147,6 @@ void CommunicatorGPU::allocateBuffers()
     // Key for every particle sent
     GPUVector<unsigned int> send_keys(m_exec_conf);
     m_send_keys.swap(send_keys);
-
-    GPUArray<unsigned int> neighbors(NEIGH_MAX,m_exec_conf);
-    m_neighbors.swap(neighbors);
-
-    GPUArray<unsigned int> unique_neighbors(NEIGH_MAX,m_exec_conf);
-    m_unique_neighbors.swap(unique_neighbors);
-
-    // neighbor masks
-    GPUArray<unsigned int> adj_mask(NEIGH_MAX, m_exec_conf);
-    m_adj_mask.swap(adj_mask);
-
-    GPUArray<unsigned int> begin(NEIGH_MAX,m_exec_conf,true);
-    m_begin.swap(begin);
-
-    GPUArray<unsigned int> end(NEIGH_MAX,m_exec_conf,true);
-    m_end.swap(end);
 
     /*
      * Ghost communication
@@ -220,97 +205,6 @@ void CommunicatorGPU::allocateBuffers()
 
     GPUVector<unsigned int> neigh_counts(m_exec_conf);
     m_neigh_counts.swap(neigh_counts);
-    }
-
-void CommunicatorGPU::initializeNeighborArrays()
-    {
-    Index3D di= m_decomposition->getDomainIndexer();
-
-    uint3 mypos = di.getTriple(m_exec_conf->getRank());
-    int l = mypos.x;
-    int m = mypos.y;
-    int n = mypos.z;
-
-    ArrayHandle<unsigned int> h_neighbors(m_neighbors, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_adj_mask(m_adj_mask, access_location::host, access_mode::overwrite);
-
-    m_nneigh = 0;
-
-    // loop over neighbors
-    for (int ix=-1; ix <= 1; ix++)
-        {
-        int i = ix + l;
-        if (i == (int)di.getW())
-            i = 0;
-        else if (i < 0)
-            i += di.getW();
-
-        // only if communicating along x-direction
-        if (ix && di.getW() == 1) continue;
-
-        for (int iy=-1; iy <= 1; iy++)
-            {
-            int j = iy + m;
-
-            if (j == (int)di.getH())
-                j = 0;
-            else if (j < 0)
-                j += di.getH();
-
-            // only if communicating along y-direction
-            if (iy && di.getH() == 1) continue;
-
-            for (int iz=-1; iz <= 1; iz++)
-                {
-                int k = iz + n;
-
-                if (k == (int)di.getD())
-                    k = 0;
-                else if (k < 0)
-                    k += di.getD();
-
-                // only if communicating along z-direction
-                if (iz && di.getD() == 1) continue;
-
-                // exclude ourselves
-                if (!ix && !iy && !iz) continue;
-
-                unsigned int dir = ((iz+1)*3+(iy+1))*3+(ix + 1);
-                unsigned int mask = 1 << dir;
-
-                unsigned int neighbor = di(i,j,k);
-                h_neighbors.data[m_nneigh] = neighbor;
-                h_adj_mask.data[m_nneigh] = mask;
-                m_nneigh++;
-                }
-            }
-        }
-
-    ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::overwrite);
-
-    // filter neighbors, combining adjacency masks
-    std::map<unsigned int, unsigned int> neigh_map;
-    for (unsigned int i = 0; i < m_nneigh; ++i)
-        {
-        unsigned int m = 0;
-
-        for (unsigned int j = 0; j < m_nneigh; ++j)
-            if (h_neighbors.data[j] == h_neighbors.data[i])
-                m |= h_adj_mask.data[j];
-
-        // std::map inserts the same key only once
-        neigh_map.insert(std::make_pair(h_neighbors.data[i], m));
-        }
-
-    m_n_unique_neigh = neigh_map.size();
-
-    n = 0;
-    for (std::map<unsigned int, unsigned int>::iterator it = neigh_map.begin(); it != neigh_map.end(); ++it)
-        {
-        h_unique_neighbors.data[n] = it->first;
-        h_adj_mask.data[n] = it->second;
-        n++;
-        }
     }
 
 void CommunicatorGPU::initializeCommunicationStages()

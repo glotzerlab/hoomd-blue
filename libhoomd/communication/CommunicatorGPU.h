@@ -60,9 +60,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #ifdef ENABLE_CUDA
 
-// in 3d, there are 27 neighbors max.
-#define NEIGH_MAX 27
-
 #include "Communicator.h"
 
 #include "CommunicatorGPU.cuh"
@@ -72,15 +69,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \ingroup communication
 */
-
-//! A compact storage for rank information
-template<typename ranks_t>
-struct rank_element
-    {
-    ranks_t ranks;
-    unsigned int mask;
-    unsigned int tag;
-    };
 
 //! Class that handles MPI communication (GPU version)
 /*! CommunicatorGPU is the GPU implementation of the base communication class.
@@ -173,14 +161,6 @@ class CommunicatorGPU : public Communicator
 
     private:
         /* General communication */
-        GPUArray<unsigned int> m_begin;                //!< Begin index for every neighbor in send buf
-        GPUArray<unsigned int> m_end;                  //!< End index for every neighbor in send buf
-        GPUArray<unsigned int> m_adj_mask;             //!< Adjacency mask for every neighbor
-        GPUArray<unsigned int> m_neighbors;            //!< Neighbor ranks
-        GPUArray<unsigned int> m_unique_neighbors;     //!< Neighbor ranks w/duplicates removed
-        unsigned int m_nneigh;                         //!< Number of neighbors
-        unsigned int m_n_unique_neigh;                 //!< Number of unique neighbors
-
         unsigned int m_max_stages;                     //!< Maximum number of (dependent) communication stages
         unsigned int m_num_stages;                     //!< Number of stages
         std::vector<unsigned int> m_comm_mask;         //!< Communication mask per stage
@@ -246,9 +226,6 @@ class CommunicatorGPU : public Communicator
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
-
-        //! Helper function to initialize neighbor arrays
-        void initializeNeighborArrays();
 
         //! Helper function to set up communication stages
         void initializeCommunicationStages();
