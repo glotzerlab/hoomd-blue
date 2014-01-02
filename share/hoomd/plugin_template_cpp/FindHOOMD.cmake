@@ -119,6 +119,7 @@ foreach(_line ${_hoomd_config_h_lines})
 endforeach()
 
 include_directories(${HOOMD_INCLUDE_DIR})
+include_directories(${HOOMD_INCLUDE_DIR}/hoomd)
 
 # run all of HOOMD's generic lib setup scripts
 set(CMAKE_MODULE_PATH ${HOOMD_ROOT}/share/hoomd/CMake/cuda

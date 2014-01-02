@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "BoxDim.h"
 
-#include "moderngpu/util/mgpucontext.h"
+#include "util/mgpucontext.h"
 
 /*! \file SFCPackUpdaterGPU.cuh
     \brief Defines GPU functions for generating the space-filling curve sorted order on the GPU. Used by SFCPackUpdaterGPU.

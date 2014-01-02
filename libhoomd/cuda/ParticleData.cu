@@ -65,7 +65,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
 
-#include "moderngpu/kernels/scan.cuh"
+#include "kernels/scan.cuh"
 
 //! A tuple of pdata pointers
 typedef thrust::tuple <

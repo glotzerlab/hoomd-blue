@@ -54,7 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the helper functions (GPU version) for updating the GPU bonded group tables
  */
 
-#include "moderngpu/util/mgpucontext.h"
+#include "util/mgpucontext.h"
 
 #ifndef __BONDED_GROUP_DATA_CUH__
 #define __BONDED_GROUP_DATA_CUH__

@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Index1D.h"
 
-#include "moderngpu/util/mgpucontext.h"
+#include "util/mgpucontext.h"
 
 #ifdef NVCC
 //! The flags used for indicating the itinerary of a particle

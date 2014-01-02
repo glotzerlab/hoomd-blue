@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #include "BoxDim.h"
 
-#include "moderngpu/util/mgpucontext.h"
+#include "util/mgpucontext.h"
 
 /*! \file ParticleData.cuh
     \brief Declares GPU kernel code and data structure functions used by ParticleData

@@ -67,14 +67,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/iterator/zip_iterator.h>
 
 // moderngpu
-#include "moderngpu/util/mgpucontext.h"
-#include "moderngpu/device/loadstore.cuh"
-#include "moderngpu/device/launchbox.cuh"
-#include "moderngpu/device/ctaloadbalance.cuh"
-#include "moderngpu/kernels/localitysort.cuh"
-#include "moderngpu/kernels/search.cuh"
-#include "moderngpu/kernels/scan.cuh"
-#include "moderngpu/kernels/sortedsearch.cuh"
+#include "util/mgpucontext.h"
+#include "device/loadstore.cuh"
+#include "device/launchbox.cuh"
+#include "device/ctaloadbalance.cuh"
+#include "kernels/localitysort.cuh"
+#include "kernels/search.cuh"
+#include "kernels/scan.cuh"
+#include "kernels/sortedsearch.cuh"
 
 using namespace thrust;
 

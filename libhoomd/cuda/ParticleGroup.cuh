@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-#include "moderngpu/util/mgpucontext.h"
+#include "util/mgpucontext.h"
 
 /*! \file ParticleGroup.cuh
     \brief Contains GPU kernel code used by ParticleGroup
