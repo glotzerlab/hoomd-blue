@@ -298,6 +298,12 @@ class Communicator
             m_r_buff = r_buff;
             }
 
+        //! Return current skin layer width
+        Scalar getRBuff()
+            {
+            return m_r_buff;
+            }
+
         //! Get the ghost communication flags
         CommFlags getFlags() { return m_flags; }
 
