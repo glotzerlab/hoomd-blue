@@ -7,6 +7,10 @@ using namespace boost::python;
 
 #include "Autotuner.h"
 
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 using namespace std;
 
 /*! \file Autotuner.cc
@@ -230,44 +234,77 @@ void Autotuner::end()
 */
 unsigned int Autotuner::computeOptimalParameter()
     {
+    bool is_root = !m_exec_conf->getRank();
+
+    #ifdef ENABLE_MPI
+    unsigned int nranks = m_exec_conf->getNRanks();
+    #endif
+
     // start by computing the median for each element
     std::vector<float> v;
     for (unsigned int i = 0; i < m_parameters.size(); i++)
         {
         v = m_samples[i];
-        size_t n = v.size() / 2;
-        nth_element(v.begin(), v.begin()+n, v.end());
-        m_sample_median[i] = v[n];
+        #ifdef ENABLE_MPI
+        if (nranks)
+            {
+            // combine samples from all ranks on rank zero
+            std::vector< std::vector<float> > all_v;
+            MPI_Barrier(m_exec_conf->getMPICommunicator());
+            gather_v(v, all_v, 0, m_exec_conf->getMPICommunicator());
+            if (is_root)
+                {
+                v.clear();
+                assert(all_v.size() == nranks);
+                for (unsigned int j = 0; j < nranks; ++j)
+                    v.insert(v.end(), all_v[j].begin(), all_v[j].end());
+                }
+            }
+        #endif
+        if (is_root)
+            {
+            size_t n = v.size() / 2;
+            nth_element(v.begin(), v.begin()+n, v.end());
+            m_sample_median[i] = v[n];
+            }
         }
 
-    // now find the minimum and maximum times in the medians
-    float min = m_sample_median[0];
-    unsigned int min_idx = 0;
-    float max = m_sample_median[0];
-    unsigned int max_idx = 0;
+    unsigned int opt;
 
-    for (unsigned int i = 1; i < m_parameters.size(); i++)
+    if (is_root)
         {
-        if (m_sample_median[i] < min)
+        // now find the minimum and maximum times in the medians
+        float min = m_sample_median[0];
+        unsigned int min_idx = 0;
+        float max = m_sample_median[0];
+        unsigned int max_idx = 0;
+
+        for (unsigned int i = 1; i < m_parameters.size(); i++)
             {
-            min = m_sample_median[i];
-            min_idx = i;
+            if (m_sample_median[i] < min)
+                {
+                min = m_sample_median[i];
+                min_idx = i;
+                }
+            if (m_sample_median[i] > max)
+                {
+                max = m_sample_median[i];
+                max_idx = i;
+                }
             }
-        if (m_sample_median[i] > max)
-            {
-            max = m_sample_median[i];
-            max_idx = i;
-            }
+
+        // get the optimal param
+        opt = m_parameters[min_idx];
+        unsigned int percent = int(max/min * 100.0f)-100;
+
+        // print stats
+        m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " found optimal parameter " << opt << " which is " << percent
+                                    << " percent faster than " << m_parameters[max_idx] << "." << endl;
         }
 
-    // get the optimal param
-    unsigned int opt = m_parameters[min_idx];
-    unsigned int percent = int(max/min * 100.0f)-100;
-
-    // print stats
-    m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " found optimal parameter " << opt << " which is " << percent
-                                << " percent faster than " << m_parameters[max_idx] << "." << endl;
-
+    #ifdef ENABLE_MPI
+    if (nranks) bcast(opt, 0, m_exec_conf->getMPICommunicator());
+    #endif
     return opt;
     }
 

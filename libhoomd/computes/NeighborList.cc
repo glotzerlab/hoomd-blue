@@ -1296,6 +1296,15 @@ bool NeighborList::checkConditions()
         result = true;
         }
 
+    #ifdef ENABLE_MPI
+    // synchronize neighbor list builds
+    if (m_pdata->getDomainDecomposition())
+        {
+        int res = result ? 1 : 0;
+        MPI_Allreduce(MPI_IN_PLACE, &res, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
+        result = res;
+        }
+    #endif
     return result;
     }
 
