@@ -672,7 +672,7 @@ __global__ void gpu_pack_wrap_kernel(
     uint2 idx_adj = d_ghost_idx_adj[buf_idx];
     unsigned int idx = idx_adj.x;
     unsigned int adj = idx_adj.y;
-   
+
     // get direction triple from adjacency element
     // wrap
     uchar3 periodic = make_uchar3(0,0,0);
@@ -727,7 +727,7 @@ __global__ void gpu_pack_wrap_kernel(
             periodic.z = 1;
             }
         }
- 
+
     box.setPeriodic(periodic);
     int3 img = make_int3(0,0,0);
     Scalar4 postype = in[idx];
@@ -776,7 +776,20 @@ void gpu_communicator_initialize_cache_config()
     cudaFuncSetCacheConfig(gpu_pack_kernel<Scalar>, cudaFuncCachePreferL1);
     cudaFuncSetCacheConfig(gpu_pack_kernel<Scalar4>, cudaFuncCachePreferL1);
     cudaFuncSetCacheConfig(gpu_pack_kernel<unsigned int>, cudaFuncCachePreferL1);
+    cudaFuncSetCacheConfig(gpu_pack_wrap_kernel, cudaFuncCachePreferL1);
     }
+
+template<typename T>
+__global__ void gpu_unpack_kernel(
+    unsigned int n_in,
+    const T *in,
+    T *out)
+    {
+    unsigned int buf_idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (buf_idx >= n_in) return;
+    out[buf_idx] = in[buf_idx];
+    }
+
 
 void gpu_exchange_ghosts_copy_buf(
     unsigned int n_recv,
@@ -799,12 +812,14 @@ void gpu_exchange_ghosts_copy_buf(
     bool send_diameter,
     bool send_orientation)
     {
-    if (send_tag) cudaMemcpyAsync(d_tag, d_tag_recvbuf, n_recv*sizeof(unsigned int), cudaMemcpyDeviceToDevice,0);
-    if (send_pos) cudaMemcpyAsync(d_pos, d_pos_recvbuf, n_recv*sizeof(Scalar4), cudaMemcpyDeviceToDevice,0);
-    if (send_vel) cudaMemcpyAsync(d_vel, d_vel_recvbuf, n_recv*sizeof(Scalar4), cudaMemcpyDeviceToDevice,0);
-    if (send_charge) cudaMemcpyAsync(d_charge, d_charge_recvbuf, n_recv*sizeof(Scalar), cudaMemcpyDeviceToDevice,0);
-    if (send_diameter) cudaMemcpyAsync(d_diameter, d_diameter_recvbuf, n_recv*sizeof(Scalar), cudaMemcpyDeviceToDevice,0);
-    if (send_orientation) cudaMemcpyAsync(d_orientation, d_orientation_recvbuf, n_recv*sizeof(Scalar4), cudaMemcpyDeviceToDevice,0);
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_recv/block_size + 1;
+    if (send_tag) gpu_unpack_kernel<unsigned int><<<n_blocks, block_size>>>(n_recv, d_tag_recvbuf, d_tag);
+    if (send_pos) gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_pos_recvbuf, d_pos);
+    if (send_vel) gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_vel_recvbuf, d_vel);
+    if (send_charge) gpu_unpack_kernel<Scalar><<<n_blocks, block_size>>>(n_recv, d_charge_recvbuf, d_charge);
+    if (send_diameter) gpu_unpack_kernel<Scalar><<<n_blocks, block_size>>>(n_recv, d_diameter_recvbuf, d_diameter);
+    if (send_orientation) gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_orientation_recvbuf, d_orientation);
     }
 
 void gpu_compute_ghost_rtags(

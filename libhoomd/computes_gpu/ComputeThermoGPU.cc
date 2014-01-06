@@ -181,10 +181,10 @@ void ComputeThermoGPU::computeProperties()
         ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
 
         if (m_prof)
-            m_prof->push("MPI Allreduce");
+            m_prof->push(m_exec_conf,"MPI Allreduce");
         MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR, MPI_SUM, mpi_comm);
         if (m_prof)
-                m_prof->pop();
+                m_prof->pop(m_exec_conf);
         }
 #endif // ENABLE_MPI
 
