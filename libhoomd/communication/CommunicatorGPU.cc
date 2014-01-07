@@ -113,12 +113,17 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     GPUArray<unsigned int> end(NEIGH_MAX,m_exec_conf,true);
     m_end.swap(end);
+
+    // create cuda event
+//    cudaEventCreate(&m_event, cudaEventBlockingSync | cudaEventDisableTiming);
+    cudaEventCreate(&m_event, cudaEventDisableTiming);
     }
 
 //! Destructor
 CommunicatorGPU::~CommunicatorGPU()
     {
     m_exec_conf->msg->notice(5) << "Destroying CommunicatorGPU";
+    cudaEventDestroy(m_event);
     }
 
 void CommunicatorGPU::allocateBuffers()
@@ -1931,6 +1936,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
     // main communication loop
     for (unsigned int stage = 0; stage < m_num_stages; ++stage)
         {
+        if (m_prof) m_prof->push(m_exec_conf,"pack");
             {
             // access particle data
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -1978,6 +1984,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
+        if (m_prof) m_prof->pop(m_exec_conf);
 
         /*
          * Ghost particle communication
@@ -2000,9 +2007,9 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
             #else
             // recv buffers
-            ArrayHandleAsync<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandleAsync<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::host, access_mode::overwrite);
-            ArrayHandleAsync<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::host, access_mode::overwrite);
 
             // send buffers
             ArrayHandleAsync<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::host, access_mode::read);
@@ -2011,9 +2018,10 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
             ArrayHandleAsync<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
             ArrayHandleAsync<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
- 
+
             // lump together into one synchronization call
-            cudaDeviceSynchronize();
+            cudaEventRecord(m_event);
+            cudaEventSynchronize(m_event);
             #endif
 
             // access send buffers
@@ -2133,6 +2141,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             for (unsigned int istage = 0; istage < stage; ++istage)
                 first_idx += m_n_recv_ghosts_tot[istage];
 
+        if (m_prof) m_prof->push(m_exec_conf,"unpack");
             {
             // access receive buffers
             ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf, access_location::device, access_mode::read);
@@ -2167,6 +2176,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
+        if (m_prof) m_prof->pop(m_exec_conf);
 
         } // end main communication loop
 
