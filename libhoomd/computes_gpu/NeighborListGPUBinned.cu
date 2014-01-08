@@ -381,7 +381,7 @@ inline void launcher(unsigned int *d_nlist,
               bool filter_body,
               unsigned int block_size)
     {
-    unsigned int shared_size;
+    unsigned int shared_size = 0;
 
     if (tpp == cur_tpp && cur_tpp != 0)
         {
@@ -402,7 +402,7 @@ inline void launcher(unsigned int *d_nlist,
                 grid.x = 65535;
                 }
 
-            shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+            if (sm < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
             gpu_compute_nlist_binned_shared_kernel<0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
@@ -442,7 +442,7 @@ inline void launcher(unsigned int *d_nlist,
                 grid.x = 65535;
                 }
 
-            shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+            if (sm < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
             gpu_compute_nlist_binned_shared_kernel<1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
@@ -482,7 +482,7 @@ inline void launcher(unsigned int *d_nlist,
                 grid.x = 65535;
                 }
 
-            shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+            if (sm < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
             gpu_compute_nlist_binned_shared_kernel<2,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
@@ -522,7 +522,7 @@ inline void launcher(unsigned int *d_nlist,
                 grid.x = 65535;
                 }
 
-            shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+            if (sm < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
             gpu_compute_nlist_binned_shared_kernel<3,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
