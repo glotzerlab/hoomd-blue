@@ -63,6 +63,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMPI.h"
 #include <boost/python.hpp>
 
+#include <boost/serialization/set.hpp>
+
 using namespace boost::python;
 
 //! Constructor
@@ -78,42 +80,143 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
       : m_exec_conf(exec_conf), m_mpi_comm(m_exec_conf->getMPICommunicator())
     {
     unsigned int rank = m_exec_conf->getRank();
+    unsigned int nranks = m_exec_conf->getNRanks();
+
+    // initialize node names
+    findCommonNodes();
+
+    m_max_n_node = 0;
+    m_twolevel = false;
+
+    // find out if we can do a node-level decomposition
+    initializeTwoLevel();
+
+    unsigned int nx_node =0, ny_node = 0, nz_node = 0;
+    unsigned int nx_intra = 0, ny_intra = 0, nz_intra = 0;
 
     if (rank == 0)
         {
-        bool found_decomposition = findDecomposition(L, nx, ny, nz);
-        if (! found_decomposition)
+        if (m_twolevel && !nx && !ny && !nz)
             {
-            m_exec_conf->msg->warning() << "Unable to find a decomposition with"
-                 << endl << "requested dimensions. Choosing default decomposition."
-                 << endl << endl;
+            // every node has the same number of ranks, so nranks == num_nodes * num_ranks_per_node
+            unsigned int n_nodes = m_nodes.size();
 
-            nx = ny = nz = 0;
-            findDecomposition(L, nx,ny,nz);
+            // subdivide the grid of nodes
+            findDecomposition(n_nodes, L, nx_node, ny_node, nz_node);
+
+            // dimensions of the intra-node grid
+            Scalar3 L_node = L/make_scalar3(nx_node, ny_node, nz_node);
+
+            // subdivide the local grid
+            findDecomposition(m_max_n_node, L_node, nx_intra, ny_intra, nz_intra);
+
+            nx = nx_node * nx_intra;
+            ny = ny_node * ny_intra;
+            nz = nz_node * nz_intra;
             }
+        else
+            {
+            m_twolevel = false;
+            bool found_decomposition = findDecomposition(nranks, L, nx, ny, nz);
+            if (! found_decomposition)
+                {
+                m_exec_conf->msg->warning() << "Unable to find a decomposition with"
+                     << endl << "requested dimensions. Choosing default decomposition."
+                     << endl << endl;
 
+                nx = ny = nz = 0;
+                findDecomposition(nranks, L, nx,ny,nz);
+                }
+            }
         m_nx = nx;
         m_ny = ny;
         m_nz = nz;
-       }
+        }
 
     // broadcast grid dimensions
-    bcast( m_nx, 0, m_mpi_comm);
-    bcast( m_ny, 0, m_mpi_comm);
-    bcast( m_nz, 0, m_mpi_comm);
-
-    // Print out information about the domain decomposition
-    m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = " << m_nx << " n_y = " << m_ny << " n_z = " << m_nz << "." << std::endl;
+    bcast(m_nx, 0, m_mpi_comm);
+    bcast(m_ny, 0, m_mpi_comm);
+    bcast(m_nz, 0, m_mpi_comm);
 
     // Initialize domain indexer
     m_index = Index3D(m_nx,m_ny,m_nz);
+
+    // map cartesian grid onto ranks
+    GPUArray<unsigned int> cart_ranks(nranks, m_exec_conf);
+    m_cart_ranks.swap(cart_ranks);
+    ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::overwrite);
+
+    if (m_twolevel)
+        {
+        bcast(nx_intra, 0, m_mpi_comm);
+        bcast(ny_intra, 0, m_mpi_comm);
+        bcast(nz_intra, 0, m_mpi_comm);
+
+        bcast(nx_node, 0, m_mpi_comm);
+        bcast(ny_node, 0, m_mpi_comm);
+        bcast(nz_node, 0, m_mpi_comm);
+
+        m_node_grid = Index3D(nx_node, ny_node, nz_node);
+        m_intra_node_grid = Index3D(nx_intra, ny_intra, nz_intra);
+
+        std::vector<unsigned int> node_ranks;
+        std::set<std::string>::iterator node_it = m_nodes.begin();
+
+        // iterate over node grid
+        for (unsigned int ix_node = 0; ix_node < m_node_grid.getW(); ix_node++)
+            for (unsigned int iy_node = 0; iy_node < m_node_grid.getH(); iy_node++)
+                for (unsigned int iz_node = 0; iz_node < m_node_grid.getD(); iz_node++)
+                    {
+                    // get ranks for this node
+                    typedef std::multimap<std::string, unsigned int> map_t;
+                    std::string node = *(node_it++);
+                    std::pair<map_t::iterator, map_t::iterator> p = m_node_map.equal_range(node);
+                    node_ranks.resize(m_max_n_node);
+                    for (unsigned int i = 0; i < m_max_n_node; ++i)
+                        {
+                        map_t::iterator it = p.first;
+                        node_ranks[i] = it->second;
+                        }
+
+                    // iterate over local ranks
+                    for (unsigned int ix_intra = 0; ix_intra < m_intra_node_grid.getW(); ix_intra++)
+                        for (unsigned int iy_intra = 0; iy_intra < m_intra_node_grid.getH(); iy_intra++)
+                            for (unsigned int iz_intra = 0; iz_intra < m_intra_node_grid.getD(); iz_intra++)
+                                {
+                                unsigned int ilocal = m_intra_node_grid(ix_intra, iy_intra, iz_intra);
+
+                                unsigned int ix = ix_node * ix_intra;
+                                unsigned int iy = iy_node * iy_intra;
+                                unsigned int iz = iz_node * iz_intra;
+
+                                unsigned int iglob = m_index(ix, iy, iz);
+
+                                // add rank to table
+                                h_cart_ranks.data[iglob] = node_ranks[ilocal];
+                                }
+                    }
+        } // twolevel
+    else
+        {
+        // simply map the global grid in sequential order to ranks
+        for (unsigned int iglob = 0; iglob < nranks; ++iglob)
+            h_cart_ranks.data[iglob] = iglob;
+        }
+
+    // Print out information about the domain decomposition
+    m_exec_conf->msg->notice(1) << "HOOMD-blue is using domain decomposition: n_x = "
+        << m_nx << " n_y = " << m_ny << " n_z = " << m_nz << "." << std::endl;
+
+    if (m_twolevel)
+        m_exec_conf->msg->notice(1) << "Local grid on a " << nx_node << " x " << ny_node << " x " << nz_node
+            << " grid of nodes: " << nx_intra << " x " << ny_intra << " x " << nz_intra << std::endl;
 
     // calculate position of this box in the domain grid
     m_grid_pos = m_index.getTriple(rank);
     }
 
 //! Find a domain decomposition with given parameters
-bool DomainDecomposition::findDecomposition(const Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz)
+bool DomainDecomposition::findDecomposition(unsigned int nranks, const Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz)
     {
     assert(L.x > 0);
     assert(L.y > 0);
@@ -121,7 +224,7 @@ bool DomainDecomposition::findDecomposition(const Scalar3 L, unsigned int& nx, u
 
     // Calulate the number of sub-domains in every direction
     // by minimizing the surface area between domains at constant number of domains
-    double min_surface_area = L.x*L.y*(double)(m_exec_conf->getNRanks()-1);
+    double min_surface_area = L.x*L.y*(double)(nranks-1);
 
     unsigned int nx_in = nx;
     unsigned int ny_in = ny;
@@ -130,7 +233,6 @@ bool DomainDecomposition::findDecomposition(const Scalar3 L, unsigned int& nx, u
     bool found_decomposition = (nx_in == 0 && ny_in == 0 && nz_in == 0);
 
     // initial guess
-    unsigned int nranks = m_exec_conf->getNRanks();
     nx = 1;
     ny = 1;
     nz = nranks;
@@ -270,6 +372,55 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar
     return rank;
     }
 
+void DomainDecomposition::findCommonNodes()
+    {
+    // get MPI node name
+    char procname[MPI_MAX_PROCESSOR_NAME];
+    int len;
+    MPI_Get_processor_name(procname, &len);
+    std::string s(procname, len);
+
+    // collect node names from all ranks on rank zero
+    std::vector<std::string> nodes;
+    gather_v(s, nodes, 0, m_exec_conf->getMPICommunicator());
+
+    // construct map of node names
+    if (m_exec_conf->getRank() == 0)
+        {
+        unsigned int nranks = m_exec_conf->getNRanks();
+        for (unsigned int r = 0; r < nranks; r++)
+            {
+            // insert into set
+            m_nodes.insert(nodes[r]);
+
+            // insert into map
+            m_node_map.insert(std::make_pair(nodes[r], r));
+            }
+        }
+
+    // broadcast to other ranks
+    bcast(m_nodes, 0, m_exec_conf->getMPICommunicator());
+    bcast(m_node_map, 0, m_exec_conf->getMPICommunicator());
+    }
+
+void DomainDecomposition::initializeTwoLevel()
+    {
+    typedef std::multimap<std::string, unsigned int> map_t;
+    m_twolevel = true;
+    m_max_n_node = 0;
+    for (std::set<std::string>::iterator it = m_nodes.begin(); it != m_nodes.end(); ++it)
+        {
+        std::pair<map_t::iterator, map_t::iterator> p = m_node_map.equal_range(*it);
+        unsigned int n_node = std::distance(p.first, p.second);
+
+        // if we have a non-uniform number of ranks per node use one-level decomposition
+        if (m_max_n_node != 0 && n_node != m_max_n_node)
+            m_twolevel = false;
+
+        if (n_node > m_max_n_node)
+            m_max_n_node = n_node;
+        }
+    }
 
 //! Export DomainDecomposition class to python
 void export_DomainDecomposition()
