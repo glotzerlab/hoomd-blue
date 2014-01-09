@@ -115,6 +115,16 @@ class Autotuner
             m_period = period;
             }
 
+        #ifdef ENABLE_MPI
+        //! Set flag for synchronization via MPI
+        /*! \param sync If true, synchronize parameters across all MPI ranks
+         */
+        void setSync(bool sync)
+            {
+            m_sync = sync;
+            }
+        #endif
+
     protected:
         unsigned int computeOptimalParameter();
 
@@ -148,6 +158,10 @@ class Autotuner
         #ifdef ENABLE_CUDA
         cudaEvent_t m_start;      //!< CUDA event for recording start times
         cudaEvent_t m_stop;       //!< CUDA event for recording end times
+        #endif
+
+        #ifdef ENABLE_MPI
+        bool m_sync;              //!< If true, synchronize results via MPI
         #endif
     };
 

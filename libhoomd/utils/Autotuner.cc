@@ -60,6 +60,10 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
     cudaEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
     #endif
+
+    #ifdef ENABLE_MPI
+    m_sync = false;
+    #endif
     }
 
 
@@ -121,6 +125,10 @@ Autotuner::Autotuner(unsigned int start,
     cudaEventCreate(&m_start);
     cudaEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
+    #endif
+
+    #ifdef ENABLE_MPI
+    m_sync = false;
     #endif
     }
 
@@ -234,10 +242,15 @@ void Autotuner::end()
 */
 unsigned int Autotuner::computeOptimalParameter()
     {
-    bool is_root = !m_exec_conf->getRank();
+    bool is_root = true;
 
     #ifdef ENABLE_MPI
-    unsigned int nranks = m_exec_conf->getNRanks();
+    unsigned int nranks = 0;
+    if (m_sync)
+        {
+        nranks = m_exec_conf->getNRanks();
+        is_root = !m_exec_conf->getRank();
+        }
     #endif
 
     // start by computing the median for each element
@@ -246,7 +259,7 @@ unsigned int Autotuner::computeOptimalParameter()
         {
         v = m_samples[i];
         #ifdef ENABLE_MPI
-        if (nranks)
+        if (m_sync && nranks)
             {
             // combine samples from all ranks on rank zero
             std::vector< std::vector<float> > all_v;
@@ -303,7 +316,7 @@ unsigned int Autotuner::computeOptimalParameter()
         }
 
     #ifdef ENABLE_MPI
-    if (nranks) bcast(opt, 0, m_exec_conf->getMPICommunicator());
+    if (m_sync && nranks) bcast(opt, 0, m_exec_conf->getMPICommunicator());
     #endif
     return opt;
     }
