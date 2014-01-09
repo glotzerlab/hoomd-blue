@@ -145,6 +145,10 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
         }
 
     m_tuner.reset(new Autotuner(valid_params, 5, 1e6, "pair_" + evaluator::getName(), this->m_exec_conf));
+    #ifdef ENABLE_MPI
+    // synchronize autotuner results across ranks
+    m_tuner->setSync(this->m_pdata->getDomainDecomposition());
+    #endif
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
