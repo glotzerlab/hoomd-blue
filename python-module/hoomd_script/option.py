@@ -87,6 +87,7 @@ class options:
         self.ny = None;
         self.nz = None;
         self.linear = None;
+        self.onelevel = None;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -103,7 +104,8 @@ class options:
                    nx=self.nx,
                    ny=self.ny,
                    nz=self.nz,
-                   linear=self.linear)
+                   linear=self.linear,
+                   onelevel=self.onelevel)
         return str(tmp);
 
 ## Parses command line options
@@ -126,6 +128,7 @@ def _parse_command_line():
     parser.add_option("--ny", dest="ny", help="(MPI) Number of domains along the y-direction");
     parser.add_option("--nz", dest="nz", help="(MPI) Number of domains along the z-direction");
     parser.add_option("--linear", dest="linear", action="store_true", default=False, help="(MPI only) Force a slab (1D) decomposition along the z-direction");
+    parser.add_option("--onelevel", dest="onelevel", action="store_true", default=False, help="(MPI only) Disable two-level (node-local) decomposition");
     parser.add_option("--user", dest="user", help="User options");
 
     (cmd_options, args) = parser.parse_args();
@@ -213,6 +216,7 @@ def _parse_command_line():
     globals.options.ny = cmd_options.ny;
     globals.options.nz = cmd_options.nz;
     globals.options.linear = cmd_options.linear
+    globals.options.onelevel = cmd_options.onelevel
 
     if cmd_options.notice_level is not None:
         globals.options.notice_level = cmd_options.notice_level;

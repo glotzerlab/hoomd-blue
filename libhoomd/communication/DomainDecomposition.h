@@ -93,7 +93,8 @@ class DomainDecomposition
                        Scalar3 L,
                        unsigned int nx = 0,
                        unsigned int ny = 0,
-                       unsigned int nz = 0);
+                       unsigned int nz = 0,
+                       bool twolevel = false);
 
         //! Calculate MPI ranks of neighboring domain.
         unsigned int getNeighborRank(unsigned int dir) const;

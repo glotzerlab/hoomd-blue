@@ -75,7 +75,8 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                                Scalar3 L,
                                unsigned int nx,
                                unsigned int ny,
-                               unsigned int nz
+                               unsigned int nz,
+                               bool twolevel
                                )
       : m_exec_conf(exec_conf), m_mpi_comm(m_exec_conf->getMPICommunicator())
     {
@@ -86,10 +87,13 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     findCommonNodes();
 
     m_max_n_node = 0;
-    m_twolevel = false;
+    m_twolevel = twolevel;
 
-    // find out if we can do a node-level decomposition
-    initializeTwoLevel();
+    if (twolevel)
+        {
+        // find out if we can do a node-level decomposition
+        initializeTwoLevel();
+        }
 
     unsigned int nx_node =0, ny_node = 0, nz_node = 0;
     unsigned int nx_intra = 0, ny_intra = 0, nz_intra = 0;
@@ -436,7 +440,7 @@ void DomainDecomposition::initializeTwoLevel()
 void export_DomainDecomposition()
     {
     class_<DomainDecomposition, boost::shared_ptr<DomainDecomposition>, boost::noncopyable >("DomainDecomposition",
-           init< boost::shared_ptr<ExecutionConfiguration>, Scalar3, unsigned int, unsigned int, unsigned int>())
+           init< boost::shared_ptr<ExecutionConfiguration>, Scalar3, unsigned int, unsigned int, unsigned int, bool>())
     ;
     }
 #endif // ENABLE_MPI

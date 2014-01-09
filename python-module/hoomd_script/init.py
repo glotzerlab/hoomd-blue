@@ -797,4 +797,4 @@ def _create_domain_decomposition(box):
             return None
 
         # initialize domain decomposition
-        return hoomd.DomainDecomposition(globals.exec_conf, box.getL(), nx, ny, nz);
+        return hoomd.DomainDecomposition(globals.exec_conf, box.getL(), nx, ny, nz, not globals.options.onelevel);
