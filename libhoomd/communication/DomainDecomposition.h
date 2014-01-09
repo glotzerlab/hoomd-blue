@@ -104,10 +104,23 @@ class DomainDecomposition
             return m_index;
             }
 
-        //! Get the cartesian ranks lookup table
+        //! Get the cartesian ranks lookup table (linear cartesian index -> rank)
         const GPUArray<unsigned int>& getCartRanks() const
             {
             return m_cart_ranks;
+            }
+
+        //! Get the inverse lookup table (rank -> linear cartesian index)
+        const GPUArray<unsigned int>& getInverseCartRanks() const
+            {
+            return m_cart_ranks_inv;
+            }
+
+
+        //! Get the grid position of this rank
+        uint3 getGridPos() const
+            {
+            return m_grid_pos;
             }
 
         //! Determines whether the local box shares a boundary with the global box
@@ -138,6 +151,7 @@ class DomainDecomposition
         bool m_twolevel;             //!< Whether we use a two-level decomposition
 
         GPUArray<unsigned int> m_cart_ranks; //!< A lookup-table to map the cartesian grid index onto ranks
+        GPUArray<unsigned int> m_cart_ranks_inv; //!< Inverse permutation of grid index lookup table
 
         //! Find a domain decomposition with given parameters
         bool findDecomposition(unsigned int nranks, Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz);

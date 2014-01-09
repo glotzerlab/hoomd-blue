@@ -94,9 +94,11 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
 
             ArrayHandle<unsigned int> h_unique_neighbors(m_comm.m_unique_neighbors, access_location:: host, access_mode::read);
 
+            ArrayHandle<unsigned int> h_cart_ranks(m_comm.m_pdata->getDomainDecomposition()->getCartRanks(), access_location::host, access_mode::read);
+
             Index3D di = m_comm.m_pdata->getDomainDecomposition()->getDomainIndexer();
+            uint3 my_pos = m_comm.m_pdata->getDomainDecomposition()->getGridPos();
             unsigned int my_rank = m_exec_conf->getRank();
-            uint3 my_pos = di.getTriple(my_rank);
 
             // mark groups whose member ranks need to be updated
             unsigned int n_groups = m_gdata->getN();
@@ -178,7 +180,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete)
                                 nk += di.getD();
 
                             // update ranks
-                            r.idx[i] = di(ni,nj,nk);
+                            r.idx[i] = h_cart_ranks.data[di(ni,nj,nk)];
 
                             update = true;
                             }
@@ -714,9 +716,12 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
         ArrayHandle<Scalar4> h_postype(m_comm.m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_plan(plans, access_location::host, access_mode::readwrite);
 
+        ArrayHandle<unsigned int> h_cart_ranks_inv(m_comm.m_pdata->getDomainDecomposition()->getInverseCartRanks(),
+            access_location::host, access_mode::read);
+
         Index3D di = m_comm.m_pdata->getDomainDecomposition()->getDomainIndexer();
         unsigned int my_rank = m_exec_conf->getRank();
-        uint3 my_pos = di.getTriple(my_rank);
+        uint3 my_pos = m_comm.m_pdata->getDomainDecomposition()->getGridPos();
         const BoxDim& box = m_comm.m_pdata->getBox();
 
         unsigned int ngroups = m_gdata->getN();
@@ -736,7 +741,7 @@ void Communicator::GroupCommunicator<group_data>::markGhostParticles(
                     // incomplete group
 
                     // send group to neighbor rank stored for that member
-                    uint3 neigh_pos = di.getTriple(rank);
+                    uint3 neigh_pos = di.getTriple(h_cart_ranks_inv.data[rank]);
 
                     // only neighbors are considered for communication
                     unsigned int flags = 0;
@@ -900,13 +905,14 @@ void Communicator::initializeNeighborArrays()
     {
     Index3D di= m_decomposition->getDomainIndexer();
 
-    uint3 mypos = di.getTriple(m_exec_conf->getRank());
+    uint3 mypos = m_decomposition->getGridPos();
     int l = mypos.x;
     int m = mypos.y;
     int n = mypos.z;
 
     ArrayHandle<unsigned int> h_neighbors(m_neighbors, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_adj_mask(m_adj_mask, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
 
     m_nneigh = 0;
 
@@ -952,7 +958,7 @@ void Communicator::initializeNeighborArrays()
                 unsigned int dir = ((iz+1)*3+(iy+1))*3+(ix + 1);
                 unsigned int mask = 1 << dir;
 
-                unsigned int neighbor = di(i,j,k);
+                unsigned int neighbor = h_cart_ranks.data[di(i,j,k)];
                 h_neighbors.data[m_nneigh] = neighbor;
                 h_adj_mask.data[m_nneigh] = mask;
                 m_nneigh++;

@@ -108,6 +108,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    const unsigned int *d_comm_flags,
                    const Index3D& di,
                    const uint3 my_pos,
+                   const unsigned int *d_cart_ranks,
                    unsigned int *d_keys,
                    unsigned int *d_begin,
                    unsigned int *d_end,
@@ -239,6 +240,7 @@ void gpu_mark_groups(
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks,
     bool incomplete,
     mgpu::ContextPtr mgpu_context);
 
@@ -320,6 +322,8 @@ void gpu_mark_bonded_ghosts(
     unsigned int *d_plan,
     Index3D& di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks_inv,
+    unsigned int my_rank,
     unsigned int mask);
 
 #endif // ENABLE_MPI

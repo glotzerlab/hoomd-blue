@@ -144,7 +144,12 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     // map cartesian grid onto ranks
     GPUArray<unsigned int> cart_ranks(nranks, m_exec_conf);
     m_cart_ranks.swap(cart_ranks);
+
+    GPUArray<unsigned int> cart_ranks_inv(nranks, m_exec_conf);
+    m_cart_ranks_inv.swap(cart_ranks_inv);
+
     ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_cart_ranks_inv(m_cart_ranks_inv, access_location::host, access_mode::overwrite);
 
     if (m_twolevel)
         {
@@ -159,7 +164,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         m_node_grid = Index3D(nx_node, ny_node, nz_node);
         m_intra_node_grid = Index3D(nx_intra, ny_intra, nz_intra);
 
-        std::vector<unsigned int> node_ranks;
+        std::vector<unsigned int> node_ranks(m_max_n_node);
         std::set<std::string>::iterator node_it = m_nodes.begin();
 
         // iterate over node grid
@@ -171,11 +176,10 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                     typedef std::multimap<std::string, unsigned int> map_t;
                     std::string node = *(node_it++);
                     std::pair<map_t::iterator, map_t::iterator> p = m_node_map.equal_range(node);
-                    node_ranks.resize(m_max_n_node);
+                    map_t::iterator it = p.first;
                     for (unsigned int i = 0; i < m_max_n_node; ++i)
                         {
-                        map_t::iterator it = p.first;
-                        node_ranks[i] = it->second;
+                        node_ranks[i] = (it++)->second;
                         }
 
                     // iterate over local ranks
@@ -185,14 +189,15 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                                 {
                                 unsigned int ilocal = m_intra_node_grid(ix_intra, iy_intra, iz_intra);
 
-                                unsigned int ix = ix_node * ix_intra;
-                                unsigned int iy = iy_node * iy_intra;
-                                unsigned int iz = iz_node * iz_intra;
+                                unsigned int ix = ix_node * nx_intra + ix_intra;
+                                unsigned int iy = iy_node * ny_intra + iy_intra;
+                                unsigned int iz = iz_node * nz_intra + iz_intra;
 
                                 unsigned int iglob = m_index(ix, iy, iz);
 
                                 // add rank to table
                                 h_cart_ranks.data[iglob] = node_ranks[ilocal];
+                                h_cart_ranks_inv.data[node_ranks[ilocal]] = iglob;
                                 }
                     }
         } // twolevel
@@ -200,7 +205,10 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         {
         // simply map the global grid in sequential order to ranks
         for (unsigned int iglob = 0; iglob < nranks; ++iglob)
+            {
             h_cart_ranks.data[iglob] = iglob;
+            h_cart_ranks_inv.data[iglob] = iglob;
+            }
         }
 
     // Print out information about the domain decomposition
@@ -211,8 +219,8 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         m_exec_conf->msg->notice(1) << "Local grid on a " << nx_node << " x " << ny_node << " x " << nz_node
             << " grid of nodes: " << nx_intra << " x " << ny_intra << " x " << nz_intra << std::endl;
 
-    // calculate position of this box in the domain grid
-    m_grid_pos = m_index.getTriple(rank);
+    // compute position of this box in the domain grid by reverse look-up
+    m_grid_pos = m_index.getTriple(h_cart_ranks_inv.data[rank]);
     }
 
 //! Find a domain decomposition with given parameters
@@ -296,7 +304,9 @@ unsigned int DomainDecomposition::getNeighborRank(unsigned int dir) const
     else if (kneigh == (int) m_nz)
         kneigh -= m_nz;
 
-    return m_index(ineigh, jneigh, kneigh);
+    unsigned int idx = m_index(ineigh, jneigh, kneigh);
+    ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::read);
+    return h_cart_ranks.data[idx];
     }
 
 //! Determines whether the local box shares a boundary with the global box

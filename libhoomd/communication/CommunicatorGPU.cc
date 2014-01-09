@@ -307,12 +307,14 @@ struct get_migrate_key : public std::unary_function<const unsigned int, unsigned
     const uint3 my_pos;      //!< My domain decomposition position
     const Index3D di;        //!< Domain indexer
     const unsigned int mask; //!< Mask of allowed directions
+    const unsigned int *h_cart_ranks; //!< Rank lookup table
 
     //! Constructor
     /*!
      */
-    get_migrate_key(const uint3 _my_pos, const Index3D _di, const unsigned int _mask)
-        : my_pos(_my_pos), di(_di), mask(_mask)
+    get_migrate_key(const uint3 _my_pos, const Index3D _di, const unsigned int _mask,
+        const unsigned int *_h_cart_ranks)
+        : my_pos(_my_pos), di(_di), mask(_mask), h_cart_ranks(_h_cart_ranks)
         { }
 
     //! Generate key for a sent particle
@@ -361,7 +363,7 @@ struct get_migrate_key : public std::unary_function<const unsigned int, unsigned
         else if (k < 0)
             k += di.getD();
 
-        return di(i,j,k);
+        return h_cart_ranks[di(i,j,k)];
         }
 
      };
@@ -435,8 +437,11 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::overwrite);
 
-            Index3D di = m_gpu_comm.m_pdata->getDomainDecomposition()->getDomainIndexer();
-            uint3 my_pos = di.getTriple(m_gpu_comm.m_exec_conf->getRank());
+            boost::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
+            ArrayHandle<unsigned int> d_cart_ranks(decomposition->getCartRanks(), access_location::device, access_mode::read);
+
+            Index3D di = decomposition->getDomainIndexer();
+            uint3 my_pos = decomposition->getGridPos();
 
             // mark groups that have members leaving this domain
             gpu_mark_groups<group_data::size>(
@@ -451,6 +456,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 n_out_ranks,
                 di,
                 my_pos,
+                d_cart_ranks.data,
                 incomplete,
                 m_gpu_comm.m_mgpu_context);
 
@@ -1051,8 +1057,10 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
         ArrayHandle<Scalar4> d_pos(m_gpu_comm.m_pdata->getPositions(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_plan(plans, access_location::device, access_mode::readwrite);
 
-        Index3D di = m_gpu_comm.m_pdata->getDomainDecomposition()->getDomainIndexer();
-        uint3 my_pos = di.getTriple(m_exec_conf->getRank());
+        boost::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
+        ArrayHandle<unsigned int> d_cart_ranks_inv(decomposition->getInverseCartRanks(), access_location::device, access_mode::read);
+        Index3D di = decomposition->getDomainIndexer();
+        uint3 my_pos = decomposition->getGridPos();
 
         gpu_mark_bonded_ghosts<group_data::size>(
             m_gdata->getN(),
@@ -1064,6 +1072,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
             d_plan.data,
             di,
             my_pos,
+            d_cart_ranks_inv.data,
+            m_exec_conf->getRank(),
             mask);
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
@@ -1139,7 +1149,7 @@ void CommunicatorGPU::migrateParticles()
 
         const Index3D& di = m_decomposition->getDomainIndexer();
         // determine local particles that are to be sent to neighboring processors and fill send buffer
-        uint3 mypos = di.getTriple(m_exec_conf->getRank());
+        uint3 mypos = m_decomposition->getGridPos();
 
         /* We need some better heuristics to decide whether to take the GPU or CPU code path */
         #ifdef ENABLE_MPI_CUDA
@@ -1154,6 +1164,8 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> d_unique_neighbors(m_unique_neighbors, access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::read);
 
+            ArrayHandle<unsigned int> d_cart_ranks(m_decomposition->getCartRanks(), access_location::device, access_mode::read);
+
             // get temporary buffers
             unsigned int nsend = m_gpu_sendbuf.size();
             const CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
@@ -1165,6 +1177,7 @@ void CommunicatorGPU::migrateParticles()
                        d_comm_flags.data,
                        di,
                        mypos,
+                       d_cart_ranks.data,
                        d_send_keys.data,
                        d_begin.data,
                        d_end.data,
@@ -1186,11 +1199,13 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::read);
 
+            ArrayHandle<unsigned int> h_cart_ranks(m_pdata->getDomainDecomposition()->getCartRanks(), access_location::host,
+                access_mode::read);
             typedef std::multimap<unsigned int,pdata_element> key_t;
             key_t keys;
 
             // generate keys
-            get_migrate_key t(mypos, di, m_comm_mask[stage]);
+            get_migrate_key t(mypos, di, m_comm_mask[stage],h_cart_ranks.data);
             for (unsigned int i = 0; i < m_comm_flags.size(); ++i)
                 keys.insert(std::pair<unsigned int, pdata_element>(t(h_comm_flags.data[i]),h_gpu_sendbuf.data[i]));
 
@@ -1521,7 +1536,7 @@ void CommunicatorGPU::exchangeGhosts()
 
             const BoxDim& global_box = m_pdata->getGlobalBox();
             const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
-            uint3 my_pos = di.getTriple(m_exec_conf->getRank());
+            uint3 my_pos = m_pdata->getDomainDecomposition()->getGridPos();
 
             // Pack ghosts into send buffers
             gpu_exchange_ghosts_pack(
@@ -1954,7 +1969,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
             const BoxDim& global_box = m_pdata->getGlobalBox();
             const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
-            uint3 my_pos = di.getTriple(m_exec_conf->getRank());
+            uint3 my_pos = m_pdata->getDomainDecomposition()->getGridPos();
 
             // Pack ghosts into send buffers
             gpu_exchange_ghosts_pack(

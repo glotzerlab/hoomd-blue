@@ -741,6 +741,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
             const Index3D& di = m_decomposition->getDomainIndexer();
             unsigned int n_ranks = m_exec_conf->getNRanks();
+            ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
 
             BoxDim global_box = m_global_box;
 
@@ -783,7 +784,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 global_box.setPeriodic(periodic);
                 global_box.wrap(pos, img, flags);
 
-                unsigned int rank = di(i,j,k);
+                unsigned int rank = h_cart_ranks.data[di(i,j,k)];
                 unsigned int tag = it - snapshot.pos.begin();
 
                 if (rank >= n_ranks)

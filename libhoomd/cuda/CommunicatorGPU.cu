@@ -122,12 +122,14 @@ struct get_migrate_key_gpu : public thrust::unary_function<const unsigned int, u
     const uint3 my_pos;     //!< My domain decomposition position
     const Index3D di;             //!< Domain indexer
     const unsigned int mask; //!< Mask of allowed directions
+    const unsigned int *d_cart_ranks; //!< Rank lookup table
 
     //! Constructor
     /*!
      */
-    get_migrate_key_gpu(const uint3 _my_pos, const Index3D _di, const unsigned int _mask)
-        : my_pos(_my_pos), di(_di), mask(_mask)
+    get_migrate_key_gpu(const uint3 _my_pos, const Index3D _di,
+        const unsigned int _mask, const unsigned int *_d_cart_ranks)
+        : my_pos(_my_pos), di(_di), mask(_mask), d_cart_ranks(_d_cart_ranks)
         { }
 
     //! Generate key for a sent particle
@@ -173,7 +175,7 @@ struct get_migrate_key_gpu : public thrust::unary_function<const unsigned int, u
         else if (k < 0)
             k += di.getD();
 
-        return di(i,j,k);
+        return d_cart_ranks[di(i,j,k)];
         }
 
      };
@@ -219,6 +221,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
                    const unsigned int *d_comm_flags,
                    const Index3D& di,
                    const uint3 my_pos,
+                   const unsigned int *d_cart_ranks,
                    unsigned int *d_keys,
                    unsigned int *d_begin,
                    unsigned int *d_end,
@@ -236,7 +239,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
     thrust::device_ptr<const unsigned int> neighbors_ptr(d_neighbors);
 
     // generate keys
-    thrust::transform(comm_flags_ptr, comm_flags_ptr + nsend, keys_ptr, get_migrate_key_gpu(my_pos, di,mask));
+    thrust::transform(comm_flags_ptr, comm_flags_ptr + nsend, keys_ptr, get_migrate_key_gpu(my_pos, di,mask,d_cart_ranks));
 
     // allocate temp arrays
     thrust::device_ptr<unsigned int> tmp_ptr(d_tmp);
@@ -850,6 +853,7 @@ __global__ void gpu_mark_groups_kernel(
     const unsigned int *d_rtag,
     const Index3D di,
     uint3 my_pos,
+    const unsigned *d_cart_ranks,
     bool incomplete)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -863,7 +867,7 @@ __global__ void gpu_mark_groups_kernel(
 
     // initialize bit field
     unsigned int mask = 0;
-    unsigned int my_rank = di(my_pos.x, my_pos.y, my_pos.z);
+    unsigned int my_rank = d_cart_ranks[di(my_pos.x, my_pos.y, my_pos.z)];
 
     bool update = false;
 
@@ -936,7 +940,7 @@ __global__ void gpu_mark_groups_kernel(
                     nk += di.getD();
 
                 // update ranks information
-                r.idx[i] = di(ni,nj,nk);
+                r.idx[i] = d_cart_ranks[di(ni,nj,nk)];
 
                 // a local ptl has changed place, send ranks information
                 update = true;
@@ -982,6 +986,7 @@ void gpu_mark_groups(
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks,
     bool incomplete,
     mgpu::ContextPtr mgpu_context)
     {
@@ -998,6 +1003,7 @@ void gpu_mark_groups(
         d_rtag,
         di,
         my_pos,
+        d_cart_ranks,
         incomplete);
 
     // scan over marked groups
@@ -1421,6 +1427,8 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
     unsigned int *d_plan,
     Index3D di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks_inv,
+    unsigned int my_rank,
     unsigned int mask)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1433,8 +1441,6 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
     // load group member ranks
     ranks_t r = d_ranks[group_idx];
 
-    unsigned int my_rank = di(my_pos.x,my_pos.y,my_pos.z);
-
     for (unsigned int i = 0; i < group_size; ++i)
         {
         unsigned int rank = r.idx[i];
@@ -1444,7 +1450,7 @@ __global__ void gpu_mark_bonded_ghosts_kernel(
             // incomplete group
 
             // send group to neighbor rank stored for that member
-            uint3 neigh_pos = di.getTriple(rank);
+            uint3 neigh_pos = di.getTriple(d_cart_ranks_inv[rank]);
 
             // only neighbors are considered for communication
             unsigned int flags = 0;
@@ -1518,6 +1524,8 @@ void gpu_mark_bonded_ghosts(
     unsigned int *d_plan,
     Index3D& di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks_inv,
+    unsigned int my_rank,
     unsigned int mask)
     {
     unsigned int block_size = 512;
@@ -1533,6 +1541,8 @@ void gpu_mark_bonded_ghosts(
         d_plan,
         di,
         my_pos,
+        d_cart_ranks_inv,
+        my_rank,
         mask);
     }
 
@@ -1558,6 +1568,7 @@ template void gpu_mark_groups<2, group_storage<2>, group_storage<2> >(
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks,
     bool incomplete,
     mgpu::ContextPtr mgpu_context);
 
@@ -1632,6 +1643,8 @@ template void gpu_mark_bonded_ghosts<2>(
     unsigned int *d_plan,
     Index3D& di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks,
+    unsigned int my_rank,
     unsigned int mask);
 
 /*
@@ -1650,6 +1663,7 @@ template void gpu_mark_groups<3, group_storage<3>, group_storage<3> >(
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks,
     bool incomplete,
     mgpu::ContextPtr mgpu_context);
 
@@ -1724,6 +1738,8 @@ template void gpu_mark_bonded_ghosts<3>(
     unsigned int *d_plan,
     Index3D& di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks,
+    unsigned int my_rank,
     unsigned int mask);
 
 /*
@@ -1742,6 +1758,7 @@ template void gpu_mark_groups<4, group_storage<4>, group_storage<4> >(
     unsigned int &n_out,
     const Index3D di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks,
     bool incomplete,
     mgpu::ContextPtr mgpu_context);
 
@@ -1816,6 +1833,8 @@ template void gpu_mark_bonded_ghosts<4>(
     unsigned int *d_plan,
     Index3D& di,
     uint3 my_pos,
+    const unsigned int *d_cart_ranks,
+    unsigned int my_rank,
     unsigned int mask);
 
 #endif // ENABLE_MPI
