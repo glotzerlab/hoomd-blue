@@ -220,7 +220,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
     int n_blocks = (N+n_ghost)/block_size + 1;
 
     cudaError_t err;
-    err = cudaMemset(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements());
+    err = cudaMemsetAsync(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements(),0);
 
     if (err != cudaSuccess)
         return err;

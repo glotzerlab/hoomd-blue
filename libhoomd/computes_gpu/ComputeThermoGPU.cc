@@ -178,7 +178,8 @@ void ComputeThermoGPU::computeProperties()
 
 
         // copy data back to the host to perform collective operations
-        ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
+        ArrayHandleAsync<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
+        cudaDeviceSynchronize();
 
         if (m_prof)
             m_prof->push(m_exec_conf,"MPI Allreduce");

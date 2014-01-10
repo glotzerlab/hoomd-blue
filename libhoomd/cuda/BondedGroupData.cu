@@ -199,7 +199,8 @@ void gpu_update_group_table(
         next_flag);
 
     // read back flag
-    cudaMemcpy(&flag, d_condition, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    cudaMemcpyAsync(&flag, d_condition, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
 
     if (! (flag >= next_flag) && n_groups)
         {
