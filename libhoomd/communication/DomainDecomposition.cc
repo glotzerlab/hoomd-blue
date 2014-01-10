@@ -182,9 +182,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                     std::pair<map_t::iterator, map_t::iterator> p = m_node_map.equal_range(node);
                     map_t::iterator it = p.first;
                     for (unsigned int i = 0; i < m_max_n_node; ++i)
-                        {
                         node_ranks[i] = (it++)->second;
-                        }
 
                     // iterate over local ranks
                     for (unsigned int ix_intra = 0; ix_intra < m_intra_node_grid.getW(); ix_intra++)
@@ -199,6 +197,8 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
 
                                 unsigned int iglob = m_index(ix, iy, iz);
 
+                                m_exec_conf->msg->notice(1) << iglob << " " << ilocal << " "
+                                    << node_ranks[ilocal] << " " << node << std::endl;
                                 // add rank to table
                                 h_cart_ranks.data[iglob] = node_ranks[ilocal];
                                 h_cart_ranks_inv.data[node_ranks[ilocal]] = iglob;
@@ -220,8 +220,9 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
         << m_nx << " n_y = " << m_ny << " n_z = " << m_nz << "." << std::endl;
 
     if (m_twolevel)
-        m_exec_conf->msg->notice(1) << "Local grid on a " << nx_node << " x " << ny_node << " x " << nz_node
-            << " grid of nodes: " << nx_intra << " x " << ny_intra << " x " << nz_intra << std::endl;
+        m_exec_conf->msg->notice(1) << nx_intra << " x " << ny_intra << " x " << nz_intra
+            << " local grid on a " << nx_node << " x " << ny_node << " x " << nz_node
+            << " grid of nodes" << std::endl;
 
     // compute position of this box in the domain grid by reverse look-up
     m_grid_pos = m_index.getTriple(h_cart_ranks_inv.data[rank]);
@@ -379,7 +380,8 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar
     unsigned iz = f.z*m_nz;
     if (iz == m_nz) iz = 0;
 
-    unsigned int rank = m_index(ix, iy, iz);
+    ArrayHandle<unsigned int> h_cart_ranks(m_cart_ranks, access_location::host, access_mode::read);
+    unsigned int rank = h_cart_ranks.data[m_index(ix, iy, iz)];
 
     // synchronize with rank zero
     bcast(rank, 0, m_exec_conf->getMPICommunicator());
