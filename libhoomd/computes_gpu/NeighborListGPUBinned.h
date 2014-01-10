@@ -94,9 +94,9 @@ class NeighborListGPUBinned : public NeighborListGPU
             }
 
         //! Set the autotuner period
-        void setTuningPeriod(unsigned int period)
+        void setTuningParam(unsigned int param)
             {
-            m_tuner->setPeriod(period);
+            m_param = param;
             }
 
         //! Set the maximum diameter to use in computing neighbor lists
@@ -116,6 +116,7 @@ class NeighborListGPUBinned : public NeighborListGPU
         uint3 m_last_dim;                   //!< The last dimensions allocated for the cell list tex2D arrays
         unsigned int m_last_cell_Nmax;      //!< The last Nmax allocated for the cell list tex2D arrays
         unsigned int m_block_size;          //!< Block size to execute on the GPU
+        unsigned int m_param;               //!< Kernel tuning parameter
 
         boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
 

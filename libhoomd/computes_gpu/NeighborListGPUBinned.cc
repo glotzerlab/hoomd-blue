@@ -68,7 +68,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
                                              Scalar r_cut,
                                              Scalar r_buff,
                                              boost::shared_ptr<CellList> cl)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl)
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_param(0)
     {
     // create a default cell list if one was not specified
     if (!m_cl)
@@ -200,8 +200,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (exec_conf->getComputeCapability() >= 200)
         {
-        this->m_tuner->begin();
-        unsigned int param = this->m_tuner->getParam();
+        if (!m_param) this->m_tuner->begin();
+        unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
         unsigned int block_size = param / 10000;
         unsigned int threads_per_particle = param % 10000;
 
@@ -229,7 +229,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_diameter,
                                  m_cl->getGhostWidth());
         if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        this->m_tuner->end();
+        if (! m_param) this->m_tuner->end();
         }
     else
         {
@@ -344,6 +344,6 @@ void export_NeighborListGPUBinned()
     class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
                      ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
                     .def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
-                    .def("setTuningPeriod", &NeighborListGPUBinned::setTuningPeriod)
+                    .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
                      ;
     }

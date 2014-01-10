@@ -103,13 +103,14 @@ class PotentialPairGPU : public PotentialPair<evaluator>
         /*! \param threads_per_particl Number of threads per particle
             \a threads_per_particle must be a power of two and smaller than 32.
          */
-        void setTuningPeriod(int period)
+        void setTuningParam(unsigned int param)
             {
-            m_tuner->setPeriod(period);
+            m_param = param;
             }
 
     protected:
         boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
+        unsigned int m_param;                 //!< Kernel tuning parameter
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -120,7 +121,7 @@ template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
-    : PotentialPair<evaluator>(sysdef, nlist, log_suffix)
+    : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
@@ -193,8 +194,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
-    this->m_tuner->begin();
-    unsigned int param = this->m_tuner->getParam();
+    if (! m_param) this->m_tuner->begin();
+    unsigned int param = !m_param ?  this->m_tuner->getParam() : m_param;
     unsigned int block_size = param / 10000;
     unsigned int threads_per_particle = param % 10000;
 
@@ -221,7 +222,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    this->m_tuner->end();
+    if (!m_param) this->m_tuner->end();
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
@@ -235,6 +236,7 @@ template < class T, class Base > void export_PotentialPairGPU(const std::string&
     {
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
+              .def("setTuningParam",&T::setTuningParam)
               ;
     }
 
