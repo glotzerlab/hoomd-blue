@@ -197,8 +197,6 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
 
                                 unsigned int iglob = m_index(ix, iy, iz);
 
-                                m_exec_conf->msg->notice(1) << iglob << " " << ilocal << " "
-                                    << node_ranks[ilocal] << " " << node << std::endl;
                                 // add rank to table
                                 h_cart_ranks.data[iglob] = node_ranks[ilocal];
                                 h_cart_ranks_inv.data[node_ranks[ilocal]] = iglob;
