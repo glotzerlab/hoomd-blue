@@ -221,7 +221,8 @@ void CommunicatorGPU::initializeCommunicationStages()
     // number of stages in every communication step
     m_num_stages = 0;
 
-    m_comm_mask.resize(m_max_stages);
+    m_comm_mask.clear();
+    m_comm_mask.resize(m_max_stages,0);
 
     const unsigned int mask_east = 1 << 2 | 1 << 5 | 1 << 8 | 1 << 11
         | 1 << 14 | 1 << 17 | 1 << 20 | 1 << 23 | 1 << 26;
@@ -252,7 +253,6 @@ void CommunicatorGPU::initializeCommunicationStages()
         assert(stage >= 0);
         assert(n >= 0);
 
-        // set communication flags for stage
         unsigned int mask = 0;
         if (h_adj_mask.data[ineigh] & mask_east)
             mask |= send_east;
@@ -268,6 +268,8 @@ void CommunicatorGPU::initializeCommunicationStages()
             mask |= send_down;
 
         neigh_flags[ineigh] = mask;
+
+        // set communication flags for stage
         m_comm_mask[stage] |= mask;
 
         if (stage > (int)max_stage) max_stage = stage;
@@ -297,7 +299,9 @@ void CommunicatorGPU::initializeCommunicationStages()
                 m_stages[i] = istage;
                 break; // associate neighbor with stage of lowest index
                 }
-    m_exec_conf->msg->notice(4) << "ComunicatorGPU: Using " << m_num_stages << " communication stages." << std::endl;
+
+    m_exec_conf->msg->notice(4) << "ComunicatorGPU: Using " << m_num_stages
+        << " communication stage(s)." << std::endl;
     }
 
 //! Select a particle for migration
@@ -1650,7 +1654,7 @@ void CommunicatorGPU::exchangeGhosts()
             unsigned int offs;
             #ifdef ENABLE_MPI_CUDA
             // recv buffers, write directly into particle data arrays
-            offs = m_pdata->getN();
+            offs = first_idx;
             ArrayHandle<unsigned int> tag_ghost_recvbuf_handle(m_pdata->getTags(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -2008,11 +2012,18 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
          * Ghost particle communication
          */
 
+        // first ghost ptl index
+        unsigned int first_idx = m_pdata->getN();
+
+        // total up ghosts received thus far
+        for (unsigned int istage = 0; istage < stage; ++istage)
+            first_idx += m_n_recv_ghosts_tot[istage];
+
             {
             unsigned int offs = 0;
             // access particle data
             #ifdef ENABLE_MPI_CUDA
-            offs = m_pdata->getN();
+            offs = first_idx;
             // recv buffers, directly write into particle data arrays
             ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
             ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -2154,12 +2165,6 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             } // end ArrayHandle scope
 
-            // first ghost ptl index
-            unsigned int first_idx = m_pdata->getN();
-
-            // total up ghosts received thus far
-            for (unsigned int istage = 0; istage < stage; ++istage)
-                first_idx += m_n_recv_ghosts_tot[istage];
 
         #ifndef ENABLE_MPI_CUDA
         if (m_prof) m_prof->push(m_exec_conf,"unpack");
