@@ -78,24 +78,6 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_improper_comm(*this, m_sysdef->getImproperData()),
       m_last_flags(0)
     {
-    // find out if this is a 1D decomposition
-    unsigned int d = 0;
-    if (decomposition->getDomainIndexer().getW() > 1) d++;
-    if (decomposition->getDomainIndexer().getH() > 1) d++;
-    if (decomposition->getDomainIndexer().getD() > 1) d++;
-
-    assert(d>=1);
-    #ifdef ENABLE_MPI_CUDA
-    // print a warning if we are using a higher than linear dimensionality for the processor grid
-    // and CUDA-MPI interop is enabled (the latency of a send/recv call is lower if not using CUDA-MPI)
-    if (d > 1)
-        {
-        m_exec_conf->msg->notice(2) << "The processor grid has dimensionality " << d << " > 1 and CUDA-MPI support" << std::endl;
-        m_exec_conf->msg->notice(2) << "is enabled. For optimal performance, disable CUDA-MPI support" << std::endl;
-        m_exec_conf->msg->notice(2) << "(-D ENABLE_MPI_CUDA=0)." << std::endl;
-        }
-    #endif
-
     // allocate memory
     allocateBuffers();
 
