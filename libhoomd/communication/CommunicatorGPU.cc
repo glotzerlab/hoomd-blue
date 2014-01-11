@@ -1152,7 +1152,7 @@ void CommunicatorGPU::migrateParticles()
         uint3 mypos = m_decomposition->getGridPos();
 
         /* We need some better heuristics to decide whether to take the GPU or CPU code path */
-        #ifdef ENABLE_MPI_CUDA
+        #if defined(ENABLE_MPI_CUDA) && 0
             {
             // resize keys
             m_send_keys.resize(m_gpu_sendbuf.size());
@@ -1294,7 +1294,7 @@ void CommunicatorGPU::migrateParticles()
 
             if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
 
-            #ifdef ENABLE_MPI_CUDA
+            #if defined(ENABLE_MPI_CUDA) && 0
             ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::device, access_mode::overwrite);
             #else
@@ -1641,15 +1641,23 @@ void CommunicatorGPU::exchangeGhosts()
         if (flags[comm_flag::diameter]) m_diameter_ghost_recvbuf.resize(n_max);
         if (flags[comm_flag::orientation]) m_orientation_ghost_recvbuf.resize(n_max);
 
+        // first ghost ptl index
+        unsigned int first_idx = m_pdata->getN()+m_pdata->getNGhosts();
+
+        // update number of ghost particles
+        m_pdata->addGhostParticles(m_n_recv_ghosts_tot[stage]);
+
             {
+            unsigned int offs;
             #ifdef ENABLE_MPI_CUDA
-            // recv buffers
-            ArrayHandle<unsigned int> tag_ghost_recvbuf_handle(m_tag_ghost_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar> charge_ghost_recvbuf_handle(m_charge_ghost_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar> diameter_ghost_recvbuf_handle(m_diameter_ghost_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::device, access_mode::overwrite);
+            // recv buffers, write directly into particle data arrays
+            offs = m_pdata->getN();
+            ArrayHandle<unsigned int> tag_ghost_recvbuf_handle(m_pdata->getTags(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar> charge_ghost_recvbuf_handle(m_pdata->getCharges(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar> diameter_ghost_recvbuf_handle(m_pdata->getDiameters(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
 
             // send buffers
             ArrayHandle<unsigned int> tag_ghost_sendbuf_handle(m_tag_ghost_sendbuf, access_location::device, access_mode::read);
@@ -1710,7 +1718,7 @@ void CommunicatorGPU::exchangeGhosts()
                     send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int);
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
-                        MPI_Irecv(tag_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                        MPI_Irecv(tag_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
                             m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int),
                             MPI_BYTE,
                             neighbor,
@@ -1739,7 +1747,7 @@ void CommunicatorGPU::exchangeGhosts()
                     send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
-                        MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                        MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
@@ -1767,7 +1775,7 @@ void CommunicatorGPU::exchangeGhosts()
                     send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
-                        MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                        MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
@@ -1795,7 +1803,7 @@ void CommunicatorGPU::exchangeGhosts()
                     send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar);
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
-                        MPI_Irecv(charge_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                        MPI_Irecv(charge_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
                             MPI_BYTE,
                             neighbor,
@@ -1823,7 +1831,7 @@ void CommunicatorGPU::exchangeGhosts()
                     send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar);
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
-                        MPI_Irecv(diameter_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                        MPI_Irecv(diameter_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
                             MPI_BYTE,
                             neighbor,
@@ -1851,7 +1859,7 @@ void CommunicatorGPU::exchangeGhosts()
                     send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
-                        MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                        MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
@@ -1870,12 +1878,7 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             } // end ArrayHandle scope
 
-        // first ghost ptl index
-        unsigned int first_idx = m_pdata->getN()+m_pdata->getNGhosts();
-
-        // update number of ghost particles
-        m_pdata->addGhostParticles(m_n_recv_ghosts_tot[stage]);
-
+        #ifndef ENABLE_MPI_CUDA
             {
             // access receive buffers
             ArrayHandle<unsigned int> d_tag_ghost_recvbuf(m_tag_ghost_recvbuf, access_location::device, access_mode::read);
@@ -1916,6 +1919,7 @@ void CommunicatorGPU::exchangeGhosts()
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
+        #endif
 
         if (flags[comm_flag::tag])
             {
@@ -2006,12 +2010,14 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
          */
 
             {
+            unsigned int offs = 0;
             // access particle data
             #ifdef ENABLE_MPI_CUDA
-            // recv buffers
-            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_vel_ghost_recvbuf, access_location::device, access_mode::overwrite);
-            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_orientation_ghost_recvbuf, access_location::device, access_mode::overwrite);
+            offs = m_pdata->getN();
+            // recv buffers, directly write into particle data arrays
+            ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> vel_ghost_recvbuf_handle(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> orientation_ghost_recvbuf_handle(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
 
             // send buffers
             ArrayHandle<Scalar4> pos_ghost_sendbuf_handle(m_pos_ghost_sendbuf, access_location::device, access_mode::read);
@@ -2072,7 +2078,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
-                        MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                        MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
@@ -2101,7 +2107,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
-                        MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                        MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
@@ -2130,7 +2136,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
-                        MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh],
+                        MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
@@ -2156,6 +2162,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             for (unsigned int istage = 0; istage < stage; ++istage)
                 first_idx += m_n_recv_ghosts_tot[istage];
 
+        #ifndef ENABLE_MPI_CUDA
         if (m_prof) m_prof->push(m_exec_conf,"unpack");
             {
             // access receive buffers
@@ -2192,6 +2199,7 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
         if (m_prof) m_prof->pop(m_exec_conf);
+        #endif
 
         } // end main communication loop
 

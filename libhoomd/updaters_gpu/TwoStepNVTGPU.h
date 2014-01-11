@@ -89,8 +89,10 @@ class TwoStepNVTGPU : public TwoStepNVT
 
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
+
     protected:
         unsigned int m_block_size;        //!< Block size to launch on the GPU
+        Scalar m_curr_T;                  //!< Current temperature
     };
 
 //! Exports the TwoStepNVTGPU class to python

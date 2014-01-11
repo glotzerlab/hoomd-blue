@@ -85,7 +85,7 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              Scalar tau,
                              boost::shared_ptr<Variant> T,
                              const std::string& suffix)
-    : TwoStepNVT(sysdef, group, thermo, tau, T, suffix)
+    : TwoStepNVT(sysdef, group, thermo, tau, T, suffix), m_curr_T(0.0)
     {
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
@@ -137,6 +137,10 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
+    // compute the current thermodynamic properties
+    m_thermo->compute(timestep+1);
+    m_curr_T = m_thermo->getTemperature();
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -155,13 +159,9 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
 
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep+1);
-
     // next, update the state variables Xi and eta
     Scalar xi_prev = xi;
-    Scalar curr_T = m_thermo->getTemperature();
-    xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
+    xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
     eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
 
 #ifdef ENABLE_MPI
