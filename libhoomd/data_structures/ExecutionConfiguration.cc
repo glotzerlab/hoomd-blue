@@ -214,7 +214,9 @@ ExecutionConfiguration::~ExecutionConfiguration()
         {
         delete m_cached_alloc;
 
+        #ifndef ENABLE_MPI_CUDA
         cudaDeviceReset();
+        #endif
         }
     #endif
 
