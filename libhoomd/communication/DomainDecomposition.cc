@@ -98,9 +98,11 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
     unsigned int nx_node =0, ny_node = 0, nz_node = 0;
     unsigned int nx_intra = 0, ny_intra = 0, nz_intra = 0;
 
+    if (nx || ny || nz) m_twolevel = false;
+
     if (rank == 0)
         {
-        if (m_twolevel && !nx && !ny && !nz)
+        if (m_twolevel)
             {
             // every node has the same number of ranks, so nranks == num_nodes * num_ranks_per_node
             unsigned int n_nodes = m_nodes.size();
@@ -120,7 +122,6 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
             }
         else
             {
-            m_twolevel = false;
             bool found_decomposition = findDecomposition(nranks, L, nx, ny, nz);
             if (! found_decomposition)
                 {
