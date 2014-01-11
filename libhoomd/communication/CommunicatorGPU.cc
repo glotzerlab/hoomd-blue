@@ -223,8 +223,18 @@ void CommunicatorGPU::initializeCommunicationStages()
 
     m_comm_mask.resize(m_max_stages);
 
-    #if 0
+    const unsigned int mask_east = 1 << 2 | 1 << 5 | 1 << 8 | 1 << 11
+        | 1 << 14 | 1 << 17 | 1 << 20 | 1 << 23 | 1 << 26;
+    const unsigned int mask_west = mask_east >> 2;
+    const unsigned int mask_north = 1 << 6 | 1 << 7 | 1 << 8 | 1 << 15
+        | 1 << 16 | 1 << 17 | 1 << 24 | 1 << 25 | 1 << 26;
+    const unsigned int mask_south = mask_north >> 6;
+    const unsigned int mask_up = 1 << 18 | 1 << 19 | 1 << 20 | 1 << 21
+        | 1 << 22 | 1 << 23 | 1 << 24 | 1 << 25 | 1 << 26;
+    const unsigned int mask_down = mask_up >> 18;
+
     // loop through neighbors to determine the communication stages
+    std::vector<unsigned int> neigh_flags(m_n_unique_neigh);
     unsigned int max_stage = 0;
     for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
         {
@@ -233,17 +243,32 @@ void CommunicatorGPU::initializeCommunicationStages()
 
         // determine stage
         if (di.getW() > 1 && (n+1 < (int) m_max_stages)) n++;
-        if (h_adj_mask.data[ineigh] & (send_east | send_west)) stage = n;
+        if (h_adj_mask.data[ineigh] & (mask_east | mask_west)) stage = n;
         if (di.getH() > 1 && (n+1 < (int) m_max_stages)) n++;
-        if (h_adj_mask.data[ineigh] & (send_north | send_south)) stage = n;
+        if (h_adj_mask.data[ineigh] & (mask_north | mask_south)) stage = n;
         if (di.getD() > 1 && (n+1 < (int) m_max_stages)) n++;
-        if (h_adj_mask.data[ineigh] & (send_up | send_down)) stage = n;
+        if (h_adj_mask.data[ineigh] & (mask_up | mask_down)) stage = n;
 
         assert(stage >= 0);
         assert(n >= 0);
 
         // set communication flags for stage
-        m_comm_mask[stage] |= h_adj_mask.data[ineigh];
+        unsigned int mask = 0;
+        if (h_adj_mask.data[ineigh] & mask_east)
+            mask |= send_east;
+        if (h_adj_mask.data[ineigh] & mask_west)
+            mask |= send_west;
+        if (h_adj_mask.data[ineigh] & mask_north)
+            mask |= send_north;
+        if (h_adj_mask.data[ineigh] & mask_south)
+            mask |= send_south;
+        if (h_adj_mask.data[ineigh] & mask_up)
+            mask |= send_up;
+        if (h_adj_mask.data[ineigh] & mask_down)
+            mask |= send_down;
+
+        neigh_flags[ineigh] = mask;
+        m_comm_mask[stage] |= mask;
 
         if (stage > (int)max_stage) max_stage = stage;
         }
@@ -266,21 +291,13 @@ void CommunicatorGPU::initializeCommunicationStages()
     // assign stages to unique neighbors
     for (unsigned int i= 0; i < m_n_unique_neigh; i++)
         for (unsigned int istage = 0; istage < m_num_stages; ++istage)
-            // compare adjacency masks of neighbors to mask for this stage
-            if ((h_adj_mask.data[i] & m_comm_mask[istage]) == h_adj_mask.data[i])
+            // compare adjacency masks of neighbors to the mask for this stage
+            if ((neigh_flags[i] & m_comm_mask[istage]) == neigh_flags[i])
                 {
                 m_stages[i] = istage;
                 break; // associate neighbor with stage of lowest index
                 }
-    #else
-    m_comm_mask[0] = 0;
-    if (di.getW() > 1) m_comm_mask[0] |= (Communicator::send_east | Communicator::send_west);
-    if (di.getH() > 1) m_comm_mask[0] |= (Communicator::send_north| Communicator::send_south);
-    if (di.getD() > 1) m_comm_mask[0] |= (Communicator::send_up | Communicator::send_down);
-    m_stages.resize(m_n_unique_neigh,0);
-    m_num_stages = 1;
-    #endif
-    m_exec_conf->msg->notice(5) << "ComunicatorGPU: " << m_num_stages << " communication stages." << std::endl;
+    m_exec_conf->msg->notice(4) << "ComunicatorGPU: Using " << m_num_stages << " communication stages." << std::endl;
     }
 
 //! Select a particle for migration
