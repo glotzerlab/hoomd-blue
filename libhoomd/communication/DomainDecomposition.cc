@@ -80,6 +80,8 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                                )
       : m_exec_conf(exec_conf), m_mpi_comm(m_exec_conf->getMPICommunicator())
     {
+    m_exec_conf->msg->notice(5) << "Constructing DomainDecomposition" << endl;
+
     unsigned int rank = m_exec_conf->getRank();
     unsigned int nranks = m_exec_conf->getNRanks();
 
@@ -182,8 +184,16 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                     std::string node = *(node_it++);
                     std::pair<map_t::iterator, map_t::iterator> p = m_node_map.equal_range(node);
                     map_t::iterator it = p.first;
+
+                    std::ostringstream oss;
+                    oss << "Node " << node << ": ranks";
                     for (unsigned int i = 0; i < m_max_n_node; ++i)
-                        node_ranks[i] = (it++)->second;
+                        {
+                        unsigned int r = (it++)->second;
+                        oss << " " << r;
+                        node_ranks[i] = r;
+                        }
+                    m_exec_conf->msg->notice(7) << oss.str() << std::endl;
 
                     // iterate over local ranks
                     for (unsigned int ix_intra = 0; ix_intra < m_intra_node_grid.getW(); ix_intra++)
