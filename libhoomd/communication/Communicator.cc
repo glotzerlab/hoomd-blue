@@ -1004,16 +1004,29 @@ void Communicator::communicate(unsigned int timestep)
     // update ghost communication flags
     m_flags = m_requested_flags(timestep);
 
-    /* always update ghosts (even if not required, i.e. if the neighbor list
-       needs to be rebuilt). This allows for overlapping communications during
-       the distance check */
+    /*
+     * Always update ghosts (even if not required, i.e. if the neighbor list
+     * needs to be rebuilt). This allows for overlapping communications during
+     * the distance check
+     */
 
     bool update = !m_is_first_step;
 
     if (update) beginUpdateGhosts(timestep);
 
+    /*
+     * Here we move all computations and communciations
+     * that can be performed without knowledge of the ghost particle data
+     * but which may incur synchronization. The rationale is that all
+     * synchronization will occur during a single phase in the time step,
+     * thus reducing overall synchronization overhead.
+     */
+
     // distance check
     bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
+
+    // other functions requiring communciation (e.g. ComputeThermo)
+    m_comm_callbacks(timestep);
 
     // complete ghost communication
     if (update) finishUpdateGhosts(timestep);

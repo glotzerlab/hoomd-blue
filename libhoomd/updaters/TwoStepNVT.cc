@@ -110,6 +110,10 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
 TwoStepNVT::~TwoStepNVT()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepNVT" << endl;
+    #ifdef ENABLE_MPI
+    if (m_callback_connection.connected())
+        m_callback_connection.disconnect();
+    #endif
     }
 
 /*! Returns a list of log quantities this compute calculates
@@ -135,10 +139,6 @@ Scalar TwoStepNVT::getLogValue(const std::string& quantity, unsigned int timeste
         IntegratorVariables v = getIntegratorVariables();
         Scalar& xi = v.variable[0];
         Scalar& eta = v.variable[1];
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        #endif
         return g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
         }
     else
@@ -195,6 +195,20 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // lazy register update of thermodynamic quantities with Communicator
+        if (! m_callback_connection.connected())
+            m_callback_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVT::advanceThermostat, this, _1));
+        }
+    else
+    #endif
+        {
+        // compute thermodynamic properties and advance thermostat
+        advanceThermostat(timestep+1);
+        }
+
     // done profiling
     if (m_prof)
         m_prof->pop();
@@ -207,33 +221,14 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar& xi = v.variable[0];
-    Scalar& eta = v.variable[1];
-
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep+1);
-
-    // next, update the state variables Xi and eta
-    Scalar xi_prev = xi;
-    Scalar curr_T = m_thermo->getTemperature();
-    xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
-    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        }
-#endif
-
-
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 2");
+
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
@@ -257,12 +252,36 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
         h_vel.data[j].z += Scalar(1.0/2.0) * m_deltaT * (h_accel.data[j].z - xi * h_vel.data[j].z);
         }
 
-    setIntegratorVariables(v);
-
-
     // done profiling
     if (m_prof)
         m_prof->pop();
+    }
+
+void TwoStepNVT::advanceThermostat(unsigned int timestep)
+    {
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+
+    // compute the current thermodynamic properties
+    m_thermo->compute(timestep);
+
+    // next, update the state variables Xi and eta
+    Scalar xi_prev = xi;
+    Scalar curr_T = m_thermo->getTemperature();
+    xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
+    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // broadcast integrator variables from rank 0 to other processors
+        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    setIntegratorVariables(v);
     }
 
 void export_TwoStepNVT()

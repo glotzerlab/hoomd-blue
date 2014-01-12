@@ -118,7 +118,6 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
-    Scalar& eta = v.variable[1];
 
     // access all the needed data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -146,26 +145,19 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
 
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep+1);
-    m_curr_T = m_thermo->getTemperature();
-
-    // next, update the state variables Xi and eta
-    Scalar xi_prev = xi;
-    xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
-    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
-
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        if (m_prof) m_prof->push(m_exec_conf, "MPI_Bcast");
-        // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        if (m_prof) m_prof->pop(m_exec_conf);
+        // lazy register update of thermodynamic quantities with Communicator
+        if (! m_callback_connection.connected())
+            m_callback_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVTGPU::advanceThermostat, this, _1));
         }
+    else
     #endif
-
-    setIntegratorVariables(v);
+        {
+        // compute thermodynamic properties and advance thermostat
+        advanceThermostat(timestep+1);
+        }
 
     // done profiling
     if (m_prof)

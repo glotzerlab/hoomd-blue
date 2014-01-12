@@ -454,6 +454,15 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     else
         m_integrator->prepRun(m_cur_tstep);
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // make sure we start off with a migration substep, so that
+        // any old ghost particles are invalidated
+        m_comm->forceMigrate();
+        }
+    #endif
+
     // catch exceptions during simulation
     try
         {
@@ -473,11 +482,11 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                     if (int64_t(cur_time) - initial_time > time_limit)
                         end_run = 1;
 
-    #ifdef ENABLE_MPI
+                    #ifdef ENABLE_MPI
                     // if any processor wants to end the run, end it on all processors
                     if (m_comm)
                         MPI_Allreduce(MPI_IN_PLACE, &end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-    #endif
+                    #endif
 
                     if (end_run)
                         {

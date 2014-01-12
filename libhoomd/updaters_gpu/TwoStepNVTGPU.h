@@ -96,6 +96,7 @@ class TwoStepNVTGPU : public TwoStepNVT
         Scalar m_curr_T;                  //!< Current temperature
         boost::scoped_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
         boost::scoped_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
+
     };
 
 //! Exports the TwoStepNVTGPU class to python

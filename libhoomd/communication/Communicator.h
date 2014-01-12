@@ -270,6 +270,22 @@ class Communicator
             return m_requested_flags.connect(subscriber);
             }
 
+        //! Subscribe to list of call-backs that are called during the communciation phase
+        /*!
+         * Good candidates for functions to be called during communication
+         * are other functions involving communication and possibly computation.
+         * This ensures that all communication is performed at once, and as little
+         * as possible synchronization delays are incurred.
+         *
+         * \param subscriber The callback
+         * \returns a connection to this class
+         */
+        boost::signals2::connection addCommunicationCallback(
+            const boost::function<void (unsigned int timestep)>& subscriber)
+            {
+            return m_comm_callbacks.connect(subscriber);
+            }
+
         //! Set width of ghost layer
         /*! \param ghost_width The width of the ghost layer
          */
@@ -519,6 +535,9 @@ class Communicator
 
         boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
             m_requested_flags;  //!< List of functions that may request ghost communication flags
+
+        boost::signals2::signal<void (unsigned int timestep)>
+            m_comm_callbacks;   //!< List of functions that are called during the communication phase
 
         CommFlags m_flags;                       //!< The ghost communication flags
         CommFlags m_last_flags;                       //!< Flags of last ghost exchange
