@@ -63,6 +63,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "Autotuner.h"
+
 //! Integrates part of the system forward in two steps in the NVT ensemble on the GPU
 /*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface, runs on the GPU
 
@@ -91,8 +93,9 @@ class TwoStepNVTGPU : public TwoStepNVT
         virtual void integrateStepTwo(unsigned int timestep);
 
     protected:
-        unsigned int m_block_size;        //!< Block size to launch on the GPU
         Scalar m_curr_T;                  //!< Current temperature
+        boost::scoped_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
+        boost::scoped_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
     };
 
 //! Exports the TwoStepNVTGPU class to python

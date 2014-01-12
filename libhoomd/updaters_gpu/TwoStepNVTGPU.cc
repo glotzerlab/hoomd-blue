@@ -94,7 +94,13 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
 
-    m_block_size = 128;
+    // initialize autotuner
+    std::vector<unsigned int> valid_params;
+    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        valid_params.push_back(block_size);
+
+    m_tuner_one.reset(new Autotuner(valid_params, 5, 1e6, "nvt_step_one", this->m_exec_conf));
+    m_tuner_two.reset(new Autotuner(valid_params, 5, 1e6, "nvt_step_two", this->m_exec_conf));
     }
 
 /*! \param timestep Current time step
@@ -123,6 +129,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
+    m_tuner_one->begin();
     gpu_nvt_step_one(d_pos.data,
                      d_vel.data,
                      d_accel.data,
@@ -130,12 +137,13 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
                      d_index_array.data,
                      group_size,
                      box,
-                     m_block_size,
+                     m_tuner_one->getParam(),
                      xi,
                      m_deltaT);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner_one->end();
 
     // compute the current thermodynamic properties
     m_thermo->compute(timestep+1);
@@ -184,17 +192,20 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
+    m_tuner_two->begin();
     gpu_nvt_step_two(d_vel.data,
                      d_accel.data,
                      d_index_array.data,
                      group_size,
                      d_net_force.data,
-                     m_block_size,
+                     m_tuner_two->getParam(),
                      xi,
                      m_deltaT);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_tuner_two->end();
 
     setIntegratorVariables(v);
 
