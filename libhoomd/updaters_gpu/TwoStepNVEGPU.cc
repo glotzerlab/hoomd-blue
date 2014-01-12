@@ -80,6 +80,14 @@ TwoStepNVEGPU::TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU when CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
+
+    // initialize autotuner
+    std::vector<unsigned int> valid_params;
+    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        valid_params.push_back(block_size);
+
+    m_tuner_one.reset(new Autotuner(valid_params, 5, 1e6, "nve_step_one", this->m_exec_conf));
+    m_tuner_two.reset(new Autotuner(valid_params, 5, 1e6, "nve_step_two", this->m_exec_conf));
     }
 
 /*! \param timestep Current time step
@@ -107,6 +115,7 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
+    m_tuner_one->begin();
     gpu_nve_step_one(d_pos.data,
                      d_vel.data,
                      d_accel.data,
@@ -117,7 +126,9 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
                      m_deltaT,
                      m_limit,
                      m_limit_val,
-                     m_zero_force);
+                     m_zero_force,
+                     m_tuner_one->getParam());
+    m_tuner_one->end();
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -149,6 +160,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
+    m_tuner_two->begin();
     // perform the update on the GPU
     gpu_nve_step_two(d_vel.data,
                      d_accel.data,
@@ -158,7 +170,9 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
                      m_deltaT,
                      m_limit,
                      m_limit_val,
-                     m_zero_force);
+                     m_zero_force,
+                     m_tuner_two->getParam());
+    m_tuner_two->end();
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

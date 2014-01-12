@@ -176,10 +176,10 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              Scalar deltaT,
                              bool limit,
                              Scalar limit_val,
-                             bool zero_force)
+                             bool zero_force,
+                             unsigned int block_size)
     {
     // setup the grid to run the kernel
-    int block_size = 256;
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
@@ -285,11 +285,11 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                              Scalar deltaT,
                              bool limit,
                              Scalar limit_val,
-                             bool zero_force)
+                             bool zero_force,
+                             unsigned int block_size)
     {
 
     // setup the grid to run the kernel
-    int block_size = 256;
     dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
