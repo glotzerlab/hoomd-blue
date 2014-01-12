@@ -135,6 +135,10 @@ Scalar TwoStepNVT::getLogValue(const std::string& quantity, unsigned int timeste
         IntegratorVariables v = getIntegratorVariables();
         Scalar& xi = v.variable[0];
         Scalar& eta = v.variable[1];
+        #ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        #endif
         return g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
         }
     else
@@ -220,7 +224,6 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     if (m_comm)
         {
         // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
 #endif

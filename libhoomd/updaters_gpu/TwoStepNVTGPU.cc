@@ -118,6 +118,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
 
     // access all the needed data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -149,6 +150,23 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     m_thermo->compute(timestep+1);
     m_curr_T = m_thermo->getTemperature();
 
+    // next, update the state variables Xi and eta
+    Scalar xi_prev = xi;
+    xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
+    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        if (m_prof) m_prof->push(m_exec_conf, "MPI_Bcast");
+        // broadcast integrator variables from rank 0 to other processors
+        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        if (m_prof) m_prof->pop(m_exec_conf);
+        }
+    #endif
+
+    setIntegratorVariables(v);
+
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -165,21 +183,6 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
-    Scalar& eta = v.variable[1];
-
-    // next, update the state variables Xi and eta
-    Scalar xi_prev = xi;
-    xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
-    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        }
-#endif
 
     // profile this step
     if (m_prof)
@@ -206,8 +209,6 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
         CHECK_CUDA_ERROR();
 
     m_tuner_two->end();
-
-    setIntegratorVariables(v);
 
     // done profiling
     if (m_prof)
