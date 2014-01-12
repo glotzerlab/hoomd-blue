@@ -88,8 +88,16 @@ class CommunicatorGPU : public Communicator
         //@{
 
         /*! Perform ghosts update
+         *
+         * \param timestep The time step
          */
-        virtual void updateGhosts(unsigned int timestep);
+        virtual void beginUpdateGhosts(unsigned int timestep);
+
+        /*! Finish ghost update
+         *
+         * \param timestep The time step
+         */
+        virtual void finishUpdateGhosts(unsigned int timestep);
 
         //! Transfer particles between neighboring domains
         virtual void migrateParticles();

@@ -337,10 +337,26 @@ class Communicator
          * Using the previously constructed ghost exchange lists, ghost positions are updated on the
          * neighboring processors.
          *
+         * This routine uses non-blocking MPI communication, to make it possible to overlap
+         * additional computation or communication during the update substep. To complete
+         * the communication, call finishUpdateGhosts()
+         *
+         * \param timestep The time step
+         *
          * \pre The ghost exchange list has been constructed in a previous time step, using exchangeGhosts().
          * \post The ghost positions on the neighboring processors are current
          */
-        virtual void updateGhosts(unsigned int timestep);
+        virtual void beginUpdateGhosts(unsigned int timestep);
+
+        /*! Finish ghost update
+         *
+         * \param timestep The time step
+         */
+        virtual void finishUpdateGhosts(unsigned int timestep)
+            {
+            // the base class implementation is currently empty
+            m_comm_pending = false;
+            }
 
         /*! This methods finds all the particles that are no longer inside the domain
          * boundaries and transfers them to neighboring processors.
@@ -506,6 +522,9 @@ class Communicator
 
         CommFlags m_flags;                       //!< The ghost communication flags
         CommFlags m_last_flags;                       //!< Flags of last ghost exchange
+
+        bool m_comm_pending;                     //!< If true, a communication is in process
+        std::vector<MPI_Request> m_reqs;         //!< List of pending MPI requests
 
         /* Bonds communication */
         bool m_bonds_changed;                          //!< True if bond information needs to be refreshed

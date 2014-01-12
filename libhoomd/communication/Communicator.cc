@@ -826,8 +826,9 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_tag_copybuf(m_exec_conf),
             m_r_ghost(Scalar(0.0)),
             m_r_buff(Scalar(0.0)),
-            m_last_flags(0),
             m_plan(m_exec_conf),
+            m_last_flags(0),
+            m_comm_pending(false),
             m_bond_comm(*this, m_sysdef->getBondData()),
             m_angle_comm(*this, m_sysdef->getAngleData()),
             m_dihedral_comm(*this, m_sysdef->getDihedralData()),
@@ -1003,8 +1004,22 @@ void Communicator::communicate(unsigned int timestep)
     // update ghost communication flags
     m_flags = m_requested_flags(timestep);
 
+    /* always update ghosts (even if not required, i.e. if the neighbor list
+       needs to be rebuilt). This allows for overlapping communications during
+       the distance check */
+
+    bool update = !m_is_first_step;
+
+    if (update) beginUpdateGhosts(timestep);
+
+    // distance check
+    bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
+
+    // complete ghost communication
+    if (update) finishUpdateGhosts(timestep);
+
     // Check if migration of particles is requested
-    if (m_force_migrate || m_migrate_requests(timestep) || m_is_first_step)
+    if (migrate)
         {
         m_force_migrate = false;
         m_is_first_step = false;
@@ -1014,11 +1029,6 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
-        }
-    else
-        {
-        // just update ghost positions
-        updateGhosts(timestep);
         }
 
     m_is_communicating = false;
@@ -1550,7 +1560,7 @@ void Communicator::exchangeGhosts()
     }
 
 //! update positions of ghost particles
-void Communicator::updateGhosts(unsigned int timestep)
+void Communicator::beginUpdateGhosts(unsigned int timestep)
     {
     // we have a current m_copy_ghosts liss which contain the indices of particles
     // to send to neighboring processors
