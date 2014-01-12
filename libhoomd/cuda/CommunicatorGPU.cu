@@ -71,7 +71,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "device/loadstore.cuh"
 #include "device/launchbox.cuh"
 #include "device/ctaloadbalance.cuh"
-#include "kernels/localitysort.cuh"
+#include "kernels/mergesort.cuh"
 #include "kernels/search.cuh"
 #include "kernels/scan.cuh"
 #include "kernels/sortedsearch.cuh"
@@ -204,6 +204,57 @@ void gpu_stage_particles(const unsigned int N,
         select_particle_migrate_gpu(box,comm_mask));
     }
 
+//! Specialization of MergeSortPairs for uint2 values
+namespace mgpu {
+template<typename KeyType, typename ValType>
+MGPU_HOST void MergesortPairs_uint2(KeyType* keys_global, ValType* values_global,
+    int count, CudaContext& context) {
+
+    typedef LaunchBoxVT<
+        256, 7, 0,
+        256, 11, 0,
+        256, 11, 0
+    > Tuning;
+    int2 launch = Tuning::GetLaunchParams(context);
+
+    const int NV = launch.x * launch.y;
+    int numBlocks = MGPU_DIV_UP(count, NV);
+    int numPasses = FindLog2(numBlocks, true);
+
+    MGPU_MEM(KeyType) keysDestDevice = context.Malloc<KeyType>(count);
+    MGPU_MEM(ValType) valsDestDevice = context.Malloc<ValType>(count);
+    KeyType* keysSource = keys_global;
+    KeyType* keysDest = keysDestDevice->get();
+    ValType* valsSource = values_global;
+    ValType* valsDest = valsDestDevice->get();
+
+    KernelBlocksort<Tuning, true><<<numBlocks, launch.x, 0, context.Stream()>>>(
+        keysSource, valsSource, count, (1 & numPasses) ? keysDest : keysSource,
+        (1 & numPasses) ? valsDest : valsSource, mgpu::less<KeyType>());
+    MGPU_SYNC_CHECK("KernelBlocksort");
+
+    if(1 & numPasses) {
+        std::swap(keysSource, keysDest);
+        std::swap(valsSource, valsDest);
+    }
+
+    for(int pass = 0; pass < numPasses; ++pass) {
+        int coop = 2<< pass;
+        MGPU_MEM(int) partitionsDevice = MergePathPartitions<MgpuBoundsLower>(
+            keysSource, count, keysSource, 0, NV, coop, mgpu::less<KeyType>(), context);
+
+        KernelMerge<Tuning, true, false>
+            <<<numBlocks, launch.x, 0, context.Stream()>>>(keysSource,
+            valsSource, count, keysSource, valsSource, 0,
+            partitionsDevice->get(), coop, keysDest, valsDest, mgpu::less<KeyType>());
+        MGPU_SYNC_CHECK("KernelMerge");
+
+        std::swap(keysDest, keysSource);
+        std::swap(valsDest, valsSource);
+    }
+}
+} // end namespace mgpu
+
 /*! \param nsend Number of particles in buffer
     \param d_in Send buf (in-place sort)
     \param d_comm_flags Buffer of communication flags
@@ -252,7 +303,7 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
         thrust::make_zip_iterator(thrust::make_tuple(tmp_ptr, in_copy_ptr)));
 
     // sort buffer by neighbors
-    if (nsend) mgpu::LocalitySortPairs(thrust::raw_pointer_cast(keys_ptr), d_tmp, nsend, *mgpu_context);
+    if (nsend) mgpu::MergesortPairs(thrust::raw_pointer_cast(keys_ptr), d_tmp, nsend, *mgpu_context);
 
     // reorder send buf
     thrust::gather(tmp_ptr, tmp_ptr + nsend, in_copy_ptr, in_ptr);
@@ -633,7 +684,7 @@ void gpu_exchange_ghosts_make_indices(
             *mgpu_context);
 
         // sort tags by neighbors
-        mgpu::LocalitySortPairs(d_ghost_neigh, d_ghost_idx_adj, n_out, *mgpu_context);
+        mgpu::MergesortPairs_uint2(d_ghost_neigh, d_ghost_idx_adj, n_out, *mgpu_context);
 
         mgpu::SortedSearch<mgpu::MgpuBoundsLower>(d_unique_neighbors, n_unique_neigh,
             d_ghost_neigh, n_out, d_ghost_begin, *mgpu_context);
