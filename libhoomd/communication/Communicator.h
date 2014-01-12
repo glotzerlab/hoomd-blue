@@ -505,6 +505,7 @@ class Communicator
             m_requested_flags;  //!< List of functions that may request ghost communication flags
 
         CommFlags m_flags;                       //!< The ghost communication flags
+        CommFlags m_last_flags;                       //!< Flags of last ghost exchange
 
         /* Bonds communication */
         bool m_bonds_changed;                          //!< True if bond information needs to be refreshed

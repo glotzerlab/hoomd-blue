@@ -79,42 +79,33 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace thrust;
 
 //! Select a particle for migration
-struct select_particle_migrate_gpu : public thrust::unary_function<const Scalar4, unsigned int>
+__global__ void gpu_select_particle_migrate(
+    unsigned int N,
+    const Scalar4 *d_postype,
+    unsigned int *d_flags,
+    unsigned int comm_mask,
+    const BoxDim box)
     {
-    const BoxDim box;          //!< Local simulation box dimensions
-    unsigned int comm_mask;    //!< Allowed communication directions
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= N) return;
 
-    //! Constructor
-    /*!
-     */
-    select_particle_migrate_gpu(const BoxDim & _box, unsigned int _comm_mask)
-        : box(_box), comm_mask(_comm_mask)
-        { }
+    Scalar4 postype = d_postype[idx];
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+    Scalar3 f = box.makeFraction(pos);
 
-    //! Select a particle
-    /*! t particle data to consider for sending
-     * \return true if particle stays in the box
-     */
-    __host__ __device__ unsigned int operator()(const Scalar4 postype)
-        {
-        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-        Scalar3 f = box.makeFraction(pos);
+    unsigned int flags = 0;
+    if (f.x >= Scalar(1.0)) flags |= send_east;
+    if (f.x < Scalar(0.0)) flags |= send_west;
+    if (f.y >= Scalar(1.0)) flags |= send_north;
+    if (f.y < Scalar(0.0)) flags |= send_south;
+    if (f.z >= Scalar(1.0)) flags |= send_up;
+    if (f.z < Scalar(0.0)) flags |= send_down;
 
-        unsigned int flags = 0;
-        if (f.x >= Scalar(1.0)) flags |= send_east;
-        if (f.x < Scalar(0.0)) flags |= send_west;
-        if (f.y >= Scalar(1.0)) flags |= send_north;
-        if (f.y < Scalar(0.0)) flags |= send_south;
-        if (f.z >= Scalar(1.0)) flags |= send_up;
-        if (f.z < Scalar(0.0)) flags |= send_down;
+    // filter allowed directions
+    flags &= comm_mask;
 
-        // filter allowed directions
-        flags &= comm_mask;
-
-        return flags;
-        }
-
-     };
+    d_flags[idx] = flags;
+    }
 
 //! Select a particle for migration
 struct get_migrate_key_gpu : public thrust::unary_function<const unsigned int, unsigned int>
@@ -195,13 +186,15 @@ void gpu_stage_particles(const unsigned int N,
                          const BoxDim& box,
                          const unsigned int comm_mask)
     {
-    // Wrap particle data arrays
-    thrust::device_ptr<const Scalar4> pos_ptr(d_pos);
-    thrust::device_ptr<unsigned int> comm_flag_ptr(d_comm_flag);
+    unsigned int block_size=512;
+    unsigned int n_blocks = N/block_size + 1;
 
-    // set flag for particles that are to be sent
-    thrust::transform(pos_ptr, pos_ptr + N, comm_flag_ptr,
-        select_particle_migrate_gpu(box,comm_mask));
+    gpu_select_particle_migrate<<<n_blocks, block_size>>>(
+        N,
+        d_pos,
+        d_comm_flag,
+        comm_mask,
+        box);
     }
 
 //! Specialization of MergeSortPairs for uint2 values

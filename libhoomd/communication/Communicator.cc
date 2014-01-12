@@ -826,6 +826,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_tag_copybuf(m_exec_conf),
             m_r_ghost(Scalar(0.0)),
             m_r_buff(Scalar(0.0)),
+            m_last_flags(0),
             m_plan(m_exec_conf),
             m_bond_comm(*this, m_sysdef->getBondData()),
             m_angle_comm(*this, m_sysdef->getAngleData()),
@@ -1031,6 +1032,7 @@ void Communicator::migrateParticles()
 
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
+    if (m_last_flags[comm_flag::tag])
         {
         // wipe out reverse-lookup tag -> idx for old ghost atoms
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -1254,6 +1256,9 @@ void Communicator::exchangeGhosts()
     m_velocity_copybuf.resize(m_pdata->getN());
     m_orientation_copybuf.resize(m_pdata->getN());
 
+    // ghost particle flags
+    CommFlags flags = getFlags();
+
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         if (! isCommunicating(dir) ) continue;
@@ -1406,7 +1411,6 @@ void Communicator::exchangeGhosts()
                 m_mpi_comm,
                 &reqs[nreq++]);
 
-            CommFlags flags = getFlags();
 
             if (flags[comm_flag::position])
                 {
@@ -1506,7 +1510,6 @@ void Communicator::exchangeGhosts()
             m_prof->pop();
 
         // wrap particle positions
-        CommFlags flags = getFlags();
         if (flags[comm_flag::position])
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -1539,6 +1542,8 @@ void Communicator::exchangeGhosts()
 
     // we have updated ghost particles, so inform ParticleData about this
     m_pdata->notifyGhostParticleNumberChange();
+
+    m_last_flags = flags;
 
     if (m_prof)
         m_prof->pop();
@@ -1724,7 +1729,6 @@ const BoxDim Communicator::getShiftedBox() const
     BoxDim shifted_box = m_pdata->getGlobalBox();
     Scalar3 f= make_scalar3(0.5,0.5,0.5);
 
-    Scalar3 r_ghost=m_r_ghost*make_scalar3(1.0,1.0,1.0);
     Scalar3 shift = m_pdata->getBox().getNearestPlaneDistance()/
         shifted_box.getNearestPlaneDistance()/2.0;
 

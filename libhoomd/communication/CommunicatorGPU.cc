@@ -75,8 +75,7 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_bond_comm(*this, m_sysdef->getBondData()),
       m_angle_comm(*this, m_sysdef->getAngleData()),
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
-      m_improper_comm(*this, m_sysdef->getImproperData()),
-      m_last_flags(0)
+      m_improper_comm(*this, m_sysdef->getImproperData())
     {
     // allocate memory
     allocateBuffers();

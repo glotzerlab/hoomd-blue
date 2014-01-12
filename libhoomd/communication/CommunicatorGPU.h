@@ -221,7 +221,6 @@ class CommunicatorGPU : public Communicator
         std::vector<unsigned int> m_n_send_ghosts_tot; //!< Total number of sent ghosts per stage
         std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
-        CommFlags m_last_flags;                       //!< Flags of last ghost exchange
         mgpu::ContextPtr m_mgpu_context;              //!< MGPU context
         cudaEvent_t m_event;                          //!< CUDA event for synchronization
 
