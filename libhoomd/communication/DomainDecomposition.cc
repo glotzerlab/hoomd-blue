@@ -193,7 +193,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                         oss << " " << r;
                         node_ranks[i] = r;
                         }
-                    m_exec_conf->msg->notice(7) << oss.str() << std::endl;
+                    m_exec_conf->msg->notice(5) << oss.str() << std::endl;
 
                     // iterate over local ranks
                     for (unsigned int ix_intra = 0; ix_intra < m_intra_node_grid.getW(); ix_intra++)

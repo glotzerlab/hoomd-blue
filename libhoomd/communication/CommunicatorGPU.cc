@@ -2072,7 +2072,6 @@ void CommunicatorGPU::updateGhosts(unsigned int timestep)
 
                 if (flags[comm_flag::position])
                     {
-                    // when sending/receiving 0 ptls, the send/recv buffer may be uninitialized
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(pos_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
