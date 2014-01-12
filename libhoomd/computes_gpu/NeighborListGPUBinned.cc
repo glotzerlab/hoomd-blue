@@ -103,6 +103,13 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
         }
 
     m_tuner.reset(new Autotuner(valid_params, 5, 1e6, "nlist_binned", this->m_exec_conf));
+    m_last_tuned_timestep = 0;
+
+    #ifdef ENABLE_MPI
+    // synchronize over MPI
+    m_tuner->setSync(m_pdata->getDomainDecomposition());
+    #endif
+
     // When running on compute 1.x, textures are allocated with the height equal to the number of cells
     // limit the number of cells to the maximum texture dimension
     if (exec_conf->getComputeCapability() < 200)
@@ -200,7 +207,12 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (exec_conf->getComputeCapability() >= 200)
         {
-        if (!m_param) this->m_tuner->begin();
+        // we should not call the tuner with MPI sync enabled
+        // if the kernel is launched more than once in the same timestep,
+        // since those kernel launches may occur only on some, not all MPI ranks
+        bool tune = !m_param && m_last_tuned_timestep != timestep;
+
+        if (tune) this->m_tuner->begin();
         unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
         unsigned int block_size = param / 10000;
         unsigned int threads_per_particle = param % 10000;
@@ -229,7 +241,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_diameter,
                                  m_cl->getGhostWidth());
         if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        if (! m_param) this->m_tuner->end();
+        if (tune) this->m_tuner->end();
+
+        m_last_tuned_timestep = timestep;
         }
     else
         {
