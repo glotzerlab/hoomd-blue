@@ -145,6 +145,9 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
 
+    // compute the current thermodynamic properties
+    m_thermo->compute(timestep+1);
+
     #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -155,7 +158,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     else
     #endif
         {
-        // compute thermodynamic properties and advance thermostat
+        // get temperature and advance thermostat
         advanceThermostat(timestep+1);
         }
 

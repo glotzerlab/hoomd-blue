@@ -93,6 +93,10 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     m_logname_list.push_back(string("pressure_yy") + suffix);
     m_logname_list.push_back(string("pressure_yz") + suffix);
     m_logname_list.push_back(string("pressure_zz") + suffix);
+
+    #ifdef ENABLE_MPI
+    m_properties_reduced = true;
+    #endif
     }
 
 ComputeThermo::~ComputeThermo()
@@ -355,23 +359,25 @@ void ComputeThermo::computeProperties()
     h_properties.data[thermo_index::pressure_yz] = pressure_yz;
     h_properties.data[thermo_index::pressure_zz] = pressure_zz;
 
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
-
-        if (m_prof)
-            m_prof->push("MPI Allreduce");
-
-        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR, MPI_SUM, mpi_comm);
-
-        if (m_prof)
-                m_prof->pop();
-        }
-#endif // ENABLE_MPI
+    #ifdef ENABLE_MPI
+    // in MPI, reduce extensive quantities only when they're needed
+    m_properties_reduced = !m_pdata->getDomainDecomposition();
+    #endif // ENABLE_MPI
 
     if (m_prof) m_prof->pop();
     }
+
+#ifdef ENABLE_MPI
+void ComputeThermo::reduceProperties()
+    {
+    // reduce properties
+    ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
+    MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR,
+            MPI_SUM, m_exec_conf->getMPICommunicator());
+
+    m_properties_reduced = true;
+    }
+#endif
 
 void export_ComputeThermo()
     {

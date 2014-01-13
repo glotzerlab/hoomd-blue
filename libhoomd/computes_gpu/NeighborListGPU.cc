@@ -242,27 +242,6 @@ bool NeighborListGPU::distanceCheck()
 
     if (m_prof) m_prof->pop(exec_conf);
 
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        if (m_prof)
-            {
-            m_prof->push(exec_conf, "dist-check");
-            m_prof->push("MPI allreduce");
-            }
-        // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
-        int local_result = result ? 1 : 0;
-        int global_result = 0;
-        MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
-        result = (global_result > 0);
-        if (m_prof)
-            {
-            m_prof->pop();
-            m_prof->pop();
-            }
-        }
-#endif
-
     return result;
     }
 

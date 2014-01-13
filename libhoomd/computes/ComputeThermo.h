@@ -124,6 +124,9 @@ class ComputeThermo : public Compute
         */
         Scalar getTemperature()
             {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::temperature];
             }
@@ -138,6 +141,10 @@ class ComputeThermo : public Compute
             if (flags[pdata_flag::isotropic_virial])
                 {
                 // return the pressure
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+
                 ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
                 return h_properties.data[thermo_index::pressure];
                 }
@@ -152,6 +159,10 @@ class ComputeThermo : public Compute
         */
         Scalar getKineticEnergy()
             {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::kinetic_energy];
             }
@@ -161,6 +172,10 @@ class ComputeThermo : public Compute
         */
         Scalar getPotentialEnergy()
             {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+
             // return NaN if the flags are not valid
             PDataFlags flags = m_pdata->getFlags();
             if (flags[pdata_flag::potential_energy])
@@ -185,6 +200,10 @@ class ComputeThermo : public Compute
             PressureTensor p;
             if (flags[pdata_flag::pressure_tensor])
                 {
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+
                 ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
 
                 p.xx = h_properties.data[thermo_index::pressure_xx];
@@ -209,6 +228,10 @@ class ComputeThermo : public Compute
         //! Get the gpu array of properties
         const GPUArray<Scalar>& getProperties()
             {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+
             return m_properties;
             }
 
@@ -226,6 +249,13 @@ class ComputeThermo : public Compute
 
         //! Does the actual computation
         virtual void computeProperties();
+
+        #ifdef ENABLE_MPI
+        bool m_properties_reduced;      //!< True if properties have been reduced across MPI
+
+        //! Reduce properties over MPI
+        void reduceProperties();
+        #endif
     };
 
 //! Exports the ComputeThermo class to python

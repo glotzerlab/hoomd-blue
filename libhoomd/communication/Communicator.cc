@@ -1005,12 +1005,14 @@ void Communicator::communicate(unsigned int timestep)
     m_flags = m_requested_flags(timestep);
 
     /*
-     * Always update ghosts (even if not required, i.e. if the neighbor list
-     * needs to be rebuilt). This allows for overlapping communications during
-     * the distance check
+     * Always update ghosts - even if not required, i.e. if the neighbor list
+     * needs to be rebuilt
      */
 
     bool update = !m_is_first_step;
+
+    // distance check
+    bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
 
     if (update) beginUpdateGhosts(timestep);
 
@@ -1022,8 +1024,11 @@ void Communicator::communicate(unsigned int timestep)
      * thus reducing overall synchronization overhead.
      */
 
-    // distance check
-    bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
+    // check if migrate criterium is fulfilled on any rank
+    int local_result = migrate ? 1 : 0;
+    int global_result = 0;
+    MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
+    migrate = (global_result > 0);
 
     // other functions requiring communciation (e.g. ComputeThermo)
     m_comm_callbacks(timestep);

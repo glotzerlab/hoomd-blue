@@ -171,23 +171,10 @@ void ComputeThermoGPU::computeProperties()
         CHECK_CUDA_ERROR();
     }
 
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
-
-
-        // copy data back to the host to perform collective operations
-        ArrayHandleAsync<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
-        cudaDeviceSynchronize();
-
-        if (m_prof)
-            m_prof->push(m_exec_conf,"MPI Allreduce");
-        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR, MPI_SUM, mpi_comm);
-        if (m_prof)
-                m_prof->pop(m_exec_conf);
-        }
-#endif // ENABLE_MPI
+    #ifdef ENABLE_MPI
+    // in MPI, reduce extensive quantities only when they're needed
+    m_properties_reduced = !m_pdata->getDomainDecomposition();
+    #endif // ENABLE_MPI
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }

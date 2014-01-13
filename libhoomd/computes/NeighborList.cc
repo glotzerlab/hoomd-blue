@@ -856,17 +856,6 @@ bool NeighborList::distanceCheck()
     // don't worry about computing flops here, this is fast
     if (m_prof) m_prof->pop();
 
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
-        int local_result = result ? 1 : 0;
-        int global_result = 0;
-        MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
-        result = (global_result > 0);
-        }
-#endif
-
     return result;
     }
 

@@ -195,6 +195,9 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
+    // compute the current thermodynamic properties
+    m_thermo->compute(timestep+1);
+
     #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -205,7 +208,7 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
     else
     #endif
         {
-        // compute thermodynamic properties and advance thermostat
+        // get temperature and advance thermostat
         advanceThermostat(timestep+1);
         }
 
@@ -263,10 +266,7 @@ void TwoStepNVT::advanceThermostat(unsigned int timestep)
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
 
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep);
-
-    // next, update the state variables Xi and eta
+    // update the state variables Xi and eta
     Scalar xi_prev = xi;
     Scalar curr_T = m_thermo->getTemperature();
     xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
