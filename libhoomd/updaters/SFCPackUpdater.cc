@@ -126,7 +126,7 @@ void SFCPackUpdater::update(unsigned int timestep)
     m_exec_conf->msg->notice(6) << "SFCPackUpdater: particle sort" << std::endl;
 
     #ifdef ENABLE_MPI
-    /* migrate particles are to their respective domains
+    /* migrate particles to their respective domains
        this has two consequences:
        1. we do not need to pad the particle bins for particles that are outside the domain
        2. we migrate only, so all ghost particles are cleared, and we can reorder the particle data

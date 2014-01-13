@@ -1006,10 +1006,12 @@ void Communicator::communicate(unsigned int timestep)
 
     /*
      * Always update ghosts - even if not required, i.e. if the neighbor list
-     * needs to be rebuilt
+     * needs to be rebuilt. Exceptions are when we have not previously
+     * exchanged ghosts, i.e. on the first step or when ghosts have
+     * potentially been invalidated, i.e. upon reordering of particles.
      */
 
-    bool update = !m_is_first_step;
+    bool update = !m_is_first_step && !m_force_migrate;
 
     // distance check
     bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
