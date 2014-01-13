@@ -101,6 +101,10 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     GPUArray< Scalar > scratch_pressure_tensor(m_num_blocks * 6, exec_conf);
     m_scratch_pressure_tensor.swap(scratch_pressure_tensor);
+
+    // override base class allocation using mapped memory
+    GPUArray< Scalar > properties(thermo_index::num_quantities, exec_conf,true);
+    m_properties.swap(properties);
     }
 
 
