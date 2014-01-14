@@ -148,15 +148,15 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_nvt_step_one_kernel<<< grid, threads, block_size * sizeof(Scalar) >>>(d_pos,
-                                                                             d_vel,
-                                                                             d_accel,
-                                                                             d_image,
-                                                                             d_group_members,
-                                                                             group_size,
-                                                                             box,
-                                                                             Scalar(1.0) / (Scalar(1.0) + deltaT/Scalar(2.0) * Xi),
-                                                                             deltaT);
+    gpu_nvt_step_one_kernel<<< grid, threads >>>(d_pos,
+                         d_vel,
+                         d_accel,
+                         d_image,
+                         d_group_members,
+                         group_size,
+                         box,
+                         Scalar(1.0) / (Scalar(1.0) + deltaT/Scalar(2.0) * Xi),
+                         deltaT);
     return cudaSuccess;
     }
 
