@@ -254,7 +254,7 @@ class ComputeThermo : public Compute
         bool m_properties_reduced;      //!< True if properties have been reduced across MPI
 
         //! Reduce properties over MPI
-        void reduceProperties();
+        virtual void reduceProperties();
         #endif
     };
 

@@ -270,12 +270,11 @@ class Communicator
             return m_requested_flags.connect(subscriber);
             }
 
-        //! Subscribe to list of call-backs that are called during the communciation phase
+        //! Subscribe to list of call-backs for additional communication
         /*!
-         * Good candidates for functions to be called during communication
-         * are other functions involving communication and possibly computation.
-         * This ensures that all communication is performed at once, and as little
-         * as possible synchronization delays are incurred.
+         * Good candidates for functions to be called after finishing the ghost update step
+         * are functions that involve all-to-all synchronization or similar expensive
+         * synchronization, that can be overlapped with computation.
          *
          * \param subscriber The callback
          * \returns a connection to this class
@@ -285,6 +284,22 @@ class Communicator
             {
             return m_comm_callbacks.connect(subscriber);
             }
+
+        //! Subscribe to list of call-backs for overlapping computation
+        /*!
+         * Functions subscribed to the compute callback signal are those
+         * that can be overlapped with all-to-all synchronization calls (the communication
+         * callbacks)
+         *
+         * \param subscriber The callback
+         * \returns a connection to this class
+         */
+        boost::signals2::connection addComputeCallback(
+            const boost::function<void (unsigned int timestep)>& subscriber)
+            {
+            return m_compute_callbacks.connect(subscriber);
+            }
+
 
         //! Set width of ghost layer
         /*! \param ghost_width The width of the ghost layer
@@ -537,7 +552,10 @@ class Communicator
             m_requested_flags;  //!< List of functions that may request ghost communication flags
 
         boost::signals2::signal<void (unsigned int timestep)>
-            m_comm_callbacks;   //!< List of functions that are called during the communication phase
+            m_compute_callbacks;   //!< List of functions that are called after ghost communication
+
+        boost::signals2::signal<void (unsigned int timestep)>
+            m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
 
         CommFlags m_flags;                       //!< The ghost communication flags
         CommFlags m_last_flags;                       //!< Flags of last ghost exchange

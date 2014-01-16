@@ -105,9 +105,15 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // override base class allocation using mapped memory
     GPUArray< Scalar > properties(thermo_index::num_quantities, exec_conf,true);
     m_properties.swap(properties);
+
+    cudaEventCreate(&m_event, cudaEventDisableTiming);
     }
 
-
+//! Destructor
+ComputeThermoGPU::~ComputeThermoGPU()
+    {
+    cudaEventDestroy(m_event);
+    }
 
 /*! Computes all thermodynamic properties of the system in one fell swoop, on the GPU.
  */
@@ -180,8 +186,25 @@ void ComputeThermoGPU::computeProperties()
     m_properties_reduced = !m_pdata->getDomainDecomposition();
     #endif // ENABLE_MPI
 
+    if (!m_properties_reduced) cudaEventRecord(m_event);
+
     if (m_prof) m_prof->pop(m_exec_conf);
     }
+
+#ifdef ENABLE_MPI
+void ComputeThermoGPU::reduceProperties()
+    {
+    ArrayHandleAsync<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
+    cudaEventSynchronize(m_event);
+
+    // reduce properties
+    MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR,
+            MPI_SUM, m_exec_conf->getMPICommunicator());
+
+    m_properties_reduced = true;
+    }
+#endif
+
 
 void export_ComputeThermoGPU()
     {

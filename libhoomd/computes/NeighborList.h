@@ -391,6 +391,12 @@ class NeighborList : public Compute
         bool peekUpdate(unsigned int timestep);
 #endif
 
+        //! Return the timestep the neighbor list was last updated
+        unsigned int getLastUpdatedTimeStep()
+            {
+            return m_last_updated_tstep;
+            }
+
     protected:
         Scalar m_r_cut;             //!< The cuttoff radius
         Scalar m_r_buff;            //!< The buffer around the cuttoff

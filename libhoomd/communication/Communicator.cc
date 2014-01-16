@@ -1026,17 +1026,20 @@ void Communicator::communicate(unsigned int timestep)
      * thus reducing overall synchronization overhead.
      */
 
+    // complete ghost communication
+    if (update) finishUpdateGhosts(timestep);
+
+    // computations that can be overlapped with synchronization
+    m_compute_callbacks(timestep);
+
     // check if migrate criterium is fulfilled on any rank
     int local_result = migrate ? 1 : 0;
     int global_result = 0;
     MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
     migrate = (global_result > 0);
 
-    // other functions requiring communciation (e.g. ComputeThermo)
+    // other functions requiring syncing (e.g. ComputeThermo)
     m_comm_callbacks(timestep);
-
-    // complete ghost communication
-    if (update) finishUpdateGhosts(timestep);
 
     // Check if migration of particles is requested
     if (migrate)

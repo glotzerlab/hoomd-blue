@@ -195,17 +195,14 @@ class Compute : boost::noncopyable
         // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
         // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
         // merge conflicts.
-        bool m_inside_thread;           //!< True if we are called from within a worker thread
-        unsigned int m_thread_id;       //!< In multi-threading, this stores the thread ID from which the force compute was called
+        bool m_force_compute;           //!< true if calculation is enforced
 
         //! Simple method for testing if the computation should be run or not
         virtual bool shouldCompute(unsigned int timestep);
+
     private:
         unsigned int m_last_computed;   //!< Stores the last timestep compute was called
         bool m_first_compute;           //!< true if compute has not yet been called
-        bool m_force_compute;           //!< true if calculation is enforced
-
-        bool m_mutex;                   //!< Mutex to protect against simultaneous updates of the same compute
 
         //! The python export needs to be a friend to export shouldCompute()
         friend void export_Compute();

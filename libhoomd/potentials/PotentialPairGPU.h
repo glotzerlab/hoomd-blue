@@ -108,9 +108,38 @@ class PotentialPairGPU : public PotentialPair<evaluator>
             m_param = param;
             }
 
+        #ifdef ENABLE_MPI
+        //! Set the communicator to use
+        /*! \param comm The communicator
+         */
+        void setCommunicator(boost::shared_ptr<Communicator> comm)
+            {
+            // on first call, register with Communicator
+            if (comm && !this->m_comm)
+                {
+                comm->addComputeCallback(bind(&PotentialPairGPU<evaluator, gpu_cgpf>::preCompute, this, _1));
+                }
+            this->m_comm = comm;
+            }
+
+        /*! Precompute the pair force without rebuilding the neighbor list
+         *
+         * \param timestep The time step
+         */
+        void preCompute(unsigned int timestep)
+            {
+            m_precompute = true;
+            this->forceCompute(timestep);
+            m_last_precompute_timestep = timestep;
+            m_precompute = false;
+            }
+        #endif
+
     protected:
         boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
         unsigned int m_param;                 //!< Kernel tuning parameter
+        bool m_precompute;                    //!< True if we are pre-computing the force
+        unsigned int m_last_precompute_timestep;      //!< Last time step this potential has been precomputed
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -150,6 +179,8 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
     // synchronize autotuner results across ranks
     m_tuner->setSync(this->m_pdata->getDomainDecomposition());
     #endif
+    m_precompute = false;
+    m_last_precompute_timestep = 0;
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
@@ -157,7 +188,13 @@ template< class evaluator, cudaError_t gpu_cgpf(const pair_args_t& pair_args,
 void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
-    this->m_nlist->compute(timestep);
+    if (! m_precompute)
+        this->m_nlist->compute(timestep);
+
+    // if we have already computed and the neighbor list has not been rebuilt
+    // do not recompute
+    if (m_last_precompute_timestep == timestep && timestep
+        && this->m_nlist->getLastUpdatedTimeStep() != timestep) return;
 
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);

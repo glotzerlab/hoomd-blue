@@ -74,11 +74,18 @@ class ComputeThermoGPU : public ComputeThermo
         ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                          boost::shared_ptr<ParticleGroup> group,
                          const std::string& suffix = std::string(""));
+        virtual ~ComputeThermoGPU();
+
     protected:
         GPUArray<Scalar4> m_scratch;  //!< Scratch space for partial sums
         GPUArray<Scalar> m_scratch_pressure_tensor; //!< Scratch space for pressure tensor partial sums
         unsigned int m_num_blocks;   //!< Number of blocks participating in the reduction
         unsigned int m_block_size;   //!< Block size executed
+        cudaEvent_t m_event;         //!< CUDA event for synchronization
+
+        //! Reduce properties over MPI
+        virtual void reduceProperties();
+
         //! Does the actual computation
         virtual void computeProperties();
     };
