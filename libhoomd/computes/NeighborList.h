@@ -434,7 +434,7 @@ class NeighborList : public Compute
         #endif
 
         //! Performs the distance check
-        virtual bool distanceCheck();
+        virtual bool distanceCheck(unsigned int timestep);
 
         //! Updates the previous position table for use in the next distance check
         virtual void setLastUpdatedPos();

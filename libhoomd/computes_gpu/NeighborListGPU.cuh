@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 
 //! Kernel driver for gpu_nlist_needs_update_check_new_kernel()
-cudaError_t gpu_nlist_needs_update_check_new(uint2 * d_result,
+cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const Scalar4 *d_last_pos,
                                              const Scalar4 *d_pos,
                                              const unsigned int N,

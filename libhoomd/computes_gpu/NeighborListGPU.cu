@@ -72,7 +72,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     compared to its last position. If the particle has moved a distance more than sqrt(\a maxshiftsq), then *d_result
     is set to \a ncheck.
 */
-__global__ void gpu_nlist_needs_update_check_new_kernel(uint2 *d_result,
+__global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const Scalar4 *d_last_pos,
                                                         const Scalar4 *d_pos,
                                                         const unsigned int N,
@@ -97,11 +97,11 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(uint2 *d_result,
         dx = box.minImage(dx);
 
         if (dot(dx, dx) >= maxshiftsq)
-            atomicMax(&((*d_result).x), checkn);
+            atomicMax(d_result, checkn);
         }
     }
 
-cudaError_t gpu_nlist_needs_update_check_new(uint2 *d_result,
+cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const Scalar4 *d_last_pos,
                                              const Scalar4 *d_pos,
                                              const unsigned int N,

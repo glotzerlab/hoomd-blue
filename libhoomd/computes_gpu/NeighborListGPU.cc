@@ -170,7 +170,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
         m_prof->pop(exec_conf);
     }
 
-bool NeighborListGPU::distanceCheck()
+void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     {
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(exec_conf, "dist-check");
@@ -197,48 +197,38 @@ bool NeighborListGPU::distanceCheck()
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
     Scalar maxshiftsq = delta_max > 0  ? delta_max*delta_max : 0;
 
-    // the change of the global box size should not exceed the local box size
-    Scalar3 del_L = L_g - m_last_L;
-    if ( fabs(del_L.x) >= m_last_L_local.x ||
-         fabs(del_L.y) >= m_last_L_local.y ||
-         fabs(del_L.z) >= m_last_L_local.z)
-        {
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            // particle migration will fail in MPI simulations, error out
-            m_exec_conf->msg->error() << "nlist: Too large jump in box dimensions."
-                                      << std::endl << std::endl;
-            throw std::runtime_error("Error checking displacements");
-            }
-        else
-        #endif
-            {
-            // warn the user
-            m_exec_conf->msg->warning()
-                << "nlist: Extremely large change in box dimensions" << std::endl;
-            m_exec_conf->msg->warning()
-                << "Simulation may fail or run out of memory." << std::endl << std::endl;
-            }
-        }
-
-    gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
+    ArrayHandle<unsigned int> h_flags(m_flags, access_location::device, access_mode::readwrite);
+    gpu_nlist_needs_update_check_new(h_flags.data,
                                      d_last_pos.data,
                                      d_pos.data,
                                      m_pdata->getN(),
                                      box,
                                      maxshiftsq,
                                      lambda,
-                                     m_checkn);
+                                     ++m_checkn);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    bool result;
-    uint2 flags = m_flags.readFlags();
-    result = (flags.x == m_checkn);
+    m_distcheck_scheduled = true;
 
-    m_checkn++;
+    // record synchronization point
+    cudaEventRecord(m_event);
+
+    if (m_prof) m_prof->pop(exec_conf);
+    }
+
+bool NeighborListGPU::distanceCheck(unsigned int timestep)
+    {
+    if (! m_distcheck_scheduled) scheduleDistanceCheck(timestep);
+    m_distcheck_scheduled = false;
+
+    ArrayHandleAsync<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
+
+    // wait for kernel to complete
+    cudaEventSynchronize(m_event);
+
+    bool result = (*h_flags.data == m_checkn);
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -258,7 +248,6 @@ bool NeighborListGPU::distanceCheck()
         }
     #endif
 
-    if (m_prof) m_prof->pop(exec_conf);
 
     return result;
     }

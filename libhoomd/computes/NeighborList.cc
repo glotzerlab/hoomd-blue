@@ -779,7 +779,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     Note: this method relies on data set by setLastUpdatedPos(), which must be called to set the previous data used
     in the next call to distanceCheck();
 */
-bool NeighborList::distanceCheck()
+bool NeighborList::distanceCheck(unsigned int timestep)
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
@@ -813,31 +813,6 @@ bool NeighborList::distanceCheck()
     // maximum displacement for each particle (after subtraction of homogeneous dilations)
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
     Scalar maxsq = delta_max > 0  ? delta_max*delta_max : 0;
-
-    // the change of the global box size should not exceed the local box size
-    Scalar3 del_L = L_g - m_last_L;
-    if ( fabs(del_L.x) >= m_last_L_local.x ||
-         fabs(del_L.y) >= m_last_L_local.y ||
-         fabs(del_L.z) >= m_last_L_local.z)
-        {
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            // particle migration will fail in MPI simulations, error out
-            m_exec_conf->msg->error() << "nlist: Too large jump in box dimensions."
-                                      << std::endl << std::endl;
-            throw std::runtime_error("Error checking displacements");
-            }
-        else
-        #endif
-            {
-            // warn the user
-            m_exec_conf->msg->warning()
-                << "nlist: Extremely large change in box dimensions" << std::endl;
-            m_exec_conf->msg->warning()
-                << "Simulation may fail or run out of memory." << std::endl << std::endl;
-            }
-        }
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -963,7 +938,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
             }
         else
             {
-            result = distanceCheck();
+            result = distanceCheck(timestep);
             }
 
         if (result)
