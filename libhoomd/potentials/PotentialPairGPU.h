@@ -97,7 +97,13 @@ class PotentialPairGPU : public PotentialPair<evaluator>
                          boost::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialPairGPU() {}
+        virtual ~PotentialPairGPU()
+            {
+            #ifdef ENABLE_MPI
+            if (m_callback_connection.connected())
+                 m_callback_connection.disconnect();
+            #endif
+            }
 
         //! Set the number of threads per particle to execute on the GPU
         /*! \param threads_per_particl Number of threads per particle
@@ -117,7 +123,10 @@ class PotentialPairGPU : public PotentialPair<evaluator>
             // on first call, register with Communicator
             if (comm && !this->m_comm)
                 {
-                comm->addComputeCallback(bind(&PotentialPairGPU<evaluator, gpu_cgpf>::preCompute, this, _1));
+                this->m_exec_conf->msg->notice(6) << "Registering pair." << evaluator::getName() << " with Communicator"
+                    << std::endl;
+                m_callback_connection =
+                    comm->addComputeCallback(bind(&PotentialPairGPU<evaluator, gpu_cgpf>::preCompute, this, _1));
                 }
             this->m_comm = comm;
             }
@@ -140,6 +149,10 @@ class PotentialPairGPU : public PotentialPair<evaluator>
         unsigned int m_param;                 //!< Kernel tuning parameter
         bool m_precompute;                    //!< True if we are pre-computing the force
         bool m_has_been_precomputed;          //!< True if the forces have been precomputed
+
+        #ifdef ENABLE_MPI
+        boost::signals2::connection m_callback_connection; //!< Connection to Commmunicator
+        #endif
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -179,6 +192,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
     // synchronize autotuner results across ranks
     m_tuner->setSync(this->m_pdata->getDomainDecomposition());
     #endif
+
     m_precompute = false;
     m_has_been_precomputed = false;
     }
@@ -192,7 +206,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
         this->m_nlist->compute(timestep);
 
     // if we have already computed and the neighbor list remains current do not recompute
-    if (m_has_been_precomputed && !this->m_nlist->hasBeenUpdated(timestep)) return;
+    if (!m_precompute && m_has_been_precomputed && !this->m_nlist->hasBeenUpdated(timestep)) return;
 
     m_has_been_precomputed = false;
 

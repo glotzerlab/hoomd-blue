@@ -234,6 +234,7 @@ void NeighborList::compute(unsigned int timestep)
             filterNlist();
 
         setLastUpdatedPos();
+        m_has_been_updated_once = true;
         }
 
     if (m_prof) m_prof->pop();
@@ -927,7 +928,6 @@ bool NeighborList::needsUpdating(unsigned int timestep)
         m_force_update = false;
         m_forced_updates += 1;
         m_last_updated_tstep = timestep;
-        m_has_been_updated_once = true;
 
         // when an update is forced, there is no way to tell if the build
         // is dangerous or not: filter out the false positive errors
@@ -960,7 +960,6 @@ bool NeighborList::needsUpdating(unsigned int timestep)
                 }
 
             m_last_updated_tstep = timestep;
-            m_has_been_updated_once = true;
             m_updates += 1;
             }
         }
