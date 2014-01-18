@@ -274,7 +274,7 @@ class Communicator
         /*!
          * Good candidates for functions to be called after finishing the ghost update step
          * are functions that involve all-to-all synchronization or similar expensive
-         * synchronization, that can be overlapped with computation.
+         * communication that can be overlapped with computation.
          *
          * \param subscriber The callback
          * \returns a connection to this class
@@ -288,8 +288,10 @@ class Communicator
         //! Subscribe to list of call-backs for overlapping computation
         /*!
          * Functions subscribed to the compute callback signal are those
-         * that can be overlapped with all-to-all synchronization calls (the communication
-         * callbacks)
+         * that can be overlapped with all-to-all synchronization.
+         *
+         * \note Subscribers are called only after updated ghost information is available
+         *       but BEFORE particle migration
          *
          * \param subscriber The callback
          * \returns a connection to this class

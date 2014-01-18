@@ -1016,21 +1016,14 @@ void Communicator::communicate(unsigned int timestep)
     // distance check
     bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
 
-    if (update) beginUpdateGhosts(timestep);
+    if (update)
+        {
+        beginUpdateGhosts(timestep);
+        finishUpdateGhosts(timestep);
 
-    /*
-     * Here we move all computations and communciations
-     * that can be performed without knowledge of the ghost particle data
-     * but which may incur synchronization. The rationale is that all
-     * synchronization will occur during a single phase in the time step,
-     * thus reducing overall synchronization overhead.
-     */
-
-    // complete ghost communication
-    if (update) finishUpdateGhosts(timestep);
-
-    // computations that can be overlapped with synchronization
-    m_compute_callbacks(timestep);
+        // call subscribers that depend on updated ghosts
+        m_compute_callbacks(timestep);
+        }
 
     // check if migrate criterium is fulfilled on any rank
     int local_result = migrate ? 1 : 0;
@@ -1038,7 +1031,7 @@ void Communicator::communicate(unsigned int timestep)
     MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
     migrate = (global_result > 0);
 
-    // other functions requiring syncing (e.g. ComputeThermo)
+    // other functions involving syncing
     m_comm_callbacks(timestep);
 
     // Check if migration of particles is requested

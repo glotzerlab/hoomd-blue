@@ -88,7 +88,7 @@ using namespace std;
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
       m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
-      m_force_update(true), m_dist_check(true)
+      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -134,7 +134,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
-    
+
     // this violates O(N/P) memory scaling
     // in the future this should be done using a hash table
     GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
@@ -927,6 +927,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
         m_force_update = false;
         m_forced_updates += 1;
         m_last_updated_tstep = timestep;
+        m_has_been_updated_once = true;
 
         // when an update is forced, there is no way to tell if the build
         // is dangerous or not: filter out the false positive errors
@@ -959,6 +960,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
                 }
 
             m_last_updated_tstep = timestep;
+            m_has_been_updated_once = true;
             m_updates += 1;
             }
         }

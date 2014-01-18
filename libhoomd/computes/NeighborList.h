@@ -391,10 +391,14 @@ class NeighborList : public Compute
         bool peekUpdate(unsigned int timestep);
 #endif
 
-        //! Return the timestep the neighbor list was last updated
-        unsigned int getLastUpdatedTimeStep()
+        //! Return true if the neighbor list has been updated this time step
+        /*! \param timestep Current time step
+         *
+         *  This is supposed to be called after a call to compute().
+         */
+        bool hasBeenUpdated(unsigned int timestep)
             {
-            return m_last_updated_tstep;
+            return m_last_updated_tstep == timestep && m_has_been_updated_once;
             }
 
     protected:
@@ -460,6 +464,7 @@ class NeighborList : public Compute
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)
+        bool m_has_been_updated_once;   //!< True if the neighbor list has been updated at least once
 
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_last_checked_tstep; //!< Track the last time step we have checked
