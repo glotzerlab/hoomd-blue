@@ -854,6 +854,24 @@ bool NeighborList::distanceCheck()
             }
         }
 
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        if (m_prof) m_prof->push("MPI allreduce");
+        // check if migrate criterium is fulfilled on any rank
+        int local_result = result ? 1 : 0;
+        int global_result = 0;
+        MPI_Allreduce(&local_result,
+            &global_result,
+            1,
+            MPI_INT,
+            MPI_MAX,
+            m_exec_conf->getMPICommunicator());
+        result = (global_result > 0);
+        if (m_prof) m_prof->pop();
+        }
+    #endif
+
     // don't worry about computing flops here, this is fast
     if (m_prof) m_prof->pop();
 

@@ -1013,26 +1013,20 @@ void Communicator::communicate(unsigned int timestep)
 
     bool update = !m_is_first_step && !m_force_migrate;
 
-    // distance check
-    bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
-
     if (update)
         {
         beginUpdateGhosts(timestep);
         finishUpdateGhosts(timestep);
-
-        // call subscribers that depend on updated ghosts
-        m_compute_callbacks(timestep);
         }
 
-    // check if migrate criterium is fulfilled on any rank
-    int local_result = migrate ? 1 : 0;
-    int global_result = 0;
-    MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
-    migrate = (global_result > 0);
+    // call subscribers that depend on updated ghosts
+    if (update) m_compute_callbacks(timestep);
 
     // other functions involving syncing
     m_comm_callbacks(timestep);
+
+    // distance check (synchronizes the GPU execution stream)
+    bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
 
     // Check if migration of particles is requested
     if (migrate)

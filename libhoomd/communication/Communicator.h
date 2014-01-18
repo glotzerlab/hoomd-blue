@@ -288,7 +288,9 @@ class Communicator
         //! Subscribe to list of call-backs for overlapping computation
         /*!
          * Functions subscribed to the compute callback signal are those
-         * that can be overlapped with all-to-all synchronization.
+         * that can be overlapped with all-to-all synchronization. For good
+         * MPI performance, the callbacks should NOT synchronize the GPU
+         * execution stream.
          *
          * \note Subscribers are called only after updated ghost information is available
          *       but BEFORE particle migration
