@@ -250,6 +250,7 @@ class _external_force(force._force):
         # setup the coefficient vector
         self.force_coeff = coeff();
 
+        self.name = name
         self.enabled = True;
 
         # create force data iterator
