@@ -211,6 +211,7 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
         CHECK_CUDA_ERROR();
 
     m_distcheck_scheduled = true;
+    m_last_schedule_tstep = timestep;
 
     // record synchronization point
     cudaEventRecord(m_event);
@@ -220,7 +221,10 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
 
 bool NeighborListGPU::distanceCheck(unsigned int timestep)
     {
-    if (! m_distcheck_scheduled) scheduleDistanceCheck(timestep);
+    // check if we have scheduled a kernel for the current time step
+    if (! m_distcheck_scheduled || m_last_schedule_tstep != timestep)
+        scheduleDistanceCheck(timestep);
+
     m_distcheck_scheduled = false;
 
     ArrayHandleAsync<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);

@@ -89,6 +89,7 @@ class NeighborListGPU : public NeighborList
             m_block_size_filter = 192;
             m_checkn = 1;
             m_distcheck_scheduled = false;
+            m_last_schedule_tstep = 0;
 
             // create cuda event
             cudaEventCreate(&m_event,cudaEventDisableTiming);
@@ -160,6 +161,7 @@ class NeighborListGPU : public NeighborList
         unsigned int m_block_size_filter;   //!< Block size for the filter kernel
         unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update
         bool m_distcheck_scheduled;         //!< True if a distance check kernel has been queued
+        unsigned int m_last_schedule_tstep; //!< Time step of last kernel schedule
 
         cudaEvent_t m_event;                //!< Event signalling completion of distcheck kernel
         #ifdef ENABLE_MPI
