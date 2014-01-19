@@ -1014,10 +1014,13 @@ void Communicator::communicate(unsigned int timestep)
     bool update = !m_is_first_step && !m_force_migrate;
 
     if (update)
-        {
         beginUpdateGhosts(timestep);
+
+    // call computation that can be overlapped with communication
+    m_local_compute_callbacks(timestep);
+
+    if (update)
         finishUpdateGhosts(timestep);
-        }
 
     // call subscribers that depend on updated ghosts
     if (update) m_compute_callbacks(timestep);

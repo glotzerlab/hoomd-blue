@@ -111,8 +111,8 @@ TwoStepNVT::~TwoStepNVT()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepNVT" << endl;
     #ifdef ENABLE_MPI
-    if (m_callback_connection.connected())
-        m_callback_connection.disconnect();
+    if (m_comm_connection.connected()) m_comm_connection.disconnect();
+    if (m_compute_connection.connected()) m_compute_connection.disconnect();
     #endif
     }
 
@@ -195,19 +195,21 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep+1);
-
     #ifdef ENABLE_MPI
     if (m_comm)
         {
         // lazy register update of thermodynamic quantities with Communicator
-        if (! m_callback_connection.connected())
-            m_callback_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVT::advanceThermostat, this, _1));
+        if (! m_comm_connection.connected())
+            m_comm_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVT::advanceThermostat, this, _1));
+        if (! m_compute_connection.connected())
+            m_compute_connection = m_comm->addLocalComputeCallback(bind(&ComputeThermo::compute, m_thermo, _1));
         }
     else
     #endif
         {
+        // compute the current thermodynamic properties
+        m_thermo->compute(timestep+1);
+
         // get temperature and advance thermostat
         advanceThermostat(timestep+1);
         }

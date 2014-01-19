@@ -145,19 +145,21 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
 
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep+1);
-
     #ifdef ENABLE_MPI
     if (m_comm)
         {
         // lazy register update of thermodynamic quantities with Communicator
-        if (! m_callback_connection.connected())
-            m_callback_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVTGPU::advanceThermostat, this, _1));
+        if (! m_comm_connection.connected())
+            m_comm_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVTGPU::advanceThermostat, this, _1));
+        if (! m_compute_connection.connected())
+            m_compute_connection = m_comm->addLocalComputeCallback(bind(&ComputeThermo::compute, m_thermo, _1));
         }
     else
     #endif
         {
+        // compute the current thermodynamic properties
+        m_thermo->compute(timestep+1);
+
         // get temperature and advance thermostat
         advanceThermostat(timestep+1);
         }

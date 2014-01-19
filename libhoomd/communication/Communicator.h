@@ -286,6 +286,13 @@ class Communicator
             }
 
         //! Subscribe to list of call-backs for overlapping computation
+        boost::signals2::connection addLocalComputeCallback(
+            const boost::function<void (unsigned int timestep)>& subscriber)
+            {
+            return m_local_compute_callbacks.connect(subscriber);
+            }
+
+        //! Subscribe to list of call-backs for computation that depends on ghost positions
         /*!
          * Functions subscribed to the compute callback signal are those
          * that can be overlapped with all-to-all synchronization. For good
@@ -554,6 +561,9 @@ class Communicator
 
         boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
             m_requested_flags;  //!< List of functions that may request ghost communication flags
+
+        boost::signals2::signal<void (unsigned int timestep)>
+            m_local_compute_callbacks;   //!< List of functions that can be overlapped with communication
 
         boost::signals2::signal<void (unsigned int timestep)>
             m_compute_callbacks;   //!< List of functions that are called after ghost communication

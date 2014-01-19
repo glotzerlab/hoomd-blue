@@ -135,7 +135,8 @@ class TwoStepNVT : public IntegrationMethodTwoStep
         std::string m_log_name;         //!< Name of the reservior quantity that we log
 
         #ifdef ENABLE_MPI
-        boost::signals2::connection m_callback_connection; //!< Connection to Commmunicator
+        boost::signals2::connection m_compute_connection; //!< Connection to Commmunicator
+        boost::signals2::connection m_comm_connection; //!< Connection to Commmunicator
         #endif
 
         // advance the thermostat
