@@ -194,6 +194,8 @@ void ComputeThermoGPU::computeProperties()
 #ifdef ENABLE_MPI
 void ComputeThermoGPU::reduceProperties()
     {
+    if (m_properties_reduced) return;
+
     ArrayHandleAsync<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
     cudaEventSynchronize(m_event);
 

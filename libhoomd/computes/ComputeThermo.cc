@@ -370,6 +370,8 @@ void ComputeThermo::computeProperties()
 #ifdef ENABLE_MPI
 void ComputeThermo::reduceProperties()
     {
+    if (m_properties_reduced) return;
+
     // reduce properties
     ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
     MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR,
