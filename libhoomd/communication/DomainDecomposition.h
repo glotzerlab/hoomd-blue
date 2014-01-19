@@ -155,7 +155,13 @@ class DomainDecomposition
         GPUArray<unsigned int> m_cart_ranks_inv; //!< Inverse permutation of grid index lookup table
 
         //! Find a domain decomposition with given parameters
-        bool findDecomposition(unsigned int nranks, Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz);
+        bool findDecomposition(unsigned int nranks, Scalar3 L,
+            unsigned int& nx, unsigned int& ny, unsigned int& nz);
+
+        //! Find a two-level decompositon of the global grid
+        void subdivide(unsigned int n_node_ranks, Scalar3 L,
+            unsigned int nx, unsigned int ny, unsigned int nz,
+            unsigned int& nx_intra, unsigned int &ny_intra, unsigned int& nz_intra);
 
         //! Helper method to group ranks by nodes
         void findCommonNodes();

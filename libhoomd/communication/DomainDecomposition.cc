@@ -109,18 +109,15 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
             // every node has the same number of ranks, so nranks == num_nodes * num_ranks_per_node
             unsigned int n_nodes = m_nodes.size();
 
-            // subdivide the grid of nodes
-            findDecomposition(n_nodes, L, nx_node, ny_node, nz_node);
-
-            // dimensions of the intra-node grid
-            Scalar3 L_node = L/make_scalar3(nx_node, ny_node, nz_node);
+            // subdivide the global grid
+            findDecomposition(nranks, L, nx, ny, nz);
 
             // subdivide the local grid
-            findDecomposition(m_max_n_node, L_node, nx_intra, ny_intra, nz_intra);
+            subdivide(nranks/n_nodes, L, nx, ny, nz, nx_intra, ny_intra, nz_intra);
 
-            nx = nx_node * nx_intra;
-            ny = ny_node * ny_intra;
-            nz = nz_node * nz_intra;
+            nx_node = nx/nx_intra;
+            ny_node = ny/ny_intra;
+            nz_node = nz/nz_intra;
             }
         else
             {
@@ -230,8 +227,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
 
     if (m_twolevel)
         m_exec_conf->msg->notice(1) << nx_intra << " x " << ny_intra << " x " << nz_intra
-            << " local grid on a " << nx_node << " x " << ny_node << " x " << nz_node
-            << " grid of nodes" << std::endl;
+            << " local grid on " << m_nodes.size() << " nodes" << std::endl;
 
     // compute position of this box in the domain grid by reverse look-up
     m_grid_pos = m_index.getTriple(h_cart_ranks_inv.data[rank]);
@@ -287,6 +283,34 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks, const Scalar3 L
 
     return found_decomposition;
     }
+
+//! Find a two-level decompositon of the global grid
+void DomainDecomposition::subdivide(unsigned int n_node_ranks, Scalar3 L,
+    unsigned int nx, unsigned int ny, unsigned int nz,
+    unsigned int& nx_intra, unsigned int &ny_intra, unsigned int& nz_intra)
+    {
+    assert(L.x > 0);
+    assert(L.y > 0);
+    assert(L.z > 0);
+
+    // initial guess
+    nx_intra = 1;
+    ny_intra = 1;
+    nz_intra = n_node_ranks;
+
+    for (unsigned int nx_intra_try = 1; nx_intra_try <= n_node_ranks; nx_intra_try++)
+        for (unsigned int ny_intra_try = 1; nx_intra_try*ny_intra_try <= n_node_ranks; ny_intra_try++)
+            for (unsigned int nz_intra_try = 1; nx_intra_try*ny_intra_try*nz_intra_try <= n_node_ranks; nz_intra_try++)
+                {
+                if (nx_intra_try*ny_intra_try*nz_intra_try != n_node_ranks) continue;
+                if (nx % nx_intra_try || ny % ny_intra_try || nz % nz_intra_try) continue;
+
+                nx_intra = nx_intra_try;
+                ny_intra = ny_intra_try;
+                nz_intra = nz_intra_try;
+                }
+    }
+
 
 /*! \param dir Spatial direction to find neighbor in
                0: east, 1: west, 2: north, 3: south, 4: up, 5: down
