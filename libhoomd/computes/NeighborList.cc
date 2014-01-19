@@ -108,7 +108,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // initialize values
     m_last_updated_tstep = 0;
     m_last_checked_tstep = 0;
-    m_last_check_result = true;
+    m_last_check_result = false;
     m_every = 0;
     m_Nmax = 0;
     m_exclusions_set = false;
@@ -167,7 +167,6 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
  */
 void NeighborList::reallocate()
     {
-
     m_last_pos.resize(m_pdata->getMaxN());
     m_n_ex_idx.resize(m_pdata->getMaxN());
     unsigned int ex_list_height = m_ex_list_indexer.getH();
@@ -889,12 +888,15 @@ void NeighborList::setLastUpdatedPos()
 bool NeighborList::needsUpdating(unsigned int timestep)
     {
     if (m_last_checked_tstep == timestep)
-        if (!m_force_update || m_last_check_result)
+        {
+        if (m_force_update)
             {
-            // reset just in case the update has been forced after the last check has returned true
+            // force update is counted only once per time step
             m_force_update = false;
-            return m_last_check_result;
+            return true;
             }
+        return m_last_check_result;
+        }
 
     m_last_checked_tstep = timestep;
 
