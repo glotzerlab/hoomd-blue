@@ -353,6 +353,14 @@ int get_compute_capability(T func)
     return attr.binaryVersion;
     } 
 
+void gpu_nlist_binned_bind_texture(const Scalar4 *d_cell_xyzf, unsigned int n_elements)
+    {
+    // bind the position texture
+    cell_xyzf_1d_tex.normalized = false;
+    cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
+    cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*n_elements);
+    }
+
 //! recursive template to launch neighborlist with given template parameters
 /* \tparam cur_tpp Number of threads per particle (assumed to be power of two) */
 template<int cur_tpp>
@@ -393,6 +401,7 @@ inline void launcher(unsigned int *d_nlist,
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<0,cur_tpp>);
             if (sm == -1)
                 sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<0,cur_tpp>);
+            if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
@@ -433,6 +442,7 @@ inline void launcher(unsigned int *d_nlist,
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<1,cur_tpp>);
             if (sm == -1)
                 sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<1,cur_tpp>);
+            if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
@@ -473,6 +483,7 @@ inline void launcher(unsigned int *d_nlist,
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
             if (sm == -1)
                 sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
+            if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
@@ -513,6 +524,7 @@ inline void launcher(unsigned int *d_nlist,
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
             if (sm == -1)
                 sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
+            if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
@@ -628,15 +640,6 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                      bool filter_diameter,
                                      const Scalar3& ghost_width)
     {
-    #if __CUDA_ARCH__ <= 300
-    // bind the position texture
-    cell_xyzf_1d_tex.normalized = false;
-    cell_xyzf_1d_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, cell_xyzf_1d_tex, d_cell_xyzf, sizeof(Scalar4)*(cli.getNumElements()));
-    if (error != cudaSuccess)
-        return error;
-    #endif // on SM 3.5 we use __ldg
-
     launcher<max_threads_per_particle>(d_nlist,
                                    d_n_neigh,
                                    d_last_updated_pos,
