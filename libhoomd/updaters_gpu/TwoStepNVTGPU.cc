@@ -151,8 +151,11 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
         // lazy register update of thermodynamic quantities with Communicator
         if (! m_comm_connection.connected())
             m_comm_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVTGPU::advanceThermostat, this, _1));
+        // note: requesting the address of m_thermo would normally mean circumventing reference
+        // counting, but here we are safe since there is still a shared_ptr ref
+        // to ComputeThermo in the class
         if (! m_compute_connection.connected())
-            m_compute_connection = m_comm->addLocalComputeCallback(bind(&ComputeThermo::compute, m_thermo, _1));
+            m_compute_connection = m_comm->addLocalComputeCallback(bind(&ComputeThermo::compute, m_thermo.get(), _1));
         }
     else
     #endif
