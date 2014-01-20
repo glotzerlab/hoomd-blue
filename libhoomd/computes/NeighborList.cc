@@ -878,6 +878,11 @@ void NeighborList::setLastUpdatedPos()
     if (m_prof) m_prof->pop();
     }
 
+bool NeighborList::shouldCheckDistance(unsigned int timestep)
+    {
+    return !m_force_update && !(timestep < (m_last_updated_tstep + m_every));
+    }
+
 /*! \returns true If the neighbor list needs to be updated
     \returns false If the neighbor list does not need to be updated
     \note This is designed to be called if (needsUpdating()) then update every step.
@@ -900,7 +905,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 
     m_last_checked_tstep = timestep;
 
-    if (timestep < (m_last_updated_tstep + m_every) && !m_force_update)
+    if (!shouldCheckDistance(timestep))
         {
         m_last_check_result = false;
         return false;

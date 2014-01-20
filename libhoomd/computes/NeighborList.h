@@ -401,7 +401,7 @@ class NeighborList : public Compute
             return m_last_updated_tstep == timestep && m_has_been_updated_once;
             }
 
-    protected:
+   protected:
         Scalar m_r_cut;             //!< The cuttoff radius
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
@@ -432,6 +432,9 @@ class NeighborList : public Compute
         boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
         boost::signals2::connection m_comm_flags_request;         //!< Connection to request ghost particle fields
         #endif
+
+        //! Return true if we are supposed to do a distance check in this time step
+        bool shouldCheckDistance(unsigned int timestep);
 
         //! Performs the distance check
         virtual bool distanceCheck(unsigned int timestep);
