@@ -173,7 +173,11 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
 void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     {
     // prevent against unnecessary calls
-    if (! shouldCheckDistance(timestep)) return;
+    if (! shouldCheckDistance(timestep))
+        {
+        m_distcheck_scheduled = false;
+        return;
+        }
 
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(exec_conf, "dist-check");

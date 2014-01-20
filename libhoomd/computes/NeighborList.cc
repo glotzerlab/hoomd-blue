@@ -905,7 +905,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 
     m_last_checked_tstep = timestep;
 
-    if (!shouldCheckDistance(timestep))
+    if (!m_force_update && !shouldCheckDistance(timestep))
         {
         m_last_check_result = false;
         return false;
