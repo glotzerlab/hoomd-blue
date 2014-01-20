@@ -97,7 +97,7 @@ struct pair_args_t
               Scalar *_d_virial,
               const unsigned int _virial_pitch,
               const unsigned int _N,
-              const unsigned int _n_ghost,
+              const unsigned int _n_max,
               const Scalar4 *_d_pos,
               const Scalar *_d_diameter,
               const Scalar *_d_charge,
@@ -116,7 +116,7 @@ struct pair_args_t
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
                   N(_N),
-                  n_ghost(_n_ghost),
+                  n_max(_n_max),
                   d_pos(_d_pos),
                   d_diameter(_d_diameter),
                   d_charge(_d_charge),
@@ -138,7 +138,7 @@ struct pair_args_t
     Scalar *d_virial;                //!< Virial to write out
     const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const unsigned int N;           //!< number of particles
-    const unsigned int n_ghost;     //!< number of ghost particles
+    const unsigned int n_max;       //!< Max size of pdata arrays
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar *d_diameter;       //!< particle diameters
     const Scalar *d_charge;         //!< particle charges
@@ -476,7 +476,24 @@ int get_compute_capability(T func)
     cudaFuncAttributes attr;
     cudaFuncGetAttributes(&attr, func);
     return attr.binaryVersion;
-    } 
+    }
+
+void gpu_pair_force_bind_textures(const pair_args_t pair_args)
+    {
+    // bind the position texture
+    pdata_pos_tex.normalized = false;
+    pdata_pos_tex.filterMode = cudaFilterModePoint;
+    cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*pair_args.n_max);
+
+    // bind the diamter texture
+    pdata_diam_tex.normalized = false;
+    pdata_diam_tex.filterMode = cudaFilterModePoint;
+    cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) * pair_args.n_max);
+
+    pdata_charge_tex.normalized = false;
+    pdata_charge_tex.filterMode = cudaFilterModePoint;
+    cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
+    }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param pair_args Other arugments to pass onto the kernel
@@ -499,28 +516,6 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     unsigned int block_size = pair_args.block_size;
     unsigned int tpp = pair_args.threads_per_particle;
 
-    #if __CUDA_ARCH__ <= 300
-    // bind the position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4)*(pair_args.N+pair_args.n_ghost));
-    if (error != cudaSuccess)
-        return error;
-
-    // bind the diamter texture
-    pdata_diam_tex.normalized = false;
-    pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, pair_args.d_diameter, sizeof(Scalar) *(pair_args.N+pair_args.n_ghost));
-    if (error != cudaSuccess)
-        return error;
-
-    pdata_charge_tex.normalized = false;
-    pdata_charge_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * (pair_args.N+pair_args.n_ghost));
-    if (error != cudaSuccess)
-        return error;
-    #endif // on SM 3.5 we use __ldg
-
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                 * typpair_idx.getNumElements();
@@ -539,6 +534,8 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>);
                 if (sm == -1)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>);
+
+                if (sm < 35) gpu_pair_force_bind_textures(pair_args);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
@@ -567,6 +564,8 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                 if (sm == -1)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>);
 
+                if (sm < 35) gpu_pair_force_bind_textures(pair_args);
+
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
                 if (sm < 30 && grid.x > 65535)
@@ -593,6 +592,8 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>);
                 if (sm == -1)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>);
+
+                if (sm < 35) gpu_pair_force_bind_textures(pair_args);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
@@ -629,6 +630,8 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                 if (sm == -1)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>);
 
+                if (sm < 35) gpu_pair_force_bind_textures(pair_args);
+
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
                 if (sm < 30 && grid.x > 65535)
@@ -656,6 +659,8 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                 if (sm == -1)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>);
 
+                if (sm < 35) gpu_pair_force_bind_textures(pair_args);
+
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
                 if (sm < 30 && grid.x > 65535)
@@ -682,6 +687,8 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>);
                 if (sm == -1)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>);
+
+                if (sm < 35) gpu_pair_force_bind_textures(pair_args);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
