@@ -286,7 +286,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     #ifndef ENABLE_ZLIB
     if (enable_decompression)
         {
-        m_exec_conf->msg->error() << endl << "HOOMDBinaryInitialzier is trying to read a compressed .gz file, but ZLIB was not" << endl;
+        m_exec_conf->msg->error() << endl << "HOOMDBinaryInitialzier is trying to read a compressed .gz file, but ZLIB was not" << endl
             << "enabled in this build of hoomd" << endl << endl;
         throw runtime_error("Error reading binary file");
         }

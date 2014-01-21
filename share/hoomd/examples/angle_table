@@ -1,0 +1,35 @@
+hoomd_script::angle::table
+# run this script with "python -x filename" to skip the first line, or remove this header
+
+# ---- angle_table.py ----
+from hoomd_script import *
+import math
+
+# generate the polymer system
+sys=init.read_xml('angle_table.xml')
+
+bonds = bond.harmonic()
+bonds.bond_coeff.set('polymer', k=330, r0=1.0)
+
+# force field setup
+def harmonic(theta, kappa, theta_0):
+    V = 0.5 * kappa * (theta-theta_0)**2;
+    T = -kappa*(theta-theta_0);
+    return (V, T)
+
+# initialize the angle table force
+atable = angle.table(width=1000)
+atable.angle_coeff.set('angle', func=harmonic, coeff=dict(kappa=330, theta_0=math.pi/2))
+
+# NVT integration
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.bdnvt(group=all, T=1.0)
+
+dump.dcd(filename="trajectory.dcd", period=10, overwrite=True)
+
+# warm up the system
+run(2000)
+
+# A visualization of trajectory.dcd should show a polymer wiggling while maintaining roughly the r0 and theta_0 values
+# for bonds and angles
