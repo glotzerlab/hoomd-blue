@@ -30,4 +30,5 @@ sed s/HVERSION/${HVERSION}/ debian/changelog -i
 dpkg-buildpackage
 #move files to be uploaded
 cd ..
-scp hoomd-blue_${HVERSION}_$(dpkg-architecture -qDEB_BUILD_ARCH).deb joaander@petry.engin.umich.edu:daily/incoming/ubuntu
+destination="daily/incoming/"`/usr/bin/lsb_release -d | /usr/bin/awk '{print $2$3$4}' FS="[\t .]" | tr '[:upper:]' '[:lower:]'`
+scp hoomd-blue_${HVERSION}_$(dpkg-architecture -qDEB_BUILD_ARCH).deb joaander@petry.engin.umich.edu:$destination
