@@ -6,9 +6,6 @@ if (PYTHON_SITEDIR)
     install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd
             DESTINATION ${BIN_INSTALL_DIR}
             )
-    if (ENABLE_MPI)
-        message(FATAL_ERROR "Cannot use Python site directory install with MPI support.")
-    endif (ENABLE_MPI)
 else (PYTHON_SITEDIR)
     # setup and install the hoomd executable
     set(_hoomd_run_input ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_run.in)

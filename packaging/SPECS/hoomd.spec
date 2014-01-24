@@ -24,7 +24,7 @@ Release: 		%{release}
 URL:			http://codeblue.umich.edu/hoomd-blue/
 Prefix:			/usr
 Group: 			Applications
-BuildRequires:		gcc-c++, boost-devel, zlib-devel, glibc-devel, python-devel
+BuildRequires:		gcc-c++, boost-devel, zlib-devel, glibc-devel, python-devel, openmpi-devel
 Requires:		python >= 2.4
 
 %description
@@ -48,7 +48,7 @@ if [ $? -ne 0 ]; then
 fi
 
 
-cmake -DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr -DLIB_SUFFIX=%{libsuffix} -DENABLE_MPI=OFF -DENABLE_EMBED_CUDA=ON -DPYTHON_SITEDIR=$RPM_BUILD_ROOT/%{sitedir} -DPYTHON_EXECUTABLE=%{python}
+cmake -DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr -DLIB_SUFFIX=%{libsuffix} -DENABLE_MPI=ON -DENABLE_OPENMP=OFF -DENABLE_EMBED_CUDA=ON -DPYTHON_SITEDIR=$RPM_BUILD_ROOT/%{sitedir} -DPYTHON_EXECUTABLE=%{python}
 
 %build
 cd $RPM_BUILD_DIR/%{name}-%{version}
