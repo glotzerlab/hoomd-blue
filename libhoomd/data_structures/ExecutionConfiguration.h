@@ -214,7 +214,13 @@ struct ExecutionConfiguration : boost::noncopyable
     //! Returns the partition number of this processor
     unsigned int getPartition() const
         {
-        return getRankGlobal()/m_n_rank;
+        return m_n_rank ? getRankGlobal()/m_n_rank : 0;
+        }
+
+    //! Returns the number of partitions
+    unsigned int getNPartitions() const
+        {
+        return m_n_rank ? getNRanksGlobal()/m_n_rank : 1;
         }
 
     //! Return the number of ranks in this partition
