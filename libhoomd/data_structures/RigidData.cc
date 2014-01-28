@@ -1027,7 +1027,7 @@ void RigidData::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey
 */
 void RigidData::setAngMom(unsigned int body, Scalar3 angmom)
     {
-    if (body < 0 || body >= m_n_bodies)
+    if (body >= m_n_bodies)
         {
         m_exec_conf->msg->error() << "Error setting angular momentum for body " << body << "\n";
         return;
