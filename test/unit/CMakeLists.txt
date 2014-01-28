@@ -135,21 +135,11 @@ foreach (CUR_TEST ${TEST_LIST})
     # add it to the unit test list
     get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
 
-    # unfortunately, this needs to be handled differently in visual studio
-    if (MSVC)
-        add_test(${CUR_TEST} ${EXECUTABLE_OUTPUT_PATH}/${CUR_TEST})
-    else (MSVC)
-    # AND it needs to be handled differently for XCODE
-    if (CMAKE_GENERATOR MATCHES "Xcode")
-        add_test(${CUR_TEST} ${CUR_TEST})
-    else (CMAKE_GENERATOR MATCHES "Xcode")
+    if (ENABLE_MPI)
+        add_test(${CUR_TEST} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} ${CUR_TEST_EXE})
+    else()
         add_test(${CUR_TEST} ${CUR_TEST_EXE})
-        # add a valgrind executed test if requested
-        if (ENABLE_VALGRIND)
-            add_test(valgrind_${CUR_TEST} ${VALGRIND} ${VALGRIND_COMMON_ARGS} ${CUR_TEST_EXE})
-        endif (ENABLE_VALGRIND)
-    endif (CMAKE_GENERATOR MATCHES "Xcode")
-    endif (MSVC)
+    endif()
 endforeach(CUR_TEST)
 
 # add MPI tests
@@ -160,31 +150,8 @@ foreach (CUR_TEST ${MPI_TEST_LIST})
     # add mpi- prefix to distinguish these tests
     set(MPI_TEST_NAME mpi-${CUR_TEST})
 
-    # unfortunately, this needs to be handled differently in visual studio
-    if (MSVC)
-        add_test(${MPI_TEST_NAME}
-                 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
-                 ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
-                 ${EXECUTABLE_OUTPUT_PATH}/${CUR_TEST})
-    else (MSVC)
-    # AND it needs to be handled differently for XCODE
-    if (CMAKE_GENERATOR MATCHES "Xcode")
-        add_test(${MPI_TEST_NAME}
-                 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
-                 ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
-                 ${CUR_TEST})
-    else (CMAKE_GENERATOR MATCHES "Xcode")
-        add_test(${MPI_TEST_NAME}
-                 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
-                 ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
-                 ${CUR_TEST_EXE})
-        # add a valgrind executed test if requested
-        if (ENABLE_VALGRIND)
-            add_test(valgrind_${MPI_TEST_NAME}
-                     ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
-                     ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
-                     ${VALGRIND} ${VALGRIND_COMMON_ARGS} ${CUR_TEST_EXE})
-        endif (ENABLE_VALGRIND)
-    endif (CMAKE_GENERATOR MATCHES "Xcode")
-    endif (MSVC)
+    add_test(${MPI_TEST_NAME}
+             ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
+             ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
+             ${CUR_TEST_EXE})
 endforeach(CUR_TEST)
