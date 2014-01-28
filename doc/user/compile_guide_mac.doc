@@ -49,7 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-/*! 
+/*!
 \page page_compile_guide_mac Compiling HOOMD-blue on Mac OS X
 
 Table of contents:
@@ -62,152 +62,66 @@ Table of contents:
 HOOMD-blue requires a number of prerequisite software packages and libraries to be installed before it can be compiled.
 Macports (http://www.macports.org) greatly simplifies the installation of these.
 
-This page assumes that you have a standard terminal window open in some cases. Commands to run in the terminal will
-be indicated as below:
-\code
- $ echo hello
- hello
- \endcode
- " $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same
- output obtained above on the next line: "hello"
+This page assumes that you have a standard terminal window open. Commands to run in the terminal will be indicated as
+below:
+~~~~.bash
+$ echo hello
+hello
+~~~~
+" $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same output
+obtained above on the next line: "hello"
 
-<b>1. Install macports</b>
-Go to http://www.macports.org and download the appropriate dmg for your system. Mount the dmg by double-clicking on it.
-Double-click on the pkg installer for macports and follow the on-screen instructions to complete the install.
+1. **Install macports:**
+Go to [the macports homepage](http://www.macports.org) and download the appropriate dmg for your system. Mount the dmg
+by double-clicking on it. Double-click on the pkg installer for macports and follow the on-screen instructions to
+complete the install. If you have not yet installed the Apple developer tools (Xcode) on your system, you will need to
+do so now. Follow the instructions in [the macports documentation](http://guide.macports.org/). Then run the macports
+selfupdate command to bring your install fully up to date:
+~~~~.bash
+$ sudo port selfupdate
+...
+~~~~
 
-If you have not yet installed the Apple developer tools (Xcode) on your system, you will need to do so now. Follow
-the instructions in the macports documentation: http://guide.macports.org/
-
-Finally, run macports' selfupdate command to bring your install fully up to date:
-\code
- $ sudo port selfupdate
- ...
-\endcode
-
-<b>2. Install cmake, boost, and python</b>
-
-With macports, installing cmake, boost, and python is easy. Just run the following command in a terminal.
-\code
- $ sudo port install cmake boost +python27 python_select
-\endcode
-The process can take up to 4 hours, so be patient or leave it to run overnight.
-
+2. **Install cmake, boost, and python:**
+Run the following command in a terminal to install all prerequisite software to build hoomd.
+~~~~.bash
+$ sudo port install cmake boost +python27 python_select openmpi
+~~~~
 After macports finishes the above command, run
-\code
- $ sudo port select python python27
-\endcode
+~~~~.bash
+$ sudo port select python python27
+~~~~
 to select the python that macports installed. This step is crucial, or else you will get python <i>version mismatch</i>
 or <i>'NoneType'</i> errors when trying to run hoomd.
-
 You can switch back to the Apple installed python at any time by running
-\code
- $ sudo port select python python26-apple
-\endcode
+~~~~
+$ sudo port select python python26-apple
+~~~~
 or see a list of all python installations you can switch between with
-\code
- $ port select python
-\endcode
+~~~~
+$ port select python
+~~~~
 
-<b>3. (optional) Install the NVIDIA CUDA toolkit and driver</b>
-
-Download the NVIDIA CUDA Toolkit (version 3.0 beta or newer) appropriate for your system from
-http://www.nvidia.com/object/cuda_get.html . To install, open Finder, navigate to the directory where you downloaded
-the file and double-click on it. Follow the on screen prompts to complete the installation.
- 
-If you have an NVIDIA GPU, Download the CUDA drivers for your GPU from http://www.nvidia.com/object/cuda_get.html .
+3. **Install the NVIDIA CUDA toolkit and driver:**
+If you have an NVIDIA GPU, Download the NVIDIA CUDA Toolkit (version 5.5 or newer) appropriate for your system from
+[NVIDIA's CUDA download page](https://developer.nvidia.com/cuda-downloads). To install, open Finder, navigate to the
+directory where you downloaded the file and double-click on it. Follow the on screen prompts to complete the
+installation. Download the [NVIDIA CUDA Drivers](http://www.nvidia.com/object/mac-driver-archive.html).
 To install, open Finder, navigate to the directory where you downloaded the file and double-click on it.
 Follow the on screen prompts to complete the installation.
 
-<b>4. (optional) Install doxygen</b>
+4. **Install doxygen:**
+[Download the doxygen dmg](http://www.stack.nl/~dimitri/doxygen/). Mount the dmg by double-clicking on it. Install
+by dragging Doxygen to your /Applications directory. Class diagrams are generated automatically when you have graphviz
+installed. You can install it with macports.
+~~~~.bash
+$ sudo port install graphviz
+~~~~
 
-Download the doxygen dmg from http://www.stack.nl/~dimitri/doxygen/ . Mount the dmg by double-clicking on it. Install
-by dragging Doxygen to your /Applications directory.
-
-Class diagrams are generated automatically when you have graphviz installed. You can install it with macports.
-
-\code
- $ sudo port install graphviz
-\endcode
-The process can take a long time, so be patient or leave it to run overnight.
-
-<b>5. (optional) Install git.</b>
-
-Download the git dmg from http://git-scm.com/ and install the software.
+5. **Install git**
+[Download the git dmg](http://git-scm.com/) and install the software.
 
 \section sec_build_mac_compile Compile hoomd
 
-Now that all of the prerequisite software is installed, you are ready to compile hoomd.
-
-<b>Step 1: Get a copy of the source code</b>
-There are two ways to get the source code for HOOMD-blue.  You can download it
-(http://codeblue.umich.edu/hoomd-blue/download.html) or you can clone the git repository:
-\code
- $ mkdir hoomd
- $ cd hoomd
- $ git clone https://codeblue.umich.edu/git/hoomd-blue code
-\endcode
-By default, the \em master branch will be checked out. This branch includes new features tested and
-validated for the next feature release. Using the command <code>git checkout</code> \em branchname
-you can access bugfixes applied to the previous tagged release (\em maint) or experimental features
-still under development (\em next).
-
-To access a tagged release, check out the tag (for example 0.11.3):
-\code
- $ git checkout v0.11.3
-\endcode
-
-You can verify that the tagged release is exactly as it appeared to the developers when it was created if you
-have GPG installed.
-\code
- $ git cat-file blob 175bf6edfc8ac23c067df1d9bd7b5dd41982be3c | gpg --import
- $ git tag -v v0.11.3
-\endcode
-
-<b>Step 2 (option A): Compile and install hoomd with makefiles</b>
-\code
- $ cd hoomd
- $ mkdir build
- $ cd build
- $ cmake ../code -DCMAKE_INSTALL_PREFIX=~/hoomd-install
- $ make install -j4
-\endcode
-The -j4 option to make allows it to compile many files in parallel. Set the number to the number of CPU cores in your
-system plus two.
-
-Now run
-\code
- $ make check -j4
-\endcode
-to test your build
-
-<b>Step 2 (option B): Compile and install hoomd with Xcode</b>
-\code
- $ cd hoomd
- $ mkdir build
- $ cd build
- $ cmake ../code -GXcode -DCMAKE_INSTALL_PREFIX=~/hoomd-install
- $ open HOOMD.xcodeproj
-\endcode
-Press command-B to build hoomd. Build the INSTALL target to install the built hoomd to CMAKE_INSTALL_PREFIX. 
-<b>Note:</b> Xcode defaults to Debug builds!
-
-To run the tests, build the test_all target. Then run the following command in the build/ directory
-\code
- $ CONFIGURATION=Debug ctest -CDebug
-\endcode
-assuming you build the Debug configuration. Change Debug to Release in both locations on the command line to test
-a release build.
-
-<b>Step 3: Setup your PATH</b>
-\code
- open ~/.bash_profile
-\endcode
-and add the following line to the end
-\code
- export PATH=$PATH:${HOME}/hoomd-install/bin
-\endcode
-assuming that you set CMAKE_INSTALL_PREFIX to ~/hoomd-install above. If you prefer to install hoomd to a different
-location, simply set CMAKE_INSTALL_PREFIX to the desired directory in the cmake command in step 2.
-
-<hr>
+See \ref sec_build_linux_generic_compile for instructions to compile HOOMD-blue.
 */
