@@ -128,7 +128,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     }
 
     // add an dihedrals and check again
-    sysdef_4->getDihedralData()->addDihedral(Dihedral(0,0,1,2,3)); // add type 0 dihedral bewtween atoms 0-1-2-3
+    sysdef_4->getDihedralData()->addBondedGroup(Dihedral(0,0,1,2,3)); // add type 0 dihedral bewtween atoms 0-1-2-3
     fc_4->compute(1);
 
     {
@@ -252,8 +252,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     fc_8->setParams(0, 50.0, -1, 3);
     fc_8->setParams(1, 30.0,  1, 4);
 
-    sysdef_8->getDihedralData()->addDihedral(Dihedral(0, 0,1,2,3));
-    sysdef_8->getDihedralData()->addDihedral(Dihedral(1, 4,5,6,7));
+    sysdef_8->getDihedralData()->addBondedGroup(Dihedral(0, 0,1,2,3));
+    sysdef_8->getDihedralData()->addBondedGroup(Dihedral(1, 4,5,6,7));
 
     fc_8->compute(0);
 
@@ -361,8 +361,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     shared_ptr<HarmonicDihedralForceCompute> fc_5 = tf_creator(sysdef_5);
     fc_5->setParams(0, 15.0, -1, 4);
 
-    sysdef_5->getDihedralData()->addDihedral(Dihedral(0, 0,1,2,3));
-    sysdef_5->getDihedralData()->addDihedral(Dihedral(0, 1,2,3,4));
+    sysdef_5->getDihedralData()->addBondedGroup(Dihedral(0, 0,1,2,3));
+    sysdef_5->getDihedralData()->addBondedGroup(Dihedral(0, 1,2,3,4));
 
     fc_5->compute(0);
 
@@ -437,7 +437,7 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     // add dihedrals
     for (unsigned int i = 0; i < N-3; i++)
         {
-        sysdef->getDihedralData()->addDihedral(Dihedral(0, i, i+1,i+2, i+3));
+        sysdef->getDihedralData()->addBondedGroup(Dihedral(0, i, i+1,i+2, i+3));
         }
 
     // compute the forces

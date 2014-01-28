@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "Analyzer.h"
+#include "BondedGroupData.h"
 
 #ifndef __HOOMD_BINARY_DUMP_WRITER_H__
 #define __HOOMD_BINARY_DUMP_WRITER_H__

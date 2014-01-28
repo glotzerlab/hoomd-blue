@@ -85,7 +85,7 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              Scalar tau,
                              boost::shared_ptr<Variant> T,
                              const std::string& suffix)
-    : TwoStepNVT(sysdef, group, thermo, tau, T, suffix)
+    : TwoStepNVT(sysdef, group, thermo, tau, T, suffix), m_curr_T(0.0)
     {
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
@@ -94,7 +94,13 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
 
-    m_block_size = 128;
+    // initialize autotuner
+    std::vector<unsigned int> valid_params;
+    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        valid_params.push_back(block_size);
+
+    m_tuner_one.reset(new Autotuner(valid_params, 5, 1e6, "nvt_step_one", this->m_exec_conf));
+    m_tuner_two.reset(new Autotuner(valid_params, 5, 1e6, "nvt_step_two", this->m_exec_conf));
     }
 
 /*! \param timestep Current time step
@@ -123,6 +129,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
+    m_tuner_one->begin();
     gpu_nvt_step_one(d_pos.data,
                      d_vel.data,
                      d_accel.data,
@@ -130,12 +137,35 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
                      d_index_array.data,
                      group_size,
                      box,
-                     m_block_size,
+                     m_tuner_one->getParam(),
                      xi,
                      m_deltaT);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner_one->end();
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // lazy register update of thermodynamic quantities with Communicator
+        if (! m_comm_connection.connected())
+            m_comm_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVTGPU::advanceThermostat, this, _1));
+        // note: requesting the address of m_thermo would normally mean circumventing reference
+        // counting, but here we are safe since there is still a shared_ptr ref
+        // to ComputeThermo in the class
+        if (! m_compute_connection.connected())
+            m_compute_connection = m_comm->addLocalComputeCallback(bind(&ComputeThermo::compute, m_thermo.get(), _1));
+        }
+    else
+    #endif
+        {
+        // compute the current thermodynamic properties
+        m_thermo->compute(timestep+1);
+
+        // get temperature and advance thermostat
+        advanceThermostat(timestep+1);
+        }
 
     // done profiling
     if (m_prof)
@@ -148,32 +178,11 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
-    Scalar& eta = v.variable[1];
-
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep+1);
-
-    // next, update the state variables Xi and eta
-    Scalar xi_prev = xi;
-    Scalar curr_T = m_thermo->getTemperature();
-    xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
-    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // broadcast integrator variables from rank 0 to other processors
-        MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
-        }
-#endif
 
     // profile this step
     if (m_prof)
@@ -186,19 +195,20 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU
+    m_tuner_two->begin();
     gpu_nvt_step_two(d_vel.data,
                      d_accel.data,
                      d_index_array.data,
                      group_size,
                      d_net_force.data,
-                     m_block_size,
+                     m_tuner_two->getParam(),
                      xi,
                      m_deltaT);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    setIntegratorVariables(v);
+    m_tuner_two->end();
 
     // done profiling
     if (m_prof)

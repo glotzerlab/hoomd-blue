@@ -134,6 +134,15 @@ class TwoStepNVT : public IntegrationMethodTwoStep
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         std::string m_log_name;         //!< Name of the reservior quantity that we log
 
+        #ifdef ENABLE_MPI
+        boost::signals2::connection m_compute_connection; //!< Connection to Commmunicator
+        boost::signals2::connection m_comm_connection; //!< Connection to Commmunicator
+        #endif
+
+        // advance the thermostat
+        /*!\ param timestep The time step
+         */
+        void advanceThermostat(unsigned int timestep);
     };
 
 //! Exports the TwoStepNVT class to python

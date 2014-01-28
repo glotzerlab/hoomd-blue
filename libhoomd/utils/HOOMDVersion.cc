@@ -64,9 +64,11 @@ using namespace std;
 
 void output_version_info(bool verbose)
     {
+    #ifdef ENABLE_MPI
     // only print this on rank zero
-    if (ExecutionConfiguration::guessRank() != 0)
+    if (ExecutionConfiguration::getRankGlobal() != 0)
         return;
+    #endif
 
     // output the version info that comes from CMake
     cout << "HOOMD-blue " << HOOMD_VERSION_LONG;

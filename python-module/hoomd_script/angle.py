@@ -181,7 +181,7 @@ class coeff:
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getAngleData().getNAngleTypes();
+        ntypes = globals.system_definition.getAngleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getAngleData().getNameByType(i));
@@ -251,7 +251,7 @@ class coeff:
 # set_coeff().
 #
 # \note Specifying the angle.harmonic command when no angles are defined in the simulation results in an error.
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class harmonic(force._force):
     ## Specify the %harmonic %angle %force
     #
@@ -262,7 +262,7 @@ class harmonic(force._force):
     def __init__(self):
         util.print_status_line();
         # check that some angles are defined
-        if globals.system_definition.getAngleData().getNumAngles() == 0:
+        if globals.system_definition.getAngleData().getNGlobal() == 0:
             globals.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating angle forces");
 
@@ -312,7 +312,7 @@ class harmonic(force._force):
 
     def update_coeffs(self):
         # get a list of all angle types in the simulation
-        ntypes = globals.system_definition.getAngleData().getNAngleTypes();
+        ntypes = globals.system_definition.getAngleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getAngleData().getNameByType(i));
@@ -362,7 +362,7 @@ class harmonic(force._force):
 # set_coeff().
 #
 # \note Specifying the angle.cgcmm command when no angles are defined in the simulation results in an error.
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class cgcmm(force._force):
     ## Specify the %cgcmm %angle %force
     #
@@ -373,7 +373,7 @@ class cgcmm(force._force):
     def __init__(self):
         util.print_status_line();
         # check that some angles are defined
-        if globals.system_definition.getAngleData().getNumAngles() == 0:
+        if globals.system_definition.getAngleData().getNGlobal() == 0:
             globals.msg.error("No angles are defined.\n");
             raise RuntimeError("Error creating CGCMM angle forces");
 
@@ -459,7 +459,7 @@ class cgcmm(force._force):
 
     def update_coeffs(self):
         # get a list of all angle types in the simulation
-        ntypes = globals.system_definition.getAngleData().getNAngleTypes();
+        ntypes = globals.system_definition.getAngleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getAngleData().getNameByType(i));
@@ -615,7 +615,7 @@ class table(force._force):
             raise RuntimeError("Error updating angle coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getAngleData().getNAngleTypes();
+        ntypes = globals.system_definition.getAngleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getAngleData().getNameByType(i));

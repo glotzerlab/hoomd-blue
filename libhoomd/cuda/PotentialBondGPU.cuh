@@ -55,6 +55,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include "TextureTools.h"
 
+#include "BondedGroupData.cuh"
+
 #ifdef WIN32
 #include <cassert>
 #else
@@ -76,13 +78,13 @@ struct bond_args_t
               Scalar *_d_virial,
               const unsigned int _virial_pitch,
               const unsigned int _N,
-              const unsigned int _n_ghost,
+              const unsigned int _n_max,
               const Scalar4 *_d_pos,
               const Scalar *_d_charge,
               const Scalar *_d_diameter,
               const BoxDim& _box,
-              const uint2 *_d_gpu_bondlist,
-              const unsigned int _pitch,
+              const group_storage<2> *_d_gpu_bondlist,
+              const Index2D & _gpu_table_indexer,
               const unsigned int *_d_gpu_n_bonds,
               const unsigned int _n_bond_types,
               const unsigned int _block_size)
@@ -90,13 +92,13 @@ struct bond_args_t
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
                   N(_N),
-                  n_ghost(_n_ghost),
+                  n_max(_n_max),
                   d_pos(_d_pos),
                   d_charge(_d_charge),
                   d_diameter(_d_diameter),
                   box(_box),
                   d_gpu_bondlist(_d_gpu_bondlist),
-                  pitch(_pitch),
+                  gpu_table_indexer(_gpu_table_indexer),
                   d_gpu_n_bonds(_d_gpu_n_bonds),
                   n_bond_types(_n_bond_types),
                   block_size(_block_size)
@@ -107,13 +109,13 @@ struct bond_args_t
     Scalar *d_virial;                   //!< Virial to write out
     const unsigned int virial_pitch;   //!< pitch of 2D array of virial matrix elements
     unsigned int N;                    //!< number of particles
-    unsigned int n_ghost;              //!< number of ghost particles
+    unsigned int n_max;                //!< Size of local pdata arrays
     const Scalar4 *d_pos;              //!< particle positions
     const Scalar *d_charge;            //!< particle charges
     const Scalar *d_diameter;          //!< particle diameters
     const BoxDim& box;            //!< Simulation box in GPU format
-    const uint2 *d_gpu_bondlist;       //!< List of bonds stored on the GPU
-    const unsigned int pitch;          //!< Pitch of 2D bond list
+    const group_storage<2> *d_gpu_bondlist;       //!< List of bonds stored on the GPU
+    const Index2D& gpu_table_indexer;  //!< Indexer of 2D bond list
     const unsigned int *d_gpu_n_bonds; //!< List of number of bonds stored on the GPU
     const unsigned int n_bond_types;   //!< Number of bond types in the simulation
     const unsigned int block_size;     //!< Block size to execute
@@ -162,8 +164,8 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
                                                const Scalar *d_charge,
                                                const Scalar *d_diameter,
                                                const BoxDim box,
-                                               const uint2 *blist,
-                                               const unsigned int pitch,
+                                               const group_storage<2> *blist,
+                                               const Index2D blist_idx,
                                                const unsigned int *n_bonds_list,
                                                const unsigned int n_bond_type,
                                                const typename evaluator::param_type *d_params,
@@ -221,10 +223,10 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         {
         // MEM TRANSFER: 8 bytes
         // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint2 cur_bond = blist[pitch*bond_idx + idx];
+        volatile group_storage<2> cur_bond = blist[blist_idx(idx, bond_idx)];
 
-        int cur_bond_idx = cur_bond.x;
-        int cur_bond_type = cur_bond.y;
+        int cur_bond_idx = cur_bond.idx[0];
+        int cur_bond_type = cur_bond.idx[1];
 
         // get the bonded particle's position (MEM_TRANSFER: 16 bytes)
         Scalar4 neigh_postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_bond_idx);
@@ -288,10 +290,12 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
     d_force[idx] = force;
+
     for (unsigned int i = 0; i < 6 ; i++)
         d_virial[i*virial_pitch + idx] = virial[i];
     }
 
+#include <iostream>
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 /*! \param bond_args Other arugments to pass onto the kernel
     \param d_params Parameters for the potential, stored per bond type
@@ -318,20 +322,20 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     // bind the position texture
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, bond_args.d_pos, sizeof(Scalar4)*(bond_args.N+bond_args.n_ghost));
+    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, bond_args.d_pos, sizeof(Scalar4)*(bond_args.n_max));
     if (error != cudaSuccess)
         return error;
 
     // bind the diamter texture
     pdata_diam_tex.normalized = false;
     pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.N+bond_args.n_ghost));
+    error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.n_max));
     if (error != cudaSuccess)
         return error;
 
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_charge_tex, bond_args.d_charge, sizeof(Scalar) * (bond_args.N+bond_args.n_ghost));
+    error = cudaBindTexture(0, pdata_charge_tex, bond_args.d_charge, sizeof(Scalar) * (bond_args.n_max));
     if (error != cudaSuccess)
         return error;
 
@@ -342,7 +346,7 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     gpu_compute_bond_forces_kernel<evaluator><<<grid, threads, shared_bytes>>>(
         bond_args.d_force, bond_args.d_virial, bond_args.virial_pitch, bond_args.N,
         bond_args.d_pos, bond_args.d_charge, bond_args.d_diameter, bond_args.box, bond_args.d_gpu_bondlist,
-        bond_args.pitch, bond_args.d_gpu_n_bonds, bond_args.n_bond_types, d_params, d_flags);
+        bond_args.gpu_table_indexer, bond_args.d_gpu_n_bonds, bond_args.n_bond_types, d_params, d_flags);
 
     return cudaSuccess;
     }

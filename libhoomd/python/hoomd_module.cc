@@ -64,9 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "RigidData.h"
 #include "SystemDefinition.h"
-#include "BondData.h"
-#include "AngleData.h"
-#include "DihedralData.h"
+#include "BondedGroupData.h"
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
@@ -166,6 +164,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
+#include "SFCPackUpdaterGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "PotentialPairGPU.h"
@@ -390,12 +389,48 @@ void cuda_profile_stop()
     #endif
     }
 
+#ifdef ENABLE_MPI
+//! Environment variables needed for setting up MPI
+char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
+char env_enable_mpi_gdr[] = "MV2_USE_GPUDIRECT=1";
+char env_enable_mpi_cuda_cray[] = "MPICH_RDMA_ENABLED_CUDA=1";
+
+//! Initialize the MPI environment
+void initialize_mpi()
+    {
+    #ifdef ENABLE_MPI_CUDA
+    // if we are using an MPI-CUDA implementation, enable this feature
+    // before the MPI_Init
+    putenv(env_enable_mpi_cuda);
+    putenv(env_enable_mpi_gdr);
+    putenv(env_enable_mpi_cuda_cray);
+    #endif
+
+    // initalize MPI
+    MPI_Init(0, (char ***) NULL);
+    }
+
+//! Finalize MPI environment
+void finalize_mpi()
+    {
+    MPI_Finalize();
+    }
+#endif
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
 BOOST_PYTHON_MODULE(hoomd)
     {
+    #ifdef ENABLE_MPI
+    // initialize MPI early
+    initialize_mpi();
+
+    // register clean-up function
+    Py_AtExit(finalize_mpi);
+    #endif
+
     // write out the version information on the module import
     output_version_info(false);
     def("find_vmd", &find_vmd);
@@ -435,11 +470,12 @@ BOOST_PYTHON_MODULE(hoomd)
     export_RigidData();
     export_SnapshotRigidData();
     export_ExecutionConfiguration();
-    export_BondData();
     export_SystemDefinition();
-    export_AngleData();
-    export_DihedralData();
     export_SnapshotSystemData();
+    export_BondedGroupData<BondData,Bond>("BondData","BondDataSnapshot");
+    export_BondedGroupData<AngleData,Angle>("AngleData","AngleDataSnapshot");
+    export_BondedGroupData<DihedralData,Dihedral>("DihedralData","DihedralDataSnapshot");
+    export_BondedGroupData<ImproperData,Dihedral>("ImproperData","ImproperDataSnapshot",false);
 
     // initializers
     export_RandomInitializer();
@@ -562,6 +598,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_FIREEnergyMinimizer();
     export_FIREEnergyMinimizerRigid();
 #ifdef ENABLE_CUDA
+    export_SFCPackUpdaterGPU();
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
     export_TwoStepBDNVTGPU();

@@ -86,19 +86,19 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
     m_CGCMMAngle_data = m_sysdef->getAngleData();
 
     // check for some silly errors a user could make
-    if (m_CGCMMAngle_data->getNAngleTypes() == 0)
+    if (m_CGCMMAngle_data->getNTypes() == 0)
         {
         m_exec_conf->msg->error() << "angle.cgcmm: No angle types specified" << endl;
         throw runtime_error("Error initializing CGCMMAngleForceCompute");
         }
 
     // allocate the parameters
-    m_K = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
-    m_t_0 = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
-    m_eps =  new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
-    m_sigma = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
-    m_rcut =  new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
-    m_cg_type = new unsigned int[m_CGCMMAngle_data->getNAngleTypes()];
+    m_K = new Scalar[m_CGCMMAngle_data->getNTypes()];
+    m_t_0 = new Scalar[m_CGCMMAngle_data->getNTypes()];
+    m_eps =  new Scalar[m_CGCMMAngle_data->getNTypes()];
+    m_sigma = new Scalar[m_CGCMMAngle_data->getNTypes()];
+    m_rcut =  new Scalar[m_CGCMMAngle_data->getNTypes()];
+    m_cg_type = new unsigned int[m_CGCMMAngle_data->getNTypes()];
 
     assert(m_K);
     assert(m_t_0);
@@ -107,12 +107,12 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
     assert(m_rcut);
     assert(m_cg_type);
 
-    memset((void*)m_K,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
-    memset((void*)m_t_0,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
-    memset((void*)m_eps,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
-    memset((void*)m_sigma,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
-    memset((void*)m_rcut,0,sizeof(Scalar)*m_CGCMMAngle_data->getNAngleTypes());
-    memset((void*)m_cg_type,0,sizeof(unsigned int)*m_CGCMMAngle_data->getNAngleTypes());
+    memset((void*)m_K,0,sizeof(Scalar)*m_CGCMMAngle_data->getNTypes());
+    memset((void*)m_t_0,0,sizeof(Scalar)*m_CGCMMAngle_data->getNTypes());
+    memset((void*)m_eps,0,sizeof(Scalar)*m_CGCMMAngle_data->getNTypes());
+    memset((void*)m_sigma,0,sizeof(Scalar)*m_CGCMMAngle_data->getNTypes());
+    memset((void*)m_rcut,0,sizeof(Scalar)*m_CGCMMAngle_data->getNTypes());
+    memset((void*)m_cg_type,0,sizeof(unsigned int)*m_CGCMMAngle_data->getNTypes());
 
     prefact[0] = Scalar(0.0);
     prefact[1] = Scalar(6.75);
@@ -160,7 +160,7 @@ CGCMMAngleForceCompute::~CGCMMAngleForceCompute()
 void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma)
     {
     // make sure the type is valid
-    if (type >= m_CGCMMAngle_data->getNAngleTypes())
+    if (type >= m_CGCMMAngle_data->getNTypes())
         {
         m_exec_conf->msg->error() << "angle.cgcmm: Invalid angle type specified" << endl;
         throw runtime_error("Error setting parameters in CGCMMAngleForceCompute");
@@ -245,7 +245,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     assert(h_rtag.data);
 
     // get a local copy of the simulation box too
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim& box = m_pdata->getGlobalBox();
 
     // allocate forces
     Scalar fab[3], fcb[3];
@@ -254,23 +254,32 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
     Scalar eac;
     Scalar vac[6];
     // for each of the angles
-    const unsigned int size = (unsigned int)m_CGCMMAngle_data->getNumAngles();
+    const unsigned int size = (unsigned int)m_CGCMMAngle_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the angle
-        const Angle& angle = m_CGCMMAngle_data->getAngle(i);
-        assert(angle.a < m_pdata->getN());
-        assert(angle.b < m_pdata->getN());
-        assert(angle.c < m_pdata->getN());
+        const AngleData::members_t& angle = m_CGCMMAngle_data->getMembersByIndex(i);
+        assert(angle.tag[0] < m_pdata->getNGlobal());
+        assert(angle.tag[1] < m_pdata->getNGlobal());
+        assert(angle.tag[1] < m_pdata->getNGlobal());
 
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints
-        unsigned int idx_a = h_rtag.data[angle.a];
-        unsigned int idx_b = h_rtag.data[angle.b];
-        unsigned int idx_c = h_rtag.data[angle.c];
-        assert(idx_a < m_pdata->getN());
-        assert(idx_b < m_pdata->getN());
-        assert(idx_c < m_pdata->getN());
+        unsigned int idx_a = h_rtag.data[angle.tag[0]];
+        unsigned int idx_b = h_rtag.data[angle.tag[1]];
+        unsigned int idx_c = h_rtag.data[angle.tag[2]];
+
+        // throw an error if this angle is incomplete
+        if (idx_a == NOT_LOCAL|| idx_b == NOT_LOCAL || idx_c == NOT_LOCAL)
+            {
+            this->m_exec_conf->msg->error() << "angle.harmonic: angle " <<
+                angle.tag[0] << " " << angle.tag[1] << " " << angle.tag[2] << " incomplete." << endl << endl;
+            throw std::runtime_error("Error in angle calculation");
+            }
+
+        assert(idx_a < m_pdata->getN()+m_pdata->getNGhosts());
+        assert(idx_b < m_pdata->getN()+m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN()+m_pdata->getNGhosts());
 
         // calculate d\vec{r}
         // MEM_TRANSFER: 18 Scalars / FLOPS 9
@@ -323,15 +332,16 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         for (int k = 0; k < 6; k++)
             vac[k] = Scalar(0.0);
 
-        if (rac < m_rcut[angle.type])
+        unsigned int angle_type = m_CGCMMAngle_data->getTypeByIndex(i);
+        if (rac < m_rcut[angle_type])
             {
-            const unsigned int cg_type = m_cg_type[angle.type];
+            const unsigned int cg_type = m_cg_type[angle_type];
             const Scalar cg_pow1 = cgPow1[cg_type];
             const Scalar cg_pow2 = cgPow2[cg_type];
             const Scalar cg_pref = prefact[cg_type];
 
-            const Scalar cg_ratio = m_sigma[angle.type]/rac;
-            const Scalar cg_eps   = m_eps[angle.type];
+            const Scalar cg_ratio = m_sigma[angle_type]/rac;
+            const Scalar cg_eps   = m_eps[angle_type];
 
             fac = cg_pref*cg_eps / rsqac * (cg_pow1*pow(cg_ratio,cg_pow1) - cg_pow2*pow(cg_ratio,cg_pow2));
             eac = cg_eps + cg_pref*cg_eps * (pow(cg_ratio,cg_pow1) - pow(cg_ratio,cg_pow2));
@@ -346,8 +356,8 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         //////////////////////////////////////////////////////////////////////////////
 
         // actually calculate the force
-        Scalar dth = acos(c_abbc) - m_t_0[angle.type];
-        Scalar tk = m_K[angle.type]*dth;
+        Scalar dth = acos(c_abbc) - m_t_0[angle_type];
+        Scalar tk = m_K[angle_type]*dth;
 
         Scalar a = -1.0 * tk * s_abbc;
         Scalar a11 = a*c_abbc/rsqab;
@@ -379,29 +389,37 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
             virial[k] = angle_virial[k] + Scalar(1./3.)*vac[k];
 
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
+        // only apply force to local particles
+        if (idx_a < m_pdata->getN())
+            {
+            h_force.data[idx_a].x += fab[0] + fac*dac.x;
+            h_force.data[idx_a].y += fab[1] + fac*dac.y;
+            h_force.data[idx_a].z += fab[2] + fac*dac.z;
+            h_force.data[idx_a].w += angle_eng;
+            for (int k = 0; k < 6; k++)
+                h_virial.data[k*virial_pitch+idx_a] += virial[k];
+            }
 
-        h_force.data[idx_a].x += fab[0] + fac*dac.x;
-        h_force.data[idx_a].y += fab[1] + fac*dac.y;
-        h_force.data[idx_a].z += fab[2] + fac*dac.z;
-        h_force.data[idx_a].w += angle_eng;
-        for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+idx_a] += virial[k];
+        if (idx_b < m_pdata->getN())
+            {
+            h_force.data[idx_b].x -= fab[0] + fcb[0];
+            h_force.data[idx_b].y -= fab[1] + fcb[1];
+            h_force.data[idx_b].z -= fab[2] + fcb[2];
+            h_force.data[idx_b].w += angle_eng;
+            for (int k = 0; k < 6; k++)
+                h_virial.data[k*virial_pitch+idx_b] += virial[k];
+            }
 
-        h_force.data[idx_b].x -= fab[0] + fcb[0];
-        h_force.data[idx_b].y -= fab[1] + fcb[1];
-        h_force.data[idx_b].z -= fab[2] + fcb[2];
-        h_force.data[idx_b].w += angle_eng;
-        for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+idx_b] += virial[k];
-
-        h_force.data[idx_c].x += fcb[0] - fac*dac.x;
-        h_force.data[idx_c].y += fcb[1] - fac*dac.y;
-        h_force.data[idx_c].z += fcb[2] - fac*dac.z;
-        h_force.data[idx_c].w += angle_eng;
-        for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+idx_c] += virial[k];
+        if (idx_c < m_pdata->getN())
+            {
+            h_force.data[idx_c].x += fcb[0] - fac*dac.x;
+            h_force.data[idx_c].y += fcb[1] - fac*dac.y;
+            h_force.data[idx_c].z += fcb[2] - fac*dac.z;
+            h_force.data[idx_c].w += angle_eng;
+            for (int k = 0; k < 6; k++)
+                h_virial.data[k*virial_pitch+idx_c] += virial[k];
+            }
         }
-
     if (m_prof) m_prof->pop();
     }
 

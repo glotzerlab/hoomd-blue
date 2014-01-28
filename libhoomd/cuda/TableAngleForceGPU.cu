@@ -79,6 +79,7 @@ scalar2_tex_t tables_tex;
     \param d_pos device array of particle positions
     \param box Box dimensions used to implement periodic boundary conditions
     \param alist List of angles stored on the GPU
+    \param apos_list List of particle position in angle stored on the GPU
     \param pitch Pitch of 2D angle list
     \param n_angles_list List of numbers of angles stored on the GPU
     \param n_angle_type number of angle types
@@ -98,7 +99,8 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
                                      const BoxDim box,
-                                     const uint4 *alist,
+                                     const group_storage<3> *alist,
+                                     const unsigned int *apos_list,
                                      const unsigned int pitch,
                                      const unsigned int *n_angles_list,
                                      const Scalar2 *d_tables,
@@ -134,12 +136,12 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
 
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
         {
-        uint4 cur_angle = alist[pitch*angle_idx + idx];
+        group_storage<3> cur_angle = alist[pitch*angle_idx + idx];
 
-        int cur_angle_x_idx = cur_angle.x;
-        int cur_angle_y_idx = cur_angle.y;
-        int cur_angle_type = cur_angle.z;
-        int cur_angle_abc = cur_angle.w;
+        int cur_angle_x_idx = cur_angle.idx[0];
+        int cur_angle_y_idx = cur_angle.idx[1];
+        int cur_angle_type = cur_angle.idx[2];
+        int cur_angle_abc = apos_list[pitch*angle_idx + idx];
 
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 x_postype = d_pos[cur_angle_x_idx];
@@ -301,7 +303,8 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
                                      const BoxDim &box,
-                                     const uint4 *alist,
+                                     const group_storage<3> *alist,
+                                     const unsigned int *apos_list,
                                      const unsigned int pitch,
                                      const unsigned int *n_angles_list,
                                      const Scalar2 *d_tables,
@@ -333,6 +336,7 @@ cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
              d_pos,
              box,
              alist,
+             apos_list,
              pitch,
              n_angles_list,
              d_tables,

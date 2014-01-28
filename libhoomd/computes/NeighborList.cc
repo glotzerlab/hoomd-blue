@@ -62,9 +62,7 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 
 #include "NeighborList.h"
-#include "BondData.h"
-#include "AngleData.h"
-#include "DihedralData.h"
+#include "BondedGroupData.h"
 
 #include <sstream>
 #include <fstream>
@@ -90,7 +88,7 @@ using namespace std;
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
       m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
-      m_force_update(true), m_dist_check(true)
+      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -110,7 +108,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // initialize values
     m_last_updated_tstep = 0;
     m_last_checked_tstep = 0;
-    m_last_check_result = true;
+    m_last_check_result = false;
     m_every = 0;
     m_Nmax = 0;
     m_exclusions_set = false;
@@ -136,14 +134,22 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
+
+    // this violates O(N/P) memory scaling
+    // in the future this should be done using a hash table
     GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
-    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
-    m_n_ex_idx.swap(n_ex_idx);
     GPUArray<unsigned int> ex_list_tag(m_pdata->getNGlobal(), 1, exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
+
+    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
+    m_n_ex_idx.swap(n_ex_idx);
     GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, exec_conf);
     m_ex_list_idx.swap(ex_list_idx);
+
+    // reset exclusions
+    clearExclusions();
+
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), 1);
     m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), 1);
 
@@ -161,7 +167,6 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
  */
 void NeighborList::reallocate()
     {
-
     m_last_pos.resize(m_pdata->getMaxN());
     m_n_ex_idx.resize(m_pdata->getMaxN());
     unsigned int ex_list_height = m_ex_list_indexer.getH();
@@ -183,6 +188,8 @@ NeighborList::~NeighborList()
 #ifdef ENABLE_MPI
     if (m_migrate_request_connection.connected())
         m_migrate_request_connection.disconnect();
+    if (m_comm_flags_request.connected())
+        m_comm_flags_request.disconnect();
 #endif
     }
 
@@ -226,6 +233,7 @@ void NeighborList::compute(unsigned int timestep)
             filterNlist();
 
         setLastUpdatedPos();
+        m_has_been_updated_once = true;
         }
 
     if (m_prof) m_prof->pop();
@@ -366,7 +374,7 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::readwrite);
 
-        // add tag2 to tag1's exculsion list
+        // add tag2 to tag1's exclusion list
         unsigned int pos1 = h_n_ex_tag.data[tag1];
         assert(pos1 < m_ex_list_indexer.getH());
         h_ex_list_tag.data[m_ex_list_indexer_tag(tag1,pos1)] = tag2;
@@ -389,7 +397,7 @@ void NeighborList::clearExclusions()
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
-    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getN());
+    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getNGlobal());
     memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_pdata->getN());
     m_exclusions_set = false;
 
@@ -437,7 +445,7 @@ void NeighborList::countExclusions()
     for (unsigned int c=0; c <= MAX_COUNT_EXCLUDED+1; ++c)
         excluded_count[c] = 0;
 
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
         {
         num_excluded = h_n_ex_tag.data[i];
 
@@ -488,30 +496,30 @@ void NeighborList::addExclusionsFromBonds()
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
     // access bond data by snapshot
-    SnapshotBondData snapshot(bond_data->getNumBondsGlobal());
+    BondData::Snapshot snapshot(bond_data->getNGlobal());
     bond_data->takeSnapshot(snapshot);
 
     // broadcast global bond list
-    std::vector<uint2> bonds;
+    std::vector<BondData::members_t> bonds;
 
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
         if (m_exec_conf->getRank() == 0)
-            bonds = snapshot.bonds;
+            bonds = snapshot.groups;
 
         bcast(bonds, 0, m_exec_conf->getMPICommunicator());
         }
     else
-        bonds = snapshot.bonds;
-#else
-    bonds = snapshot.bonds;
 #endif
+        {
+        bonds = snapshot.groups;
+        }
 
     // for each bond
     for (unsigned int i = 0; i < bonds.size(); i++)
         // add an exclusion
-        addExclusion(bonds[i].x, bonds[i].y);
+        addExclusion(bonds[i].tag[0], bonds[i].tag[1]);
     }
 
 /*! After calling addExclusionsFromAngles(), all angles specified in the attached ParticleData will be added to the
@@ -521,27 +529,63 @@ void NeighborList::addExclusionsFromAngles()
     {
     boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
-    // for each bond
-    for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
+    // access angle data by snapshot
+    AngleData::Snapshot snapshot(angle_data->getNGlobal());
+    angle_data->takeSnapshot(snapshot);
+
+    // broadcast global angle list
+    std::vector<AngleData::members_t> angles;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        Angle angle = angle_data->getAngle(i);
-        addExclusion(angle.a, angle.c);
+        if (m_exec_conf->getRank() == 0)
+            angles = snapshot.groups;
+
+        bcast(angles, 0, m_exec_conf->getMPICommunicator());
         }
+    else
+#endif
+        {
+        angles = snapshot.groups;
+        }
+
+    // for each angle
+    for (unsigned int i = 0; i < angles.size(); i++)
+        addExclusion(angles[i].tag[0], angles[i].tag[2]);
     }
 
-/*! After calling addExclusionsFromAngles(), all dihedrals specified in the attached ParticleData will be added to the
+/*! After calling addExclusionsFromDihedrals(), all dihedrals specified in the attached ParticleData will be added to the
     exclusion list. Only the two end particles in the dihedral are excluded from interacting.
 */
 void NeighborList::addExclusionsFromDihedrals()
     {
     boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
-    // for each bond
-    for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
+    // access dihedral data by snapshot
+    DihedralData::Snapshot snapshot(dihedral_data->getNGlobal());
+    dihedral_data->takeSnapshot(snapshot);
+
+    // broadcast global dihedral list
+    std::vector<DihedralData::members_t> dihedrals;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        Dihedral dihedral = dihedral_data->getDihedral(i);
-        addExclusion(dihedral.a, dihedral.d);
+        if (m_exec_conf->getRank() == 0)
+            dihedrals = snapshot.groups;
+
+        bcast(dihedrals, 0, m_exec_conf->getMPICommunicator());
         }
+    else
+#endif
+        {
+        dihedrals = snapshot.groups;
+        }
+
+    // for each dihedral
+    for (unsigned int i = 0; i < dihedrals.size(); i++)
+        addExclusion(dihedrals[i].tag[0], dihedrals[i].tag[3]);
     }
 
 /*! \param tag1 First particle tag in the pair
@@ -576,9 +620,9 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
 void NeighborList::addOneThreeExclusionsFromTopology()
     {
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getN();
+    const unsigned int myNAtoms = m_pdata->getNGlobal();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
-    const unsigned int nBonds = bond_data->getNumBonds();
+    const unsigned int nBonds = bond_data->getNGlobal();
 
     if (nBonds == 0)
         {
@@ -593,11 +637,11 @@ void NeighborList::addOneThreeExclusionsFromTopology()
     for (unsigned int i = 0; i < nBonds; i++)
         {
         // loop over all bonds and make a 1D exlcusion map
-        Bond bondi = bond_data->getBond(i);
+        Bond bondi = bond_data->getGroupByTag(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
-        // next, incrememt the number of bonds, and update the tags
+        // next, incremement the number of bonds, and update the tags
         const unsigned int nBondsA = ++localBondList[tagA*MAXNBONDS];
         const unsigned int nBondsB = ++localBondList[tagB*MAXNBONDS];
 
@@ -652,9 +696,9 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 void NeighborList::addOneFourExclusionsFromTopology()
     {
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getN();
+    const unsigned int myNAtoms = m_pdata->getNGlobal();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
-    const unsigned int nBonds = bond_data->getNumBonds();
+    const unsigned int nBonds = bond_data->getNGlobal();
 
     if (nBonds == 0)
         {
@@ -669,7 +713,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     for (unsigned int i = 0; i < nBonds; i++)
         {
         // loop over all bonds and make a 1D exlcusion map
-        Bond bondi = bond_data->getBond(i);
+        Bond bondi = bond_data->getGroupByTag(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
@@ -698,7 +742,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     //  loop over all bonds
     for (unsigned int i = 0; i < nBonds; i++)
         {
-        Bond bondi = bond_data->getBond(i);
+        Bond bondi = bond_data->getGroupByTag(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
@@ -734,7 +778,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     Note: this method relies on data set by setLastUpdatedPos(), which must be called to set the previous data used
     in the next call to distanceCheck();
 */
-bool NeighborList::distanceCheck()
+bool NeighborList::distanceCheck(unsigned int timestep)
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
@@ -769,39 +813,6 @@ bool NeighborList::distanceCheck()
     Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
     Scalar maxsq = delta_max > 0  ? delta_max*delta_max : 0;
 
-    bool boundary_check = false;
-    bool out_of_bounds = false;
-    unsigned int out_of_bounds_idx = 0;
-
-    #ifdef ENABLE_MPI
-    boundary_check = m_pdata->getDomainDecomposition();
-    #endif
-
-    // the change of the global box size should not exceed the local box size
-    Scalar3 del_L = L_g - m_last_L;
-    if ( fabs(del_L.x) >= m_last_L_local.x ||
-         fabs(del_L.y) >= m_last_L_local.y ||
-         fabs(del_L.z) >= m_last_L_local.z)
-        {
-        #ifdef ENABLE_MPI
-        if (m_pdata->getDomainDecomposition())
-            {
-            // particle migration will fail in MPI simulations, error out
-            m_exec_conf->msg->error() << "nlist: Too large jump in box dimensions."
-                                      << std::endl << std::endl;
-            throw std::runtime_error("Error checking displacements");
-            }
-        else
-        #endif
-            {
-            // warn the user
-            m_exec_conf->msg->warning()
-                << "nlist: Extremely large change in box dimensions" << std::endl;
-            m_exec_conf->msg->warning()
-                << "Simulation may fail or run out of memory." << std::endl << std::endl;
-            }
-        }
-
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         Scalar3 dx = make_scalar3(h_pos.data[i].x - lambda.x*h_last_pos.data[i].x,
@@ -815,37 +826,28 @@ bool NeighborList::distanceCheck()
             result = true;
             break;
             }
-        if (boundary_check)
-            if (box.checkOutOfBounds(dx))
-                {
-                out_of_bounds = true;
-                out_of_bounds_idx = i;
-                break;
-                }
         }
 
-    if (boundary_check && out_of_bounds)
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        unsigned int tag = h_tag.data[out_of_bounds_idx];
-        m_exec_conf->msg->error() << "nlist: Particle " << tag << " has traveled more than one sub-domain length."
-                                  << std::endl << std::endl;
-        throw std::runtime_error("Error checking particle displacements");
+        if (m_prof) m_prof->push("MPI allreduce");
+        // check if migrate criterium is fulfilled on any rank
+        int local_result = result ? 1 : 0;
+        int global_result = 0;
+        MPI_Allreduce(&local_result,
+            &global_result,
+            1,
+            MPI_INT,
+            MPI_MAX,
+            m_exec_conf->getMPICommunicator());
+        result = (global_result > 0);
+        if (m_prof) m_prof->pop();
         }
+    #endif
 
     // don't worry about computing flops here, this is fast
     if (m_prof) m_prof->pop();
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // use MPI all_reduce to check if the neighbor list build criterium is fulfilled on any processor
-        int local_result = result ? 1 : 0;
-        int global_result = 0;
-        MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, m_exec_conf->getMPICommunicator());
-        result = (global_result > 0);
-        }
-#endif
 
     return result;
     }
@@ -876,6 +878,11 @@ void NeighborList::setLastUpdatedPos()
     if (m_prof) m_prof->pop();
     }
 
+bool NeighborList::shouldCheckDistance(unsigned int timestep)
+    {
+    return !m_force_update && !(timestep < (m_last_updated_tstep + m_every));
+    }
+
 /*! \returns true If the neighbor list needs to be updated
     \returns false If the neighbor list does not need to be updated
     \note This is designed to be called if (needsUpdating()) then update every step.
@@ -886,16 +893,19 @@ void NeighborList::setLastUpdatedPos()
 bool NeighborList::needsUpdating(unsigned int timestep)
     {
     if (m_last_checked_tstep == timestep)
-        if (!m_force_update || m_last_check_result)
+        {
+        if (m_force_update)
             {
-            // reset just in case the update has been forced after the last check has returned true
+            // force update is counted only once per time step
             m_force_update = false;
-            return m_last_check_result;
+            return true;
             }
+        return m_last_check_result;
+        }
 
     m_last_checked_tstep = timestep;
 
-    if (timestep < (m_last_updated_tstep + m_every) && !m_force_update)
+    if (!m_force_update && !shouldCheckDistance(timestep))
         {
         m_last_check_result = false;
         return false;
@@ -935,7 +945,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
             }
         else
             {
-            result = distanceCheck();
+            result = distanceCheck(timestep);
             }
 
         if (result)
@@ -1306,7 +1316,8 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
     if (!m_comm)
         {
         // only add the migrate request on the first call
-        comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
+        m_migrate_request_connection = comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
+        m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
         }
 
     if (comm)

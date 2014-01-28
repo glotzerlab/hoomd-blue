@@ -50,12 +50,12 @@ endif (ENABLE_CUDA)
 
 ############################
 ## MPI related options
-find_package(MPI QUIET)
-if (MPI_FOUND)
+find_package(MPI)
+if (MPI_FOUND OR MPI_C_FOUND OR MPI_CXX_FOUND)
 option(ENABLE_MPI "Enable the compilation of the MPI communication code" on)
-else (MPI_FOUND)
+else ()
 option (ENABLE_MPI "Enable the compilation of the MPI communication code" off)
-endif (MPI_FOUND)
+endif ()
 
 #################################
 ## Optionally enable documentation build

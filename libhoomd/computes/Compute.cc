@@ -72,8 +72,7 @@ using namespace std;
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
 Compute::Compute(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
-        exec_conf(m_pdata->getExecConf()), m_inside_thread(false), m_thread_id(0),
-        m_last_computed(0), m_first_compute(true), m_force_compute(false)
+        exec_conf(m_pdata->getExecConf()), m_force_compute(false), m_last_computed(0), m_first_compute(true)
     {
     // sanity check
     assert(m_sysdef);

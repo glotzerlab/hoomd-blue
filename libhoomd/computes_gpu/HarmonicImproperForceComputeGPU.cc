@@ -82,7 +82,7 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar2> params(m_improper_data->getNDihedralTypes(), exec_conf);
+    GPUArray<Scalar2> params(m_improper_data->getNTypes(), exec_conf);
     m_params.swap(params);
     }
 
@@ -118,10 +118,9 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Improper");
 
-
-    ArrayHandle<uint4> d_gpu_dihedral_list(m_improper_data->getGPUDihedralList(), access_location::device,access_mode::read);
-    ArrayHandle<unsigned int> d_n_dihedrals(m_improper_data->getNDihedralsArray(), access_location::device, access_mode::read);
-    ArrayHandle<uint1> d_dihedrals_ABCD(m_improper_data->getDihedralABCD(), access_location::device, access_mode::read);
+    ArrayHandle<ImproperData::members_t> d_gpu_dihedral_list(m_improper_data->getGPUTable(), access_location::device,access_mode::read);
+    ArrayHandle<unsigned int> d_n_dihedrals(m_improper_data->getNGroupsArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_dihedrals_ABCD(m_improper_data->getGPUPosTable(), access_location::device, access_mode::read);
 
     // the improper table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -140,10 +139,10 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
                                          box,
                                          d_gpu_dihedral_list.data,
                                          d_dihedrals_ABCD.data,
-                                         m_improper_data->getGPUDihedralList().getPitch(),
+                                         m_improper_data->getGPUTableIndexer().getW(),
                                          d_n_dihedrals.data,
                                          d_params.data,
-                                         m_improper_data->getNDihedralTypes(),
+                                         m_improper_data->getNTypes(),
                                          m_block_size);
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

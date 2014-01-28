@@ -48,34 +48,80 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: dnlebard
+// Maintainer: jglaser
 
-#ifndef _ANGLEDATA_CUH_
-#define _ANGLEDATA_CUH_
-
-#include <cuda_runtime.h>
-
-/*! \file DihedralData.cuh
-    \brief GPU helper functions used in DihedralData
+/*! \file SFCPackUpdaterGPU.h
+    \brief Declares the SFCPackUpdaterGPU class
 */
 
-//! Find the maximum number of dihedrals per particle
-cudaError_t gpu_find_max_dihedral_number(unsigned int& max_dihedral_num,
-                             unsigned int *d_n_dihedrals,
-                             const uint4 *d_dihedrals,
-                             const unsigned int num_dihedrals,
-                             const unsigned int N,
-                             const unsigned int *d_rtag);
-
-//! Construct the GPU dihedral table
-cudaError_t gpu_create_dihedraltable(uint4 *d_gpu_dihedraltable,
-                                  uint1 *d_dihedrals_ABCD,
-                                  unsigned int *d_n_dihedrals,
-                                  const uint4 *d_dihedrals,
-                                  const unsigned int *d_dihedral_type,
-                                  const unsigned int *d_rtag,
-                                  const unsigned int num_dihedrals,
-                                  const unsigned int pitch,
-                                  const unsigned int N);
-
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
 #endif
+
+#ifdef ENABLE_CUDA
+
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 )
+#endif
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
+#include <vector>
+#include <utility>
+
+#include "Updater.h"
+
+#include "SFCPackUpdater.h"
+#include "SFCPackUpdaterGPU.cuh"
+#include "GPUArray.h"
+
+#ifndef __SFCPACK_UPDATER_GPU_H__
+#define __SFCPACK_UPDATER_GPU_H__
+
+//! Sort the particles
+/*! GPU implementation of SFCPackUpdater
+
+    \ingroup updaters
+*/
+class SFCPackUpdaterGPU : public SFCPackUpdater
+    {
+    public:
+        //! Constructor
+        SFCPackUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef);
+
+        //! Destructor
+        virtual ~SFCPackUpdaterGPU();
+
+    protected:
+        // reallocate internal data structure
+        virtual void reallocate();
+
+    private:
+        GPUArray<unsigned int> m_gpu_particle_bins;    //!< Particle bins
+        GPUArray<unsigned int> m_gpu_sort_order;       //!< Generated sort order of the particles
+
+        boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the maximum particle number change signal of particle data
+
+        //! Helper function that actually performs the sort
+        virtual void getSortedOrder2D();
+
+        //! Helper function that actually performs the sort
+        virtual void getSortedOrder3D();
+
+        //! Apply the sorted order to the particle data
+        virtual void applySortOrder();
+
+        mgpu::ContextPtr m_mgpu_context;                    //!< MGPU context (for sorting)
+    };
+
+//! Export the SFCPackUpdaterGPU class to python
+void export_SFCPackUpdaterGPU();
+
+#endif // __SFC_PACK_UPDATER_GPU_H_
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif
+
+#endif // ENABLE_CUDA

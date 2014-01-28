@@ -70,6 +70,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Updater.h"
 #include "NeighborList.h"
+#include "GPUVector.h"
 
 #ifndef __SFCPACK_UPDATER_H__
 #define __SFCPACK_UPDATER_H__
@@ -118,31 +119,35 @@ class SFCPackUpdater : public Updater
             m_grid = (unsigned int)pow(2.0, ceil(log(double(grid)) / log(2.0)));;
             }
 
-    private:
+    protected:
         unsigned int m_grid;        //!< Grid dimension to use
         unsigned int m_last_grid;   //!< The last value of MMax
         unsigned int m_last_dim;    //!< Check the last dimension we ran at
-
-        std::vector< std::pair<unsigned int, unsigned int> > m_particle_bins;    //!< Binned particles
-
-        std::vector< unsigned int > m_traversal_order;      //!< Generated traversal order of bins
-        std::vector<unsigned int> m_sort_order;             //!< Generated sort order of the particles
+        GPUArray< unsigned int > m_traversal_order;      //!< Generated traversal order of bins
 
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the maximum particle number change signal of particle data
         //! Helper function that actually performs the sort
-        void getSortedOrder2D();
+        virtual void getSortedOrder2D();
         //! Helper function that actually performs the sort
-        void getSortedOrder3D();
+        virtual void getSortedOrder3D();
 
         //! Apply the sorted order to the particle data
-        void applySortOrder();
+        virtual void applySortOrder();
+
+        //! Helper function to generate traversal order
+        static void generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned int cell_order[8], vector< unsigned int > &traversal_order);
 
         //! Write traversal order out for visualization
         void writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order);
 
         //! Reallocate internal arrays
-        void reallocate();
-    };
+        virtual void reallocate();
+
+    private:
+        std::vector<unsigned int> m_sort_order;             //!< Generated sort order of the particles
+        std::vector< std::pair<unsigned int, unsigned int> > m_particle_bins;    //!< Binned particles
+
+   };
 
 //! Export the SFCPackUpdater class to python
 void export_SFCPackUpdater();

@@ -87,6 +87,11 @@ Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT
 
 Integrator::~Integrator()
     {
+    #ifdef ENABLE_MPI
+    // disconnect
+    if (m_request_flags_connection.connected())
+        m_request_flags_connection.disconnect();
+    #endif
     }
 
 /*! \param fc ForceCompute to add
@@ -263,12 +268,10 @@ void Integrator::computeAccelerations(unsigned int timestep)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        // preset flags for ghost communication
-        m_comm->setFlags(determineFlags(timestep));
-
         // Move particles between domains. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if additionally ghosts are updated every timestep
+        m_comm->forceMigrate();
         m_comm->communicate(timestep);
         }
 #endif
@@ -850,6 +853,17 @@ CommFlags Integrator::determineFlags(unsigned int timestep)
         flags |= (*force_constraint)->getRequestedCommFlags(timestep);
 
     return flags;
+    }
+
+
+void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
+    {
+    // call base class method
+    Updater::setCommunicator(comm);
+
+    // connect to ghost communication flags request
+    if (! m_request_flags_connection.connected() && m_comm)
+        m_comm->addCommFlagsRequest(boost::bind(&Integrator::determineFlags, this, _1));
     }
 #endif
 

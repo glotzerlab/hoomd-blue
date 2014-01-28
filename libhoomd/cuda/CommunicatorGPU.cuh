@@ -56,7 +56,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 #include "ParticleData.cuh"
-#include "BondData.cuh"
+#include "BondedGroupData.cuh"
+
+#include "Index1D.h"
+
+#include "util/mgpucontext.h"
 
 #ifdef NVCC
 //! The flags used for indicating the itinerary of a particle
@@ -70,288 +74,256 @@ enum gpu_send_flags
     send_down = 32
     };
 
-//! List of valid edges of the local simulation box
-enum gpu_edge_flags
+template<typename ranks_t>
+struct rank_element
     {
-    edge_east_north = 0 ,
-    edge_east_south,
-    edge_east_up,
-    edge_east_down,
-    edge_west_north,
-    edge_west_south,
-    edge_west_up,
-    edge_west_down,
-    edge_north_up,
-    edge_north_down,
-    edge_south_up,
-    edge_south_down
+    ranks_t ranks;
+    unsigned int mask;
+    unsigned int tag;
     };
-
-//! List of valid faces of the local simulation box
-enum gpu_face_flags
-    {
-    face_east = 0,
-    face_west,
-    face_north,
-    face_south,
-    face_up,
-    face_down
-    };
-
-//! List of valid corners of the local simulation box
-enum gpu_corner_flags
-    {
-    corner_east_north_up = 0,
-    corner_east_north_down,
-    corner_east_south_up,
-    corner_east_south_down,
-    corner_west_north_up,
-    corner_west_north_down,
-    corner_west_south_up,
-    corner_west_south_down
-    };
+#else
+template<typename ranks_t>
+struct rank_element;
 #endif
 
-//! Buffer element for sending particle data
-struct pdata_element_gpu
-    {
-    Scalar4 pos;               //!< Position
-    Scalar4 vel;               //!< Velocity
-    Scalar3 accel;             //!< Acceleration
-    Scalar charge;             //!< Charge
-    Scalar diameter;           //!< Diameter
-    int3 image;                //!< Image
-    unsigned int body;         //!< Body id
-    Scalar4 orientation;       //!< Orientation
-    unsigned int tag;          //!< global tag
-    };
+//! Mark particles that have left the local box for sending
+void gpu_stage_particles(const unsigned int n,
+                         const Scalar4 *d_pos,
+                         unsigned int *d_comm_flag,
+                         const BoxDim& box,
+                         const unsigned int comm_mask);
 
-unsigned int gpu_pdata_element_size();
+/*! \param nsend Number of particles in buffer
+    \param d_in Send buf (in-place sort)
+    \param di Domain indexer
+    \param box Local box
+    \param d_keys Output array (target domains)
+    \param d_begin Output array (start indices per key in send buf)
+    \param d_end Output array (end indices per key in send buf)
+    \param d_neighbors List of neighbor ranks
+    \param alloc Caching allocator
+ */
+void gpu_sort_migrating_particles(const unsigned int nsend,
+                   pdata_element *d_in,
+                   const unsigned int *d_comm_flags,
+                   const Index3D& di,
+                   const uint3 my_pos,
+                   const unsigned int *d_cart_ranks,
+                   unsigned int *d_keys,
+                   unsigned int *d_begin,
+                   unsigned int *d_end,
+                   const unsigned int *d_neighbors,
+                   const unsigned int nneigh,
+                   const unsigned int mask,
+                   mgpu::ContextPtr mgpu_context,
+                   unsigned int *d_tmp,
+                   pdata_element *d_in_copy);
 
-//! Allocate temporary device memory for reordering particles
-void gpu_allocate_tmp_storage(const unsigned int *is_communicating,
-                              const unsigned int *is_at_boundary,
-                              const unsigned int *corner_plan_lookup,
-                              const unsigned int *edge_plan_lookup,
-                              const unsigned int *face_plan_lookup);
-
-//! Dellocate temporary memory
-void gpu_deallocate_tmp_storage();
-
-//! Mark particles in incomplete bonds for sending
-void gpu_mark_particles_in_incomplete_bonds(const uint2 *d_btable,
-                                          unsigned char *d_plan,
-                                          const Scalar4 *d_pos,
-                                          const unsigned int *d_rtag,
-                                          const unsigned int N,
-                                          const unsigned int n_bonds,
-                                          const BoxDim& box);
-
-void gpu_send_bonds(const unsigned int n_bonds,
-                    const unsigned int n_particles,
-                    const uint2 *d_bonds,
-                    const unsigned int *d_bond_type,
-                    const unsigned int *d_bond_tag,
-                    const unsigned int *d_rtag,
-                    const unsigned int *d_ptl_plan,
-                    unsigned int *d_bond_remove_mask,
-                    bond_element *d_face_send_buf,
-                    unsigned int face_send_buf_pitch,
-                    bond_element *d_edge_send_buf,
-                    unsigned int edge_send_buf_pitch,
-                    bond_element *d_corner_send_buf,
-                    unsigned int corner_send_buf_pitch,
-                    unsigned int *d_n_send_bonds_face,
-                    unsigned int *d_n_send_bonds_edge,
-                    unsigned int *d_n_send_bonds_corner,
-                    const unsigned int max_send_bonds_face,
-                    const unsigned int max_send_bonds_edge,
-                    const unsigned int max_send_bonds_corner,
-                    unsigned int *d_n_remove_bonds,
-                    unsigned int *d_condition);
-
-
-//! Reorder the particle data
-void gpu_migrate_select_particles(unsigned int N,
-                                  const Scalar4 *d_pos,
-                                  const Scalar4 *d_vel,
-                                  const Scalar3 *d_accel,
-                                  const int3 *d_image,
-                                  const Scalar *d_charge,
-                                  const Scalar *d_diameter,
-                                  const unsigned int *d_body,
-                                  const Scalar4 *d_orientation,
-                                  const unsigned int *d_tag,
-                                  unsigned int *d_n_send_ptls_corner,
-                                  unsigned int *d_n_send_ptls_edge,
-                                  unsigned int *d_n_send_ptls_face,
-                                  unsigned n_max_send_ptls_corner,
-                                  unsigned n_max_send_ptls_edge,
-                                  unsigned n_max_send_ptls_face,
-                                  unsigned char *d_remove_mask,
-                                  unsigned int *d_ptl_plan,
-                                  char *d_corner_buf,
-                                  unsigned int corner_buf_pitch,
-                                  char *d_edge_buf,
-                                  unsigned int edge_buf_pitch,
-                                  char *d_face_buf,
-                                  unsigned int face_buf_pitch,
-                                  const BoxDim& box,
-                                  unsigned int *d_condition);
-
-void gpu_reset_rtag_by_mask(const unsigned int N,
-                            unsigned int *d_rtag,
-                            const unsigned int *d_tag,
-                            const unsigned char *d_remove_mask);
-
-void gpu_migrate_fill_particle_arrays(unsigned int old_nparticles,
-                        unsigned int n_recv_ptls,
-                        unsigned int n_remove_ptls,
-                        unsigned char *d_remove_mask,
-                        char *d_recv_buf,
-                        Scalar4 *d_pos,
-                        Scalar4 *d_vel,
-                        Scalar3 *d_accel,
-                        int3 *d_image,
-                        Scalar *d_charge,
-                        Scalar *d_diameter,
-                        unsigned int *d_body,
-                        Scalar4 *d_orientation,
-                        unsigned int *d_tag,
-                        unsigned int *d_rtag,
-                        const BoxDim& global_box);
+//! Apply boundary conditions
+void gpu_wrap_particles(const unsigned int n_recv,
+                        pdata_element *d_in,
+                        const BoxDim& box);
 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls,
                      unsigned int *d_delete_tags,
                      unsigned int *d_rtag);
 
-
 //! Construct plans for sending non-bonded ghost particles
-void gpu_make_nonbonded_exchange_plan(unsigned char *d_plan,
-                                      unsigned int N,
-                                      Scalar4 *d_pos,
-                                      const BoxDim& box,
-                                      Scalar3 ghost_fraction);
+void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
+                                  unsigned int N,
+                                  const Scalar4 *d_pos,
+                                  const BoxDim& box,
+                                  Scalar3 ghost_fraction,
+                                  unsigned int mask);
 
-//! Construct a list of particle tags to send as ghost particles
-void gpu_exchange_ghosts(const unsigned int N,
-                         const unsigned char *d_plan,
-                         const unsigned int *d_tag,
-                         unsigned int *d_ghost_idx_face,
-                         unsigned int ghost_idx_face_pitch,
-                         unsigned int *d_ghost_idx_edge,
-                         unsigned int ghost_idx_edge_pitch,
-                         unsigned int *d_ghost_idx_corner,
-                         unsigned int ghost_idx_corner_pitch,
-                         Scalar4 *d_pos,
-                         Scalar *d_charge,
-                         Scalar *d_diameter,
-                         Scalar4 *d_vel,
-                         Scalar4 *d_orientation,
-                         char *d_ghost_corner_buf,
-                         unsigned int corner_buf_pitch,
-                         char *d_ghost_edge_buf,
-                         unsigned int edge_buf_pitch,
-                         char *d_ghost_face_buf,
-                         unsigned int face_buf_pitch,
-                         unsigned int *d_n_copy_ghosts_corner,
-                         unsigned int *d_n_copy_ghosts_edge,
-                         unsigned int *d_n_copy_ghosts_face,
-                         unsigned int max_copy_ghosts_corner,
-                         unsigned int max_copy_ghosts_edge,
-                         unsigned int max_copy_ghosts_face,
-                         unsigned int *d_condition,
-                         unsigned int sz,
-                         unsigned char exch_pos,
-                         unsigned char exch_vel,
-                         unsigned char exch_charge,
-                         unsigned char exch_diameter,
-                         unsigned char exch_orientation
-                         );
+//! Get neighbor counts
+unsigned int gpu_exchange_ghosts_count_neighbors(
+    unsigned int N,
+    const unsigned int *d_ghost_plan,
+    const unsigned int *d_adj,
+    unsigned int *d_counts,
+    unsigned int nneigh,
+    mgpu::ContextPtr mgpu_context);
 
-void gpu_update_ghosts_pack(const unsigned int n_copy_ghosts,
-                                     const unsigned int *d_ghost_idx_face,
-                                     const unsigned int ghost_idx_face_pitch,
-                                     const unsigned int *d_ghost_idx_edge,
-                                     const unsigned int ghost_idx_edge_pitch,
-                                     const unsigned int *d_ghost_idx_corner,
-                                     const unsigned int ghost_idx_corner_pitch,
-                                     const Scalar4 *d_pos,
-                                     const Scalar4 *d_vel,
-                                     const Scalar4 *d_orientation,
-                                     char *d_update_corner_buf,
-                                     unsigned int corner_buf_pitch,
-                                     char *d_update_edge_buf,
-                                     unsigned int edge_buf_pitch,
-                                     char *d_update_face_buf,
-                                     unsigned int face_buf_pitch,
-                                     const unsigned int *d_n_local_ghosts_corner,
-                                     const unsigned int *d_n_local_ghosts_edge,
-                                     const unsigned int *d_n_local_ghosts_face,
-                                     unsigned int sz,
-                                     unsigned char exch_pos,
-                                     unsigned char exch_vel,
-                                     unsigned char exch_orientation);
+//! Construct tag lists per ghost particle
+void gpu_exchange_ghosts_make_indices(
+    unsigned int N,
+    const unsigned int *d_ghost_plan,
+    const unsigned int *d_tag,
+    const unsigned int *d_adj,
+    const unsigned int *d_unique_neighbors,
+    const unsigned int *d_counts,
+    uint2 *d_ghost_idx,
+    unsigned int *d_ghost_neigh,
+    unsigned int *d_ghost_begin,
+    unsigned int *d_ghost_end,
+    unsigned int n_unique_neigh,
+    unsigned int n_out,
+    unsigned int mask,
+    mgpu::ContextPtr mgpu_context);
 
-void gpu_exchange_ghosts_unpack(unsigned int N,
-                                unsigned int n_tot_recv_ghosts,
-                                const unsigned int *d_n_local_ghosts_face,
-                                const unsigned int *d_n_local_ghosts_edge,
-                                const unsigned int n_tot_recv_ghosts_local,
-                                const unsigned int *d_n_recv_ghosts_local,
-                                const unsigned int *d_n_recv_ghosts_face,
-                                const unsigned int *d_n_recv_ghosts_edge,
-                                const char *d_face_ghosts,
-                                const unsigned int face_pitch,
-                                const char *d_edge_ghosts,
-                                const unsigned int edge_pitch,
-                                const char *d_recv_ghosts,
-                                Scalar4 *d_pos,
-                                Scalar *d_charge,
-                                Scalar *d_diameter,
-                                Scalar4 *d_vel,
-                                Scalar4 *d_orientation,
-                                unsigned int *d_tag,
-                                unsigned int *d_rtag,
-                                const BoxDim& shifted_global_box,
-                                const unsigned int sz,
-                                unsigned char exch_pos,
-                                unsigned char exch_vel,
-                                unsigned char exch_charge,
-                                unsigned char exch_diameter,
-                                unsigned char exch_orientation
-                                );
+//! Pack ghosts in output buffers
+void gpu_exchange_ghosts_pack(
+    unsigned int n_out,
+    const uint2 *d_ghost_idx_adj,
+    const unsigned int *d_tag,
+    const Scalar4 *d_pos,
+    const Scalar4 *d_vel,
+    const Scalar *d_charge,
+    const Scalar *d_diameter,
+    const Scalar4 *d_orientation,
+    unsigned int *d_tag_sendbuf,
+    Scalar4 *d_pos_sendbuf,
+    Scalar4 *d_vel_sendbuf,
+    Scalar *d_charge_sendbuf,
+    Scalar *d_diameter_sendbuf,
+    Scalar4 *d_orientation_sendbuf,
+    bool send_tag,
+    bool send_pos,
+    bool send_vel,
+    bool send_charge,
+    bool send_diameter,
+    bool send_orientation,
+    const Index3D& di,
+    uint3 my_pos,
+    const BoxDim& box);
 
-void gpu_update_ghosts_unpack(unsigned int N,
-                                unsigned int n_tot_recv_ghosts,
-                                const unsigned int *d_n_local_ghosts_face,
-                                const unsigned int *d_n_local_ghosts_edge,
-                                const unsigned int n_tot_recv_ghosts_local,
-                                const unsigned int *d_n_recv_ghosts_local,
-                                const unsigned int *d_n_recv_ghosts_face,
-                                const unsigned int *d_n_recv_ghosts_edge,
-                                const char *d_face_ghosts,
-                                const unsigned int face_pitch,
-                                const char *d_edge_ghosts,
-                                const unsigned int edge_pitch,
-                                const char *d_recv_ghosts,
-                                Scalar4 *d_pos,
-                                Scalar4 *d_vel,
-                                Scalar4 *d_orientation,
-                                const BoxDim& shifted_global_box,
-                                unsigned int sz,
-                                unsigned char exch_pos,
-                                unsigned char exch_vel,
-                                unsigned char exch_orientation);
+//! Initialize cache configuration
+void gpu_communicator_initialize_cache_config();
 
-void gpu_check_bonds(const Scalar4 *d_postype,
-                     const unsigned int N,
-                     const unsigned int n_ghosts,
-                     const BoxDim box,
-                     const uint2 *d_blist,
-                     const unsigned int pitch,
-                     const unsigned int *d_n_bonds_list,
-                     unsigned int *d_condition);
+
+//! Copy receive buffers into particle data
+void gpu_exchange_ghosts_copy_buf(
+    unsigned int n_recv,
+    const unsigned int *d_tag_recvbuf,
+    const Scalar4 *d_pos_recvbuf,
+    const Scalar4 *d_vel_recvbuf,
+    const Scalar *d_charge_recvbuf,
+    const Scalar *d_diameter_recvbuf,
+    const Scalar4 *d_orientation_recvbuf,
+    unsigned int *d_tag,
+    Scalar4 *d_pos,
+    Scalar4 *d_vel,
+    Scalar *d_charge,
+    Scalar *d_diameter,
+    Scalar4 *d_orientation,
+    bool send_tag,
+    bool send_pos,
+    bool send_vel,
+    bool send_charge,
+    bool send_diameter,
+    bool send_orientation);
+
+//! Compute ghost rtags
+void gpu_compute_ghost_rtags(unsigned int first_idx,
+     unsigned int n_ghost,
+     const unsigned int *d_tag,
+     unsigned int *d_rtag);
+
+//! Reset ghost plans
+void gpu_reset_exchange_plan(
+    unsigned int N,
+    unsigned int *d_plan);
+
+//! Mark groups for sending
+template<unsigned int group_size, typename group_t, typename ranks_t>
+void gpu_mark_groups(
+    unsigned int N,
+    const unsigned int *d_comm_flags,
+    unsigned int n_groups,
+    const group_t *d_members,
+    ranks_t *d_group_ranks,
+    unsigned int *d_rank_mask,
+    const unsigned int *d_rtag,
+    unsigned int *d_scan,
+    unsigned int &n_out,
+    const Index3D di,
+    uint3 my_pos,
+    const unsigned int *d_cart_ranks,
+    bool incomplete,
+    mgpu::ContextPtr mgpu_context);
+
+//! Compact rank information for groups that have been marked for sending
+template<unsigned int group_size, typename group_t, typename ranks_t, typename rank_element_t>
+void gpu_scatter_ranks_and_mark_send_groups(
+    unsigned int n_groups,
+    const unsigned int *d_group_tag,
+    const ranks_t *d_group_ranks,
+    unsigned int *d_rank_mask,
+    const group_t *d_groups,
+    const unsigned int *d_rtag,
+    const unsigned int *d_comm_flags,
+    unsigned int *d_scan,
+    unsigned int &n_send,
+    rank_element_t *d_out_ranks,
+    mgpu::ContextPtr mgpu_context);
+
+template<unsigned int group_size, typename ranks_t, typename rank_element_t>
+void gpu_update_ranks_table(
+    unsigned int n_groups,
+    ranks_t *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int n_recv,
+    const rank_element_t *d_ranks_recvbuf);
+
+template<unsigned int group_size, typename group_t, typename ranks_t, typename packed_t>
+void gpu_scatter_and_mark_groups_for_removal(
+    unsigned int n_groups,
+    const group_t *d_groups,
+    const unsigned int *d_group_type,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_rtag,
+    const ranks_t *d_group_ranks,
+    unsigned int *d_rank_mask,
+    const unsigned int *d_rtag,
+    const unsigned int *d_comm_flags,
+    unsigned int my_rank,
+    unsigned int *d_scan,
+    packed_t *d_out_groups,
+    unsigned int *d_out_rank_masks);
+
+template<typename group_t, typename ranks_t>
+void gpu_remove_groups(unsigned int n_groups,
+    const group_t *d_groups,
+    group_t *d_groups_alt,
+    const unsigned int *d_group_type,
+    unsigned int *d_group_type_alt,
+    const unsigned int *d_group_tag,
+    unsigned int *d_group_tag_alt,
+    const ranks_t *d_group_ranks,
+    ranks_t *d_group_ranks_alt,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    unsigned int *d_scan,
+    mgpu::ContextPtr mgpu_context);
+
+template<typename packed_t, typename group_t, typename ranks_t>
+void gpu_add_groups(unsigned int n_groups,
+    unsigned int n_recv,
+    const packed_t *d_groups_in,
+    group_t *d_groups,
+    unsigned int *d_group_type,
+    unsigned int *d_group_tag,
+    ranks_t *d_group_ranks,
+    unsigned int *d_group_rtag,
+    unsigned int &new_ngroups,
+    unsigned int *d_tmp,
+    mgpu::ContextPtr mgpu_context);
+
+template<unsigned int group_size, typename members_t, typename ranks_t>
+void gpu_mark_bonded_ghosts(
+    unsigned int n_groups,
+    members_t *d_groups,
+    ranks_t *d_ranks,
+    const Scalar4 *d_postype,
+    const BoxDim& box,
+    const unsigned int *d_rtag,
+    unsigned int *d_plan,
+    Index3D& di,
+    uint3 my_pos,
+    const unsigned int *d_cart_ranks_inv,
+    unsigned int my_rank,
+    unsigned int mask);
 
 #endif // ENABLE_MPI

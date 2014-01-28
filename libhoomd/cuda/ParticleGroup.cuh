@@ -56,10 +56,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
+#include "util/mgpucontext.h"
+
 /*! \file ParticleGroup.cuh
     \brief Contains GPU kernel code used by ParticleGroup
 */
-
 #ifndef __PARTICLE_GROUP_CUH__
 #define __PARTICLE_GROUP_CUH__
 
@@ -69,7 +70,7 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
                                    unsigned char *d_is_member,
                                    unsigned int *d_member_idx,
                                    unsigned int *d_tag,
-                                   unsigned int &num_local_members);
-
-
+                                   unsigned int &num_local_members,
+                                   unsigned int *d_tmp,
+                                   mgpu::ContextPtr mgpu_context);
 #endif

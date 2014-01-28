@@ -735,11 +735,8 @@ def _create_exec_conf():
 
     # if no command line options were specified, create a default ExecutionConfiguration
     if globals.options.mode is None:
-        if mpi_available:
-            if globals.options.nrank is not None:
-                exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, True, globals.options.nrank);
-            else:
-                exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg,True);
+        if mpi_available and globals.options.nrank is not None:
+            exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
         else:
             exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg);
     else:
@@ -751,19 +748,13 @@ def _create_exec_conf():
 
         # create the specified configuration
         if globals.options.mode == "cpu":
-            if mpi_available:
-                if globals.options.nrank is not None:
-                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True, globals.options.nrank);
-                else:
-                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True);
+            if mpi_available and globals.options.nrank is not None:
+                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
             else:
                 exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
         elif globals.options.mode == "gpu":
-            if mpi_available:
-                if globals.options.nrank is not None:
-                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True, globals.options.nrank);
-                else:
-                    exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, True);
+            if mpi_available and globals.options.nrank is not None:
+                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
             else:
                 exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
         else:
@@ -806,4 +797,4 @@ def _create_domain_decomposition(box):
             return None
 
         # initialize domain decomposition
-        return hoomd.DomainDecomposition(globals.exec_conf, box.getL(), nx, ny, nz);
+        return hoomd.DomainDecomposition(globals.exec_conf, box.getL(), nx, ny, nz, not globals.options.onelevel);

@@ -18,7 +18,7 @@ init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer1], separation
 
 # force field setup
 harmonic = bond.harmonic()
-harmonic.set_coeff('polymer', k=330.0, r0=0.84)
+harmonic.bond_coeff.set('polymer', k=330.0, r0=0.84)
 lj = pair.lj(r_cut=3.0)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)

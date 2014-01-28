@@ -340,27 +340,12 @@ class nlist:
         box = globals.system_definition.getParticleData().getBox();
         min_width_for_bin = (default_r_buff + r_cut)*3.0;
 
-        # only check the z dimesion of the box in 3D systems
-        is_small_box = box.getL().x < min_width_for_bin or box.getL().y < min_width_for_bin;
-        if globals.system_definition.getNDimensions() == 3:
-            is_small_box = is_small_box or box.getL().z < min_width_for_bin;
-        if  is_small_box:
-            if globals.system_definition.getParticleData().getN() >= 2000:
-                globals.msg.warning("At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an\n");
-                globals.msg.warning("EXTREMELY SLOW O(N^2) calculation for the neighbor list.\n");
-            else:
-                globals.msg.notice(2, "The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation.\n");
-
-            mode = "nsq";
-
         # create the C++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             if mode == "binned":
                 cl_c = hoomd.CellList(globals.system_definition);
                 globals.system.addCompute(cl_c, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
-            elif mode == "nsq":
-                self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
             else:
                 globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
@@ -370,9 +355,6 @@ class nlist:
                 globals.system.addCompute(cl_g, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
                 self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
-                self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
-            elif mode == "nsq":
-                self.cpp_nlist = hoomd.NeighborListGPU(globals.system_definition, r_cut, default_r_buff)
                 self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             else:
                 globals.msg.error("Invalid neighbor list mode\n");
@@ -892,7 +874,6 @@ class lj(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -985,7 +966,6 @@ class gauss(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairGaussGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairGaussGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.gauss'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -1102,7 +1082,6 @@ class slj(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairSLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairSLJGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.slj'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -1219,7 +1198,6 @@ class yukawa(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairYukawaGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairYukawaGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.yukawa'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -1304,7 +1282,6 @@ class ewald(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairEwaldGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairEwaldGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.ewald'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -1766,7 +1743,6 @@ class morse(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairMorseGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMorseGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.morse'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2001,8 +1977,6 @@ class dpd_conservative(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.dpd_conservative'));
-            self.cpp_force.setBlockSize(64);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2348,7 +2322,6 @@ class force_shifted_lj(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairForceShiftedLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairForceShiftedLJGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.force_shifted_lj'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2421,7 +2394,6 @@ class moliere(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairMoliereGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMoliereGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.moliere'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2499,7 +2471,6 @@ class zbl(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairZBLGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairZBLGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.zbl'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

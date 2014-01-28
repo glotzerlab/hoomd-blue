@@ -60,27 +60,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #ifdef ENABLE_CUDA
 
-//#define MPI3 // define if the MPI implementation supports MPI3 one-sided communications
-
 #include "Communicator.h"
+
+#include "CommunicatorGPU.cuh"
 
 #include "GPUFlags.h"
 #include "GPUArray.h"
-#include "GPUBufferMapped.h"
 
 /*! \ingroup communication
 */
 
 //! Class that handles MPI communication (GPU version)
-/*! CommunicatorGPU uses a GPU optimized version of the basic Plimpton communication scheme implemented in the base
-    class Communicator.
-
-    Basically, particles are pre-sorted into face, edge and corner buffers depending whether they neighbor one, two or three
-    boxes. The full algorithm will be documented in a forthcoming publication.
-
-    This scheme guarantees that in between every of the six communication steps, no extra scanning of particle buffers needs
-    to be done and only buffer copying on the host is involved. Since for MPI, data needs to reside on the host anyway,
-    this avoids unnecessary copying of data between the GPU and the host.
+/*! CommunicatorGPU is the GPU implementation of the base communication class.
 */
 class CommunicatorGPU : public Communicator
     {
@@ -97,8 +88,16 @@ class CommunicatorGPU : public Communicator
         //@{
 
         /*! Perform ghosts update
+         *
+         * \param timestep The time step
          */
-        virtual void updateGhosts(unsigned int timestep);
+        virtual void beginUpdateGhosts(unsigned int timestep);
+
+        /*! Finish ghost update
+         *
+         * \param timestep The time step
+         */
+        virtual void finishUpdateGhosts(unsigned int timestep);
 
         //! Transfer particles between neighboring domains
         virtual void migrateParticles();
@@ -108,133 +107,136 @@ class CommunicatorGPU : public Communicator
 
         //@}
 
+        //! Set maximum number of communication stages
+        /*! \param max_stages Maximum number of communication stages
+         */
+        void setMaxStages(unsigned int max_stages)
+            {
+            m_max_stages = max_stages;
+            initializeCommunicationStages();
+            forceMigrate();
+            }
+
     protected:
-        //! Perform the first part of the communication (exchange of message sizes)
-        void communicateStepOne(unsigned int dir,
-                                unsigned int *n_send_ptls_corner,
-                                unsigned int *n_send_ptls_edge,
-                                unsigned int *n_send_ptls_face,
-                                unsigned int *n_recv_ptls_face,
-                                unsigned int *n_recv_ptls_edge,
-                                unsigned int *n_recv_ptls_local,
-                                bool unique_destination);
+        //! Helper class to perform the communication tasks related to bonded groups
+        template<class group_data>
+        class GroupCommunicatorGPU
+            {
+            public:
+                typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
+                typedef typename group_data::packed_t group_element_t;
 
-        //! Perform the first part of the communication (exchange of particle data)
-        void communicateStepTwo(unsigned int face,
-                                char *corner_send_buf,
-                                char *edge_send_buf,
-                                char *face_send_buf,
-                                const unsigned int cpitch,
-                                const unsigned int epitch,
-                                const unsigned int fpitch,
-                                char *local_recv_buf,
-                                const unsigned int *n_send_ptls_corner,
-                                const unsigned int *n_send_ptls_edge,
-                                const unsigned int *n_send_ptls_face,
-                                const unsigned int local_recv_buf_size,
-                                const unsigned int n_tot_recv_ptls_local,
-                                const unsigned int element_size,
-                                bool unique_destination);
+                //! Constructor
+                GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, boost::shared_ptr<group_data> gdata);
 
-        //! Check that restrictions on bond lengths etc. are not violated
-        void checkValid(unsigned int timestep);
+                //! Migrate groups
+                /*! \param incomplete If true, mark all groups that have non-local members and update local
+                 *         member rank information. Otherwise, mark only groups flagged for communication
+                 *         in particle data
+                 *
+                 * A group is marked for sending by setting its rtag to GROUP_NOT_LOCAL, and by updating
+                 * the rank information with the destination ranks (or the local ranks if incomplete=true)
+                 */
+                void migrateGroups(bool incomplete);
+
+                //! Mark ghost particles
+                /* All particles that need to be sent as ghosts because they are members
+                 * of incomplete groups are marked, and destination ranks are compute accordingly.
+                 *
+                 * \param plans Array of particle plans to write to
+                 * \param mask Mask for allowed sending directions
+                 */
+                void markGhostParticles(const GPUArray<unsigned int>& plans, unsigned int mask);
+
+            private:
+                CommunicatorGPU& m_gpu_comm;                            //!< The outer class
+                boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
+                boost::shared_ptr<group_data> m_gdata;                  //!< The group data
+
+                GPUVector<unsigned int> m_rank_mask;                    //!< Bitfield for every group to keep track of updated rank fields
+                GPUVector<unsigned int> m_scan;                         //!< Temporary array for exclusive scan of group membership information
+
+                GPUVector<rank_element_t> m_ranks_out;                  //!< Packed ranks data
+                GPUVector<rank_element_t> m_ranks_sendbuf;              //!< Send buffer for ranks information
+                GPUVector<rank_element_t> m_ranks_recvbuf;              //!< Recv buffer for ranks information
+
+                GPUVector<group_element_t> m_groups_out;                //!< Packed group data
+                GPUVector<unsigned int> m_rank_mask_out;                //!< Output buffer for rank update bitfields
+                GPUVector<group_element_t> m_groups_sendbuf;            //!< Send buffer for groups
+                GPUVector<group_element_t> m_groups_recvbuf;            //!< Recv buffer for groups
+                GPUVector<group_element_t> m_groups_in;                 //!< Input buffer of unique groups
+            };
 
     private:
+        /* General communication */
+        unsigned int m_max_stages;                     //!< Maximum number of (dependent) communication stages
+        unsigned int m_num_stages;                     //!< Number of stages
+        std::vector<unsigned int> m_comm_mask;         //!< Communication mask per stage
+        std::vector<int> m_stages;                     //!< Communication stage per unique neighbor
 
-        GPUVector<unsigned char> m_remove_mask;     //!< Per-particle flags to indicate whether particle has already been sent
-        GPUArray<unsigned int> m_ptl_plan;          //!< Particle sending plans
+        /* Particle migration */
+        GPUVector<pdata_element> m_gpu_sendbuf;        //!< Send buffer for particle data
+        GPUVector<pdata_element> m_gpu_recvbuf;        //!< Receive buffer for particle data
+        GPUVector<unsigned int> m_comm_flags;          //!< Output buffer for communication flags
 
-        unsigned int m_max_send_ptls_face;          //!< Size of face ptl send buffer
-        unsigned int m_max_send_ptls_edge;          //!< Size of edge ptl send buffer
-        unsigned int m_max_send_ptls_corner;        //!< Size of corner ptl send buffer
+        GPUVector<unsigned int> m_send_keys;           //!< Destination rank for particles
 
-        GPUArray<char> m_corner_send_buf;          //!< Send buffer for corner ptls
-        GPUArray<char> m_edge_send_buf;            //!< Send buffer for edge ptls
-        GPUArray<char> m_face_send_buf;            //!< Send buffer for edge ptls
-        GPUArray<char> m_recv_buf;                 //!< Receive buffer for particle data
+        /* Communication of bonded groups */
+        GroupCommunicatorGPU<BondData> m_bond_comm;    //!< Communication helper for bonds
+        friend class GroupCommunicatorGPU<BondData>;
 
-        GPUArray<bond_element> m_bond_corner_send_buf;  //!< Send buffer for bonds sent via a corner
-        GPUArray<bond_element> m_bond_edge_send_buf;    //!< Send buffer for bonds sent via an edge
-        GPUArray<bond_element> m_bond_face_send_buf;    //!< Send buffer for bonds sent via a face
-        unsigned int m_max_send_bonds_face;         //!< Maximum number of bonds sent across any face
-        unsigned int m_max_send_bonds_edge;         //!< Maximum number of bonds sent over any edge
-        unsigned int m_max_send_bonds_corner;       //!< Maximum number of bonds sent via any corner
-        GPUArray<unsigned int> m_n_send_bonds_corner; //!< Number of bonds sent via a corner
-        GPUArray<unsigned int> m_n_send_bonds_edge;  //!< Number of bonds sent over an edge
-        GPUArray<unsigned int> m_n_send_bonds_face;  //!< Number of bonds sent across a face
-        GPUFlags<unsigned int> m_n_remove_bonds;     //!< Number of bonds to be removed
+        GroupCommunicatorGPU<AngleData> m_angle_comm;  //!< Communication helper for angles
+        friend class GroupCommunicatorGPU<AngleData>;
 
-        GPUArray<unsigned int> m_n_send_ptls_corner; //!< Number of particles sent over a corner
-        GPUArray<unsigned int> m_n_send_ptls_edge;  //!< Number of particles sent over an edge
-        GPUArray<unsigned int> m_n_send_ptls_face;  //!< Number of particles sent through a face
+        GroupCommunicatorGPU<DihedralData> m_dihedral_comm;  //!< Communication helper for dihedrals
+        friend class GroupCommunicatorGPU<DihedralData>;
 
-        unsigned int m_remote_send_corner[8*6];     //!< Remote corner particles, per direction
-        unsigned int m_remote_send_edge[12*6];       //!< Remote edge particles, per direction
-        unsigned int m_remote_send_face[6];         //!< Remote face particles, per direction
+        GroupCommunicatorGPU<ImproperData> m_improper_comm;  //!< Communication helper for impropers
+        friend class GroupCommunicatorGPU<ImproperData>;
 
-        GPUArray<char> m_corner_ghosts_buf;         //!< Copy buffer for ghosts lying at the edge
-        GPUArray<char> m_edge_ghosts_buf;           //!< Copy buffer for ghosts lying in the corner
-        GPUArray<char> m_face_ghosts_buf;           //!< Copy buffer for ghosts lying near a face
-        GPUArray<char> m_ghosts_recv_buf;           //!< Receive buffer for particle data
+        /* Ghost communication */
+        GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< List of ghost particles tags per stage, ordered by neighbor
+        GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags
+        GPUVector<Scalar4> m_pos_ghost_sendbuf;        //<! Buffer for sending ghost positions
+        GPUVector<Scalar4> m_pos_ghost_recvbuf;        //<! Buffer for receiving ghost positions
 
-        GPUArray<unsigned int> m_ghost_idx_corner;  //!< Indices of particles copied as ghosts via corner
-        GPUArray<unsigned int> m_ghost_idx_edge;    //!< Indices of particles copied as ghosts via an edge
-        GPUArray<unsigned int> m_ghost_idx_face;    //!< Indices of particles copied as ghosts via a face
+        GPUVector<Scalar4> m_vel_ghost_sendbuf;        //<! Buffer for sending ghost velocities
+        GPUVector<Scalar4> m_vel_ghost_recvbuf;        //<! Buffer for receiving ghost velocities
 
-        GPUArray<char> m_corner_update_buf;   //!< Copy buffer for 'corner' ghost positions
-        GPUArray<char> m_edge_update_buf;     //!< Copy buffer for 'corner' ghost positions
-        GPUArray<char> m_face_update_buf;     //!< Copy buffer for 'corner' ghost positions
-        GPUArray<char> m_update_recv_buf;     //!< Receive buffer for ghost positions
+        GPUVector<Scalar> m_charge_ghost_sendbuf;      //!< Buffer for sending ghost charges
+        GPUVector<Scalar> m_charge_ghost_recvbuf;      //!< Buffer for sending ghost charges
 
-        unsigned int m_max_copy_ghosts_face;        //!< Maximum number of ghosts 'face' particles
-        unsigned int m_max_copy_ghosts_edge;        //!< Maximum number of ghosts 'edge' particles
-        unsigned int m_max_copy_ghosts_corner;      //!< Maximum number of ghosts 'corner' particles
-        unsigned int m_max_recv_ghosts;             //!< Maximum number of ghosts received for the local box
+        GPUVector<Scalar> m_diameter_ghost_sendbuf;    //!< Buffer for sending ghost charges
+        GPUVector<Scalar> m_diameter_ghost_recvbuf;    //!< Buffer for sending ghost charges
 
-        GPUArray<unsigned int> m_n_local_ghosts_face;  //!< Number of local ghosts sent over a face
-        GPUArray<unsigned int> m_n_local_ghosts_edge;  //!< Local ghosts sent over an edge
-        GPUArray<unsigned int> m_n_local_ghosts_corner;//!< Local ghosts sent over a corner
+        GPUVector<Scalar4> m_orientation_ghost_sendbuf;//<! Buffer for sending ghost orientations
+        GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
 
-        GPUArray<unsigned int> m_n_recv_ghosts_face; //!< Number of received ghosts for sending over a face, per direction
-        GPUArray<unsigned int> m_n_recv_ghosts_edge; //!< Number of received ghosts for sending over an edge, per direction
-        GPUArray<unsigned int> m_n_recv_ghosts_local;//!< Number of received ghosts that stay in the local box, per direction
+        GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf
+        GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf
 
-        unsigned int m_n_tot_recv_ghosts;           //!< Total number of received ghots
-        unsigned int m_n_tot_recv_ghosts_local;     //!< Total number of received ghosts for local box
-        unsigned int m_n_forward_ghosts_face[6];    //!< Total number of received ghosts for the face send buffer
-        unsigned int m_n_forward_ghosts_edge[12];   //!< Total number of received ghosts for the edge send buffer
+        GPUVector<uint2> m_ghost_idx_adj;             //!< Indices and adjacency relationships of ghosts to send
+        GPUVector<unsigned int> m_ghost_neigh;        //!< Neighbor ranks for every ghost particle
+        GPUVector<unsigned int> m_ghost_plan;         //!< Plans for every particle
+        std::vector<unsigned int> m_idx_offs;         //!< Per-stage offset into ghost idx list
 
-        bool m_buffers_allocated;                   //!< True if buffers have been allocated
-        bool m_mesh_buffers_allocated;              //!< True if buffers for ghost mesh exchange have been allocated
+        GPUVector<unsigned int> m_neigh_counts;       //!< List of number of neighbors to send ghost to (temp array)
 
-        uint3 m_mesh_dim;                           //!< Dimensions of mesh for which we allocated buffers
-        uint3 m_inner_dim;                          //!< Number of non-ghost cells along every axis
-        unsigned int m_n_ghost_cells;               //!< Number of ghost cells of mesh along non-periodic axes
-        unsigned int m_n_corner_cells;              //!< Number of corner cells
-        uint3 m_n_edge_cells;                       //!< Number of edge cells, for every four edges along every axis
-        uint3 m_n_face_cells;                       //!< Number of face cells for every axis
+        std::vector<std::vector<unsigned int> > m_n_send_ghosts; //!< Number of ghosts to send per stage and neighbor
+        std::vector<std::vector<unsigned int> > m_n_recv_ghosts; //!< Number of ghosts to receive per stage and neighbor
+        std::vector<std::vector<unsigned int> > m_ghost_offs;    //!< Begin of offset in recv buf per stage and neighbor
 
-        GPUFlags<unsigned int> m_condition;         //!< Condition variable set to a value unequal zero if send buffers need to be resized
+        std::vector<unsigned int> m_n_send_ghosts_tot; //!< Total number of sent ghosts per stage
+        std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
-#ifdef MPI3
-        MPI_Group m_comm_group;                     //!< Group corresponding to MPI communicator
-        MPI_Win m_win_edge[12];                     //!< Shared memory windows for every of the 12 edges
-        MPI_Win m_win_face[6];                      //!< Shared memory windows for every of the 6 edges
-        MPI_Win m_win_local;                        //!< Shared memory window for locally received particles
-#endif
+        mgpu::ContextPtr m_mgpu_context;              //!< MGPU context
+        cudaEvent_t m_event;                          //!< CUDA event for synchronization
 
         //! Helper function to allocate various buffers
         void allocateBuffers();
 
-        //! Helper function to allocate buffers for ghost mesh exchange
-        void allocateMeshBuffers(const uint3 dim, const uint3 n_ghost_cells, size_t size_datatype);
-
-        //! Compute size of ghost exchange element
-        size_t ghost_exchange_element_size();
-
-        //! Compute size of ghost update element
-        size_t ghost_update_element_size();
-
+        //! Helper function to set up communication stages
+        void initializeCommunicationStages();
     };
 
 //! Export CommunicatorGPU class to python

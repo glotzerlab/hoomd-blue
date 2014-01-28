@@ -92,7 +92,8 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
                                                                  const unsigned int N,
                                                                  const Scalar4 *d_pos,
                                                                  BoxDim box,
-                                                                 const uint4 *alist,
+                                                                 const group_storage<3> *alist,
+                                                                 const unsigned int *apos_list,
                                                                  const unsigned int pitch,
                                                                  const unsigned int *n_angles_list,
                                                                  Scalar2 *d_params,
@@ -127,14 +128,14 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
     // loop over all angles
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
         {
-        uint4 cur_angle = alist[pitch*angle_idx + idx];
+        group_storage<3> cur_angle = alist[pitch*angle_idx + idx];
 
-        int cur_angle_x_idx = cur_angle.x;
-        int cur_angle_y_idx = cur_angle.y;
+        int cur_angle_x_idx = cur_angle.idx[0];
+        int cur_angle_y_idx = cur_angle.idx[1];
 
         // store the a and c positions to accumlate their forces
-        int cur_angle_type = cur_angle.z;
-        int cur_angle_abc = cur_angle.w;
+        int cur_angle_type = cur_angle.idx[2];
+        int cur_angle_abc = apos_list[pitch*angle_idx + idx];
 
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 x_postype = d_pos[cur_angle_x_idx];
@@ -322,7 +323,8 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
                                            const unsigned int N,
                                            const Scalar4 *d_pos,
                                            const BoxDim& box,
-                                           const uint4 *atable,
+                                           const group_storage<3> *atable,
+                                           const unsigned int *apos_list,
                                            const unsigned int pitch,
                                            const unsigned int *n_angles_list,
                                            Scalar2 *d_params,
@@ -361,6 +363,7 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
                                                               d_pos,
                                                               box,
                                                               atable,
+                                                              apos_list,
                                                               pitch,
                                                               n_angles_list,
                                                               d_params,

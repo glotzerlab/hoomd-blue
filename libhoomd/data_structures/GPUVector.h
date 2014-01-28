@@ -62,6 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __GPUVECTOR_H__
 
 #include "GPUArray.h"
+#include <algorithm>
 
 // The factor with which the array size is incremented
 #define RESIZE_FACTOR 9.f/8.f
@@ -90,6 +91,14 @@ template<class T> class GPUVector : public GPUArray<T>
 
         //! Constructs a GPUVector
         GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+
+    #ifdef ENABLE_CUDA
+        //! Constructs an empty GPUVector
+        GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
+
+        //! Constructs a GPUVector
+        GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
+    #endif
 
         //! Frees memory
         virtual ~GPUVector() {}
@@ -120,8 +129,8 @@ template<class T> class GPUVector : public GPUArray<T>
         */
         virtual void resize(unsigned int width, unsigned int height)
             {
-                this->m_exec_conf->msg->error() << "Cannot change a GPUVector into a matrix." << std::endl;
-                throw std::runtime_error("Error resizing GPUVector.");
+            this->m_exec_conf->msg->error() << "Cannot change a GPUVector into a matrix." << std::endl;
+            throw std::runtime_error("Error resizing GPUVector.");
             }
 
         //! Insert an element at the end of the vector
@@ -131,6 +140,9 @@ template<class T> class GPUVector : public GPUArray<T>
 
         //! Remove an element from the end of the list
         virtual void pop_back();
+
+        //! Remove an element by index
+        virtual void erase(unsigned int i);
 
         //! Clear the list
         virtual void clear();
@@ -207,8 +219,6 @@ template<class T> GPUVector<T>::GPUVector()
     {
     }
 
-
-//! Constructs an empty GPUVector
 /*! \param exec_conf Shared pointer to the execution configuration
  */
 template<class T> GPUVector<T>::GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf)
@@ -219,9 +229,30 @@ template<class T> GPUVector<T>::GPUVector(boost::shared_ptr<const ExecutionConfi
 /*! \param size Number of elements to allocate initial memory for in the array
     \param exec_conf Shared pointer to the execution configuration
 */
-template<class T> GPUVector<T>::GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf) : GPUArray<T>(size, exec_conf), m_size(size)
+template<class T> GPUVector<T>::GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+     : GPUArray<T>(size, exec_conf), m_size(size)
     {
     }
+
+#ifdef ENABLE_CUDA
+//! Constructs an empty GPUVector
+/*! \param exec_conf Shared pointer to the execution configuration
+ *  \param mapped True if using mapped-pinned memory
+ */
+template<class T> GPUVector<T>::GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped)
+    : GPUArray<T>(0,exec_conf, mapped), m_size(0)
+    {
+    }
+
+/*! \param size Number of elements to allocate initial memory for in the array
+    \param exec_conf Shared pointer to the execution configuration
+    \param mapped True if using mapped-pinned memory
+*/
+template<class T> GPUVector<T>::GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped)
+     : GPUArray<T>(size, exec_conf, mapped), m_size(size)
+    {
+    }
+#endif
 
 template<class T> GPUVector<T>::GPUVector(const GPUVector& from) : GPUArray<T>(from), m_size(from.m_size)
     {
@@ -276,8 +307,12 @@ template<class T> void GPUVector<T>::reallocate(unsigned int size)
 */
 template<class T> void GPUVector<T>::resize(unsigned int new_size)
     {
-    // allocate memory only if necessary
-    reallocate(new_size);
+    // allocate memory by amortized O(N) resizing
+    if (new_size > 0)
+        reallocate(new_size);
+    else
+        // for zero size, we at least allocate the memory
+        reallocate(1);
 
     // set new size
     m_size = new_size;
@@ -299,6 +334,25 @@ template<class T> void GPUVector<T>::pop_back()
     {
     assert(m_size);
     m_size--;
+    }
+
+//! Remove an element in the middle
+template<class T> void GPUVector<T>::erase(unsigned int i)
+    {
+    assert(i < m_size);
+    T *data = acquireHost(access_mode::readwrite);
+    T *res = data;
+    for (unsigned int n = 0; n < m_size; ++n)
+        {
+        if (n != i)
+            {
+            *res = *data;
+            res++;
+            }
+        data++;
+        }
+    m_size--;
+    GPUArray<T>::release();
     }
 
 //! Clear the list

@@ -147,9 +147,6 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    if (group_size == 0)
-        return;
-
     // update degrees of freedom
     m_ndof = m_thermo_group->getNDOF();
 
@@ -329,9 +326,6 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
-
-    if (group_size == 0)
-        return;
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

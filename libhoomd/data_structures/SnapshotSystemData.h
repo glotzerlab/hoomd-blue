@@ -63,9 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BoxDim.h"
 #include "ParticleData.h"
-#include "BondData.h"
-#include "AngleData.h"
-#include "DihedralData.h"
+#include "BondedGroupData.h"
 #include "IntegratorData.h"
 #include "WallData.h"
 #include "RigidData.h"
@@ -91,10 +89,10 @@ struct SnapshotSystemData {
     unsigned int dimensions;               //!< The dimensionality of the system
     BoxDim global_box;                     //!< The dimensions of the simulation box
     SnapshotParticleData particle_data;    //!< The particle data
-    SnapshotBondData bond_data;            //!< The bond data
-    SnapshotAngleData angle_data;          //!< The angle data
-    SnapshotDihedralData dihedral_data;    //!< The dihedral data
-    SnapshotDihedralData improper_data;    //!< The improper data
+    BondData::Snapshot bond_data;          //!< The bond data
+    AngleData::Snapshot angle_data;         //!< The angle data
+    DihedralData::Snapshot dihedral_data;    //!< The dihedral data
+    ImproperData::Snapshot improper_data;    //!< The improper data
     SnapshotRigidData rigid_data;          //!< The rigid body data
     std::vector<Wall> wall_data;           //!< The wall data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data

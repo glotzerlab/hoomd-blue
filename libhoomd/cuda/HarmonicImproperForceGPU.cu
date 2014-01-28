@@ -90,8 +90,8 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
                                                  const Scalar4 *d_pos,
                                                  const Scalar2 *d_params,
                                                  BoxDim box,
-                                                 const uint4 *tlist,
-                                                 const uint1 *dihedral_ABCD,
+                                                 const group_storage<4> *tlist,
+                                                 const unsigned int *dihedral_ABCD,
                                                  const unsigned int pitch,
                                                  const unsigned int *n_dihedrals_list)
 
@@ -121,14 +121,14 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
     // loop over all impropers
     for (int improper_idx = 0; improper_idx < n_impropers; improper_idx++)
         {
-        uint4 cur_improper = tlist[pitch*improper_idx + idx];
-        uint1 cur_ABCD = dihedral_ABCD[pitch*improper_idx + idx];
+        group_storage<4> cur_improper = tlist[pitch*improper_idx + idx];
+        unsigned int cur_ABCD = dihedral_ABCD[pitch*improper_idx + idx];
 
-        int cur_improper_x_idx = cur_improper.x;
-        int cur_improper_y_idx = cur_improper.y;
-        int cur_improper_z_idx = cur_improper.z;
-        int cur_improper_type = cur_improper.w;
-        int cur_improper_abcd = cur_ABCD.x;
+        int cur_improper_x_idx = cur_improper.idx[0];
+        int cur_improper_y_idx = cur_improper.idx[1];
+        int cur_improper_z_idx = cur_improper.idx[2];
+        int cur_improper_type = cur_improper.idx[3];
+        int cur_improper_abcd = cur_ABCD;
 
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 x_postype = d_pos[cur_improper_x_idx];
@@ -324,8 +324,8 @@ cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const BoxDim& box,
-                                                 const uint4 *tlist,
-                                                 const uint1 *dihedral_ABCD,
+                                                 const group_storage<4> *tlist,
+                                                 const unsigned int *dihedral_ABCD,
                                                  const unsigned int pitch,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar2 *d_params,

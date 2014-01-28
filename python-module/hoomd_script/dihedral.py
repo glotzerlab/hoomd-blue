@@ -180,7 +180,7 @@ class coeff:
             raise RuntimeError('Error verifying force coefficients');
 
         # get a list of types from the particle data
-        ntypes = globals.system_definition.getDihedralData().getNDihedralTypes();
+        ntypes = globals.system_definition.getDihedralData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getDihedralData().getNameByType(i));
@@ -260,7 +260,7 @@ class harmonic(force._force):
     def __init__(self):
         util.print_status_line();
         # check that some dihedrals are defined
-        if globals.system_definition.getDihedralData().getNumDihedrals() == 0:
+        if globals.system_definition.getDihedralData().getNGlobal() == 0:
             globals.msg.error("No dihedrals are defined.\n");
             raise RuntimeError("Error creating dihedral forces");
 
@@ -311,7 +311,7 @@ class harmonic(force._force):
 
     def update_coeffs(self):
         # get a list of all dihedral types in the simulation
-        ntypes = globals.system_definition.getDihedralData().getNDihedralTypes();
+        ntypes = globals.system_definition.getDihedralData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getDihedralData().getNameByType(i));
@@ -460,7 +460,7 @@ class table(force._force):
             raise RuntimeError("Error updating dihedral coefficients");
 
         # set all the params
-        ntypes = globals.system_definition.getDihedralData().getNDihedralTypes();
+        ntypes = globals.system_definition.getDihedralData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getDihedralData().getNameByType(i));

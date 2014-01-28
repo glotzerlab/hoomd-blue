@@ -59,7 +59,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ParticleData.h"
-#include "BondData.h"
 
 #include "SnapshotSystemData.h"
 

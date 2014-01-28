@@ -221,7 +221,16 @@ class Messenger
             {
             // prefix all messages with rank information
             m_rank = rank;
-            m_notice_level = (m_rank == 0) ? m_default_notice_level :0;
+            m_nranks = 1;
+            #ifdef ENABLE_MPI
+            bcast(m_notice_level,0,m_mpi_comm);
+
+            // get communicator size
+            int nranks;
+            if (m_rank != 0) m_notice_level = 0;
+            MPI_Comm_size(m_mpi_comm, &nranks);
+            m_nranks = nranks;
+            #endif
             m_partition = partition;
             }
 
@@ -232,21 +241,31 @@ class Messenger
          */
         void setMPICommunicator(const MPI_Comm mpi_comm)
             {
+            // clean up data associated with old communicator
+            releaseSharedMem();
+
             m_mpi_comm = mpi_comm;
-            m_has_mpi_comm = true;
 
             // open shared log file if necessary
             if (m_shared_filename != "")
                 openSharedFile();
+
+            // initialize RMA memory for error messages
+            initializeSharedMem();
             }
 
-        //! Tear down messaging using MPI
+        //! Revert to MPI_COMM_WORLD communicator
         void unsetMPICommunicator()
             {
             if (m_shared_filename != "")
                 openStd();
 
-            m_has_mpi_comm = false;
+            releaseSharedMem();
+
+            m_mpi_comm = MPI_COMM_WORLD;
+
+            // initialize RMA memory for error messages
+            initializeSharedMem();
             }
 #endif
 
@@ -263,8 +282,7 @@ class Messenger
         */
         void setNoticeLevel(unsigned int level)
             {
-            m_notice_level = level;
-            m_default_notice_level = level;
+            m_notice_level = (m_rank == 0) ? level : 0;
             }
 
         //! Set the error stream
@@ -363,8 +381,23 @@ class Messenger
             {
             m_shared_filename = fname;
 
-            if (m_has_mpi_comm)
-                openSharedFile();
+            openSharedFile();
+            }
+
+        //! Returns true if this if this rank has exclusive stdout access for error messages
+        bool hasLock() const
+            {
+            return m_has_lock;
+            }
+
+        //! Returns true if any process has locked the output
+        bool isLocked() const
+            {
+            int flag;
+            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, 0,0, m_mpi_win);
+            MPI_Get(&flag, 1, MPI_INT, 0, 0, 1, MPI_INT, m_mpi_win);
+            MPI_Win_unlock(0, m_mpi_win);
+            return flag;
             }
 #endif
 
@@ -383,18 +416,27 @@ class Messenger
         std::string m_notice_prefix;    //!< Prefix for notice messages
 
         unsigned int m_notice_level;    //!< Notice level
-        unsigned int m_default_notice_level; //!< Initial notice level
 
         unsigned int m_rank;            //!< The MPI rank (default 0)
         unsigned int m_partition;       //!< The MPI partition
+        unsigned int m_nranks;          //!< Number of ranks in communicator
 
 #ifdef ENABLE_MPI
         std::string m_shared_filename;  //!< Filename of shared log file
         MPI_Comm m_mpi_comm;            //!< The MPI communicator
-        bool m_has_mpi_comm;            //!< True if MPI communicator has been set
+
+        MPI_Win m_mpi_win;              //!< MPI Window for atomic printing of error messages
+        int *m_error_flag;              //!< Flag on (on processor 0) to lock stdout
+        mutable bool m_has_lock;        //!< True if this rank has exclusive access to stdout
 
         //! Open a shared file for error, warning, and notice streams
         void openSharedFile();
+
+        //! Initialize RMA
+        void initializeSharedMem();
+
+        //! Free RMA
+        void releaseSharedMem();
 #endif
     };
 

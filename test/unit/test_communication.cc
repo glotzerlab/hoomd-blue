@@ -50,18 +50,20 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 
+#define CHECK_CLOSE(a,b,tol) ( fabs(a-b) < 0.01*tol*fabs(a))
 
 //! name the boost unit test module
 #define BOOST_TEST_MODULE CommunicationTests
 
 // this has to be included after naming the test module
-#include "MPITestSetup.h"
+#include "boost_utf_configure.h"
 
 #include "System.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 
+#include "ExecutionConfiguration.h"
 #include "Communicator.h"
 #include "DomainDecomposition.h"
 
@@ -306,21 +308,21 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 7);
 
     // Now move particle 0 into domain 1
-    pdata->setPosition(0, make_scalar3(0.1,-0.5,-0.5));
+    pdata->setPosition(0, make_scalar3(0.1,-0.5,-0.5),false);
     // move particle 1 into domain 2
-    pdata->setPosition(1, make_scalar3(-0.2, 0.5, -0.5));
+    pdata->setPosition(1, make_scalar3(-0.2, 0.5, -0.5),false);
     // move particle 2 into domain 3
-    pdata->setPosition(2, make_scalar3(0.2, 0.3, -0.5));
+    pdata->setPosition(2, make_scalar3(0.2, 0.3, -0.5),false);
     // move particle 3 into domain 4
-    pdata->setPosition(3, make_scalar3(-0.5, -0.3, 0.2));
+    pdata->setPosition(3, make_scalar3(-0.5, -0.3, 0.2),false);
     // move particle 4 into domain 5
-    pdata->setPosition(4, make_scalar3(0.1, -0.3, 0.2));
+    pdata->setPosition(4, make_scalar3(0.1, -0.3, 0.2),false);
     // move particle 5 into domain 6
-    pdata->setPosition(5, make_scalar3(-0.2, 0.4, 0.2));
+    pdata->setPosition(5, make_scalar3(-0.2, 0.4, 0.2),false);
     // move particle 6 into domain 7
-    pdata->setPosition(6, make_scalar3(0.6, 0.1, 0.2));
+    pdata->setPosition(6, make_scalar3(0.6, 0.1, 0.2),false);
     // move particle 7 into domain 0
-    pdata->setPosition(7, make_scalar3(-0.6, -0.1,- 0.2));
+    pdata->setPosition(7, make_scalar3(-0.6, -0.1,- 0.2),false);
 
     // migrate atoms
     comm->migrateParticles();
@@ -381,21 +383,21 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     //
 
     // particle 0 crosses the global boundary in +x direction
-    pdata->setPosition(0, make_scalar3(1.1,-0.5,-0.5));
+    pdata->setPosition(0, make_scalar3(1.1,-0.5,-0.5),false);
     //  particle 1 crosses the global bounadry in the -x direction
-    pdata->setPosition(1, make_scalar3(-1.1, 0.5, -0.5));
+    pdata->setPosition(1, make_scalar3(-1.1, 0.5, -0.5),false);
     // particle 2 crosses the global boundary in the + y direction
-    pdata->setPosition(2, make_scalar3(0.2, 1.3, -0.5));
+    pdata->setPosition(2, make_scalar3(0.2, 1.3, -0.5),false);
     // particle 3 crosses the global boundary in the - y direction
-    pdata->setPosition(3, make_scalar3(-0.5, -1.5, 0.2));
+    pdata->setPosition(3, make_scalar3(-0.5, -1.5, 0.2),false);
     // particle 4 crosses the global boundary in the + z direction
-    pdata->setPosition(4, make_scalar3(0.1, -0.3, 1.6));
+    pdata->setPosition(4, make_scalar3(0.1, -0.3, 1.6),false);
     // particle 5 crosses the global boundary in the + z direction and in the -x direction
-    pdata->setPosition(5, make_scalar3(-1.1, 0.4, 1.25));
+    pdata->setPosition(5, make_scalar3(-1.1, 0.4, 1.25),false);
     // particle 6 crosses the global boundary in the + z direction and in the +x direction
-    pdata->setPosition(6, make_scalar3(1.3, 0.1, 1.05));
+    pdata->setPosition(6, make_scalar3(1.3, 0.1, 1.05),false);
     // particle 7 crosses the global boundary in the - z direction
-    pdata->setPosition(7, make_scalar3(-0.6, -0.1,- 1.5));
+    pdata->setPosition(7, make_scalar3(-0.6, -0.1,- 1.5),false);
 
     // migrate particles
     comm->migrateParticles();
@@ -505,31 +507,31 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
-    pdata->setPosition(0, make_scalar3(-0.5,-0.5,-0.5));
-    pdata->setPosition(1, make_scalar3( 0.5,-0.5,-0.5));
-    pdata->setPosition(2, make_scalar3(-0.5, 0.5,-0.5));
-    pdata->setPosition(3, make_scalar3( 0.5, 0.5,-0.5));
-    pdata->setPosition(4, make_scalar3(-0.5,-0.5, 0.5));
-    pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5));
-    pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5));
-    pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5));
+    pdata->setPosition(0, make_scalar3(-0.5,-0.5,-0.5),false);
+    pdata->setPosition(1, make_scalar3( 0.5,-0.5,-0.5),false);
+    pdata->setPosition(2, make_scalar3(-0.5, 0.5,-0.5),false);
+    pdata->setPosition(3, make_scalar3( 0.5, 0.5,-0.5),false);
+    pdata->setPosition(4, make_scalar3(-0.5,-0.5, 0.5),false);
+    pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5),false);
+    pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5),false);
+    pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5),false);
 
     // place particle 8 in the same box as particle 0 and in the ghost layer of its +x neighbor
-    pdata->setPosition(8, make_scalar3(-0.02,-0.5,-0.5));
+    pdata->setPosition(8, make_scalar3(-0.02,-0.5,-0.5),false);
     // place particle 9 in the same box as particle 0 and in the ghost layer of its +y neighbor
-    pdata->setPosition(9, make_scalar3(-0.5,-0.05,-0.5));
+    pdata->setPosition(9, make_scalar3(-0.5,-0.05,-0.5),false);
     // place particle 10 in the same box as particle 0 and in the ghost layer of its +y and +z neighbor
-    pdata->setPosition(10, make_scalar3(-0.5, -0.01,-0.05));
+    pdata->setPosition(10, make_scalar3(-0.5, -0.01,-0.05),false);
     // place particle 11 in the same box as particle 0 and in the ghost layer of its +x and +y neighbor
-    pdata->setPosition(11, make_scalar3(-0.05, -0.03,-0.5));
+    pdata->setPosition(11, make_scalar3(-0.05, -0.03,-0.5),false);
     // place particle 12 in the same box as particle 0 and in the ghost layer of its +x , +y and +z neighbor
-    pdata->setPosition(12, make_scalar3(-0.05, -0.03,-0.001));
+    pdata->setPosition(12, make_scalar3(-0.05, -0.03,-0.001),false);
     // place particle 13 in the same box as particle 1 and in the ghost layer of its -x neighbor
-    pdata->setPosition(13, make_scalar3( 0.05, -0.5, -0.5));
+    pdata->setPosition(13, make_scalar3( 0.05, -0.5, -0.5),false);
     // place particle 14 in the same box as particle 1 and in the ghost layer of its -x neighbor and its +y neighbor
-    pdata->setPosition(14, make_scalar3( 0.01, -0.0123, -0.5));
+    pdata->setPosition(14, make_scalar3( 0.01, -0.0123, -0.5),false);
     // place particle 15 in the same box as particle 1 and in the ghost layer of its -x neighbor, of its +y neighbor, and of its +z neighbor
-    pdata->setPosition(15, make_scalar3( 0.01, -0.0123, -0.09));
+    pdata->setPosition(15, make_scalar3( 0.01, -0.0123, -0.09),false);
 
     // distribute particle data on processors
     SnapshotParticleData snap(16);
@@ -581,6 +583,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     // set ghost exchange flags for position
     CommFlags flags(0);
     flags[comm_flag::position] = 1;
+    flags[comm_flag::tag] = 1;
     comm->setFlags(flags);
 
     // exchange ghosts
@@ -795,21 +798,21 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     // place some atoms in a ghost layer at a global boundary
 
     // place particle 8 in the same box as particle 0 and in the ghost layer of its -x neighbor and -y neighbor
-    pdata->setPosition(8, make_scalar3(-0.02,-0.95,-0.5));
+    pdata->setPosition(8, make_scalar3(-0.02,-0.95,-0.5),false);
     // place particle 9 in the same box as particle 0 and in the ghost layer of its -y neighbor
-    pdata->setPosition(9, make_scalar3(-0.5,-0.96,-0.5));
+    pdata->setPosition(9, make_scalar3(-0.5,-0.96,-0.5),false);
     // place particle 10 in the same box as particle 0 and in the ghost layer of its +y neighbor and -z neighbor
-    pdata->setPosition(10, make_scalar3(-0.5, -0.01,-0.97));
+    pdata->setPosition(10, make_scalar3(-0.5, -0.01,-0.97),false);
     // place particle 11 in the same box as particle 0 and in the ghost layer of its -x and -y neighbor
-    pdata->setPosition(11, make_scalar3(-0.97, -0.99,-0.5));
+    pdata->setPosition(11, make_scalar3(-0.97, -0.99,-0.5),false);
     // place particle 12 in the same box as particle 0 and in the ghost layer of its -x , -y and -z neighbor
-    pdata->setPosition(12, make_scalar3(-0.997, -0.998,-0.999));
+    pdata->setPosition(12, make_scalar3(-0.997, -0.998,-0.999),false);
     // place particle 13 in the same box as particle 0 and in the ghost layer of its -x neighbor and +y neighbor
-    pdata->setPosition(13, make_scalar3( -0.96, -0.005, -0.50));
+    pdata->setPosition(13, make_scalar3( -0.96, -0.005, -0.50),false);
     // place particle 14 in the same box as particle 7 and in the ghost layer of its +x neighbor and its +y neighbor
-    pdata->setPosition(14, make_scalar3( 0.901, .98, 0.50));
+    pdata->setPosition(14, make_scalar3( 0.901, .98, 0.50),false);
     // place particle 15 in the same box as particle 7 and in the ghost layer of its +x neighbor, of its +y neighbor, and of its +z neighbor
-    pdata->setPosition(15, make_scalar3( 0.99, 0.999, 0.9999));
+    pdata->setPosition(15, make_scalar3( 0.99, 0.999, 0.9999),false);
 
     // migrate atoms in their respective boxes
     comm->migrateParticles();
@@ -1077,14 +1080,61 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
    // even outside the ghost layers or boxes they were in originally
    //(but they should not move further than half the skin length),
 
-   pdata->setPosition(8, make_scalar3(-0.12,-1.05,-0.6));
-   pdata->setPosition(9, make_scalar3(-0.03,-1.09,-0.3));
-   pdata->setPosition(10, make_scalar3(-0.11,  0.01,-1.02));
-   pdata->setPosition(11, make_scalar3(-0.81, -0.92,-0.2));
-   pdata->setPosition(12, make_scalar3(-1.02, -1.05,-1.100));
-   pdata->setPosition(13, make_scalar3(-0.89,  0.005, -0.99));
-   pdata->setPosition(14, make_scalar3( 1.123, 1.121, 0.9));
-   pdata->setPosition(15, make_scalar3( 0.85, 1.001, 1.012));
+        {
+        unsigned int rtag;
+        ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        switch (exec_conf->getRank())
+            {
+            case 0:
+                rtag = h_rtag.data[8];
+                h_pos.data[rtag].x = -0.12;
+                h_pos.data[rtag].y = -1.05;
+                h_pos.data[rtag].z = -0.6;
+
+                rtag = h_rtag.data[9];
+                h_pos.data[rtag].x = -0.03;
+                h_pos.data[rtag].y = -1.09;
+                h_pos.data[rtag].z = -0.3;
+
+                rtag = h_rtag.data[10];
+                h_pos.data[rtag].x = -0.11;
+                h_pos.data[rtag].y = 0.01;
+                h_pos.data[rtag].z = -1.02;
+
+                rtag = h_rtag.data[11];
+                h_pos.data[rtag].x = -0.81;
+                h_pos.data[rtag].y = -0.92;
+                h_pos.data[rtag].z = -0.2;
+
+                rtag = h_rtag.data[12];
+                h_pos.data[rtag].x = -1.02;
+                h_pos.data[rtag].y = -1.05;
+                h_pos.data[rtag].z = -1.100;
+
+                rtag = h_rtag.data[13];
+                h_pos.data[rtag].x = -0.89;
+                h_pos.data[rtag].y = 0.005;
+                h_pos.data[rtag].z = -0.99;
+
+                break;
+            case 7:
+                rtag = h_rtag.data[14];
+                h_pos.data[rtag].x = 1.123;
+                h_pos.data[rtag].y = 1.121;
+                h_pos.data[rtag].z = 0.9;
+
+                rtag = h_rtag.data[15];
+                h_pos.data[rtag].x = 0.85;
+                h_pos.data[rtag].y = 1.001;
+                h_pos.data[rtag].z = 1.012;
+
+                break;
+            default:
+                break;
+            }
+        }
 
    // update ghosts
    comm->updateGhosts(0);
@@ -1324,36 +1374,36 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     // Set initial atom positions
     // place one particle slightly away from the middle of every box (in direction towards
     // the center of the global box - bonds cannot extend over more than half the box length)
-    pdata->setPosition(0, make_scalar3(-0.4,-0.4,-0.4));
-    pdata->setPosition(1, make_scalar3( 0.4,-0.4,-0.4));
-    pdata->setPosition(2, make_scalar3(-0.4, 0.4,-0.4));
-    pdata->setPosition(3, make_scalar3( 0.4, 0.4,-0.4));
-    pdata->setPosition(4, make_scalar3(-0.4,-0.4, 0.4));
-    pdata->setPosition(5, make_scalar3( 0.4,-0.4, 0.4));
-    pdata->setPosition(6, make_scalar3(-0.4, 0.4, 0.4));
-    pdata->setPosition(7, make_scalar3( 0.4, 0.4, 0.4));
+    pdata->setPosition(0, make_scalar3(-0.4,-0.4,-0.4),false);
+    pdata->setPosition(1, make_scalar3( 0.4,-0.4,-0.4),false);
+    pdata->setPosition(2, make_scalar3(-0.4, 0.4,-0.4),false);
+    pdata->setPosition(3, make_scalar3( 0.4, 0.4,-0.4),false);
+    pdata->setPosition(4, make_scalar3(-0.4,-0.4, 0.4),false);
+    pdata->setPosition(5, make_scalar3( 0.4,-0.4, 0.4),false);
+    pdata->setPosition(6, make_scalar3(-0.4, 0.4, 0.4),false);
+    pdata->setPosition(7, make_scalar3( 0.4, 0.4, 0.4),false);
 
     // now bond these particles together, forming a cube
 
     boost::shared_ptr<BondData> bdata(sysdef->getBondData());
 
-    bdata->addBond(Bond(0,0,1));  // bond 0
-    bdata->addBond(Bond(0,0,2));  // bond 1
-    bdata->addBond(Bond(0,0,4));  // bond 2
-    bdata->addBond(Bond(0,1,3));  // bond 3
-    bdata->addBond(Bond(0,1,5));  // bond 4
-    bdata->addBond(Bond(0,2,3));  // bond 5
-    bdata->addBond(Bond(0,2,6));  // bond 6
-    bdata->addBond(Bond(0,3,7));  // bond 7
-    bdata->addBond(Bond(0,4,5));  // bond 8
-    bdata->addBond(Bond(0,4,6));  // bond 9
-    bdata->addBond(Bond(0,5,7));  // bond 10
-    bdata->addBond(Bond(0,6,7));  // bond 11
+    bdata->addBondedGroup(Bond(0,0,1));  // bond 0
+    bdata->addBondedGroup(Bond(0,0,2));  // bond 1
+    bdata->addBondedGroup(Bond(0,0,4));  // bond 2
+    bdata->addBondedGroup(Bond(0,1,3));  // bond 3
+    bdata->addBondedGroup(Bond(0,1,5));  // bond 4
+    bdata->addBondedGroup(Bond(0,2,3));  // bond 5
+    bdata->addBondedGroup(Bond(0,2,6));  // bond 6
+    bdata->addBondedGroup(Bond(0,3,7));  // bond 7
+    bdata->addBondedGroup(Bond(0,4,5));  // bond 8
+    bdata->addBondedGroup(Bond(0,4,6));  // bond 9
+    bdata->addBondedGroup(Bond(0,5,7));  // bond 10
+    bdata->addBondedGroup(Bond(0,6,7));  // bond 11
 
     SnapshotParticleData snap(8);
     pdata->takeSnapshot(snap);
 
-    SnapshotBondData bdata_snap(12);
+    BondData::Snapshot bdata_snap(12);
     bdata->takeSnapshot(bdata_snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
@@ -1379,10 +1429,10 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
 
     // check global number of bonds
-    BOOST_CHECK_EQUAL(bdata->getNumBondsGlobal(), 12);
+    BOOST_CHECK_EQUAL(bdata->getNGlobal(), 12);
 
     // every domain should have three bonds
-    BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+    BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
     // exchange ghost particles
     comm->migrateParticles();
@@ -1390,10 +1440,10 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     // check that nothing has changed
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
-    BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+    BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
     // now move particle 0 to box 1
-    pdata->setPosition(0, make_scalar3(.3, -0.4, -0.4));
+    pdata->setPosition(0, make_scalar3(.3, -0.4, -0.4),false);
 
     // migrate particles
     comm->migrateParticles();
@@ -1403,312 +1453,312 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
         case 0:
             // box 0 should have zero particles and 0 bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 0);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 0);
+            BOOST_CHECK_EQUAL(bdata->getN(), 0);
 
                 {
-                // we should own no bonds
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                // we should not own any bonds
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
 
             break;
         case 1:
             // box 1 should have two particles and 5 bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 2);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 5);
+            BOOST_CHECK_EQUAL(bdata->getN(), 5);
 
                 {
                 // we should own bonds 0-4
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[1] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[2] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[3] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[4] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
-                ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
+                ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[0]],0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[0]].x,0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[0]].y,1);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[0]].tag[0],0);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[0]].tag[1],1);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[1]],1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].x,0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].y,2);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[2]],2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].x,0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].y,4);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[3]],3);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].x,1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].y,3);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[4]],4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].x,1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].y,5);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
                 }
             break;
         case 2:
             // box 2 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 1,5,6
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[6] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[6] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
-                ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
+                ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[1]],1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].x,0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].y,2);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[5]],5);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].x,2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].y,3);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[6]],6);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].x,2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].y,6);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
                 }
             break;
         case 3:
             // box 3 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 3,5,7
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
-                ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
+                ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[3]],3);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].x,1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].y,3);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[5]],5);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].x,2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].y,3);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[7]],7);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].x,3);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].y,7);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
                 }
             break;
          case 4:
             // box 4 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 2,8,9
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[9] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[9] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
-                ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
+                ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[2]],2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].x,0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].y,4);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[8]],8);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].x,4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].y,5);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[9]],9);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].x,4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].y,6);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
                 }
             break;
          case 5:
             // box 5 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 4,8,10
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
-                ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
+                ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[4]],4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].x,1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].y,5);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[8]],8);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].x,4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].y,5);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[10]],10);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].x,5);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].y,7);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
                 }
             break;
         case 6:
             // box 6 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 6,9,11
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[11] < bdata->getN());
 
-                ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
+                ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[6]],6);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].x,2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].y,6);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[9]],9);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].x,4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].y,6);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[11]],11);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].x,6);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].y,7);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
                 }
             break;
         case 7:
             // box 7 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 7,10,11
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[11] < bdata->getNumBonds());
+                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[7] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_REQUIRE(h_rtag.data[10] < bdata->getN());
+                BOOST_REQUIRE(h_rtag.data[11] < bdata->getN());
 
-                ArrayHandle<uint2> h_bonds(bdata->getBondTable(), access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_tag(bdata->getBondTags(), access_location::host, access_mode::read);
+                ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[7]],7);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].x,3);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].y,7);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[10]],10);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].x,5);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].y,7);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
 
                 BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[11]],11);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].x,6);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].y,7);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
+                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
                 }
             break;
         }
 
     // move particle back
-    pdata->setPosition(0, make_scalar3(-.4, -0.4, -0.4));
+    pdata->setPosition(0, make_scalar3(-.4, -0.4, -0.4),false);
 
     comm->migrateParticles();
 
     // check that old state has been restored
     BOOST_CHECK_EQUAL(pdata->getN(), 1);
-    BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+    BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
     // swap ptl 0 and 1
-    pdata->setPosition(0, make_scalar3(.4, -0.4, -0.4));
-    pdata->setPosition(1, make_scalar3(-.4, -0.4, -0.4));
+    pdata->setPosition(0, make_scalar3(.4, -0.4, -0.4),false);
+    pdata->setPosition(1, make_scalar3(-.4, -0.4, -0.4),false);
 
     comm->migrateParticles();
 
@@ -1716,48 +1766,48 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
         {
         case 0:
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own three bonds
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[0] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[4] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
 
             break;
         case 1:
             // box 1 should own three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 0-2
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[0] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[1] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[2] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 }
             break;
@@ -1767,8 +1817,8 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
         }
 
     // swap ptl 0 and 6
-    pdata->setPosition(0, make_scalar3(-.4, 0.4, 0.4));
-    pdata->setPosition(6, make_scalar3(.4, -0.4, -0.4));
+    pdata->setPosition(0, make_scalar3(-.4, 0.4, 0.4),false);
+    pdata->setPosition(6, make_scalar3(.4, -0.4, -0.4),false);
 
     comm->migrateParticles();
 
@@ -1776,162 +1826,162 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
         {
         case 0:
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should have three bonds
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[0] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[4] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
 
         case 1:
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 6,9,11
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] < bdata->getN());
                 }
             break;
         case 2:
             // box 2 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 1,5,6
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[6] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[6] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
         case 3:
             // box 3 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 3,5,7
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
          case 4:
             // box 4 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 2,8,9
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[9] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[9] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
          case 5:
             // box 5 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 4,8,10
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
         case 6:
             // box 6 should own three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 0-2
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[1] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[2] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == BOND_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[0] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[1] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[2] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 }
             break;
@@ -1939,24 +1989,24 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
         case 7:
             // box 7 should have three bonds
             BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getNumBonds(), 3);
+            BOOST_CHECK_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 7,10,11
-                ArrayHandle<unsigned int> h_rtag(bdata->getBondRTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[8] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == BOND_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] < bdata->getNumBonds());
-                BOOST_CHECK(h_rtag.data[11] < bdata->getNumBonds());
+                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[7] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                BOOST_CHECK(h_rtag.data[10] < bdata->getN());
+                BOOST_CHECK(h_rtag.data[11] < bdata->getN());
 
                 }
             break;
@@ -1990,41 +2040,46 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     // Set initial atom positions
     // place one particle slightly away from the middle of every box (in direction towards
     // the center of the global box - bonds cannot extend over more than half the box length)
-    pdata->setPosition(0, make_scalar3(-0.4,-0.4,-0.4));
-    pdata->setPosition(1, make_scalar3( 0.4,-0.4,-0.4));
-    pdata->setPosition(2, make_scalar3(-0.4, 0.4,-0.4));
-    pdata->setPosition(3, make_scalar3( 0.4, 0.4,-0.4));
-    pdata->setPosition(4, make_scalar3(-0.4,-0.4, 0.4));
-    pdata->setPosition(5, make_scalar3( 0.4,-0.4, 0.4));
-    pdata->setPosition(6, make_scalar3(-0.4, 0.4, 0.4));
-    pdata->setPosition(7, make_scalar3( 0.4, 0.4, 0.4));
+    pdata->setPosition(0, make_scalar3(-0.4,-0.4,-0.4),false);
+    pdata->setPosition(1, make_scalar3( 0.4,-0.4,-0.4),false);
+    pdata->setPosition(2, make_scalar3(-0.4, 0.4,-0.4),false);
+    pdata->setPosition(3, make_scalar3( 0.4, 0.4,-0.4),false);
+    pdata->setPosition(4, make_scalar3(-0.4,-0.4, 0.4),false);
+    pdata->setPosition(5, make_scalar3( 0.4,-0.4, 0.4),false);
+    pdata->setPosition(6, make_scalar3(-0.4, 0.4, 0.4),false);
+    pdata->setPosition(7, make_scalar3( 0.4, 0.4, 0.4),false);
 
     // now bond these particles together, forming a cube
 
     boost::shared_ptr<BondData> bdata(sysdef->getBondData());
 
-    bdata->addBond(Bond(0,0,1));  // bond type, tag a, tag b
-    bdata->addBond(Bond(0,0,2));
-    bdata->addBond(Bond(0,0,4));
-    bdata->addBond(Bond(0,1,3));
-    bdata->addBond(Bond(0,1,5));
-    bdata->addBond(Bond(0,2,3));
-    bdata->addBond(Bond(0,2,6));
-    bdata->addBond(Bond(0,3,7));
-    bdata->addBond(Bond(0,4,5));
-    bdata->addBond(Bond(0,4,6));
-    bdata->addBond(Bond(0,5,7));
-    bdata->addBond(Bond(0,6,7));
+    bdata->addBondedGroup(Bond(0,0,1));  // bond type, tag a, tag b
+    bdata->addBondedGroup(Bond(0,0,2));
+    bdata->addBondedGroup(Bond(0,0,4));
+    bdata->addBondedGroup(Bond(0,1,3));
+    bdata->addBondedGroup(Bond(0,1,5));
+    bdata->addBondedGroup(Bond(0,2,3));
+    bdata->addBondedGroup(Bond(0,2,6));
+    bdata->addBondedGroup(Bond(0,3,7));
+    bdata->addBondedGroup(Bond(0,4,5));
+    bdata->addBondedGroup(Bond(0,4,6));
+    bdata->addBondedGroup(Bond(0,5,7));
+    bdata->addBondedGroup(Bond(0,6,7));
 
     SnapshotParticleData snap(8);
     pdata->takeSnapshot(snap);
 
-    SnapshotBondData snap_bdata(12);
+    BondData::Snapshot snap_bdata(12);
     bdata->takeSnapshot(snap_bdata);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+
+    // communicate tags, necessary for gpu bond table
+    CommFlags flags(0);
+    flags[comm_flag::tag] = 1;
+    comm->setFlags(flags);
 
     // width of ghost layer
     Scalar ghost_layer_width = Scalar(0.1);
@@ -2040,27 +2095,25 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     // we should have zero ghost particles
     BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
 
+    // migrate particles (to initialize bond rank table)
+    comm->migrateParticles();
+
     // exchange ghost particles
     comm->exchangeGhosts();
 
-    // rebuild bond list
-    pdata->notifyParticleSort();
-
         {
-        bdata->getGPUBondList();
-
         // all bonds should be complete, every processor should have three bonds
-        ArrayHandle<uint2> h_gpu_bondlist(bdata->getGPUBondList(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_n_bonds(bdata->getNBondsArray(), access_location::host, access_mode::read);
+        ArrayHandle<BondData::members_t> h_gpu_bondlist(bdata->getGPUTable(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_n_bonds(bdata->getNGroupsArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
 
         BOOST_CHECK_EQUAL(h_n_bonds.data[0],3);
-        unsigned int pitch = bdata->getGPUBondList().getPitch();
+        unsigned int pitch = bdata->getGPUTableIndexer().getW();
 
         unsigned int sorted_tags[3];
-        sorted_tags[0] = h_tag.data[h_gpu_bondlist.data[0].x];
-        sorted_tags[1] = h_tag.data[h_gpu_bondlist.data[pitch].x];
-        sorted_tags[2] = h_tag.data[h_gpu_bondlist.data[2*pitch].x];
+        sorted_tags[0] = h_tag.data[h_gpu_bondlist.data[0].idx[0]];
+        sorted_tags[1] = h_tag.data[h_gpu_bondlist.data[pitch].idx[0]];
+        sorted_tags[2] = h_tag.data[h_gpu_bondlist.data[2*pitch].idx[0]];
 
         std::sort(sorted_tags, sorted_tags + 3);
 
@@ -2116,9 +2169,15 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
 
 bool migrate_request(unsigned int timestep)
     {
-    // every third step migrate particles etc. (we do not have a neighbor list in place,
-    // so we have to 'simulate' the particle displacement check)
-    return (timestep %3 == 0);
+    return true;
+    }
+
+CommFlags comm_flag_request(unsigned int timestep)
+    {
+    CommFlags flags(0);
+    flags[comm_flag::position] = 1;
+    flags[comm_flag::tag] = 1;
+    return flags;
     }
 
 void test_communicator_compare(communicator_creator comm_creator_1,
@@ -2128,9 +2187,9 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
     {
     if (exec_conf_1->getRank() == 0)
-        std::cout << "Begin random ghosts test" << std::endl;
+        std::cout << "Begin random ghost comparison test" << std::endl;
 
-    unsigned int n = 100000;
+    unsigned int n = 1000;
     // create a system with eight particles
     shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
                                                              BoxDim(2.0), // box dimensions
@@ -2153,10 +2212,10 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     Scalar3 lo = pdata_1->getBox().getLo();
-    Scalar3 hi = pdata_1->getBox().getHi();
     Scalar3 L = pdata_1->getBox().getL();
 
     SnapshotParticleData snap(n);
+    snap.type_mapping.push_back("A");
 
     srand(12345);
     for (unsigned int i = 0; i < n; ++i)
@@ -2210,12 +2269,15 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     // set constant velocities
     for (unsigned int tag= 0; tag < n; ++tag)
         {
-        pdata_1->setVelocity(tag, make_scalar3(0.1,0.2,0.3));
-        pdata_2->setVelocity(tag, make_scalar3(0.1,0.2,0.3));
+        pdata_1->setVelocity(tag, make_scalar3(0.01,0.02,0.03));
+        pdata_2->setVelocity(tag, make_scalar3(0.01,0.02,0.03));
         }
 
     comm_1->addMigrateRequest(bind(&migrate_request,_1));
     comm_2->addMigrateRequest(bind(&migrate_request,_1));
+
+    comm_1->addCommFlagsRequest(bind(&comm_flag_request, _1));
+    comm_2->addCommFlagsRequest(bind(&comm_flag_request, _1));
 
     nve_up_1->setCommunicator(comm_1);
     nve_up_2->setCommunicator(comm_2);
@@ -2223,10 +2285,10 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     nve_up_1->prepRun(0);
     nve_up_2->prepRun(0);
     exec_conf_1->msg->notice(1) << "Running 1000 steps..." << std::endl;
+    bool err = false;
     for (unsigned int step = 0; step < 1000; ++step)
         {
-        if (step % 50 == 0)
-            exec_conf_1->msg->notice(1) << "Step " << step << std::endl;
+        if (! (step % 100)) exec_conf_1->msg->notice(1) << "Step " << step << std::endl;
 
         // both communicators should replicate the same number of ghosts
         BOOST_CHECK_EQUAL(pdata_1->getNGhosts(), pdata_2->getNGhosts());
@@ -2246,23 +2308,20 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                 if (h_rtag_2.data[i] >= pdata_2->getN() && (h_rtag_2.data[i] < (pdata_2->getN() + pdata_2->getNGhosts())))
                     has_ghost_2 = true;
 
-                // ghost has to either be present in both systems or not present
-                BOOST_CHECK((! has_ghost_1 && !has_ghost_2) || (has_ghost_1 && has_ghost_2));
+                //  particle is either in both systems' ghost layers or in none
+                BOOST_REQUIRE((has_ghost_1 && has_ghost_2) || (!has_ghost_1 && !has_ghost_2));
 
                 if (has_ghost_1 && has_ghost_2)
                     {
-                    #if 0
-                    exec_conf_1->msg->notice(1) << "Tag " << i << " x1: " << h_pos_1.data[h_rtag_1.data[i]].x << " x2: " << h_pos_2.data[h_rtag_2.data[i]].x << std::endl;
-                    exec_conf_1->msg->notice(1) << "Tag " << i << " y1: " << h_pos_1.data[h_rtag_1.data[i]].y << " y2: " << h_pos_2.data[h_rtag_2.data[i]].y << std::endl;
-                    exec_conf_1->msg->notice(1) << "Tag " << i << " z1: " << h_pos_1.data[h_rtag_1.data[i]].z << " z2: " << h_pos_2.data[h_rtag_2.data[i]].z << std::endl;
-                    #endif
-
-                    BOOST_CHECK_EQUAL(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x);
-                    BOOST_CHECK_EQUAL(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y);
-                    BOOST_CHECK_EQUAL(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z);
+                    Scalar tol = .1;
+                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol);
+                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol);
+                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol);
                     }
                 }
             }
+       // error out on first time step where test fails
+       BOOST_REQUIRE(!err);
 
        nve_up_1->update(step);
        nve_up_2->update(step);
@@ -2291,22 +2350,21 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
                                                              exec_conf));
 
 
-
-   boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
-    pdata->setPosition(0, make_scalar3(-0.5,-0.5,-0.5));
-    pdata->setPosition(1, make_scalar3( 0.5,-0.5,-0.5));
-    pdata->setPosition(2, make_scalar3(-0.5, 0.5,-0.5));
-    pdata->setPosition(3, make_scalar3( 0.5, 0.5,-0.5));
-    pdata->setPosition(4, make_scalar3(-0.5,-0.5, 0.5));
-    pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5));
-    pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5));
-    pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5));
+    pdata->setPosition(0, make_scalar3(-0.5,-0.5,-0.5),false);
+    pdata->setPosition(1, make_scalar3( 0.5,-0.5,-0.5),false);
+    pdata->setPosition(2, make_scalar3(-0.5, 0.5,-0.5),false);
+    pdata->setPosition(3, make_scalar3( 0.5, 0.5,-0.5),false);
+    pdata->setPosition(4, make_scalar3(-0.5,-0.5, 0.5),false);
+    pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5),false);
+    pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5),false);
+    pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5),false);
 
     // particle 8 in the ghost layer of its +x neighbor
-    pdata->setPosition(8, make_scalar3( -0.05, -0.5, -0.5));
+    pdata->setPosition(8, make_scalar3( -0.05, -0.5, -0.5),false);
 
     // set other properties of ptl 8
     pdata->setVelocity(8, make_scalar3(1.0,2.0,3.0));
@@ -2370,6 +2428,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
     flags[comm_flag::orientation] = 1;
     flags[comm_flag::charge] = 1;
     flags[comm_flag::diameter] = 1;
+    flags[comm_flag::tag] = 1;
     comm->setFlags(flags);
 
     // reset numbers of ghosts
@@ -2428,7 +2487,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
         }
 
    // set some new fields for the ghost particles
-   pdata->setPosition(8, make_scalar3(-0.13,-0.5,-0.5));
+   pdata->setPosition(8, make_scalar3(-0.13,-0.5,-0.5),false);
    pdata->setVelocity(8, make_scalar3(-3.0,-2.0,-1.0));
    pdata->setMass(8, 0.1);
    pdata->setOrientation(8,make_scalar4(22.0,23.0,24.0,25.0));
@@ -2503,37 +2562,37 @@ shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> s
 //! Tests particle distribution
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
     {
-    test_domain_decomposition(exec_conf_cpu);
+    test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_migrate(communicator_creator_base, exec_conf_cpu);
+    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_ghosts(communicator_creator_base, exec_conf_cpu);
+    test_communicator_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_bonded_ghosts(communicator_creator_base, exec_conf_cpu);
+    test_communicator_bonded_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_bond_exchange(communicator_creator_base, exec_conf_cpu);
+    test_communicator_bond_exchange(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_ghost_fields(communicator_creator_base, exec_conf_cpu);
+    test_communicator_ghost_fields(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 
@@ -2542,47 +2601,44 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
 //! Tests particle distribution on GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
     {
-    test_domain_decomposition(exec_conf_gpu);
+    test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_migrate(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_ghosts(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_ghosts(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_bonded_ghosts(communicator_creator_gpu,  boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-
 BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_bond_exchange(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_bond_exchange(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_ghost_fields(communicator_creator_gpu, exec_conf_gpu);
+    test_communicator_ghost_fields(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-#if 0
 BOOST_AUTO_TEST_CASE (communicator_compare_test )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     communicator_creator communicator_creator_cpu = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_cpu, exec_conf_gpu);
+    test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif
 #endif
 
 #endif //ENABLE_MPI

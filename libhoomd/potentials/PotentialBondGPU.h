@@ -122,7 +122,7 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<Syst
         }
 
      // allocate and zero device memory
-    GPUArray<typename evaluator::param_type> params(this->m_bond_data->getNBondTypes(), this->exec_conf);
+    GPUArray<typename evaluator::param_type> params(this->m_bond_data->getNTypes(), this->exec_conf);
     this->m_params.swap(params);
 
      // allocate flags storage on the GPU
@@ -156,10 +156,11 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
 
         {
-        const GPUArray<uint2>& gpu_bond_list = this->m_bond_data->getGPUBondList();
+        const GPUArray<typename BondData::members_t>& gpu_bond_list = this->m_bond_data->getGPUTable();
+        const Index2D& gpu_table_indexer = this->m_bond_data->getGPUTableIndexer();
 
-        ArrayHandle<uint2> d_gpu_bondlist(gpu_bond_list, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(),
+        ArrayHandle<typename BondData::members_t> d_gpu_bondlist(gpu_bond_list, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNGroupsArray(),
                                                  access_location::device, access_mode::read);
 
         // access the flags array for overwriting
@@ -169,15 +170,15 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                              d_virial.data,
                              this->m_virial.getPitch(),
                              this->m_pdata->getN(),
-                             this->m_pdata->getNGhosts(),
+                             this->m_pdata->getMaxN(),
                              d_pos.data,
                              d_charge.data,
                              d_diameter.data,
                              box,
                              d_gpu_bondlist.data,
-                             gpu_bond_list.getPitch(),
+                             gpu_table_indexer,
                              d_gpu_n_bonds.data,
-                             this->m_bond_data->getNBondTypes(),
+                             this->m_bond_data->getNTypes(),
                              m_block_size),
                  d_params.data,
                  d_flags.data);

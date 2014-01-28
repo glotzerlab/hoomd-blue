@@ -73,14 +73,18 @@ using namespace boost::python;
 
 #include "ParticleData.h"
 #include "Profiler.h"
-#include "AngleData.h"
-#include "DihedralData.h"
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
 
+#ifdef ENABLE_CUDA
+#include "CachedAllocator.h"
+#endif
+
 #include <boost/bind.hpp>
+#include <boost/iterator/zip_iterator.hpp>
+#include <boost/iterator/transform_iterator.hpp>
 
 using namespace boost::signals2;
 using namespace boost;
@@ -159,6 +163,14 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
+    #endif
     }
 
 /*! Loads particle data from the snapshot into the internal arrays.
@@ -212,6 +224,14 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
+    #endif
     }
 
 
@@ -234,6 +254,9 @@ const BoxDim & ParticleData::getBox() const
 */
 void ParticleData::setGlobalBox(const BoxDim& box)
     {
+    assert(box.getPeriodic().x);
+    assert(box.getPeriodic().y);
+    assert(box.getPeriodic().z);
     m_global_box = box;
 
 #ifdef ENABLE_MPI
@@ -327,6 +350,17 @@ void ParticleData::notifyGhostParticleNumberChange()
     m_ghost_particle_num_signal();
     }
 
+#ifdef ENABLE_MPI
+/*! \param func Function to be called when a single particle moves between domains
+    \return Connection to manage the signal
+ */
+boost::signals2::connection ParticleData::connectSingleParticleMove(
+    const boost::function<void(unsigned int, unsigned int, unsigned int)> &func)
+    {
+    return m_ptl_move_signal.connect(func);
+    }
+#endif
+
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
     \note Throws an exception if the type name is not found
@@ -365,7 +399,7 @@ std::string ParticleData::getNameByType(unsigned int type) const
 
 /*! \param N Number of particles to allocate memory for
     \pre No memory is allocated and the per-particle GPUArrays are unitialized
-    \post All per-perticle GPUArrays are allocated
+    \post All per-particle GPUArrays are allocated
 */
 void ParticleData::allocate(unsigned int N)
     {
@@ -419,11 +453,81 @@ void ParticleData::allocate(unsigned int N)
     m_net_torque.swap(net_torque);
     GPUArray< Scalar4 > orientation(N, m_exec_conf);
     m_orientation.swap(orientation);
+
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        GPUArray< unsigned int > comm_flags(N, m_exec_conf);
+        m_comm_flags.swap(comm_flags);
+        }
+    #endif
+
     m_inertia_tensor.resize(N);
+
+    // allocate alternate particle data arrays (for swapping in-out)
+    allocateAlternateArrays(N);
 
     // notify observers
     m_max_particle_num_signal();
     }
+
+/*! \param N Number of particles to allocate memory for
+    \pre No memory is allocated and the alternate per-particle GPUArrays are unitialized
+    \post All alternate per-particle GPUArrays are allocated
+*/
+void ParticleData::allocateAlternateArrays(unsigned int N)
+    {
+    assert(N>0);
+
+    // positions
+    GPUArray< Scalar4 > pos_alt(N, m_exec_conf);
+    m_pos_alt.swap(pos_alt);
+
+    // velocities
+    GPUArray< Scalar4 > vel_alt(N, m_exec_conf);
+    m_vel_alt.swap(vel_alt);
+
+    // accelerations
+    GPUArray< Scalar3 > accel_alt(N, m_exec_conf);
+    m_accel_alt.swap(accel_alt);
+
+    // charge
+    GPUArray< Scalar > charge_alt(N, m_exec_conf);
+    m_charge_alt.swap(charge_alt);
+
+    // diameter
+    GPUArray< Scalar > diameter_alt(N, m_exec_conf);
+    m_diameter_alt.swap(diameter_alt);
+
+    // image
+    GPUArray< int3 > image_alt(N, m_exec_conf);
+    m_image_alt.swap(image_alt);
+
+    // global tag
+    GPUArray< unsigned int> tag_alt(N, m_exec_conf);
+    m_tag_alt.swap(tag_alt);
+
+    // body ID
+    GPUArray< unsigned int > body_alt(N, m_exec_conf);
+    m_body_alt.swap(body_alt);
+
+    // orientation
+    GPUArray< Scalar4 > orientation_alt(N, m_exec_conf);
+    m_orientation_alt.swap(orientation_alt);
+
+    // Net force
+    GPUArray< Scalar4 > net_force_alt(N, m_exec_conf);
+    m_net_force_alt.swap(net_force_alt);
+
+    // Net virial
+    GPUArray< Scalar > net_virial_alt(N,6, m_exec_conf);
+    m_net_virial_alt.swap(net_virial_alt);
+
+    // Net torque
+    GPUArray< Scalar4 > net_torque_alt(N, m_exec_conf);
+    m_net_torque_alt.swap(net_torque_alt);
+    }
+
 
 //! Set global number of particles
 /*! \param nglobal Global number of particles
@@ -456,6 +560,25 @@ void ParticleData::setNGlobal(unsigned int nglobal)
 
     }
 
+/*! \param new_nparticles New particle number
+ */
+void ParticleData::resize(unsigned int new_nparticles)
+    {
+    // resize pdata arrays as necessary
+    unsigned int max_nparticles = m_max_nparticles;
+    if (new_nparticles > max_nparticles)
+        {
+        // use amortized array resizing
+        while (new_nparticles > max_nparticles)
+            max_nparticles = ((unsigned int) (((float) max_nparticles) * m_resize_factor)) + 1 ;
+
+        // reallocate particle data arrays
+        reallocate(max_nparticles);
+        }
+
+    m_nparticles = new_nparticles;
+    }
+
 /*! \param max_n new maximum size of particle data arrays (can be greater or smaller than the current maxium size)
  *  To inform classes that allocate arrays for per-particle information of the change of the particle data size,
  *  this method issues a m_max_particle_num_signal().
@@ -465,7 +588,8 @@ void ParticleData::setNGlobal(unsigned int nglobal)
  */
 void ParticleData::reallocate(unsigned int max_n)
     {
-
+    m_exec_conf->msg->notice(7) << "Resizing particle data arrays "
+        << m_max_nparticles << " -> " << max_n << " ptls" << std::endl;
     m_max_nparticles = max_n;
 
     m_pos.resize(max_n);
@@ -483,12 +607,32 @@ void ParticleData::reallocate(unsigned int max_n)
     m_orientation.resize(max_n);
     m_inertia_tensor.resize(max_n);
 
+    #ifdef ENABLE_MPI
+    if (m_decomposition) m_comm_flags.resize(max_n);
+    #endif
+
+    if (! m_pos_alt.isNull())
+        {
+        // reallocate alternate arrays
+        m_pos_alt.resize(max_n);
+        m_vel_alt.resize(max_n);
+        m_accel_alt.resize(max_n);
+        m_charge_alt.resize(max_n);
+        m_diameter_alt.resize(max_n);
+        m_image_alt.resize(max_n);
+        m_tag_alt.resize(max_n);
+        m_body_alt.resize(max_n);
+        m_orientation_alt.resize(max_n);
+        m_net_force_alt.resize(max_n);
+        m_net_torque_alt.resize(max_n);
+        m_net_virial_alt.resize(max_n, 6);
+        }
+
     // notify observers
     m_max_particle_num_signal();
     }
 
 /*! \return true If and only if all particles are in the simulation box
-    \note This function is only called in debug builds
 */
 bool ParticleData::inBox()
     {
@@ -536,6 +680,8 @@ bool ParticleData::inBox()
  */
 void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
+    m_exec_conf->msg->notice(4) << "ParticleData: initializing from snapshot" << std::endl;
+
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
         {
@@ -593,42 +739,72 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 throw std::runtime_error("Error initializing ParticleData");
                 }
 
-            Scalar3 scale = m_global_box.getL() / m_box.getL();
             const Index3D& di = m_decomposition->getDomainIndexer();
+            unsigned int n_ranks = m_exec_conf->getNRanks();
+            ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
+
+            BoxDim global_box = m_global_box;
 
             // loop over particles in snapshot, place them into domains
             for (std::vector<Scalar3>::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
                 {
-                // first move possible outliers into the box
-                Scalar3 pos = *it;
-                int3 image = snapshot.image[it-snapshot.pos.begin()];
-
-                m_global_box.wrap(pos,image);
-
                 // determine domain the particle is placed into
-                Scalar3 f = m_global_box.makeFraction(pos,make_scalar3(0.0,0.0,0.0));
-                int i= (unsigned int) (f.x * scale.x);
-                int j= (unsigned int) (f.y * scale.y);
-                int k= (unsigned int) (f.z * scale.z);
+                Scalar3 pos = *it;
+                Scalar3 f = m_global_box.makeFraction(pos);
+                int i= f.x * ((Scalar)di.getW());
+                int j= f.y * ((Scalar)di.getH());
+                int k= f.z * ((Scalar)di.getD());
 
-                // treat particles lying exactly on the boundary
+                // wrap particles that are exactly on a boundary
+                // we only need to wrap in the negative direction, since
+                // processor ids are rounded toward zero
+                char3 flags = make_char3(0,0,0);
                 if (i == (int) di.getW())
-                    i--;
+                    {
+                    i = 0;
+                    flags.x = 1;
+                    }
 
                 if (j == (int) di.getH())
-                    j--;
+                    {
+                    j = 0;
+                    flags.y = 1;
+                    }
 
                 if (k == (int) di.getD())
-                    k--;
+                    {
+                    k = 0;
+                    flags.z = 1;
+                    }
 
-                unsigned int rank = di(i,j,k);
+                int3 img = snapshot.image[tag];
 
-                assert(rank <= m_exec_conf->getNRanks());
+                // only wrap if the particles is on one of the boundaries
+                uchar3 periodic = make_uchar3(flags.x,flags.y,flags.z);
+                global_box.setPeriodic(periodic);
+                global_box.wrap(pos, img, flags);
 
-                unsigned int tag = it - snapshot.pos.begin() ;
+                unsigned int rank = h_cart_ranks.data[di(i,j,k)];
+                unsigned int tag = it - snapshot.pos.begin();
+
+                if (rank >= n_ranks)
+                    {
+                    m_exec_conf->msg->error() << "init.*: Particle " << tag << " out of bounds." << std::endl;
+                    m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
+                    m_exec_conf->msg->error() << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
+                    m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
+                    m_exec_conf->msg->error() << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
+                    Scalar3 lo = m_global_box.getLo();
+                    Scalar3 hi = m_global_box.getHi();
+                    m_exec_conf->msg->error() << "Global box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
+                    m_exec_conf->msg->error() << "           hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+
+                    throw std::runtime_error("Error initializing from snapshot.");
+                    }
+
                 // fill up per-processor data structures
                 pos_proc[rank].push_back(pos);
-                image_proc[rank].push_back(image);
+                image_proc[rank].push_back(img);
                 vel_proc[rank].push_back(snapshot.vel[tag]);
                 accel_proc[rank].push_back(snapshot.accel[tag]);
                 type_proc[rank].push_back(snapshot.type[tag]);
@@ -691,14 +867,12 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 h_rtag.data[tag] = NOT_LOCAL;
             }
 
-        // allocate particle data such that we can accomodate the particles (only if necessary)
-        if (m_max_nparticles < m_nparticles)
-            allocate(m_nparticles);
-
         // we have to allocate even if the number of particles on a processor
         // is zero, so that the arrays can be resized later
-        if (m_nparticles == 0 && m_max_nparticles == 0)
+        if (m_nparticles == 0)
             allocate(1);
+        else
+            allocate(m_nparticles);
 
         // Load particle data
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
@@ -710,6 +884,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
+        ArrayHandle< unsigned int > h_comm_flag(m_comm_flags, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
 
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
@@ -724,6 +899,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_rtag.data[tag[idx]] = idx;
             h_body.data[idx] = body[idx];
             h_orientation.data[idx] = orientation[idx];
+
+            h_comm_flag.data[idx] = 0; // initialize with zero
             }
 
         // reset ghost particle number
@@ -790,6 +967,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
+
+    m_exec_conf->msg->notice(4) << "ParticleData: finished initializing from snapshot" << std::endl;
     }
 
 //! take a particle data snapshot
@@ -799,6 +978,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 */
 void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     {
+    m_exec_conf->msg->notice(4) << "ParticleData: taking snapshot" << std::endl;
     // allocate memory in snapshot
     snapshot.resize(getNGlobal());
 
@@ -897,22 +1077,24 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
         if (rank == root)
             {
-            std::map<unsigned int, unsigned int>::iterator it;
 
+            unsigned int n_ranks = m_exec_conf->getNRanks();
+            assert(rtag_map_proc.size() == n_ranks);
+
+            // create single map of all particle ranks and indices
+            std::map<unsigned int, std::pair<unsigned int, unsigned int> > rank_rtag_map;
+            std::map<unsigned int, unsigned int>::iterator it;
+            for (unsigned int irank = 0; irank < n_ranks; ++irank)
+                for (it = rtag_map_proc[irank].begin(); it != rtag_map_proc[irank].end(); ++it)
+                    rank_rtag_map.insert(std::pair<unsigned int, std::pair<unsigned int, unsigned int> >(
+                        it->first, std::pair<unsigned int, unsigned int>(irank, it->second)));
+
+            // add particles to snapshot
+            std::map<unsigned int, std::pair<unsigned int, unsigned int> >::iterator rank_rtag_it;
             for (unsigned int tag = 0; tag < getNGlobal(); tag++)
                 {
-                bool found = false;
-                unsigned int rank;
-                for (rank = 0; rank < (unsigned int) size; rank ++)
-                    {
-                    it = rtag_map_proc[rank].find(tag);
-                    if (it != rtag_map_proc[rank].end())
-                        {
-                        found = true;
-                        break;
-                        }
-                    }
-                if (! found)
+                rank_rtag_it = rank_rtag_map.find(tag);
+                if (rank_rtag_it == rank_rtag_map.end())
                     {
                     m_exec_conf->msg->error()
                         << endl << "Could not find particle " << tag << " on any processor. "
@@ -921,7 +1103,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                     }
 
                 // rank contains the processor rank on which the particle was found
-                unsigned int idx = it->second;
+                std::pair<unsigned int, unsigned int> rank_idx = rank_rtag_it->second;
+                unsigned int rank = rank_idx.first;
+                unsigned int idx = rank_idx.second;
 
                 snapshot.pos[tag] = pos_proc[rank][idx];
                 snapshot.vel[tag] = vel_proc[rank][idx];
@@ -967,44 +1151,8 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         }
 
     snapshot.type_mapping = m_type_mapping;
-    }
 
-//! Remove particles from the local particle data
-/*! \param n number of particles to remove
- *
- * This method just decreases the number of particles in the system. The caller
- * has to make sure that the change is reflected in the particle data arrays (i.e. compacting
- * the particle data).
- */
-void ParticleData::removeParticles(const unsigned int n)
-    {
-    assert(n <= getN());
-    m_nparticles -= n;
-    }
-
-//! Add a number of particles to the local particle data
-/*! This function uses amortized array resizing of the particle data structures in the system
-    to accomodate the new partices.
-
-    The arrays are resized to the (rounded integer value) of the closes power of m_resize_factor
-
-    \param n number of particles to add
-    \post The maximum size of the particle data arrays (accessible via getMaxN()) is
-         increased to hold the new particles.
-*/
-void ParticleData::addParticles(const unsigned int n)
-    {
-    unsigned int max_nparticles = m_max_nparticles;
-    if (m_nparticles + n > max_nparticles)
-        {
-        while (m_nparticles + n > max_nparticles)
-            max_nparticles = ((unsigned int) (((float) max_nparticles) * m_resize_factor)) + 1 ;
-
-        // actually reallocate particle data arrays
-        reallocate(max_nparticles);
-        }
-
-    m_nparticles += n;
+    m_exec_conf->msg->notice(4) << "ParticleData: finished taking snapshot" << std::endl;
     }
 
 //! Add ghost particles at the end of the local particle data
@@ -1051,12 +1199,12 @@ unsigned int ParticleData::getOwnerRank(unsigned int tag) const
 
     if (n_found == 0)
         {
-        m_exec_conf->msg->error() << endl << "Could not find particle " << tag << " on any processor." << endl << endl;
+        m_exec_conf->msg->error() << "Could not find particle " << tag << " on any processor." << endl << endl;
         throw std::runtime_error("Error accessing particle data.");
         }
     else if (n_found > 1)
        {
-        m_exec_conf->msg->error() << endl << "Found particle " << tag << " on multiple processors." << endl << endl;
+        m_exec_conf->msg->error() << "Found particle " << tag << " on multiple processors." << endl << endl;
         throw std::runtime_error("Error accessing particle data.");
        }
 
@@ -1353,21 +1501,106 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
 }
 
 //! Set the current position of a particle
-void ParticleData::setPosition(unsigned int tag, const Scalar3& pos)
+/* \post In parallel simulations, the particle is moved to a new domain if necessary.
+ * \warning Do not call during a simulation (method can overwrite ghost particle data)
+ */
+void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     {
     unsigned int idx = getRTag(tag);
-    bool found = (idx < getN());
+    bool ptl_local = (idx < getN());
 
-#ifdef ENABLE_MPI
-    // make sure the particle is somewhere
-    if (m_decomposition)
-        getOwnerRank(tag);
-#endif
-    if (found)
+    #ifdef ENABLE_MPI
+    // get the owner rank
+    unsigned int owner_rank = 0;
+    if (m_decomposition) owner_rank = getOwnerRank(tag);
+    #endif
+
+    if (ptl_local)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
         h_pos.data[idx].x = pos.x; h_pos.data[idx].y = pos.y; h_pos.data[idx].z = pos.z;
         }
+
+    #ifdef ENABLE_MPI
+    if (m_decomposition && move)
+        {
+        /*
+         * migrate particle if necessary
+         */
+        unsigned my_rank = m_exec_conf->getRank();
+
+        assert(!ptl_local || owner_rank == my_rank);
+
+        // get rank where the particle should be according to new position
+        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, pos);
+
+        // should the particle migrate?
+        if (new_rank != owner_rank)
+            {
+            m_exec_conf->msg->notice(6) << "Moving particle " << tag << " from rank " << owner_rank << " to " << new_rank << std::endl;
+
+            if (ptl_local)
+                {
+                    {
+                    // mark for sending
+                    ArrayHandle<unsigned int> h_comm_flag(getCommFlags(), access_location::host, access_mode::readwrite);
+                    h_comm_flag.data[idx] = 1;
+                    }
+
+                std::vector<pdata_element> buf;
+
+                // retrieve particle data
+                std::vector<unsigned int> comm_flags; // not used here
+                removeParticles(buf,comm_flags);
+
+                assert(buf.size() >= 1);
+
+                // check for particle data consistency
+                if (buf.size() != 1)
+                    {
+                    m_exec_conf->msg->error() << "More than one (" << buf.size() << ") particle marked for sending." << endl << endl;
+                    throw std::runtime_error("Error moving particle.");
+                    }
+
+                MPI_Request req;
+                MPI_Status stat;
+
+                // send particle data to new domain
+                MPI_Isend(&buf.front(),
+                    sizeof(pdata_element),
+                    MPI_BYTE,
+                    new_rank,
+                    0,
+                    m_exec_conf->getMPICommunicator(),
+                    &req);
+                MPI_Waitall(1,&req,&stat);
+                }
+            else if (new_rank == my_rank)
+                {
+                std::vector<pdata_element> buf(1);
+
+                MPI_Request req;
+                MPI_Status stat;
+
+                // receive particle data
+                MPI_Irecv(&buf.front(),
+                    sizeof(pdata_element),
+                    MPI_BYTE,
+                    owner_rank,
+                    0,
+                    m_exec_conf->getMPICommunicator(),
+                    &req);
+                MPI_Waitall(1, &req, &stat);
+
+                // add particle back to local data
+                addParticles(buf);
+                }
+
+            // Notify observers
+            m_ptl_move_signal(tag, owner_rank, new_rank);
+            }
+        }
+    #endif // ENABLE_MPI
     }
 
 //! Set the current velocity of a particle
@@ -1562,6 +1795,7 @@ void export_ParticleData()
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
     .def("setGlobalBox", &ParticleData::setGlobalBox)
     .def("getN", &ParticleData::getN)
+    .def("getNGhosts", &ParticleData::getNGhosts)
     .def("getNGlobal", &ParticleData::getNGlobal)
     .def("getNTypes", &ParticleData::getNTypes)
     .def("getMaximumDiameter", &ParticleData::getMaxDiameter)
@@ -1639,6 +1873,510 @@ bool SnapshotParticleData::validate() const
 
     return true;
     }
+
+#ifdef ENABLE_MPI
+//! A tuple of pdata pointers
+typedef boost::tuple <
+    unsigned int *,  // tag
+    Scalar4 *,       // pos
+    Scalar4 *,       // vel
+    Scalar3 *,       // accel
+    Scalar *,        // charge
+    Scalar *,        // diameter
+    int3 *,          // image
+    unsigned int *,  // body
+    Scalar4 *        // orientation
+    > pdata_it_tuple;
+
+//! A zip iterator for filtering particle data
+typedef boost::zip_iterator<pdata_it_tuple> pdata_zip;
+
+//! A tuple of pdata fields
+typedef boost::tuple <
+    const unsigned int,  // tag
+    const Scalar4,       // pos
+    const Scalar4,       // vel
+    const Scalar3,       // accel
+    const Scalar,        // charge
+    const Scalar,        // diameter
+    const int3,          // image
+    const unsigned int,  // body
+    const Scalar4        // orientation
+    > pdata_tuple;
+
+//! A predicate to select particles by rtag (NOT_LOCAL)
+struct pdata_select : std::unary_function<const pdata_tuple, bool>
+    {
+    //! Constructor
+    pdata_select(const unsigned int *_rtag, const unsigned int _compare)
+        : rtag(_rtag), compare(_compare)
+        { }
+
+    //! Returns true if the remove flag is set for a particle
+    bool operator() (pdata_tuple const x) const
+        {
+        return rtag[x.get<0>()] == compare;
+        }
+
+    const unsigned int *rtag;    //!< The reverse-lookup tag array
+    const unsigned int compare;  //!< The value to compare the rtag to
+    };
+
+//! Select non-zero communication lags
+struct comm_flag_select : std::unary_function<const unsigned int, bool>
+    {
+    bool operator() (const unsigned int comm_flag) const
+        {
+        return comm_flag;
+        }
+    };
+
+//! A predicate to select particles by rtag (NOT_LOCAL)
+struct pdata_element_select : std::unary_function<const pdata_element, bool>
+    {
+    //! Constructor
+    pdata_element_select(const unsigned int *_rtag, const unsigned int _compare)
+        : rtag(_rtag), compare(_compare)
+        { }
+
+    //! Returns true if the remove flag is set for a particle
+    bool operator() (pdata_element const p) const
+        {
+        return rtag[p.tag] == compare;
+        }
+
+
+    const unsigned int *rtag;    //!< The reverse-lookup tag array
+    const unsigned int compare;  //!< The value to compare the rtag to
+    };
+
+
+//! A converter from pdata_element to a tuple of pdata entries
+struct to_pdata_tuple : public std::unary_function<const pdata_element, const pdata_tuple>
+    {
+    const pdata_tuple operator() (const pdata_element p) const
+        {
+        return boost::make_tuple(
+            p.tag,
+            p.pos,
+            p.vel,
+            p.accel,
+            p.charge,
+            p.diameter,
+            p.image,
+            p.body,
+            p.orientation
+            );
+        }
+    };
+
+//! A converter from pdata_tuple to a pdata_element
+struct to_pdata_element : public std::unary_function<const pdata_tuple, pdata_element>
+    {
+    const pdata_element operator() (const pdata_tuple t) const
+        {
+        pdata_element p;
+
+        p.tag = t.get<0>();
+        p.pos = t.get<1>();
+        p.vel = t.get<2>();
+        p.accel = t.get<3>();
+        p.charge = t.get<4>();
+        p.diameter = t.get<5>();
+        p.image = t.get<6>();
+        p.body = t.get<7>();
+        p.orientation = t.get<8>();
+
+        return p;
+        }
+    };
+
+/*! \note This method may only be used during communication or when
+ *        no ghost particles are present, because ghost particle values
+ *        are undefined after calling this method.
+ */
+void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<unsigned int>& comm_flags)
+    {
+    if (m_prof) m_prof->push("pack");
+
+    unsigned int num_remove_ptls = 0;
+
+        {
+        // access particle data tags and rtags
+        ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_comm_flags(getCommFlags(), access_location::host, access_mode::read);
+
+        // set all rtags of ptls with comm_flag != 0 to NOT_LOCAL and count removed particles
+        unsigned int N = getN();
+        for (unsigned int i = 0; i < N; ++i)
+            if (h_comm_flags.data[i])
+                {
+                unsigned int tag = h_tag.data[i];
+                assert(tag < getNGlobal());
+                h_rtag.data[tag] = NOT_LOCAL;
+                num_remove_ptls++;
+                }
+        }
+
+    unsigned int old_nparticles = getN();
+    unsigned int new_nparticles = m_nparticles - num_remove_ptls;
+
+    // resize output buffers
+    out.resize(num_remove_ptls);
+    comm_flags.resize(num_remove_ptls);
+
+    // resize particle data using amortized O(1) array resizing
+    resize(new_nparticles);
+
+        {
+        // access particle data arrays
+        ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
+
+        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::read);
+
+        ArrayHandle<unsigned int> h_comm_flags(getCommFlags(), access_location::host, access_mode::readwrite);
+
+        ArrayHandle<Scalar4> h_pos_alt(m_pos_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_vel_alt(m_vel_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar3> h_accel_alt(m_accel_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_charge_alt(m_charge_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_diameter_alt(m_diameter_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<int3> h_image_alt(m_image_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_body_alt(m_body_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_orientation_alt(m_orientation_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_tag_alt(m_tag_alt, access_location::host, access_mode::overwrite);
+
+        pdata_zip pdata_begin = boost::make_tuple(
+            h_tag.data,
+            h_pos.data,
+            h_vel.data,
+            h_accel.data,
+            h_charge.data,
+            h_diameter.data,
+            h_image.data,
+            h_body.data,
+            h_orientation.data
+            );
+        pdata_zip pdata_end = pdata_begin + old_nparticles;
+
+        // reorder particle data, putting local elements first
+        pdata_zip pdata_alt_begin = boost::make_tuple(
+            h_tag_alt.data,
+            h_pos_alt.data,
+            h_vel_alt.data,
+            h_accel_alt.data,
+            h_charge_alt.data,
+            h_diameter_alt.data,
+            h_image_alt.data,
+            h_body_alt.data,
+            h_orientation_alt.data
+            );
+
+        std::remove_copy_if(pdata_begin, pdata_end, pdata_alt_begin,
+            pdata_select(h_rtag.data,NOT_LOCAL));
+
+        // write out non-zero communication flags
+        std::remove_copy_if(h_comm_flags.data, h_comm_flags.data + old_nparticles, comm_flags.begin(),
+            std::not1(comm_flag_select()));
+
+        // reset communication flags to zero
+        std::fill(h_comm_flags.data, h_comm_flags.data + new_nparticles, 0);
+
+        // set up a transformation from pdata to packed format
+        // copy to output buf in packed form
+        std::remove_copy_if(boost::make_transform_iterator(pdata_begin, to_pdata_element()),
+            boost::make_transform_iterator(pdata_end, to_pdata_element()),
+            out.begin(),
+            std::not1(pdata_element_select(h_rtag.data,NOT_LOCAL)));
+        }
+
+    // swap particle data arrays
+    swapPositions();
+    swapVelocities();
+    swapAccelerations();
+    swapCharges();
+    swapDiameters();
+    swapImages();
+    swapBodies();
+    swapOrientations();
+    swapTags();
+
+        {
+        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::read);
+
+        // recompute rtags (particles have moved)
+        for (unsigned int idx = 0; idx < m_nparticles; ++idx)
+            {
+            // reset rtag of this ptl
+            unsigned int tag = h_tag.data[idx];
+            assert(tag < getNGlobal());
+            h_rtag.data[tag] = idx;
+            }
+        }
+
+    if (m_prof) m_prof->pop();
+
+    // notify subscribers that particle data order has been changed
+    notifyParticleSort();
+    }
+
+//! Remove particles from local domain and append new particle data
+void ParticleData::addParticles(const std::vector<pdata_element>& in)
+    {
+    if (m_prof) m_prof->push("unpack");
+
+    unsigned int num_add_ptls = in.size();
+
+    unsigned int old_nparticles = getN();
+    unsigned int new_nparticles = m_nparticles + num_add_ptls;
+
+    // resize particle data using amortized O(1) array resizing
+    resize(new_nparticles);
+
+        {
+        // access particle data arrays
+        ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::readwrite);
+
+        pdata_zip pdata_begin = boost::make_tuple(
+            h_tag.data,
+            h_pos.data,
+            h_vel.data,
+            h_accel.data,
+            h_charge.data,
+            h_diameter.data,
+            h_image.data,
+            h_body.data,
+            h_orientation.data
+            );
+        pdata_zip pdata_add_begin = pdata_begin + old_nparticles;
+
+        // add new particles at the end
+        std::transform(in.begin(), in.end(), pdata_add_begin, to_pdata_tuple());
+
+        // reset communication flags
+        std::fill(h_comm_flags.data + old_nparticles, h_comm_flags.data + new_nparticles, 0);
+
+        // recompute rtags
+        for (unsigned int idx = 0; idx < m_nparticles; ++idx)
+            {
+            // reset rtag of this ptl
+            unsigned int tag = h_tag.data[idx];
+            assert(tag < getNGlobal());
+            h_rtag.data[tag] = idx;
+            }
+        }
+
+    if (m_prof) m_prof->pop();
+
+    // notify subscribers that particle data order has been changed
+    notifyParticleSort();
+    }
+
+#ifdef ENABLE_CUDA
+//! Pack particle data into a buffer (GPU version)
+/*! \note This method may only be used during communication or when
+ *        no ghost particles are present, because ghost particle values
+ *        are undefined after calling this method.
+ */
+void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<unsigned int> &comm_flags)
+    {
+    if (m_prof) m_prof->push(m_exec_conf, "pack");
+
+    // this is the maximum number of elements we can possibly write to out
+    unsigned int max_n_out = out.getNumElements();
+    if (comm_flags.getNumElements() < max_n_out)
+        max_n_out = comm_flags.getNumElements();
+
+    // allocate array if necessary
+    if (! max_n_out)
+        {
+        out.resize(1);
+        comm_flags.resize(1);
+        max_n_out = out.getNumElements();
+        if (comm_flags.getNumElements() < max_n_out) max_n_out = comm_flags.getNumElements();
+        }
+
+    // number of particles that are to be written out
+    unsigned int n_out = 0;
+
+    bool done = false;
+
+    // copy without writing past the end of the output array, resizing it as needed
+    while (! done)
+        {
+        // access particle data arrays to read from
+        ArrayHandle<Scalar4> d_pos(getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_vel(getVelocities(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_accel(getAccelerations(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_charge(getCharges(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_diameter(getDiameters(), access_location::device, access_mode::read);
+        ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
+
+        // access alternate particle data arrays to write to
+        ArrayHandle<Scalar4> d_pos_alt(m_pos_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_vel_alt(m_vel_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar3> d_accel_alt(m_accel_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_charge_alt(m_charge_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_diameter_alt(m_diameter_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<int3> d_image_alt(m_image_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_body_alt(m_body_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_orientation_alt(m_orientation_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
+
+        ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
+
+        // Access reverse-lookup table
+        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
+
+            {
+            // Access output array
+            ArrayHandle<pdata_element> d_out(out, access_location::device, access_mode::overwrite);
+            ArrayHandle<unsigned int> d_comm_flags_out(comm_flags, access_location::device, access_mode::overwrite);
+
+            // get temporary buffer
+            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), getN());
+
+            n_out = gpu_pdata_remove(getN(),
+                           d_pos.data,
+                           d_vel.data,
+                           d_accel.data,
+                           d_charge.data,
+                           d_diameter.data,
+                           d_image.data,
+                           d_body.data,
+                           d_orientation.data,
+                           d_tag.data,
+                           d_rtag.data,
+                           d_pos_alt.data,
+                           d_vel_alt.data,
+                           d_accel_alt.data,
+                           d_charge_alt.data,
+                           d_diameter_alt.data,
+                           d_image_alt.data,
+                           d_body_alt.data,
+                           d_orientation_alt.data,
+                           d_tag_alt.data,
+                           d_out.data,
+                           d_comm_flags.data,
+                           d_comm_flags_out.data,
+                           max_n_out,
+                           d_tmp.data,
+                           m_mgpu_context);
+           }
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+
+        // resize output vector
+        out.resize(n_out);
+        comm_flags.resize(n_out);
+
+        // was the array large enough?
+        if (n_out <= max_n_out) done = true;
+
+        max_n_out = out.getNumElements();
+        if (comm_flags.getNumElements() < max_n_out) max_n_out = comm_flags.getNumElements();
+        }
+
+    // update particle number (no need to shrink arrays)
+    m_nparticles -= n_out;
+
+    // swap particle data arrays
+    swapPositions();
+    swapVelocities();
+    swapAccelerations();
+    swapCharges();
+    swapDiameters();
+    swapImages();
+    swapBodies();
+    swapOrientations();
+    swapTags();
+
+    // notify subscribers
+    notifyParticleSort();
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+
+//! Add new particle data (GPU version)
+void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
+    {
+    if (m_prof) m_prof->push(m_exec_conf, "unpack");
+
+    unsigned int old_nparticles = getN();
+    unsigned int num_add_ptls = in.size();
+    unsigned int new_nparticles = old_nparticles + num_add_ptls;
+
+    // amortized resizing of particle data
+    resize(new_nparticles);
+
+        {
+        // access particle data arrays
+        ArrayHandle<Scalar4> d_pos(getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(getAccelerations(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_charge(getCharges(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_diameter(getDiameters(), access_location::device, access_mode::readwrite);
+        ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
+
+        // Access input array
+        ArrayHandle<pdata_element> d_in(in, access_location::device, access_mode::read);
+
+        // add new particles on GPU
+        gpu_pdata_add_particles(
+            old_nparticles,
+            num_add_ptls,
+            d_pos.data,
+            d_vel.data,
+            d_accel.data,
+            d_charge.data,
+            d_diameter.data,
+            d_image.data,
+            d_body.data,
+            d_orientation.data,
+            d_tag.data,
+            d_rtag.data,
+            d_in.data,
+            d_comm_flags.data);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    // notify subscribers
+    notifyParticleSort();
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI
 
 void export_SnapshotParticleData()
     {

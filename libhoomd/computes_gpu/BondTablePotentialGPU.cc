@@ -124,8 +124,8 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
 
         {
         // Access the bond table for reading
-        ArrayHandle<uint2> d_gpu_bondlist(this->m_bond_data->getGPUBondList(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNBondsArray(), access_location::device, access_mode::read);
+        ArrayHandle<BondData::members_t> d_gpu_bondlist(this->m_bond_data->getGPUTable(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int > d_gpu_n_bonds(this->m_bond_data->getNGroupsArray(), access_location::device, access_mode::read);
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::overwrite);
 
@@ -138,9 +138,9 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
                              d_pos.data,
                              box,
                              d_gpu_bondlist.data,
-                             m_bond_data->getGPUBondList().getPitch(),
+                             m_bond_data->getGPUTableIndexer().getW(),
                              d_gpu_n_bonds.data,
-                             m_bond_data->getNBondTypes(),
+                             m_bond_data->getNTypes(),
                              d_tables.data,
                              d_params.data,
                              m_table_width,

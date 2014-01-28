@@ -50,24 +50,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 
-#include "boost_utf_configure.h"
-#include "ExecutionConfiguration.h"
+#include <mpi.h>
 
 //! Enable CUDA MPI if using MVAPICH2
 char env_str[] = "MV2_USE_CUDA=1";
-
-#ifdef ENABLE_CUDA
-//! Excution Configuration for GPU
-/* For MPI libraries that directly support CUDA, it is required that
-   CUDA be initialized before setting up the MPI environmnet. This
-   global variable stores the ExecutionConfiguration for GPU, which is
-   initialized once
-*/
-boost::shared_ptr<ExecutionConfiguration> exec_conf_gpu;
-#endif
-
-//! Execution configuration on the CPU
-boost::shared_ptr<ExecutionConfiguration> exec_conf_cpu;
 
 //! Fixture to setup and tear down MPI
 struct MPISetup
@@ -78,22 +64,7 @@ struct MPISetup
         int argc = boost::unit_test::framework::master_test_suite().argc;
         char **argv = boost::unit_test::framework::master_test_suite().argv;
 
-#ifdef ENABLE_CUDA
-        exec_conf_gpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
-#endif
-        exec_conf_cpu = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU, -1, false, false, boost::shared_ptr<Messenger>(), false));
-
-        int provided;
-        #ifdef ENABLE_MPI_CUDA
-        putenv(env_str);
-        #endif
-        MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-
-#ifdef ENABLE_CUDA
-        exec_conf_gpu->setMPICommunicator(MPI_COMM_WORLD);
-        exec_conf_gpu->setCUDAErrorChecking(true);
-#endif
-        exec_conf_cpu->setMPICommunicator(MPI_COMM_WORLD);
+        MPI_Init(&argc, &argv);
         }
 
     //! Cleanup

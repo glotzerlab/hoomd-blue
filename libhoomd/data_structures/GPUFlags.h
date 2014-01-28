@@ -363,7 +363,7 @@ template<class T> void GPUFlags<T>::memclear()
     // wait for the device to catch up
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && m_mapped)
         {
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         }
 #endif
 
@@ -389,7 +389,7 @@ template<class T> const T GPUFlags<T>::readFlags()
     if (m_mapped)
         {
         // synch to wait for kernels
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
         }
     else
         {
@@ -416,7 +416,7 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         {
 #ifdef ENABLE_CUDA
         // synch to wait for kernels
-        cudaThreadSynchronize();
+        cudaDeviceSynchronize();
 #endif
         // set the flags
         *h_data = flags;

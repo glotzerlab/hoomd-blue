@@ -156,7 +156,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
     /*
      * Initialize bond data
      */
-    SnapshotBondData& bdata = snapshot->bond_data;
+    BondData::Snapshot& bdata = snapshot->bond_data;
 
     // allocate memory in snapshot
     bdata.resize(m_bonds.size());
@@ -164,8 +164,8 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
     // loop through all the bonds and add a bond for each
     for (unsigned int i = 0; i < m_bonds.size(); i++)
         {
-        bdata.bonds[i] = make_uint2(m_bonds[i].a,m_bonds[i].b);
-        bdata.type_id[i] = m_bonds[i].type;
+        bdata.groups[i] = m_bonds[i];
+        bdata.type_id[i] = m_bond_types[i];
         }
 
     bdata.type_mapping = m_bond_type_mapping;
@@ -173,7 +173,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
     /*
      * Initialize angle data
      */
-    SnapshotAngleData& adata = snapshot->angle_data;
+    AngleData::Snapshot& adata = snapshot->angle_data;
 
     // allocate memory in snapshot
     adata.resize(m_angles.size());
@@ -181,8 +181,8 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
     // loop through all the angles and add an angle for each
     for (unsigned int i = 0; i < m_angles.size(); i++)
         {
-        adata.angles[i] = make_uint3(m_angles[i].a,m_angles[i].b,m_angles[i].c);
-        adata.type_id[i] = m_angles[i].type;
+        adata.groups[i] = m_angles[i];
+        adata.type_id[i] = m_angle_types[i];
         }
 
     adata.type_mapping = m_angle_type_mapping;
@@ -190,7 +190,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
     /*
      * Initialize dihedral data
      */
-    SnapshotDihedralData& ddata = snapshot->dihedral_data;
+    DihedralData::Snapshot& ddata = snapshot->dihedral_data;
 
     // allocate memory
     ddata.resize(m_dihedrals.size());
@@ -198,8 +198,8 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
     // loop through all the dihedrals and add an dihedral for each
     for (unsigned int i = 0; i < m_dihedrals.size(); i++)
         {
-        ddata.dihedrals[i] = make_uint4(m_dihedrals[i].a,m_dihedrals[i].b,m_dihedrals[i].c, m_dihedrals[i].d);
-        ddata.type_id[i] = m_dihedrals[i].type;
+        ddata.groups[i] = m_dihedrals[i];
+        ddata.type_id[i] = m_dihedral_types[i];
         }
 
     ddata.type_mapping = m_dihedral_type_mapping;
@@ -207,16 +207,16 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
     /*
      * Initialize improper data
      */
-    SnapshotDihedralData& idata = snapshot->improper_data;
+    ImproperData::Snapshot& idata = snapshot->improper_data;
 
     // allocate memory
-    idata.resize(m_dihedrals.size());
+    idata.resize(m_impropers.size());
 
     // loop through all the dihedrals and add an dihedral for each
     for (unsigned int i = 0; i < m_impropers.size(); i++)
         {
-        idata.dihedrals[i] = make_uint4(m_impropers[i].a,m_impropers[i].b,m_impropers[i].c, m_impropers[i].d);
-        idata.type_id[i] = m_impropers[i].type;
+        idata.groups[i] = m_impropers[i];
+        idata.type_id[i] = m_improper_types[i];
         }
 
     idata.type_mapping = m_improper_type_mapping;
@@ -436,7 +436,10 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&a, sizeof(unsigned int));
         f.read((char*)&b, sizeof(unsigned int));
 
-        m_bonds.push_back(Bond(typ, a, b));
+        BondData::members_t bond;
+        bond.tag[0] = a; bond.tag[1] = b;
+        m_bonds.push_back(bond);
+        m_bond_types.push_back(typ);
         }
     }
 
@@ -458,7 +461,10 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&b, sizeof(unsigned int));
         f.read((char*)&c, sizeof(unsigned int));
 
-        m_angles.push_back(Angle(typ, a, b, c));
+        AngleData::members_t angle;
+        angle.tag[0] = a; angle.tag[1] = b; angle.tag[2] = c;
+        m_angles.push_back(angle);
+        m_angle_types.push_back(typ);
         }
     }
 
@@ -481,7 +487,10 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&c, sizeof(unsigned int));
         f.read((char*)&d, sizeof(unsigned int));
 
-        m_dihedrals.push_back(Dihedral(typ, a, b, c, d));
+        DihedralData::members_t dihedral;
+        dihedral.tag[0] = a; dihedral.tag[1] = b; dihedral.tag[2] = c; dihedral.tag[3] = d;
+        m_dihedrals.push_back(dihedral);
+        m_dihedral_types.push_back(typ);
         }
     }
 
@@ -504,7 +513,10 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&c, sizeof(unsigned int));
         f.read((char*)&d, sizeof(unsigned int));
 
-        m_impropers.push_back(Dihedral(typ, a, b, c, d));
+        ImproperData::members_t improper;
+        improper.tag[0] = a; improper.tag[1] = b; improper.tag[2] = c; improper.tag[3] = d;
+        m_impropers.push_back(improper);
+        m_improper_types.push_back(typ);
         }
     }
 

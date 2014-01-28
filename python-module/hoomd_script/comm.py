@@ -62,11 +62,17 @@ from hoomd_script import globals;
 import sys;
 
 ## Get the number of ranks
-# \returns the number of MPI ranks running in parallel
+# \returns the number of MPI ranks in this partition
 # \note Returns 1 in non-mpi builds
 def get_num_ranks():
     if hoomd.is_MPI_available():
-        return globals.exec_conf.getNRanks();
+        if init.is_initialized():
+            return globals.exec_conf.getNRanks();
+        else:
+            if globals.options.nrank is not None:
+                return globals.options.nrank;
+            else:
+                return hoomd.ExecutionConfiguration.getNRanksGlobal()
     else:
         return 1;
 
@@ -80,7 +86,11 @@ def get_rank():
         if init.is_initialized():
             return globals.exec_conf.getRank()
         else:
-            return hoomd.ExecutionConfiguration.guessRank(globals.msg)
+            if globals.options.nrank is not None:
+                # recompute local rank
+                return int(hoomd.EecutionConfiguration.getRankGlobal() % globals.options.nrank)
+            else:
+                return hoomd.ExecutionConfiguration.getRankGlobal()
     else:
         return 0;
 
@@ -95,7 +105,8 @@ def get_partition():
             return globals.exec_conf.getPartition()
         else:
             if globals.options.nrank is not None:
-                return int(hoomd.ExecutionConfiguration.guessRank(globals.msg)/globals.options.nrank)
+                # re-compute partition number
+                return int(hoomd.ExecutionConfiguration.getRankGlobal()/globals.options.nrank)
             else:
                 return 0
     else:

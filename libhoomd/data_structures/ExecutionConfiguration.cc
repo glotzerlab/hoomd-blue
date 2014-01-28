@@ -83,8 +83,9 @@ using namespace boost::python;
 using namespace std;
 using namespace boost;
 
-//! Environment variables needed for setting up MPI
-char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
+#ifdef ENABLE_CUDA
+#include "CachedAllocator.h"
+#endif
 
 /*! \file ExecutionConfiguration.cc
     \brief Defines ExecutionConfiguration and related classes
@@ -102,8 +103,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
                                                bool ignore_display,
                                                boost::shared_ptr<Messenger> _msg
 #ifdef ENABLE_MPI
-                                               , bool init_mpi,
-                                               unsigned int n_ranks
+                                               , unsigned int n_ranks
 #endif
                                                )
     : m_cuda_error_checking(false), msg(_msg)
@@ -113,7 +113,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << min_cpu << " " << ignore_display << endl;
 
-    m_rank = guessRank();
+    m_rank = 0;
 
 #ifdef ENABLE_CUDA
     // scan the available GPUs
@@ -130,6 +130,9 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
         // local MPI rank as preferred GPU id
         int gpu_id_hint = m_system_compute_exclusive ? -1 : guessLocalRank();
         initializeGPU(gpu_id_hint, min_cpu);
+
+        // initialize cached allocator
+        m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
         }
     else
         exec_mode = CPU;
@@ -138,12 +141,10 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
     exec_mode=CPU;
 #endif
 
-#ifdef ENABLE_MPI
-    m_partition = 0;
-    m_has_initialized_mpi = false;
-    if (init_mpi)
-        initializeMPI(n_ranks);
-#endif
+    #ifdef ENABLE_MPI
+    m_n_rank = n_ranks;
+    initializeMPI();
+    #endif
 
     setupStats();
     }
@@ -163,8 +164,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool ignore_display,
                                                boost::shared_ptr<Messenger> _msg
 #ifdef ENABLE_MPI
-                                               , bool init_mpi,
-                                               unsigned int n_ranks
+                                               , unsigned int n_ranks
 #endif
                                                )
     : m_cuda_error_checking(false), msg(_msg)
@@ -175,11 +175,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
 
-#ifdef ENABLE_MPI
-    m_rank = guessRank();
-#else
     m_rank = 0;
-#endif
 
 #ifdef ENABLE_CUDA
     // scan the available GPUs
@@ -187,7 +183,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
+        {
         initializeGPU(gpu_id, min_cpu);
+
+        // initialize cached allocator
+        m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        }
 #else
     if (exec_mode == GPU)
         {
@@ -196,12 +197,10 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         }
 #endif
 
-#ifdef ENABLE_MPI
-    m_partition = 0;
-    m_has_initialized_mpi = false;
-    if (init_mpi)
-        initializeMPI(n_ranks);
-#endif
+    #ifdef ENABLE_MPI
+    m_n_rank = n_ranks;
+    initializeMPI();
+    #endif
 
     setupStats();
     }
@@ -210,65 +209,49 @@ ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
 
-    #if defined(ENABLE_CUDA) && !defined(ENABLE_MPI_CUDA)
+    #if defined(ENABLE_CUDA)
     if (exec_mode == GPU)
         {
+        delete m_cached_alloc;
+
+        #ifndef ENABLE_MPI_CUDA
         cudaDeviceReset();
+        #endif
         }
     #endif
 
     #ifdef ENABLE_MPI
     // enable Messenger to gracefully finish any MPI-IO
     msg->unsetMPICommunicator();
-
-    if (m_has_initialized_mpi) MPI_Finalize();
-    #endif
-
-    #if defined(ENABLE_CUDA) && defined(ENABLE_MPI_CUDA)
-    if (exec_mode == GPU)
-        {
-        cudaDeviceReset();
-        }
     #endif
     }
 
 #ifdef ENABLE_MPI
-void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
+void ExecutionConfiguration::initializeMPI()
     {
-
-#ifdef ENABLE_MPI_CUDA
-    // if we are using an MPI-CUDA implementation, enable this feature
-    // before the MPI_Init
-    if (exec_mode==GPU)
-        {
-        // enable MPI-CUDA support
-        putenv(env_enable_mpi_cuda);
-        }
-#endif
-
-    MPI_Init(0, (char ***) NULL);
-
     m_mpi_comm = MPI_COMM_WORLD;
 
     int num_total_ranks;
     MPI_Comm_size(m_mpi_comm, &num_total_ranks);
 
-    if  (n_ranks != 0)
+    unsigned int partition = 0;
+
+    if  (m_n_rank != 0)
         {
         int  rank;
         MPI_Comm_rank(m_mpi_comm, &rank);
 
-        if (num_total_ranks % n_ranks != 0)
+        if (num_total_ranks % m_n_rank != 0)
             {
-            msg->error() << "Unable to split communicator with requested setting --nranks" << std::endl;
+            msg->error() << "Invalid setting --nrank" << std::endl;
             throw(runtime_error("Error setting up MPI."));
             }
 
-        m_partition = rank / n_ranks;
+        partition = rank / m_n_rank;
 
         // Split the communicator
         MPI_Comm new_comm;
-        MPI_Comm_split(m_mpi_comm, m_partition, rank, &new_comm);
+        MPI_Comm_split(m_mpi_comm, partition, rank, &new_comm);
 
         // update communicator
         m_mpi_comm = new_comm;
@@ -278,10 +261,8 @@ void ExecutionConfiguration::initializeMPI(unsigned int n_ranks)
     MPI_Comm_rank(m_mpi_comm, &rank);
     m_rank = rank;
 
-    msg->setRank(rank, m_partition);
+    msg->setRank(rank, partition);
     msg->setMPICommunicator(m_mpi_comm);
-
-    m_has_initialized_mpi = true;
     }
 #endif
 
@@ -339,7 +320,7 @@ void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, 
             file += strlen(HOOMD_SOURCE_DIR);
 
         // print an error message
-        msg->error() << "***Error! " << string(cudaGetErrorString(err)) << " before "
+        msg->error() << string(cudaGetErrorString(err)) << " before "
                      << file << ":" << line << endl;
 
         // throw an error exception
@@ -389,20 +370,20 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
 
     if (gpu_id < -1)
         {
-        msg->error() << "***Error! The specified GPU id (" << gpu_id << ") is invalid." << endl;
+        msg->error() << "The specified GPU id (" << gpu_id << ") is invalid." << endl;
         throw runtime_error("Error initializing execution configuration");
         }
 
     if (gpu_id >= (int)getNumTotalGPUs())
         {
-        msg->error() << "***Error! The specified GPU id (" << gpu_id << ") is not present in the system." << endl;
+        msg->error() << "The specified GPU id (" << gpu_id << ") is not present in the system." << endl;
         msg->error() << "CUDA reports only " << getNumTotalGPUs() << endl;
         throw runtime_error("Error initializing execution configuration");
         }
 
     if (!isGPUAvailable(gpu_id))
         {
-        msg->error() << "***Error! The specified GPU id (" << gpu_id << ") is not available for executing HOOMD." << endl;
+        msg->error() << "The specified GPU id (" << gpu_id << ") is not available for executing HOOMD." << endl;
         throw runtime_error("Error initializing execution configuration");
         }
 
@@ -434,7 +415,6 @@ void ExecutionConfiguration::printGPUStats()
     int dev;
     cudaGetDevice(&dev);
 
-    s << " Rank " << getRank();
     s << " [" << dev << "]";
     s << setw(22) << dev_prop.name;
 
@@ -603,7 +583,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             cudaError_t error = cudaGetDeviceProperties(&prop, dev);
             if (error != cudaSuccess)
                 {
-                msg->error() << "***Error! Error calling cudaGetDeviceProperties()" << endl;
+                msg->error() << "Error calling cudaGetDeviceProperties()" << endl;
                 throw runtime_error("Error initializing execution configuration");
                 }
 
@@ -670,39 +650,7 @@ int ExecutionConfiguration::getNumCapableGPUs()
         }
     return count;
     }
-
 #endif
-
-unsigned int ExecutionConfiguration::guessRank(boost::shared_ptr<Messenger> msg)
-    {
-    std::vector<std::string> env_vars;
-
-    // setup common environment variables containing rank information
-    // the actual rank is inferred from the MPI environment later, this is just used
-    // for display purposes during initialization
-    env_vars.push_back("MV2_COMM_WORLD_RANK");
-    env_vars.push_back("OMPI_COMM_WORLD_RANK");
-    env_vars.push_back("PMI_ID");
-    env_vars.push_back("PMI_RANK");
-
-    std::vector<std::string>::iterator it;
-
-    for (it = env_vars.begin(); it != env_vars.end(); it++)
-        {
-        char *env;
-        if ((env = getenv(it->c_str())) != NULL)
-            return atoi(env);
-
-        }
-
-    if (msg)
-        {
-        msg->warning() << "Unable to guess rank from environment variables. Assuming 0."
-                       << std::endl << std::endl;
-        }
-
-    return 0;
-    }
 
 int ExecutionConfiguration::guessLocalRank()
     {
@@ -757,7 +705,7 @@ void ExecutionConfiguration::setupStats()
         #ifdef ENABLE_OPENMP
         ostringstream s;
         // We print this information in rank oder
-        s << "Rank " << getRank() << ": OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        s << "OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
         msg->collectiveNoticeStr(1,s.str());
         #endif
         }
@@ -776,14 +724,10 @@ void export_ExecutionConfiguration()
     {
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
                          ("ExecutionConfiguration", init< bool, bool, boost::shared_ptr<Messenger> >())
-#ifdef ENABLE_MPI
-                         .def(init< bool, bool, boost::shared_ptr<Messenger>, bool>())
-                         .def(init< bool, bool, boost::shared_ptr<Messenger>, bool, unsigned int >())
-#endif
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
 #ifdef ENABLE_MPI
-                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, bool >())
-                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, bool, unsigned int >())
+                         .def(init< bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
+                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
 #endif
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
@@ -797,10 +741,12 @@ void export_ExecutionConfiguration()
                          .def("getPartition", &ExecutionConfiguration::getPartition)
                          .def("getNRanks", &ExecutionConfiguration::getNRanks)
                          .def("getRank", &ExecutionConfiguration::getRank)
-                         .def("guessRank", &ExecutionConfiguration::guessRank)
                          .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
-                         .staticmethod("guessRank")
+                         .def("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
+                         .def("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
                          .staticmethod("guessLocalRank")
+                         .staticmethod("getNRanksGlobal")
+                         .staticmethod("getRankGlobal")
 #endif
                          ;
 

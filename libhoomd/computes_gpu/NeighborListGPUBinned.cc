@@ -68,7 +68,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
                                              Scalar r_cut,
                                              Scalar r_buff,
                                              boost::shared_ptr<CellList> cl)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl)
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_param(0)
     {
     // create a default cell list if one was not specified
     if (!m_cl)
@@ -79,7 +79,6 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
 
-    gpu_setup_compute_nlist_binned();
     CHECK_CUDA_ERROR();
 
     // default to 0 last allocated quantities
@@ -88,7 +87,28 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     dca_cell_adj = NULL;
     dca_cell_xyzf = NULL;
     dca_cell_tdb = NULL;
-    m_block_size = 64;
+
+    // initialize autotuner
+    // the full block size and threads_per_particle matrix is searched,
+    // encoded as block_size*10000 + threads_per_particle
+    std::vector<unsigned int> valid_params;
+    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        {
+        int s=1;
+        while (s <= this->m_exec_conf->dev_prop.warpSize)
+            {
+            valid_params.push_back(block_size*10000 + s);
+            s = s * 2;
+            }
+        }
+
+    m_tuner.reset(new Autotuner(valid_params, 5, 1e6, "nlist_binned", this->m_exec_conf));
+    m_last_tuned_timestep = 0;
+
+    #ifdef ENABLE_MPI
+    // synchronize over MPI
+    m_tuner->setSync(m_pdata->getDomainDecomposition());
+    #endif
 
     // When running on compute 1.x, textures are allocated with the height equal to the number of cells
     // limit the number of cells to the maximum texture dimension
@@ -158,14 +178,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     m_cl->compute(timestep);
 
-    // check that at least 3x3x3 cells are computed
-    uint3 dim = m_cl->getDim();
-    if (dim.x < 3 || dim.y < 3 || (m_sysdef->getNDimensions() != 2 && dim.z < 3))
-        {
-        m_exec_conf->msg->error() << "NeighborListGPUBinned doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl;
-        throw runtime_error("Error computing neighbor list");
-        }
-
     if (m_prof)
         m_prof->push(exec_conf, "compute");
 
@@ -195,7 +207,17 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (exec_conf->getComputeCapability() >= 200)
         {
-        gpu_compute_nlist_binned(d_nlist.data,
+        // we should not call the tuner with MPI sync enabled
+        // if the kernel is launched more than once in the same timestep,
+        // since those kernel launches may occur only on some, not all MPI ranks
+        bool tune = !m_param && m_last_tuned_timestep != timestep;
+
+        if (tune) this->m_tuner->begin();
+        unsigned int param = !m_param ? this->m_tuner->getParam() : m_param;
+        unsigned int block_size = param / 10000;
+        unsigned int threads_per_particle = param % 10000;
+
+        gpu_compute_nlist_binned_shared(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,
                                  m_conditions.getDeviceFlags(),
@@ -213,10 +235,15 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellAdjIndexer(),
                                  box,
                                  rmaxsq,
-                                 m_block_size,
+                                 threads_per_particle,
+                                 block_size,
                                  m_filter_body,
                                  m_filter_diameter,
                                  m_cl->getGhostWidth());
+        if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if (tune) this->m_tuner->end();
+
+        m_last_tuned_timestep = timestep;
         }
     else
         {
@@ -265,11 +292,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     m_filter_body,
                                     m_filter_diameter,
                                     m_cl->getGhostWidth());
-        }
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        {
-        CHECK_CUDA_ERROR();
+        if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
     if (m_prof)
@@ -334,5 +358,6 @@ void export_NeighborListGPUBinned()
     class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
                      ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
                     .def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
+                    .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
                      ;
     }

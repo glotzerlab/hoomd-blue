@@ -67,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 #include "GPUVector.h"
 #include "ParticleData.h"
-#include "BondData.h"
+#include "BondedGroupData.h"
 #include "DomainDecomposition.h"
 
 #include <boost/shared_ptr.hpp>
@@ -92,76 +92,8 @@ class Profiler;
 class BoxDim;
 class ParticleData;
 
-/* Routing tables
-
-   The routing tables determine the communication pattern. For every communication step indicated by
-   the value of the first index in the routing table, a boolean value indicates whether information
-   is routed from the source (second index) to the destination (third index, optional).
-
-   Possible types of sources are corner, edge and face buffers, possible types of destinations
-   are edge, face and local buffers.
-
-   During a communication step, the following steps occur:
-    - corner data, which is relevant to neighboring boxes along three axes, is sent in one
-     direction, and then stored as edge data.
-    - edge data, which is relevant to neigboring boxes along two axes, is sent and then
-      stored as face data
-    - face data is directly forwarded along one direction to a local receive buffer of the neighboring box.
-
-   If multiple source buffers are routed to the same destination buffer in a single or in subsequent
-   communication steps, they will occur in the destination buffer in the following order:
-
-   1) buffers originating from 'corner' regions
-   2) buffers originating from 'edge' regions
-   3) buffers originating from 'face' regions
-
-   Received data in a buffer is always contiguously stored and appended to existing local data in the above order.
-
-   \note: These tables are currently not used by the base class
- */
-struct RoutingTable
-    {
-    //! Routing from corner to edge for particle migration, for every send direction
-    bool m_route_corner_edge[NFACE][NCORNER][NEDGE];
-
-    //! Additional routing from corner to face for ghost replication
-    bool m_route_corner_face[NFACE][NCORNER][NFACE];
-
-    //! Additional routing from corner to local for ghost replication
-    bool m_route_corner_local[NFACE][NCORNER];
-
-    //! Routing from edge to face for particle migration
-    bool m_route_edge_face[NFACE][NEDGE][NFACE];
-
-    //! Additional routing from edge to local for ghost replication
-    bool m_route_edge_local[NFACE][NEDGE];
-
-    //! Routing from face to local
-    bool m_route_face_local[NFACE];
-    };
-
-//! This is a lookup from corner to plan
-extern unsigned int corner_plan_lookup[];
-
-//! Lookup from edge to plan
-extern unsigned int edge_plan_lookup[];
-
-//! Lookup from face to plan
-extern unsigned int face_plan_lookup[];
-
-//! Structure to store packed particle data
-struct pdata_element
-    {
-    Scalar4 pos;               //!< Position
-    Scalar4 vel;               //!< Velocity
-    Scalar3 accel;             //!< Acceleration
-    Scalar charge;             //!< Charge
-    Scalar diameter;           //!< Diameter
-    int3 image;               //!< Image
-    unsigned int body;        //!< Body id
-    Scalar4 orientation;       //!< Orientation
-    unsigned int tag;  //!< global tag
-    };
+// in 3d, there are 27 neighbors max.
+#define NEIGH_MAX 27
 
 //! Optional flags to enable communication of certain ParticleData fields for ghost particles
 struct comm_flag
@@ -169,7 +101,8 @@ struct comm_flag
     //! The enum
     enum Enum
         {
-        position=0,  //! Bit id in CommFlags for particle positions
+        tag,         //! Bit id in CommFlags for particle tags
+        position,    //! Bit id in CommFlags for particle positions
         charge,      //! Bit id in CommFlags for particle charge
         diameter,    //! Bit id in CommFlags for particle diameter
         velocity,    //! Bit id in CommFlags for particle velocity
@@ -206,6 +139,38 @@ struct migrate_logical_or
         return return_value;
         }
     };
+
+//! Perform a bitwise or operation on the return values of several signals
+struct comm_flags_bitwise_or
+    {
+    //! This is needed by boost::signals
+    typedef CommFlags result_type;
+
+    //! Combine return values using logical or
+    /*! \param first First return value
+        \param last Last return value
+     */
+    template<typename InputIterator>
+    CommFlags operator()(InputIterator first, InputIterator last) const
+        {
+        if (first == last) return CommFlags(0);
+
+        CommFlags return_value(0);
+        while (first != last) return_value |= *first++;
+
+        return return_value;
+        }
+    };
+
+//! A compact storage for rank information
+template<typename ranks_t>
+struct rank_element
+    {
+    ranks_t ranks;
+    unsigned int mask;
+    unsigned int tag;
+    };
+
 
 //! <b>Class that handles MPI communication</b>
 /*! This class implements the communication algorithms that are used in parallel simulations.
@@ -296,6 +261,57 @@ class Communicator
             return m_migrate_requests.connect(subscriber);
             }
 
+        //! Subscribe to list of functions that determine the communication flags
+        /*! This method keeps track of all functions that may request communication flags
+         * \return A connection to the present class
+         */
+        boost::signals2::connection addCommFlagsRequest(const boost::function<CommFlags (unsigned int timestep)>& subscriber)
+            {
+            return m_requested_flags.connect(subscriber);
+            }
+
+        //! Subscribe to list of call-backs for additional communication
+        /*!
+         * Good candidates for functions to be called after finishing the ghost update step
+         * are functions that involve all-to-all synchronization or similar expensive
+         * communication that can be overlapped with computation.
+         *
+         * \param subscriber The callback
+         * \returns a connection to this class
+         */
+        boost::signals2::connection addCommunicationCallback(
+            const boost::function<void (unsigned int timestep)>& subscriber)
+            {
+            return m_comm_callbacks.connect(subscriber);
+            }
+
+        //! Subscribe to list of call-backs for overlapping computation
+        boost::signals2::connection addLocalComputeCallback(
+            const boost::function<void (unsigned int timestep)>& subscriber)
+            {
+            return m_local_compute_callbacks.connect(subscriber);
+            }
+
+        //! Subscribe to list of call-backs for computation that depends on ghost positions
+        /*!
+         * Functions subscribed to the compute callback signal are those
+         * that can be overlapped with all-to-all synchronization. For good
+         * MPI performance, the callbacks should NOT synchronize the GPU
+         * execution stream.
+         *
+         * \note Subscribers are called only after updated ghost information is available
+         *       but BEFORE particle migration
+         *
+         * \param subscriber The callback
+         * \returns a connection to this class
+         */
+        boost::signals2::connection addComputeCallback(
+            const boost::function<void (unsigned int timestep)>& subscriber)
+            {
+            return m_compute_callbacks.connect(subscriber);
+            }
+
+
         //! Set width of ghost layer
         /*! \param ghost_width The width of the ghost layer
          */
@@ -322,6 +338,12 @@ class Communicator
             assert(r_buff > 0);
 
             m_r_buff = r_buff;
+            }
+
+        //! Return current skin layer width
+        Scalar getRBuff()
+            {
+            return m_r_buff;
             }
 
         //! Get the ghost communication flags
@@ -357,10 +379,26 @@ class Communicator
          * Using the previously constructed ghost exchange lists, ghost positions are updated on the
          * neighboring processors.
          *
+         * This routine uses non-blocking MPI communication, to make it possible to overlap
+         * additional computation or communication during the update substep. To complete
+         * the communication, call finishUpdateGhosts()
+         *
+         * \param timestep The time step
+         *
          * \pre The ghost exchange list has been constructed in a previous time step, using exchangeGhosts().
          * \post The ghost positions on the neighboring processors are current
          */
-        virtual void updateGhosts(unsigned int timestep);
+        virtual void beginUpdateGhosts(unsigned int timestep);
+
+        /*! Finish ghost update
+         *
+         * \param timestep The time step
+         */
+        virtual void finishUpdateGhosts(unsigned int timestep)
+            {
+            // the base class implementation is currently empty
+            m_comm_pending = false;
+            }
 
         /*! This methods finds all the particles that are no longer inside the domain
          * boundaries and transfers them to neighboring processors.
@@ -383,13 +421,6 @@ class Communicator
          *       neighboring processors are current.
          */
         virtual void exchangeGhosts();
-
-        /*! Returns the routing table
-         */
-        inline const RoutingTable& getRoutingTable() const
-            {
-            return m_routing_table;
-            }
 
         //! \name Enumerations
         //@{
@@ -419,37 +450,50 @@ class Communicator
             send_down = 32
             };
 
-        enum edgeEnum
-            {
-            edge_east_north = 0 ,
-            edge_east_south,
-            edge_east_up,
-            edge_east_down,
-            edge_west_north,
-            edge_west_south,
-            edge_west_up,
-            edge_west_down,
-            edge_north_up,
-            edge_north_down,
-            edge_south_up,
-            edge_south_down
-            };
-
-        enum cornerEnum
-            {
-            corner_east_north_up = 0,
-            corner_east_north_down,
-            corner_east_south_up,
-            corner_east_south_down,
-            corner_west_north_up,
-            corner_west_north_down,
-            corner_west_south_up,
-            corner_west_south_down
-            };
-
         //@}
 
     protected:
+        //! Helper class to perform the communication tasks related to bonded groups
+        template<class group_data>
+        class GroupCommunicator
+            {
+            public:
+                typedef struct rank_element<typename group_data::ranks_t> rank_element_t;
+                typedef typename group_data::packed_t group_element_t;
+
+                //! Constructor
+                GroupCommunicator(Communicator& comm, boost::shared_ptr<group_data> gdata);
+
+                //! Migrate groups
+                /*! \param incomplete If true, mark all groups that have non-local members and update local
+                 *         member rank information. Otherwise, mark only groups flagged for communication
+                 *         in particle data
+                 *
+                 * A group is marked for sending by setting its rtag to GROUP_NOT_LOCAL, and by updating
+                 * the rank information with the destination ranks (or the local ranks if incomplete=true)
+                 */
+                void migrateGroups(bool incomplete);
+
+                //! Mark ghost particles
+                /* All particles that need to be sent as ghosts because they are members
+                 * of incomplete groups are marked, and destination ranks are compute accordingly.
+                 *
+                 * \param plans Array of particle plans to write to
+                 * \param mask Mask for allowed sending directions
+                 */
+                void markGhostParticles(const GPUArray<unsigned int>& plans, unsigned int mask);
+
+            private:
+                Communicator& m_comm;                            //!< The outer class
+                boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
+                boost::shared_ptr<group_data> m_gdata;           //!< The group data
+
+                std::vector<rank_element_t> m_ranks_sendbuf;     //!< Send buffer for rank elements
+                std::vector<rank_element_t> m_ranks_recvbuf;     //!< Receive buffer for rank elements
+
+                std::vector<typename group_data::packed_t> m_groups_sendbuf;     //!< Send buffer for group elements
+                std::vector<typename group_data::packed_t> m_groups_recvbuf;     //!< Receive buffer for group elements
+            };
 
         //! Returns true if we are communicating particles along a given direction
         /*! \param dir Direction to return dimensions for
@@ -486,17 +530,20 @@ class Communicator
 
         unsigned int m_is_at_boundary[6];      //!< Array of flags indicating whether this box lies at a global boundary
 
-        GPUVector<char> m_sendbuf;             //!< Buffer for particles that are sent
-        GPUVector<char> m_recvbuf;             //!< Buffer for particles that are received
-        GPUArray<bond_element> m_bond_send_buf;//!< Buffer for bonds that are sent
-        GPUArray<bond_element> m_bond_recv_buf;//!< Buffer for bonds that are received
-        GPUArray<unsigned int> m_bond_remove_mask; //!< Per-bond flag (1= remove, 0= keep)
+        GPUArray<unsigned int> m_neighbors;            //!< Neighbor ranks
+        GPUArray<unsigned int> m_unique_neighbors;     //!< Neighbor ranks w/duplicates removed
+        GPUArray<unsigned int> m_adj_mask;             //!< Adjacency mask for every neighbor
+        unsigned int m_nneigh;                         //!< Number of neighbors
+        unsigned int m_n_unique_neigh;                 //!< Number of unique neighbors
+        GPUArray<unsigned int> m_begin;                //!< Begin index for every neighbor in send buf
+        GPUArray<unsigned int> m_end;                  //!< End index for every neighbor in send buf
+
         GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
         GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
         GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
         GPUVector<Scalar4> m_velocity_copybuf;    //!< Buffer for particle velocities to be copied
         GPUVector<Scalar4> m_orientation_copybuf; //!< Buffer for particle orientation to be copied
-        GPUVector<unsigned char> m_plan_copybuf;  //!< Buffer for particle plans
+        GPUVector<unsigned int> m_plan_copybuf;  //!< Buffer for particle plans
         GPUVector<unsigned int> m_tag_copybuf;    //!< Buffer for particle tags
 
         GPUVector<unsigned int> m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts
@@ -504,34 +551,88 @@ class Communicator
         unsigned int m_num_recv_ghosts[6];       //!< Number of ghosts received per direction
 
         BoxDim m_global_box;                     //!< Global simulation box
-        unsigned int m_packed_size;              //!< Size of packed particle data element in bytes
         Scalar m_r_ghost;                        //!< Width of ghost layer
         Scalar m_r_buff;                         //!< Width of skin layer
-        const float m_resize_factor;                //!< Factor used for amortized array resizing
 
-        GPUVector<unsigned char> m_plan;         //!< Array of per-direction flags that determine the sending route
+        GPUVector<unsigned int> m_plan;          //!< Array of per-direction flags that determine the sending route
 
         boost::signals2::signal<bool(unsigned int timestep), migrate_logical_or>
             m_migrate_requests; //!< List of functions that may request particle migration
 
-        RoutingTable m_routing_table;            //!< The routing table
+        boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
+            m_requested_flags;  //!< List of functions that may request ghost communication flags
+
+        boost::signals2::signal<void (unsigned int timestep)>
+            m_local_compute_callbacks;   //!< List of functions that can be overlapped with communication
+
+        boost::signals2::signal<void (unsigned int timestep)>
+            m_compute_callbacks;   //!< List of functions that are called after ghost communication
+
+        boost::signals2::signal<void (unsigned int timestep)>
+            m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
 
         CommFlags m_flags;                       //!< The ghost communication flags
+        CommFlags m_last_flags;                       //!< Flags of last ghost exchange
+
+        bool m_comm_pending;                     //!< If true, a communication is in process
+        std::vector<MPI_Request> m_reqs;         //!< List of pending MPI requests
+
+        /* Bonds communication */
+        bool m_bonds_changed;                          //!< True if bond information needs to be refreshed
+        boost::signals2::connection m_bond_connection; //!< Connection to BondData addition/removal of bonds signal
+        void setBondsChanged()
+            {
+            m_bonds_changed = true;
+            }
+
+        /* Angles communication */
+        bool m_angles_changed;                          //!< True if angle information needs to be refreshed
+        boost::signals2::connection m_angle_connection; //!< Connection to AngleData addition/removal of angles signal
+        void setAnglesChanged()
+            {
+            m_angles_changed = true;
+            }
+
+        /* Dihedrals communication */
+        bool m_dihedrals_changed;                          //!< True if dihedral information needs to be refreshed
+        boost::signals2::connection m_dihedral_connection; //!< Connection to DihedralData addition/removal of dihedrals signal
+        void setDihedralsChanged()
+            {
+            m_dihedrals_changed = true;
+            }
+
+        /* Impropers communication */
+        bool m_impropers_changed;                          //!< True if improper information needs to be refreshed
+        boost::signals2::connection m_improper_connection; //!< Connection to ImproperData addition/removal of impropers signal
+        void setImpropersChanged()
+            {
+            m_impropers_changed = true;
+            }
 
     private:
-        std::vector<Scalar4> scal4_tmp;          //!< Temporary list used to apply the sort order to the particle data
-        std::vector<Scalar3> scal3_tmp;          //!< Temporary list used to apply the sort order to the particle data
-        std::vector<Scalar> scal_tmp;            //!< Temporary list used to apply the sort order to the particle data
-        std::vector<unsigned int> uint_tmp;      //!< Temporary list used to apply the sort order to the particle data
-        std::vector<int3> int3_tmp;              //!< Temporary list used to apply the sort order to the particle data
+        std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent
+        std::vector<pdata_element> m_recvbuf;  //!< Buffer for particles that are received
+
+        /* Communication of bonded groups */
+        GroupCommunicator<BondData> m_bond_comm;    //!< Communication helper for bonds
+        friend class GroupCommunicator<BondData>;
+
+        GroupCommunicator<AngleData> m_angle_comm;  //!< Communication helper for angles
+        friend class GroupCommunicator<AngleData>;
+
+        GroupCommunicator<DihedralData> m_dihedral_comm;  //!< Communication helper for dihedrals
+        friend class GroupCommunicator<DihedralData>;
+
+        GroupCommunicator<ImproperData> m_improper_comm;  //!< Communication helper for impropers
+        friend class GroupCommunicator<ImproperData>;
 
         bool m_is_first_step;                    //!< True if no communication has yet occured
 
-        //! Helper function to initialize the lookup tables
-        void setupLookupTable();
+        //! Connection to the signal notifying when particles are resorted
+        boost::signals2::connection m_sort_connection;
 
-        //! Helper function to intialize the routing tables
-        void setupRoutingTable();
+        //! Helper function to initialize adjacency arrays
+        void initializeNeighborArrays();
     };
 
 

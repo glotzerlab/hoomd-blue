@@ -86,15 +86,15 @@ HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<Sys
     m_improper_data = m_sysdef->getImproperData();
 
     // check for some silly errors a user could make
-    if (m_improper_data->getNDihedralTypes() == 0)
+    if (m_improper_data->getNTypes() == 0)
         {
         m_exec_conf->msg->error() << "improper.harmonic: No improper types specified" << endl;
         throw runtime_error("Error initializing HarmonicImproperForceCompute");
         }
 
     // allocate the parameters
-    m_K = new Scalar[m_improper_data->getNDihedralTypes()];
-    m_chi = new Scalar[m_improper_data->getNDihedralTypes()];
+    m_K = new Scalar[m_improper_data->getNTypes()];
+    m_chi = new Scalar[m_improper_data->getNTypes()];
     }
 
 HarmonicImproperForceCompute::~HarmonicImproperForceCompute()
@@ -116,7 +116,7 @@ HarmonicImproperForceCompute::~HarmonicImproperForceCompute()
 void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar chi)
     {
     // make sure the type is valid
-    if (type >= m_improper_data->getNDihedralTypes())
+    if (type >= m_improper_data->getNTypes())
         {
         m_exec_conf->msg->error() << "improper.harmonic: Invalid improper type specified" << endl;
         throw runtime_error("Error setting parameters in HarmonicImproperForceCompute");
@@ -189,26 +189,36 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
 
     // for each of the impropers
-    const unsigned int size = (unsigned int)m_improper_data->getNumDihedrals();
+    const unsigned int size = (unsigned int)m_improper_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the improper
-        const Dihedral& improper = m_improper_data->getDihedral(i);
-        assert(improper.a < m_pdata->getN());
-        assert(improper.b < m_pdata->getN());
-        assert(improper.c < m_pdata->getN());
-        assert(improper.d < m_pdata->getN());
+        const ImproperData::members_t& improper = m_improper_data->getMembersByIndex(i);
+        assert(improper.tag[0] < m_pdata->getNGlobal());
+        assert(improper.tag[1] < m_pdata->getNGlobal());
+        assert(improper.tag[2] < m_pdata->getNGlobal());
+        assert(improper.tag[3] < m_pdata->getNGlobal());
 
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints
-        unsigned int idx_a = h_rtag.data[improper.a];
-        unsigned int idx_b = h_rtag.data[improper.b];
-        unsigned int idx_c = h_rtag.data[improper.c];
-        unsigned int idx_d = h_rtag.data[improper.d];
-        assert(idx_a < m_pdata->getN());
-        assert(idx_b < m_pdata->getN());
-        assert(idx_c < m_pdata->getN());
-        assert(idx_d < m_pdata->getN());
+        unsigned int idx_a = h_rtag.data[improper.tag[0]];
+        unsigned int idx_b = h_rtag.data[improper.tag[1]];
+        unsigned int idx_c = h_rtag.data[improper.tag[2]];
+        unsigned int idx_d = h_rtag.data[improper.tag[3]];
+
+        // throw an error if this angle is incomplete
+        if (idx_a == NOT_LOCAL|| idx_b == NOT_LOCAL || idx_c == NOT_LOCAL || idx_d == NOT_LOCAL)
+            {
+            this->m_exec_conf->msg->error() << "improper.harmonic: improper " <<
+                improper.tag[0] << " " << improper.tag[1] << " " << improper.tag[2] << " " << improper.tag[3]
+                << " incomplete." << endl << endl;
+            throw std::runtime_error("Error in improper calculation");
+            }
+
+        assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(idx_d < m_pdata->getN() + m_pdata->getNGhosts());
 
         // calculate d\vec{r}
         Scalar3 dab;
@@ -261,8 +271,9 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         Scalar s = sqrt(1.0 - c*c);
         if (s < SMALL) s = SMALL;
 
-        Scalar domega = acos(c) - m_chi[improper.type];
-        Scalar a = m_K[improper.type] * domega;
+        unsigned int improper_type = m_improper_data->getTypeByIndex(i);
+        Scalar domega = acos(c) - m_chi[improper_type];
+        Scalar a = m_K[improper_type] * domega;
 
         // calculate the energy, 1/4th for each atom
         //Scalar improper_eng = Scalar(0.25)*a*domega;
@@ -311,35 +322,46 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         improper_virial[4] = (1./4.)*(dab.z*ffay + dcb.z*ffcy + (ddc.z+dcb.z)*ffdy);
         improper_virial[5] = (1./4.)*(dab.z*ffaz + dcb.z*ffcz + (ddc.z+dcb.z)*ffdz);
 
+        if (idx_a < m_pdata->getN())
+            {
+            // accumulate the forces
+            h_force.data[idx_a].x += ffax;
+            h_force.data[idx_a].y += ffay;
+            h_force.data[idx_a].z += ffaz;
+            h_force.data[idx_a].w += improper_eng;
+            for (int k = 0; k < 6; k++)
+                h_virial.data[k*virial_pitch+idx_a]  += improper_virial[k];
+            }
 
-        // accumulate the forces
-        h_force.data[idx_a].x += ffax;
-        h_force.data[idx_a].y += ffay;
-        h_force.data[idx_a].z += ffaz;
-        h_force.data[idx_a].w += improper_eng;
-        for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+idx_a]  += improper_virial[k];
+        if (idx_b < m_pdata->getN())
+            {
+            h_force.data[idx_b].x += ffbx;
+            h_force.data[idx_b].y += ffby;
+            h_force.data[idx_b].z += ffbz;
+            h_force.data[idx_b].w += improper_eng;
+            for (int k = 0; k < 6; k++)
+                h_virial.data[k*virial_pitch+idx_b]  += improper_virial[k];
+            }
 
-        h_force.data[idx_b].x += ffbx;
-        h_force.data[idx_b].y += ffby;
-        h_force.data[idx_b].z += ffbz;
-        h_force.data[idx_b].w += improper_eng;
-        for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+idx_b]  += improper_virial[k];
+        if (idx_c < m_pdata->getN())
+            {
+            h_force.data[idx_c].x += ffcx;
+            h_force.data[idx_c].y += ffcy;
+            h_force.data[idx_c].z += ffcz;
+            h_force.data[idx_c].w += improper_eng;
+            for (int k = 0; k < 6; k++)
+                h_virial.data[k*virial_pitch+idx_c]  += improper_virial[k];
+            }
 
-        h_force.data[idx_c].x += ffcx;
-        h_force.data[idx_c].y += ffcy;
-        h_force.data[idx_c].z += ffcz;
-        h_force.data[idx_c].w += improper_eng;
-        for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+idx_c]  += improper_virial[k];
-
-        h_force.data[idx_d].x += ffdx;
-        h_force.data[idx_d].y += ffdy;
-        h_force.data[idx_d].z += ffdz;
-        h_force.data[idx_d].w += improper_eng;
-        for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+idx_d]  += improper_virial[k];
+        if (idx_d < m_pdata->getN())
+            {
+            h_force.data[idx_d].x += ffdx;
+            h_force.data[idx_d].y += ffdy;
+            h_force.data[idx_d].z += ffdz;
+            h_force.data[idx_d].w += improper_eng;
+            for (int k = 0; k < 6; k++)
+                h_virial.data[k*virial_pitch+idx_d]  += improper_virial[k];
+            }
         }
 
     if (m_prof) m_prof->pop();

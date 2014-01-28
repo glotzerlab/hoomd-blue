@@ -51,7 +51,7 @@ endif ()
 find_package(Boost 1.32.0 COMPONENTS REQUIRED ${REQUIRED_BOOST_COMPONENTS})
 
 # add include directories
-include_directories(SYSTEM ${Boost_INCLUDE_DIR})
+include_directories(${Boost_INCLUDE_DIR})
 
 # hide variables the user doesn't need to see
 mark_as_advanced(Boost_LIB_DIAGNOSTIC_DEFINITIONS)

@@ -56,6 +56,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #include "BoxDim.h"
 
+#include "util/mgpucontext.h"
+
 /*! \file ParticleData.cuh
     \brief Declares GPU kernel code and data structure functions used by ParticleData
 */
@@ -63,8 +65,76 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
-//! Sentinal value in \a r_tag to signify that this particle is not currently present on the local processor
+//! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
+
+#ifdef ENABLE_MPI
+//! Sentinel value in \a r_tag to signify that the particle is to be removed from the local processor
+const unsigned int STAGED = 0xfffffffe;
 #endif
 
+#endif
+
+#ifdef NVCC
+//! Compact particle data storage
+struct pdata_element
+    {
+    Scalar4 pos;               //!< Position
+    Scalar4 vel;               //!< Velocity
+    Scalar3 accel;             //!< Acceleration
+    Scalar charge;             //!< Charge
+    Scalar diameter;           //!< Diameter
+    int3 image;                //!< Image
+    unsigned int body;         //!< Body id
+    Scalar4 orientation;       //!< Orientation
+    unsigned int tag;          //!< global tag
+    };
+#else
+//!Forward declaration
+class pdata_element;
+#endif
+
+//! Pack particle data into output buffer and remove marked particles
+unsigned int gpu_pdata_remove(const unsigned int N,
+                    const Scalar4 *d_pos,
+                    const Scalar4 *d_vel,
+                    const Scalar3 *d_accel,
+                    const Scalar *d_charge,
+                    const Scalar *d_diameter,
+                    const int3 *d_image,
+                    const unsigned int *d_body,
+                    const Scalar4 *d_orientation,
+                    const unsigned int *d_tag,
+                    unsigned int *d_rtag,
+                    Scalar4 *d_pos_alt,
+                    Scalar4 *d_vel_alt,
+                    Scalar3 *d_accel_alt,
+                    Scalar *d_charge_alt,
+                    Scalar *d_diameter_alt,
+                    int3 *d_image_alt,
+                    unsigned int *d_body_alt,
+                    Scalar4 *d_orientation_alt,
+                    unsigned int *d_tag_alt,
+                    pdata_element *d_out,
+                    unsigned int *d_comm_flags,
+                    unsigned int *d_comm_flags_out,
+                    unsigned int max_n_out,
+                    unsigned int *d_tmp,
+                    mgpu::ContextPtr mgpu_context);
+
+//! Update particle data with new particles
+void gpu_pdata_add_particles(const unsigned int old_nparticles,
+                    const unsigned int num_add_ptls,
+                    Scalar4 *d_pos,
+                    Scalar4 *d_vel,
+                    Scalar3 *d_accel,
+                    Scalar *d_charge,
+                    Scalar *d_diameter,
+                    int3 *d_image,
+                    unsigned int *d_body,
+                    Scalar4 *d_orientation,
+                    unsigned int *d_tag,
+                    unsigned int *d_rtag,
+                    const pdata_element *d_in,
+                    unsigned int *d_comm_flags);
 #endif

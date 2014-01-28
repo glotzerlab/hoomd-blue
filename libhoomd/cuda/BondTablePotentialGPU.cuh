@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "Index1D.h"
 #include "HOOMDMath.h"
+#include "BondedGroupData.cuh"
 
 #ifndef __BONDTABLEPOTENTIALGPU_CUH__
 #define __BONDTABLEPOTENTIALGPU_CUH__
@@ -68,7 +69,7 @@ cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
                                      const BoxDim &box,
-                                     const uint2 *blist,
+                                     const group_storage<2> *blist,
                                      const unsigned int pitch,
                                      const unsigned int *n_bonds_list,
                                      const unsigned int n_bond_type,

@@ -101,9 +101,19 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     GPUArray< Scalar > scratch_pressure_tensor(m_num_blocks * 6, exec_conf);
     m_scratch_pressure_tensor.swap(scratch_pressure_tensor);
+
+    // override base class allocation using mapped memory
+    GPUArray< Scalar > properties(thermo_index::num_quantities, exec_conf,true);
+    m_properties.swap(properties);
+
+    cudaEventCreate(&m_event, cudaEventDisableTiming);
     }
 
-
+//! Destructor
+ComputeThermoGPU::~ComputeThermoGPU()
+    {
+    cudaEventDestroy(m_event);
+    }
 
 /*! Computes all thermodynamic properties of the system in one fell swoop, on the GPU.
  */
@@ -171,25 +181,32 @@ void ComputeThermoGPU::computeProperties()
         CHECK_CUDA_ERROR();
     }
 
-#ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        MPI_Comm mpi_comm = m_exec_conf->getMPICommunicator();
+    #ifdef ENABLE_MPI
+    // in MPI, reduce extensive quantities only when they're needed
+    m_properties_reduced = !m_pdata->getDomainDecomposition();
+    #endif // ENABLE_MPI
 
-
-        // copy data back to the host to perform collective operations
-        ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
-
-        if (m_prof)
-            m_prof->push("MPI Allreduce");
-        MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR, MPI_SUM, mpi_comm);
-        if (m_prof)
-                m_prof->pop();
-        }
-#endif // ENABLE_MPI
+    if (!m_properties_reduced) cudaEventRecord(m_event);
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
+
+#ifdef ENABLE_MPI
+void ComputeThermoGPU::reduceProperties()
+    {
+    if (m_properties_reduced) return;
+
+    ArrayHandleAsync<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
+    cudaEventSynchronize(m_event);
+
+    // reduce properties
+    MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR,
+            MPI_SUM, m_exec_conf->getMPICommunicator());
+
+    m_properties_reduced = true;
+    }
+#endif
+
 
 void export_ComputeThermoGPU()
     {

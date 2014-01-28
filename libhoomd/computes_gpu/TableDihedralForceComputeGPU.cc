@@ -116,9 +116,9 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
         {
         // Access the dihedral data for reading
-        ArrayHandle<uint4> d_gpu_dihedrallist(m_dihedral_data->getGPUDihedralList(), access_location::device,access_mode::read);
-        ArrayHandle<unsigned int> d_gpu_n_dihedrals(m_dihedral_data->getNDihedralsArray(), access_location::device, access_mode::read);
-        ArrayHandle<uint1> d_dihedrals_ABCD(m_dihedral_data->getDihedralABCD(), access_location::device, access_mode::read);
+        ArrayHandle<group_storage<4> > d_gpu_dihedrallist(m_dihedral_data->getGPUTable(), access_location::device,access_mode::read);
+        ArrayHandle<unsigned int> d_gpu_n_dihedrals(m_dihedral_data->getNGroupsArray(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_dihedrals_ABCD(m_dihedral_data->getGPUPosTable(), access_location::device, access_mode::read);
 
 
         // run the kernel on all GPUs in parallel
@@ -130,7 +130,7 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
                              box,
                              d_gpu_dihedrallist.data,
                              d_dihedrals_ABCD.data,
-                             m_dihedral_data->getGPUDihedralList().getPitch(),
+                             m_dihedral_data->getGPUTableIndexer().getW(),
                              d_gpu_n_dihedrals.data,
                              d_tables.data,
                              m_table_width,

@@ -75,9 +75,7 @@ using namespace boost::python;
 #endif
 
 #include "HOOMDBinaryDumpWriter.h"
-#include "BondData.h"
-#include "AngleData.h"
-#include "DihedralData.h"
+#include "BondedGroupData.h"
 #include "WallData.h"
 
 using namespace std;
@@ -249,7 +247,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // Output the bonds to the binary file
     {
     //write out type mapping
-    ntypes = m_sysdef->getBondData()->getNBondTypes();
+    ntypes = m_sysdef->getBondData()->getNTypes();
     f.write((char*)&ntypes, sizeof(unsigned int));
     for (unsigned int i = 0; i < ntypes; i++)
         {
@@ -257,24 +255,25 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         write_string(f, name);
         }
 
-    unsigned int nb = m_sysdef->getBondData()->getNumBonds();
+    unsigned int nb = m_sysdef->getBondData()->getN();
     f.write((char*)&nb, sizeof(unsigned int));
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
     // loop over all bonds and write them out
-    for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
+    for (unsigned int i = 0; i < bond_data->getN(); i++)
         {
-        Bond bond = bond_data->getBond(i);
-        f.write((char*)&bond.type, sizeof(unsigned int));
-        f.write((char*)&bond.a, sizeof(unsigned int));
-        f.write((char*)&bond.b, sizeof(unsigned int));
+        BondData::members_t bond = bond_data->getMembersByIndex(i);
+        unsigned int type = bond_data->getTypeByIndex(i);
+        f.write((char*)&type, sizeof(unsigned int));
+        f.write((char*)&bond.tag[0], sizeof(unsigned int));
+        f.write((char*)&bond.tag[1], sizeof(unsigned int));
         }
     }
 
     // Output the angles to the binary file
     {
     //write out type mapping
-    ntypes = m_sysdef->getAngleData()->getNAngleTypes();
+    ntypes = m_sysdef->getAngleData()->getNTypes();
     f.write((char*)&ntypes, sizeof(unsigned int));
     for (unsigned int i = 0; i < ntypes; i++)
         {
@@ -282,27 +281,28 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         write_string(f, name);
         }
 
-    unsigned int na = m_sysdef->getAngleData()->getNumAngles();
+    unsigned int na = m_sysdef->getAngleData()->getN();
     f.write((char*)&na, sizeof(unsigned int));
 
     boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
     // loop over all angles and write them out
-    for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
+    for (unsigned int i = 0; i < angle_data->getN(); i++)
         {
-        Angle angle = angle_data->getAngle(i);
+        AngleData::members_t angle = angle_data->getMembersByIndex(i);
+        unsigned int type = angle_data->getTypeByIndex(i);
 
-        f.write((char*)&angle.type, sizeof(unsigned int));
-        f.write((char*)&angle.a, sizeof(unsigned int));
-        f.write((char*)&angle.b, sizeof(unsigned int));
-        f.write((char*)&angle.c, sizeof(unsigned int));
+        f.write((char*)&type, sizeof(unsigned int));
+        f.write((char*)&angle.tag[0], sizeof(unsigned int));
+        f.write((char*)&angle.tag[1], sizeof(unsigned int));
+        f.write((char*)&angle.tag[2], sizeof(unsigned int));
         }
     }
 
     // Write out dihedrals to the binary file
     {
     //write out type mapping
-    ntypes = m_sysdef->getDihedralData()->getNDihedralTypes();
+    ntypes = m_sysdef->getDihedralData()->getNTypes();
     f.write((char*)&ntypes, sizeof(unsigned int));
     for (unsigned int i = 0; i < ntypes; i++)
         {
@@ -310,27 +310,28 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         write_string(f, name);
         }
 
-    unsigned int nd = m_sysdef->getDihedralData()->getNumDihedrals();
+    unsigned int nd = m_sysdef->getDihedralData()->getNGlobal();
     f.write((char*)&nd, sizeof(unsigned int));
 
     boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
     // loop over all angles and write them out
-    for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
+    for (unsigned int i = 0; i < dihedral_data->getNGlobal(); i++)
         {
-        Dihedral dihedral = dihedral_data->getDihedral(i);
+        DihedralData::members_t dihedral = dihedral_data->getMembersByIndex(i);
+        unsigned int type = dihedral_data->getTypeByIndex(i);
 
-        f.write((char*)&dihedral.type, sizeof(unsigned int));
-        f.write((char*)&dihedral.a, sizeof(unsigned int));
-        f.write((char*)&dihedral.b, sizeof(unsigned int));
-        f.write((char*)&dihedral.c, sizeof(unsigned int));
-        f.write((char*)&dihedral.d, sizeof(unsigned int));
+        f.write((char*)&type, sizeof(unsigned int));
+        f.write((char*)&dihedral.tag[0], sizeof(unsigned int));
+        f.write((char*)&dihedral.tag[1], sizeof(unsigned int));
+        f.write((char*)&dihedral.tag[2], sizeof(unsigned int));
+        f.write((char*)&dihedral.tag[3], sizeof(unsigned int));
         }
     }
 
     // Write out impropers to the binary file
     {
-    ntypes = m_sysdef->getImproperData()->getNDihedralTypes();
+    ntypes = m_sysdef->getImproperData()->getNTypes();
     f.write((char*)&ntypes, sizeof(unsigned int));
     for (unsigned int i = 0; i < ntypes; i++)
         {
@@ -338,21 +339,22 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         write_string(f, name);
         }
 
-    unsigned int ni = m_sysdef->getImproperData()->getNumDihedrals();
+    unsigned int ni = m_sysdef->getImproperData()->getNGlobal();
     f.write((char*)&ni, sizeof(unsigned int));
 
-    boost::shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
+    boost::shared_ptr<ImproperData> improper_data = m_sysdef->getImproperData();
 
     // loop over all angles and write them out
-    for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
+    for (unsigned int i = 0; i < improper_data->getNGlobal(); i++)
         {
-        Dihedral dihedral = improper_data->getDihedral(i);
+        ImproperData::members_t improper = improper_data->getMembersByIndex(i);
+        unsigned int type = improper_data->getTypeByIndex(i);
 
-        f.write((char*)&dihedral.type, sizeof(unsigned int));
-        f.write((char*)&dihedral.a, sizeof(unsigned int));
-        f.write((char*)&dihedral.b, sizeof(unsigned int));
-        f.write((char*)&dihedral.c, sizeof(unsigned int));
-        f.write((char*)&dihedral.d, sizeof(unsigned int));
+        f.write((char*)&type, sizeof(unsigned int));
+        f.write((char*)&improper.tag[0], sizeof(unsigned int));
+        f.write((char*)&improper.tag[1], sizeof(unsigned int));
+        f.write((char*)&improper.tag[2], sizeof(unsigned int));
+        f.write((char*)&improper.tag[3], sizeof(unsigned int));
         }
     }
 

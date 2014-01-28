@@ -68,6 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 #include "GPUArray.h"
+#include "GPUVector.h"
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
@@ -117,15 +118,7 @@ using namespace std;
 // Forward declaration of Profiler
 class Profiler;
 
-class SnapshotBondData;
-
 class WallData;
-
-// Forward declaration of AngleData
-class AngleData;
-
-// Forward declaration of DihedralData
-class DihedralData;
 
 // Forward declaration of RigidData
 class RigidData;
@@ -194,7 +187,7 @@ struct InertiaTensor
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
 
-//! Sentinal value in \a r_tag to signify that this particle is not currently present on the local processor
+//! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 
 //! Handy structure for passing around per-particle data
@@ -247,6 +240,22 @@ struct SnapshotParticleData {
 
     unsigned int size;              //!< number of particles in this snapshot
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
+    };
+
+//! Structure to store packed particle data
+/* pdata_element is used for compact storage of particle data, mainly for communication.
+ */
+struct pdata_element
+    {
+    Scalar4 pos;               //!< Position
+    Scalar4 vel;               //!< Velocity
+    Scalar3 accel;             //!< Acceleration
+    Scalar charge;             //!< Charge
+    Scalar diameter;           //!< Diameter
+    int3 image;                //!< Image
+    unsigned int body;         //!< Body id
+    Scalar4 orientation;       //!< Orientation
+    unsigned int tag;          //!< global tag
     };
 
 //! Manages all of the data arrays for the particles
@@ -311,30 +320,21 @@ struct SnapshotParticleData {
 
     ## Parallel simulations
 
-    In a parallel (or domain decompositon) simulation, the ParticleData may either correspond to the global state of the
-    simulation (e.g. before and after a simulation run), or to the local particles only (e.g. during a simulation run).
-    In the latter case, getN() returns the current number of \a local particles. The method getNGlobal() can be used to query the \a global number
-    of particles on all processors.
+    In a parallel simulation, the ParticleData contains he local particles only, and getN() returns the current number of
+    \a local particles. The method getNGlobal() can be used to query the \a global number of particles on all processors.
 
     During the simulation particles may enter or leave the box, therefore the number of \a local particles may change.
     To account for this, the size of the particle data arrays is dynamically updated using amortized doubling of the array sizes. To add particles to
-    the domain, the addParticles() method is called, and the arrays are resized if necessary. Conversely, if particles are removed,
-    the removeParticles() method is called.
+    the domain, the addParticles() method is called, and the arrays are resized if necessary. Particles are retrieved
+    and removed from the local particle data arrays using removeParticles(). To flag particles for removal, set the
+    communication flag (m_comm_flags) for that particle to a non-zero value.
 
-    In addition, since many other classes maintain internal arrays with data for every particle (such as neighbor lists etc.), these
+    In addition, since many other classes maintain internal arrays holding data for every particle (such as neighbor lists etc.), these
     arrays need to be resized, too, if the particle number changes. Everytime the particle data arrays are reallocated, a
     maximum particle number change signal is triggered. Other classes can subscribe to this signal using connectMaxParticleNumberChange().
-    They may use the current maxium size of the particle arrays, which is returned by getMaxN().
-    This size changes only infrequently (it is doubled when necessary, see above). Note that getMaxN() can return a higher number
+    They may use the current maxium size of the particle arrays, which is returned by getMaxN().  This size changes only infrequently
+    (by amortized array resizing). Note that getMaxN() can return a higher number
     than the actual number of particles.
-
-    \note addParticles() and removeParticles() only change the particle number counters and the allocated memory size (if necessary).
-    They do not actually change any data in the particle arrays. The caller is responsible for (re-)organizing the particle data when particles
-    are added or deleted.
-
-    If, after insertion or deletion of particles, the reorganisation of the particle data is complete, i.e. all the particle data
-    fields are filled, the class that has modified the ParticleData must inform other classes about the new particle data
-    using notifyParticleSort().
 
     Particle data also stores temporary particles ('ghost atoms'). These are added after the local particle data (i.e. with indices
     starting at getN()). It keeps track of those particles using the addGhostParticles() and removeAllGhostParticles() methods.
@@ -521,6 +521,99 @@ class ParticleData : boost::noncopyable
         //! Return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
 
+        /*!
+         * Access methods to stand-by arrays for fast swapping in of reordered particle data
+         *
+         * \warning An array that is swapped in has to be completely initialized.
+         *          In parallel simulations, the ghost data needs to be initalized as well,
+         *          or all ghosts need to be removed and re-initialized before and after reordering.
+         *
+         * USAGE EXAMPLE:
+         * \code
+         * m_comm->migrateParticles(); // migrate particles and remove all ghosts
+         *     {
+         *      ArrayHandle<Scalar4> h_pos_alt(m_pdata->getAltPositions(), access_location::host, access_mode::overwrite)
+         *      ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+         *      for (int i=0; i < getN(); ++i)
+         *          h_pos_alt.data[i] = h_pos.data[permutation[i]]; // apply some permutation
+         *     }
+         * m_pdata->swapPositions(); // swap in reordered data at no extra cost
+         * notifyParticleSort();     // ensures that ghosts will be restored at next communication step
+         * \endcode
+         */
+
+        //! Return positions and types (alternate array)
+        const GPUArray< Scalar4 >& getAltPositions() const { return m_pos_alt; }
+
+        //! Swap in positions
+        inline void swapPositions() { m_pos.swap(m_pos_alt); }
+
+        //! Return velocities and masses (alternate array)
+        const GPUArray< Scalar4 >& getAltVelocities() const { return m_vel_alt; }
+
+        //! Swap in velocities
+        inline void swapVelocities() { m_vel.swap(m_vel_alt); }
+
+        //! Return accelerations (alternate array)
+        const GPUArray< Scalar3 >& getAltAccelerations() const { return m_accel_alt; }
+
+        //! Swap in accelerations
+        inline void swapAccelerations() { m_accel.swap(m_accel_alt); }
+
+        //! Return charges (alternate array)
+        const GPUArray< Scalar >& getAltCharges() const { return m_charge_alt; }
+
+        //! Swap in accelerations
+        inline void swapCharges() { m_charge.swap(m_charge_alt); }
+
+        //! Return diameters (alternate array)
+        const GPUArray< Scalar >& getAltDiameters() const { return m_diameter_alt; }
+
+        //! Swap in diameters
+        inline void swapDiameters() { m_diameter.swap(m_diameter_alt); }
+
+        //! Return images (alternate array)
+        const GPUArray< int3 >& getAltImages() const { return m_image_alt; }
+
+        //! Swap in images
+        inline void swapImages() { m_image.swap(m_image_alt); }
+
+        //! Return tags (alternate array)
+        const GPUArray< unsigned int >& getAltTags() const { return m_tag_alt; }
+
+        //! Swap in tags
+        inline void swapTags() { m_tag.swap(m_tag_alt); }
+
+        //! Return body ids (alternate array)
+        const GPUArray< unsigned int >& getAltBodies() const { return m_body_alt; }
+
+        //! Swap in bodies
+        inline void swapBodies() { m_body.swap(m_body_alt); }
+
+        //! Get the net force array (alternate array)
+        const GPUArray< Scalar4 >& getAltNetForce() const { return m_net_force_alt; }
+
+        //! Swap in net force
+        inline void swapNetForce() { m_net_force.swap(m_net_force_alt); }
+
+        //! Get the net virial array (alternate array)
+        const GPUArray< Scalar >& getAltNetVirial() const { return m_net_virial_alt; }
+
+        //! Swap in net virial
+        inline void swapNetVirial() { m_net_virial.swap(m_net_virial_alt); }
+
+        //! Get the net torque array (alternate array)
+        const GPUArray< Scalar4 >& getAltNetTorqueArray() const { return m_net_torque_alt; }
+
+        //! Swap in net torque
+        inline void swapNetTorque() { m_net_torque.swap(m_net_torque_alt); }
+
+        //! Get the orientations (alternate array)
+        const GPUArray< Scalar4 >& getAltOrientationArray() const { return m_orientation_alt; }
+
+        //! Swap in orientations
+        inline void swapOrientations() { m_orientation.swap(m_orientation_alt); }
+
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
         */
@@ -544,6 +637,12 @@ class ParticleData : boost::noncopyable
         //! Connects a function to be called every time the ghost particles are updated
         boost::signals2::connection connectGhostParticleNumberChange(const boost::function< void()> &func);
 
+        #ifdef ENABLE_MPI
+        //! Connects a function to be called every time a single particle migration is requested
+        boost::signals2::connection connectSingleParticleMove(
+            const boost::function<void (unsigned int, unsigned int, unsigned int)> &func);
+        #endif
+
         //! Notify listeners that the number of ghost particles has changed
         void notifyGhostParticleNumberChange();
 
@@ -565,10 +664,15 @@ class ParticleData : boost::noncopyable
         //! Get the orientation array
         const GPUArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
 
-#ifdef ENABLE_MPI
+        #ifdef ENABLE_MPI
+        //! Get the communication flags array
+        const GPUArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
+        #endif
+
+        #ifdef ENABLE_MPI
         //! Find the processor that owns a particle
         unsigned int getOwnerRank(unsigned int tag) const;
-#endif
+        #endif
 
         //! Get the current position of a particle
         Scalar3 getPosition(unsigned int tag) const;
@@ -634,7 +738,9 @@ class ParticleData : boost::noncopyable
         Scalar4 getNetTorque(unsigned int tag) const;
 
         //! Set the current position of a particle
-        void setPosition(unsigned int tag, const Scalar3& pos);
+        /*! \param move If true, particle is automatically placed into correct domain
+         */
+        void setPosition(unsigned int tag, const Scalar3& pos, bool move=true);
 
         //! Set the current velocity of a particle
         void setVelocity(unsigned int tag, const Scalar3& vel);
@@ -699,12 +805,6 @@ class ParticleData : boost::noncopyable
         //! Take a snapshot
         void takeSnapshot(SnapshotParticleData &snapshot);
 
-        //! Remove particles from the local particle data
-        void removeParticles(const unsigned int n);
-
-        //! Add a number of particles to the local particle data
-        void addParticles(const unsigned int n);
-
         //! Add ghost particles at the end of the local particle data
         void addGhostParticles(const unsigned int nghosts);
 
@@ -729,7 +829,50 @@ class ParticleData : boost::noncopyable
             {
             return m_decomposition;
             }
-#endif
+
+        //! Pack particle data into a buffer
+        /*! \param out Buffer into which particle data is packed
+         *  \param comm_flags Buffer into which communication flags is packed
+         *
+         *  Packs all particles for which comm_flag>0 into a buffer
+         *  and remove them from the particle data
+         *
+         *  The output buffers are automatically resized to accomodate the data.
+         *
+         *  \post The particle data arrays remain compact. Any ghost atoms
+         *        are invalidated. (call removeAllGhostAtoms() before or after
+         *        this method).
+         */
+        void removeParticles(std::vector<pdata_element>& out, std::vector<unsigned int>& comm_flags);
+
+        //! Remove particles from local domain and add new particle data
+        /*! \param in List of particle data elements to fill the particle data with
+         */
+        void addParticles(const std::vector<pdata_element>& in);
+
+        #ifdef ENABLE_CUDA
+        //! Pack particle data into a buffer (GPU version)
+        /*! \param out Buffer into which particle data is packed
+         *  \param comm_flags Buffer into which communication flags is packed
+         *
+         *  Pack all particles for which comm_flag >0 into a buffer
+         *  and remove them from the particle data
+         *
+         *  The output buffers are automatically resized to accomodate the data.
+         *
+         *  \post The particle data arrays remain compact. Any ghost atoms
+         *        are invalidated. (call removeAllGhostAtoms() before or after
+         *        this method).
+         */
+        void removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<unsigned int>& comm_flags);
+
+        //! Remove particles from local domain and add new particle data (GPU version)
+        /*! \param in List of particle data elements to fill the particle data with
+         */
+        void addParticlesGPU(const GPUVector<pdata_element>& in);
+        #endif // ENABLE_CUDA
+
+#endif // ENABLE_MPI
 
         //! Translate the box origin
         /*! \param a vector to apply in the translation
@@ -765,6 +908,10 @@ class ParticleData : boost::noncopyable
         boost::signals2::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
         boost::signals2::signal<void ()> m_ghost_particle_num_signal; //!< Signal that is triggered when ghost particles are added to or deleted
 
+        #ifdef ENABLE_MPI
+        boost::signals2::signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
+        #endif
+
         unsigned int m_nparticles;                  //!< number of particles
         unsigned int m_nghosts;                     //!< number of ghost particles
         unsigned int m_max_nparticles;              //!< maximum number of particles
@@ -780,13 +927,39 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_tag;               //!< particle tags
         GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
+        GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
+        #ifdef ENABLE_MPI
+        GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
+        #endif
+
+
+        /* Alternate particle data arrays are provided for fast swapping in and out of particle data
+           The size of these arrays is updated in sync with the main particle data arrays.
+
+           The primary use case is when particle data has to be re-ordered in-place, i.e.
+           a temporary array would otherwise be required. Instead of writing to a temporary
+           array and copying to the main particle data subsequently, the re-ordered particle
+           data can be written to the alternate arrays, which are then swapped in for
+           the real particle data at effectively zero cost.
+         */
+        GPUArray<Scalar4> m_pos_alt;                //!< particle positions and type (swap-in)
+        GPUArray<Scalar4> m_vel_alt;                //!< particle velocities and masses (swap-in)
+        GPUArray<Scalar3> m_accel_alt;              //!< particle accelerations (swap-in)
+        GPUArray<Scalar> m_charge_alt;              //!< particle charges (swap-in)
+        GPUArray<Scalar> m_diameter_alt;            //!< particle diameters (swap-in)
+        GPUArray<int3> m_image_alt;                 //!< particle images (swap-in)
+        GPUArray<unsigned int> m_tag_alt;           //!< particle tags (swap-in)
+        GPUArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
+        GPUArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
+        GPUArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
+        GPUArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
+        GPUArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
 
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
 
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
         GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)
         GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
-        GPUArray< Scalar4 > m_orientation;           //!< Orientation quaternion for each particle (ignored if not anisotropic)
         std::vector< InertiaTensor > m_inertia_tensor; //!< Inertia tensor for each particle
 
         Scalar m_external_virial[6];                 //!< External potential contribution to the virial
@@ -796,8 +969,18 @@ class ParticleData : boost::noncopyable
         Scalar3 m_origin;                            //!< Tracks the position of the origin of the coordinate system
         int3 m_o_image;                              //!< Tracks the origin image
 
+        #ifdef ENABLE_CUDA
+        mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
+        #endif
+
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
+
+        //! Helper function to allocate alternate particle data
+        void allocateAlternateArrays(unsigned int N);
+
+        //! Helper function for amortized array resizing
+        void resize(unsigned int new_nparticles);
 
         //! Helper function to reallocate particle data
         void reallocate(unsigned int max_n);

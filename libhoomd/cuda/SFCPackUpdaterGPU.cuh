@@ -48,33 +48,59 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: dnlebard
+// Maintainer: jglaser
 
-#ifndef _ANGLEDATA_CUH_
-#define _ANGLEDATA_CUH_
+#ifndef __SFC_PACK_UPDATER_GPU_CUH__
+#define __SFC_PACK_UPDATER_GPU_CUH__
 
-#include <cuda_runtime.h>
+#include "HOOMDMath.h"
+#include "BoxDim.h"
 
-/*! \file AngleData.cuh
-    \brief GPU helper functions used in AngleData
+#include "util/mgpucontext.h"
+
+/*! \file SFCPackUpdaterGPU.cuh
+    \brief Defines GPU functions for generating the space-filling curve sorted order on the GPU. Used by SFCPackUpdaterGPU.
 */
 
-//! Find the maximum number of angles per particle
-cudaError_t gpu_find_max_angle_number(unsigned int& max_angle_num,
-                             unsigned int *d_n_angles,
-                             const uint3 *d_angles,
-                             const unsigned int num_angles,
-                             const unsigned int N,
-                             const unsigned int *d_rtag);
+//! Generate sorted order on GPU
+void gpu_generate_sorted_order(unsigned int N,
+        const Scalar4 *d_pos,
+        unsigned int *d_particle_bins,
+        unsigned int *d_traversal_order,
+        unsigned int n_grid,
+        unsigned int *d_sorted_order,
+        const BoxDim& box,
+        bool twod,
+        mgpu::ContextPtr mgpu_context);
 
-//! Construct the GPU angle table
-cudaError_t gpu_create_angletable(uint4 *d_gpu_angletable,
-                                  unsigned int *d_n_angles,
-                                  const uint3 *d_angles,
-                                  const unsigned int *d_angle_type,
-                                  const unsigned int *d_rtag,
-                                  const unsigned int num_angles,
-                                  const unsigned int pitch,
-                                  const unsigned int N);
+//! Reorder particle data (GPU driver function)
+void gpu_apply_sorted_order(
+        unsigned int N,
+        const unsigned int *d_sorted_order,
+        const Scalar4 *d_pos,
+        Scalar4 *d_pos_alt,
+        const Scalar4 *d_vel,
+        Scalar4 *d_vel_alt,
+        const Scalar3 *d_accel,
+        Scalar3 *d_accel_alt,
+        const Scalar *d_charge,
+        Scalar *d_charge_alt,
+        const Scalar *d_diameter,
+        Scalar *d_diameter_alt,
+        const int3 *d_image,
+        int3 *d_image_alt,
+        const unsigned int *d_body,
+        unsigned int *d_body_alt,
+        const unsigned int *d_tag,
+        unsigned int *d_tag_alt,
+        const Scalar4 *d_orientation,
+        Scalar4 *d_orientation_alt,
+        const Scalar *d_net_virial,
+        Scalar *d_net_virial_alt,
+        const Scalar4 *d_net_force,
+        Scalar4 *d_net_force_alt,
+        const Scalar4 *d_net_torque,
+        Scalar4 *d_net_torque_alt,
+        unsigned int *d_rtag);
 
-#endif
+#endif // __SFC_PACK_UPDATER_GPU_CUH__

@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
-#include "AngleData.cuh"
+#include "BondedGroupData.cuh"
 #include "ParticleData.cuh"
 #include "HOOMDMath.h"
 
@@ -68,7 +68,8 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
                                            const unsigned int N,
                                            const Scalar4 *d_pos,
                                            const BoxDim& box,
-                                           const uint4 *atable,
+                                           const group_storage<3> *atable,
+                                           const unsigned int *apos_list,
                                            const unsigned int pitch,
                                            const unsigned int *n_angles_list,
                                            Scalar2 *d_params,

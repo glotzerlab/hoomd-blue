@@ -11,8 +11,6 @@ if (ENABLE_CUDA)
 		message(SEND_ERROR "CUDA 3.2 and older are not supported")
 	endif (${CUDA_VERSION} VERSION_LESS 4.0)
 
-	include_directories(${CUDA_INCLUDE_DIRS})
-
     # Find Thrust
     find_package(Thrust)
 
@@ -20,6 +18,13 @@ if (ENABLE_CUDA)
         message(SEND_ERROR "Thrust version ${THRUST_VERSION} found, >= 1.5.0 is required")
     endif (${THRUST_VERSION} VERSION_LESS 1.5.0)
 
+    # first thrust, then CUDA (to allow for local thrust installation
+    # that overrides CUDA toolkit)
+    include_directories(${THRUST_INCLUDE_DIR})
+
+	include_directories(${CUDA_INCLUDE_DIRS})
+
+    get_directory_property(DIRS INCLUDE_DIRECTORIES SYSTEM)
     # hide some variables users don't need to see
     mark_as_advanced(CUDA_SDK_ROOT_DIR)
     if (CUDA_TOOLKIT_ROOT_DIR)

@@ -392,22 +392,23 @@ class BoxDim
         //! Wrap a vector back into the box
         /*! \param w Vector to wrap, updated to the minimum image obeying the periodic settings
             \param img Image of the vector, updated to reflect the new image
+            \param flags Vector of flags to force wrapping along certain directions
             \post \a img and \a v are updated appropriately
             \note \a v must not extend more than 1 image beyond the box
         */
-        HOSTDEVICE void wrap(Scalar3& w, int3& img) const
+        HOSTDEVICE void wrap(Scalar3& w, int3& img, char3 flags = make_char3(0,0,0)) const
             {
             Scalar3 L = getL();
 
             if (m_periodic.x)
                 {
                 Scalar tilt_x = (m_xz - m_xy*m_yz) * w.z + m_xy * w.y;
-                if (w.x >= m_hi.x + tilt_x)
+                if (((w.x >= m_hi.x + tilt_x) && !flags.x) || flags.x == 1)
                     {
                     w.x -= L.x;
                     img.x++;
                     }
-                else if (w.x < m_lo.x + tilt_x)
+                else if (((w.x < m_lo.x + tilt_x) && !flags.x) || flags.x == -1)
                     {
                     w.x += L.x;
                     img.x--;
@@ -417,13 +418,13 @@ class BoxDim
             if (m_periodic.y)
                 {
                 Scalar tilt_y = m_yz * w.z;
-                if (w.y >= m_hi.y + tilt_y)
+                if (((w.y >= m_hi.y + tilt_y) && !flags.y)  || flags.y == 1)
                     {
                     w.y -= L.y;
                     w.x -= L.y * m_xy;
                     img.y++;
                     }
-                else if (w.y < m_lo.y + tilt_y)
+                else if (((w.y < m_lo.y + tilt_y) && !flags.y) || flags.y == -1)
                     {
                     w.y += L.y;
                     w.x += L.y * m_xy;
@@ -433,14 +434,14 @@ class BoxDim
 
             if (m_periodic.z)
                 {
-                if (w.z >= m_hi.z)
+                if (((w.z >= m_hi.z) && !flags.z) || flags.z == 1)
                     {
                     w.z -= L.z;
                     w.y -= L.z * m_yz;
                     w.x -= L.z * m_xz;
                     img.z++;
                     }
-                else if (w.z < m_lo.z)
+                else if (((w.z < m_lo.z) && !flags.z) || flags.z == -1)
                     {
                     w.z += L.z;
                     w.y += L.z * m_yz;
@@ -453,14 +454,15 @@ class BoxDim
         //! Wrap a vector back into the box
         /*! \param w Vector to wrap, updated to the minimum image obeying the periodic settings
             \param img Image of the vector, updated to reflect the new image
+            \param flags Vector of flags to force wrapping along certain directions
             \post \a img and \a v are updated appropriately
             \note \a v must not extend more than 1 image beyond the box
             \note This is a special version that wraps a Scalar4 (the 4th element is left alone)
         */
-        HOSTDEVICE void wrap(Scalar4& w, int3& img) const
+        HOSTDEVICE void wrap(Scalar4& w, int3& img, char3 flags = make_char3(0,0,0)) const
             {
             Scalar3 v = make_scalar3(w.x, w.y, w.z);
-            wrap(v, img);
+            wrap(v, img,flags);
             w.x = v.x;
             w.y = v.y;
             w.z = v.z;
@@ -492,25 +494,6 @@ class BoxDim
             Scalar3 r = v;
             r += makeCoordinates(make_scalar3(0.5,0.5,0.5)+make_scalar3(shift.x,shift.y,shift.z));
             return r;
-            }
-
-        //! Check if the displacement is out of bounds
-        /*! \param dx The displacement vector
-            \returns True if the displacement exceeds the box length in a direction where periodic
-                     boundary conditions are not applied
-         */
-        HOSTDEVICE bool checkOutOfBounds(const Scalar3& dx) const
-            {
-            Scalar3 del;
-            del.x = dx.x - (m_xz - m_xy*m_yz) * dx.z - m_xy * dx.y;
-            del.y = dx.y -  m_yz * dx.z;
-            del.z = dx.z;
-
-            if (!m_periodic.x && del.x*del.x >= m_L.x*m_L.x) return true;
-            if (!m_periodic.y && del.y*del.y >= m_L.y*m_L.y) return true;
-            if (!m_periodic.z && del.z*del.z >= m_L.z*m_L.z) return true;
-
-            return false;
             }
 
         //! Get the shortest distance between opposite boundary planes of the box

@@ -82,7 +82,7 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Sys
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar2> params(m_angle_data->getNAngleTypes(), exec_conf);
+    GPUArray<Scalar2> params(m_angle_data->getNTypes(), exec_conf);
     m_params.swap(params);
     }
 
@@ -121,14 +121,15 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
     // the angle table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
 
-    BoxDim box = m_pdata->getBox();
+    BoxDim box = m_pdata->getGlobalBox();
 
     ArrayHandle<Scalar4> d_force(m_force,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
-    ArrayHandle<uint4> d_gpu_anglelist(m_angle_data->getGPUAngleList(), access_location::device,access_mode::read);
-    ArrayHandle<unsigned int> d_gpu_n_angles(m_angle_data->getNAnglesArray(), access_location::device, access_mode::read);
+    ArrayHandle<AngleData::members_t> d_gpu_anglelist(m_angle_data->getGPUTable(), access_location::device,access_mode::read);
+    ArrayHandle<unsigned int> d_gpu_angle_pos_list(m_angle_data->getGPUPosTable(), access_location::device,access_mode::read);
+    ArrayHandle<unsigned int> d_gpu_n_angles(m_angle_data->getNGroupsArray(), access_location::device, access_mode::read);
 
     // run the kernel on the GPU
     gpu_compute_harmonic_angle_forces(d_force.data,
@@ -138,10 +139,11 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
                                       d_pos.data,
                                       box,
                                       d_gpu_anglelist.data,
-                                      m_angle_data->getGPUAngleList().getPitch(),
+                                      d_gpu_angle_pos_list.data,
+                                      m_angle_data->getGPUTableIndexer().getW(),
                                       d_gpu_n_angles.data,
                                       d_params.data,
-                                      m_angle_data->getNAngleTypes(),
+                                      m_angle_data->getNTypes(),
                                       m_block_size);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())

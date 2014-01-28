@@ -256,14 +256,12 @@ template<class T> class GPUArray
         virtual ~GPUArray();
 
 #ifdef ENABLE_CUDA
-    protected:
         //! Constructs a 1-D GPUArray
         GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
         //! Constructs a 2-D GPUArray
         GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
-
-    public:
 #endif
+
         //! Copy constructor
         GPUArray(const GPUArray& from);
         //! = operator
@@ -600,6 +598,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     {
     // this may work, but really shouldn't be done when aquired
     assert(!m_acquired && !from.m_acquired);
+    assert(&from != this);
 
     std::swap(m_num_elements, from.m_num_elements);
     std::swap(m_pitch, from.m_pitch);
@@ -618,6 +617,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
 template<class T> void GPUArray<T>::swap(GPUArray& from) const
     {
     assert(!m_acquired && !from.m_acquired);
+    assert(&from != this);
 
     std::swap(m_num_elements, from.m_num_elements);
     std::swap(m_pitch, from.m_pitch);
@@ -792,7 +792,7 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost(bool async) const
     if (m_mapped)
         {
         // if we are using mapped pinned memory, no need to copy, only synchronize
-        cudaDeviceSynchronize();
+        if (!async) cudaDeviceSynchronize();
         return;
         }
 
@@ -933,12 +933,12 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
         // check that a GPU is actually specified
         if (!m_exec_conf)
             {
-            std::cerr << "Reqesting device aquire, but we have no execution configuration" << std::endl;
+            std::cerr << "Requesting device aquire, but we have no execution configuration" << std::endl;
             throw std::runtime_error("Error acquiring data");
             }
         if (!m_exec_conf->isCUDAEnabled())
             {
-            m_exec_conf->msg->error() << "Reqesting device aquire, but no GPU in the Execution Configuration" << std::endl;
+            m_exec_conf->msg->error() << "Requesting device aquire, but no GPU in the Execution Configuration" << std::endl;
             throw std::runtime_error("Error acquiring data");
             }
 

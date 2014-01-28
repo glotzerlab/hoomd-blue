@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include "BoxDim.h"
 #include "ExecutionConfiguration.h"
+#include "GPUArray.h"
 
 /*! \ingroup communication
 */
@@ -92,7 +93,8 @@ class DomainDecomposition
                        Scalar3 L,
                        unsigned int nx = 0,
                        unsigned int ny = 0,
-                       unsigned int nz = 0);
+                       unsigned int nz = 0,
+                       bool twolevel = false);
 
         //! Calculate MPI ranks of neighboring domain.
         unsigned int getNeighborRank(unsigned int dir) const;
@@ -103,11 +105,36 @@ class DomainDecomposition
             return m_index;
             }
 
+        //! Get the cartesian ranks lookup table (linear cartesian index -> rank)
+        const GPUArray<unsigned int>& getCartRanks() const
+            {
+            return m_cart_ranks;
+            }
+
+        //! Get the inverse lookup table (rank -> linear cartesian index)
+        const GPUArray<unsigned int>& getInverseCartRanks() const
+            {
+            return m_cart_ranks_inv;
+            }
+
+
+        //! Get the grid position of this rank
+        uint3 getGridPos() const
+            {
+            return m_grid_pos;
+            }
+
         //! Determines whether the local box shares a boundary with the global box
         bool isAtBoundary(unsigned int dir) const;
 
         //! Get the dimensions of the local simulation box
         const BoxDim calculateLocalBox(const BoxDim& global_box);
+
+        //! Get the rank for a particle to be placed
+        /*! \param pos Particle position
+         * \returns the rank of the processor that should receive the particle
+         */
+        unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
 
     private:
         unsigned int m_nx;           //!< Number of processors along the x-axis
@@ -116,9 +143,31 @@ class DomainDecomposition
 
         uint3 m_grid_pos;            //!< Position of this domain in the grid
         Index3D m_index;             //!< Index to the 3D processor grid
+        Index3D m_node_grid;         //!< Indexer of the grid of nodes
+        Index3D m_intra_node_grid;   //!< The grid in every node
+
+        std::set<std::string> m_nodes; //!< List of nodes
+        std::multimap<std::string, unsigned int> m_node_map; //!< Map of ranks per node
+        unsigned int m_max_n_node;   //!< Maximum number of ranks on a node
+        bool m_twolevel;             //!< Whether we use a two-level decomposition
+
+        GPUArray<unsigned int> m_cart_ranks; //!< A lookup-table to map the cartesian grid index onto ranks
+        GPUArray<unsigned int> m_cart_ranks_inv; //!< Inverse permutation of grid index lookup table
 
         //! Find a domain decomposition with given parameters
-        bool findDecomposition(Scalar3 L, unsigned int& nx, unsigned int& ny, unsigned int& nz);
+        bool findDecomposition(unsigned int nranks, Scalar3 L,
+            unsigned int& nx, unsigned int& ny, unsigned int& nz);
+
+        //! Find a two-level decompositon of the global grid
+        void subdivide(unsigned int n_node_ranks, Scalar3 L,
+            unsigned int nx, unsigned int ny, unsigned int nz,
+            unsigned int& nx_intra, unsigned int &ny_intra, unsigned int& nz_intra);
+
+        //! Helper method to group ranks by nodes
+        void findCommonNodes();
+
+        //! Helper method to initialize the two-level decomposition
+        void initializeTwoLevel();
 
         boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         const MPI_Comm m_mpi_comm; //!< MPI communicator

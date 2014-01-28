@@ -72,8 +72,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <cassert>
 
-#ifdef VTRACE
-#include <vt_user.h>
+//! Allow score-p instrumentation
+#ifdef SCOREP_USER_ENABLE
+#include <scorep/SCOREP_User.h>
 #endif
 
 #ifndef __PROFILER_H__
@@ -104,6 +105,9 @@ class ProfileDataElem
     public:
         //! Constructs an element with zeroed counters
         ProfileDataElem() : m_start_time(0), m_elapsed_time(0), m_flop_count(0), m_mem_byte_count(0)
+            #ifdef SCOREP_USER_ENABLE
+            , m_scorep_region(SCOREP_USER_INVALID_REGION)
+            #endif
             {}
 
         //! Returns the total elapsed time of this nodes children
@@ -131,9 +135,9 @@ class ProfileDataElem
         int64_t m_flop_count;   //!< A running total of floating point operations
         int64_t m_mem_byte_count;   //!< A running total of memory bytes transferred
 
-#ifdef VTRACE
-        unsigned int m_vt_id;   //!< Vampir Trace identifier
-#endif
+        #ifdef SCOREP_USER_ENABLE
+        SCOREP_User_RegionHandle m_scorep_region;   //!< ScoreP region identifier
+        #endif
     };
 
 
@@ -228,13 +232,10 @@ inline void Profiler::push(const std::string& name)
     // and updating the stack
     m_stack.push(&cur->m_children[name]);
 
-#ifdef VTRACE
-    // log VampirTrace event
-    unsigned int id;
-    id = VT_USER_DEF(name.c_str());
-    VT_USER_START_ID(id);
-    cur->m_children[name].m_vt_id = id;
-#endif
+    #ifdef SCOREP_USER_ENABLE
+    // log Score-P region
+    SCOREP_USER_REGION_BEGIN( cur->m_children[name].m_scorep_region, name.c_str(),SCOREP_USER_REGION_TYPE_COMMON )
+    #endif
     }
 
 inline void Profiler::pop(uint64_t flop_count, uint64_t byte_count)
@@ -248,9 +249,9 @@ inline void Profiler::pop(uint64_t flop_count, uint64_t byte_count)
 
     // then increasing the elapsed time for the current item
     ProfileDataElem *cur = m_stack.top();
-#ifdef VTRACE
-    VT_USER_END_ID(cur->m_vt_id);
-#endif
+    #ifdef SCOREP_USER_ENABLE
+    SCOREP_USER_REGION_END(cur->m_scorep_region)
+    #endif
     cur->m_elapsed_time += t - cur->m_start_time;
 
     // and increasing the flop and mem counters

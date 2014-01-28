@@ -58,7 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include "ForceCompute.h"
-#include "BondData.h"
 #include "GPUArray.h"
 
 #include <vector>
@@ -101,6 +100,11 @@ class PotentialBond : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+        #ifdef ENABLE_MPI
+        //! Get ghost particle fields requested by this pair potential
+        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        #endif
+
     protected:
         GPUArray<param_type> m_params;              //!< Bond parameters per type
         boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
@@ -128,7 +132,7 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
     m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
-    GPUArray<param_type> params(m_bond_data->getNBondTypes(), exec_conf);
+    GPUArray<param_type> params(m_bond_data->getNTypes(), exec_conf);
     m_params.swap(params);
     }
 
@@ -147,7 +151,7 @@ template<class evaluator >
 void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& param)
     {
     // make sure the type is valid
-    if (type >= m_bond_data->getNBondTypes())
+    if (type >= m_bond_data->getNTypes())
         {
         this->m_exec_conf->msg->error() << "Invalid bond type specified" << endl;
         throw runtime_error("Error setting parameters in PotentialBond");
@@ -221,7 +225,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // get a local copy of the simulation box too
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
@@ -230,29 +234,30 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     for (unsigned int i = 0; i< 6; i++)
         bond_virial[i]=Scalar(0.0);
 
-    ArrayHandle<uint2> h_bonds(m_bond_data->getBondTable(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_type(m_bond_data->getBondTypes(), access_location::host, access_mode::read);
+    ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_type(m_bond_data->getTypesArray(), access_location::host, access_mode::read);
 
     unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
 
     // for each of the bonds
-    const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
+    const unsigned int size = (unsigned int)m_bond_data->getN();
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
-        const uint2& bond = h_bonds.data[i];
-        assert(bond.x < m_pdata->getNGlobal());
-        assert(bond.y < m_pdata->getNGlobal());
+        const typename BondData::members_t& bond = h_bonds.data[i];
+        assert(bond.tag[0] < m_pdata->getNGlobal());
+        assert(bond.tag[1] < m_pdata->getNGlobal());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
-        unsigned int idx_a = h_rtag.data[bond.x];
-        unsigned int idx_b = h_rtag.data[bond.y];
+        unsigned int idx_a = h_rtag.data[bond.tag[0]];
+        unsigned int idx_b = h_rtag.data[bond.tag[1]];
 
         // throw an error if this bond is incomplete
         if (idx_a >= max_local || idx_b >= max_local)
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": invalid bond." << endl << endl;
+            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond " <<
+                bond.tag[0] << " " << bond.tag[1] << " incomplete." << endl << endl;
             throw std::runtime_error("Error in bond calculation");
             }
 
@@ -350,6 +355,22 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->pop();
     }
+
+#ifdef ENABLE_MPI
+/*! \param timestep Current time step
+ */
+template < class evaluator >
+CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timestep)
+    {
+    CommFlags flags = CommFlags(0);
+
+    flags[comm_flag::tag] = 1;
+
+    flags |= ForceCompute::getRequestedCommFlags(timestep);
+
+    return flags;
+    }
+#endif
 
 //! Exports the PotentialBond class to python
 /*! \param name Name of the class in the exported python module

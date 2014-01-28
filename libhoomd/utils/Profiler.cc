@@ -248,6 +248,10 @@ Profiler::Profiler(const std::string& name) : m_name(name)
 
     // record the start of this profile
     m_root.m_start_time = m_clk.getTime();
+
+    #ifdef SCOREP_USER_ENABLE
+    SCOREP_USER_REGION_BEGIN(m_root.m_scorep_region, name.c_str(),SCOREP_USER_REGION_TYPE_COMMON )
+    #endif
     }
 
 void Profiler::output(std::ostream &o)
@@ -257,6 +261,10 @@ void Profiler::output(std::ostream &o)
         {
         o << "***Warning! Outputting a profile with incomplete samples" << endl;
         }
+
+    #ifdef SCOREP_USER_ENABLE
+    SCOREP_USER_REGION_END( m_root.m_scorep_region )
+    #endif
 
     // outputting a profile implicitly calls for a time sample
     m_root.m_elapsed_time = m_clk.getTime() - m_root.m_start_time;

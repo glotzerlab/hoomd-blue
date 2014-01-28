@@ -52,7 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HarmonicAngleForceGPU.cuh"
 #include "TextureTools.h"
-#include "AngleData.cuh" // SERIOUSLY, DO I NEED THIS HERE??
 
 #ifdef WIN32
 #include <cassert>
@@ -89,7 +88,8 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
                                                                     const Scalar4 *d_pos,
                                                                     const Scalar2 *d_params,
                                                                     BoxDim box,
-                                                                    const uint4 *alist,
+                                                                    const group_storage<3> *alist,
+                                                                    const unsigned int *apos_list,
                                                                     const unsigned int pitch,
                                                                     const unsigned int *n_angles_list)
     {
@@ -120,12 +120,13 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
     // loop over all angles
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
         {
-        uint4 cur_angle = alist[pitch*angle_idx + idx];
+        group_storage<3> cur_angle = alist[pitch*angle_idx + idx];
 
-        int cur_angle_x_idx = cur_angle.x;
-        int cur_angle_y_idx = cur_angle.y;
-        int cur_angle_type = cur_angle.z;
-        int cur_angle_abc = cur_angle.w;
+        int cur_angle_x_idx = cur_angle.idx[0];
+        int cur_angle_y_idx = cur_angle.idx[1];
+        int cur_angle_type = cur_angle.idx[2];
+
+        int cur_angle_abc = apos_list[pitch*angle_idx + idx];
 
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 x_postype = d_pos[cur_angle_x_idx];
@@ -203,8 +204,6 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(Scalar4* d_f
         // compute 1/3 of the energy, 1/3 for each atom in the angle
         Scalar angle_eng = tk*dth*Scalar(Scalar(1.0)/Scalar(6.0));
 
-        // do we really need a virial here for harmonic angles?
-        // ... if not, this may be wrong...
         // upper triangular version of virial tensor
         Scalar angle_virial[6];
         angle_virial[0] = Scalar(1./3.)*(dab.x*fab[0] + dcb.x*fcb[0]);
@@ -271,7 +270,8 @@ cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
                                               const unsigned int N,
                                               const Scalar4 *d_pos,
                                               const BoxDim& box,
-                                              const uint4 *atable,
+                                              const group_storage<3> *atable,
+                                              const unsigned int *apos_list,
                                               const unsigned int pitch,
                                               const unsigned int *n_angles_list,
                                               Scalar2 *d_params,
@@ -281,7 +281,7 @@ cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
     assert(d_params);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
+    dim3 grid( N / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // bind the texture
@@ -290,7 +290,8 @@ cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
         return error;
 
     // run the kernel
-    gpu_compute_harmonic_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, atable, pitch, n_angles_list);
+    gpu_compute_harmonic_angle_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box,
+        atable, apos_list, pitch, n_angles_list);
 
     return cudaSuccess;
     }
