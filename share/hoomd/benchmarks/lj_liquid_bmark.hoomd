@@ -11,7 +11,7 @@ integrate.mode_standard(dt=0.005)
 integrate.nvt(group=all, T=1.2, tau=0.5)
 
 # warm up run
-run(2000)
+run(30000)
 
 nlist.set_params(r_buff=0.4, check_period=5)
 # these paramters ^^^         ^^^            are determined automatically by running with the next line uncommented
@@ -20,7 +20,5 @@ nlist.set_params(r_buff=0.4, check_period=5)
 # quick benchmark run
 run(2000, profile=True)
 
-# full benchmark 
+# full benchmark
 run(50000, limit_hours = 5.0 / 60.0)
-
-raw_input("Benchmark complete: press enter to exit");
