@@ -86,6 +86,7 @@ Detailed instructions are organized into separate pages.
 - \subpage page_compile_guide_mac
 - \subpage page_compile_guide_linux_centos
 - \subpage page_compile_guide_linux_fedora
+- \subpage page_compile_guide_linux_opensuse
 - \subpage page_compile_guide_linux_ubuntu
 - \subpage page_compile_guide_linux_generic
 
@@ -141,7 +142,7 @@ There are a few options for controlling the CUDA compilation.
 
 There are several methods that can be used to build code that interfaces with hoomd.
 
-**Method 1: Write a full-fledged plugin in python only**
+### Method 1: Write a full-fledged plugin in python only
 
 Some plugins can be implemented fully in python, providing high-level code for configuring or running simulations.
 
@@ -174,7 +175,7 @@ init.whatever(...)
 plugin_name.whatever(...)
 ~~~~
 
-**Method 3: Write a full-fledged plugin with C++ code included**<br>
+### Method 2: Write a full-fledged plugin with C++ code included
 
 For high performance, execution on the GPU, or other reasons, part of a plugin can be written in C++. To write a plugin
 that incorporates such code, `make install` hoomd as normal. Then copy the

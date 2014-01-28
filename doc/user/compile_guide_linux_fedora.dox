@@ -50,92 +50,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*!
-\page page_compile_guide_linux_fedora Compiling HOOMD-blue in Fedora linux
+\page page_compile_guide_linux_fedora Compiling HOOMD-blue in Fedora
 
-\b Note: This documentation was written and tested in <b>Fedora 10</b>. It may not work for other
+This documentation was written and tested in **Fedora 18**. It may not work for other
 versions.
-
-This page assumes that you have a standard terminal window open. Commands to run will
-be indicated as below:
-\code
- $ echo hello
-hello
-\endcode
-" $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should
-see the same output obtained above on the next line: "hello"
-
-You must be the root user to install software. Become root by executing the following command.
-\code
- $ su -
-\endcode
 
 \section software_req_install_fedora_dev Development environment
 
-Install g++, boost, python headers, zlib headers, git, and cmake.
+1. Follow [NVIDIA's instructions](http://docs.nvidia.com/cuda/cuda-getting-started-guide-for-linux/index.html#package-manager-installation) to install the NVIDIA CUDA rpm repository.
 
-\code
- $ yum install gcc-c++ boost boost-devel python-devel zlib-devel git-all cmake
-\endcode
-
-\section software_req_install_fedora_cuda CUDA environment
-
-Download the current version of the NVIDA CUDA toolkit from 
-http://developer.nvidia.com/object/gpucomputing.html . The following terminal command is an example
-that downloads version 3.2 for Fedora 13 x86_64
-
-\code
- $ wget http://www.nvidia.com/object/thankyou.html?url=/compute/cuda/3_2_prod/toolkit/cudatoolkit_3.2.16_linux_64_fedora13.run
-\endcode
-
-Install the CUDA toolkit by executing
-\code
- $ bash cudatoolkit*.run
-\endcode
-and following the onscreen prompts. Accept the default installation directory.
-
-Add CUDA into the executable and library search paths by creating the following files. Create
-<tt>/etc/ld.so.conf.d/cuda.conf</tt> and add the following lines
-\code
-/usr/local/cuda/lib
-/usr/local/cuda/lib64
-\endcode
-Then run 
-\code
- $ ldconfig
-\endcode
-
-Create <tt>/etc/profile.d/cuda.sh</tt> and add the following lines
-\code
-if ! echo ${PATH} | /bin/grep -q /usr/local/cuda/bin ; then
-	PATH=/usr/local/cuda/bin:${PATH}
-fi
-\endcode
-You will need to logout and back in for the path setting to take effect.
-
-Download the latest drivers for your GPU from http://www.nvidia.com The following terminal command
-is an example that downloads version 260.19.21 for linux x86_64. If you do not have an NVIDIA GPU,
-proceed to the section \ref software_req_install_centos_build.
-\code
- $ wget http://us.download.nvidia.com/XFree86/Linux-x86_64/260.19.21/NVIDIA-Linux-x86_64-260.19.21.run
-\endcode
-
-To install the driver, you must exit first logout of your X-windows session. At the login screen,
-press ctrl-alt-f1 to reach a text console. Login as root and execute the following commands
-\code
- $ init 3
- $ yum install kernel-devel-`uname -r`
- $ bash NVIDIA-Linux-*.run
-\endcode
-and follow the onscreen prompts to install the driver. Reboot the computer to load the new driver
-and re-enter the GUI login screen.
-\code
- $ shutdown now -r
-\endcode
+3. Install g++, boost, python headers, zlib headers, git, cmake, openmpi, and CUDA.
+~~~~.bash
+$ sudo yum install gcc-c++ boost boost-devel python-devel zlib-devel git-all cmake openmpi openmpi-devel cuda
+~~~~
 
 \section  software_req_install_fedora_build Compile hoomd
-
-Log out of any root sessions that have been opened to install software above. Software should be
-compiled in a standard user account.
 
 See \ref sec_build_linux_generic_compile for instructions on compiling hoomd.
 

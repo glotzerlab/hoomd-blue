@@ -746,6 +746,7 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.do
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_centos.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_fedora.dox" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_opensuse.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_ubuntu.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \

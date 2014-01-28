@@ -68,8 +68,8 @@ below:
 $ echo hello
 hello
 ~~~~
-" $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same output
-obtained above on the next line: "hello"
+`$` indicates a shell prompt. As demonstrated above, if you type `echo hello`, then you should see the same output
+obtained above on the next line: `hello`
 
 1. **Install macports:**
 Go to [the macports homepage](http://www.macports.org) and download the appropriate dmg for your system. Mount the dmg

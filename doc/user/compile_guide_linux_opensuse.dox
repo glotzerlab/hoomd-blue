@@ -49,23 +49,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*!
-\page page_compile_guide_linux_centos Compiling HOOMD-blue in RHEL/CentOS
+\page page_compile_guide_linux_opensuse Compiling HOOMD-blue in OpenSUSE
 
-This documentation was written and tested in **RHEL/CentOS 6.5**. It may not work for other
+This documentation was written and tested in **OpenSUSE 12.2**. It may not work for other
 versions.
 
-\section software_req_install_centos_dev Development environment
+\section software_req_install_opensuse_dev Development environment
 
 1. Follow [NVIDIA's instructions](http://docs.nvidia.com/cuda/cuda-getting-started-guide-for-linux/index.html#package-manager-installation) to install the NVIDIA CUDA rpm repository.
 
-2. Follow [Fedora's instructions](http://fedoraproject.org/wiki/EPEL) to install the EPEL repository.
-
-3. Install g++, boost, python headers, zlib headers, git, cmake, openmpi, and CUDA.
+3. Install g++, boost headers, python headers, zlib headers, git, cmake, openmpi, and CUDA.
 ~~~~.bash
-$ sudo yum install gcc-c++ boost boost-devel python-devel zlib-devel git-all cmake openmpi openmpi-devel cuda
+$ sudo zypper install gcc-c++ boost-devel python-devel zlib-devel git cmake openmpi openmpi-devel cuda
 ~~~~
 
-\section  software_req_install_centos_build Compile hoomd
+\section  software_req_install_opensuse_build Compile hoomd
 
 See \ref sec_build_linux_generic_compile for instructions on compiling hoomd.
 */
