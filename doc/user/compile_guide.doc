@@ -54,10 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 \page page_compile_guide Compiling HOOMD-blue
 
 Table of contents:
- - \ref sec_software_req
- - \ref sec_build_instructions
- - \ref sec_build_options
- - \ref sec_build_plugin
+- \ref sec_software_req
+- \ref sec_build_instructions
+- \ref sec_build_options
+- \ref sec_build_plugin
 <hr>
 
 \section sec_software_req Software Prerequisites
@@ -66,202 +66,120 @@ HOOMD-blue requires a number of prerequisite software packages and libraries. De
 on the various platforms that hoomd supports are included below: \ref sec_build_instructions.
 
 - Required to compile:
-  - Python >= 2.3
-  - boost >= 1.39.0
-  - CMake >= 2.6.2
-  - C++ Compiler (must be compatible with CUDA)
-  - CUDA Toolkit >= 4.0
-- Useful developer tools
-  - Git >= 1.7.0
-  - Doxygen  >= 1.7.5
+    - Python >= 2.6
+    - boost >= 1.39.0
+    - CMake >= 2.6.2
+    - C++ Compiler
+    - CUDA Toolkit >= 5.0
 - For parallel builds
-  - MPI (generic, or with CUDA-Support: MVAPICH2 >= 1.8, OpenMPI >= 1.7)
+    - MPI (generic, or with CUDA-Support: MVAPICH2 >= 1.8, OpenMPI >= 1.7)
+- Useful developer tools
+    - Git >= 1.7.0
+    - Doxygen  >= 1.8.5
 
-For a discussion of which kind of MPI library is best for your situation,
-see \ref sec_mpi_best_practices.
-See \ref sec_build_linux_generic_mpi for instructions on building an MPI
-enabled hoomd.
+For a discussion of which kind of MPI library is best for your situation, see \ref sec_mpi_best_practices.
+See \ref sec_build_linux_generic_mpi for instructions on building an MPI enabled hoomd.
 <hr>
-\section sec_build_instructions Build instructions for Linux and Mac.
+\section sec_build_instructions Build instructions
 
-Detailed instructions are organized into separate pages below.
- - \subpage page_compile_guide_mac
- - \subpage page_compile_guide_linux_centos
- - \subpage page_compile_guide_linux_fedora
- - \subpage page_compile_guide_linux_ubuntu
- - \subpage page_compile_guide_linux_generic
+Detailed instructions are organized into separate pages.
+- \subpage page_compile_guide_mac
+- \subpage page_compile_guide_linux_centos
+- \subpage page_compile_guide_linux_fedora
+- \subpage page_compile_guide_linux_ubuntu
+- \subpage page_compile_guide_linux_generic
 
 <hr>
 \section sec_build_options Build options
 Here is a list of all the build options that can be changed by CMake. To changes these settings, cd to your <i>build</i>
 directory and run
-\code
- $ ccmake .
-\endcode
-or run cmake-gui and point it to your build directory. After changing an option, press c to configure then press g to
-generate. The makefile/IDE project is now updated with the newly selected options.
- - \b BUILD_TESTING - Enables the compilation of unit tests
- - \b CMAKE_BUILD_TYPE - sets the build type (Makefile generation only, XCode and
-         Visual Studio can change the build type from within their GUIs)
-    - \b Debug - Compiles debug information into the library and executables.
-        Enables asserts to check for programming mistakes. HOOMD-blue will run
-        \e very slow if compiled in Debug mode, but problems are easier to
-        identify.
-    - \b Release - All compiler optimizations are enabled and asserts are removed.
-        Recommended for production builds: required for any benchmarking.
- - \b ENABLE_CUDA - Enable compiling of the GPU accelerated computations using CUDA
-     - Requires the CUDA Toolkit to be installed
- - \b ENABLE_DOXYGEN - enables the generation of detailed user and developer documentation
-     - Requires doxygen to be installed
-    - Defaults to off if doxygen is older than 1.5.6. You can manually turn it on, but expect doxygen errors
-        and possible missing output from the generated documentation.
- - \b ENABLE_OCELOT - compiles hoomd against ocelot instead of the CUDA runtime
- - \b ENABLE_OPENMP - enables the generation of a multi-core capable hoomd using OpenMP. Can only be enabled if your
-        compiler supports OpenMP.
- - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging.
- - \b ENABLE_ZLIB - Links hoomd to libz (must be available) and enables direct writing of zlib compressed files from dump.bin
- - \b SINGLE_PRECISION - Controls precision
-     - When set to \b ON, all calculations are performed in single precision.
-     - When set to \b OFF, all calculations are performed in double precision.
-     - Must be set to \b ON to enable the \b ENABLE_CUDA option (HOOMD-blue has not yet been updated to perform double precision calculations)
- - \b ENABLE_MPI - Enable multi-processor/GPU simulations using MPI
-    - Requires an MPI library to be installed
+~~~~
+$ ccmake .
+~~~~
+After changing an option, press *c* to configure then press *g* to generate. The makefile/IDE project is now updated with
+the newly selected options.
+- **BUILD_TESTING** - Enables the compilation of unit tests
+- **CMAKE_BUILD_TYPE** - sets the build type (case sensitive)
+    - **Debug** - Compiles debug information into the library and executables.
+       Enables asserts to check for programming mistakes. HOOMD-blue will run
+       \e very slow if compiled in Debug mode, but problems are easier to
+       identify.
+    - **RelWithDebInfo** - Compiles with optimizations and debug symbols. Useful for profiling benchmarks.
+    - **Release** - All compiler optimizations are enabled and asserts are removed.
+       Recommended for production builds: required for any benchmarking.
+- **ENABLE_CUDA** - Enable compiling of the GPU accelerated computations using CUDA. Defaults *on* if the CUDA toolkit
+    is found. Defaults *off* if the CUDA toolkit is not found.
+- **ENABLE_DOXYGEN** - enables the generation of detailed user and developer documentation (Defaults *off*)
+- **ENABLE_OCELOT** - compiles hoomd against ocelot instead of the CUDA runtime
+- **ENABLE_VALGRIND** - Runs every unit test through valgrind.
+- **ENABLE_ZLIB** - Links hoomd to libz (must be available) and enables direct writing of zlib compressed files from dump.bin
+- **SINGLE_PRECISION** - Controls precision
+    - When set to \b ON, all calculations are performed in single precision.
+    - When set to \b OFF, all calculations are performed in double precision.
+- **ENABLE_MPI** - Enable multi-processor/GPU simulations using MPI
     - When set to \b ON (default if any MPI library is found automatically by CMake), multi-GPU simulations are supported
     - When set to \b OFF, HOOMD always runs in single-GPU mode
- - \b ENABLE_MPI_CUDA - Enable CUDA-aware MPI library support
-    - Requires a MPI library w/CUDA support to be installed
+- **ENABLE_MPI_CUDA** - Enable CUDA-aware MPI library support
+    - Requires a MPI library with CUDA support to be installed
     - When set to \b ON (default if a CUDA-aware MPI library is detected), HOOMD-blue will make use of  the capability of the MPI library to accelerate CUDA-buffer transfers
     - When set to \b OFF, standard MPI calls will be used
-    \b Warning: Manually setting this feature to ON when the MPI library does not support CUDA may
-       result in a crash of HOOMD-blue
+    - *Warning:* Manually setting this feature to ON when the MPI library does not support CUDA may
+      result in a crash of HOOMD-blue
 
 There are a few options for controlling the CUDA compilation.
- - \b CUDA_ARCH_LIST - A semicolon separated list of GPU architecture to compile in. Portions of HOOMD are optimized for specific
-                       hardware architectures, but those optimizations are only activated when they are compiled in.
-                       By default, all known architectures supported by the installed CUDA toolkit are activated in the list.
-                       There is no disadvantage to doing so, except perhaps a slightly larger executable size and compile times.
-                       The CUDA programming guide contains list of which GPUs are which compute version in Appendix A.
-                       Note: while sm_21 is a hardware architecture, nvcc does not treat it differently from sm_20. 21
-                       should not be added to CUDA_ARCH_LIST.
- - \b CUDA_BUILD_CUBIN - Enables a display of register usage for each kernel compiled.
- - \b NVCC_FLAGS - Allows additional flags to be passed to nvcc.
-
-The following are advanced variables, and thus will only show when CMake's advanced mode is turned on.
-You really shouldn't change these from their defaults unless you really know what you are doing.
- - \b ENABLE_STATIC - Controls the compiling and linking of static libraries
-     - When set to \b ON, \b libhoomd is compiled as a static library and all
-         other libraries (i.e. boost) are linked statically if possible.
-     - When set to \b OFF, \b libhoomd is compiled as a dynamic library and all
-         other libraries are linked dynamically if possible.
-     - Note 2: \b ENABLE_STATIC defaults OFF and can only be set ON from the command line
-         and when configuring a clean build directory.
-        Example:
-         \code ccmake -D ENABLE_STATIC=ON ../hoomd
-         \endcode
+- **CUDA_ARCH_LIST** - A semicolon separated list of GPU architecture to compile in. Portions of HOOMD are optimized for specific
+                   hardware architectures, but those optimizations are only activated when they are compiled in.
+                   By default, all known architectures supported by the installed CUDA toolkit are activated in the list.
+                   There is no disadvantage to doing so, except perhaps a slightly larger executable size and compile times.
+                   The CUDA programming guide contains list of which GPUs are which compute version in Appendix A.
+                   Note: nvcc does not treat sm_21 differently from sm_20. 21
+                   should not be added to CUDA_ARCH_LIST.
+- **CUDA_BUILD_CUBIN** - Enables a display of register usage for each kernel compiled.
+- **NVCC_FLAGS** - Allows additional flags to be passed to nvcc.
 
 \section sec_build_plugin Building a plugin for HOOMD-blue
 
 There are several methods that can be used to build code that interfaces with hoomd.
 
-<b>Method 1: Build an executable that uses hoomd as a library</b><br>
-
-First, understand that building an executable linked to hoomd for the purposes of running a simulation is not a
-supported configuration. The developers will not respond to or fix bugs found while using such a setup. There are many
-levels of configuration and performance tuning that are handled at the python script level, and the C++ API is mainly
-designed to interface with python.
-
-However, there are many cases when building a simple quick test executable is desirable (i.e. to test or debug a new
-feature that does not yet have a python interface). So a simple method to build such executables is provided.
-
-To setup for use:
- -# Compile hoomd normally
- -# <i>'make install'</i> hoomd to a desired location (i.e. your home directory)
- -# Add \c hoomd_install_location/bin to your \c PATH as usual
- -# Add \c `hoomd-config.sh --ldpath to your DYLD / LD library paths (if you compiled with ENABLE_STATIC=off)
-
-Here is a short example program that does nothing except calculate lj pair forces once.
-
-\code
-// include hoomd.h to get all of the built in hoomd classes
-#include "hoomd/hoomd.h"
-using namespace boost;
-
-int main()
-    {
-    const unsigned int N = 5000;
-
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-
-    // create a random particle system to sum forces on
-    RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-
-    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
-
-    shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef, nlist));
-    fc1->setRcut(0, 0, Scalar(3.0));
-
-    // setup some values for alpha and sigma
-    Scalar epsilon = Scalar(1.0);
-    Scalar sigma = Scalar(1.2);
-    Scalar alpha = Scalar(0.45);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-
-    // specify the force parameters
-    fc1->setParams(0,0,make_scalar2(lj1,lj2));
-
-    // compute the forces
-    fc1->compute(0);
-    }
-\endcode
-
-To compile this sample (or any code written similarly), just run
-\code
-$ g++ -o test test.cc `hoomd-config.sh --cflags --libs`
-\endcode
-(obviously, this works on linux and mac only)
-
-<b>Method 2: Write a full-fledged plugin in python only</b><br>
+**Method 1: Write a full-fledged plugin in python only**
 
 Some plugins can be implemented fully in python, providing high-level code for configuring or running simulations.
 
 In order to use such a plugin, one must first:
- -# Compile hoomd normally
- -# <i>'make install'</i> hoomd to a desired location (i.e. your home directory)
- -# Add \c hoomd_install_location/bin to your \c PATH as usual
+-# Compile hoomd normally
+-# `make install` hoomd to a desired location
+-# Add `hoomd_install_location/bin` to your `PATH` as usual
 
 Create a directory to contain the python module for the plugin:
-\code
+~~~~
 cd hoomd_install_location/lib/hoomd/python-module/hoomd_plugins
 mkdir plugin_name
 cd plugin_name
 touch __init__.py
-\endcode
+~~~~
 
-\b Note: It is <i>highly</i> recommended that you develop your plugin in a directory outside hoomd_install_location
-and using a revision control software. You wouldn't want to loose the code you've written when hoomd is uninstalled!
+You should develop your plugin in a directory outside hoomd_install_location
+and using a revision control software. You would not want to loose the code you've written when hoomd is uninstalled!
 In this case, you can just copy the module to the hoomd-plugins directory to install it.
-\code
+~~~~
 cp -R plugin_name hoomd_install_location/lib/hoomd/python-module/hoomd_plugins
-\endcode
+~~~~
 
 Once the plugin is written and installed, it can be used in a hoomd script like so:
-\code
+~~~~
 from hoomd_script import *
 from hoomd_plugins import plugin_name
 
 init.whatever(...)
 plugin_name.whatever(...)
-\endcode
+~~~~
 
-<b>Method 3: Write a full-fledged plugin with C++ code included</b><br>
+**Method 3: Write a full-fledged plugin with C++ code included**<br>
 
 For high performance, execution on the GPU, or other reasons, part of a plugin can be written in C++. To write a plugin
-that incorporates such code, 'make install' hoomd as normal. Then copy the
-directory hoomd_install_location/share/hoomd/plugin_template_cpp to a new working space and modify it to implement your
+that incorporates such code, `make install` hoomd as normal. Then copy the
+directory `hoomd_install_location/share/hoomd/plugin_template_cpp` to a new working space and modify it to implement your
 plugin. See the README file in that directory for full documentation. Examples of new pair and bond potentials
-are available in hoomd_install_location/share/hoomd/plugin_template_evaluators_ext
+are available in `hoomd_install_location/share/hoomd/plugin_template_evaluators_ext`
 
 */
