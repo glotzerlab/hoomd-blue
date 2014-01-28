@@ -201,7 +201,7 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
                 unsigned int particlei = head + buildingBlock.bonds[j].localidxi;
                 unsigned int particlej = head + buildingBlock.bonds[j].localidxj;
 
-                sysdef->getBondData()->addBond(Bond(0, particlei, particlej));
+                sysdef->getBondData()->addBondedGroup(Bond(0, particlei, particlej));
                 }
 
             iparticle++;

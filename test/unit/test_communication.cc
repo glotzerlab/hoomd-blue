@@ -1136,10 +1136,11 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
             }
         }
 
-   // update ghosts
-   comm->updateGhosts(0);
+    // update ghosts
+    comm->beginUpdateGhosts(0);
+    comm->finishUpdateGhosts(0);
 
-   // check ghost positions, taking into account that the particles should have been wrapped across the boundaries
+    // check ghost positions, taking into account that the particles should have been wrapped across the boundaries
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_global_rtag(pdata->getRTags(), access_location::host, access_mode::read);
@@ -2494,7 +2495,8 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
 
 
    // update ghosts
-   comm->updateGhosts(0);
+    comm->beginUpdateGhosts(0);
+    comm->finishUpdateGhosts(0);
 
         {
         // check ghost atom numbers, positions, velocities, etc.

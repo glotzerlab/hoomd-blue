@@ -119,7 +119,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     }
 
     // add a bond and check again
-    sysdef_2->getBondData()->addBond(Bond(0, 0, 1));
+    sysdef_2->getBondData()->addBondedGroup(Bond(0, 0, 1));
     fc_2->compute(1);
 
     {
@@ -198,9 +198,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     fc_6->setParams(1, make_scalar4(Scalar(2.0*1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
     fc_6->setParams(2, make_scalar4(Scalar(1.5), Scalar(1.0), Scalar(1.0), Scalar(1.0)));
 
-    sysdef_6->getBondData()->addBond(Bond(0, 0,1));
-    sysdef_6->getBondData()->addBond(Bond(1, 2,3));
-    sysdef_6->getBondData()->addBond(Bond(2, 4,5));
+    sysdef_6->getBondData()->addBondedGroup(Bond(0, 0,1));
+    sysdef_6->getBondData()->addBondedGroup(Bond(1, 2,3));
+    sysdef_6->getBondData()->addBondedGroup(Bond(2, 4,5));
 
     fc_6->compute(0);
 
@@ -292,9 +292,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     shared_ptr<PotentialBondFENE> fc_4 = bf_creator(sysdef_4);
     fc_4->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.75), Scalar(pow(1.2,12.0)), Scalar(pow(1.2,6.0))));
     // only add bonds on the left, top, and bottom of the square
-    sysdef_4->getBondData()->addBond(Bond(0, 2,3));
-    sysdef_4->getBondData()->addBond(Bond(0, 2,0));
-    sysdef_4->getBondData()->addBond(Bond(0, 0,1));
+    sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,3));
+    sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,0));
+    sysdef_4->getBondData()->addBondedGroup(Bond(0, 0,1));
 
     fc_4->compute(0);
 
@@ -384,7 +384,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
         for (unsigned int j = 0; j < M; j++)
             for (unsigned int k = 0; k < M-1; k++)
                 {
-                sysdef->getBondData()->addBond(Bond(0, i*M*M + j*M + k, i*M*M + j*M + k + 1));
+                sysdef->getBondData()->addBondedGroup(Bond(0, i*M*M + j*M + k, i*M*M + j*M + k + 1));
                 }
 
 

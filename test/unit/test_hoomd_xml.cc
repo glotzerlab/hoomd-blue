@@ -57,8 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include "HOOMDDumpWriter.h"
 #include "HOOMDInitializer.h"
-#include "BondData.h"
-#include "AngleData.h"
+#include "BondedGroupData.h"
 
 #include <iostream>
 #include <sstream>
@@ -212,18 +211,18 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     sysdef->getWallData()->addWall(Wall(0,0,1, 1,0,0));
 
     // add a few bonds too
-    sysdef->getBondData()->addBond(Bond(0, 0, 1));
-    sysdef->getBondData()->addBond(Bond(1, 1, 0));
+    sysdef->getBondData()->addBondedGroup(Bond(0, 0, 1));
+    sysdef->getBondData()->addBondedGroup(Bond(1, 1, 0));
 
     // and angles as well
-    sysdef->getAngleData()->addAngle(Angle(0, 0, 1, 2));
-    sysdef->getAngleData()->addAngle(Angle(0, 1, 2, 0));
+    sysdef->getAngleData()->addBondedGroup(Angle(0, 0, 1, 2));
+    sysdef->getAngleData()->addBondedGroup(Angle(0, 1, 2, 0));
 
     // and a dihedral
-    sysdef->getDihedralData()->addDihedral(Dihedral(0, 0, 1, 2, 3));
+    sysdef->getDihedralData()->addBondedGroup(Dihedral(0, 0, 1, 2, 3));
 
     // and an improper
-    sysdef->getImproperData()->addDihedral(Dihedral(0, 3, 2, 1, 0));
+    sysdef->getImproperData()->addBondedGroup(Dihedral(0, 3, 2, 1, 0));
 
     // create the writer
     shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
@@ -1266,10 +1265,10 @@ im_b 5 4 3 2\n\
     boost::shared_ptr<BondData> bond_data = sysdef->getBondData();
 
     // 4 bonds should have been read in
-    BOOST_REQUIRE_EQUAL(bond_data->getNumBonds(), (unsigned int)4);
+    BOOST_REQUIRE_EQUAL(bond_data->getN(), (unsigned int)4);
 
     // check that the types have been named properly
-    BOOST_REQUIRE_EQUAL(bond_data->getNBondTypes(), (unsigned int)3);
+    BOOST_REQUIRE_EQUAL(bond_data->getNTypes(), (unsigned int)3);
     BOOST_CHECK_EQUAL(bond_data->getTypeByName("bond_a"), (unsigned int)0);
     BOOST_CHECK_EQUAL(bond_data->getTypeByName("bond_b"), (unsigned int)1);
     BOOST_CHECK_EQUAL(bond_data->getTypeByName("bond_c"), (unsigned int)2);
@@ -1279,22 +1278,22 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(bond_data->getNameByType(2), string("bond_c"));
 
     // verify each bond
-    Bond b = bond_data->getBond(0);
+    Bond b = bond_data-> getGroupByTag(0);
     BOOST_CHECK_EQUAL(b.a, (unsigned int)0);
     BOOST_CHECK_EQUAL(b.b, (unsigned int)1);
     BOOST_CHECK_EQUAL(b.type, (unsigned int)0);
 
-    b = bond_data->getBond(1);
+    b = bond_data-> getGroupByTag(1);
     BOOST_CHECK_EQUAL(b.a, (unsigned int)1);
     BOOST_CHECK_EQUAL(b.b, (unsigned int)2);
     BOOST_CHECK_EQUAL(b.type, (unsigned int)1);
 
-    b = bond_data->getBond(2);
+    b = bond_data-> getGroupByTag(2);
     BOOST_CHECK_EQUAL(b.a, (unsigned int)2);
     BOOST_CHECK_EQUAL(b.b, (unsigned int)3);
     BOOST_CHECK_EQUAL(b.type, (unsigned int)0);
 
-    b = bond_data->getBond(3);
+    b = bond_data-> getGroupByTag(3);
     BOOST_CHECK_EQUAL(b.a, (unsigned int)3);
     BOOST_CHECK_EQUAL(b.b, (unsigned int)4);
     BOOST_CHECK_EQUAL(b.type, (unsigned int)2);
@@ -1303,10 +1302,10 @@ im_b 5 4 3 2\n\
     boost::shared_ptr<AngleData> angle_data = sysdef->getAngleData();
 
     // 3 angles should have been read in
-    BOOST_REQUIRE_EQUAL(angle_data->getNumAngles(), (unsigned int)3);
+    BOOST_REQUIRE_EQUAL(angle_data->getN(), (unsigned int)3);
 
     // check that the types have been named properly
-    BOOST_REQUIRE_EQUAL(angle_data->getNAngleTypes(), (unsigned int)2);
+    BOOST_REQUIRE_EQUAL(angle_data->getNTypes(), (unsigned int)2);
     BOOST_CHECK_EQUAL(angle_data->getTypeByName("angle_a"), (unsigned int)0);
     BOOST_CHECK_EQUAL(angle_data->getTypeByName("angle_b"), (unsigned int)1);
 
@@ -1314,19 +1313,19 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(angle_data->getNameByType(1), string("angle_b"));
 
     // verify each angle
-    Angle a = angle_data->getAngle(0);
+    Angle a = angle_data->getGroupByTag(0);
     BOOST_CHECK_EQUAL(a.a, (unsigned int)0);
     BOOST_CHECK_EQUAL(a.b, (unsigned int)1);
     BOOST_CHECK_EQUAL(a.c, (unsigned int)2);
     BOOST_CHECK_EQUAL(a.type, (unsigned int)0);
 
-    a = angle_data->getAngle(1);
+    a = angle_data->getGroupByTag(1);
     BOOST_CHECK_EQUAL(a.a, (unsigned int)1);
     BOOST_CHECK_EQUAL(a.b, (unsigned int)2);
     BOOST_CHECK_EQUAL(a.c, (unsigned int)3);
     BOOST_CHECK_EQUAL(a.type, (unsigned int)1);
 
-    a = angle_data->getAngle(2);
+    a = angle_data->getGroupByTag(2);
     BOOST_CHECK_EQUAL(a.a, (unsigned int)2);
     BOOST_CHECK_EQUAL(a.b, (unsigned int)3);
     BOOST_CHECK_EQUAL(a.c, (unsigned int)4);
@@ -1336,10 +1335,10 @@ im_b 5 4 3 2\n\
     boost::shared_ptr<DihedralData> dihedral_data = sysdef->getDihedralData();
 
     // 2 dihedrals should have been read in
-    BOOST_REQUIRE_EQUAL(dihedral_data->getNumDihedrals(), (unsigned int)2);
+    BOOST_REQUIRE_EQUAL(dihedral_data->getN(), (unsigned int)2);
 
     // check that the types have been named properly
-    BOOST_REQUIRE_EQUAL(dihedral_data->getNDihedralTypes(), (unsigned int)2);
+    BOOST_REQUIRE_EQUAL(dihedral_data->getNTypes(), (unsigned int)2);
     BOOST_CHECK_EQUAL(dihedral_data->getTypeByName("di_a"), (unsigned int)0);
     BOOST_CHECK_EQUAL(dihedral_data->getTypeByName("di_b"), (unsigned int)1);
 
@@ -1347,14 +1346,14 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(dihedral_data->getNameByType(1), string("di_b"));
 
     // verify each dihedral
-    Dihedral d = dihedral_data->getDihedral(0);
+    Dihedral d = dihedral_data->getGroupByTag(0);
     BOOST_CHECK_EQUAL(d.a, (unsigned int)0);
     BOOST_CHECK_EQUAL(d.b, (unsigned int)1);
     BOOST_CHECK_EQUAL(d.c, (unsigned int)2);
     BOOST_CHECK_EQUAL(d.d, (unsigned int)3);
     BOOST_CHECK_EQUAL(d.type, (unsigned int)0);
 
-    d = dihedral_data->getDihedral(1);
+    d = dihedral_data->getGroupByTag(1);
     BOOST_CHECK_EQUAL(d.a, (unsigned int)1);
     BOOST_CHECK_EQUAL(d.b, (unsigned int)2);
     BOOST_CHECK_EQUAL(d.c, (unsigned int)3);
@@ -1363,13 +1362,13 @@ im_b 5 4 3 2\n\
 
 
     // check the impropers
-    boost::shared_ptr<DihedralData> improper_data = sysdef->getImproperData();
+    boost::shared_ptr<ImproperData> improper_data = sysdef->getImproperData();
 
     // 2 dihedrals should have been read in
-    BOOST_REQUIRE_EQUAL(improper_data->getNumDihedrals(), (unsigned int)2);
+    BOOST_REQUIRE_EQUAL(improper_data->getN(), (unsigned int)2);
 
     // check that the types have been named properly
-    BOOST_REQUIRE_EQUAL(improper_data->getNDihedralTypes(), (unsigned int)2);
+    BOOST_REQUIRE_EQUAL(improper_data->getNTypes(), (unsigned int)2);
     BOOST_CHECK_EQUAL(improper_data->getTypeByName("im_a"), (unsigned int)0);
     BOOST_CHECK_EQUAL(improper_data->getTypeByName("im_b"), (unsigned int)1);
 
@@ -1377,14 +1376,14 @@ im_b 5 4 3 2\n\
     BOOST_CHECK_EQUAL(improper_data->getNameByType(1), string("im_b"));
 
     // verify each dihedral
-    d = improper_data->getDihedral(0);
+    d = improper_data->getGroupByTag(0);
     BOOST_CHECK_EQUAL(d.a, (unsigned int)3);
     BOOST_CHECK_EQUAL(d.b, (unsigned int)2);
     BOOST_CHECK_EQUAL(d.c, (unsigned int)1);
     BOOST_CHECK_EQUAL(d.d, (unsigned int)0);
     BOOST_CHECK_EQUAL(d.type, (unsigned int)0);
 
-    d = improper_data->getDihedral(1);
+    d = improper_data->getGroupByTag(1);
     BOOST_CHECK_EQUAL(d.a, (unsigned int)5);
     BOOST_CHECK_EQUAL(d.b, (unsigned int)4);
     BOOST_CHECK_EQUAL(d.c, (unsigned int)3);

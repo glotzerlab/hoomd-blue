@@ -40,7 +40,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     RandomGenerator rand_init(exec_conf, box_g, 12345);
     std::vector<string> types;
     types.push_back("A");
-    std::vector<uint> bonds;
+    std::vector<unsigned int> bonds;
     std::vector<string> bond_types;
     rand_init.addGenerator((int)N, boost::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100)));
     rand_init.setSeparationRadius("A", .4);
@@ -225,13 +225,13 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
 //! Tests MPI domain decomposition with NVT integrator
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVT_test )
     {
-    test_nvt_integrator_mpi(exec_conf_cpu);
+    test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! Tests MPI domain decomposition with NVT integrator on the GPU
 BOOST_AUTO_TEST_CASE( DomainDecomposition_NVT_test_GPU )
     {
-    test_nvt_integrator_mpi(exec_conf_gpu);
+    test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif

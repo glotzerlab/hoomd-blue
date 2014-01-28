@@ -57,8 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include "HOOMDBinaryDumpWriter.h"
 #include "HOOMDBinaryInitializer.h"
-#include "BondData.h"
-#include "AngleData.h"
+#include "BondedGroupData.h"
 
 #include <iostream>
 #include <sstream>
@@ -152,18 +151,18 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     sysdef1->getWallData()->addWall(Wall(0,0,1, 1,0,0));
 
     // add a few bonds too
-    sysdef1->getBondData()->addBond(Bond(0, 0, 1));
-    sysdef1->getBondData()->addBond(Bond(1, 1, 0));
+    sysdef1->getBondData()->addBondedGroup(Bond(0, 0, 1));
+    sysdef1->getBondData()->addBondedGroup(Bond(1, 1, 0));
 
     // and angles as well
-    sysdef1->getAngleData()->addAngle(Angle(0, 0, 1, 2));
-    sysdef1->getAngleData()->addAngle(Angle(0, 1, 2, 0));
+    sysdef1->getAngleData()->addBondedGroup(Angle(0, 0, 1, 2));
+    sysdef1->getAngleData()->addBondedGroup(Angle(0, 1, 2, 0));
 
     // and a dihedral
-    sysdef1->getDihedralData()->addDihedral(Dihedral(0, 0, 1, 2, 3));
+    sysdef1->getDihedralData()->addBondedGroup(Dihedral(0, 0, 1, 2, 3));
 
     // and an improper
-    sysdef1->getImproperData()->addDihedral(Dihedral(0, 3, 2, 1, 0));
+    sysdef1->getImproperData()->addBondedGroup(Dihedral(0, 3, 2, 1, 0));
 
     // create the writer
     shared_ptr<HOOMDBinaryDumpWriter> writer(new HOOMDBinaryDumpWriter(sysdef1, "test"));
