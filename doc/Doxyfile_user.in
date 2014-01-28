@@ -734,7 +734,7 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.doc" \
+INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/quick_start.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/units.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/examples.dox" \
@@ -742,13 +742,13 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.do
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.doc" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.doc" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.dox" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_centos.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_fedora.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_opensuse.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_ubuntu.dox" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/citing.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc" \
