@@ -83,7 +83,7 @@ if (_cmake_ver VERSION_GREATER 2.6.3)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
-    option(ENABLE_OPENMP "Enable openmp compliation to accelerate CPU code on multi-core machines" ON)
+    option(ENABLE_OPENMP "Enable openmp compliation to accelerate CPU code on multi-core machines" OFF)
 endif (OPENMP_FOUND)
 
 else (_cmake_ver VERSION_GREATER 2.6.3)
