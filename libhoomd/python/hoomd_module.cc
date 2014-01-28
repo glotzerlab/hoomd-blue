@@ -90,7 +90,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllBondPotentials.h"
 #include "AllTripletPotentials.h"
 #include "ComputeThermo.h"
-#include "ComputeThermoGPU.h"
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
 #include "Analyzer.h"
@@ -170,6 +169,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPairGPU.h"
 #include "PPPMForceComputeGPU.h"
 #include "PotentialTersoffGPU.h"
+#include "ComputeThermoGPU.h"
 
 #include <cuda_profiler_api.h>
 #endif
