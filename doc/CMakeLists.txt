@@ -2,19 +2,6 @@
 
 if (DOXYGEN)
 
-# start by building the gle diagrams for the documentation
-find_program(GLE_EXECUTABLE gle)
-if (GLE_EXECUTABLE)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/gle/class_overview.gle ${CMAKE_CURRENT_BINARY_DIR}/gle/class_overview.gle COPYONLY)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/gle/uml.gle ${CMAKE_CURRENT_BINARY_DIR}/gle/uml.gle COPYONLY)
-
-    add_custom_command (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/images/class_overview.svg
-                    COMMAND ${GLE_EXECUTABLE} -d svg ${CMAKE_CURRENT_BINARY_DIR}/gle/class_overview.gle
-                    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gle/class_overview.gle
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-    set (_gle_images ${CMAKE_CURRENT_BINARY_DIR}/images/class_overview.svg)
-endif (GLE_EXECUTABLE)
-
 # policy change: always build all documentation even on platforms that don't
 # have CUDA
 set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_CUDA=1\" \\

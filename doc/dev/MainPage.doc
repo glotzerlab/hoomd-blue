@@ -48,18 +48,17 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*! 
+/*!
 
 \mainpage
 
-Welcome to the developer documentation for HOOMD! 
+Welcome to the developer documentation for HOOMD!
 
 \section sec_main_toc Table of Contents
- - \subpage page_compile_guide
- - \subpage page_dev_info
- - \subpage page_license
- - \subpage page_credits
 
-Overview of hoomd class design:
-\image html class_overview.svg
+- \subpage page_compile_guide
+- \subpage page_dev_info
+- \subpage page_license
+- \subpage page_credits
+
 */
