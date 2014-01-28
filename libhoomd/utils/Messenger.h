@@ -185,6 +185,12 @@ class Messenger
         //! Construct a messenger
         Messenger();
 
+        //! Copy constructor
+        Messenger(const Messenger& msg);
+
+        //! Assignment operator
+        Messenger& operator=(Messenger& msg);
+
         //! Destructor
         ~Messenger();
 

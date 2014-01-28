@@ -101,6 +101,57 @@ Messenger::Messenger()
     #endif
     }
 
+Messenger::Messenger(const Messenger& msg)
+    {
+    m_err_stream = msg.m_err_stream;
+    m_warning_stream = msg.m_warning_stream;
+    m_notice_stream = msg.m_notice_stream;
+    m_nullstream = msg.m_nullstream;
+    m_file = msg.m_file;
+    m_err_prefix = msg.m_err_prefix;
+    m_warning_prefix = msg.m_warning_prefix;
+    m_notice_prefix = msg.m_notice_prefix;
+    m_notice_level = msg.m_notice_level;
+
+    m_rank = msg.m_rank;
+    m_partition = msg.m_partition;
+    m_nranks = msg.m_nranks;
+
+    #ifdef ENABLE_MPI
+    m_shared_filename = msg.m_shared_filename;
+    m_mpi_comm = msg.m_mpi_comm;
+    m_error_flag = NULL;
+    m_has_lock = false;
+    initializeSharedMem();
+    #endif
+    }
+
+Messenger& Messenger::operator=(Messenger& msg)
+    {
+    m_err_stream = msg.m_err_stream;
+    m_warning_stream = msg.m_warning_stream;
+    m_notice_stream = msg.m_notice_stream;
+    m_nullstream = msg.m_nullstream;
+    m_file = msg.m_file;
+    m_err_prefix = msg.m_err_prefix;
+    m_warning_prefix = msg.m_warning_prefix;
+    m_notice_prefix = msg.m_notice_prefix;
+    m_notice_level = msg.m_notice_level;
+
+    m_rank = msg.m_rank;
+    m_partition = msg.m_partition;
+    m_nranks = msg.m_nranks;
+
+    #ifdef ENABLE_MPI
+    m_shared_filename = msg.m_shared_filename;
+    m_mpi_comm = msg.m_mpi_comm;
+    m_error_flag = NULL;
+    m_has_lock = false;
+    #endif
+
+    return *this;
+    }
+
 Messenger::~Messenger()
     {
     // set pointers to NULL
@@ -138,9 +189,9 @@ std::ostream& Messenger::error() const
         }
     #endif
     if (m_err_prefix != string(""))
-        *m_err_stream << m_err_prefix;
+        *m_err_stream << m_err_prefix << ": ";
     if (m_nranks > 1)
-        *m_err_stream << " (Rank " << m_rank << ") ";
+        *m_err_stream << " (Rank " << m_rank << "): ";
     return *m_err_stream;
     }
 
@@ -160,9 +211,9 @@ std::ostream& Messenger::warning() const
     {
     assert(m_warning_stream);
     if (m_warning_prefix != string(""))
-        *m_warning_stream << m_warning_prefix;
+        *m_warning_stream << m_warning_prefix << ": ";
    if (m_nranks > 1)
-        *m_err_stream << " (Rank " << m_rank << ") ";
+        *m_err_stream << " (Rank " << m_rank << "): ";
     return *m_warning_stream;
     }
 
