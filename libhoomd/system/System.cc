@@ -573,7 +573,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         else
         #endif
             {
-            // re-throw original exception 
+            // re-throw original exception
             throw ex;
             }
         }

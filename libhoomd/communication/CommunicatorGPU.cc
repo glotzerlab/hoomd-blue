@@ -2236,7 +2236,7 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
         std::vector<MPI_Status> stats(m_reqs.size());
         MPI_Waitall(m_reqs.size(), &m_reqs.front(), &stats.front());
         if (m_prof) m_prof->pop(m_exec_conf);
- 
+
         #ifndef ENABLE_MPI_CUDA
         assert(m_num_stages == 1);
         unsigned int stage = 0;

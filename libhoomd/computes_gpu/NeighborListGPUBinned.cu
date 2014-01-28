@@ -341,7 +341,7 @@ int get_max_block_size(T func)
     cudaFuncGetAttributes(&attr, func);
     int max_threads = attr.maxThreadsPerBlock;
     // number of threads has to be multiple of warp size
-    max_threads -= max_threads % max_threads_per_particle; 
+    max_threads -= max_threads % max_threads_per_particle;
     return max_threads;
     }
 
@@ -351,7 +351,7 @@ int get_compute_capability(T func)
     cudaFuncAttributes attr;
     cudaFuncGetAttributes(&attr, func);
     return attr.binaryVersion;
-    } 
+    }
 
 void gpu_nlist_binned_bind_texture(const Scalar4 *d_cell_xyzf, unsigned int n_elements)
     {

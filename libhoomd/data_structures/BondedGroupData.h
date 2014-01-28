@@ -339,7 +339,7 @@ class BondedGroupData : boost::noncopyable
             }
         #endif
 
-        /* 
+        /*
          * Alternate arrays used for reordering data
          * \sa ParticleData
          *

@@ -188,7 +188,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
         // initialize cached allocator
         m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
-        } 
+        }
 #else
     if (exec_mode == GPU)
         {

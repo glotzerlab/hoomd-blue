@@ -427,7 +427,7 @@ class Messenger
 
         MPI_Win m_mpi_win;              //!< MPI Window for atomic printing of error messages
         int *m_error_flag;              //!< Flag on (on processor 0) to lock stdout
-        mutable bool m_has_lock;        //!< True if this rank has exclusive access to stdout 
+        mutable bool m_has_lock;        //!< True if this rank has exclusive access to stdout
 
         //! Open a shared file for error, warning, and notice streams
         void openSharedFile();

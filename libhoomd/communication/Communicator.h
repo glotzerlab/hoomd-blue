@@ -468,7 +468,7 @@ class Communicator
                 /*! \param incomplete If true, mark all groups that have non-local members and update local
                  *         member rank information. Otherwise, mark only groups flagged for communication
                  *         in particle data
-                 * 
+                 *
                  * A group is marked for sending by setting its rtag to GROUP_NOT_LOCAL, and by updating
                  * the rank information with the destination ranks (or the local ranks if incomplete=true)
                  */

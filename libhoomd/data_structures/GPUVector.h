@@ -91,14 +91,14 @@ template<class T> class GPUVector : public GPUArray<T>
 
         //! Constructs a GPUVector
         GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
-	
-	#ifdef ENABLE_CUDA
+
+    #ifdef ENABLE_CUDA
         //! Constructs an empty GPUVector
         GPUVector(boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
 
         //! Constructs a GPUVector
         GPUVector(unsigned int size, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
-	#endif
+    #endif
 
         //! Frees memory
         virtual ~GPUVector() {}
@@ -143,7 +143,7 @@ template<class T> class GPUVector : public GPUArray<T>
 
         //! Remove an element by index
         virtual void erase(unsigned int i);
- 
+
         //! Clear the list
         virtual void clear();
 

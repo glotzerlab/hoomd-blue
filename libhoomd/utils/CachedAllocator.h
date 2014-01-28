@@ -105,7 +105,7 @@ class CachedAllocator
         /*! \param num_bytes Number of elements to allocate
          * \returns a pointer to the allocated buffer
          */
-        template<typename T> 
+        template<typename T>
         T *getTemporaryBuffer(unsigned int num_elements) const;
 
         //! Release a previously allocated block
@@ -202,7 +202,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements) const
     // look for a cached buffer within m_cache_reltol relative tolerance
     if(free_block != m_free_blocks.end()
          && free_block->first <= (num_bytes + (unsigned int)((float)num_bytes*m_cache_reltol)))
-        { 
+        {
         m_exec_conf->msg->notice(10) << "CachedAllocator: found a hit "
             << "(" << float(num_bytes)/1024.0f/1024.0f << " MB)" << std::endl;
 
@@ -223,7 +223,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements) const
 
         cudaMalloc((void **) &result, num_bytes);
         CHECK_CUDA_ERROR();
-        
+
         m_num_bytes_tot += num_bytes;
 
         while (m_num_bytes_tot > m_max_cached_bytes && m_free_blocks.size())
