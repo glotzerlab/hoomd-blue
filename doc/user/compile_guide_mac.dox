@@ -85,11 +85,12 @@ $ sudo port selfupdate
 2. **Install cmake, boost, and python:**
 Run the following command in a terminal to install all prerequisite software to build hoomd.
 ~~~~.bash
-$ sudo port install cmake boost +python27 python_select openmpi
+$ sudo port install cmake boost +python27 python_select openmpi-default
 ~~~~
 After macports finishes the above command, run
 ~~~~.bash
 $ sudo port select python python27
+$ sudo port select mpi openmpi-mp-fortran
 ~~~~
 to select the python that macports installed. This step is crucial, or else you will get python <i>version mismatch</i>
 or <i>'NoneType'</i> errors when trying to run hoomd.
@@ -120,10 +121,6 @@ $ sudo port install graphviz
 
 5. **Install git:**
 [Download the git dmg](http://git-scm.com/) and install the software.
-
-6. **Set your MPI PATH:**
-Add `/opt/local/lib/openmpi/bin` to your `$PATH`. Without this set, hoomd will not find the MPI library and `mpirun`
-will not be available on the command line for launching parallel jobs.
 
 \section sec_build_mac_compile Compile hoomd
 
