@@ -59,18 +59,19 @@ endif ()
 
 #################################
 ## Optionally enable documentation build
-find_package(Doxygen)
-if (DOXYGEN_FOUND)
-    # get the doxygen version
-    exec_program(${DOXYGEN_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS --version OUTPUT_VARIABLE DOXYGEN_VERSION)
+OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" OFF)
+if (ENABLE_DOXYGEN)
+    find_package(Doxygen)
+    if (DOXYGEN_FOUND)
+        # get the doxygen version
+        exec_program(${DOXYGEN_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS --version OUTPUT_VARIABLE DOXYGEN_VERSION)
 
-    if (${DOXYGEN_VERSION} VERSION_GREATER 1.5.5)
-        OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" ON)
-    else (${DOXYGEN_VERSION} VERSION_GREATER 1.5.5)
-        message(STATUS "Doxygen version less than 1.5.5, defaulting ENABLE_DOXYGEN=OFF")
-        OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" OFF)
-    endif (${DOXYGEN_VERSION} VERSION_GREATER 1.5.5)
-endif (DOXYGEN_FOUND)
+        if (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
+        else (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
+            message(STATUS "Doxygen version less than 1.8.5, documentation may not build correctly")
+        endif (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
+    endif ()
+endif ()
 
 ################################
 ## detect and optionally enable OpenMP
