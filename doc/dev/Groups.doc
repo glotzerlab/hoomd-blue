@@ -62,5 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \defgroup benchmarks Low level benchmarks
 */
 
+/*! \defgroup vecmath Vector Math
+*/
+
 /*! @}
 */
