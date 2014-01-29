@@ -458,8 +458,6 @@ shared_ptr<PotentialPairGaussGPU> gpu_gauss_creator(shared_ptr<SystemDefinition>
     {
     nlist->setStorageMode(NeighborList::full);
     shared_ptr<PotentialPairGaussGPU> gauss(new PotentialPairGaussGPU(sysdef, nlist));
-    // the default block size kills valgrind :) reduce it
-    gauss->setBlockSize(64);
     return gauss;
     }
 #endif

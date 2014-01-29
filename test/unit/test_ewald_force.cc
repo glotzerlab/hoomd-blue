@@ -275,8 +275,6 @@ shared_ptr<PotentialPairEwaldGPU> gpu_ewald_creator(shared_ptr<SystemDefinition>
     {
     nlist->setStorageMode(NeighborList::full);
     shared_ptr<PotentialPairEwaldGPU> ewald(new PotentialPairEwaldGPU(sysdef, nlist));
-    // the default block size kills valgrind :) reduce it
-    ewald->setBlockSize(64);
     return ewald;
     }
 #endif

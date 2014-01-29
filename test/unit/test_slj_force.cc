@@ -449,8 +449,6 @@ shared_ptr<PotentialPairSLJ> gpu_shiftedlj_creator(shared_ptr<SystemDefinition> 
     {
     nlist->setStorageMode(NeighborList::full);
     shared_ptr<PotentialPairSLJGPU> lj(new PotentialPairSLJGPU(sysdef, nlist));
-    // the default block size kills valgrind :) reduce it
-    lj->setBlockSize(64);
     return lj;
     }
 #endif

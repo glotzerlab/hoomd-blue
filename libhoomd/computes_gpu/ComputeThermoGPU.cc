@@ -184,9 +184,9 @@ void ComputeThermoGPU::computeProperties()
     #ifdef ENABLE_MPI
     // in MPI, reduce extensive quantities only when they're needed
     m_properties_reduced = !m_pdata->getDomainDecomposition();
-    #endif // ENABLE_MPI
 
     if (!m_properties_reduced) cudaEventRecord(m_event);
+    #endif // ENABLE_MPI
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }

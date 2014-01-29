@@ -262,8 +262,6 @@ shared_ptr<PotentialPairMorseGPU> gpu_morse_creator(shared_ptr<SystemDefinition>
     {
     nlist->setStorageMode(NeighborList::full);
     shared_ptr<PotentialPairMorseGPU> morse(new PotentialPairMorseGPU(sysdef, nlist));
-    // the default block size kills valgrind :) reduce it
-    morse->setBlockSize(64);
     return morse;
     }
 #endif

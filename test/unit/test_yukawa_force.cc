@@ -271,8 +271,6 @@ shared_ptr<PotentialPairYukawaGPU> gpu_yukawa_creator(shared_ptr<SystemDefinitio
     {
     nlist->setStorageMode(NeighborList::full);
     shared_ptr<PotentialPairYukawaGPU> yukawa(new PotentialPairYukawaGPU(sysdef, nlist));
-    // the default block size kills valgrind :) reduce it
-    yukawa->setBlockSize(64);
     return yukawa;
     }
 #endif
