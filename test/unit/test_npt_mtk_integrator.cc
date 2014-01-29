@@ -112,7 +112,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     // we use a tightly packed cubic LJ crystal for testing,
     // because this one has a sufficient shear elasticity
     // to avoid that the box gets too tilted during triclinic NPT
-    const unsigned int L = 14; // number of particles along one box edge
+    const unsigned int L = 8; // number of particles along one box edge
     Scalar P = 142.5; // use a REALLY high value of pressure to keep the system in solid state
     Scalar T0 = .9;
     Scalar deltaT = 0.001;
