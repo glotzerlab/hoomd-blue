@@ -190,12 +190,12 @@ struct __device_builtin__ uint3
     unsigned int x, y, z;
 };
 
-struct __device_builtin__ __builtin_align__(16) int4
+struct __device_builtin__ int4
 {
     int x, y, z, w;
 };
 
-struct __device_builtin__ __builtin_align__(16) uint4
+struct __device_builtin__ uint4
 {
     unsigned int x, y, z, w;
 };
@@ -237,12 +237,12 @@ struct __device_builtin__ ulong3
     unsigned long int x, y, z;
 };
 
-struct __device_builtin__ __builtin_align__(16) long4
+struct __device_builtin__ long4
 {
     long int x, y, z, w;
 };
 
-struct __device_builtin__ __builtin_align__(16) ulong4
+struct __device_builtin__ ulong4
 {
     unsigned long int x, y, z, w;
 };
@@ -279,7 +279,7 @@ struct __device_builtin__ float3
     float x, y, z;
 };
 
-struct __device_builtin__ __builtin_align__(16) float4
+struct __device_builtin__ float4
 {
     float x, y, z, w;
 };
@@ -294,12 +294,12 @@ struct __device_builtin__ ulonglong1
     unsigned long long int x;
 };
 
-struct __device_builtin__ __builtin_align__(16) longlong2
+struct __device_builtin__ longlong2
 {
     long long int x, y;
 };
 
-struct __device_builtin__ __builtin_align__(16) ulonglong2
+struct __device_builtin__ ulonglong2
 {
     unsigned long long int x, y;
 };
@@ -314,12 +314,12 @@ struct __device_builtin__ ulonglong3
     unsigned long long int x, y, z;
 };
 
-struct __device_builtin__ __builtin_align__(16) longlong4
+struct __device_builtin__ longlong4
 {
     long long int x, y, z ,w;
 };
 
-struct __device_builtin__ __builtin_align__(16) ulonglong4
+struct __device_builtin__ ulonglong4
 {
     unsigned long long int x, y, z, w;
 };
@@ -329,7 +329,7 @@ struct __device_builtin__ double1
     double x;
 };
 
-struct __device_builtin__ __builtin_align__(16) double2
+struct __device_builtin__ double2
 {
     double x, y;
 };
@@ -339,7 +339,7 @@ struct __device_builtin__ double3
     double x, y, z;
 };
 
-struct __device_builtin__ __builtin_align__(16) double4
+struct __device_builtin__ double4
 {
     double x, y, z, w;
 };

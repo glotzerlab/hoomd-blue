@@ -54,20 +54,20 @@
 
 #define __no_return__ \
         __attribute__((noreturn))
-        
+
 #if defined(__CUDACC__) || defined(__CUDA_ARCH__)
-/* gcc allows users to define attributes with underscores, 
+/* gcc allows users to define attributes with underscores,
    e.g., __attribute__((__noinline__)).
-   Consider a non-CUDA source file (e.g. .cpp) that has the 
+   Consider a non-CUDA source file (e.g. .cpp) that has the
    above attribute specification, and includes this header file. In that case,
    defining __noinline__ as below  would cause a gcc compilation error.
    Hence, only define __noinline__ when the code is being processed
    by a  CUDA compiler component.
-*/   
+*/
 #define __noinline__ \
         __attribute__((noinline))
-#endif /* __CUDACC__  || __CUDA_ARCH__ */       
-        
+#endif /* __CUDACC__  || __CUDA_ARCH__ */
+
 #define __forceinline__ \
         __inline__ __attribute__((always_inline))
 #define __align__(n) \
