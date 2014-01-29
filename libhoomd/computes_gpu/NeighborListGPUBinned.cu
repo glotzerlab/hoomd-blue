@@ -100,7 +100,6 @@ struct warp_scan
         int first = 0;
         // no syncthreads here (inside warp)
 
-        #pragma unroll
         for(int offset = 1; offset < NT; offset += offset)
             {
             if(tid >= offset)
@@ -395,11 +394,11 @@ inline void launcher(unsigned int *d_nlist,
         {
         if (!filter_diameter && !filter_body)
             {
-            static int max_block_size = -1;
-            static int sm = -1;
-            if (max_block_size == -1)
+            static unsigned int max_block_size = UINT_MAX;
+            static unsigned int sm = UINT_MAX;
+            if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<0,cur_tpp>);
-            if (sm == -1)
+            if (sm == UINT_MAX)
                 sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<0,cur_tpp>);
             if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
@@ -436,11 +435,11 @@ inline void launcher(unsigned int *d_nlist,
             }
         else if (!filter_diameter && filter_body)
             {
-            static int max_block_size = -1;
-            static int sm = -1;
-            if (max_block_size == -1)
+            static unsigned int max_block_size = UINT_MAX;
+            static unsigned int sm = UINT_MAX;
+            if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<1,cur_tpp>);
-            if (sm == -1)
+            if (sm == UINT_MAX)
                 sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<1,cur_tpp>);
             if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
@@ -477,11 +476,11 @@ inline void launcher(unsigned int *d_nlist,
             }
         else if (filter_diameter && !filter_body)
             {
-            static int max_block_size = -1;
-            static int sm = -1;
-            if (max_block_size == -1)
+            static unsigned int max_block_size = UINT_MAX;
+            static unsigned int sm = UINT_MAX;
+            if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
-            if (sm == -1)
+            if (sm == UINT_MAX)
                 sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
             if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
@@ -518,11 +517,11 @@ inline void launcher(unsigned int *d_nlist,
             }
         else if (filter_diameter && filter_body)
             {
-            static int max_block_size = -1;
-            static int sm = -1;
-            if (max_block_size == -1)
+            static unsigned int max_block_size = UINT_MAX;
+            static unsigned int sm = UINT_MAX;
+            if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
-            if (sm == -1)
+            if (sm == UINT_MAX)
                 sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
             if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
