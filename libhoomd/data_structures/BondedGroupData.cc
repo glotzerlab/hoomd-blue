@@ -471,8 +471,8 @@ const Group BondedGroupData<group_size, Group, name>::getGroupByTag(unsigned int
         bcast(type, rank, m_exec_conf->getMPICommunicator());
         bcast(members, rank, m_exec_conf->getMPICommunicator());
         }
-    #endif
     else
+#endif
         {
         if (group_idx == GROUP_NOT_LOCAL)
             {

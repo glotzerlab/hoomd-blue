@@ -78,6 +78,7 @@ using namespace boost::python;
 #include <stack>
 #include <string>
 #include <sstream>
+#include <set>
 
 #ifdef ENABLE_CUDA
 #include "CachedAllocator.h"
