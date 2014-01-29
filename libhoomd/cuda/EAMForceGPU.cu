@@ -119,7 +119,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     Scalar* atomDerivativeEmbeddingFunction)
     {
     // start by identifying which particle we are to handle
-    volatile int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= N)
         return;
@@ -197,7 +197,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     Scalar* atomDerivativeEmbeddingFunction)
     {
     // start by identifying which particle we are to handle
-    volatile  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= N)
         return;

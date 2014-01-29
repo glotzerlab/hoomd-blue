@@ -221,9 +221,7 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
     // loop over neighbors
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
-        // MEM TRANSFER: 8 bytes
-        // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile group_storage<2> cur_bond = blist[blist_idx(idx, bond_idx)];
+        group_storage<2> cur_bond = blist[blist_idx(idx, bond_idx)];
 
         int cur_bond_idx = cur_bond.idx[0];
         int cur_bond_type = cur_bond.idx[1];
