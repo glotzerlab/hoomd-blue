@@ -139,7 +139,7 @@ class EvaluatorPairEwald
 
                 Scalar erfc_by_r_val = fast::erfc(kappa * r) * rinv;
 
-                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*fast::rsqrt(M_PI) * fast::exp(-kappa*kappa* rsq));
+                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*fast::rsqrt(Scalar(M_PI)) * fast::exp(-kappa*kappa* rsq));
                 pair_eng = qiqj * erfc_by_r_val ;
 
                 return true;
