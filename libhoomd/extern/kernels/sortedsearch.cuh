@@ -169,11 +169,11 @@ MGPU_HOST void SortedSearch(InputIt1 a_global, int aCount, InputIt2 b_global,
 	int bCount, OutputIt1 aIndices_global, OutputIt2 bIndices_global,
 	Comp comp, CudaContext& context, int* aMatchCount, int* bMatchCount) {
 
-	const bool IndexA = MgpuSearchTypeIndex == TypeA || 
+	const bool __attribute__((unused)) IndexA = MgpuSearchTypeIndex == TypeA || 
 		MgpuSearchTypeIndexMatch == TypeA;
 	const bool MatchA = MgpuSearchTypeMatch == TypeA ||
 		MgpuSearchTypeIndexMatch == TypeA;
-	const bool IndexB = MgpuSearchTypeIndex == TypeB ||
+	const bool __attribute__((unused)) IndexB = MgpuSearchTypeIndex == TypeB ||
 		MgpuSearchTypeIndexMatch == TypeB;
 	const bool MatchB = MgpuSearchTypeMatch == TypeB ||
 		MgpuSearchTypeIndexMatch == TypeB;

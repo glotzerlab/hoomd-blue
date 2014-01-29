@@ -39,24 +39,54 @@
 namespace mgpu {
 
 MGPU_HOST_DEVICE uint2 ulonglong_as_uint2(uint64 x) {
-	return *reinterpret_cast<uint2*>(&x);
+    union {
+        uint64 in;
+        uint2 out;
+    };
+	in = x;
+    return out;
 }
 MGPU_HOST_DEVICE uint64 uint2_as_ulonglong(uint2 x) {
-	return *reinterpret_cast<uint64*>(&x);
+    union {
+        uint2 in;
+        uint64 out;
+    };
+    in = x;
+    return out;
 }
 
 MGPU_HOST_DEVICE int2 longlong_as_int2(int64 x) {
-	return *reinterpret_cast<int2*>(&x);
+    union {
+        int64 in;
+        int2 out;
+    };
+    in = x;
+    return out;
 }
 MGPU_HOST_DEVICE int64 int2_as_longlong(int2 x) {
-	return *reinterpret_cast<int64*>(&x);
+    union {
+        int2 in;
+        int64 out;
+    };
+    in = x;
+    return out;
 }
 
 MGPU_HOST_DEVICE int2 double_as_int2(double x) {
-	return *reinterpret_cast<int2*>(&x);
+	union {
+        double in;
+        int2 out;
+    };
+    in = x;
+    return out;
 }
 MGPU_HOST_DEVICE double int2_as_double(int2 x) {
-	return *reinterpret_cast<double*>(&x);
+	union {
+        int2 in;
+        double out;
+    };
+    in = x;
+    return out;
 }
 
 MGPU_HOST_DEVICE void SetDoubleX(double& d, int x) {
