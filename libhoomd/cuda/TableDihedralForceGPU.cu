@@ -195,9 +195,9 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         dcbm = box.minImage(dcbm);
 
         // c0 calculation
-        Scalar sb1 = 1.0 / (dab.x*dab.x + dab.y*dab.y + dab.z*dab.z);
-        Scalar sb2 = 1.0 / (dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z);
-        Scalar sb3 = 1.0 / (ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z);
+        Scalar sb1 = Scalar(1.0) / (dab.x*dab.x + dab.y*dab.y + dab.z*dab.z);
+        Scalar sb2 = Scalar(1.0) / (dcb.x*dcb.x + dcb.y*dcb.y + dcb.z*dcb.z);
+        Scalar sb3 = Scalar(1.0) / (ddc.x*ddc.x + ddc.y*ddc.y + ddc.z*ddc.z);
 
         Scalar rb1 = sqrt(sb1);
         Scalar rb3 = sqrt(sb3);
@@ -214,34 +214,34 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         Scalar b3mag = sqrt(b3mag2);
 
         Scalar ctmp = dab.x*dcb.x + dab.y*dcb.y + dab.z*dcb.z;
-        Scalar r12c1 = 1.0f / (b1mag*b2mag);
+        Scalar r12c1 = Scalar(1.0) / (b1mag*b2mag);
         Scalar c1mag = ctmp * r12c1;
 
         ctmp = dcbm.x*ddc.x + dcbm.y*ddc.y + dcbm.z*ddc.z;
-        Scalar r12c2 = 1.0f / (b2mag*b3mag);
+        Scalar r12c2 = Scalar(1.0) / (b2mag*b3mag);
         Scalar c2mag = ctmp * r12c2;
 
         // cos and sin of 2 angles and final c
 
-        Scalar sin2 = 1.0f - c1mag*c1mag;
+        Scalar sin2 = Scalar(1.0) - c1mag*c1mag;
         if (sin2 < 0.0f) sin2 = 0.0f;
         Scalar sc1 = sqrtf(sin2);
         if (sc1 < SMALL) sc1 = SMALL;
-        sc1 = 1.0f/sc1;
+        sc1 = Scalar(1.0)/sc1;
 
-        sin2 = 1.0f - c2mag*c2mag;
+        sin2 = Scalar(1.0) - c2mag*c2mag;
         if (sin2 < 0.0f) sin2 = 0.0f;
         Scalar sc2 = sqrtf(sin2);
         if (sc2 < SMALL) sc2 = SMALL;
-        sc2 = 1.0f/sc2;
+        sc2 = Scalar(1.0)/sc2;
 
         Scalar s1 = sc1 * sc1;
         Scalar s2 = sc2 * sc2;
         Scalar s12 = sc1 * sc2;
         Scalar c = (c0 + c1mag*c2mag) * s12;
 
-        if (c > 1.0f) c = 1.0f;
-        if (c < -1.0f) c = -1.0f;
+        if (c > Scalar(1.0)) c = Scalar(1.0);
+        if (c < -Scalar(1.0)) c = -Scalar(1.0);
 
         //phi
         Scalar phi = acosf(c);
@@ -270,7 +270,7 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         c = c * a;
         s12 = s12 * a;
         Scalar a11 = c*sb1*s1;
-        Scalar a22 = -sb2 * (2.0f*c0*s12 - c*(s1+s2));
+        Scalar a22 = -sb2 * (Scalar(2.0)*c0*s12 - c*(s1+s2));
         Scalar a33 = c*sb3*s2;
         Scalar a12 = -r12c1*(c1mag*c*s1 + c2mag*s12);
         Scalar a13 = -rb1*rb3*s12;
@@ -300,7 +300,7 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         // and accumlate the energy/virial
 
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
-        Scalar dihedral_eng = V*Scalar(1.0f/4.0f);
+        Scalar dihedral_eng = V*Scalar(1.0/4.0);
 
         // compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // symmetrized version of virial tensor
