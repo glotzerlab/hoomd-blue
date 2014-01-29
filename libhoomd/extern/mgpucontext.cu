@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -11,10 +11,10 @@
  *     * Neither the name of the NVIDIA CORPORATION nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
@@ -35,7 +35,7 @@
 #include "util/mgpucontext.h"
 
 namespace mgpu {
-	
+
 ////////////////////////////////////////////////////////////////////////////////
 // CudaTimer
 
@@ -90,7 +90,7 @@ struct DeviceGroup {
 			// Retrieve the device properties.
 			CudaDevice* device = cudaDevices[ordinal] = new CudaDevice;
 			device->_ordinal = ordinal;
-			cudaError_t error = cudaGetDeviceProperties(&device->_prop, 
+			cudaError_t error = cudaGetDeviceProperties(&device->_prop,
 				ordinal);
 			if(cudaSuccess != error) {
 				fprintf(stderr, "FAILURE TO CREATE CUDA DEVICE %d\n", ordinal);
@@ -100,8 +100,8 @@ struct DeviceGroup {
 			// Get the compiler version for this device.
 			cudaSetDevice(ordinal);
 			cudaFuncAttributes attr;
-			error = cudaFuncGetAttributes(&attr, KernelVersionShim);	
-			if(cudaSuccess == error) 
+			error = cudaFuncGetAttributes(&attr, KernelVersionShim);
+			if(cudaSuccess == error)
 				device->_ptxVersion = 10 * attr.ptxVersion;
 			else {
 				printf("NOT COMPILED WITH COMPATIBLE PTX VERSION FOR DEVICE"
@@ -127,7 +127,7 @@ std::auto_ptr<DeviceGroup> deviceGroup;
 
 
 int CudaDevice::DeviceCount() {
-	if(!deviceGroup.get()) 
+	if(!deviceGroup.get())
 		deviceGroup.reset(new DeviceGroup);
 	return deviceGroup->GetDeviceCount();
 }
@@ -151,7 +151,7 @@ CudaDevice& CudaDevice::Selected() {
 }
 
 void CudaDevice::SetActive() {
-	cudaError_t error = cudaSetDevice(_ordinal); 
+	cudaError_t error = cudaSetDevice(_ordinal);
 	if(cudaSuccess != error) {
 		fprintf(stderr, "ERROR SETTING CUDA DEVICE TO ORDINAL %d\n", _ordinal);
 		exit(0);
@@ -190,7 +190,7 @@ std::string CudaDevice::DeviceString() const {
 struct ContextGroup {
 	CudaContext** standardContexts;
 	int numDevices;
-	
+
 	ContextGroup() {
 		numDevices = CudaDevice::DeviceCount();
 		standardContexts = new CudaContext*[numDevices];
@@ -216,7 +216,7 @@ struct ContextGroup {
 std::auto_ptr<ContextGroup> contextGroup;
 
 CudaContext::CudaContext(CudaDevice& device, bool newStream, bool standard) :
-	_event(cudaEventDisableTiming /*| cudaEventBlockingSync */), 
+	_event(cudaEventDisableTiming /*| cudaEventBlockingSync */),
 	_stream(0), _noRefCount(standard), _pageLocked(0) {
 
 	// Create an allocator.
@@ -224,15 +224,15 @@ CudaContext::CudaContext(CudaDevice& device, bool newStream, bool standard) :
 		_alloc.reset(new CudaAllocSimple(device));
 	else
 		_alloc = CreateDefaultAlloc(device);
-	
+
 	if(newStream) cudaStreamCreate(&_stream);
 	_ownStream = newStream;
 
 	// Allocate 4KB of page-locked memory.
-	cudaError_t error = cudaMallocHost((void**)&_pageLocked, 4096);
+	cudaMallocHost((void**)&_pageLocked, 4096);
 
 	// Allocate an auxiliary stream.
-	error = cudaStreamCreate(&_auxStream);
+	cudaStreamCreate(&_auxStream);
 }
 
 CudaContext::~CudaContext() {
@@ -384,7 +384,7 @@ CudaAllocBuckets::CudaAllocBuckets(CudaDevice& device) : CudaAlloc(device) {
 	_counter = 0;
 }
 
-CudaAllocBuckets::~CudaAllocBuckets() { 
+CudaAllocBuckets::~CudaAllocBuckets() {
 	SetCapacity(0, 0);
 	assert(!_allocated);
 }
@@ -392,7 +392,7 @@ CudaAllocBuckets::~CudaAllocBuckets() {
 bool CudaAllocBuckets::SanityCheck() const {
 	// Iterate through all allocated objects and verify sizes.
 	size_t allocatedCount = 0, committedCount = 0;
-	for(AddressMap::const_iterator i = _addressMap.begin(); 
+	for(AddressMap::const_iterator i = _addressMap.begin();
 		i != _addressMap.end(); ++i) {
 
 		int bucket = i->second->bucket;
@@ -408,7 +408,7 @@ bool CudaAllocBuckets::SanityCheck() const {
 
 cudaError_t CudaAllocBuckets::Malloc(size_t size, void** p) {
 
-	// Locate the bucket index and adjust the size of the allocation to the 
+	// Locate the bucket index and adjust the size of the allocation to the
 	// bucket size.
 	size_t allocSize = size;
 	size_t commitSize = 0;
@@ -420,7 +420,7 @@ cudaError_t CudaAllocBuckets::Malloc(size_t size, void** p) {
 	MemList& list = _memLists[bucket];
 	if(list.size() && list.front().priority != _priorityMap.end()) {
 		MemList::iterator memIt = list.begin();
-		
+
 		_priorityMap.erase(memIt->priority);
 		memIt->priority = _priorityMap.end();
 
@@ -433,7 +433,7 @@ cudaError_t CudaAllocBuckets::Malloc(size_t size, void** p) {
 
 	// Shrink if this allocation would put us over the limit.
 	Compact(commitSize);
-	 
+
 	cudaError_t error = cudaSuccess;
 	*p = 0;
 	if(size) error = cudaMalloc(p, allocSize);
@@ -443,7 +443,7 @@ cudaError_t CudaAllocBuckets::Malloc(size_t size, void** p) {
 	}
 	if(cudaSuccess != error) return error;
 
-	MemList::iterator memIt = 
+	MemList::iterator memIt =
 		_memLists[bucket].insert(_memLists[bucket].end(), MemNode());
 	memIt->bucket = bucket;
 	memIt->address = _addressMap.insert(std::make_pair(*p, memIt)).first;
@@ -511,7 +511,7 @@ void CudaAllocBuckets::FreeNode(CudaAllocBuckets::MemList::iterator memIt) {
 	assert(SanityCheck());
 }
 
-void CudaAllocBuckets::Compact(size_t extra) { 
+void CudaAllocBuckets::Compact(size_t extra) {
 	while(_allocated + extra > _capacity && _allocated > _committed) {
 		// Walk the priority queue from beginning to end removing nodes.
 		MemList::iterator memIt = _priorityMap.begin()->second;
@@ -541,7 +541,7 @@ int CudaAllocBuckets::LocateBucket(size_t size) const {
 	if(size > _maxObjectSize || size > BucketSizes[NumBuckets - 1])
 		return NumBuckets;
 
-	return (int)(std::lower_bound(BucketSizes, BucketSizes + NumBuckets, size) - 
+	return (int)(std::lower_bound(BucketSizes, BucketSizes + NumBuckets, size) -
 		BucketSizes);
 }
 
