@@ -63,6 +63,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "GPUArray.h"
 
+#include <set>
+
 /*! \ingroup communication
 */
 
