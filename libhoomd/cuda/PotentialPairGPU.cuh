@@ -528,11 +528,11 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             {
             case 0:
                 {
-                static int max_block_size = -1;
-                static int sm = -1;
-                if (max_block_size == -1)
+                static unsigned int max_block_size = UINT_MAX;
+                static unsigned int sm = UINT_MAX;
+                if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>);
-                if (sm == -1)
+                if (sm == UINT_MAX)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>);
 
                 if (sm < 35) gpu_pair_force_bind_textures(pair_args);
@@ -557,11 +557,11 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                 }
             case 1:
                 {
-                static int max_block_size = -1;
-                static int sm = -1;
-                if (max_block_size == -1)
+                static unsigned int max_block_size = UINT_MAX;
+                static unsigned int sm = UINT_MAX;
+                if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>);
-                if (sm == -1)
+                if (sm == UINT_MAX)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>);
 
                 if (sm < 35) gpu_pair_force_bind_textures(pair_args);
@@ -586,11 +586,11 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                 }
             case 2:
                 {
-                static int max_block_size = -1;
-                static int sm = -1;
-                if (max_block_size == -1)
+                static unsigned int max_block_size = UINT_MAX;
+                static unsigned int sm = UINT_MAX;
+                if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>);
-                if (sm == -1)
+                if (sm == UINT_MAX)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>);
 
                 if (sm < 35) gpu_pair_force_bind_textures(pair_args);
@@ -623,11 +623,11 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             {
             case 0:
                 {
-                static int max_block_size = -1;
-                static int sm = -1;
-                if (max_block_size == -1)
+                static unsigned int max_block_size = UINT_MAX;
+                static unsigned int sm = UINT_MAX;
+                if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>);
-                if (sm == -1)
+                if (sm == UINT_MAX)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>);
 
                 if (sm < 35) gpu_pair_force_bind_textures(pair_args);
@@ -652,11 +652,11 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                 }
             case 1:
                 {
-                static int max_block_size = -1;
-                static int sm = -1;
-                if (max_block_size == -1)
+                static unsigned int max_block_size = UINT_MAX;
+                static unsigned int sm = UINT_MAX;
+                if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>);
-                if (sm == -1)
+                if (sm == UINT_MAX)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>);
 
                 if (sm < 35) gpu_pair_force_bind_textures(pair_args);
@@ -681,11 +681,11 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                 }
             case 2:
                 {
-                static int max_block_size = -1;
-                static int sm = -1;
-                if (max_block_size == -1)
+                static unsigned int max_block_size = UINT_MAX;
+                static unsigned int sm = UINT_MAX;
+                if (max_block_size == UINT_MAX)
                     max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>);
-                if (sm == -1)
+                if (sm == UINT_MAX)
                     sm = get_compute_capability(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>);
 
                 if (sm < 35) gpu_pair_force_bind_textures(pair_args);

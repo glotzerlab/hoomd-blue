@@ -625,8 +625,8 @@ void gpu_expand_neighbors(unsigned int n_out,
     unsigned int *d_neighbors_out,
     mgpu::CudaContext& context)
     {
-    const int NT = 128;
-    const int VT = 7;
+    const int __attribute__((unused)) NT = 128;
+    const int __attribute__((unused)) VT = 7;
     typedef mgpu::LaunchBoxVT<NT, VT> Tuning;
     int2 launch = Tuning::GetLaunchParams(context);
 
