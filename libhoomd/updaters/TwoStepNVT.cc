@@ -159,6 +159,8 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->push("NVT step 1");
 
+    // scope array handles for proper releasing before calling the thermo compute
+    {
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
 
@@ -194,6 +196,7 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         // wrap the particles around the box
         box.wrap(h_pos.data[j], h_image.data[j]);
         }
+    }
 
     #ifdef ENABLE_MPI
     if (0 &&m_comm)
