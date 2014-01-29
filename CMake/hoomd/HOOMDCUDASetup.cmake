@@ -38,17 +38,11 @@ endif (ENABLE_CUDA)
 if (ENABLE_CUDA)
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
     if (CUDA_VERSION VERSION_GREATER 4.99)
-        set(CUDA_ARCH_LIST 12 13 20 30 35 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        set(CUDA_ARCH_LIST 20 30 35 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     elseif (CUDA_VERSION VERSION_GREATER 4.1)
-        set(CUDA_ARCH_LIST 12 13 20 30 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
+        set(CUDA_ARCH_LIST 20 30 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     else()
-        set(CUDA_ARCH_LIST 12 13 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    endif()
-
-    # if double precision is on, remove incompatible arches
-    if (NOT SINGLE_PRECISION)
-        list(REMOVE_ITEM CUDA_ARCH_LIST 13 12 11 10)
-        message(STATUS "Double precision build enabled, removing support for compute 1.x")
+        set(CUDA_ARCH_LIST 20 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     endif()
 
     foreach(_cuda_arch ${CUDA_ARCH_LIST})
