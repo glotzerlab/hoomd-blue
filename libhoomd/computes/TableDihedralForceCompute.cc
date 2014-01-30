@@ -63,6 +63,9 @@ using namespace boost::python;
 
 using namespace std;
 
+#undef VT0
+#undef VT1
+
 // SMALL a relatively small number
 #define SMALL 0.001f
 

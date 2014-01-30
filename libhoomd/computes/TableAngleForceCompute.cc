@@ -61,6 +61,9 @@ using namespace boost::python;
     \brief Defines the TableAngleForceCompute class
 */
 
+#undef VT0
+#undef VT1
+
 using namespace std;
 
 // SMALL a relatively small number
