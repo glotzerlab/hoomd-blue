@@ -407,7 +407,7 @@ CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(Communic
     m_groups_sendbuf.swap(groups_sendbuf);
 
     GPUVector<group_element_t> groups_recvbuf(m_gpu_comm.m_exec_conf,mapped);
-    m_groups_recvbuf.swap(groups_sendbuf);
+    m_groups_recvbuf.swap(groups_recvbuf);
 
     GPUVector<group_element_t> groups_in(m_gpu_comm.m_exec_conf, mapped);
     m_groups_in.swap(groups_in);
@@ -422,6 +422,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
     {
     if (m_gdata->getNGlobal())
         {
+        m_exec_conf->msg->notice(7) << "GroupCommunicator<" << m_gdata->getName() << ">: migrate" << std::endl;
+
         if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->push(m_exec_conf, m_gdata->getName());
 
         // resize bitmasks
@@ -499,7 +501,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             if (m_gpu_comm.m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
 
-        #ifdef ENABLE_MPI_CUDA
+        #if defined(ENABLE_MPI_CUDA) && 0
         #else
         // fill host send buffers on host
         unsigned int my_rank = m_gpu_comm.m_exec_conf->getRank();
@@ -792,7 +794,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
         assert(m_gdata->getN() == new_ngroups);
 
-        #ifdef ENABLE_MPI_CUDA
+        #if defined(ENABLE_MPI_CUDA) && 0
         #else
         // fill host send buffers on host
         typedef std::multimap<unsigned int, group_element_t> group_map_t;
@@ -909,9 +911,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
             if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->push(m_exec_conf,"MPI send/recv");
 
-            #ifdef ENABLE_MPI_CUDA
-            ArrayHandle<group_element_t> groups_sendbuf_handle(m_groups_sendbuf, access_location::device, access_mode::read);
-            ArrayHandle<group_element_t> groups_recvbuf_handle(m_groups_recvbuf, access_location::device, access_mode::overwrite);
+            #if defined(ENABLE_MPI_CUDA) && 0
             #else
             ArrayHandle<group_element_t> groups_sendbuf_handle(m_groups_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<group_element_t> groups_recvbuf_handle(m_groups_recvbuf, access_location::host, access_mode::overwrite);
@@ -964,7 +964,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             }
 
         unsigned int n_recv_unique = 0;
-        #ifdef ENABLE_MPI_CUDA
+        #if defined(ENABLE_MPI_CUDA) && 0
         #else
             {
             ArrayHandle<group_element_t> h_groups_recvbuf(m_groups_recvbuf, access_location::host, access_mode::read);
@@ -1053,6 +1053,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
     {
     if (m_gdata->getNGlobal())
         {
+        m_exec_conf->msg->notice(7) << "GroupCommunicator<" << m_gdata->getName() << ">: find incomplete groups" << std::endl;
+
         ArrayHandle<typename group_data::members_t> d_groups(m_gdata->getMembersArray(), access_location::device, access_mode::read);
         ArrayHandle<typename group_data::ranks_t> d_group_ranks(m_gdata->getRanksArray(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
@@ -1296,7 +1298,7 @@ void CommunicatorGPU::migrateParticles()
 
             if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
 
-            #if defined(ENABLE_MPI_CUDA) && 0
+            #ifdef ENABLE_MPI_CUDA
             ArrayHandle<pdata_element> gpu_sendbuf_handle(m_gpu_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<pdata_element> gpu_recvbuf_handle(m_gpu_recvbuf, access_location::device, access_mode::overwrite);
             #else
@@ -1880,7 +1882,8 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             } // end ArrayHandle scope
 
-        #ifndef ENABLE_MPI_CUDA
+        #ifndef ENABLE_MPI_CUDA 
+        // only unpack in non-CUDA MPI builds
             {
             // access receive buffers
             ArrayHandle<unsigned int> d_tag_ghost_recvbuf(m_tag_ghost_recvbuf, access_location::device, access_mode::read);
@@ -2176,6 +2179,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
         if (!m_comm_pending)
             {
             #ifndef ENABLE_MPI_CUDA
+            //only unpack in non-CUDA MPI builds
             if (m_prof) m_prof->push(m_exec_conf,"unpack");
                 {
                 // access receive buffers
@@ -2238,6 +2242,7 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
         if (m_prof) m_prof->pop(m_exec_conf);
 
         #ifndef ENABLE_MPI_CUDA
+        // only unpack in non-CUDA-MPI builds
         assert(m_num_stages == 1);
         unsigned int stage = 0;
         unsigned int first_idx = m_pdata->getN();
