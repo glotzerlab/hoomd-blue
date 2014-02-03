@@ -158,12 +158,15 @@ class Integrator : public Updater
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep);
 
-#ifdef ENABLE_MPI
+        #ifdef ENABLE_MPI
         //! Set the communicator to use
         /*! \param comm The Communicator
          */
         virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
-#endif
+
+        //! Callback for pre-computing the forces
+        void computeCallback(unsigned int timestep);
+        #endif
 
     protected:
         Scalar m_deltaT;                                            //!< The time step
@@ -188,9 +191,10 @@ class Integrator : public Updater
 #endif
 
     private:
-#ifdef ENABLE_MPI
+        #ifdef ENABLE_MPI
         boost::signals2::connection m_request_flags_connection;     //!< Connection to Communicator to request communication flags
-#endif
+        boost::signals2::connection m_callback_connection;          //!< Connection to Commmunicator for compute callback
+        #endif
     };
 
 //! Exports the NVEUpdater class to python

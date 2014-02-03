@@ -109,6 +109,14 @@ class ForceCompute : public Compute
             m_deltaT = dt;
             }
 
+        #ifdef ENABLE_MPI
+        //! Pre-compute the forces
+        /*! This method is called in MPI simulations BEFORE the particles are migrated
+         * and can be used to overlap computation with communication
+         */
+        virtual void preCompute(unsigned int timestep) { }
+        #endif
+
         //! Computes the forces
         virtual void compute(unsigned int timestep);
 

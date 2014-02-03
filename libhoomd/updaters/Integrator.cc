@@ -91,6 +91,8 @@ Integrator::~Integrator()
     // disconnect
     if (m_request_flags_connection.connected())
         m_request_flags_connection.disconnect();
+    if (m_callback_connection.connected())
+        m_callback_connection.disconnect();
     #endif
     }
 
@@ -864,6 +866,23 @@ void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
     // connect to ghost communication flags request
     if (! m_request_flags_connection.connected() && m_comm)
         m_comm->addCommFlagsRequest(boost::bind(&Integrator::determineFlags, this, _1));
+
+    if (! m_callback_connection.connected() && m_comm)
+        m_callback_connection = comm->addComputeCallback(bind(&Integrator::computeCallback, this, _1));
+    }
+
+void Integrator::computeCallback(unsigned int timestep)
+    {
+    // pre-compute all active forces
+    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+
+    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+        (*force_compute)->preCompute(timestep);
+
+    // pre-compute all active constraint forces
+    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
+        (*force_constraint)->preCompute(timestep);
     }
 #endif
 

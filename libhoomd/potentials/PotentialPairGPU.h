@@ -97,13 +97,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
                          boost::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
-        virtual ~PotentialPairGPU()
-            {
-            #ifdef ENABLE_MPI
-            if (m_callback_connection.connected())
-                 m_callback_connection.disconnect();
-            #endif
-            }
+        virtual ~PotentialPairGPU() {}
 
         //! Set the number of threads per particle to execute on the GPU
         /*! \param threads_per_particl Number of threads per particle
@@ -115,27 +109,11 @@ class PotentialPairGPU : public PotentialPair<evaluator>
             }
 
         #ifdef ENABLE_MPI
-        //! Set the communicator to use
-        /*! \param comm The communicator
-         */
-        void setCommunicator(boost::shared_ptr<Communicator> comm)
-            {
-            // on first call, register with Communicator
-            if (comm && !this->m_comm)
-                {
-                this->m_exec_conf->msg->notice(6) << "Registering pair." << evaluator::getName() << " with Communicator"
-                    << std::endl;
-                m_callback_connection =
-                    comm->addComputeCallback(bind(&PotentialPairGPU<evaluator, gpu_cgpf>::preCompute, this, _1));
-                }
-            this->m_comm = comm;
-            }
-
         /*! Precompute the pair force without rebuilding the neighbor list
          *
          * \param timestep The time step
          */
-        void preCompute(unsigned int timestep)
+        virtual void preCompute(unsigned int timestep)
             {
             m_precompute = true;
             this->forceCompute(timestep);
@@ -149,10 +127,6 @@ class PotentialPairGPU : public PotentialPair<evaluator>
         unsigned int m_param;                 //!< Kernel tuning parameter
         bool m_precompute;                    //!< True if we are pre-computing the force
         bool m_has_been_precomputed;          //!< True if the forces have been precomputed
-
-        #ifdef ENABLE_MPI
-        boost::signals2::connection m_callback_connection; //!< Connection to Commmunicator
-        #endif
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
