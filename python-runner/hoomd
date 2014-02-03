@@ -12,4 +12,5 @@ then
     export PYTHONPATH="${HOOMD_PLUGINS_DIR}:${PYTHONPATH}"
 fi
 
+export HOOMD_PYTHON_SITEDIR=1
 python $*
