@@ -727,10 +727,10 @@ class particle_data_proxy:
             raise AttributeError;
         if name == "orientation":
             o = hoomd.Scalar4();
-            o.x = value[0];
-            o.y = value[1];
-            o.z = value[2];
-            o.w = value[3];
+            o.x = float(value[0]);
+            o.y = float(value[1]);
+            o.z = float(value[2]);
+            o.w = float(value[3]);
             self.pdata.setOrientation(self.tag, o);
             return;
         if name == "net_force":
