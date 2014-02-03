@@ -71,7 +71,7 @@ all dimensions must equal the number of processors in the MPI job. As in single-
 simulations, there is a one-to-one mapping between host CPU cores (MPI ranks)
 and the GPUs.
 
-Currently, only a subset of features is available in MPI mode. The list 
+Currently, only a subset of features is available in MPI mode. The list
 of available features can be found below. With the exception that some
 commands are not yet supported in multi-GPU mode, the same input script
 that runs in single-GPU mode can be used for MPI simulations.
@@ -84,12 +84,16 @@ Additional compilation flags pertinent to MPI simulations are
 - \b ENABLE_MPI (to enable multi-GPU simulations, must be set to \b ON)
 - \b ENABLE_MPI_CUDA (optional, to enable CUDA-aware MPI library support, see below)
 
+RPM and DEB packages are built with MPI enabled. Some linux distributions do not install `mpirun` (or `mpiexec`) to
+a standard `bin` directory. You may need to run `/usr/lib64/openmpi/bin/mpirun` or add `/usr/lib64/openmpi/bin` to
+your `PATH`.
+
 \section sec_mpi_usage Usage
-Using HOOMD-blue on multiple GPUs is as simple as typing
+Using HOOMD-blue on multiple GPUs is as simple as executing
 \code
 mpirun -n 8 hoomd my_script.py
 \endcode
-which will execute HOOMD on 8 processors. You can include this line in your job 
+which will execute HOOMD on 8 processors. You can include this line in your job
 script.  HOOMD automatically detects which GPUs are available and assigns them to MPI
 ranks.  The syntax and name of the \b mpirun command may be different
 between different MPI libraries and system architectures. The input script must be
@@ -98,7 +102,7 @@ file system. HOOMD chooses the best spatial sub-division according to a
 minimum-area rule. The dimensions of the decomposition can, however, be manually
 specified, using the
 \b linear, \b nx, \b ny and \b nz \link page_command_line_options command line
-options\endlink. If your intention is to run HOOMD on a single GPU, you can 
+options\endlink. If your intention is to run HOOMD on a single GPU, you can
 simply invoke HOOMD with
 \code
 hoomd my_script.py
@@ -106,17 +110,13 @@ hoomd my_script.py
 instead of giving the \b -n \b 1 argument to \b mpirun.
 
 HOOMD-blue can also be run on many \b CPUs in parallel. It currently supports
-three operation modes for this: OpenMP only (deprecated), MPI only (recommended)
-and OpenMP+MPI. To run HOOMD-blue on multiple CPUs using MPI,
+three operation modes for this: To run HOOMD-blue on multiple CPUs using MPI,
 \code
 mpirun -n 16 hoomd my_script.py --ncpu=1
 \endcode
 
 The \b -n argument to \b mpirun specfies the number of MPI ranks used (16 in this case),
-and the \b ncpu argument tells hoomd the number of OpenMP cores to use
-per MPI rank.  Any combination of \b -n and \b --ncpu is possible (as long as there
-are sufficient cores available), however, MPI domain decomposition
-usually performs better than OpenMP acceleration on CPUs.
+and the \b ncpu argument force each instance of hoomd to run on the CPU.
 
 <hr>
 \section sec_mpi_best_practices Tips & best practices
@@ -128,7 +128,7 @@ performance.
 
 \subsection sec_mpi_few_nodes Running on multiple GPUs of a single workstation
 HOOMD-blue w/MPI already runs fine on a single computer.
-In this case, it is recommended to take advantage of direct 
+In this case, it is recommended to take advantage of direct
 peer-to-peer transfer between GPUs on the same PCIe bus, when available.
 This is accomplished using a CUDA-aware MPI library.
 To find out if your GPUs support P2P, run the \b simpleP2P test from the
@@ -179,7 +179,7 @@ may be different between single- and multi-GPU runs. This is because in multi-GP
 runs, the buffering length also determines the width of the ghost layer in multi-GPU
 runs, which controls the size of messages exchanged betweeen the processors.
 To determine the optimum value, it is highly recommended to use the
-\link hoomd_script.tune.r_buff() tune.r_buff()\endlink 
+\link hoomd_script.tune.r_buff() tune.r_buff()\endlink
 command with the actual number of MPI ranks that will be used for the simulation.
 
 \subsection sec_mpi_partition Running with multiple partitions (--nrank command-line option)
@@ -192,7 +192,7 @@ number of GPUs per replica, invoke HOOMD-blue with the <b>--nrank=n</b>
 Inside the command script, the current partition can be queried using
 \link hoomd_script.comm.get_partition() comm.get_partition()\endlink .
 
-<hr> 
+<hr>
 \section sec_mpi_troubleshooting Troubleshooting
 
 -  <b> My simulation does not run significantly faster on two GPUs compared to
@@ -230,7 +230,7 @@ These features are currently supported in MPI mode.
 - python data access
 - initialization via snapshots
 - DCD trajectory output
-- XML file dumps 
+- XML file dumps
 - IMD visualization
 - Box resize updater
 - Zero momentum updater
