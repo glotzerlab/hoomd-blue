@@ -185,6 +185,7 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
 //       if (world->rank() ==0)
 //           std::cout << "step " << i << std::endl;
         Scalar rough_tol = 15.0;
+        Scalar abs_tol = 1e-5;
 
         // in the first five steps, compare all accelerations and velocities
         // beyond this number of steps, trajectories will generally diverge, since they are chaotic
@@ -205,13 +206,35 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
                     //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].y, snap_2.pos[j].y, rough_tol);
                     //MY_BOOST_CHECK_CLOSE(snap_1.pos[j].z, snap_2.pos[j].z, rough_tol);
 
-                    MY_BOOST_CHECK_CLOSE(snap_1.vel[j].x, snap_2.vel[j].x, rough_tol);
-                    MY_BOOST_CHECK_CLOSE(snap_1.vel[j].y, snap_2.vel[j].y, rough_tol);
-                    MY_BOOST_CHECK_CLOSE(snap_1.vel[j].z, snap_2.vel[j].z, rough_tol);
+                    if (fabsf(snap_1.vel[j].x) < abs_tol)
+                        BOOST_CHECK_SMALL(snap_2.vel[j].x, 2*abs_tol);
+                    else
+                        MY_BOOST_CHECK_CLOSE(snap_1.vel[j].x, snap_2.vel[j].x, rough_tol);
 
-                    MY_BOOST_CHECK_CLOSE(snap_1.accel[j].x, snap_2.accel[j].x, rough_tol);
-                    MY_BOOST_CHECK_CLOSE(snap_1.accel[j].y, snap_2.accel[j].y, rough_tol);
-                    MY_BOOST_CHECK_CLOSE(snap_1.accel[j].z, snap_2.accel[j].z, rough_tol);
+                    if (fabsf(snap_1.vel[j].y) < abs_tol)
+                        BOOST_CHECK_SMALL(snap_2.vel[j].y, 2*abs_tol);
+                    else
+                        MY_BOOST_CHECK_CLOSE(snap_1.vel[j].y, snap_2.vel[j].y, rough_tol);
+
+                    if (fabsf(snap_1.vel[j].z) < abs_tol)
+                        BOOST_CHECK_SMALL(snap_2.vel[j].z, 2*abs_tol);
+                    else
+                        MY_BOOST_CHECK_CLOSE(snap_1.vel[j].z, snap_2.vel[j].z, rough_tol);
+
+                    if (fabsf(snap_1.accel[j].x) < abs_tol)
+                        BOOST_CHECK_SMALL(snap_2.accel[j].x, 2*abs_tol);
+                    else
+                        MY_BOOST_CHECK_CLOSE(snap_1.accel[j].x, snap_2.accel[j].x, rough_tol);
+
+                    if (fabsf(snap_1.accel[j].y) < abs_tol)
+                        BOOST_CHECK_SMALL(snap_2.accel[j].y, 2*abs_tol);
+                    else
+                        MY_BOOST_CHECK_CLOSE(snap_1.accel[j].y, snap_2.accel[j].y, rough_tol);
+
+                    if (fabsf(snap_1.accel[j].z) < abs_tol)
+                        BOOST_CHECK_SMALL(snap_2.accel[j].z, 2*abs_tol);
+                    else
+                        MY_BOOST_CHECK_CLOSE(snap_1.accel[j].z, snap_2.accel[j].z, rough_tol);
                     }
                 }
             }
