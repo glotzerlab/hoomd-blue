@@ -153,6 +153,18 @@ void SFCPackUpdater::update(unsigned int timestep)
     m_pdata->notifyParticleSort();
 
     if (m_prof) m_prof->pop(m_exec_conf);
+
+    #ifdef ENABLE_MPI
+    /* since we migrated, also run exchange ghosts to reestablish ghost particles before some unsuspecting code runs
+       after us and assumes that ghosts exist.
+    */
+    if (m_pdata->getDomainDecomposition())
+        {
+        assert(m_comm);
+        m_comm->exchangeGhosts();
+        }
+    #endif
+
     }
 
 void SFCPackUpdater::applySortOrder()
