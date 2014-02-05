@@ -875,6 +875,7 @@ class lj(pair):
             self.cpp_force = hoomd.PotentialPairLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJGPU;
 
+        print "*******************************  ", self.force_name, " *******************************  "
         globals.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
