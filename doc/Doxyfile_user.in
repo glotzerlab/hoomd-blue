@@ -739,7 +739,7 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.do
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/examples.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/units.dox" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/triclinic.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/box.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/index.dox" \

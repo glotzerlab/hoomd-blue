@@ -58,7 +58,7 @@ Welcome to the user documentation for HOOMD-blue!
 4. \subpage page_example_scripts
 5. **Concepts**
     1. \subpage page_units
-    2. \subpage page_triclinic
+    2. \subpage page_box
     3. \subpage page_xml_file_format
     4. \subpage page_mpi
 6. \subpage page_command_list
