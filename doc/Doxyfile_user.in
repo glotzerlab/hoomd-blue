@@ -736,11 +736,13 @@ WARN_LOGFILE           =
 
 INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/quick_start.dox" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/units.dox" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/examples.dox" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/index.doc" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/examples.dox" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/units.dox" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/triclinic.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/index.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.dox" \
@@ -752,8 +754,6 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.do
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/citing.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.doc" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/triclinic.doc" \
                          "${HOOMD_SOURCE_DIR}/python-module/hoomd_script"
 
 # This tag can be used to specify the character encoding of the source files

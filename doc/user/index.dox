@@ -50,22 +50,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \mainpage
 
-Welcome to the \b user documentation for HOOMD-blue!
+Welcome to the user documentation for HOOMD-blue!
 
--# \subpage page_install_guide
--# \subpage page_quick_start
--# \subpage page_units
--# \subpage page_example_scripts
--# \subpage page_command_list
--# \subpage page_xml_file_format
--# \subpage page_command_line_options
--# \subpage page_mpi
--# \subpage page_triclinic
--# \subpage page_conversion_scripts
--# \subpage page_compile_guide
--# \subpage page_license
--# \subpage page_citing
--# \subpage page_credits
+1. \subpage page_install_guide
+2. \subpage page_quick_start
+3. \subpage page_command_line_options
+4. \subpage page_example_scripts
+5. **Concepts**
+    1. \subpage page_units
+    2. \subpage page_triclinic
+    3. \subpage page_xml_file_format
+    4. \subpage page_mpi
+6. \subpage page_command_list
+7. \subpage page_conversion_scripts
+8. \subpage page_compile_guide
+9. \subpage page_license
+10. \subpage page_citing
+11. \subpage page_credits
 
 <hr>
 
@@ -77,7 +78,7 @@ Up to date documentation can be found at the following links:
 
 /*! \page page_command_list Index of Script Commands
 
-Click on an individual command in the list to go to its documentation. Click on the package link at the 
+Click on an individual command in the list to go to its documentation. Click on the package link at the
 beginning of each list to get a general overview of all commands in that package.
 
 Table of contents:
@@ -127,7 +128,7 @@ Table of contents:
     - \link hoomd_script.option.set_min_cpu() option.set_min_cpu\endlink - <i>Set the minimize CPU usage flag</i>
     - \link hoomd_script.option.set_ignore_display() option.set_ignore_display\endlink - <i>Set the ignore display GPU flag</i>
     - \link hoomd_script.option.get_user() option.get_user\endlink - <i>Get user options</i>
-    
+
 \section sec_index_init Initialize
  - \link hoomd_script.init.create_empty() init.create_empty\endlink - <i>Create an empty system</i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>Generates N randomly positioned particles of the same type </i>
@@ -144,8 +145,8 @@ Table of contents:
  - \link hoomd_script.integrate.mode_minimize_fire integrate.mode_minimize_fire\endlink - <i>Energy Minimizer (FIRE) </i>
  - \link hoomd_script.integrate.mode_minimize_rigid_fire integrate.mode_minimize_rigid_fire\endlink - <i>Energy Minimizer (rigid bodies) (FIRE)</i>
  - \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink - <i>Enables a variety of standard integration methods </i>
-   - \link hoomd_script.integrate.berendsen integrate.berendsen\endlink - <i>NVT integration via the Berendsen thermostat</i> 
-   - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>NVT integration via Brownian dynamics </i> 
+   - \link hoomd_script.integrate.berendsen integrate.berendsen\endlink - <i>NVT integration via the Berendsen thermostat</i>
+   - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>NVT integration via Brownian dynamics </i>
    - \link hoomd_script.integrate.bdnvt_rigid integrate.bdnvt_rigid\endlink - <i>NVT integration of rigid bodies via Brownian Dynamics</i>
    - \link hoomd_script.integrate.nph integrate.nph\endlink - <i>NPH integration via the Andersen / modified Parrinello-Rahman barostat </i>
    - \link hoomd_script.integrate.nph_rigid integrate.nph_rigid\endlink - <i>NPH Integration of rigid bodies</i>
@@ -155,7 +156,7 @@ Table of contents:
    - \link hoomd_script.integrate.nve_rigid integrate.nve_rigid\endlink - <i>NVE integration of rigid bodies</i>
    - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>NVT Integration via the Nos&eacute;-Hoover thermostat </i>
    - \link hoomd_script.integrate.nvt_rigid integrate.nvt_rigid\endlink - <i>NVT integration of rigid bodies</i>
- 
+
 \section sec_index_update Update
  - \link hoomd_script.update.box_resize update.box_resize\endlink - <i>Rescales the system box size </i>
  - \link hoomd_script.update.enforce2d update.enforce2d\endlink - <i>Enforces 2D simulation </i>
@@ -182,10 +183,10 @@ Table of contents:
 
 \section sec_index_pair Pair potentials
  - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>CMM coarse-grain model %pair %force </i>
- - \link hoomd_script.pair.dpd pair.dpd\endlink - <i>NVT Integration via Dissipative Particle Dynamics %pair %force </i> 
+ - \link hoomd_script.pair.dpd pair.dpd\endlink - <i>NVT Integration via Dissipative Particle Dynamics %pair %force </i>
  - \link hoomd_script.pair.dpdlj pair.dpdlj\endlink - <i>NVT Integration via Dissipative Particle Dynamics and LJ Force %pair %force </i>
  - \link hoomd_script.pair.dpd_conservative pair.dpd_conservative\endlink - <i>DPD Conservative %pair %force </i>
- - \link hoomd_script.pair.ewald pair.ewald\endlink - <i>Short range ewald %pair %force </i> 
+ - \link hoomd_script.pair.ewald pair.ewald\endlink - <i>Short range ewald %pair %force </i>
  - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>Gaussian %pair %force </i>
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>Lennard-Jones %pair %force </i>
  - \link hoomd_script.pair.moliere pair.moliere\endlink - <i>Moliere %pair %force</i>
@@ -198,7 +199,7 @@ Table of contents:
  - \link hoomd_script.pair.nlist nlist\endlink - <i>Interface for controlling neighbor list parameters </i>
 
 \section sec_index_manybody Many-body potentials
- - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM many-body %pair %force </i> 
+ - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM many-body %pair %force </i>
  - \link hoomd_sciprt.pair.tersoff pair.tersoff\endlink - <i>Tersoff three-body %pair %force</i>
 
 \section sec_index_bond Bond potentials
@@ -266,7 +267,6 @@ Table of contents:
  - \link hoomd_script.comm.get_num_ranks() comm.get_num_ranks\endlink - <i>Get the total number of ranks in a a parallel execution</i>
  - \link hoomd_script.comm.get_rank() comm.get_rank\endlink - <i>Return the rank of the current process</i>
  - \link hoomd_script.comm.get_partition() comm.get_partition\endlink - <i>Return the partition of the current process</i>
- 
+
 
 */
-
