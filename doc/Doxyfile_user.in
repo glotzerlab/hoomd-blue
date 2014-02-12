@@ -736,7 +736,7 @@ WARN_LOGFILE           =
 
 INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/quick_start.dox" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/examples.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/units.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/triclinic.doc" \
