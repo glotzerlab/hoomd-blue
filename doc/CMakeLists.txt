@@ -79,7 +79,7 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/index.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.dox
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_ubuntu.dox

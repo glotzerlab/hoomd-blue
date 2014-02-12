@@ -743,7 +743,7 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.do
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/index.dox" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_centos.dox" \

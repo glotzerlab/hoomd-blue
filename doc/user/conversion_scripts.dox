@@ -81,7 +81,7 @@ Then use topotools write out \c file.dump in the LAMMPS dump format
 \code
   set first 1
   foreach f [glob file*.xml] {
-     if {$first} { 
+     if {$first} {
          mol new $f type hoomd waitfor all
          set first 0
      } else {
