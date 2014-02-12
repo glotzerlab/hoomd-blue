@@ -56,11 +56,12 @@ Welcome to the user documentation for HOOMD-blue!
 2. \subpage page_quick_start
 3. \subpage page_command_line_options
 4. \subpage page_example_scripts
-5. **Concepts**
-    1. \subpage page_units
-    2. \subpage page_box
-    3. \subpage page_xml_file_format
-    4. \subpage page_mpi
+5. \subpage page_concepts
+    1. \ref page_units
+    2. \ref page_box
+    3. \ref page_xml_file_format
+    4. \ref page_mpi
+    5. \ref page_autotuner
 6. \subpage page_command_list
 7. \subpage page_conversion_scripts
 8. \subpage page_compile_guide
