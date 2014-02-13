@@ -80,15 +80,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
-typedef boost::function<shared_ptr<Communicator> (shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
+typedef boost::function<boost::shared_ptr<Communicator> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                  boost::shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
 
-shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
-                                                         shared_ptr<DomainDecomposition> decomposition);
+boost::shared_ptr<Communicator> base_class_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                         boost::shared_ptr<DomainDecomposition> decomposition);
 
 #ifdef ENABLE_CUDA
-shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<DomainDecomposition> decomposition);
+boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                  boost::shared_ptr<DomainDecomposition> decomposition);
 #endif
 
 void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -99,7 +99,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -219,7 +219,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     }
 
 //! Test particle migration of Communicator
-void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_migrate(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
     int size;
@@ -227,7 +227,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -484,7 +484,7 @@ void test_communicator_migrate(communicator_creator comm_creator, shared_ptr<Exe
     }
 
 //! Test ghost particle communication
-void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
     int size;
@@ -492,7 +492,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(16,          // number of particles
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(16,          // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -1351,7 +1351,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, shared_ptr<Exec
    }
 
 //! Test particle communication for covalently bonded ghosts
-void test_communicator_bond_exchange(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_bond_exchange(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
     int size;
@@ -1359,7 +1359,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2017,7 +2017,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, shared_p
     }
 
 //! Test particle communication for covalently bonded ghosts
-void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_bonded_ghosts(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
     int size;
@@ -2025,7 +2025,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, shared_p
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight particles
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2183,8 +2183,8 @@ CommFlags comm_flag_request(unsigned int timestep)
 
 void test_communicator_compare(communicator_creator comm_creator_1,
                                  communicator_creator comm_creator_2,
-                                 shared_ptr<ExecutionConfiguration> exec_conf_1,
-                                 shared_ptr<ExecutionConfiguration> exec_conf_2)
+                                 boost::shared_ptr<ExecutionConfiguration> exec_conf_1,
+                                 boost::shared_ptr<ExecutionConfiguration> exec_conf_2)
 
     {
     if (exec_conf_1->getRank() == 0)
@@ -2192,7 +2192,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
     unsigned int n = 1000;
     // create a system with eight particles
-    shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
+    boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2200,7 +2200,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                                                              0,           // number of dihedral types
                                                              0,           // number of dihedral types
                                                              exec_conf_1));
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(n,           // number of particles
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(n,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2209,8 +2209,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                                                              0,           // number of dihedral types
                                                              exec_conf_2));
 
-    shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     Scalar3 lo = pdata_1->getBox().getLo();
     Scalar3 L = pdata_1->getBox().getL();
@@ -2249,18 +2249,18 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 //    boost::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 //    boost::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 
-    shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
-    shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
+    boost::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    boost::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
-    shared_ptr<ParticleSelector> selector_all_2(new ParticleSelectorTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
-    shared_ptr<ParticleGroup> group_all_2(new ParticleGroup(sysdef_2, selector_all_2));
+    boost::shared_ptr<ParticleSelector> selector_all_2(new ParticleSelectorTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
+    boost::shared_ptr<ParticleGroup> group_all_2(new ParticleGroup(sysdef_2, selector_all_2));
 
-    shared_ptr<TwoStepNVE> two_step_nve_1(new TwoStepNVE(sysdef_1, group_all_1));
-    shared_ptr<TwoStepNVE> two_step_nve_2(new TwoStepNVE(sysdef_2, group_all_2));
+    boost::shared_ptr<TwoStepNVE> two_step_nve_1(new TwoStepNVE(sysdef_1, group_all_1));
+    boost::shared_ptr<TwoStepNVE> two_step_nve_2(new TwoStepNVE(sysdef_2, group_all_2));
 
     Scalar deltaT=0.001;
-    shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT));
-    shared_ptr<IntegratorTwoStep> nve_up_2(new IntegratorTwoStep(sysdef_2, deltaT));
+    boost::shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT));
+    boost::shared_ptr<IntegratorTwoStep> nve_up_2(new IntegratorTwoStep(sysdef_2, deltaT));
     nve_up_1->addIntegrationMethod(two_step_nve_1);
     nve_up_2->addIntegrationMethod(two_step_nve_2);
 
@@ -2333,7 +2333,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     }
 
 //! Test ghost particle communication
-void test_communicator_ghost_fields(communicator_creator comm_creator, shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_ghost_fields(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
     int size;
@@ -2341,7 +2341,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
     BOOST_REQUIRE_EQUAL(size,8);
 
     // create a system with eight + 1 one ptls (1 ptl in ghost layer)
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(9,          // number of particles
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(9,          // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -2547,17 +2547,17 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, shared_pt
     }
 
 //! Communicator creator for unit tests
-shared_ptr<Communicator> base_class_communicator_creator(shared_ptr<SystemDefinition> sysdef,
-                                                         shared_ptr<DomainDecomposition> decomposition)
+boost::shared_ptr<Communicator> base_class_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                         boost::shared_ptr<DomainDecomposition> decomposition)
     {
-    return shared_ptr<Communicator>(new Communicator(sysdef, decomposition) );
+    return boost::shared_ptr<Communicator>(new Communicator(sysdef, decomposition) );
     }
 
 #ifdef ENABLE_CUDA
-shared_ptr<Communicator> gpu_communicator_creator(shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<DomainDecomposition> decomposition)
+boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                  boost::shared_ptr<DomainDecomposition> decomposition)
     {
-    return shared_ptr<Communicator>(new CommunicatorGPU(sysdef, decomposition) );
+    return boost::shared_ptr<Communicator>(new CommunicatorGPU(sysdef, decomposition) );
     }
 #endif
 

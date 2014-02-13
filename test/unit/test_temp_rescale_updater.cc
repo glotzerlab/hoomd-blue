@@ -74,6 +74,7 @@ using namespace boost;
 #define BOOST_TEST_MODULE TempRescaleUpdaterTests
 #include "boost_utf_configure.h"
 
+
 /*! \file temp_rescale_updater_test.cc
     \brief Unit tests for the ComputeThermo and TempRescaleUpdater classes.
     \ingroup unit_tests
@@ -84,8 +85,8 @@ BOOST_AUTO_TEST_CASE( ComputeThermo_basic )
     {
     // verify that we can constructe a TempCompute properly
     // create a simple particle data to test with
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -98,9 +99,9 @@ BOOST_AUTO_TEST_CASE( ComputeThermo_basic )
     }
 
     // construct a TempCompute and see that everything is set properly
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
 
     // check that we can actually compute temperature
     tc->setNDOF(3*pdata->getN());
@@ -114,8 +115,8 @@ BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
     {
     // verify that we can constructe a TempCompute properly
     // create a simple particle data to test with
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -127,9 +128,9 @@ BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
     }
 
     // construct a TempCompute and see that everything is set properly
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    shared_ptr<ComputeThermoGPU> tc(new ComputeThermoGPU(sysdef, group_all));
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<ComputeThermoGPU> tc(new ComputeThermoGPU(sysdef, group_all));
 
     // check that we can actually compute temperature
     tc->setNDOF(3*pdata->getN());
@@ -142,8 +143,8 @@ BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
 BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     {
     // create a simple particle data to test with
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -155,16 +156,16 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     }
 
     // construct a Computethermo for the updater
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
 
 
     // variant T for the rescaler
-    shared_ptr<VariantConst> T_variant(new VariantConst(1.2));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(1.2));
 
     // construct the updater and make sure everything is set properly
-    shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, T_variant));
+    boost::shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, T_variant));
 
     // run the updater and check the new temperature
     rescaler->update(0);
@@ -172,7 +173,7 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 1.2, tol);
 
     // check that the setT method works
-    shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
+    boost::shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
     rescaler->setT(T_variant2);
     rescaler->update(1);
     tc->compute(2);
@@ -182,8 +183,8 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
 //! boost test case to verify proper operation of TempRescaleUpdater with rigid bodies
 BOOST_AUTO_TEST_CASE( TempRescaleUpdater_rigid )
     {
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(1000.0), 4));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(1000.0), 4));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // set the first 4 particles to be free particles (position doesn't matter, but set it anyways)
     pdata->setPosition(0, make_scalar3(0,0,0));
@@ -218,7 +219,7 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_rigid )
     pdata->setBody(6, 1);
     pdata->setBody(7, 1);
 
-    shared_ptr<RigidData> rdata = sysdef->getRigidData();
+    boost::shared_ptr<RigidData> rdata = sysdef->getRigidData();
     // Initialize rigid bodies
     rdata->initializeData();
 
@@ -232,15 +233,15 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_rigid )
     rdata->setRV(false);
 
     // construct a Computethermo for the updater
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
 
     // variant T for the rescaler
-    shared_ptr<VariantConst> T_variant(new VariantConst(1.2));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(1.2));
 
     // construct the updater and make sure everything is set properly
-    shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, T_variant));
+    boost::shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, T_variant));
 
     // run the updater and check the new temperature
     rescaler->update(0);
@@ -248,7 +249,7 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_rigid )
     MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 1.2, tol);
 
     // check that the setT method works
-    shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
+    boost::shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
     rescaler->setT(T_variant2);
     rescaler->update(1);
     tc->compute(2);

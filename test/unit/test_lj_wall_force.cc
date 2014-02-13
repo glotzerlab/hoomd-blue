@@ -77,15 +77,15 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd LJWallForceCompute factory
-typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<SystemDefinition> sysdef,
+typedef boost::function<boost::shared_ptr<LJWallForceCompute> (boost::shared_ptr<SystemDefinition> sysdef,
                                                         Scalar r_cut)> ljwallforce_creator;
 
 //! Test the ability of the lj wall force compute to actually calculate forces
 void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3 particle test will check proper wall force computation among all 3 axes
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -95,7 +95,7 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     }
 
     // create the wall force compute with a default cuttoff of 1.0 => all forces should be 0 for the first round
-    shared_ptr<LJWallForceCompute> fc_3 = ljwall_creator(sysdef_3, Scalar(1.0));
+    boost::shared_ptr<LJWallForceCompute> fc_3 = ljwall_creator(sysdef_3, Scalar(1.0));
 
     // pick some parameters
     Scalar epsilon = Scalar(1.15);
@@ -187,9 +187,9 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     }
 
 //! LJWallForceCompute creator for unit tests
-shared_ptr<LJWallForceCompute> base_class_ljwall_creator(shared_ptr<SystemDefinition> sysdef, Scalar r_cut)
+boost::shared_ptr<LJWallForceCompute> base_class_ljwall_creator(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut)
     {
-    return shared_ptr<LJWallForceCompute>(new LJWallForceCompute(sysdef, r_cut));
+    return boost::shared_ptr<LJWallForceCompute>(new LJWallForceCompute(sysdef, r_cut));
     }
 
 //! boost test case for particle test on CPU

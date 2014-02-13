@@ -81,25 +81,25 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd LJForceCompute factory
-typedef boost::function<shared_ptr<PotentialPairForceShiftedLJ> (shared_ptr<SystemDefinition> sysdef,
-                                                     shared_ptr<NeighborList> nlist)> ljforce_creator;
+typedef boost::function<boost::shared_ptr<PotentialPairForceShiftedLJ> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                     boost::shared_ptr<NeighborList> nlist)> ljforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces
 void fslj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
     pdata_2->setPosition(0, make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1, make_scalar3(1.3,0.0,0.0));
 
-    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.5), Scalar(0.4)));
-    shared_ptr<PotentialPairForceShiftedLJ> fc_no_shift = lj_creator(sysdef_2, nlist_2);
+    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.5), Scalar(0.4)));
+    boost::shared_ptr<PotentialPairForceShiftedLJ> fc_no_shift = lj_creator(sysdef_2, nlist_2);
     fc_no_shift->setRcut(0, 0, Scalar(1.5));
     fc_no_shift->setShiftMode(PotentialPairForceShiftedLJ::no_shift);
 
-    shared_ptr<PotentialPairForceShiftedLJ> fc_shift = lj_creator(sysdef_2, nlist_2);
+    boost::shared_ptr<PotentialPairForceShiftedLJ> fc_shift = lj_creator(sysdef_2, nlist_2);
     fc_shift->setRcut(0, 0, Scalar(1.5));
     fc_shift->setShiftMode(PotentialPairForceShiftedLJ::shift);
 
@@ -142,19 +142,19 @@ void fslj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Exec
     }
 
 //! LJForceCompute creator for unit tests
-shared_ptr<PotentialPairForceShiftedLJ> base_class_lj_creator(shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairForceShiftedLJ> base_class_lj_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                  boost::shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<PotentialPairForceShiftedLJ>(new PotentialPairForceShiftedLJ(sysdef, nlist));
+    return boost::shared_ptr<PotentialPairForceShiftedLJ>(new PotentialPairForceShiftedLJ(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! LJForceComputeGPU creator for unit tests
-shared_ptr<PotentialPairForceShiftedLJGPU> gpu_lj_creator(shared_ptr<SystemDefinition> sysdef,
-                                          shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairForceShiftedLJGPU> gpu_lj_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                          boost::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairForceShiftedLJGPU> lj(new PotentialPairForceShiftedLJGPU(sysdef, nlist));
+    boost::shared_ptr<PotentialPairForceShiftedLJGPU> lj(new PotentialPairForceShiftedLJGPU(sysdef, nlist));
     return lj;
     }
 #endif

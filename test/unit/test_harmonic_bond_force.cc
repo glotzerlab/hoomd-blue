@@ -79,22 +79,22 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<PotentialBondHarmonic>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
+typedef boost::function<boost::shared_ptr<PotentialBondHarmonic>  (boost::shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(0.9,0.0,0.0));
     pdata_2->setFlags(~PDataFlags(0));
 
     // create the bond force compute to check
-    shared_ptr<PotentialBondHarmonic> fc_2 = bf_creator(sysdef_2);
+    boost::shared_ptr<PotentialBondHarmonic> fc_2 = bf_creator(sysdef_2);
     fc_2->setParams(0, make_scalar2(1.5, 0.75));
 
     // compute the force and check the results
@@ -199,8 +199,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
     // also test more than one type of bond
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
 
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
@@ -210,7 +210,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     pdata_6->setPosition(4, make_scalar3(0.0,0.0,-29.6));
     pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
 
-    shared_ptr<PotentialBondHarmonic> fc_6 = bf_creator(sysdef_6);
+    boost::shared_ptr<PotentialBondHarmonic> fc_6 = bf_creator(sysdef_6);
     fc_6->setParams(0, make_scalar2( 1.5, 0.75));
     fc_6->setParams(1, make_scalar2(2.0*1.5, 0.75));
     fc_6->setParams(2, make_scalar2(1.5, 0.5));
@@ -280,8 +280,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
-    shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
     pdata_4->setFlags(~PDataFlags(0));
 
     {
@@ -306,7 +306,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     }
 
     // build the bond force compute and try it out
-    shared_ptr<PotentialBondHarmonic> fc_4 = bf_creator(sysdef_4);
+    boost::shared_ptr<PotentialBondHarmonic> fc_4 = bf_creator(sysdef_4);
     fc_4->setParams(0, make_scalar2(1.5, 1.75));
     // only add bonds on the left, top, and bottom of the square
     sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,3));
@@ -368,12 +368,12 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
     snap->bond_data.type_mapping.push_back("A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    shared_ptr<PotentialBondHarmonic> fc1 = bf_creator1(sysdef);
-    shared_ptr<PotentialBondHarmonic> fc2 = bf_creator2(sysdef);
+    boost::shared_ptr<PotentialBondHarmonic> fc1 = bf_creator1(sysdef);
+    boost::shared_ptr<PotentialBondHarmonic> fc2 = bf_creator2(sysdef);
     fc1->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
     fc2->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
 
@@ -436,8 +436,8 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // Generate a simple test particle data
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
@@ -495,16 +495,16 @@ void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     }
 
 //! PotentialBondHarmonic creator for bond_force_basic_tests()
-shared_ptr<PotentialBondHarmonic> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<PotentialBondHarmonic> base_class_bf_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<PotentialBondHarmonic>(new PotentialBondHarmonic(sysdef));
+    return boost::shared_ptr<PotentialBondHarmonic>(new PotentialBondHarmonic(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! PotentialBondHarmonic creator for bond_force_basic_tests()
-shared_ptr<PotentialBondHarmonic> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<PotentialBondHarmonic> gpu_bf_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<PotentialBondHarmonic>(new PotentialBondHarmonicGPU(sysdef));
+    return boost::shared_ptr<PotentialBondHarmonic>(new PotentialBondHarmonicGPU(sysdef));
     }
 #endif
 

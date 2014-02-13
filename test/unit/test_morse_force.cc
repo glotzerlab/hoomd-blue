@@ -80,8 +80,8 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd PotentialPairMorse factory
-typedef boost::function<shared_ptr<PotentialPairMorse> (shared_ptr<SystemDefinition> sysdef,
-                                                         shared_ptr<NeighborList> nlist)> morseforce_creator;
+typedef boost::function<boost::shared_ptr<PotentialPairMorse> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                         boost::shared_ptr<NeighborList> nlist)> morseforce_creator;
 
 //! Test the ability of the morse force compute to actually calucate forces
 void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -94,8 +94,8 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     {
@@ -105,8 +105,8 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<PotentialPairMorse> fc_3 = morse_creator(sysdef_3, nlist_3);
+    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<PotentialPairMorse> fc_3 = morse_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: choose a basic set of values
@@ -180,13 +180,13 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.1), Scalar(1.0), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    shared_ptr<PotentialPairMorse> fc1 = morse_creator1(sysdef, nlist);
-    shared_ptr<PotentialPairMorse> fc2 = morse_creator2(sysdef, nlist);
+    boost::shared_ptr<PotentialPairMorse> fc1 = morse_creator1(sysdef, nlist);
+    boost::shared_ptr<PotentialPairMorse> fc2 = morse_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -249,19 +249,19 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     }
 
 //! PotentialPairMorse creator for unit tests
-shared_ptr<PotentialPairMorse> base_class_morse_creator(shared_ptr<SystemDefinition> sysdef,
-                                                          shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairMorse> base_class_morse_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                          boost::shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<PotentialPairMorse>(new PotentialPairMorse(sysdef, nlist));
+    return boost::shared_ptr<PotentialPairMorse>(new PotentialPairMorse(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! PotentialPairMorseGPU creator for unit tests
-shared_ptr<PotentialPairMorseGPU> gpu_morse_creator(shared_ptr<SystemDefinition> sysdef,
-                                                      shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairMorseGPU> gpu_morse_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                      boost::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairMorseGPU> morse(new PotentialPairMorseGPU(sysdef, nlist));
+    boost::shared_ptr<PotentialPairMorseGPU> morse(new PotentialPairMorseGPU(sysdef, nlist));
     return morse;
     }
 #endif

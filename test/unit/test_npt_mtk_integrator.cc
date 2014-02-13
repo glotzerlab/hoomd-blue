@@ -96,8 +96,8 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd NPTMTKUpdator class factory
-typedef boost::function<shared_ptr<TwoStepNPTMTK> (shared_ptr<SystemDefinition> sysdef,
-                                                shared_ptr<ParticleGroup> group,
+typedef boost::function<boost::shared_ptr<TwoStepNPTMTK> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                boost::shared_ptr<ParticleGroup> group,
                                                 boost::shared_ptr<ComputeThermo> thermo_group,
                                                 Scalar tau,
                                                 Scalar tauP,
@@ -135,8 +135,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     // create two identical random particle systems to simulate
     SimpleCubicInitializer cubic_init(L, Scalar(0.89), "A");
     boost::shared_ptr<SnapshotSystemData> snap = cubic_init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // enable the energy computation
     PDataFlags flags;
@@ -146,25 +146,25 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
 
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    shared_ptr<NeighborList> nlist;
-    shared_ptr<PotentialPairLJ> fc;
-    shared_ptr<CellList> cl;
+    boost::shared_ptr<NeighborList> nlist;
+    boost::shared_ptr<PotentialPairLJ> fc;
+    boost::shared_ptr<CellList> cl;
     #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
-        cl = shared_ptr<CellList>( new CellListGPU(sysdef) );
-        nlist = shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
-        fc = shared_ptr<PotentialPairLJ>( new PotentialPairLJGPU(sysdef, nlist));
+        cl = boost::shared_ptr<CellList>( new CellListGPU(sysdef) );
+        nlist = boost::shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        fc = boost::shared_ptr<PotentialPairLJ>( new PotentialPairLJGPU(sysdef, nlist));
         }
     else
     #endif
         {
-        cl = shared_ptr<CellList>( new CellList(sysdef) );
-        nlist = shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
-        fc = shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
+        cl = boost::shared_ptr<CellList>( new CellList(sysdef) );
+        nlist = boost::shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        fc = boost::shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
         }
 
     fc->setRcut(0, 0, Scalar(2.5));
@@ -182,7 +182,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     // energy shift
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    shared_ptr<ComputeThermo> thermo_group;
+    boost::shared_ptr<ComputeThermo> thermo_group;
     #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
@@ -195,7 +195,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
         }
 
     thermo_group->setNDOF(3*pdata->getN());
-    shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
+    boost::shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
     npt_mtk->addForceCompute(fc);
 
     // successively integrate the system using different methods
@@ -205,7 +205,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
         TwoStepNPTMTK::couplingMode mode = coupling_modes[i_mode];
         unsigned int flags = npt_flags[i_mode];
         std::cout << "Testing NPT with mode " << mode_name[i_mode] << std::endl;
-        shared_ptr<TwoStepNPTMTK> two_step_npt_mtk = npt_mtk_creator(sysdef, group_all, thermo_group, tau, tauP,T0,P, mode, flags);
+        boost::shared_ptr<TwoStepNPTMTK> two_step_npt_mtk = npt_mtk_creator(sysdef, group_all, thermo_group, tau, tauP,T0,P, mode, flags);
         npt_mtk->removeAllIntegrationMethods();
         npt_mtk->addIntegrationMethod(two_step_npt_mtk);
         npt_mtk->prepRun(0);
@@ -342,8 +342,8 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     rand_init.setSeed(12345);
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // give the particles velocities according to a Maxwell-Boltzmann distribution
     Saru saru(54321);
@@ -396,25 +396,25 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
 
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    shared_ptr<NeighborList> nlist;
-    shared_ptr<PotentialPairLJ> fc;
-    shared_ptr<CellList> cl;
+    boost::shared_ptr<NeighborList> nlist;
+    boost::shared_ptr<PotentialPairLJ> fc;
+    boost::shared_ptr<CellList> cl;
     #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
         {
-        cl = shared_ptr<CellList>( new CellListGPU(sysdef) );
-        nlist = shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
-        fc = shared_ptr<PotentialPairLJ>( new PotentialPairLJGPU(sysdef, nlist));
+        cl = boost::shared_ptr<CellList>( new CellListGPU(sysdef) );
+        nlist = boost::shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        fc = boost::shared_ptr<PotentialPairLJ>( new PotentialPairLJGPU(sysdef, nlist));
         }
     else
     #endif
         {
-        cl = shared_ptr<CellList>( new CellList(sysdef) );
-        nlist = shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
-        fc = shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
+        cl = boost::shared_ptr<CellList>( new CellList(sysdef) );
+        nlist = boost::shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        fc = boost::shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
         }
 
 
@@ -433,12 +433,12 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     // energy shift
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    shared_ptr<ComputeThermo> compute_thermo(new ComputeThermo(sysdef, group_all, "name"));
+    boost::shared_ptr<ComputeThermo> compute_thermo(new ComputeThermo(sysdef, group_all, "name"));
     compute_thermo->setNDOF(3*N-3);
 
 
     // set up integration without thermostat
-    shared_ptr<TwoStepNPTMTK> two_step_npt = nph_creator(sysdef,
+    boost::shared_ptr<TwoStepNPTMTK> two_step_npt = nph_creator(sysdef,
                                                          group_all,
                                                          compute_thermo,
                                                          Scalar(1.0),
@@ -447,7 +447,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
                                                          P,
                                                          TwoStepNPTMTK::couple_xyz,
                                                          TwoStepNPTMTK::baro_x | TwoStepNPTMTK::baro_y | TwoStepNPTMTK::baro_z);
-    shared_ptr<IntegratorTwoStep> nph(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
+    boost::shared_ptr<IntegratorTwoStep> nph(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
     nph->addIntegrationMethod(two_step_npt);
     nph->addForceCompute(fc);
     nph->prepRun(0);
@@ -509,8 +509,8 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, boost::shared_ptr
     }
 
 //! IntegratorTwoStepNPTMTK factory for the unit tests
-shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(shared_ptr<SystemDefinition> sysdef,
-                                              shared_ptr<ParticleGroup> group,
+boost::shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                              boost::shared_ptr<ParticleGroup> group,
                                               boost::shared_ptr<ComputeThermo> thermo_group,
                                               Scalar tau,
                                               Scalar tauP,
@@ -522,11 +522,11 @@ shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(shared_ptr<SystemDefinition
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
     // for the tests, we can assume that group is the all group
-    return shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP,T_variant, P_variant,mode,flags,false));
+    return boost::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP,T_variant, P_variant,mode,flags,false));
     }
 
-shared_ptr<TwoStepNPTMTK> base_class_nph_creator(shared_ptr<SystemDefinition> sysdef,
-                                              shared_ptr<ParticleGroup> group,
+boost::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                              boost::shared_ptr<ParticleGroup> group,
                                               boost::shared_ptr<ComputeThermo> thermo_group,
                                               Scalar tau,
                                               Scalar tauP,
@@ -538,13 +538,13 @@ shared_ptr<TwoStepNPTMTK> base_class_nph_creator(shared_ptr<SystemDefinition> sy
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
     // for the tests, we can assume that group is the all group
-    return shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP,T_variant, P_variant,mode,flags,true));
+    return boost::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP,T_variant, P_variant,mode,flags,true));
     }
 
 #ifdef ENABLE_CUDA
 //! NPTMTKIntegratorGPU factory for the unit tests
-shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(shared_ptr<SystemDefinition> sysdef,
-                                              shared_ptr<ParticleGroup> group,
+boost::shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                              boost::shared_ptr<ParticleGroup> group,
                                               boost::shared_ptr<ComputeThermo> thermo_group,
                                               Scalar tau,
                                               Scalar tauP,
@@ -556,11 +556,11 @@ shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(shared_ptr<SystemDefinition> sysde
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
     // for the tests, we can assume that group is the all group
-    return shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(sysdef, group, thermo_group, tau, tauP, T_variant, P_variant,mode,flags,false));
+    return boost::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(sysdef, group, thermo_group, tau, tauP, T_variant, P_variant,mode,flags,false));
     }
 
-shared_ptr<TwoStepNPTMTK> gpu_nph_creator(shared_ptr<SystemDefinition> sysdef,
-                                              shared_ptr<ParticleGroup> group,
+boost::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                              boost::shared_ptr<ParticleGroup> group,
                                               boost::shared_ptr<ComputeThermo> thermo_group,
                                               Scalar tau,
                                               Scalar tauP,
@@ -572,7 +572,7 @@ shared_ptr<TwoStepNPTMTK> gpu_nph_creator(shared_ptr<SystemDefinition> sysdef,
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
     // for the tests, we can assume that group is the all group
-    return shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(sysdef, group, thermo_group, tau, tauP, T_variant, P_variant,mode,flags,true));
+    return boost::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(sysdef, group, thermo_group, tau, tauP, T_variant, P_variant,mode,flags,true));
     }
 #endif
 

@@ -91,18 +91,18 @@ using namespace boost;
 */
 
 //! Typedef'd Enforce2DUpdater factory
-typedef boost::function<shared_ptr<Enforce2DUpdater> (shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
+typedef boost::function<boost::shared_ptr<Enforce2DUpdater> (boost::shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
 
 //! boost test case to verify proper operation of Enforce2DUpdater
 void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     BoxDim box(20.0, 20.0, 1.0);
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
 
     sysdef->setNDimensions(2);
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     Saru saru(11, 21, 33);
 
@@ -125,18 +125,18 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
             }
 
     boost::shared_ptr<Variant> T(new VariantConst(1.0));
-    shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
+    boost::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(2*group_all->getNumMembers()-2);
-    shared_ptr<TwoStepNVT> two_step_nvt(new TwoStepNVT(sysdef, group_all, thermo, 0.5, T));
+    boost::shared_ptr<TwoStepNVT> two_step_nvt(new TwoStepNVT(sysdef, group_all, thermo, 0.5, T));
 
     Scalar deltaT = Scalar(0.005);
-    shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nvt);
 
-    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.3)));
+    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.3)));
     nlist->setStorageMode(NeighborList::half);
 
-    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    boost::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
 
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
@@ -197,7 +197,7 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
 
     pdata->notifyParticleSort();
 
-    shared_ptr<Enforce2DUpdater> enforce2d = creator(sysdef);
+    boost::shared_ptr<Enforce2DUpdater> enforce2d = creator(sysdef);
 
     // verify that the atoms never leave the xy plane if contstraint is present:
     for (int t = 0; t < 1000; t++)
@@ -226,16 +226,16 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
     }
 
 //! Enforce2DUpdater creator for unit tests
-shared_ptr<Enforce2DUpdater> base_class_enforce2d_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<Enforce2DUpdater> base_class_enforce2d_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<Enforce2DUpdater>(new Enforce2DUpdater(sysdef));
+    return boost::shared_ptr<Enforce2DUpdater>(new Enforce2DUpdater(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! Enforce2DUpdaterGPU creator for unit tests
-shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<Enforce2DUpdater>(new Enforce2DUpdaterGPU(sysdef));
+    return boost::shared_ptr<Enforce2DUpdater>(new Enforce2DUpdaterGPU(sysdef));
     }
 #endif
 

@@ -77,15 +77,15 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<HarmonicDihedralForceCompute>  (shared_ptr<SystemDefinition> sysdef)> dihedralforce_creator;
+typedef boost::function<boost::shared_ptr<HarmonicDihedralForceCompute>  (boost::shared_ptr<SystemDefinition> sysdef)> dihedralforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type !!!! NO DIHEDRALS
-    shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     pdata_4->setPosition(0,make_scalar3(10.0,1.0,2.0));
     pdata_4->setPosition(1,make_scalar3(1.0,1.0,1.0));
@@ -101,7 +101,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     */
 
     // create the dihedral force compute to check
-    shared_ptr<HarmonicDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
+    boost::shared_ptr<HarmonicDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
     fc_4->setParams(0, Scalar(30.0), -1, 3); // type=0, K=30.0,sign=-1,multiplicity=3
 
     // compute the force and check the results
@@ -232,8 +232,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 8 particle system with particles across each boundary
     // also test more than one type of dihedral
-    shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_8->getPositions(), access_location::host, access_mode::readwrite);
@@ -248,7 +248,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     h_pos.data[7].x = 3; h_pos.data[7].y = 0; h_pos.data[7].z =  Scalar(31.0);
     }
 
-    shared_ptr<HarmonicDihedralForceCompute> fc_8 = tf_creator(sysdef_8);
+    boost::shared_ptr<HarmonicDihedralForceCompute> fc_8 = tf_creator(sysdef_8);
     fc_8->setParams(0, 50.0, -1, 3);
     fc_8->setParams(1, 30.0,  1, 4);
 
@@ -333,8 +333,8 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
-    shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_5->getPositions(), access_location::host, access_mode::readwrite);
@@ -358,7 +358,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     }
 
     // build the dihedral force compute and try it out
-    shared_ptr<HarmonicDihedralForceCompute> fc_5 = tf_creator(sysdef_5);
+    boost::shared_ptr<HarmonicDihedralForceCompute> fc_5 = tf_creator(sysdef_5);
     fc_5->setParams(0, 15.0, -1, 4);
 
     sysdef_5->getDihedralData()->addBondedGroup(Dihedral(0, 0,1,2,3));
@@ -427,10 +427,10 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
     snap->dihedral_data.type_mapping.push_back("A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    shared_ptr<HarmonicDihedralForceCompute> fc1 = tf_creator1(sysdef);
-    shared_ptr<HarmonicDihedralForceCompute> fc2 = tf_creator2(sysdef);
+    boost::shared_ptr<HarmonicDihedralForceCompute> fc1 = tf_creator1(sysdef);
+    boost::shared_ptr<HarmonicDihedralForceCompute> fc2 = tf_creator2(sysdef);
     fc1->setParams(0, Scalar(3.0), -1, 3);
     fc2->setParams(0, Scalar(3.0), -1, 3);
 
@@ -491,16 +491,16 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     }
 
 //! HarmonicDihedralForceCompute creator for dihedral_force_basic_tests()
-shared_ptr<HarmonicDihedralForceCompute> base_class_tf_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<HarmonicDihedralForceCompute> base_class_tf_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceCompute(sysdef));
+    return boost::shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceCompute(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! DihedralForceCompute creator for bond_force_basic_tests()
-shared_ptr<HarmonicDihedralForceCompute> gpu_tf_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<HarmonicDihedralForceCompute> gpu_tf_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceComputeGPU(sysdef));
+    return boost::shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceComputeGPU(sysdef));
     }
 #endif
 

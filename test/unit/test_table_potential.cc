@@ -75,16 +75,16 @@ using namespace boost;
 */
 
 //! Typedef'd TablePotential factory
-typedef boost::function<shared_ptr<TablePotential> (shared_ptr<SystemDefinition> sysdef,
-                                                    shared_ptr<NeighborList> nlist,
+typedef boost::function<boost::shared_ptr<TablePotential> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                    boost::shared_ptr<NeighborList> nlist,
                                                     unsigned int width)> table_potential_creator;
 
 //! performs some really basic checks on the TablePotential class
 void table_potential_basic_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // perform a basic test to see of the potential and force can be interpolated between two particles
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
@@ -92,8 +92,8 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     }
 
-    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
-    shared_ptr<TablePotential> fc_2 = table_creator(sysdef_2, nlist_2, 3);
+    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
+    boost::shared_ptr<TablePotential> fc_2 = table_creator(sysdef_2, nlist_2, 3);
 
     // first check for proper initialization by seeing if the force and potential come out to be 0
     fc_2->compute(0);
@@ -274,8 +274,8 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
 void table_potential_type_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // perform a basic test to see of the potential and force can be interpolated between two particles
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -285,8 +285,8 @@ void table_potential_type_test(table_potential_creator table_creator, boost::sha
     h_pos.data[3].x = Scalar(1.5); h_pos.data[3].y = Scalar(1.5); h_pos.data[3].z = 0.0; h_pos.data[3].w = __int_as_scalar(1);
     }
 
-    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));
-    shared_ptr<TablePotential> fc = table_creator(sysdef, nlist, 3);
+    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));
+    boost::shared_ptr<TablePotential> fc = table_creator(sysdef, nlist, 3);
 
     // specify a table to interpolate
     vector<Scalar> V, F;
@@ -353,21 +353,21 @@ void table_potential_type_test(table_potential_creator table_creator, boost::sha
     }
 
 //! TablePotential creator for unit tests
-shared_ptr<TablePotential> base_class_table_creator(shared_ptr<SystemDefinition> sysdef,
-                                                    shared_ptr<NeighborList> nlist,
+boost::shared_ptr<TablePotential> base_class_table_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                    boost::shared_ptr<NeighborList> nlist,
                                                     unsigned int width)
     {
-    return shared_ptr<TablePotential>(new TablePotential(sysdef, nlist, width));
+    return boost::shared_ptr<TablePotential>(new TablePotential(sysdef, nlist, width));
     }
 
 #ifdef ENABLE_CUDA
 //! TablePotentialGPU creator for unit tests
-shared_ptr<TablePotential> gpu_table_creator(shared_ptr<SystemDefinition> sysdef,
-                                             shared_ptr<NeighborList> nlist,
+boost::shared_ptr<TablePotential> gpu_table_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                             boost::shared_ptr<NeighborList> nlist,
                                              unsigned int width)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<TablePotentialGPU> table(new TablePotentialGPU(sysdef, nlist, width));
+    boost::shared_ptr<TablePotentialGPU> table(new TablePotentialGPU(sysdef, nlist, width));
     // the default block size kills valgrind :) reduce it
     table->setBlockSize(64);
     return table;

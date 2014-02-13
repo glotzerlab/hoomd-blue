@@ -81,8 +81,8 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd LJForceCompute factory
-typedef boost::function<shared_ptr<PotentialPairLJ> (shared_ptr<SystemDefinition> sysdef,
-                                                     shared_ptr<NeighborList> nlist)> ljforce_creator;
+typedef boost::function<boost::shared_ptr<PotentialPairLJ> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                     boost::shared_ptr<NeighborList> nlist)> ljforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces
 void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -95,8 +95,8 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     {
@@ -105,8 +105,8 @@ void lj_force_particle_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     h_pos.data[1].x = Scalar(pow(2.0,1.0/6.0)); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0*pow(2.0,1.0/6.0)); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<PotentialPairLJ> fc_3 = lj_creator(sysdef_3, nlist_3);
+    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<PotentialPairLJ> fc_3 = lj_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
@@ -233,8 +233,8 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
 
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
 
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
@@ -251,8 +251,8 @@ void lj_force_periodic_test(ljforce_creator lj_creator, boost::shared_ptr<Execut
     pdata_6->setType(4,2);
     pdata_6->setType(5,1);
 
-    shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<PotentialPairLJ> fc_6 = lj_creator(sysdef_6, nlist_6);
+    boost::shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<PotentialPairLJ> fc_6 = lj_creator(sysdef_6, nlist_6);
     fc_6->setRcut(0, 0, Scalar(1.3));
     fc_6->setRcut(0, 1, Scalar(1.3));
     fc_6->setRcut(0, 2, Scalar(1.3));
@@ -341,14 +341,14 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    shared_ptr<PotentialPairLJ> fc1 = lj_creator1(sysdef, nlist);
-    shared_ptr<PotentialPairLJ> fc2 = lj_creator2(sysdef, nlist);
+    boost::shared_ptr<PotentialPairLJ> fc1 = lj_creator1(sysdef, nlist);
+    boost::shared_ptr<PotentialPairLJ> fc2 = lj_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -416,8 +416,8 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 2-particle test is just to get a plot of the potential and force vs r cut
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
     {
@@ -427,16 +427,16 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     h_pos.data[1].x = Scalar(2.8); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     }
 
-    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
-    shared_ptr<PotentialPairLJ> fc_no_shift = lj_creator(sysdef_2, nlist_2);
+    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<PotentialPairLJ> fc_no_shift = lj_creator(sysdef_2, nlist_2);
     fc_no_shift->setRcut(0, 0, Scalar(3.0));
     fc_no_shift->setShiftMode(PotentialPairLJ::no_shift);
 
-    shared_ptr<PotentialPairLJ> fc_shift = lj_creator(sysdef_2, nlist_2);
+    boost::shared_ptr<PotentialPairLJ> fc_shift = lj_creator(sysdef_2, nlist_2);
     fc_shift->setRcut(0, 0, Scalar(3.0));
     fc_shift->setShiftMode(PotentialPairLJ::shift);
 
-    shared_ptr<PotentialPairLJ> fc_xplor = lj_creator(sysdef_2, nlist_2);
+    boost::shared_ptr<PotentialPairLJ> fc_xplor = lj_creator(sysdef_2, nlist_2);
     fc_xplor->setRcut(0, 0, Scalar(3.0));
     fc_xplor->setShiftMode(PotentialPairLJ::xplor);
     fc_xplor->setRon(0, 0, Scalar(2.0));
@@ -579,19 +579,19 @@ void lj_force_shift_test(ljforce_creator lj_creator, boost::shared_ptr<Execution
     }
 
 //! LJForceCompute creator for unit tests
-shared_ptr<PotentialPairLJ> base_class_lj_creator(shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairLJ> base_class_lj_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                  boost::shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef, nlist));
+    return boost::shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! LJForceComputeGPU creator for unit tests
-shared_ptr<PotentialPairLJGPU> gpu_lj_creator(shared_ptr<SystemDefinition> sysdef,
-                                          shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairLJGPU> gpu_lj_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                          boost::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairLJGPU> lj(new PotentialPairLJGPU(sysdef, nlist));
+    boost::shared_ptr<PotentialPairLJGPU> lj(new PotentialPairLJGPU(sysdef, nlist));
     return lj;
     }
 #endif

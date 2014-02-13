@@ -80,8 +80,8 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd PotentialPairSLJ factory
-typedef boost::function<shared_ptr<PotentialPairSLJ> (shared_ptr<SystemDefinition> sysdef,
-                                                      shared_ptr<NeighborList> nlist)> shiftedljforce_creator;
+typedef boost::function<boost::shared_ptr<PotentialPairSLJ> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                      boost::shared_ptr<NeighborList> nlist)> shiftedljforce_creator;
 
 //! Test the ability of the shiftedlj force compute to actually calucate forces
 void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -95,8 +95,8 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     // Also particle 2 would not be within the cutoff of particle 1 if it were not the case that particle 1 has a shifted potential.
 
     // periodic boundary conditions will be handeled in another test
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     {
@@ -116,8 +116,8 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
     Scalar r_alpha = maxdiam/2 - 0.5;
     Scalar r_cut_wc = r_cut + 2 * r_alpha;
 
-    shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, r_cut_wc, Scalar(3.0)));
-    shared_ptr<PotentialPairSLJ> fc_3 = shiftedlj_creator(sysdef_3, nlist_3);
+    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, r_cut_wc, Scalar(3.0)));
+    boost::shared_ptr<PotentialPairSLJ> fc_3 = shiftedlj_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, r_cut);
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
@@ -244,8 +244,8 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
 
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
     pdata_6->setPosition(1, make_scalar3(9.6, 0.0,0.0));
@@ -271,8 +271,8 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boo
     Scalar r_cut_wc = Scalar(r_cut + 2.0 * r_alpha);
 
 
-    shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, r_cut_wc, Scalar(3.0)));
-    shared_ptr<PotentialPairSLJ> fc_6 = shiftedlj_creator(sysdef_6, nlist_6);
+    boost::shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, r_cut_wc, Scalar(3.0)));
+    boost::shared_ptr<PotentialPairSLJ> fc_6 = shiftedlj_creator(sysdef_6, nlist_6);
     fc_6->setRcut(0, 0, r_cut);
     fc_6->setRcut(0, 1, r_cut);
     fc_6->setRcut(0, 2, r_cut);
@@ -364,13 +364,13 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.05), Scalar(1.3), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    shared_ptr<PotentialPairSLJ> fc1 = shiftedlj_creator1(sysdef, nlist);
-    shared_ptr<PotentialPairSLJ> fc2 = shiftedlj_creator2(sysdef, nlist);
+    boost::shared_ptr<PotentialPairSLJ> fc1 = shiftedlj_creator1(sysdef, nlist);
+    boost::shared_ptr<PotentialPairSLJ> fc2 = shiftedlj_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -436,19 +436,19 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     }
 
 //! PotentialPairSLJ creator for unit tests
-shared_ptr<PotentialPairSLJ> base_class_shiftedlj_creator(shared_ptr<SystemDefinition> sysdef,
-                                                          shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairSLJ> base_class_shiftedlj_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                          boost::shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<PotentialPairSLJ>(new PotentialPairSLJ(sysdef, nlist));
+    return boost::shared_ptr<PotentialPairSLJ>(new PotentialPairSLJ(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! PotentialPairSLJGPU creator for unit tests
-shared_ptr<PotentialPairSLJ> gpu_shiftedlj_creator(shared_ptr<SystemDefinition> sysdef,
-                                                   shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairSLJ> gpu_shiftedlj_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                   boost::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairSLJGPU> lj(new PotentialPairSLJGPU(sysdef, nlist));
+    boost::shared_ptr<PotentialPairSLJGPU> lj(new PotentialPairSLJGPU(sysdef, nlist));
     return lj;
     }
 #endif

@@ -82,8 +82,8 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd class factory
-typedef boost::function<shared_ptr<ConstraintSphere> (shared_ptr<SystemDefinition> sysdef,
-                                                      shared_ptr<ParticleGroup> group,
+typedef boost::function<boost::shared_ptr<ConstraintSphere> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                      boost::shared_ptr<ParticleGroup> group,
                                                       Scalar3 P,
                                                       Scalar r)> cs_creator_t;
 
@@ -95,10 +95,10 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
 
     // Build a 6 particle system with all particles starting at the 6 "corners" of a sphere centered
     // at P with radius r. Use a huge box so boundary conditions don't come into play
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, BoxDim(1000000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, BoxDim(1000000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -117,9 +117,9 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
 
     // run the particles in a BD simulation with a constraint force applied and verify that the constraint is always
     // satisfied
-    shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    shared_ptr<TwoStepBDNVT> two_step_bdnvt(new TwoStepBDNVT(sysdef, group_all, T_variant, 123, 0));
-    shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt(new TwoStepBDNVT(sysdef, group_all, T_variant, 123, 0));
+    boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
     boost::shared_ptr<ConstraintSphere> cs = cs_creator(sysdef, group_all, P, r);
@@ -147,22 +147,22 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
     }
 
 //! ConstraintSphere factory for the unit tests
-shared_ptr<ConstraintSphere> base_class_cs_creator(shared_ptr<SystemDefinition> sysdef,
-                                                   shared_ptr<ParticleGroup> group,
+boost::shared_ptr<ConstraintSphere> base_class_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                   boost::shared_ptr<ParticleGroup> group,
                                                    Scalar3 P,
                                                    Scalar r)
     {
-    return shared_ptr<ConstraintSphere>(new ConstraintSphere(sysdef, group, P, r));
+    return boost::shared_ptr<ConstraintSphere>(new ConstraintSphere(sysdef, group, P, r));
     }
 
 #ifdef ENABLE_CUDA
 //! ConstraintSphereGPU factory for the unit tests
-shared_ptr<ConstraintSphere> gpu_cs_creator(shared_ptr<SystemDefinition> sysdef,
-                                                   shared_ptr<ParticleGroup> group,
+boost::shared_ptr<ConstraintSphere> gpu_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                   boost::shared_ptr<ParticleGroup> group,
                                                    Scalar3 P,
                                                    Scalar r)
     {
-    return shared_ptr<ConstraintSphere>(new ConstraintSphereGPU(sysdef, group, P, r));
+    return boost::shared_ptr<ConstraintSphere>(new ConstraintSphereGPU(sysdef, group, P, r));
     }
 #endif
 

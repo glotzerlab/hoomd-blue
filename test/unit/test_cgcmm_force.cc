@@ -83,7 +83,7 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd CGCMMForceCompute factory
-typedef boost::function<shared_ptr<CGCMMForceCompute> (shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)> cgcmmforce_creator;
+typedef boost::function<boost::shared_ptr<CGCMMForceCompute> (boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut)> cgcmmforce_creator;
 
 //! Test the ability of the cgcmm LJ12-4 force compute to actually calucate forces
 void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -96,15 +96,15 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, boost::share
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_3->setPosition(1,make_scalar3(pow(3.0,1.0/8.0),0.0,0.0));
     pdata_3->setPosition(2,make_scalar3(2.0*pow(3.0,1.0/8.0),0.0,0.0));
 
-    shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<CGCMMForceCompute> fc_3 = cgcmm_creator(sysdef_3, nlist_3, Scalar(1.3));
+    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<CGCMMForceCompute> fc_3 = cgcmm_creator(sysdef_3, nlist_3, Scalar(1.3));
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
     Scalar epsilon = Scalar(1.15);
@@ -240,8 +240,8 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, boost::shared
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -249,8 +249,8 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, boost::shared
     h_pos.data[1].x = Scalar(pow(1.5,1.0/3.0)); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0*pow(1.5,1.0/3.0)); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<CGCMMForceCompute> fc_3 = cgcmm_creator(sysdef_3, nlist_3, Scalar(1.3));
+    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<CGCMMForceCompute> fc_3 = cgcmm_creator(sysdef_3, nlist_3, Scalar(1.3));
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
     Scalar epsilon = Scalar(1.15);
@@ -382,8 +382,8 @@ void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, boost::shared_p
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
 
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     pdata_6->setPosition(0,make_scalar3(-9.6,0.0,0.0));
     pdata_6->setPosition(1,make_scalar3(9.6,0.0,0.0));
@@ -399,8 +399,8 @@ void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, boost::shared_p
     pdata_6->setType(4,2);
     pdata_6->setType(5,1);
 
-    shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<CGCMMForceCompute> fc_6 = cgcmm_creator(sysdef_6, nlist_6, Scalar(1.3));
+    boost::shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<CGCMMForceCompute> fc_6 = cgcmm_creator(sysdef_6, nlist_6, Scalar(1.3));
 
     // choose a small sigma so that all interactions are attractive
     Scalar epsilon = Scalar(1.0);
@@ -486,11 +486,11 @@ void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_c
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap;
     snap = rand_init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    shared_ptr<CGCMMForceCompute> fc1 = cgcmm_creator1(sysdef, nlist, Scalar(3.0));
-    shared_ptr<CGCMMForceCompute> fc2 = cgcmm_creator2(sysdef, nlist, Scalar(3.0));
+    boost::shared_ptr<CGCMMForceCompute> fc1 = cgcmm_creator1(sysdef, nlist, Scalar(3.0));
+    boost::shared_ptr<CGCMMForceCompute> fc2 = cgcmm_creator2(sysdef, nlist, Scalar(3.0));
 
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
@@ -555,17 +555,17 @@ void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_c
     }
 
 //! CGCMMForceCompute creator for unit tests
-shared_ptr<CGCMMForceCompute> base_class_cgcmm_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)
+boost::shared_ptr<CGCMMForceCompute> base_class_cgcmm_creator(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut)
     {
-    return shared_ptr<CGCMMForceCompute>(new CGCMMForceCompute(sysdef, nlist, r_cut));
+    return boost::shared_ptr<CGCMMForceCompute>(new CGCMMForceCompute(sysdef, nlist, r_cut));
     }
 
 #ifdef ENABLE_CUDA
 //! CGCMMForceComputeGPU creator for unit tests
-shared_ptr<CGCMMForceCompute> gpu_cgcmm_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)
+boost::shared_ptr<CGCMMForceCompute> gpu_cgcmm_creator(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<CGCMMForceComputeGPU> cgcmm(new CGCMMForceComputeGPU(sysdef, nlist, r_cut));
+    boost::shared_ptr<CGCMMForceComputeGPU> cgcmm(new CGCMMForceComputeGPU(sysdef, nlist, r_cut));
     // the default block size kills valgrind :) reduce it
     cgcmm->setBlockSize(64);
     return cgcmm;

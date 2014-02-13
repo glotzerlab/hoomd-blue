@@ -85,8 +85,8 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<TwoStepBDNVT> (shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<ParticleGroup> group,
+typedef boost::function<boost::shared_ptr<TwoStepBDNVT> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                  boost::shared_ptr<ParticleGroup> group,
                                                   Scalar T,
                                                   unsigned int seed,
                                                   bool gamma_diam)> twostepbdnvt_creator;
@@ -99,10 +99,10 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     // a correct temperature and diffuction coefficent
     // Build a 1000 particle system with all the particles started at the origin, but with no interaction:
     //also put everything in a huge box so boundary conditions don't come into play
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -127,8 +127,8 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     cout << "Creating an ideal gas of 1000 particles" << endl;
     cout << "Temperature set at " << Temp << endl;
 
-    shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 0);
-    shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 0);
+    boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
 
@@ -177,7 +177,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<Exec
     }
 
     // Resetting the Temperature to 1.0
-    shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
     cout << "Temperature set at " << T_variant->getValue(0) << endl;
     two_step_bdnvt->setT(T_variant);
 
@@ -288,10 +288,10 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     // a correct temperature and diffuction coefficent
     // Build a 1000 particle system with all the particles started at the origin, but with no interaction:
     //also put everything in a huge box so boundary conditions don't come into play
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -313,8 +313,8 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     Scalar deltaT = Scalar(0.01);
     Scalar Temp = Scalar(1.0);
     cout << "Temperature set at " << Temp << endl;
-    shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 1);
-    shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 123, 1);
+    boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
 
@@ -413,10 +413,10 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
     // and correct average temperature when applied to a population of two different particle types
     // Build a 1000 particle system with all the particles started at the origin, but with no interaction:
     //also put everything in a huge box so boundary conditions don't come into play
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -445,8 +445,8 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
     cout << "Creating an ideal gas of 1000 particles" << endl;
     cout << "Temperature set at " << Temp << endl;
 
-    shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 268, 0);
-    shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 268, 0);
+    boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
 
@@ -502,10 +502,10 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     {
     // check that a stochastic force applied on top of NVE integrator for a 1000 LJ particles stilll produces the correct average temperature
     // Build a 1000 particle system with particles scattered on the x, y, and z axes.
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -530,12 +530,12 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     cout << "Creating 1000 LJ particles" << endl;
     cout << "Temperature set at " << Temp << endl;
 
-    shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 358, 0);
-    shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt = bdnvt_creator(sysdef, group_all, Temp, 358, 0);
+    boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
-    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<PotentialPairLJ> fc3(new PotentialPairLJ(sysdef, nlist));
+    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<PotentialPairLJ> fc3(new PotentialPairLJ(sysdef, nlist));
     fc3->setRcut(0, 0, Scalar(1.3));
 
     Scalar epsilon = Scalar(1.15);
@@ -574,7 +574,7 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
     MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 1);
 
     // Resetting the Temperature to 1.0
-    shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
     cout << "Temperature set at " << T_variant->getValue(0) << endl;
     two_step_bdnvt->setT(T_variant);
 
@@ -603,26 +603,26 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<E
 
 
 //! BD_NVTUpdater factory for the unit tests
-shared_ptr<TwoStepBDNVT> base_class_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
-                                                  shared_ptr<ParticleGroup> group,
+boost::shared_ptr<TwoStepBDNVT> base_class_bdnvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                  boost::shared_ptr<ParticleGroup> group,
                                                   Scalar Temp,
                                                   unsigned int seed,
                                                   bool use_diam)
     {
-    shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    return shared_ptr<TwoStepBDNVT>(new TwoStepBDNVT(sysdef, group, T_variant, seed, use_diam));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+    return boost::shared_ptr<TwoStepBDNVT>(new TwoStepBDNVT(sysdef, group, T_variant, seed, use_diam));
     }
 
 #ifdef ENABLE_CUDA
 //! BD_NVTUpdaterGPU factory for the unit tests
-shared_ptr<TwoStepBDNVT> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
-                                            shared_ptr<ParticleGroup> group,
+boost::shared_ptr<TwoStepBDNVT> gpu_bdnvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                            boost::shared_ptr<ParticleGroup> group,
                                             Scalar Temp,
                                             unsigned int seed,
                                             bool use_diam)
     {
-    shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    return shared_ptr<TwoStepBDNVT>(new TwoStepBDNVTGPU(sysdef, group, T_variant, seed, use_diam));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+    return boost::shared_ptr<TwoStepBDNVT>(new TwoStepBDNVTGPU(sysdef, group, T_variant, seed, use_diam));
     }
 #endif
 

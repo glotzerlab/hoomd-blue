@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBerendsenGPU.h"
 #endif
 
+
 #include "Initializers.h"
 
 #include <math.h>
@@ -84,26 +85,26 @@ void berend_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf
     RandomInitializer rand_init(1000, Scalar(0.05), Scalar(1.3), "A");
     boost::shared_ptr<SnapshotSystemData> snap;
     snap = rand_init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     Scalar deltaT = Scalar(0.002);
     Scalar Temp = Scalar(2.0);
 
-    shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
+    boost::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(3*1000-3);
-    shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    shared_ptr<VariantConst> T_variant2(new VariantConst(1.0));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+    boost::shared_ptr<VariantConst> T_variant2(new VariantConst(1.0));
 
-    shared_ptr<TwoStepBerendsen> two_step_berendsen(new Berendsen(sysdef, group_all, thermo, 1.0, T_variant));
-    shared_ptr<IntegratorTwoStep> berendsen_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<TwoStepBerendsen> two_step_berendsen(new Berendsen(sysdef, group_all, thermo, 1.0, T_variant));
+    boost::shared_ptr<IntegratorTwoStep> berendsen_up(new IntegratorTwoStep(sysdef, deltaT));
     berendsen_up->addIntegrationMethod(two_step_berendsen);
 
-    shared_ptr<TwoStepBDNVT> two_step_bdnvt(new TwoStepBDNVT(sysdef, group_all, T_variant2, 268, 1));
-    shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<TwoStepBDNVT> two_step_bdnvt(new TwoStepBDNVT(sysdef, group_all, T_variant2, 268, 1));
+    boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     bdnvt_up->prepRun(0);
 
