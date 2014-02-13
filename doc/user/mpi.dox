@@ -95,7 +95,7 @@ To execute a hoomd job script on multiple GPUs, run
 mpirun -n 8 hoomd script.py --mode=gpu
 \endcode
 which will execute HOOMD on 8 processors. HOOMD automatically detects which GPUs are available and assigns them to MPI
-ranks (TODO: how?).  The syntax and name of the `mpirun` command may be different
+ranks.  The syntax and name of the `mpirun` command may be different
 between different MPI libraries and system architectures, check with your system documentation to find out what
 launcher to use. When running on multiple nodes, the job script must be available to all nodes via a network file system.
 
@@ -113,6 +113,23 @@ HOOMD-blue can also execute on many **CPU cores** in parallel.
 ~~~~
 mpirun -n 16 hoomd script.py --mode=cpu
 ~~~~
+
+\subsection sec_mpi_gpu_selec GPU selection in MPI runs
+
+GPU selection in MPI runs is handled in one of two automatically selected ways.
+
+1. If all GPUs in a host are set to compute exclusive mode, HOOMD-blue uses the compute exclusive mode to assign
+a single rank to each GPU. In this mode, do not run more ranks per node than there are GPUs on that node or one of the
+ranks will produce an error that all GPUs are in use.
+
+2. If *not* all GPUs are in compute exclusive mode, HOOMD-blue will use information from `mpirun` to determine the
+<em>local rank</em> on a node (0,1,2,... unique id for each process on a node). Each rank will use the GPU id matching
+the local rank. In this mode, do not run more ranks per node than there are GPUs on that node or you will get an
+error. This mode only works on clusters where scheduling is performed by node (not by core) and there are a uniform
+number of GPUs on each node.
+
+In either case, a status message is printed on startup that lists which ranks are using which GPU ids. You can use this
+to verify proper GPU selection.
 
 \section sec_mpi_best_practices Best practices
 
