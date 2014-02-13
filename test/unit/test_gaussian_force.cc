@@ -82,8 +82,8 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd PotentialPairGauss factory
-typedef boost::function<shared_ptr<PotentialPairGauss> (shared_ptr<SystemDefinition> sysdef,
-                                                        shared_ptr<NeighborList> nlist)> gaussforce_creator;
+typedef boost::function<boost::shared_ptr<PotentialPairGauss> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                        boost::shared_ptr<NeighborList> nlist)> gaussforce_creator;
 
 //! Test the ability of the gauss force compute to actually calucate forces
 void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -96,16 +96,16 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_3->setPosition(1,make_scalar3(1.0,0.0,0.0));
     pdata_3->setPosition(2,make_scalar3(2.0,0.0,0.0));
 
-    shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<PotentialPairGauss> fc_3 = gauss_creator(sysdef_3, nlist_3);
+    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<PotentialPairGauss> fc_3 = gauss_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: choose a basic sigma
@@ -187,8 +187,8 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
 
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
@@ -205,8 +205,8 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     pdata_6->setType(4,2);
     pdata_6->setType(5,1);
 
-    shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<PotentialPairGauss> fc_6 = gauss_creator(sysdef_6, nlist_6);
+    boost::shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<PotentialPairGauss> fc_6 = gauss_creator(sysdef_6, nlist_6);
     fc_6->setRcut(0, 0, Scalar(1.3));
     fc_6->setRcut(0, 1, Scalar(1.3));
     fc_6->setRcut(0, 2, Scalar(1.3));
@@ -295,13 +295,13 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap;
     snap = rand_init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-    shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
-    shared_ptr<PotentialPairGauss> fc2 = gauss_creator2(sysdef, nlist);
+    boost::shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
+    boost::shared_ptr<PotentialPairGauss> fc2 = gauss_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -366,17 +366,17 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
 void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 2-particle test is just to get a plot of the potential and force vs r cut
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(2.8,0.0,0.0));
-    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
-    shared_ptr<PotentialPairGauss> fc_no_shift = gauss_creator(sysdef_2, nlist_2);
+    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<PotentialPairGauss> fc_no_shift = gauss_creator(sysdef_2, nlist_2);
     fc_no_shift->setShiftMode(PotentialPairGauss::no_shift);
     fc_no_shift->setRcut(0, 0, Scalar(3.0));
-    shared_ptr<PotentialPairGauss> fc_shift = gauss_creator(sysdef_2, nlist_2);
+    boost::shared_ptr<PotentialPairGauss> fc_shift = gauss_creator(sysdef_2, nlist_2);
     fc_shift->setShiftMode(PotentialPairGauss::shift);
     fc_shift->setRcut(0, 0, Scalar(3.0));
 
@@ -445,19 +445,19 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     }
 
 //! LJForceCompute creator for unit tests
-shared_ptr<PotentialPairGauss> base_class_gauss_creator(shared_ptr<SystemDefinition> sysdef,
-                                                        shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairGauss> base_class_gauss_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                        boost::shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<PotentialPairGauss>(new PotentialPairGauss(sysdef, nlist));
+    return boost::shared_ptr<PotentialPairGauss>(new PotentialPairGauss(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! PotentialPairGaussGPU creator for unit tests
-shared_ptr<PotentialPairGaussGPU> gpu_gauss_creator(shared_ptr<SystemDefinition> sysdef,
-                                                    shared_ptr<NeighborList> nlist)
+boost::shared_ptr<PotentialPairGaussGPU> gpu_gauss_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                    boost::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairGaussGPU> gauss(new PotentialPairGaussGPU(sysdef, nlist));
+    boost::shared_ptr<PotentialPairGaussGPU> gauss(new PotentialPairGaussGPU(sysdef, nlist));
     return gauss;
     }
 #endif

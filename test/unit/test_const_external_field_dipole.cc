@@ -82,15 +82,15 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd ConstExternalFieldDipoleForceCompute factory
-typedef boost::function<shared_ptr<ConstExternalFieldDipoleForceCompute> (shared_ptr<SystemDefinition> sysdef,
+typedef boost::function<boost::shared_ptr<ConstExternalFieldDipoleForceCompute> (boost::shared_ptr<SystemDefinition> sysdef,
                                                         Scalar fx,Scalar fy, Scalar fz, Scalar p)> cefd_force_creator;
 
 //! Test the ability of the lj wall force compute to actually calculate forces
 void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3 particle test will check proper wall force computation among all 3 axes
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0,make_scalar3(0.0,1.2,0.0));
     pdata_3->setPosition(1,make_scalar3(12.2,-10.0,0.0));
@@ -103,7 +103,7 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     eulerToQuat(2*PI, 2*PI, 2*PI, h_orientation.data[2]); //dipole along z
     }
     // create the wall force compute with a default cutoff of 1.0 => all forces should be 0 for the first round
-    shared_ptr<ConstExternalFieldDipoleForceCompute> fc_3 = cefd_creator(sysdef_3, Scalar(0.0),Scalar(0.0),Scalar(0.0),Scalar(0.0));
+    boost::shared_ptr<ConstExternalFieldDipoleForceCompute> fc_3 = cefd_creator(sysdef_3, Scalar(0.0),Scalar(0.0),Scalar(0.0),Scalar(0.0));
 
     // pick some parameters
     Scalar field_x = 0.0;
@@ -209,9 +209,9 @@ void cefd_force_particle_test(cefd_force_creator cefd_creator, boost::shared_ptr
     }
 
 //! ConstExternalFieldDipoleForceCompute creator for unit tests
-shared_ptr<ConstExternalFieldDipoleForceCompute> base_class_cefd_creator(shared_ptr<SystemDefinition> sysdef,Scalar fx, Scalar fy, Scalar fz, Scalar p)
+boost::shared_ptr<ConstExternalFieldDipoleForceCompute> base_class_cefd_creator(boost::shared_ptr<SystemDefinition> sysdef,Scalar fx, Scalar fy, Scalar fz, Scalar p)
     {
-    return shared_ptr<ConstExternalFieldDipoleForceCompute>(new ConstExternalFieldDipoleForceCompute(sysdef, fx, fy, fz, p));
+    return boost::shared_ptr<ConstExternalFieldDipoleForceCompute>(new ConstExternalFieldDipoleForceCompute(sysdef, fx, fy, fz, p));
     }
 
 //! boost test case for particle test on CPU

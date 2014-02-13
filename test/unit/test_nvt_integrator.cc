@@ -1095,33 +1095,33 @@ double q_reference[]  = { 1.6 , 1.6000093706007106 , 1.6000373852098038 ,
 
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<TwoStepNVT> (shared_ptr<SystemDefinition> sysdef,
-                                                 shared_ptr<ParticleGroup> group,
-                                                 shared_ptr<ComputeThermo> thermo,
+typedef boost::function<boost::shared_ptr<TwoStepNVT> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                 boost::shared_ptr<ParticleGroup> group,
+                                                 boost::shared_ptr<ComputeThermo> thermo,
                                                  Scalar Q,
                                                  Scalar T)> twostepnvt_creator;
 
 //! NVTUpdater creator
-shared_ptr<TwoStepNVT> base_class_nvt_creator(shared_ptr<SystemDefinition> sysdef,
-                                              shared_ptr<ParticleGroup> group,
-                                              shared_ptr<ComputeThermo> thermo,
+boost::shared_ptr<TwoStepNVT> base_class_nvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                              boost::shared_ptr<ParticleGroup> group,
+                                              boost::shared_ptr<ComputeThermo> thermo,
                                               Scalar Q,
                                               Scalar T)
     {
-    shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return shared_ptr<TwoStepNVT>(new TwoStepNVT(sysdef, group, thermo, Q, T_variant));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(T));
+    return boost::shared_ptr<TwoStepNVT>(new TwoStepNVT(sysdef, group, thermo, Q, T_variant));
     }
 
 #ifdef ENABLE_CUDA
 //! NVTUpdaterGPU factory for the unit tests
-shared_ptr<TwoStepNVT> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef,
-                                       shared_ptr<ParticleGroup> group,
-                                       shared_ptr<ComputeThermo> thermo,
+boost::shared_ptr<TwoStepNVT> gpu_nvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                       boost::shared_ptr<ParticleGroup> group,
+                                       boost::shared_ptr<ComputeThermo> thermo,
                                        Scalar Q,
                                        Scalar T)
     {
-    shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return shared_ptr<TwoStepNVT>(new TwoStepNVTGPU(sysdef, group, thermo, Q, T_variant));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(T));
+    return boost::shared_ptr<TwoStepNVT>(new TwoStepNVTGPU(sysdef, group, thermo, Q, T_variant));
     }
 #endif
 
@@ -1131,10 +1131,10 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
     // check that the nvt updater can actually integrate particle positions and velocities correctly
     // start with a 1 particle system to keep things simple: also put everything in a huge box so boundary conditions
     // don't come into play
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
 
     // setup a simple initial state
@@ -1154,15 +1154,15 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
     Scalar Q = Scalar(2.0);
     Scalar T = Scalar(1.5/3.0);
     Scalar tau = sqrt(Q / (Scalar(3.0) * T));
-    shared_ptr<IntegratorTwoStep> nvt_up(new IntegratorTwoStep(sysdef, deltaT));
-    shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
-    shared_ptr<TwoStepNVT> two_step_nvt = nvt_creator(sysdef, group_all, thermo, tau, T);
+    boost::shared_ptr<IntegratorTwoStep> nvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
+    boost::shared_ptr<TwoStepNVT> two_step_nvt = nvt_creator(sysdef, group_all, thermo, tau, T);
     two_step_nvt->setXi(Scalar(1.0));
     nvt_up->addIntegrationMethod(two_step_nvt);
     thermo->setNDOF(3);
 
     // see what happens with a constant force
-    shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 0.0, 0.0, 0.75));
+    boost::shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 0.0, 0.0, 0.75));
     nvt_up->addForceCompute(fc1);
 
     nvt_up->prepRun(0);
@@ -1188,22 +1188,22 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     rand_init.setSeed(12345);
     snap = rand_init.getSnapshot();
 
-    shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
-    shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
-    shared_ptr<ParticleGroup> group_all1(new ParticleGroup(sysdef1, selector_all1));
+    boost::shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all1(new ParticleGroup(sysdef1, selector_all1));
 
-    shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
-    shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
-    shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
+    boost::shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
 
-    shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
-    shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
 
-    shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
+    boost::shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
     fc1->setRcut(0, 0, Scalar(3.0));
-    shared_ptr<PotentialPairLJ> fc2(new PotentialPairLJ(sysdef2, nlist2));
+    boost::shared_ptr<PotentialPairLJ> fc2(new PotentialPairLJ(sysdef2, nlist2));
     fc2->setRcut(0, 0, Scalar(3.0));
 
 
@@ -1218,16 +1218,16 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     fc1->setParams(0,0,make_scalar2(lj1,lj2));
     fc2->setParams(0,0,make_scalar2(lj1,lj2));
 
-    shared_ptr<IntegratorTwoStep> nvt1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));
-    shared_ptr<ComputeThermo> thermo1(new ComputeThermo(sysdef1, group_all1));
+    boost::shared_ptr<IntegratorTwoStep> nvt1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));
+    boost::shared_ptr<ComputeThermo> thermo1(new ComputeThermo(sysdef1, group_all1));
     thermo1->setNDOF(3*N-3);
-    shared_ptr<TwoStepNVT> two_step_nvt1 = nvt_creator1(sysdef1, group_all1, thermo1, Scalar(0.5), Scalar(1.2));
+    boost::shared_ptr<TwoStepNVT> two_step_nvt1 = nvt_creator1(sysdef1, group_all1, thermo1, Scalar(0.5), Scalar(1.2));
     nvt1->addIntegrationMethod(two_step_nvt1);
 
-    shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
-    shared_ptr<ComputeThermo> thermo2(new ComputeThermo(sysdef2, group_all2));
+    boost::shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
+    boost::shared_ptr<ComputeThermo> thermo2(new ComputeThermo(sysdef2, group_all2));
     thermo2->setNDOF(3*N-3);
-    shared_ptr<TwoStepNVT> two_step_nvt2 = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
+    boost::shared_ptr<TwoStepNVT> two_step_nvt2 = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
     nvt2->addIntegrationMethod(two_step_nvt2);
 
     nvt1->addForceCompute(fc1);

@@ -94,8 +94,8 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     int n_improper_types = 1;
 
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-    shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(n_atom, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types, exec_conf));
-    shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(n_atom, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types, exec_conf));
+    boost::shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
 
     // set recognizable values for the particle
     Scalar x0(1.1), y1(2.1234567890123456), z3(-5.76);
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     h_pos.data[1].w = __int_as_scalar(type1);
     }
 
-    shared_ptr<IntegratorData> idata = sysdef1->getIntegratorData();
+    boost::shared_ptr<IntegratorData> idata = sysdef1->getIntegratorData();
     // add some integrator states
     std::string name1 = "nvt", name2 = "langevin";
     Scalar var1(1.2), var2(0.1234), var3(1234324);
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     sysdef1->getImproperData()->addBondedGroup(Dihedral(0, 3, 2, 1, 0));
 
     // create the writer
-    shared_ptr<HOOMDBinaryDumpWriter> writer(new HOOMDBinaryDumpWriter(sysdef1, "test"));
+    boost::shared_ptr<HOOMDBinaryDumpWriter> writer(new HOOMDBinaryDumpWriter(sysdef1, "test"));
 
     remove_all("test.0000000000.bin");
     BOOST_REQUIRE(!exists("test.0000000000.bin"));
@@ -179,8 +179,8 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     HOOMDBinaryInitializer init(exec_conf, "test.0000000000.bin");
     boost::shared_ptr<SnapshotSystemData> snapshot;
     snapshot = init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snapshot, exec_conf));
-    shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snapshot, exec_conf));
+    boost::shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
 
     BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)0);
     BOOST_CHECK_EQUAL(pdata1->getN(), (unsigned int)n_atom);
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
 
     //
     // create the writer
-    shared_ptr<HOOMDBinaryDumpWriter> writer2(new HOOMDBinaryDumpWriter(sysdef1, "test"));
+    boost::shared_ptr<HOOMDBinaryDumpWriter> writer2(new HOOMDBinaryDumpWriter(sysdef1, "test"));
 
     remove_all("test.0000000010.bin");
     BOOST_REQUIRE(!exists("test.0000000010.bin"));
@@ -257,8 +257,8 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     HOOMDBinaryInitializer init3(exec_conf,"test.0000000010.bin");
     boost::shared_ptr<SnapshotSystemData> snapshot2;
     snapshot2 = init3.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(snapshot2, exec_conf));
-    shared_ptr<ParticleData> pdata3 = sysdef3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(snapshot2, exec_conf));
+    boost::shared_ptr<ParticleData> pdata3 = sysdef3->getParticleData();
 
     BOOST_CHECK_EQUAL(init3.getTimeStep(), (unsigned int)10);
 

@@ -95,8 +95,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     int n_dihedral_types = 1;
     int n_improper_types = 1;
 
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // set recognizable values for the particle
     {
@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     sysdef->getImproperData()->addBondedGroup(Dihedral(0, 3, 2, 1, 0));
 
     // create the writer
-    shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
+    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
 
     writer->setOutputPosition(false);
 
@@ -839,8 +839,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(100.5), Scalar(120.5), Scalar(130.5));
     int n_types = 10;
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, box, n_types));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, box, n_types));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // this is the shuffle order of the particles
     unsigned int tags[6] = { 5, 2, 3, 1, 0, 4 };
@@ -881,7 +881,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     }
 
     // create the writer
-    shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
+    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
 
     // write the file with all outputs enabled
     writer->setOutputPosition(true);
@@ -1175,8 +1175,8 @@ im_b 5 4 3 2\n\
     HOOMDInitializer init(exec_conf,"test_input.xml");
     boost::shared_ptr<SnapshotSystemData> snapshot;
     snapshot = init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // verify all parameters
     BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)150000000);

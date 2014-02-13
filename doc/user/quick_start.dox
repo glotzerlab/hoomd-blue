@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 So you have HOOMD-blue installed. <b>Now what!?</b> <br>
 Let's start with the classic MD simulation, the Lennard-Jones liquid. Place \em N particles randomly
 in a box and allow them to interact with the following potential between pairs of particles:
-\f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+\f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
                                 \left( \frac{\sigma}{r} \right)^{6} \right] \f]
 To configure HOOMD-blue to perform this simulation, a simple Python script must be written.
 \code
@@ -80,16 +80,16 @@ run(10e3)
 
 If you don't know Python, don't worry. You can learn everything about it that you need to know for HOOMD-blue scripts
 here. Of course if you do know Python (which is a full-fledged object oriented programming language:
-tutorials at http://www.python.org) then you could make use of its capabilities in setting up 
+tutorials at http://www.python.org) then you could make use of its capabilities in setting up
 complicated simulations.
 
 <hr>
 <h2>Running the example</h2>
 
-For now, copy and paste the above code into a file \em test.hoomd. Assuming you have installed HOOMD-blue, 
+For now, copy and paste the above code into a file \em test.hoomd. Assuming you have installed HOOMD-blue,
 you can run the simulation script from the command line:
 \code
-$ hoomd test.hoomd 
+$ hoomd test.hoomd
 \endcode
 And you should see output that looks something like this:
 \code
@@ -131,10 +131,10 @@ The first few lines of output are just a header notifying you which version of H
 it was compiled along with a link to the website and the reference to the paper discussing the algorithms
 used in HOOMD-blue.
 
-The simulation output starts at: 
+The simulation output starts at:
 \code test.hoomd:004  |  init.create_random(N=100, phi_p=0.01, name='A') \endcode
 Each hoomd_script command prints the file and line where it was run along with the entire text of the command.
-This can be potentially very useful in debugging problems, as it will allow you to hone in on the command in the 
+This can be potentially very useful in debugging problems, as it will allow you to hone in on the command in the
 script that is producing the error message.
 
 When a \link hoomd_script.run() run()\endlink command is executed, hoomd steps the simulation forward that many time
@@ -142,7 +142,7 @@ steps. While it is doing so, it periodically prints out status lines like the on
 \code
 Time 00:00:00 | Step 10000 / 10000 | TPS 41990.9 | ETA 00:00:00
 \endcode
- - \b Time is the total time spent (so far) in the current simulation in HH:MM:SS (totaled over multiple \link hoomd_script.run() run()\endlink commands) 
+ - \b Time is the total time spent (so far) in the current simulation in HH:MM:SS (totaled over multiple \link hoomd_script.run() run()\endlink commands)
  - <b>Step current / final</b> prints the \em current time step the simulation is at and the \em final time step of the \link hoomd_script.run() run()\endlink
  - \b TPS is the current rate (in <b>T</b>ime steps <b>P</b>er <b>S</b>econd) at which the simulation is progressing.
  - \b ETA is the estimated time to completion of the current \link hoomd_script.run() run()\endlink in HH:MM:SS
@@ -171,23 +171,23 @@ bins_min: 0 / bins_max: 6 / bins_avg: 1.5625
 Differently configured simulation scripts may print additional information here.
 
 <hr>
-<h2>Dissecting the script</h2>
+<h2>Line by line details</h2>
  -# The first line of every hoomd job script (except for comment lines starting with #) must be
 \code
 from hoomd_script import *
 \endcode
 This line takes the python code of hoomd_script, compiles it and loads it in so it can be used.
-hoomd_script contains the code for commands such as \link hoomd_script.init.create_random() init.create_random()\endlink which is why this line 
+hoomd_script contains the code for commands such as \link hoomd_script.init.create_random() init.create_random()\endlink which is why this line
 must be first.<br><br>
  -# After hoomd_script has been imported, the system must be initialized before any other command can be executed. In this example,
  we create a 100 random particles named \b A.
 \code
 init.create_random(N=100, phi_p=0.01, name='A')
 \endcode
- Here is a good point to call attention to one of HOOMD-blue's nifty features. You can name a particle type <b>anything you want</b>. 
- If you want to name a particular particle type 'My ridiculously long particle type name', be my guest. hoomd doesn't care one 
+ Here is a good point to call attention to one of HOOMD-blue's nifty features. You can name a particle type <b>anything you want</b>.
+ If you want to name a particular particle type 'My ridiculously long particle type name', be my guest. hoomd doesn't care one
  way or another as it just stores the string you give it. Just be warned that some software packages only handle names up
- to a certain length, so some information may be lost when they load mol2 (\link hoomd_script.dump.mol2 dump.mol2\endlink) 
+ to a certain length, so some information may be lost when they load mol2 (\link hoomd_script.dump.mol2 dump.mol2\endlink)
  or xml (\link hoomd_script.dump.xml dump.xml\endlink) files written by HOOMD-blue.<br>
  Documentation for \link hoomd_script.init.create_random init.create_random\endlink<br><br>
  -# The next line specifies the pair force between particle pairs in the simulation. In the example, we create a Lennard-Jones
@@ -199,13 +199,13 @@ lj = pair.lj(r_cut=3.0)
  next line of the script). In HOOMD-blue, any number of forces can be specified, even zero if that is what you need
  (use a separate line and variable name for each one). All specified forces are added together during the simulation.<br>
  Documentation for \link hoomd_script.pair.lj pair.lj\endlink<br><br>
- -# The parameters of the force must also be specified before the simulation is \link hoomd_script.run() run()\endlink (you will get 
+ -# The parameters of the force must also be specified before the simulation is \link hoomd_script.run() run()\endlink (you will get
      an error if you forget). The next line sets the parameters \a epsilon and \a sigma for the Lennard-Jones force
      between particles of types A and A.
 \code
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 \endcode
-    The example script only has a single particle type in the simulation so one line is sufficient. In more complicated 
+    The example script only has a single particle type in the simulation so one line is sufficient. In more complicated
     simulations with more than one particle type every unique pair must be specified (i.e. 'A','A', 'A','B', and 'B',B').
     Use one line like that above for each pair, or specify a list of types to assign the given parameters
     (see \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink for examples).<br><br>
@@ -236,9 +236,9 @@ run(10e3)
     off a certain force or change integrators and then continue, you can do that. Just execute the commands to make the changes after the first
     run and before the second.<br>
     Documentation for \link hoomd_script.run() run()\endlink
-    
-<hr>    
-<h2>The anatomy of a %hoomd_script command</h2>
+
+<hr>
+<h2>Components of a %hoomd_script command</h2>
 
 The init line is as good an example as any.
 \code
@@ -252,28 +252,28 @@ Parts of the command
  - <b>N=100, phi_p=0.01, name='A'</b> - Arguments (more on these below)
  - \b ) - Python required syntax to note the end of an argument list
  - \<enter\> - Python required syntax to execute the command
- 
+
 About the arguments<br>
 Multiple arguments of the form \c name=value are separated by commas. Whitespace is ignored
 so \c name \c = \c value works too. The order of arguments doesn't matter (as long as
 you specify them by name). I.e. all of the following are identical:
-\code 
+\code
 init.create_random(N=100, name='A', phi_p=0.01)
 init.create_random(phi_p = 0.01, N = 100, name = 'A')
 init.create_random(phi_p=0.01, name='A', N=100)
 \endcode
 
 Check the documentation for a specific command to see what the arguments are and what they mean (i.e.
-see \link hoomd_script.init.create_random init.create_random\endlink). Here 
+see \link hoomd_script.init.create_random init.create_random\endlink). Here
 is a copy of the documentation for init.create_random:
 \code
-init.create_random      
+init.create_random
     (         N,
               phi_p,
               name = "A",
               min_dist = 1.0
     )
-    
+
 Parameters:
         N     Number of particles to create
         phi_p     Packing fraction of particles in the simulation box
@@ -282,7 +282,7 @@ Parameters:
 \endcode
 
 First of all, notice in the header for the command that some arguments are listed with an = sign, like \c name="A". This means
-that argument has a default value associated with it. If you are happy with the default value, you don't need to specify that 
+that argument has a default value associated with it. If you are happy with the default value, you don't need to specify that
 argument in the list. In our example, we have always been setting \c name='A' anyways so using
 \code
 init.create_random(N=100, phi_p=0.01)
@@ -290,10 +290,10 @@ init.create_random(N=100, phi_p=0.01)
 is identical.
 
 Those arguments that are listed without the = sign (N, phi_P here) have no default value and \b must be specified. Python
-will give you an error if you don't. 
+will give you an error if you don't.
 
-init.create_random() doesn't have any optional arguments, but some commands do. Optional arguments will be labeled as 
-such and have a default value of \c None. The documentation for any optional arguments will clearly indicate what 
+init.create_random() doesn't have any optional arguments, but some commands do. Optional arguments will be labeled as
+such and have a default value of \c None. The documentation for any optional arguments will clearly indicate what
 occurs when you do or do not specify it in the argument list.
 
 <hr>

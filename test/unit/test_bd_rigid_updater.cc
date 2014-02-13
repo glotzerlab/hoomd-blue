@@ -121,8 +121,8 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
     unsigned int N = nbodies * nparticlesperbuildingblock;
     Scalar box_length = 24.0814;
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), natomtypes, nbondtypes, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), natomtypes, nbondtypes, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     BoxDim box = pdata->getBox();
     Scalar3 lo = box.getLo();
@@ -229,22 +229,22 @@ void bd_updater_lj_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
     }
 
-    shared_ptr<RigidData> rdata = sysdef->getRigidData();
+    boost::shared_ptr<RigidData> rdata = sysdef->getRigidData();
     // Initialize rigid bodies
     rdata->initializeData();
 
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     Scalar deltaT = Scalar(0.005);
     boost::shared_ptr<Variant> T_variant(new VariantConst(temperature));
-    shared_ptr<TwoStepBDNVTRigid> two_step_bdnvt = shared_ptr<TwoStepBDNVTRigid>(new BDRigid(sysdef, group_all, T_variant, 453034, false));
+    boost::shared_ptr<TwoStepBDNVTRigid> two_step_bdnvt = boost::shared_ptr<TwoStepBDNVTRigid>(new BDRigid(sysdef, group_all, T_variant, 453034, false));
 
-    shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
-    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
-    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
+    boost::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(1.122));
     fc->setRcut(0, 1, Scalar(1.122));
     fc->setRcut(1, 1, Scalar(1.122));

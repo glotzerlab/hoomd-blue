@@ -29,7 +29,6 @@ file(GLOB_RECURSE _source_files
                   ${HOOMD_SOURCE_DIR}/libhoomd/*.cu)
 
 file(GLOB_RECURSE _dev_doc_sources
-                    ${CMAKE_CURRENT_SOURCE_DIR}/user/*.doc
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.dox
                     ${CMAKE_CURRENT_SOURCE_DIR}/dev/*.doc
                     ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_dev.in)
@@ -74,12 +73,12 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in ${CMAKE_CURRENT_BIN
 
 set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.dox
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/quick_start.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/quick_start.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/examples.dox
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/index.doc
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.doc
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.doc
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/index.dox
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.dox
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.dox
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_ubuntu.dox
@@ -87,20 +86,21 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_fedora.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_opensuse.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.dox
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/license.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/citing.dox
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/stylesheet.css
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/header.html
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/footer.html
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.doc
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/triclinic.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.dox
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/box.dox
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/autotuner.dox
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/concepts.dox
                         )
 
 add_custom_command (OUTPUT ${DOXYGEN_USER_DOC_HTML_DIR}/index.html
                     COMMAND ${DOXYGEN} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_user
                     DEPENDS ${_module_files}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/user/*.doc
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.dox
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.html
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.css

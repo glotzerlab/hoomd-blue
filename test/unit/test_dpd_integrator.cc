@@ -92,10 +92,10 @@ using namespace boost;
 template <class PP_DPD>
 void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(50.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(50.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     // setup a simple initial system
     pdata->setPosition(0,make_scalar3(0.0,0.0,0.0));
@@ -104,9 +104,9 @@ void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_
     pdata->setVelocity(1,make_scalar3(0.0,0.0,0.0));
 
     // Construction of the Force Compute
-    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairDPD> dpdc(new PP_DPD(sysdef,nlist));
+    boost::shared_ptr<PotentialPairDPD> dpdc(new PP_DPD(sysdef,nlist));
     dpdc->setParams(0,0,make_scalar2(30,0));
     dpdc->setRcut(0, 0, Scalar(2.0));
 
@@ -138,10 +138,10 @@ BOOST_AUTO_TEST_CASE( DPD_GPU_ForceConservative_Test )
 template <class PP_DPD>
 void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(5.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(5.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     // setup a simple initial dense state
     for (int j = 0; j < 1000; j++)
@@ -154,23 +154,23 @@ void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
     Scalar deltaT = Scalar(0.02);
     Scalar Temp = Scalar(2.0);
-    shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+    boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
 
     cout << endl << "Test 1" << endl;
     cout << "Creating an dpd gas of 1000 particles" << endl;
     cout << "Temperature set at " << Temp << endl;
 
-    shared_ptr<TwoStepNVE> two_step_nve(new TwoStepNVE(sysdef,group_all));
-    shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
+    boost::shared_ptr<TwoStepNVE> two_step_nve(new TwoStepNVE(sysdef,group_all));
+    boost::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(3*1000);
-    shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
+    boost::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nve);
 
 
     // Construction of the Force Compute
-    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.0), Scalar(0.8)));
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairDPDThermoDPD> dpd_thermo(new PP_DPD(sysdef,nlist));
+    boost::shared_ptr<PotentialPairDPDThermoDPD> dpd_thermo(new PP_DPD(sysdef,nlist));
     dpd_thermo->setSeed(12345);
     dpd_thermo->setT(T_variant);
     dpd_thermo->setParams(0,0,make_scalar2(30,4.5));

@@ -81,21 +81,21 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<BondTablePotential>  (shared_ptr<SystemDefinition> sysdef, unsigned int width)> bondforce_creator;
+typedef boost::function<boost::shared_ptr<BondTablePotential>  (boost::shared_ptr<SystemDefinition> sysdef, unsigned int width)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondTableForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(1.0,0.0,0.0));
 
     // create the bond force compute to check
-    shared_ptr<BondTablePotential> fc_2 = bf_creator(sysdef_2,3);
+    boost::shared_ptr<BondTablePotential> fc_2 = bf_creator(sysdef_2,3);
 
 
 
@@ -203,8 +203,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
 void bond_force_type_test(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // start with the simplest possible test: 3 particles in a huge box with two bond types
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(3, BoxDim(1000.0), 1, 2, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(3, BoxDim(1000.0), 1, 2, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     {
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
@@ -213,7 +213,7 @@ void bond_force_type_test(bondforce_creator bf_creator, boost::shared_ptr<Execut
     }
 
     // create the bond force compute to check
-    shared_ptr<BondTablePotential> fc_2 = bf_creator(sysdef_2,3);
+    boost::shared_ptr<BondTablePotential> fc_2 = bf_creator(sysdef_2,3);
 
     // specify a table to interpolate
     vector<Scalar> V, F;
@@ -275,16 +275,16 @@ void bond_force_type_test(bondforce_creator bf_creator, boost::shared_ptr<Execut
 
 
 //! BondTablePotential creator for bond_force_basic_tests()
-shared_ptr<BondTablePotential> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef, unsigned int width)
+boost::shared_ptr<BondTablePotential> base_class_bf_creator(boost::shared_ptr<SystemDefinition> sysdef, unsigned int width)
     {
-    return shared_ptr<BondTablePotential>(new BondTablePotential(sysdef, width));
+    return boost::shared_ptr<BondTablePotential>(new BondTablePotential(sysdef, width));
     }
 
 #ifdef ENABLE_CUDA
 //! BondTablePotential creator for bond_force_basic_tests()
-shared_ptr<BondTablePotential> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef, unsigned int width)
+boost::shared_ptr<BondTablePotential> gpu_bf_creator(boost::shared_ptr<SystemDefinition> sysdef, unsigned int width)
     {
-    return shared_ptr<BondTablePotential>(new BondTablePotentialGPU(sysdef, width));
+    return boost::shared_ptr<BondTablePotential>(new BondTablePotentialGPU(sysdef, width));
     }
 #endif
 

@@ -741,8 +741,8 @@ INPUT                  = "${HOOMD_SOURCE_DIR}/libhoomd" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_opensuse.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_ubuntu.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.dox" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.dox" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/license.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/dev/DeveloperInfo.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/dev/Groups.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/dev/MainPage.doc" \

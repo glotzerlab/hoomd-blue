@@ -1,0 +1,262 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*! \page page_command_line_options Command line options
+
+## Overview
+
+Usage: **hoomd** script.py [options]
+
+### Options
+
+- **no options given**
+
+    hoomd will automatically detect the fastest GPU and run on it, or fall back on the CPU if no GPU is found.
+
+- <b>-h, --help</b>
+
+    print a description of all the command line options
+
+- <b>--mode</b>={\a cpu | \a gpu}
+
+    force hoomd to run either on the \a cpu or \a gpu
+
+- <b>--gpu</b>=#
+
+    specify the GPU id that hoomd will use. Implies --mode=gpu.
+
+- <b>--ignore-display-gpu</b>
+
+    prevent hoomd from using any GPU that is attached to a display
+
+- <b>--minimize-cpu-usage</b>
+
+    minimize the CPU usage of hoomd when it runs on a GPU at reduced performance
+
+- <b>--gpu_error_checking</b>
+
+    enable error checks after every GPU kernel call
+
+- <b>--notice-level</b>=#
+
+    specifies the level of notice messages to print
+
+- <b>--msg-file=filename</b>
+
+    specifies a file to write messages (the file is overwritten)
+
+- <b>--user</b>
+
+    user options
+
+- *MPI only options*
+    - <b>--nx</b>
+
+        Number of domains along the x-direction
+
+    - <b>--ny</b>
+
+        Number of domains along the y-direction
+
+    - <b>--nz</b>
+
+        Number of domains along the z-direction
+
+    - <b>--linear</b>
+
+        Force a slab (1D) decomposition along the z-direction
+
+    - <b>--nrank</b>
+
+        Number of ranks per partition
+
+    - <b>--shared-msg-file</b>=prefix
+
+        specifies the prefix of files to write per-partition output to (filename: *prefix.\<partition_id\>*)
+
+## Detailed description
+
+### Control hoomd execution
+
+HOOMD-blue can run on the CPU or the GPU.  To control which,
+set the `--mode` option on the script command line. Valid settings are `cpu`
+and `gpu`.
+~~~
+hoomd script.py --mode=cpu
+~~~
+When `--mode` is set to `gpu` and no other options are specified, hoomd will
+choose a GPU automatically. It will prioritize the GPU choice based on speed and
+whether it is attached to a display. Unless you take steps to configure your system
+(see below), then running a second instance of HOOMD-blue will place it on the same GPU
+as the first. HOOMD-blue will run correctly with more than one simulation on a GPU as
+long as there is enough memory, but at reduced performance.
+
+You can select the GPU on which to run using the `--gpu` command line option.
+~~~
+hoomd script.py --gpu=1
+~~~
+Note that specifying `--gpu` implies `--mode=gpu`. To find out which id
+is assigned to each GPU in your system, download the CUDA SDK for your system
+from http://www.nvidia.com/object/cuda_get.html and run the `deviceQuery` sample.
+
+If you run a script without any options
+~~~
+hoomd script.py
+~~~
+hoomd first checks if there are any GPUs in the system. If it finds one or more,
+it makes the same automatic choice described previously. If none are found, it runs on the CPU.
+
+### Multi-GPU (and multi-CPU) execution
+
+HOOMD-blue uses MPI domain decomposition for parallel execution. Execute hoomd with `mpirun`, `mpiexec`, or whatever the
+appropriate launcher is on your system. For more information, see \ref page_mpi.
+~~~
+mpirun -n 8 hoomd script.py
+~~~
+
+All command line options apply to MPI execution in the same way as single process runs.
+
+### Automatic free GPU selection
+
+You can configure your system for HOOMD-blue to choose free GPUs automatically when each instance is run. To utilize this
+capability, the system administrator (root) must first use the `nvidia-smi` utility to enable
+the compute-exclusive mode on all GPUs in the system. With this mode enabled, running hoomd with no options or with the
+`--mode=gpu` option will result in an automatic choice of the first free GPU from the prioritized list.
+
+The compute-exclusive mode allows *only* a **single CUDA application** to run on each GPU. If you have
+4 compute-exclusive GPUs available in the system, executing a fifth instance of hoomd with `hoomd script.py`
+will result in the error: `***Error! no CUDA-capable device is available`.
+
+### Minimize the CPU usage of HOOMD-blue
+
+When hoomd is running on a GPU, it uses 100% of one CPU core by default. This CPU usage can be
+decreased significantly by specifying the `--minimize-cpu-usage` command line option:
+~~~
+hoomd script.py --minimize-cpu-usage
+~~~
+Enabling this option incurs a 10% overall performance reduction, but the CPU usage of hoomd is reduced to only
+10% of a single CPU core.
+
+### Prevent HOOMD-blue from running on the display GPU
+
+Running hoomd on the display GPU works just fine, but it does moderately slow the simulation and causes the display
+to lag. If you wish to prevent hoomd from running on the display, add the `--ignore-display-gpu` command line flag:
+~~~
+hoomd script.py --ignore-display-gpu
+~~~
+
+### Enable error checking onthe GPU
+
+Detailed error checking is off by default to enable the best performance. If you have trouble
+that appears to be caused by the failure of a calculation to run on the GPU, you
+should run with GPU error checking enabled to check for any errors returned by the GPU.
+
+To do this, run the script with the ``--gpu_error_checking`` command line option:
+~~~~
+hoomd script.py --gpu_error_checking
+~~~~
+
+### Control message output
+
+You can adjust the level of messages written to `stdout` by a running hoomd script.
+Set the notice level to a high value to help debug where problems occur. Or set it to a low number to suppress messages.
+Set it to 0 to remove all notices (warnings and errors are still output).
+~~~
+hoomd script.py --notice-level=10
+~~~
+
+All messages (notices, warnings, and errors) can be redirected to a file. The file is overwritten.
+~~~
+hoomd script.py --msg-file=messages.out
+~~~
+
+In MPI simulations, messages can be aggregated per partition. To write output for
+partition 0,1,.. in files `messages.0`, `messages.1`, etc., use
+~~~
+mpirun hoomd script.py --shared-msg-file=messages
+~~~
+
+### Set the MPI domain decomposition
+
+When no MPI options are specified, HOOMD uses a minimum surface area selection of the domain decomposition strategy.
+~~~
+mpirun -n 8 hoomd script.py
+# 2x2x2 domain
+~~~
+
+The linear option forces HOOMD-blue to use a 1D slab domain decomposition, which may be faster than a 3D decomposition when running jobs on a single node.
+~~~
+mpirun -n 4 hoomd script.py --linear
+# 1x1x4 domain
+~~~
+
+You can also override the automatic choices completely.
+~~~
+mpirun -n 4 hoomd script.py --nx=1 --ny=2 --nz=2
+# 1x2x2 domain
+~~~
+
+You can group multiple MPI ranks into partitions, to simulate independent replicas.
+~~~
+mpirun -n 12 hoomd script.py --nrank=3
+~~~
+This sub-divides the total of 12 MPI ranks into four independent partitions, with
+to which 3 GPUs each are assigned.
+
+### User options
+
+User defined options may be passed to a job script via `--user` and retrieved by calling `option.get_user()`. For example,
+if hoomd is executed with
+~~~~
+hoomd script.py --gpu=2 --ignore-display-gpu --user="--N=5 --rho=0.5"
+~~~~
+then option.get_user() will return ['--N=5', '--rho=0.5'], which is a format suitable for processing by standard
+tools such as optparse.
+*/

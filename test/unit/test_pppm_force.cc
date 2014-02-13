@@ -89,9 +89,9 @@ using namespace boost::python;
 
 //! Typedef'd PPPMForceCompute factory
 
-typedef boost::function<shared_ptr<PPPMForceCompute> (shared_ptr<SystemDefinition> sysdef,
-                                                      shared_ptr<NeighborList> nlist,
-                                                      shared_ptr<ParticleGroup> group)> pppmforce_creator;
+typedef boost::function<boost::shared_ptr<PPPMForceCompute> (boost::shared_ptr<SystemDefinition> sysdef,
+                                                      boost::shared_ptr<NeighborList> nlist,
+                                                      boost::shared_ptr<ParticleGroup> group)> pppmforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces
 void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -101,13 +101,13 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
     // but instead taken from a known working implementation of the PPPM method
     // The box lengths and grid points are different in each direction
 
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(6.0, 10.0, 14.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(6.0, 10.0, 14.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
-    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.0), Scalar(1.0)));
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
+    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.0), Scalar(1.0)));
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
@@ -120,7 +120,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, boost::shared_ptr<
 
     }
 
-    shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
+    boost::shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
 
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
@@ -172,13 +172,13 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
 
     // set up triclinic box
     Scalar tilt(0.5);
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(10.0,tilt,tilt,tilt), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(10.0,tilt,tilt,tilt), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
-    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.0), Scalar(1.0)));
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
+    boost::shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(1.0), Scalar(1.0)));
+    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
+    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
@@ -191,7 +191,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
 
     }
 
-    shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
+    boost::shared_ptr<PPPMForceCompute> fc_2 = pppm_creator(sysdef_2, nlist_2, group_all);
 
 
     int Nx = 128;
@@ -237,21 +237,21 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, boost::s
 
 
 //! PPPMForceCompute creator for unit tests
-shared_ptr<PPPMForceCompute> base_class_pppm_creator(shared_ptr<SystemDefinition> sysdef,
-                                                     shared_ptr<NeighborList> nlist,
-                                                     shared_ptr<ParticleGroup> group)
+boost::shared_ptr<PPPMForceCompute> base_class_pppm_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                                     boost::shared_ptr<NeighborList> nlist,
+                                                     boost::shared_ptr<ParticleGroup> group)
     {
-    return shared_ptr<PPPMForceCompute>(new PPPMForceCompute(sysdef, nlist, group));
+    return boost::shared_ptr<PPPMForceCompute>(new PPPMForceCompute(sysdef, nlist, group));
     }
 
 #ifdef ENABLE_CUDA
 //! PPPMForceComputeGPU creator for unit tests
-shared_ptr<PPPMForceCompute> gpu_pppm_creator(shared_ptr<SystemDefinition> sysdef,
-                                              shared_ptr<NeighborList> nlist,
-                                              shared_ptr<ParticleGroup> group)
+boost::shared_ptr<PPPMForceCompute> gpu_pppm_creator(boost::shared_ptr<SystemDefinition> sysdef,
+                                              boost::shared_ptr<NeighborList> nlist,
+                                              boost::shared_ptr<ParticleGroup> group)
     {
     nlist->setStorageMode(NeighborList::full);
-    return shared_ptr<PPPMForceComputeGPU> (new PPPMForceComputeGPU(sysdef, nlist, group));
+    return boost::shared_ptr<PPPMForceComputeGPU> (new PPPMForceComputeGPU(sysdef, nlist, group));
     }
 #endif
 

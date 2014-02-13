@@ -74,13 +74,13 @@ Carolyn Phillips, University of Michigan
  - bond.fene
  - pair.slj
  - Initial testing and debugging of HOOMD on Mac OS X systems
- 
+
 Aaron Keys, University of Michigan
   - update.enforce2d and other updates enabling to 2D simulations
   - hoomd c++ compilation helper script
   - binary restart files
   - integrate.mode_minimize_fire
-  
+
 Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple University
   - pair.cgcmm
   - angle.harmonic
@@ -146,7 +146,7 @@ Trung Dac Nguyen
 Ryan Marson
  - unwrap_rigid option to dump.dcd
 
-While not having contributed a significant amount of code to HOOMD-blue, David Tarjan at the University of Virginia is 
+While not having contributed a significant amount of code to HOOMD-blue, David Tarjan at the University of Virginia is
 responsible for numerous performance tweaks to the neighbor list and pair force code.
 
 <hr>
@@ -181,7 +181,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -198,38 +198,38 @@ THE POSSIBILITY OF SUCH DAMAGE.
 <b>Molfile plugin code</b> from VMD is used for generic file format reading and writing - Used under the UIUC Open Source License<br>
 \verbatim
 University of Illinois Open Source License
-Copyright 2006 Theoretical and Computational Biophysics Group, 
+Copyright 2006 Theoretical and Computational Biophysics Group,
 All rights reserved.
 
-Developed by:		Theoretical and Computational Biophysics Group
-			University of Illinois at Urbana-Champaign
-			http://www.ks.uiuc.edu/
+Developed by: Theoretical and Computational Biophysics Group
+              University of Illinois at Urbana-Champaign
+              http://www.ks.uiuc.edu/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the Software), to deal with 
-the Software without restriction, including without limitation the rights to 
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
-of the Software, and to permit persons to whom the Software is furnished to 
+this software and associated documentation files (the Software), to deal with
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to
 do so, subject to the following conditions:
 
-Redistributions of source code must retain the above copyright notice, 
+Redistributions of source code must retain the above copyright notice,
 this list of conditions and the following disclaimers.
 
-Redistributions in binary form must reproduce the above copyright notice, 
-this list of conditions and the following disclaimers in the documentation 
+Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimers in the documentation
 and/or other materials provided with the distribution.
 
-Neither the names of Theoretical and Computational Biophysics Group, 
-University of Illinois at Urbana-Champaign, nor the names of its contributors 
-may be used to endorse or promote products derived from this Software without 
+Neither the names of Theoretical and Computational Biophysics Group,
+University of Illinois at Urbana-Champaign, nor the names of its contributors
+may be used to endorse or promote products derived from this Software without
 specific prior written permission.
 
-THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
-THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS WITH THE SOFTWARE.
 \endverbatim
 <hr>
@@ -301,34 +301,34 @@ Some <b>CUDA API headers</b> are included in the HOOMD-blue source code for code
 \verbatim
 Copyright 1993-2008 NVIDIA Corporation.  All rights reserved.
 
-NOTICE TO USER:   
+NOTICE TO USER:
 
-This source code is subject to NVIDIA ownership rights under U.S. and 
-international Copyright laws.  Users and possessors of this source code 
-are hereby granted a nonexclusive, royalty-free license to use this code 
+This source code is subject to NVIDIA ownership rights under U.S. and
+international Copyright laws.  Users and possessors of this source code
+are hereby granted a nonexclusive, royalty-free license to use this code
 in individual and commercial software.
 
-NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOURCE 
-CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR 
-IMPLIED WARRANTY OF ANY KIND.  NVIDIA DISCLAIMS ALL WARRANTIES WITH 
-REGARD TO THIS SOURCE CODE, INCLUDING ALL IMPLIED WARRANTIES OF 
+NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOURCE
+CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR
+IMPLIED WARRANTY OF ANY KIND.  NVIDIA DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOURCE CODE, INCLUDING ALL IMPLIED WARRANTIES OF
 MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
-IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL, 
-OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS 
-OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
-OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE 
-OR PERFORMANCE OF THIS SOURCE CODE.  
+IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL,
+OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE
+OR PERFORMANCE OF THIS SOURCE CODE.
 
-U.S. Government End Users.   This source code is a "commercial item" as 
-that term is defined at  48 C.F.R. 2.101 (OCT 1995), consisting  of 
-"commercial computer  software"  and "commercial computer software 
-documentation" as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995) 
-and is provided to the U.S. Government only as a commercial end item.  
-Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through 
-227.7202-4 (JUNE 1995), all U.S. Government End Users acquire the 
-source code with only those rights set forth herein. 
+U.S. Government End Users.   This source code is a "commercial item" as
+that term is defined at  48 C.F.R. 2.101 (OCT 1995), consisting  of
+"commercial computer  software"  and "commercial computer software
+documentation" as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995)
+and is provided to the U.S. Government only as a commercial end item.
+Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through
+227.7202-4 (JUNE 1995), all U.S. Government End Users acquire the
+source code with only those rights set forth herein.
 
-Any use of this source code in individual and commercial software must 
+Any use of this source code in individual and commercial software must
 include, in the user documentation and internal comments to the code,
 the above Disclaimer and U.S. Government End Users Notice.
 \endverbatim
@@ -379,5 +379,3 @@ HOOMD-blue links to the following libraries, possibly statically or dynamically 
 
 <hr>
 */
-
-

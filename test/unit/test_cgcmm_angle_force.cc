@@ -77,22 +77,22 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<CGCMMAngleForceCompute>  (shared_ptr<SystemDefinition> sysdef)> cgcmm_angleforce_creator;
+typedef boost::function<boost::shared_ptr<CGCMMAngleForceCompute>  (boost::shared_ptr<SystemDefinition> sysdef)> cgcmm_angleforce_creator;
 
 //! Perform some simple functionality tests of any AngleForceCompute
 void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box with only one angle type !!!! NO ANGLES
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0,  exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0,  exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0,make_scalar3(-1.23,2.0,0.1)); // put atom a at (-1,0,0.1)
     pdata_3->setPosition(1,make_scalar3(1.0,1.0,1.0)); // put atom b at (0,0,0)
     pdata_3->setPosition(2,make_scalar3(1.0,0.0,0.5)); // put atom c at (1,0,0.5)
 
     // create the angle force compute to check
-    shared_ptr<CGCMMAngleForceCompute> fc_3 = af_creator(sysdef_3);
+    boost::shared_ptr<CGCMMAngleForceCompute> fc_3 = af_creator(sysdef_3);
     fc_3->setParams(0, 1.0, 0.785398, 1, 1.0, 2.0); // type=0, K=1.0,theta_0=pi/4=0.785398, cg_type=1, eps=2.0, sigma=1.0
 
     // compute the force and check the results
@@ -184,8 +184,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     // build a 6 particle system with particles across each boundary
     // also test more than one type of angle
     unsigned int num_angles_to_test = 2;
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     pdata_6->setPosition(0,make_scalar3(-9.6, 0.0, 0.0));
     pdata_6->setPosition(1,make_scalar3( 9.6, 0.0, 0.0));
@@ -194,7 +194,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     pdata_6->setPosition(4,make_scalar3( 0.0, 0.0, -29.6));
     pdata_6->setPosition(5,make_scalar3( 0.0, 0.0,  29.6));
 
-    shared_ptr<CGCMMAngleForceCompute> fc_6 = af_creator(sysdef_6);
+    boost::shared_ptr<CGCMMAngleForceCompute> fc_6 = af_creator(sysdef_6);
     fc_6->setParams(0, 1.0, 0.785398, 1, 1.0, 2.0);
     fc_6->setParams(1, 2.0, 1.46, 2, 1.0, 2.0);
 
@@ -266,8 +266,8 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
-    shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 3, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 3, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
     // make a square of particles
     {
@@ -290,7 +290,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
     }
 
     // build the angle force compute and try it out
-    shared_ptr<CGCMMAngleForceCompute> fc_4 = af_creator(sysdef_4);
+    boost::shared_ptr<CGCMMAngleForceCompute> fc_4 = af_creator(sysdef_4);
 //  fc_4->setParams(0, 1.5, 1.75, 2, 1.0, 2.0);
     fc_4->setParams(0, 1.0, 0.785398, 1, 1.0, 0.45);
     fc_4->setParams(1, 12.3, 0.21112, 2, 1.0, 0.45);
@@ -358,10 +358,10 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
     snap->angle_data.type_mapping.push_back("A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
-    shared_ptr<CGCMMAngleForceCompute> fc1 = af_creator1(sysdef);
-    shared_ptr<CGCMMAngleForceCompute> fc2 = af_creator2(sysdef);
+    boost::shared_ptr<CGCMMAngleForceCompute> fc1 = af_creator1(sysdef);
+    boost::shared_ptr<CGCMMAngleForceCompute> fc2 = af_creator2(sysdef);
     fc1->setParams(0, Scalar(1.0), Scalar(1.348), 1, Scalar(1.0), Scalar(0.05));
     fc2->setParams(0, Scalar(1.0), Scalar(1.348), 1, Scalar(1.0), Scalar(0.05));
 
@@ -408,16 +408,16 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
 
 
 //! CGCMMAngleForceCompute creator for angle_force_basic_tests()
-shared_ptr<CGCMMAngleForceCompute> base_class_af_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<CGCMMAngleForceCompute> base_class_af_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<CGCMMAngleForceCompute>(new CGCMMAngleForceCompute(sysdef));
+    return boost::shared_ptr<CGCMMAngleForceCompute>(new CGCMMAngleForceCompute(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! AngleForceCompute creator for angle_force_basic_tests()
-shared_ptr<CGCMMAngleForceCompute> gpu_af_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<CGCMMAngleForceCompute> gpu_af_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<CGCMMAngleForceCompute>(new CGCMMAngleForceComputeGPU(sysdef));
+    return boost::shared_ptr<CGCMMAngleForceCompute>(new CGCMMAngleForceComputeGPU(sysdef));
     }
 #endif
 

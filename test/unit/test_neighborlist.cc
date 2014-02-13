@@ -83,8 +83,8 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::readwrite);
@@ -94,7 +94,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     }
 
     // test construction of the neighborlist
-    shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 3.0, 0.25));
+    boost::shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 3.0, 0.25));
     nlist_2->compute(1);
 
     // with the given radius, there should be no neighbors: check that
@@ -143,8 +143,8 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
 
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_6->getPositions(), access_location::host, access_mode::readwrite);
@@ -157,7 +157,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  Scalar(29.6);
     }
 
-    shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->compute(0);
     // verify the neighbor list
@@ -255,8 +255,8 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
 template <class NL>
 void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     // lets make this test simple: put all 6 particles on top of each other and
     // see if the exclusion code can ignore 4 of the particles
@@ -271,7 +271,7 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  0;
     }
 
-    shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setStorageMode(NeighborList::full);
     nlist_6->addExclusion(0,1);
     nlist_6->addExclusion(0,2);
@@ -325,8 +325,8 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
 template <class NL>
 void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
     // lets make this test simple: put all 6 particles on top of each other and
     // see if the exclusion code can ignore 4 of the particles
@@ -345,7 +345,7 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
     // this test uses rigid bodies, initialize them
     sysdef_6->getRigidData()->initializeData();
 
-    shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
     nlist_6->setFilterBody(true);
     nlist_6->setStorageMode(NeighborList::full);
 
@@ -402,8 +402,8 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(4, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
@@ -416,7 +416,7 @@ void neighborlist_diameter_filter_tests(boost::shared_ptr<ExecutionConfiguration
     }
 
     // test construction of the neighborlist
-    shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
+    boost::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
     nlist_2->compute(1);
     nlist_2->setStorageMode(NeighborList::full);
 
@@ -504,13 +504,13 @@ void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec
     // construct the particle system
     RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap = init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    shared_ptr<NeighborList> nlist1(new NLA(sysdef, Scalar(3.0), Scalar(0.4)));
+    boost::shared_ptr<NeighborList> nlist1(new NLA(sysdef, Scalar(3.0), Scalar(0.4)));
     nlist1->setStorageMode(NeighborList::full);
 
-    shared_ptr<NeighborList> nlist2(new NLB(sysdef, Scalar(3.0), Scalar(0.4)));
+    boost::shared_ptr<NeighborList> nlist2(new NLB(sysdef, Scalar(3.0), Scalar(0.4)));
     nlist2->setStorageMode(NeighborList::full);
 
     // setup some exclusions: try to fill out all four exclusions for each particle
@@ -569,10 +569,10 @@ void neighborlist_large_ex_tests(boost::shared_ptr<ExecutionConfiguration> exec_
     // construct the particle system
     RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
     boost::shared_ptr<SnapshotSystemData> snap = init.getSnapshot();
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(8.0), Scalar(0.4)));
+    boost::shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(8.0), Scalar(0.4)));
     nlist->setStorageMode(NeighborList::full);
 
     // add every single neighbor as an exclusion

@@ -78,8 +78,8 @@ using namespace boost;
 BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
     {
     // create a simple particle data to test with
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
     }
 
     // construct the updater and make sure everything is set properly
-    shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
+    boost::shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
 
     // run the updater and check the new temperature
     zerop->update(0);
@@ -130,8 +130,8 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
 BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_rigid )
     {
     // create a simple particle data to test with
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(1000.0), 4));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(1000.0), 4));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // set the first 4 particles to be free particles (position doesn't matter, but set it anyways)
     pdata->setPosition(0, make_scalar3(0,0,0));
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_rigid )
     pdata->setBody(6, 1);
     pdata->setBody(7, 1);
 
-    shared_ptr<RigidData> rdata = sysdef->getRigidData();
+    boost::shared_ptr<RigidData> rdata = sysdef->getRigidData();
     // Initialize rigid bodies
     rdata->initializeData();
 
@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_rigid )
     rdata->setRV(false);
 
     // construct the updater and make sure everything is set properly
-    shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
+    boost::shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
 
     // run the updater and check the new temperature
     zerop->update(0);

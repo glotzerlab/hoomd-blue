@@ -50,58 +50,60 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \page page_units Units
 
-<h2>Units used in HOOMD-blue</h2>
+## Units in HOOMD-blue
 
-HOOMD-blue stores and computes all values in a system of generic, but fully self-consistent set of units. In this
-manner, no conversion factors need to be maintained and applied to values at every step. For example, a value with units
-of force just naturally arises from dividing an energy by a distance. You may be familiar with this system of units
-as being referred to as reduced "Lennard-Jones" units. However, these will be more formally generalized here for
+HOOMD-blue stores and computes all values in a system of generic, but fully self-consistent set of units.
+No conversion factors need to be applied to values at every step. For example, a value with units
+of force comes from dividing energy by distance. You may be familiar with this system of units
+as being referred to as reduced *Lennard-Jones* units. These will be more formally generalized here for
 application to all types of potentials in HOOMD-blue.
 
-<hr>
-<h2>Fundamental Units</h2>
+## Fundamental Units
 
 The three fundamental units are:
- - distance - \f$D_u\f$
- - energy - \f$E_u\f$
- - mass - \f$M_u\f$
+
+- distance - \f$\mathcal{D}\f$
+- energy - \f$\mathcal{E}\f$
+- mass - \f$\mathcal{M}\f$
 
 All other units that appear in HOOMD-blue are derived from these. Values can be converted into any other system
-of units by assigning the desired units to \f$D_u\f$, \f$E_u\f$, and \f$M_u\f$ and then multiplying by the resulting
-conversion factors.
+of units by assigning the desired units to \f$\mathcal{D}\f$, \f$\mathcal{E}\f$, and \f$\mathcal{M}\f$ and then
+multiplying by the appropriate conversion factors.
 
-<i>A note on numerics</i>: Floating point calculations are most precise when values are close to unity. Thus, it is
-generally best to choose a scale where energy well depths and particle masses are near 1. Similarly, it is also best
-for typical particle diameters to also be chosen near 1.
+The standard *Lennard-Jones* symbols \f$ \sigma \f$ and \f$ \epsilon \f$ are intentionally not used in this
+document. When you assign a value to \f$ \epsilon \f$, for example, you are assigning it in units of energy:
+\f$ \epsilon = 5 \mathcal{E} \f$. Here, \f$ \epsilon \f$ is **NOT** the unit of energy. To understand this in a trivial case,
+consider a system with two particle types, there are three distinct \f$ \epsilon_{ij} \f$ values to set, and they cannot
+each be the unit of energy.
 
-<hr>
-<h2>Temperature (thermal energy)</h2>
+Floating point calculations are most precise when values are close to unity. It is generally best to choose a scale
+where particle diameters, energy well depths, particle masses are near 1.
 
-Temperature notes special attention. The nomenclature in the literature regarding Lennard-Jones "reduced temperature"
-is generally not very precise or consistent. HOOMD-blue's parameter names unfortunately don't do anything to help that
-(maybe a later version will fix this). Formally, whenever HOOMD-blue asks for or reports a "temperature" \f$T\f$, the
-value is actually a thermal energy \f$T = k_\mathrm{B} T_\mathrm{real}\f$ <i>in units of energy</i>. The value of
-\f$k_\mathrm{B}\f$ is uniquely determined by your choice of real units for distance, energy, and mass.
+## Temperature (thermal energy)
 
-<hr>
-<h2>Charge</h2>
+The standard nomenclature in the literature regarding Lennard-Jones *reduced temperature*
+is generally not very precise or consistent. HOOMD-blue's parameter names unfortunately do not help that situation
+(maybe a later version will fix this). Formally, whenever HOOMD-blue asks for or reports a **temperature** \f$T\f$, the
+value is a thermal energy \f$T = k_\mathrm{B} T_\mathrm{actual}\f$ *in units of energy*. The value
+\f$k_\mathrm{B}\f$ is determined by your choice of real units for distance, energy, and mass.
 
-Charge also requires careful consideration. The unit of charge used in HOOMD-blue is also reduced, but cannot be
-completely represented using the 3 fundamental units - the permittivity of free space \f$ \varepsilon_0 \f$  also enters
-into the conversion, as does a scaling factor.
+## Charge
 
-Specifically, the units of charge are: \f$ (4 \pi \varepsilon_0 D_u E_u)^{1/2} \f$. Divide a given charge by this
-quantity to convert it into simulation units.
+The unit of charge used in HOOMD-blue is also reduced, but is not represented using just the 3 fundamental units -
+the permittivity of free space \f$ \varepsilon_0 \f$ is also present. The units of charge are:
+\f$ (4 \pi \varepsilon_0 \mathcal{D} \mathcal{E})^{1/2} \f$. Divide a given charge by this quantity to convert it into
+an input value for HOOMD-blue.
 
-<hr>
-<h2>Common derived units</h2>
-Here is a list of some commonly used derived units and how they relate to the fundamental ones.
- - time - \f$t_u = \sqrt{\frac{M_u D_u^2}{E_u}}\f$
- - volume - \f$ D_u^3 \f$
- - velocity - \f$ \frac{D_u}{t_u}\f$
- - momentum - \f$ M_u \frac{D_u}{t_u} \f$
- - acceleration - \f$ \frac{D_u}{t_u^2}\f$
- - force - \f$ \frac{E_u}{D_u} \f$
- - pressure - \f$ \frac{E_u}{D_u^3} \f$
+## Common derived units
+
+Here are some commonly used derived units:
+
+- time - \f$\tau = \sqrt{\frac{\mathcal{M} \mathcal{D}^2}{\mathcal{E}}}\f$
+- volume - \f$ \mathcal{D}^3 \f$
+- velocity - \f$ \frac{\mathcal{D}}{\tau}\f$
+- momentum - \f$ \mathcal{M} \frac{\mathcal{D}}{\tau} \f$
+- acceleration - \f$ \frac{\mathcal{D}}{\tau^2}\f$
+- force - \f$ \frac{\mathcal{E}}{\mathcal{D}} \f$
+- pressure - \f$ \frac{\mathcal{E}}{\mathcal{D}^3} \f$
 
 */

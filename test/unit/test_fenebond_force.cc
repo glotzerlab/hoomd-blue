@@ -78,22 +78,22 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<PotentialBondFENE>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
+typedef boost::function<boost::shared_ptr<PotentialBondFENE>  (boost::shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0,  exec_conf));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0,  exec_conf));
+    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(0.9,0.0,0.0));
 
     // create the bond force compute to check
-    shared_ptr<PotentialBondFENE> fc_2 = bf_creator(sysdef_2);
+    boost::shared_ptr<PotentialBondFENE> fc_2 = bf_creator(sysdef_2);
     fc_2->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
 
     // compute the force and check the results
@@ -182,8 +182,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
     // also test more than one type of bond
-    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
 
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
@@ -193,7 +193,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     pdata_6->setPosition(4, make_scalar3(0.0,0.0,-29.6));
     pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
 
-    shared_ptr<PotentialBondFENE> fc_6 = bf_creator(sysdef_6);
+    boost::shared_ptr<PotentialBondFENE> fc_6 = bf_creator(sysdef_6);
     fc_6->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
     fc_6->setParams(1, make_scalar4(Scalar(2.0*1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
     fc_6->setParams(2, make_scalar4(Scalar(1.5), Scalar(1.0), Scalar(1.0), Scalar(1.0)));
@@ -263,8 +263,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     // one more test: this one will test two things:
     // 1) That the forces are computed correctly even if the particles are rearranged in memory
     // and 2) That two forces can add to the same particle
-    shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
     pdata_4->setFlags(~PDataFlags(0));
 
     {
@@ -289,7 +289,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<Exec
     }
 
     // build the bond force compute and try it out
-    shared_ptr<PotentialBondFENE> fc_4 = bf_creator(sysdef_4);
+    boost::shared_ptr<PotentialBondFENE> fc_4 = bf_creator(sysdef_4);
     fc_4->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.75), Scalar(pow(1.2,12.0)), Scalar(pow(1.2,6.0))));
     // only add bonds on the left, top, and bottom of the square
     sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,3));
@@ -355,12 +355,12 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     SimpleCubicInitializer sc_init(M, 1.5, "A");
     boost::shared_ptr<SnapshotSystemData> snap = sc_init.getSnapshot();
     snap->bond_data.type_mapping.push_back("A");
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    shared_ptr<PotentialBondFENE> fc1 = bf_creator1(sysdef);
-    shared_ptr<PotentialBondFENE> fc2 = bf_creator2(sysdef);
+    boost::shared_ptr<PotentialBondFENE> fc1 = bf_creator1(sysdef);
+    boost::shared_ptr<PotentialBondFENE> fc2 = bf_creator2(sysdef);
     fc1->setParams(0, make_scalar4(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
     fc2->setParams(0, make_scalar4(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
 
@@ -438,16 +438,16 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     }
 
 //! PotentialBondFENE creator for bond_force_basic_tests()
-shared_ptr<PotentialBondFENE> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<PotentialBondFENE> base_class_bf_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<PotentialBondFENE>(new PotentialBondFENE(sysdef));
+    return boost::shared_ptr<PotentialBondFENE>(new PotentialBondFENE(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! PotentialBondFENE creator for bond_force_basic_tests()
-shared_ptr<PotentialBondFENE> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<PotentialBondFENE> gpu_bf_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<PotentialBondFENE>(new PotentialBondFENEGPU(sysdef));
+    return boost::shared_ptr<PotentialBondFENE>(new PotentialBondFENEGPU(sysdef));
     }
 #endif
 

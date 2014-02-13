@@ -1,7 +1,4 @@
-/*! 
-\page page_license License 
-\verbatim
-
+/*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
 (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
 Iowa State University and The Regents of the University of Michigan All rights
@@ -49,7 +46,61 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*! \page page_conversion_scripts File Format Conversion
+
+\section sec_hoomd_vmd_plugin Reading and converting HOOMD-blue XML files with VMD
+
+As of version 1.8.7 the VMD molecular visualization software supports the HOOMD-blue XML format natively with read
+and write support through its molfile plugin library and can be used to build systems and convert between
+MD and visualization codes as well. Here are some examples using this:
+
+\subsection sec_hoomd_vmd_structure Read a HOOMD-blue XML file into a VMD molecule
+
+Load the structure \c file.xml into VMD, then add the trajectory frames in \c dump.dcd.
+\code
+  mol new file.xml type hoomd waitfor all
+  mol addfile dump.dcd type dcd wairfor all
+\endcode
 
 
-\endverbatim 
+\subsection sec_hoomd_vmd_input Converting from a HOOMD-blue XML file to a LAMMPS input file
+
+Load \c file.xml into VMD, then use topotools write out \c file.data in the LAMMPS molecular format
+\code
+  package require topotools 1.0
+  mol new file.xml type hoomd waitfor all
+  topo writelammpsdata file.data molecular
+\endcode
+
+\subsection sec_hoomd_vmd_data Converting from a series of HOOMD XML files to a LAMMPS dump file
+
+Load a trajectory \c file*.xml into VMD, one frame at a time.
+Then use topotools write out \c file.dump in the LAMMPS dump format
+\code
+  set first 1
+  foreach f [glob file*.xml] {
+     if {$first} {
+         mol new $f type hoomd waitfor all
+         set first 0
+     } else {
+         mol addfile $f type hoomd waitfor all
+     }
+  }
+  animate write lammpstrj file.dump waitfor all
+\endcode
+
+This conversion can also be done into all other formats that have write support in VMD, e.g. psf, pdb, dcd.
+Since pymol also uses the VMD molfile library, it eventually will also have native support for HOOMD-blue XML files added.
+
+\subsection sec_hoomd_vmd_inverse Converting from a LAMMPS input file to HOOMD-blue XML
+
+Load the LAMMPS input file \c file.data into VMD, then use topotools write out \c file.xml in the HOOMD-blue XML format.
+\code
+  package require topotools 1.0
+  topo readlammpsdata file.data molecular
+  animate write hoomd file.xml waitfor all
+\endcode
+
 */

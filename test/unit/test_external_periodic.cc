@@ -80,7 +80,7 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd LJForceCompute factory
-typedef boost::function<shared_ptr<PotentialExternalPeriodic> (shared_ptr<SystemDefinition> sysdef)> periodicforce_creator;
+typedef boost::function<boost::shared_ptr<PotentialExternalPeriodic> (boost::shared_ptr<SystemDefinition> sysdef)> periodicforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces
 void periodic_force_particle_test(periodicforce_creator periodic_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -90,14 +90,14 @@ void periodic_force_particle_test(periodicforce_creator periodic_creator, boost:
     // types of the particles : 0, 1, 0
 
     // periodic boundary conditions will be handeled in another test
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(5.0), 2, 0, 0, 0, 0, exec_conf));
-    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(5.0), 2, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
     pdata_3->setPosition(0,make_scalar3(1.7,0.0,0.0));
     pdata_3->setPosition(1,make_scalar3(2.0,0.0,0.0));
     pdata_3->setPosition(2,make_scalar3(3.5,0.0,0.0));
     pdata_3->setType(1,1);
-    shared_ptr<PotentialExternalPeriodic> fc_3 = periodic_creator(sysdef_3);
+    boost::shared_ptr<PotentialExternalPeriodic> fc_3 = periodic_creator(sysdef_3);
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
     unsigned int index = 0;
@@ -215,16 +215,16 @@ void periodic_force_comparison_test(periodicforce_creator periodic_creator1, per
 #endif
 
 //! LJForceCompute creator for unit tests
-shared_ptr<PotentialExternalPeriodic> base_class_periodic_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<PotentialExternalPeriodic> base_class_periodic_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<PotentialExternalPeriodic>(new PotentialExternalPeriodic(sysdef));
+    return boost::shared_ptr<PotentialExternalPeriodic>(new PotentialExternalPeriodic(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! LJForceComputeGPU creator for unit tests
-shared_ptr<PotentialExternalPeriodic> gpu_periodic_creator(shared_ptr<SystemDefinition> sysdef)
+boost::shared_ptr<PotentialExternalPeriodic> gpu_periodic_creator(boost::shared_ptr<SystemDefinition> sysdef)
     {
-    shared_ptr<PotentialExternalPeriodicGPU> periodic(new PotentialExternalPeriodicGPU(sysdef));
+    boost::shared_ptr<PotentialExternalPeriodicGPU> periodic(new PotentialExternalPeriodicGPU(sysdef));
     // the default block size kills valgrind :) reduce it
 //    lj->setBlockSize(64);
     return periodic;

@@ -1,0 +1,96 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*!
+
+\page page_autotuner Autotuner
+
+## Overview
+
+HOOMD-blue uses run-time autotuning to optimize GPU performance. Every time you run a hoomd script, hoomd starts
+autotuning values from a clean slate. Performance may vary during the first time steps of a simulation when the
+autotuner is scanning through possible values. Once the autotuner completes the first scan, performance will stabilize
+at optimized values. After approximately *period* steps, the autotuner will activate again and perform a quick scan
+to update timing data. With continual updates, tuned parameters will adapt to simulation conditions - so as you
+switch your simulation from NVT to NPT, compress the box, or change forces, the autotuner will keep everything
+running at optimal performance.
+
+## Benchmarking hoomd
+
+Care must be taken in performance benchmarks. The initial warm up time of the tuner is significant, and performance
+measurements should only be taken after warm up. The total time needed for a scan may vary from system to system
+depending on parameters. For example, the bundled `lj-liquid-bmark` script requires 10,000 steps for the initial
+tuning pass (2000 for subsequent updates). You can monitor the autotuner with the command line option
+`--notice-level=4`. Each tuner will print a status message when it completes the warm up period. The `nlist_binned`
+tuner will most likely take the longest time to complete.
+
+When obtaining profile traces, disable the autotuner after the warm up period so that it does not decide to re-tune
+during the profile.
+
+## Controlling the autotuner
+
+Default parameters should be sufficient for the autotuner to work well in almost any situation. Controllable parameters
+are:
+
+- `n_samples`: Number of samples to take at each parameter (to find the best among the noise)
+- `period`: Approximate number of time steps before retuning occurs
+- `enabled`: Boolean to control whether the autotuner is enabled. If disabled after the warm up period, no retuning will
+    occur, but it will still use the found optimal values. If disabled during the warm up period, a warning is issued
+    and the system will use non-optimal values.
+
+Defaults are `n_samples = 5`, `period=100000`, and `enabled=True`. Other parameters can be set by calling
+\link hoomd_script.option.set_autotuner_params() option.set_autotuner_params()\endlink . This period is short enough to
+pick up changes after just a few 100 thousand time steps, but long enough so that the performance loss of occasionally
+running at nonoptimal parameters is small (most per time step calls can complete tuning in less than 200 time steps).
+
+For those familiar with previous versions of HOOMD-blue, the autotuner replaces the old
+<b>tune.find_optimal_block_sizes</b> system.
+
+*/
