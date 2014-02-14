@@ -58,6 +58,8 @@ import math;
 import sys;
 import gc;
 import os;
+import re;
+import platform;
 
 from hoomd_script import util;
 from hoomd_script import globals;
@@ -735,6 +737,10 @@ def _create_exec_conf():
 
     # if no command line options were specified, create a default ExecutionConfiguration
     if globals.options.mode is None:
+        if (re.match("flux*", platform.node()) is not None) or (re.match("nyx*", platform.node()) is not None):
+            globals.msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
+            raise RuntimeError("Error initializing");
+
         if mpi_available and globals.options.nrank is not None:
             exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
         else:
