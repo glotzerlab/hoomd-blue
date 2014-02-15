@@ -124,6 +124,9 @@ class IntegratorTwoStep : public Integrator
          */
         virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
 #endif
+
+        //! Set autotuner parameters
+        virtual void setAutotunerParams(bool enable, unsigned int period);
     protected:
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();

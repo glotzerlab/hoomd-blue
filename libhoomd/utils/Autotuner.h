@@ -90,9 +90,26 @@ class Autotuner
             {
             m_enabled = enabled;
 
-            if (!enabled && !isComplete())
+            if (!enabled)
                 {
-                m_exec_conf->msg->warning() << "Disabling Autotuner " << m_name << " before initial scan completed!" << std::endl;
+                m_exec_conf->msg->notice(6) << "Disable Autotuner " << m_name << std::endl;
+
+                // if not complete, issue a warning
+                if (!isComplete())
+                    {
+                    m_exec_conf->msg->warning() << "Disabling Autotuner " << m_name << " before initial scan completed!" << std::endl;
+                    }
+                else
+                    {
+                    // ensure that we are in the idle state and have an up to date optimal parameter
+                    m_current_element = 0;
+                    m_state = IDLE;
+                    m_current_param = computeOptimalParameter();
+                    }
+                }
+            else
+                {
+                m_exec_conf->msg->notice(6) << "Enable Autotuner " << m_name << std::endl;
                 }
             }
 
@@ -112,6 +129,7 @@ class Autotuner
         */
         void setPeriod(unsigned int period)
             {
+            m_exec_conf->msg->notice(6) << "Set Autotuner " << m_name << " period = " << period << std::endl;
             m_period = period;
             }
 

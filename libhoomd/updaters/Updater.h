@@ -111,6 +111,16 @@ class Updater : boost::noncopyable
         //! Sets the profiler for the compute to use
         virtual void setProfiler(boost::shared_ptr<Profiler> prof);
 
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+
+            Derived classes should override this to set the parameters of their autotuners.
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            }
+
         //! Returns a list of log quantities this compute calculates
         /*! The base class implementation just returns an empty vector. Derived classes should override
             this behavior and return a list of quantities that they log.

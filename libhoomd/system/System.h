@@ -225,6 +225,9 @@ class System
             return m_sysdef;
             }
 
+        //! Set autotuner parameters
+        void setAutotunerParams(bool enable, unsigned int period);
+
     private:
         //! Holds an item in the list of analyzers
         struct analyzer_item

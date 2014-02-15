@@ -354,7 +354,6 @@ class nlist:
                 cl_g = hoomd.CellListGPU(globals.system_definition);
                 globals.system.addCompute(cl_g, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
-                self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
                 self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             else:
                 globals.msg.error("Invalid neighbor list mode\n");

@@ -114,6 +114,16 @@ class Analyzer : boost::noncopyable
         //! Sets the profiler for the analyzer to use
         void setProfiler(boost::shared_ptr<Profiler> prof);
 
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+
+            Derived classes should override this to set the parameters of their autotuners.
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            }
+
         //! Print some basic stats to stdout
         /*! Derived classes can optionally implement this function. A System will
             call all of the Analyzers' printStats functions at the end of a run

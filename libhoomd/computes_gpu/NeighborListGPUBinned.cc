@@ -102,7 +102,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
             }
         }
 
-    m_tuner.reset(new Autotuner(valid_params, 5, 1e6, "nlist_binned", this->m_exec_conf));
+    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "nlist_binned", this->m_exec_conf));
     m_last_tuned_timestep = 0;
 
     #ifdef ENABLE_MPI
@@ -357,7 +357,6 @@ void export_NeighborListGPUBinned()
     {
     class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
                      ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
-                    .def("setBlockSize", &NeighborListGPUBinned::setBlockSize)
                     .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
                      ;
     }

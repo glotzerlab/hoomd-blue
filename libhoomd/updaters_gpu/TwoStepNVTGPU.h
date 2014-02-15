@@ -92,6 +92,19 @@ class TwoStepNVTGPU : public TwoStepNVT
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
 
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            TwoStepNVT::setAutotunerParams(enable, period);
+            m_tuner_one->setPeriod(period);
+            m_tuner_one->setEnabled(enable);
+            m_tuner_two->setPeriod(period);
+            m_tuner_two->setEnabled(enable);
+            }
+
     protected:
         Scalar m_curr_T;                  //!< Current temperature
         boost::scoped_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)

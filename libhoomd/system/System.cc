@@ -654,6 +654,31 @@ void System::setStatsPeriod(unsigned int seconds)
     m_stats_period = seconds;
     }
 
+/*! \param enable Enable/disable autotuning
+    \param period period (approximate) in time steps when returning occurs
+*/
+void System::setAutotunerParams(bool enabled, unsigned int period)
+    {
+    // set the profiler on everything
+    if (m_integrator)
+        m_integrator->setAutotunerParams(enabled, period);
+
+    // analyzers
+    vector<analyzer_item>::iterator analyzer;
+    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+        analyzer->m_analyzer->setAutotunerParams(enabled, period);
+
+    // updaters
+    vector<updater_item>::iterator updater;
+    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
+        updater->m_updater->setAutotunerParams(enabled, period);
+
+    // computes
+    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
+        compute->second->setAutotunerParams(enabled, period);
+    }
+
 // --------- Steps in the simulation run implemented in helper functions
 
 void System::setupProfiling()
@@ -811,6 +836,7 @@ void export_System()
 
     .def("registerLogger", &System::registerLogger)
     .def("setStatsPeriod", &System::setStatsPeriod)
+    .def("setAutotunerParams", &System::setAutotunerParams)
     .def("enableProfiler", &System::enableProfiler)
     .def("enableQuietRun", &System::enableQuietRun)
     .def("run", &System::run)

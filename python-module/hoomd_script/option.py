@@ -88,6 +88,8 @@ class options:
         self.nz = None;
         self.linear = None;
         self.onelevel = None;
+        self.autotuner_enable = True;
+        self.autotuner_period = 100000;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -400,6 +402,18 @@ def set_msg_file(fname):
         globals.msg.openStd();
 
     globals.options.msg_file = fname;
+
+## Set the Autotuner parameters
+#
+# \param enable Set to True to enable autotuning. Set to False to disable.
+# \param period Approximate period in time steps between retuning
+#
+# \sa page_autotuner
+#
+def set_autotuner_params(enable=True, period=100000):
+    globals.options.autotuner_period = period;
+    globals.options.autotuner_enable = enable;
+
 
 ################### Parse command line on load
 globals.options = options();

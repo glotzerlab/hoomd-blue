@@ -364,6 +364,18 @@ void IntegratorTwoStep::setCommunicator(boost::shared_ptr<Communicator> comm)
     }
 #endif
 
+/*! \param enable Enable/disable autotuning
+    \param period period (approximate) in time steps when returning occurs
+*/
+void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
+    {
+    Integrator::setAutotunerParams(enable, period);
+    // set params in all methods
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+            (*method)->setAutotunerParams(enable, period);
+    }
+
 void export_IntegratorTwoStep()
     {
     class_<IntegratorTwoStep, boost::shared_ptr<IntegratorTwoStep>, bases<Integrator>, boost::noncopyable>

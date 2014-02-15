@@ -144,6 +144,10 @@ Autotuner::~Autotuner()
 
 void Autotuner::begin()
     {
+    // skip if disabled
+    if (!m_enabled)
+        return;
+
     #ifdef ENABLE_CUDA
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == STARTUP || m_state == SCANNING)
@@ -157,6 +161,10 @@ void Autotuner::begin()
 
 void Autotuner::end()
     {
+    // skip if disabled
+    if (!m_enabled)
+        return;
+
     #ifdef ENABLE_CUDA
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
@@ -164,7 +172,7 @@ void Autotuner::end()
         cudaEventRecord(m_stop, 0);
         cudaEventSynchronize(m_stop);
         cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
-        m_exec_conf->msg->notice(10) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
+        m_exec_conf->msg->notice(9) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
                                      << ") = " << m_samples[m_current_element][m_current_sample] << endl;
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
