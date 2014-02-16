@@ -806,8 +806,5 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     if set_max_check_period:
         globals.neighbor_list.set_params(check_period=globals.neighbor_list.query_update_period());
 
-    # re-enable autotuner
-    globals.system.setAutotunerParams(globals.options.autotuner_enable, int(globals.options.autotuner_period));
-
     # return the results to the script
     return (fastest_r_buff, globals.neighbor_list.query_update_period());
