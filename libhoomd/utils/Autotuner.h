@@ -110,6 +110,11 @@ class Autotuner
             else
                 {
                 m_exec_conf->msg->notice(6) << "Enable Autotuner " << m_name << std::endl;
+
+                // reset to initial state
+                m_state = STARTUP;
+                m_calls = 0;
+                m_current_element = 0;
                 }
             }
 

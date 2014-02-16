@@ -215,6 +215,9 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
 
+    # set autotuner options
+    globals.system.setAutotunerParams(globals.options.autotuner_enable, int(globals.options.autotuner_period));
+
     _perform_common_init_tasks();
     return data.system_data(globals.system_definition);
 
