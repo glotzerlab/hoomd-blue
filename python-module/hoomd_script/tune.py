@@ -753,6 +753,8 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     r_buff_list = [];
     tps_list = [];
 
+    old_autotuner_enable = globals.options.autotuner_enable
+
     # loop over all desired r_buff points
     for i in range(0,jumps):
         # set the current r_buff
@@ -764,13 +766,12 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
         if tune_kernels:
             # reset autotuners
             globals.system.setAutotunerParams(False, int(globals.options.autotuner_period));
-            globals.system.setAutotunerParams(globals.options.autotuner_enable, int(globals.options.autotuner_period));
 
             # tune kernels
             hoomd_script.run(kernel_tuning_steps)
 
-        # disable autotuner
-        globals.system.setAutotunerParams(False, int(globals.options.autotuner_period));
+        # disable autotuners
+        globals.options.autotuner_enable = False
 
         hoomd_script.run(steps);
         tps.append(globals.system.getLastTPS())
@@ -783,6 +784,9 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
         tps.sort();
         tps_list.append(tps[1]);
         r_buff_list.append(r_buff);
+
+        # re-enable autotuners
+        globals.options.autotuner_enable = old_autotuner_enable
 
     # find the fastest r_buff
     fastest = tps_list.index(max(tps_list));

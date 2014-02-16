@@ -414,10 +414,6 @@ def set_autotuner_params(enable=True, period=100000):
     globals.options.autotuner_period = period;
     globals.options.autotuner_enable = enable;
 
-    if globals.system is not None:
-        # update autotuner parameters
-        globals.system.setAutotunerParams(globals.options.autotuner_enable, int(globals.options.autotuner_period));
-
 
 ################### Parse command line on load
 globals.options = options();
