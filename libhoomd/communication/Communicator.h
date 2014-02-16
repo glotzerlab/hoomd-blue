@@ -328,6 +328,8 @@ class Communicator
                 throw std::runtime_error("Error setting up Communicator");
                 }
             m_r_ghost = ghost_width;
+
+            forceMigrate();
             }
 
         //! Set skin layer width
@@ -338,6 +340,7 @@ class Communicator
             assert(r_buff > 0);
 
             m_r_buff = r_buff;
+            forceMigrate();
             }
 
         //! Return current skin layer width

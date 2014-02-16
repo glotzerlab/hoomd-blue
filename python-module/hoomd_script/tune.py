@@ -759,13 +759,18 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     for i in range(0,jumps):
         # set the current r_buff
         r_buff = r_min + i * dr;
+
+        globals.msg.notice(2, "r_buff = " + str(r_buff) + '\n');
+
         globals.neighbor_list.set_params(r_buff=r_buff);
 
         # run the benchmark 3 times
         tps = [];
         if tune_kernels:
-            # reset autotuners
-            globals.system.setAutotunerParams(False, int(globals.options.autotuner_period));
+            # reset autotuner
+            util._disable_status_lines = True
+            reset_autotuner()
+            util._disable_status_lines = False
 
             # tune kernels
             hoomd_script.run(kernel_tuning_steps)
@@ -808,3 +813,13 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
 
     # return the results to the script
     return (fastest_r_buff, globals.neighbor_list.query_update_period());
+
+# reset autotuner
+def reset_autotuner():
+    util.print_status_line();
+    if not init.is_initialized():
+        globals.msg.warning("Trying to reset the autotuner for an uninitialized system\n");
+        return
+
+    # reset tuner
+    globals.system.setAutotunerParams(False, int(globals.options.autotuner_period));

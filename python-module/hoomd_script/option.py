@@ -89,7 +89,7 @@ class options:
         self.linear = None;
         self.onelevel = None;
         self.autotuner_enable = True;
-        self.autotuner_period = 100000;
+        self.autotuner_period = 500000;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -410,7 +410,7 @@ def set_msg_file(fname):
 #
 # \sa page_autotuner
 #
-def set_autotuner_params(enable=True, period=100000):
+def set_autotuner_params(enable=True, period=500000):
     globals.options.autotuner_period = period;
     globals.options.autotuner_enable = enable;
 

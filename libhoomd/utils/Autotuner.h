@@ -99,12 +99,17 @@ class Autotuner
                     }
                 else
                     {
-                    // ensure that we have an up to date optimal parameter
-                    m_current_element = 0;
-                    m_current_param = computeOptimalParameter();
+                    if (m_enabled)
+                        {
+                        // ensure that we have an up to date optimal parameter
+                        m_current_element = computeOptimalParameter();
+                        }
 
-                    // next time we are enabled we start scanning again
+                    m_current_param = m_parameters[m_current_element]; 
+
+                    // next time we are enabled we start over
                     m_state = STARTUP;
+                    m_current_sample = 0;
                     m_calls = 0;
                     }
                 }
