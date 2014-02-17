@@ -708,8 +708,6 @@ from hoomd_script import globals;
 # \param jumps Number of different r_buff values to test
 # \param steps Number of time steps to run() at each point
 # \param set_max_check_period Set to True to enable automatic setting of the maximum nlist check_period
-# \param tune_kernels Set to True to tune kernels for every value of r_buff
-# \param kernel_tuning_steps Set to the number of steps used for tuning kernel parameters
 #
 # tune.r_buff() executes \a warmup time steps. Then it sets the nlist \a r_buff value to \a r_min and runs for
 # \a steps time steps. The TPS value is recorded, and the benchmark moves on to the next \a r_buff value
@@ -723,17 +721,10 @@ from hoomd_script import globals;
 # \note By default, the maximum check_period is \b not set in tune.r_buff() for safety. If you wish to have it set
 # when the call completes, call with the parameter set_max_check_period=True.
 #
-# If \a tune_kernels is set to True, the optimal kernel tuning parameters are determined using the
-# \link page_autotuner Autotuner\endlink before benchmarking a value of r_buff. This leads to more
-# reliable results but the tuning takes longer. The parameter \a kernel_tuning_steps can be set
-# to adjust the number of steps of the Autotuner.
-#
 # \returns (optimal_r_buff, maximum check_period)
 #
 # \MPI_SUPPORTED
-def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False, tune_kernels=True,kernel_tuning_steps=25000):
-    util.print_status_line();
-
+def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot tune r_buff before initialization\n");
@@ -753,31 +744,14 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
     r_buff_list = [];
     tps_list = [];
 
-    old_autotuner_enable = globals.options.autotuner_enable
-
     # loop over all desired r_buff points
     for i in range(0,jumps):
         # set the current r_buff
         r_buff = r_min + i * dr;
-
-        globals.msg.notice(2, "r_buff = " + str(r_buff) + '\n');
-
         globals.neighbor_list.set_params(r_buff=r_buff);
 
         # run the benchmark 3 times
         tps = [];
-        if tune_kernels:
-            # reset autotuner
-            util._disable_status_lines = True
-            reset_autotuner()
-            util._disable_status_lines = False
-
-            # tune kernels
-            hoomd_script.run(kernel_tuning_steps)
-
-        # disable autotuners
-        globals.options.autotuner_enable = False
-
         hoomd_script.run(steps);
         tps.append(globals.system.getLastTPS())
         hoomd_script.run(steps);
@@ -789,9 +763,6 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
         tps.sort();
         tps_list.append(tps[1]);
         r_buff_list.append(r_buff);
-
-        # re-enable autotuners
-        globals.options.autotuner_enable = old_autotuner_enable
 
     # find the fastest r_buff
     fastest = tps_list.index(max(tps_list));
@@ -813,13 +784,3 @@ def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_c
 
     # return the results to the script
     return (fastest_r_buff, globals.neighbor_list.query_update_period());
-
-# reset autotuner
-def reset_autotuner():
-    util.print_status_line();
-    if not init.is_initialized():
-        globals.msg.warning("Trying to reset the autotuner for an uninitialized system\n");
-        return
-
-    # reset tuner
-    globals.system.setAutotunerParams(False, int(globals.options.autotuner_period));

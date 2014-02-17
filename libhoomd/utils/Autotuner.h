@@ -88,37 +88,29 @@ class Autotuner
         */
         void setEnabled(bool enabled)
             {
+            m_enabled = enabled;
+
             if (!enabled)
                 {
                 m_exec_conf->msg->notice(6) << "Disable Autotuner " << m_name << std::endl;
 
                 // if not complete, issue a warning
-                if (!isComplete() && m_enabled)
+                if (!isComplete())
                     {
                     m_exec_conf->msg->warning() << "Disabling Autotuner " << m_name << " before initial scan completed!" << std::endl;
                     }
                 else
                     {
-                    if (m_enabled)
-                        {
-                        // ensure that we have an up to date optimal parameter
-                        m_current_element = computeOptimalParameter();
-                        }
-
-                    m_current_param = m_parameters[m_current_element]; 
-
-                    // next time we are enabled we start over
-                    m_state = STARTUP;
-                    m_current_sample = 0;
-                    m_calls = 0;
+                    // ensure that we are in the idle state and have an up to date optimal parameter
+                    m_current_element = 0;
+                    m_state = IDLE;
+                    m_current_param = computeOptimalParameter();
                     }
                 }
             else
                 {
                 m_exec_conf->msg->notice(6) << "Enable Autotuner " << m_name << std::endl;
                 }
-
-            m_enabled = enabled;
             }
 
         //! Test if initial sampling is complete

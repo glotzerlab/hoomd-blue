@@ -455,28 +455,16 @@ class nlist:
             globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error setting neighbor list parameters');
 
-        params_changed = False
-
         # update the parameters
         if r_buff is not None:
             self.cpp_nlist.setRCut(self.r_cut, r_buff);
             self.r_buff = r_buff;
-            params_changed = True
 
         if check_period is not None:
             self.cpp_nlist.setEvery(check_period, dist_check);
-            params_changed = True
 
         if d_max is not None:
             self.cpp_nlist.setMaximumDiameter(d_max);
-            params_changed = True
-
-        if params_changed:
-            # reset autotuner
-            util._disable_status_lines = True
-            tune.reset_autotuner()
-            util._disable_status_lines = False
-
 
     ## Resets all exclusions in the neighborlist
     #

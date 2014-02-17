@@ -197,7 +197,7 @@ void Autotuner::end()
                 {
                 m_current_element = 0;
                 m_state = IDLE;
-                m_current_param = m_parameters[computeOptimalParameter()];
+                m_current_param = computeOptimalParameter();
                 }
             else
                 {
@@ -217,7 +217,7 @@ void Autotuner::end()
             {
             m_current_element = 0;
             m_state = IDLE;
-            m_current_param = m_parameters[computeOptimalParameter()];
+            m_current_param = computeOptimalParameter();
             m_current_sample = (m_current_sample + 1) % m_nsamples;
             }
         else
@@ -243,10 +243,10 @@ void Autotuner::end()
         }
     }
 
-/*! \returns The optimal parameter index given the current data in m_samples
+/*! \returns The optimal parameter given the current data in m_samples
 
     computeOptimalParameter computes the median time among all samples for a given element. It then chooses the
-    fastest time (with the lowest index breaking a tie) and returns the parameter index that resulted in that time.
+    fastest time (with the lowest index breaking a tie) and returns the parameter that resulted in that time.
 */
 unsigned int Autotuner::computeOptimalParameter()
     {
@@ -267,7 +267,7 @@ unsigned int Autotuner::computeOptimalParameter()
         {
         v = m_samples[i];
         #ifdef ENABLE_MPI
-        if (m_sync)
+        if (m_sync && nranks)
             {
             // combine samples from all ranks on rank zero
             std::vector< std::vector<float> > all_v;
@@ -290,13 +290,13 @@ unsigned int Autotuner::computeOptimalParameter()
             }
         }
 
-    unsigned int min_idx = 0;
     unsigned int opt;
 
     if (is_root)
         {
         // now find the minimum and maximum times in the medians
         float min = m_sample_median[0];
+        unsigned int min_idx = 0;
         float max = m_sample_median[0];
         unsigned int max_idx = 0;
 
@@ -324,9 +324,9 @@ unsigned int Autotuner::computeOptimalParameter()
         }
 
     #ifdef ENABLE_MPI
-    if (m_sync) bcast(min_idx, 0, m_exec_conf->getMPICommunicator());
+    if (m_sync && nranks) bcast(opt, 0, m_exec_conf->getMPICommunicator());
     #endif
-    return min_idx;
+    return opt;
     }
 
 void export_Autotuner()
