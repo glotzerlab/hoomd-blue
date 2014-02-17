@@ -235,6 +235,7 @@ void Autotuner::end()
             // initialize a scan
             m_current_param = m_parameters[m_current_element];
             m_state = SCANNING;
+            m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " - beginning scan" << std::endl;
             }
         }
     }
@@ -303,20 +304,19 @@ unsigned int Autotuner::computeOptimalParameter()
                 min = m_sample_median[i];
                 min_idx = i;
                 }
-            if (m_sample_median[i] > max)
+            /*if (m_sample_median[i] > max)
                 {
                 max = m_sample_median[i];
                 max_idx = i;
-                }
+                }*/
             }
 
         // get the optimal param
         opt = m_parameters[min_idx];
-        unsigned int percent = int(max/min * 100.0f)-100;
+        // unsigned int percent = int(max/min * 100.0f)-100;
 
         // print stats
-        m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " found optimal parameter " << opt << " which is " << percent
-                                    << " percent faster than " << m_parameters[max_idx] << "." << endl;
+        m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " found optimal parameter " << opt << endl;
         }
 
     #ifdef ENABLE_MPI
