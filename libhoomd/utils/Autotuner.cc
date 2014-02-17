@@ -61,9 +61,7 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
     CHECK_CUDA_ERROR();
     #endif
 
-    #ifdef ENABLE_MPI
     m_sync = false;
-    #endif
     }
 
 
@@ -127,9 +125,7 @@ Autotuner::Autotuner(unsigned int start,
     CHECK_CUDA_ERROR();
     #endif
 
-    #ifdef ENABLE_MPI
     m_sync = false;
-    #endif
     }
 
 Autotuner::~Autotuner()
