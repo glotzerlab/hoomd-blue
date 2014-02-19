@@ -16,6 +16,10 @@ endif(PY_ERR)
 endmacro(run_python)
 
 # find the python interpreter, first
+if (NOT PYTHON_SITEDIR)
+    find_program(PYTHON_EXECUTABLE NAMES python3 python)
+endif()
+
 find_package(PythonInterp REQUIRED)
 
 # get the python installation prefix and version
