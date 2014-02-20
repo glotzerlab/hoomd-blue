@@ -63,6 +63,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #endif
 
+// error out if we are in a plugin and hoomd_config has not been included
+#if !defined(BUILDING_HOOMD) && !defined(_HOOMD_CONFIG_H)
+#error hoomd_config.h MUST be included prior to any other hoomd include file in plugin builds
+#endif
 
 // for vector types
 #ifdef ENABLE_CUDA

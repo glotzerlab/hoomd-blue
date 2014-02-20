@@ -38,3 +38,6 @@ if (ENABLE_MPI)
           add_definitions (-DENABLE_MPI_CUDA)
     endif(ENABLE_MPI_CUDA)
 endif(ENABLE_MPI)
+
+# define this as a main hoomd build (as opposed to a plugin build)
+add_definitions(-DBUILDING_HOOMD)
