@@ -73,6 +73,10 @@ endif (WIN32)
 
 if (ENABLE_CUDA)
     list(APPEND HOOMD_COMMON_LIBS ${CUDA_LIBRARIES} ${CUDA_cufft_LIBRARY})
+
+    if (ENABLE_NVTOOLS)
+        list(APPEND HOOMD_COMMON_LIBS ${CUDA_nvToolsExt_LIBRARY})
+    endif()
 endif (ENABLE_CUDA)
 
 if (ENABLE_MPI)

@@ -32,6 +32,19 @@ if (ENABLE_CUDA)
     endif (CUDA_TOOLKIT_ROOT_DIR)
     mark_as_advanced(CUDA_VERBOSE_BUILD)
     mark_as_advanced(CUDA_BUILD_EMULATION)
+
+    if (ENABLE_NVTOOLS)
+        find_library(CUDA_nvToolsExt_LIBRARY
+                     NAMES nvToolsExt
+                     PATHS "${CUDA_TOOLKIT_ROOT_DIR}/lib64"
+                           "${CUDA_TOOLKIT_ROOT_DIR}/lib"
+                     ENV CUDA_LIB_PATH
+                     DOC "nvTools library"
+                     NO_DEFAULT_PATH
+                     )
+
+        mark_as_advanced(CUDA_nvToolsExt_LIBRARY)
+    endif()
 endif (ENABLE_CUDA)
 
 # setup CUDA compile options

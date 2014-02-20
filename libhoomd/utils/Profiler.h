@@ -66,6 +66,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #endif
 
+#ifdef ENABLE_NVTOOLS
+#include <nvToolsExt.h>
+#endif
+
 #include <string>
 #include <stack>
 #include <map>
@@ -200,7 +204,8 @@ std::ostream& operator<<(std::ostream &o, Profiler& prof);
 
 inline void Profiler::push(boost::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name)
     {
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
+    // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
     if (exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
@@ -209,7 +214,8 @@ inline void Profiler::push(boost::shared_ptr<const ExecutionConfiguration> exec_
 
 inline void Profiler::pop(boost::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count, uint64_t byte_count)
     {
-#ifdef ENABLE_CUDA
+#if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
+    // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
     if (exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
@@ -220,6 +226,10 @@ inline void Profiler::push(const std::string& name)
     {
     // sanity checks
     assert(!m_stack.empty());
+
+    #ifdef ENABLE_NVTOOLS
+    nvtxRangePush(name.c_str());
+    #endif
 
     // pushing a new record on to the stack involves taking a time sample
     int64_t t = m_clk.getTime();
@@ -243,6 +253,10 @@ inline void Profiler::pop(uint64_t flop_count, uint64_t byte_count)
     // sanity checks
     assert(!m_stack.empty());
     assert(!(m_stack.top() == &m_root));
+
+    #ifdef ENABLE_NVTOOLS
+    nvtxRangePop();
+    #endif
 
     // popping up a level in the profile stack involves taking a time sample
     int64_t t = m_clk.getTime();

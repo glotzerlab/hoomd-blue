@@ -3,6 +3,7 @@
 
 #cmakedefine CUDA_BUILD_EMULATION
 #cmakedefine ENABLE_CUDA
+#cmakedefine ENABLE_NVTOOLS
 #cmakedefine ENABLE_STATIC
 #cmakedefine SINGLE_PRECISION
 #cmakedefine ENABLE_ZLIB

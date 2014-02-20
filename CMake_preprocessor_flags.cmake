@@ -17,6 +17,10 @@ endif(SINGLE_PRECISION)
 
 if (ENABLE_CUDA)
     add_definitions (-DENABLE_CUDA)
+
+    if (ENABLE_NVTOOLS)
+        add_definitions(-DENABLE_NVTOOLS)
+    endif()
 endif (ENABLE_CUDA)
 
 ################################
