@@ -375,6 +375,8 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned in
 
     // DPD needs ghost particle velocity
     flags[comm_flag::velocity] = 1;
+    // DPD needs tags for RNG
+    flags[comm_flag::tag] = 1;
 
     flags |= PotentialPair<evaluator>::getRequestedCommFlags(timestep);
 
