@@ -119,6 +119,22 @@ class CommunicatorGPU : public Communicator
             forceMigrate();
             }
 
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+
+            Derived classes should override this to set the parameters of their autotuners.
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            m_tuner_ghost_recv->setPeriod(period);
+            m_tuner_ghost_recv->setEnabled(enable);
+
+            m_tuner_ghost_send->setPeriod(period);
+            m_tuner_ghost_send->setEnabled(enable);
+            } 
+
+
     protected:
         //! Helper class to perform the communication tasks related to bonded groups
         template<class group_data>

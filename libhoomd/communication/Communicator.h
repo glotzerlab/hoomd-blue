@@ -450,8 +450,17 @@ class Communicator
             send_down = 32
             };
 
-        //@}
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
 
+            Derived classes should override this to set the parameters of their autotuners.
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            } 
+
+        //@}
     protected:
         //! Helper class to perform the communication tasks related to bonded groups
         template<class group_data>

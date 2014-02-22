@@ -659,7 +659,7 @@ void System::setStatsPeriod(unsigned int seconds)
 */
 void System::setAutotunerParams(bool enabled, unsigned int period)
     {
-    // set the profiler on everything
+    // set the autotuner parameters on everything
     if (m_integrator)
         m_integrator->setAutotunerParams(enabled, period);
 
@@ -677,6 +677,11 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
     map< string, boost::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->setAutotunerParams(enabled, period);
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        m_comm->setAutotunerParams(enabled, period);
+    #endif
     }
 
 // --------- Steps in the simulation run implemented in helper functions
