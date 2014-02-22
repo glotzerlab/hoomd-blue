@@ -67,6 +67,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUFlags.h"
 #include "GPUArray.h"
 
+#include "Autotuner.h"
+
 /*! \ingroup communication
 */
 
@@ -195,8 +197,14 @@ class CommunicatorGPU : public Communicator
         friend class GroupCommunicatorGPU<ImproperData>;
 
         /* Ghost communication */
-        GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< List of ghost particles tags per stage, ordered by neighbor
+        bool m_mapped_ghost_recv;                        //!< True if using host-mapped memory for ghost recv buffers
+        bool m_mapped_ghost_send;                        //!< True if using host-mapped memory for ghost send buffers
+        boost::scoped_ptr<Autotuner> m_tuner_ghost_recv; //!< Autotuner for mapped memory (recv ghosts)
+        boost::scoped_ptr<Autotuner> m_tuner_ghost_send; //!< Autotuner for mapped memory (recv ghosts)
+
+        GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< Buffer for sending particle tags
         GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags
+
         GPUVector<Scalar4> m_pos_ghost_sendbuf;        //<! Buffer for sending ghost positions
         GPUVector<Scalar4> m_pos_ghost_recvbuf;        //<! Buffer for receiving ghost positions
 
@@ -212,8 +220,26 @@ class CommunicatorGPU : public Communicator
         GPUVector<Scalar4> m_orientation_ghost_sendbuf;//<! Buffer for sending ghost orientations
         GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
 
-        GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf
-        GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf
+        GPUVector<unsigned int> m_tag_ghost_sendbuf_alt;   //!< Buffer for sending particle tags (standby)
+        GPUVector<unsigned int> m_tag_ghost_recvbuf_alt;   //!< Buffer for recveiving particle tags (standby)
+
+        GPUVector<Scalar4> m_pos_ghost_sendbuf_alt;        //<! Buffer for sending ghost positions (standby)
+        GPUVector<Scalar4> m_pos_ghost_recvbuf_alt;        //<! Buffer for receiving ghost positions (standby)
+
+        GPUVector<Scalar4> m_vel_ghost_sendbuf_alt;        //<! Buffer for sending ghost velocities (standby)
+        GPUVector<Scalar4> m_vel_ghost_recvbuf_alt;        //<! Buffer for receiving ghost velocities (standby)
+
+        GPUVector<Scalar> m_charge_ghost_sendbuf_alt;      //!< Buffer for sending ghost charges (standby)
+        GPUVector<Scalar> m_charge_ghost_recvbuf_alt;      //!< Buffer for sending ghost charges (standby)
+
+        GPUVector<Scalar> m_diameter_ghost_sendbuf_alt;    //!< Buffer for sending ghost charges (standby)
+        GPUVector<Scalar> m_diameter_ghost_recvbuf_alt;    //!< Buffer for sending ghost charges (standby)
+
+        GPUVector<Scalar4> m_orientation_ghost_sendbuf_alt;//<! Buffer for sending ghost orientations (standby)
+        GPUVector<Scalar4> m_orientation_ghost_recvbuf_alt;//<! Buffer for receiving ghost orientations (standby)
+
+        GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf_alt
+        GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf_alt
 
         GPUVector<uint2> m_ghost_idx_adj;             //!< Indices and adjacency relationships of ghosts to send
         GPUVector<unsigned int> m_ghost_neigh;        //!< Neighbor ranks for every ghost particle
