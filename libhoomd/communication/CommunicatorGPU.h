@@ -67,8 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUFlags.h"
 #include "GPUArray.h"
 
-#include "Autotuner.h"
-
 /*! \ingroup communication
 */
 
@@ -127,6 +125,8 @@ class CommunicatorGPU : public Communicator
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
+            Communicator::setAutotunerParams(enable, period);
+
             m_tuner_ghost_recv->setPeriod(period);
             m_tuner_ghost_recv->setEnabled(enable);
 

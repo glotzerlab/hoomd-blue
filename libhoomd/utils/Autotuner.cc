@@ -30,7 +30,7 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
                      boost::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name), m_parameters(parameters),
       m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0),
-      m_exec_conf(exec_conf)
+      m_exec_conf(exec_conf), m_avg(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << nsamples << " " << period << " " << name << endl;
 
@@ -84,7 +84,7 @@ Autotuner::Autotuner(unsigned int start,
                      boost::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name),
       m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0), m_current_param(0),
-      m_exec_conf(exec_conf)
+      m_exec_conf(exec_conf), m_avg(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << " " << start << " " << end << " " << step << " "
                                 << nsamples << " " << period << " " << name << endl;
@@ -281,9 +281,21 @@ unsigned int Autotuner::computeOptimalParameter()
         #endif
         if (is_root)
             {
-            size_t n = v.size() / 2;
-            nth_element(v.begin(), v.begin()+n, v.end());
-            m_sample_median[i] = v[n];
+            if (m_avg)
+                {
+                // compute average
+                float sum = 0.0f;
+                for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
+                    sum += *it;
+                m_sample_median[i] = sum/v.size();
+                }
+            else
+                {
+                // compute median
+                size_t n = v.size() / 2;
+                nth_element(v.begin(), v.begin()+n, v.end());
+                m_sample_median[i] = v[n];
+                }
             }
         }
 

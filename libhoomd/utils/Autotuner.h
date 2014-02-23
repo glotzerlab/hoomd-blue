@@ -141,6 +141,14 @@ class Autotuner
             m_sync = sync;
             }
 
+        //! Set average flag
+        /*! \param avg If true, use average instead of median of samples to compute kernel time
+         */
+        void setAverage(bool avg)
+            {
+            m_avg = avg;
+            }
+
     protected:
         unsigned int computeOptimalParameter();
 
@@ -177,6 +185,7 @@ class Autotuner
         #endif
 
         bool m_sync;              //!< If true, synchronize results via MPI
+        bool m_avg;               //!< If true, use sample average instead of median
     };
 
 //! Export the Autotuner class to python

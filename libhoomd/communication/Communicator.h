@@ -73,6 +73,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>
 
+#include "Autotuner.h"
+
 /*! \ingroup hoomd_lib
     @{
 */
@@ -292,13 +294,22 @@ class Communicator
             return m_local_compute_callbacks.connect(subscriber);
             }
 
-        //! Subscribe to list of call-backs for computation that depends on ghost positions
+        //! Subscribe to list of *optional* call-backs for computation using ghost particles
         /*!
-         * Functions subscribed to the compute callback signal are those
-         * that can be overlapped with all-to-all synchronization. For good
-         * MPI performance, the callbacks should NOT synchronize the GPU
-         * execution stream.
+         * Subscribe to a list of call-backs that precompute quantities using information about ghost particles
+         * before awaiting the result of the particle migration check. Pre-computation must be entirely *optional* for
+         * the subscribing class. When the signal is triggered the class may pre-compute quantities
+         * under the assumption that no particle migration will occur. Since the result of the
+         * particle migration check is in general available only *after* the signal has been triggered,
+         * the class must *not* rely on this assumption. Plus, triggering of the signal is not guaruanteed
+         * when particle migration does occur.
          *
+         * Methods subscribed to the compute callback signal are those that improve performance by
+         * overlapping computation with all-to-all MPI synchronization and communication callbacks.
+         * For this optimization to work, subscribing methods should NOT synchronize the GPU execution stream.
+         *
+         * \note Triggering of the signal before or after MPI synchronization is dependent upon runtime (auto-) tuning.
+         * 
          * \note Subscribers are called only after updated ghost information is available
          *       but BEFORE particle migration
          *
@@ -458,6 +469,8 @@ class Communicator
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
+            m_tuner_precompute->setPeriod(period);
+            m_tuner_precompute->setEnabled(enable);
             } 
 
         //@}
@@ -579,6 +592,8 @@ class Communicator
 
         boost::signals2::signal<void (unsigned int timestep)>
             m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
+
+        boost::scoped_ptr<Autotuner> m_tuner_precompute; //!< Autotuner for precomputation of quantites
 
         CommFlags m_flags;                       //!< The ghost communication flags
         CommFlags m_last_flags;                       //!< Flags of last ghost exchange

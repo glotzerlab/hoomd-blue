@@ -126,7 +126,7 @@ class NeighborListGPU : public NeighborList
             {
             // upon first call, register with Communicator
             if (comm && !m_comm)
-                comm->addComputeCallback(bind(&NeighborListGPU::scheduleDistanceCheck, this, _1));
+                comm->addLocalComputeCallback(bind(&NeighborListGPU::scheduleDistanceCheck, this, _1));
 
             // call base class method
             NeighborList::setCommunicator(comm);
