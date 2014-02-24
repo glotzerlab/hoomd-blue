@@ -469,9 +469,12 @@ class Communicator
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_tuner_precompute->setPeriod(period);
-            m_tuner_precompute->setEnabled(enable);
-            } 
+            if (m_tuner_precompute)
+                {
+                m_tuner_precompute->setPeriod(period);
+                m_tuner_precompute->setEnabled(enable);
+                }
+            }
 
         //@}
     protected:

@@ -1042,7 +1042,7 @@ void Communicator::communicate(unsigned int timestep)
         finishUpdateGhosts(timestep);
 
     bool precompute = m_tuner_precompute ? m_tuner_precompute->getParam() : true;
-    
+
     if (m_tuner_precompute) m_tuner_precompute->begin();
 
     if (precompute && update)
