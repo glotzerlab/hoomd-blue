@@ -1943,7 +1943,7 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             } // end ArrayHandle scope
 
-        #ifndef ENABLE_MPI_CUDA 
+        #ifndef ENABLE_MPI_CUDA
         // only unpack in non-CUDA MPI builds
             {
             // access receive buffers

@@ -890,6 +890,25 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     m_end.swap(end);
 
     initializeNeighborArrays();
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // set up autotuners to determine whether to use mapped memory (boolean values)
+        std::vector<unsigned int> valid_params(2);
+        valid_params[0] = 0; valid_params[1]  = 1;
+
+        // use a sufficiently long measurement period to average over
+        unsigned int nsteps = 100;
+        m_tuner_precompute.reset(new Autotuner(valid_params, nsteps, 100000, "comm_precompute", this->m_exec_conf));
+
+        // average execution times instead of median
+        m_tuner_precompute->setAverage(true);
+
+        // we require syncing for aligned execution streams
+        m_tuner_precompute->setSync(true);
+        }
+    #endif
     }
 
 //! Destructor
@@ -1022,14 +1041,29 @@ void Communicator::communicate(unsigned int timestep)
     if (update)
         finishUpdateGhosts(timestep);
 
-    // call subscribers that depend on updated ghosts
-    if (update) m_compute_callbacks(timestep);
+    bool precompute = m_tuner_precompute ? m_tuner_precompute->getParam() : true;
+
+    if (m_tuner_precompute) m_tuner_precompute->begin();
+
+    if (precompute && update)
+        {
+        // call subscribers *before* MPI synchronization, but after ghost update
+        m_compute_callbacks(timestep);
+        }
 
     // other functions involving syncing
     m_comm_callbacks(timestep);
 
     // distance check (synchronizes the GPU execution stream)
     bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
+
+    if (!precompute && !migrate)
+        {
+        // call *after* synchronization, but only if particles do not migrate
+        m_compute_callbacks(timestep);
+        }
+
+    if (m_tuner_precompute) m_tuner_precompute->end();
 
     // Check if migration of particles is requested
     if (migrate)
