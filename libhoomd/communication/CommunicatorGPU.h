@@ -132,7 +132,7 @@ class CommunicatorGPU : public Communicator
 
             m_tuner_ghost_send->setPeriod(period);
             m_tuner_ghost_send->setEnabled(enable);
-            } 
+            }
 
 
     protected:

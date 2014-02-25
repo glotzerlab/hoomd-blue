@@ -309,7 +309,7 @@ class Communicator
          * For this optimization to work, subscribing methods should NOT synchronize the GPU execution stream.
          *
          * \note Triggering of the signal before or after MPI synchronization is dependent upon runtime (auto-) tuning.
-         * 
+         *
          * \note Subscribers are called only after updated ghost information is available
          *       but BEFORE particle migration
          *
