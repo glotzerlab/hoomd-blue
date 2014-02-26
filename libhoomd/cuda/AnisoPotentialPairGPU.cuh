@@ -88,7 +88,6 @@ struct a_pair_args_t
               const unsigned int *_d_nlist,
               const Index2D& _nli,
               const Scalar *_d_rcutsq, 
-              const Scalar *_d_ronsq,
               const unsigned int _ntypes,
               const unsigned int _block_size,
               const unsigned int _shift_mode,
@@ -108,7 +107,6 @@ struct a_pair_args_t
                   d_nlist(_d_nlist),
                   nli(_nli),
                   d_rcutsq(_d_rcutsq),
-                  d_ronsq(_d_ronsq),
                   ntypes(_ntypes),
                   block_size(_block_size),
                   shift_mode(_shift_mode),
@@ -131,7 +129,6 @@ struct a_pair_args_t
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const Index2D& nli;             //!< Indexer for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int shift_mode;  //!< The potential energy shift mode
@@ -170,10 +167,9 @@ scalar_tex_t pdata_charge_tex;
     \param nli Indexer for indexing \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
-    \param d_ronsq ron squared, stored per type pair
     \param ntypes Number of types in the simulation
     
-    \a d_params, \a d_rcutsq, and \a d_ronsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
+    \a d_params and \a d_rcutsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
     amount of shared memory must be allocatd for this kernel launch. The amount is
     (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
@@ -205,7 +201,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      const Index2D nli,
                                                      const typename evaluator::param_type *d_params,
                                                      const Scalar *d_rcutsq,
-                                                     const Scalar *d_ronsq,
                                                      const unsigned int ntypes)
     {
     Index2D typpair_idx(ntypes);
@@ -216,7 +211,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     typename evaluator::param_type *s_params = 
         (typename evaluator::param_type *)(&s_data[0]);
     Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
-    Scalar *s_ronsq = (Scalar *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(Scalar))]);
     
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -225,8 +219,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
             {
             s_rcutsq[cur_offset + threadIdx.x] = d_rcutsq[cur_offset + threadIdx.x];
             s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
-            if (shift_mode == 2)
-                s_ronsq[cur_offset + threadIdx.x] = d_ronsq[cur_offset + threadIdx.x];
             }
         }
     __syncthreads();
@@ -322,9 +314,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
             unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
             Scalar rcutsq = s_rcutsq[typpair];
             typename evaluator::param_type param = s_params[typpair];
-            Scalar ronsq = 0.0f;
-            if (shift_mode == 2)
-                ronsq = s_ronsq[typpair];
             
             // design specifies that energies are shifted if
             // 1) shift mode is set to shift
@@ -332,11 +321,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
             bool energy_shift = false;
             if (shift_mode == 1)
                 energy_shift = true;
-            else if (shift_mode == 2)
-                {
-                if (ronsq > rcutsq)
-                    energy_shift = true;
-                }
             
             // evaluate the potential
             Scalar3 jforce = { 0.0f, 0.0f, 0.0f };
@@ -353,31 +337,6 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
             
             // call evaluator
             eval.evaluate(jforce, pair_eng, energy_shift, torquei, torquej);
-            
-            /*
-            if (shift_mode == 2)
-                {
-                if (rsq >= ronsq && rsq < rcutsq)
-                    {
-                    // Implement XPLOR smoothing (FLOPS: 16)
-                    Scalar old_pair_eng = pair_eng;
-                    Scalar old_force_divr = force_divr;
-                    
-                    // calculate 1.0 / (xplor denominator)
-                    Scalar xplor_denom_inv =
-                        Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-                    
-                    Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                    Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
-                               (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
-                    Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-                    
-                    // make modifications to the old pair energy and force
-                    pair_eng = old_pair_eng * s;
-                    force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
-                    }
-                }
-            */
             
             // calculate the virial (FLOPS: ?)
             if (compute_virial)
@@ -434,7 +393,6 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
     {
     assert(d_params);
     assert(pair_args.d_rcutsq);
-    assert(pair_args.d_ronsq);
     assert(pair_args.ntypes > 0);
     
     // setup the grid to run the kernel
@@ -495,7 +453,6 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                                   pair_args.nli, 
                                                   d_params, 
                                                   pair_args.d_rcutsq, 
-                                                  pair_args.d_ronsq, 
                                                   pair_args.ntypes);
                 break;
             case 1:
@@ -515,27 +472,6 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                                   pair_args.nli, 
                                                   d_params, 
                                                   pair_args.d_rcutsq, 
-                                                  pair_args.d_ronsq, 
-                                                  pair_args.ntypes);
-                break;
-            case 2:
-                gpu_compute_pair_aniso_forces_kernel<evaluator, 2, 1>
-                    <<<grid, threads, shared_bytes>>>(pair_args.d_force, 
-                                                  pair_args.d_torque, 
-                                                  pair_args.d_virial, 
-                                                  pair_args.virial_pitch,
-                                                  pair_args.N,
-                                                  pair_args.d_pos,
-                                                  pair_args.d_diameter,
-                                                  pair_args.d_charge,
-                                                  pair_args.d_orientation, 
-                                                  pair_args.box, 
-                                                  pair_args.d_n_neigh, 
-                                                  pair_args.d_nlist, 
-                                                  pair_args.nli, 
-                                                  d_params, 
-                                                  pair_args.d_rcutsq, 
-                                                  pair_args.d_ronsq, 
                                                   pair_args.ntypes);
                 break;
             default:
@@ -563,7 +499,6 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                                   pair_args.nli, 
                                                   d_params, 
                                                   pair_args.d_rcutsq, 
-                                                  pair_args.d_ronsq, 
                                                   pair_args.ntypes);
                 break;
             case 1:
@@ -583,27 +518,6 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                                   pair_args.nli, 
                                                   d_params, 
                                                   pair_args.d_rcutsq, 
-                                                  pair_args.d_ronsq, 
-                                                  pair_args.ntypes);
-                break;
-            case 2:
-                gpu_compute_pair_aniso_forces_kernel<evaluator, 2, 0>
-                    <<<grid, threads, shared_bytes>>>(pair_args.d_force, 
-                                                  pair_args.d_torque, 
-                                                  pair_args.d_virial, 
-                                                  pair_args.virial_pitch,
-                                                  pair_args.N,
-                                                  pair_args.d_pos,
-                                                  pair_args.d_diameter,
-                                                  pair_args.d_charge,
-                                                  pair_args.d_orientation, 
-                                                  pair_args.box, 
-                                                  pair_args.d_n_neigh, 
-                                                  pair_args.d_nlist, 
-                                                  pair_args.nli, 
-                                                  d_params, 
-                                                  pair_args.d_rcutsq, 
-                                                  pair_args.d_ronsq, 
                                                   pair_args.ntypes);
                 break;
             default:

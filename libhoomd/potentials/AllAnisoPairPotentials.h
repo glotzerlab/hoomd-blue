@@ -61,8 +61,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AnisoPotentialPairGPU.h"
 #include "AnisoPotentialPairGPU.cuh"
 #include "AllDriverAnisoPotentialPairGPU.cuh"
-#else
-#include "AnisoPotentialPair.h"
 #endif
 
 /*! \file AllAnisoPairPotentials.h
@@ -74,7 +72,7 @@ typedef AnisoPotentialPair<EvaluatorPairGB> AnisoPotentialPairGB;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for Gay-Berne forces and torques on the GPU
-typedef AnisoPotentialPairGPU<EvaluatorPairGB,gpu_compute_pair_aniso_forces_gb> PotentialPairGBGPU;
+typedef AnisoPotentialPairGPU<EvaluatorPairGB,gpu_compute_pair_aniso_forces_gb> AnisoPotentialPairGBGPU;
 #endif
 
 // 
