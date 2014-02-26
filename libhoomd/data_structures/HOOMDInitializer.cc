@@ -219,7 +219,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     if (m_type_mapping.size()) pdata.type_mapping = m_type_mapping;
 
     // Initialize moments of inertia
-    if (m_moment_inertia.size()) pdata.inertia_tensor = m_moment_inertia;
+    if (m_moment_inertia.size()) pdata.inertia = m_moment_inertia;
 
     // Initialize orientations
     if (m_orientation.size()) pdata.orientation = m_orientation;
@@ -335,15 +335,14 @@ void HOOMDInitializer::readFile(const string &fname)
         throw runtime_error("Error reading xml file");
         }
 
-    string xml_version;
     if (root_node.isAttributeSet("version"))
         {
-        xml_version = root_node.getAttribute("version");
+        m_xml_version = root_node.getAttribute("version");
         }
     else
         {
         m_exec_conf->msg->notice(2) << "No version specified in hoomd_xml root node: assuming 1.0" << endl;
-        xml_version = string("1.0");
+        m_xml_version = string("1.0");
         }
 
     // right now, the version tag doesn't do anything: just warn if it is not a valid version
@@ -354,11 +353,12 @@ void HOOMDInitializer::readFile(const string &fname)
     valid_versions.push_back("1.3");
     valid_versions.push_back("1.4");
     valid_versions.push_back("1.5");
+    valid_versions.push_back("1.6");
     bool valid = false;
     vector<string>::iterator i;
     for (i = valid_versions.begin(); i != valid_versions.end(); ++i)
         {
-        if (xml_version == *i)
+        if (m_xml_version == *i)
             {
             valid = true;
             break;
@@ -366,7 +366,7 @@ void HOOMDInitializer::readFile(const string &fname)
         }
     if (!valid)
         m_exec_conf->msg->warning() << endl
-             << "hoomd_xml file with version not in the range 1.0-1.5  specified,"
+             << "hoomd_xml file with version not in the range 1.0-1.6  specified,"
              << " I don't know how to read this. Continuing anyways." << endl << endl;
 
     // the file was parsed successfully by the XML reader. Extract the information now
@@ -1060,11 +1060,27 @@ void HOOMDInitializer::parseMomentInertiaNode(const XMLNode &node)
 
     istringstream parser;
     parser.str(all_text);
+    bool read_offdiagonal = (m_xml_version == "1.4" || m_xml_version == "1.5");
+
+    if (read_offdiagonal)
+        {
+        m_exec_conf->msg->warning() << "Ignoring off-diagonal moments of inertia in this XML file version < 1.6"
+            << std::endl;
+        }
+
     while (parser.good())
         {
-        InertiaTensor I;
-        for (unsigned int i = 0; i < 6; i++)
-            parser >> I.components[i];
+        Scalar3 I;
+        Scalar tmp;
+        parser >> I.x;
+        if (read_offdiagonal)
+            {
+            parser >> tmp;
+            parser >> tmp;
+            }
+        parser >> I.y;
+        if (read_offdiagonal) parser >> tmp;
+        parser >> I.z;
 
         if (parser.good())
             m_moment_inertia.push_back(I);

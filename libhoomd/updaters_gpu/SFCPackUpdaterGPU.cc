@@ -206,6 +206,7 @@ void SFCPackUpdaterGPU::applySortOrder()
         ArrayHandle<Scalar4> d_orientation_alt(m_pdata->getAltOrientationArray(), access_location::device, access_mode::overwrite);
 
         ArrayHandle<Scalar4> d_angmom_alt(m_pdata->getAltAngularMomentumArray(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar3> d_inertia_alt(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_net_virial_alt(m_pdata->getAltNetVirial(), access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_net_force_alt(m_pdata->getAltNetForce(), access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_net_torque_alt(m_pdata->getAltNetTorqueArray(), access_location::device, access_mode::overwrite);
@@ -221,6 +222,7 @@ void SFCPackUpdaterGPU::applySortOrder()
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
         ArrayHandle<Scalar> d_net_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
@@ -255,6 +257,8 @@ void SFCPackUpdaterGPU::applySortOrder()
             d_orientation_alt.data,
             d_angmom.data,
             d_angmom_alt.data,
+            d_inertia.data,
+            d_inertia_alt.data,
             d_net_virial.data,
             d_net_virial_alt.data,
             d_net_force.data,

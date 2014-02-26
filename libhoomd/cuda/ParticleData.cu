@@ -79,6 +79,7 @@ __global__ void gpu_scatter_particle_data_kernel(
     const unsigned int *d_body,
     const Scalar4 *d_orientation,
     const Scalar4 *d_angmom,
+    const Scalar3 *d_inertia,
     const unsigned int *d_tag,
     unsigned int *d_rtag,
     Scalar4 *d_pos_alt,
@@ -90,6 +91,7 @@ __global__ void gpu_scatter_particle_data_kernel(
     unsigned int *d_body_alt,
     Scalar4 *d_orientation_alt,
     Scalar4 *d_angmom_alt,
+    Scalar3 *d_inertia_alt,
     unsigned int *d_tag_alt,
     pdata_element *d_out,
     unsigned int *d_comm_flags,
@@ -117,6 +119,7 @@ __global__ void gpu_scatter_particle_data_kernel(
         p.body = d_body[idx];
         p.orientation = d_orientation[idx];
         p.angmom = d_angmom[idx];
+        p.inertia = d_inertia[idx];
         p.tag = d_tag[idx];
         d_out[scan_remove] = p;
         d_comm_flags_out[scan_remove] = d_comm_flags[idx];
@@ -138,6 +141,7 @@ __global__ void gpu_scatter_particle_data_kernel(
         d_body_alt[scan_keep] = d_body[idx];
         d_orientation_alt[scan_keep] = d_orientation[idx];
         d_angmom_alt[scan_keep] = d_angmom[idx];
+        d_inertia_alt[scan_keep] = d_inertia[idx];
         unsigned int tag = d_tag[idx];
         d_tag_alt[scan_keep] = tag;
 
@@ -168,6 +172,7 @@ __global__ void gpu_select_sent_particles(
     \param d_body Device array of particle body tags
     \param d_orientation Device array of particle orientations
     \param d_angmom Device array of particle angular momenta
+    \param d_inertia Device array of particle moments of inertia
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
     \param d_pos_alt Device array of particle positions (output)
@@ -179,6 +184,7 @@ __global__ void gpu_select_sent_particles(
     \param d_body_alt Device array of particle body tags (output)
     \param d_orientation_alt Device array of particle orientations (output)
     \param d_angmom_alt Device array of particle angular momenta (output)
+    \param d_inertia Device array of particle moments of inertia (output)
     \param d_out Output array for packed particle data
     \param max_n_out Maximum number of elements to write to output array
 
@@ -194,6 +200,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     const unsigned int *d_body,
                     const Scalar4 *d_orientation,
                     const Scalar4 *d_angmom,
+                    const Scalar3 *d_inertia,
                     const unsigned int *d_tag,
                     unsigned int *d_rtag,
                     Scalar4 *d_pos_alt,
@@ -205,6 +212,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     unsigned int *d_body_alt,
                     Scalar4 *d_orientation_alt,
                     Scalar4 *d_angmom_alt,
+                    Scalar3 *d_inertia_alt,
                     unsigned int *d_tag_alt,
                     pdata_element *d_out,
                     unsigned int *d_comm_flags,
@@ -248,6 +256,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             d_body,
             d_orientation,
             d_angmom,
+            d_inertia,
             d_tag,
             d_rtag,
             d_pos_alt,
@@ -259,6 +268,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             d_body_alt,
             d_orientation_alt,
             d_angmom_alt,
+            d_inertia_alt,
             d_tag_alt,
             d_out,
             d_comm_flags,
@@ -282,6 +292,7 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
                     unsigned int *d_body,
                     Scalar4 *d_orientation,
                     Scalar4 *d_angmom,
+                    Scalar3 *d_inertia,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
@@ -303,6 +314,7 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
     d_body[add_idx] = p.body;
     d_orientation[add_idx] = p.orientation;
     d_angmom[add_idx] = p.angmom;
+    d_inertia[add_idx] = p.inertia;
     d_tag[add_idx] = p.tag;
     d_rtag[p.tag] = add_idx;
     d_comm_flags[add_idx] = 0;
@@ -319,6 +331,7 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
     \param d_body Device array of particle body tags
     \param d_orientation Device array of particle orientations
     \param d_angmom Device array of particle angular momenta
+    \param d_inertia Device array of particle moments of inertia
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
     \param d_in Device array of packed input particle data
@@ -335,6 +348,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     unsigned int *d_body,
                     Scalar4 *d_orientation,
                     Scalar4 *d_angmom,
+                    Scalar3 *d_inertia,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
@@ -354,6 +368,7 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
         d_body,
         d_orientation,
         d_angmom,
+        d_inertia,
         d_tag,
         d_rtag,
         d_in,

@@ -236,7 +236,8 @@ class HOOMDInitializer
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
 
         std::vector<Scalar4> m_orientation;             //!< Orientation of each particle
-        std::vector<InertiaTensor> m_moment_inertia;    //!< Inertia tensor for each particle
+        std::vector<Scalar3> m_moment_inertia;       //!< Moments of inertia for each particle
+        std::string m_xml_version;                  //!< Version of XML file
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
     };

@@ -97,6 +97,8 @@ void gpu_apply_sorted_order(
         Scalar4 *d_orientation_alt,
         const Scalar4 *d_angmom,
         Scalar4 *d_angmom_alt,
+        const Scalar3 *d_inertia,
+        Scalar3 *d_inertia_alt,
         const Scalar *d_net_virial,
         Scalar *d_net_virial_alt,
         const Scalar4 *d_net_force,

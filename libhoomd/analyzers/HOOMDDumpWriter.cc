@@ -249,7 +249,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
     f.precision(13);
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << "\n";
-    f << "<hoomd_xml version=\"1.5\">" << "\n";
+    f << "<hoomd_xml version=\"1.6\">" << "\n";
     f << "<configuration time_step=\"" << timestep << "\" "
       << "dimensions=\"" << m_sysdef->getNDimensions() << "\" "
       << "natoms=\"" << m_pdata->getNGlobal() << "\" ";
@@ -540,10 +540,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
             {
             // inertia tensors are stored by tag
-            InertiaTensor I = snapshot.inertia_tensor[i];
-            for (unsigned int c = 0; c < 5; c++)
-                f << I.components[c] << " ";
-            f << I.components[5] << "\n";
+            Scalar3 I = snapshot.inertia[i];
+            f << I.x << " " << I.y << " " << I.z << "\n";
 
             if (!f.good())
                 {

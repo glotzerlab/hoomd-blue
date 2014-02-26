@@ -152,38 +152,6 @@ struct CScalar
     Scalar i; //!< Imaginary part
     };
 
-//! Defines a simple moment of inertia structure
-/*! This moment of interia is stored per particle. Because there are no per-particle body update steps in the
-    design of hoomd, these values are never read or used except at initialization. Thus, a simple descriptive
-    structure is used instead of an advanced and complicated GPUArray strided data array.
-
-    The member variable components stores the 6 components of an upper-trianglar moment of inertia tensor.
-    The components are, in order, Ixx, Ixy, Ixz, Iyy, Iyz, Izz.
-
-    They are initialized to 0 and left that way if not specified in an initialization file.
-*/
-struct InertiaTensor
-    {
-    InertiaTensor()
-        {
-        for (unsigned int i = 0; i < 6; i++)
-            components[i] = Scalar(0.0);
-        }
-
-    //! Set the components of the tensor
-    void set(Scalar c0, Scalar c1, Scalar c2, Scalar c3, Scalar c4, Scalar c5)
-        {
-        components[0] = c0;
-        components[1] = c1;
-        components[2] = c2;
-        components[3] = c3;
-        components[4] = c4;
-        components[5] = c5;
-        }
-
-    Scalar components[6];   //!< Stores the components of the inertia tensor
-    };
-
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
 
@@ -237,7 +205,7 @@ struct SnapshotParticleData {
     std::vector<unsigned int> body; //!< body ids
     std::vector<Scalar4> orientation; //!< orientations
     std::vector<Scalar4> angmom;    //!< Angular momentum quaternion
-    std::vector<InertiaTensor> inertia_tensor; //!< Moments of inertia
+    std::vector<Scalar3> inertia; //!< Principal moments of inertia
 
     unsigned int size;              //!< number of particles in this snapshot
     std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
@@ -257,6 +225,7 @@ struct pdata_element
     unsigned int body;         //!< Body id
     Scalar4 orientation;       //!< Orientation
     Scalar4 angmom;            //!< Angular momentum
+    Scalar3 inertia;           //!< Principal moments of inertia
     unsigned int tag;          //!< global tag
     };
 
@@ -354,13 +323,11 @@ struct pdata_element
 
     To enable correct initialization of the composite body moment of inertia, each particle is also assigned
     an individual moment of inertia which is summed up correctly to determine the composite body's total moment of
-    inertia. As such, the initial particle moment of inertias are only ever used during initialization and do not
-    need to be stored in an efficient GPU data structure. Nor does the inertia tensor data need to be resorted,
-    so it will always remain in tag order.
+    inertia.
 
     Access the orientation quaternion of each particle with the GPUArray gotten from getOrientationArray(), the net
-    torque with getTorqueArray(). Individual inertia tensor values can be accessed with getInertiaTensor() and
-    setInertiaTensor()
+    torque with getTorqueArray(). Individual inertia tensor values can be accessed with getMomentsOfInertia() and
+    setMomentsOfInertia()
 
     ## Origin shifting
 
@@ -675,6 +642,9 @@ class ParticleData : boost::noncopyable
         //! Get the angular momentum array
         const GPUArray< Scalar4 >& getAngularMomentumArray() const { return m_angmom; }
 
+        //! Get the angular momentum array
+        const GPUArray< Scalar3 >& getMomentsOfInertiaArray() const { return m_inertia; }
+
         #ifdef ENABLE_MPI
         //! Get the communication flags array
         const GPUArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
@@ -736,14 +706,11 @@ class ParticleData : boost::noncopyable
         //! Get the orientation of a particle with a given tag
         Scalar4 getOrientation(unsigned int tag) const;
 
-        //! Get the orientation of a particle with a given tag
+        //! Get the angular momentum of a particle with a given tag
         Scalar4 getAngularMomentum(unsigned int tag) const;
 
-        //! Get the inertia tensor of a particle with a given tag
-        const InertiaTensor& getInertiaTensor(unsigned int tag) const
-            {
-            return m_inertia_tensor[tag];
-            }
+        //! Get the moment of inertia of a particle with a given tag
+        Scalar3 getMomentsOfInertia(unsigned int tag) const;
 
         //! Get the net force / energy on a given particle
         Scalar4 getPNetForce(unsigned int tag) const;
@@ -783,11 +750,8 @@ class ParticleData : boost::noncopyable
         //! Set the orientation of a particle with a given tag
         void setAngularMomentum(unsigned int tag, const Scalar4& angmom);
 
-        //! Get the inertia tensor of a particle with a given tag
-        void setInertiaTensor(unsigned int tag, const InertiaTensor& tensor)
-            {
-            m_inertia_tensor[tag] = tensor;
-            }
+        //! Set the orientation of a particle with a given tag
+        void setMomentsOfInertia(unsigned int tag, const Scalar3& mom_inertia);
 
         //! Get the particle data flags
         PDataFlags getFlags() { return m_flags; }
@@ -946,6 +910,7 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_body;              //!< rigid body ids
         GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
         GPUArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
+        GPUArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
         #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
         #endif
@@ -970,6 +935,7 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
         GPUArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
         GPUArray<Scalar4> m_angmom_alt;             //!< angular momenta (swap-in)
+        GPUArray<Scalar3> m_inertia_alt;             //!< Principal moments of inertia for each particle (swap-in)
         GPUArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
         GPUArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
         GPUArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
@@ -979,7 +945,6 @@ class ParticleData : boost::noncopyable
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
         GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)
         GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
-        std::vector< InertiaTensor > m_inertia_tensor; //!< Inertia tensor for each particle
 
         Scalar m_external_virial[6];                 //!< External potential contribution to the virial
         const float m_resize_factor;                 //!< The numerical factor with which the particle data arrays are resized

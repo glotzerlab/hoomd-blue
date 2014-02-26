@@ -367,7 +367,7 @@ void RigidData::initializeData()
 
     Scalar4 porientation;
     Scalar4 ex, ey, ez;
-    InertiaTensor pinertia_tensor;
+    Scalar3 pinertia;
     Scalar rot_mat[3][3], rot_mat_trans[3][3], Ibody[3][3], Ispace[3][3], tmp[3][3];
 
     ArrayHandle< unsigned int > h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -402,7 +402,7 @@ void RigidData::initializeData()
         // take into account the partile inertia moments
         // get the original particle orientation and inertia tensor from input
         porientation = h_p_orientation.data[j];
-        pinertia_tensor = m_pdata->getInertiaTensor(tag);
+        pinertia = m_pdata->getMomentsOfInertia(tag);
 
         exyzFromQuaternion(porientation, ex, ey, ez);
 
@@ -418,12 +418,12 @@ void RigidData::initializeData()
         rot_mat[1][2] = rot_mat_trans[2][1] = ez.y;
         rot_mat[2][2] = rot_mat_trans[2][2] = ez.z;
 
-        Ibody[0][0] = pinertia_tensor.components[0];
-        Ibody[0][1] = Ibody[1][0] = pinertia_tensor.components[1];
-        Ibody[0][2] = Ibody[2][0] = pinertia_tensor.components[2];
-        Ibody[1][1] = pinertia_tensor.components[3];
-        Ibody[1][2] = Ibody[2][1] = pinertia_tensor.components[4];
-        Ibody[2][2] = pinertia_tensor.components[5];
+        Ibody[0][0] = pinertia.x;
+        Ibody[0][1] = Ibody[1][0] = 0.0;
+        Ibody[0][2] = Ibody[2][0] = 0.0;
+        Ibody[1][1] = pinertia.y;
+        Ibody[1][2] = Ibody[2][1] = 0.0;
+        Ibody[2][2] = pinertia.z;
 
         // convert the particle inertia tensor to the space fixed frame
         mat_multiply(Ibody, rot_mat_trans, tmp);
