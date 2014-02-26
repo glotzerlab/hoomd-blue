@@ -453,6 +453,8 @@ void ParticleData::allocate(unsigned int N)
     m_net_torque.swap(net_torque);
     GPUArray< Scalar4 > orientation(N, m_exec_conf);
     m_orientation.swap(orientation);
+    GPUArray< Scalar4 > angmom(N, m_exec_conf);
+    m_angmom.swap(angmom);
 
     #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -514,6 +516,10 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
     // orientation
     GPUArray< Scalar4 > orientation_alt(N, m_exec_conf);
     m_orientation_alt.swap(orientation_alt);
+
+    // angular momentum
+    GPUArray< Scalar4 > angmom_alt(N, m_exec_conf);
+    m_angmom_alt.swap(angmom_alt);
 
     // Net force
     GPUArray< Scalar4 > net_force_alt(N, m_exec_conf);
@@ -605,6 +611,7 @@ void ParticleData::reallocate(unsigned int max_n)
     m_net_virial.resize(max_n,6);
     m_net_torque.resize(max_n);
     m_orientation.resize(max_n);
+    m_angmom.resize(max_n);
     m_inertia_tensor.resize(max_n);
 
     #ifdef ENABLE_MPI
@@ -623,6 +630,7 @@ void ParticleData::reallocate(unsigned int max_n)
         m_tag_alt.resize(max_n);
         m_body_alt.resize(max_n);
         m_orientation_alt.resize(max_n);
+        m_angmom_alt.resize(max_n);
         m_net_force_alt.resize(max_n);
         m_net_torque_alt.resize(max_n);
         m_net_virial_alt.resize(max_n, 6);
@@ -710,6 +718,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector< std::vector<int3 > > image_proc;              // Particle images array of every processor
         std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
         std::vector< std::vector<Scalar4> > orientation_proc;      // Orientations of every processor
+        std::vector< std::vector<Scalar4> > angmom_proc;           // Angular momenta of every processor
         std::vector< std::vector<unsigned int > > tag_proc;         // Global tags of every processor
         //std::vector< std::vector<InertiaTensor> > inertia_proc;
         std::vector< unsigned int > N_proc;                        // Number of particles on every processor
@@ -730,6 +739,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         image_proc.resize(size);
         body_proc.resize(size);
         orientation_proc.resize(size);
+        angmom_proc.resize(size);
         tag_proc.resize(size);
         N_proc.resize(size,0);
 
@@ -816,6 +826,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 diameter_proc[rank].push_back(snapshot.diameter[tag]);
                 body_proc[rank].push_back(snapshot.body[tag]);
                 orientation_proc[rank].push_back(snapshot.orientation[tag]);
+                angmom_proc[rank].push_back(snapshot.angmom[tag]);
                 tag_proc[rank].push_back(tag);
                 N_proc[rank]++;
                 }
@@ -845,6 +856,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         std::vector<int3> image;
         std::vector<unsigned int> body;
         std::vector<Scalar4> orientation;
+        std::vector<Scalar4> angmom;
         std::vector<unsigned int> tag;
 
         // distribute particle data
@@ -858,6 +870,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         scatter_v(image_proc, image, root, mpi_comm);
         scatter_v(body_proc, body, root, mpi_comm);
         scatter_v(orientation_proc, orientation, root, mpi_comm);
+        scatter_v(angmom_proc, angmom, root, mpi_comm);
         scatter_v(tag_proc, tag, root, mpi_comm);
 
         // distribute number of particles
@@ -886,6 +899,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar4 > h_angmom(m_angmom, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_comm_flag(m_comm_flags, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
@@ -902,6 +916,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_rtag.data[tag[idx]] = idx;
             h_body.data[idx] = body[idx];
             h_orientation.data[idx] = orientation[idx];
+            h_angmom.data[idx] = angmom[idx];
 
             h_comm_flag.data[idx] = 0; // initialize with zero
             }
@@ -937,6 +952,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar4 > h_orientation(m_orientation, access_location::host, access_mode::overwrite);
+        ArrayHandle< Scalar4 > h_angmom(m_angmom, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::overwrite);
         ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::readwrite);
 
@@ -958,6 +974,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_rtag.data[tag] = tag;
             h_body.data[tag] = snapshot.body[tag];
             h_orientation.data[tag] = snapshot.orientation[tag];
+            h_angmom.data[tag] = snapshot.angmom[tag];
             m_inertia_tensor[tag] = snapshot.inertia_tensor[tag];
             }
 
@@ -993,6 +1010,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     ArrayHandle< Scalar > h_diameter(m_diameter, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 >  h_orientation(m_orientation, access_location::host, access_mode::read);
+    ArrayHandle< Scalar4 >  h_angmom(m_angmom, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::read);
 
 #ifdef ENABLE_MPI
@@ -1009,6 +1027,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         std::vector<int3> image(m_nparticles);
         std::vector<unsigned int> body(m_nparticles);
         std::vector<Scalar4> orientation(m_nparticles);
+        std::vector<Scalar4> angmom(m_nparticles);
         std::vector<unsigned int> tag(m_nparticles);
         std::map<unsigned int, unsigned int> rtag_map;
         for (unsigned int idx = 0; idx < m_nparticles; idx++)
@@ -1026,6 +1045,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             image[idx].z -= m_o_image.z;
             body[idx] = h_body.data[idx];
             orientation[idx] = h_orientation.data[idx];
+            angmom[idx] = h_angmom.data[idx];
 
             // insert reverse lookup global tag -> idx
             rtag_map.insert(std::pair<unsigned int, unsigned int>(h_tag.data[idx], idx));
@@ -1041,6 +1061,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         std::vector< std::vector<int3 > > image_proc;              // Particle images array of every processor
         std::vector< std::vector<unsigned int > > body_proc;       // Body ids of every processor
         std::vector< std::vector<Scalar4 > > orientation_proc;     // Orientations of every processor
+        std::vector< std::vector<Scalar4 > > angmom_proc;          // Angular momenta of every processor
 
         std::vector< std::map<unsigned int, unsigned int> > rtag_map_proc; // List of reverse-lookup maps
 
@@ -1059,6 +1080,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         image_proc.resize(size);
         body_proc.resize(size);
         orientation_proc.resize(size);
+        angmom_proc.resize(size);
         rtag_map_proc.resize(size);
 
         unsigned int root = 0;
@@ -1074,6 +1096,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         gather_v(image, image_proc, root, mpi_comm);
         gather_v(body, body_proc, root, mpi_comm);
         gather_v(orientation, orientation_proc, root, mpi_comm);
+        gather_v(angmom, angmom_proc, root, mpi_comm);
 
         // gather the reverse-lookup maps
         gather_v(rtag_map, rtag_map_proc, root, mpi_comm);
@@ -1120,6 +1143,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                 snapshot.image[tag] = image_proc[rank][idx];
                 snapshot.body[tag] = body_proc[rank][idx];
                 snapshot.orientation[tag] = orientation_proc[rank][idx];
+                snapshot.angmom[tag] = angmom_proc[rank][idx];
 
                 // make sure the position stored in the snapshot is within the boundaries
                 m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
@@ -1146,6 +1170,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.image[tag].z -= m_o_image.z;
             snapshot.body[tag] = h_body.data[idx];
             snapshot.orientation[tag] = h_orientation.data[idx];
+            snapshot.angmom[tag] = h_angmom.data[idx];
             snapshot.inertia_tensor[tag] = m_inertia_tensor[idx];
 
             // make sure the position stored in the snapshot is within the boundaries
@@ -1456,6 +1481,30 @@ Scalar4 ParticleData::getOrientation(unsigned int tag) const
     return result;
     }
 
+//! Get the angular momentum of a particle with a given tag
+Scalar4 ParticleData::getAngularMomentum(unsigned int tag) const
+    {
+    unsigned int idx = getRTag(tag);
+    bool found = (idx < getN());
+    Scalar4 result = make_scalar4(0.0,0.0,0.0,0.0);
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_angmom(m_angmom, access_location::host, access_mode::read);
+        result = h_angmom.data[idx];
+        }
+#ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        unsigned int owner_rank = getOwnerRank(tag);
+        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        found = true;
+        }
+#endif
+    assert(found);
+    return result;
+    }
+
+
 //! Get the net force / energy on a given particle
 Scalar4 ParticleData::getPNetForce(unsigned int tag) const
     {
@@ -1752,6 +1801,25 @@ void ParticleData::setOrientation(unsigned int tag, const Scalar4& orientation)
         }
     }
 
+//! Set the angular momentum quaternion of a particle with a given tag
+void ParticleData::setAngularMomentum(unsigned int tag, const Scalar4& angmom)
+    {
+    unsigned int idx = getRTag(tag);
+    bool found = (idx < getN());
+
+#ifdef ENABLE_MPI
+    // make sure the particle is somewhere
+    if (m_decomposition)
+        getOwnerRank(tag);
+#endif
+    if (found)
+        {
+        ArrayHandle< Scalar4 > h_angmom(m_angmom, access_location::host, access_mode::readwrite);
+        h_angmom.data[idx] = angmom;
+        }
+    }
+
+
 void export_BoxDim()
     {
     class_<BoxDim>("BoxDim")
@@ -1817,6 +1885,7 @@ void export_ParticleData()
     .def("getBody", &ParticleData::getBody)
     .def("getType", &ParticleData::getType)
     .def("getOrientation", &ParticleData::getOrientation)
+    .def("getAngularMomentum", &ParticleData::getAngularMomentum)
     .def("getPNetForce", &ParticleData::getPNetForce)
     .def("getNetTorque", &ParticleData::getNetTorque)
     .def("getInertiaTensor", &ParticleData::getInertiaTensor, return_value_policy<copy_const_reference>())
@@ -1829,6 +1898,7 @@ void export_ParticleData()
     .def("setBody", &ParticleData::setBody)
     .def("setType", &ParticleData::setType)
     .def("setOrientation", &ParticleData::setOrientation)
+    .def("setAngularMomentum", &ParticleData::setAngularMomentum)
     .def("setInertiaTensor", &ParticleData::setInertiaTensor)
     .def("takeSnapshot", &ParticleData::takeSnapshot)
     .def("initializeFromSnapshot", &ParticleData::initializeFromSnapshot)
@@ -1858,6 +1928,7 @@ void SnapshotParticleData::resize(unsigned int N)
     image.resize(N,make_int3(0,0,0));
     body.resize(N,NO_BODY);
     orientation.resize(N,make_scalar4(1.0,0.0,0.0,0.0));
+    angmom.resize(N,make_scalar4(1.0,0.0,0.0,0.0));
     inertia_tensor.resize(N);
     size = N;
     }
@@ -1870,7 +1941,7 @@ bool SnapshotParticleData::validate() const
     // Check if all other fields are of equal length==size
     if (pos.size() != size || vel.size() != size || accel.size() != size || type.size() != size ||
         mass.size() != size || charge.size() != size || diameter.size() != size ||
-        image.size() != size || body.size() != size || orientation.size() != size ||
+        image.size() != size || body.size() != size || orientation.size() != size || angmom.size() != size ||
         inertia_tensor.size() != size)
         return false;
 
@@ -1888,7 +1959,8 @@ typedef boost::tuple <
     Scalar *,        // diameter
     int3 *,          // image
     unsigned int *,  // body
-    Scalar4 *        // orientation
+    Scalar4 *,       // orientation
+    Scalar4 *        // angmom
     > pdata_it_tuple;
 
 //! A zip iterator for filtering particle data
@@ -1904,7 +1976,8 @@ typedef boost::tuple <
     const Scalar,        // diameter
     const int3,          // image
     const unsigned int,  // body
-    const Scalar4        // orientation
+    const Scalar4,       // orientation
+    const Scalar4        // angmom
     > pdata_tuple;
 
 //! A predicate to select particles by rtag (NOT_LOCAL)
@@ -1968,7 +2041,8 @@ struct to_pdata_tuple : public std::unary_function<const pdata_element, const pd
             p.diameter,
             p.image,
             p.body,
-            p.orientation
+            p.orientation,
+            p.angmom
             );
         }
     };
@@ -1989,6 +2063,7 @@ struct to_pdata_element : public std::unary_function<const pdata_tuple, pdata_el
         p.image = t.get<6>();
         p.body = t.get<7>();
         p.orientation = t.get<8>();
+        p.angmom = t.get<9>();
 
         return p;
         }
@@ -2042,6 +2117,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
         ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_angmom(getAngularMomentumArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
 
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::read);
@@ -2056,6 +2132,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
         ArrayHandle<int3> h_image_alt(m_image_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_body_alt(m_body_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_orientation_alt(m_orientation_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_angmom_alt(m_angmom_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_tag_alt(m_tag_alt, access_location::host, access_mode::overwrite);
 
         pdata_zip pdata_begin = boost::make_tuple(
@@ -2067,7 +2144,8 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
             h_diameter.data,
             h_image.data,
             h_body.data,
-            h_orientation.data
+            h_orientation.data,
+            h_angmom.data
             );
         pdata_zip pdata_end = pdata_begin + old_nparticles;
 
@@ -2081,7 +2159,8 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
             h_diameter_alt.data,
             h_image_alt.data,
             h_body_alt.data,
-            h_orientation_alt.data
+            h_orientation_alt.data,
+            h_angmom_alt.data
             );
 
         std::remove_copy_if(pdata_begin, pdata_end, pdata_alt_begin,
@@ -2111,6 +2190,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
     swapImages();
     swapBodies();
     swapOrientations();
+    swapAngularMomenta();
     swapTags();
 
         {
@@ -2156,6 +2236,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
         ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_angmom(getAngularMomentumArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::readwrite);
@@ -2169,7 +2250,8 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
             h_diameter.data,
             h_image.data,
             h_body.data,
-            h_orientation.data
+            h_orientation.data,
+            h_angmom.data
             );
         pdata_zip pdata_add_begin = pdata_begin + old_nparticles;
 
@@ -2236,6 +2318,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
         ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_angmom(getAngularMomentumArray(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
 
         // access alternate particle data arrays to write to
@@ -2247,6 +2330,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
         ArrayHandle<int3> d_image_alt(m_image_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_body_alt(m_body_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_orientation_alt(m_orientation_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_angmom_alt(m_angmom_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
 
         ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
@@ -2271,6 +2355,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_image.data,
                            d_body.data,
                            d_orientation.data,
+                           d_angmom.data,
                            d_tag.data,
                            d_rtag.data,
                            d_pos_alt.data,
@@ -2281,6 +2366,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_image_alt.data,
                            d_body_alt.data,
                            d_orientation_alt.data,
+                           d_angmom_alt.data,
                            d_tag_alt.data,
                            d_out.data,
                            d_comm_flags.data,
@@ -2314,6 +2400,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
     swapImages();
     swapBodies();
     swapOrientations();
+    swapAngularMomenta();
     swapTags();
 
     // notify subscribers
@@ -2344,6 +2431,7 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
         ArrayHandle<int3> d_image(getImages(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_body(getBodies(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_angmom(getAngularMomentumArray(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
@@ -2363,6 +2451,7 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
             d_image.data,
             d_body.data,
             d_orientation.data,
+            d_angmom.data,
             d_tag.data,
             d_rtag.data,
             d_in.data,

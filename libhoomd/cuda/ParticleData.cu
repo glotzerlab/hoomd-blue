@@ -67,37 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "kernels/scan.cuh"
 
-//! A tuple of pdata pointers
-typedef thrust::tuple <
-    thrust::device_ptr<unsigned int>,  // tag
-    thrust::device_ptr<Scalar4>,       // pos
-    thrust::device_ptr<Scalar4>,       // vel
-    thrust::device_ptr<Scalar3>,       // accel
-    thrust::device_ptr<Scalar>,        // charge
-    thrust::device_ptr<Scalar>,        // diameter
-    thrust::device_ptr<int3>,          // image
-    thrust::device_ptr<unsigned int>,  // body
-    thrust::device_ptr<Scalar4>,       // orientation
-    thrust::device_ptr<unsigned int>   // communication flags
-    > pdata_it_tuple_gpu;
-
-//! A zip iterator for filtering particle data
-typedef thrust::zip_iterator<pdata_it_tuple_gpu> pdata_zip_gpu;
-
-//! A tuple of pdata fields
-typedef thrust::tuple <
-    unsigned int,  // tag
-    Scalar4,       // pos
-    Scalar4,       // vel
-    Scalar3,       // accel
-    Scalar,        // charge
-    Scalar,        // diameter
-    int3,          // image
-    unsigned int,  // body
-    Scalar4,       // orientation
-    unsigned int   // communication flags
-    > pdata_tuple_gpu;
-
 //! Kernel to partition particle data
 __global__ void gpu_scatter_particle_data_kernel(
     const unsigned int N,
@@ -109,6 +78,7 @@ __global__ void gpu_scatter_particle_data_kernel(
     const int3 *d_image,
     const unsigned int *d_body,
     const Scalar4 *d_orientation,
+    const Scalar4 *d_angmom,
     const unsigned int *d_tag,
     unsigned int *d_rtag,
     Scalar4 *d_pos_alt,
@@ -119,6 +89,7 @@ __global__ void gpu_scatter_particle_data_kernel(
     int3 *d_image_alt,
     unsigned int *d_body_alt,
     Scalar4 *d_orientation_alt,
+    Scalar4 *d_angmom_alt,
     unsigned int *d_tag_alt,
     pdata_element *d_out,
     unsigned int *d_comm_flags,
@@ -145,6 +116,7 @@ __global__ void gpu_scatter_particle_data_kernel(
         p.image = d_image[idx];
         p.body = d_body[idx];
         p.orientation = d_orientation[idx];
+        p.angmom = d_angmom[idx];
         p.tag = d_tag[idx];
         d_out[scan_remove] = p;
         d_comm_flags_out[scan_remove] = d_comm_flags[idx];
@@ -165,6 +137,7 @@ __global__ void gpu_scatter_particle_data_kernel(
         d_image_alt[scan_keep] = d_image[idx];
         d_body_alt[scan_keep] = d_body[idx];
         d_orientation_alt[scan_keep] = d_orientation[idx];
+        d_angmom_alt[scan_keep] = d_angmom[idx];
         unsigned int tag = d_tag[idx];
         d_tag_alt[scan_keep] = tag;
 
@@ -194,6 +167,7 @@ __global__ void gpu_select_sent_particles(
     \param d_image Device array of particle images
     \param d_body Device array of particle body tags
     \param d_orientation Device array of particle orientations
+    \param d_angmom Device array of particle angular momenta
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
     \param d_pos_alt Device array of particle positions (output)
@@ -204,6 +178,7 @@ __global__ void gpu_select_sent_particles(
     \param d_image_alt Device array of particle images (output)
     \param d_body_alt Device array of particle body tags (output)
     \param d_orientation_alt Device array of particle orientations (output)
+    \param d_angmom_alt Device array of particle angular momenta (output)
     \param d_out Output array for packed particle data
     \param max_n_out Maximum number of elements to write to output array
 
@@ -218,6 +193,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     const int3 *d_image,
                     const unsigned int *d_body,
                     const Scalar4 *d_orientation,
+                    const Scalar4 *d_angmom,
                     const unsigned int *d_tag,
                     unsigned int *d_rtag,
                     Scalar4 *d_pos_alt,
@@ -228,6 +204,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     int3 *d_image_alt,
                     unsigned int *d_body_alt,
                     Scalar4 *d_orientation_alt,
+                    Scalar4 *d_angmom_alt,
                     unsigned int *d_tag_alt,
                     pdata_element *d_out,
                     unsigned int *d_comm_flags,
@@ -270,6 +247,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             d_image,
             d_body,
             d_orientation,
+            d_angmom,
             d_tag,
             d_rtag,
             d_pos_alt,
@@ -280,6 +258,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             d_image_alt,
             d_body_alt,
             d_orientation_alt,
+            d_angmom_alt,
             d_tag_alt,
             d_out,
             d_comm_flags,
@@ -291,29 +270,43 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     return n_out;
     }
 
-//! A converter from pdata_element to a tuple of tag and a tuple of pdata entries
-/*! Writes the tag into the rtag table at the same time
- */
-struct to_pdata_tuple_gpu : public thrust::unary_function<const pdata_element, pdata_tuple_gpu>
-    {
-    __device__ const pdata_tuple_gpu operator() (const pdata_element p)
-        {
-        // make tuple
-        return thrust::make_tuple(
-            p.tag,
-            p.pos,
-            p.vel,
-            p.accel,
-            p.charge,
-            p.diameter,
-            p.image,
-            p.body,
-            p.orientation,
-            0 // communication flags
-            );
-        }
-    };
 
+__global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
+                    unsigned int num_add_ptls,
+                    Scalar4 *d_pos,
+                    Scalar4 *d_vel,
+                    Scalar3 *d_accel,
+                    Scalar *d_charge,
+                    Scalar *d_diameter,
+                    int3 *d_image,
+                    unsigned int *d_body,
+                    Scalar4 *d_orientation,
+                    Scalar4 *d_angmom,
+                    unsigned int *d_tag,
+                    unsigned int *d_rtag,
+                    const pdata_element *d_in,
+                    unsigned int *d_comm_flags)
+    {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= num_add_ptls) return;
+
+    pdata_element p = d_in[idx];
+
+    unsigned int add_idx = old_nparticles + idx;
+    d_pos[add_idx] = p.pos;
+    d_vel[add_idx] = p.vel;
+    d_accel[add_idx] = p.accel;
+    d_charge[add_idx] = p.charge;
+    d_diameter[add_idx] = p.diameter;
+    d_image[add_idx] = p.image;
+    d_body[add_idx] = p.body;
+    d_orientation[add_idx] = p.orientation;
+    d_angmom[add_idx] = p.angmom;
+    d_tag[add_idx] = p.tag;
+    d_rtag[p.tag] = add_idx;
+    d_comm_flags[add_idx] = 0;
+    }
 
 /*! \param old_nparticles old local particle count
     \param num_add_ptls Number of particles in input array
@@ -325,6 +318,7 @@ struct to_pdata_tuple_gpu : public thrust::unary_function<const pdata_element, p
     \param d_image Device array of particle images
     \param d_body Device array of particle body tags
     \param d_orientation Device array of particle orientations
+    \param d_angmom Device array of particle angular momenta
     \param d_tag Device array of particle tags
     \param d_rtag Device array for reverse-lookup table
     \param d_in Device array of packed input particle data
@@ -340,54 +334,30 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     int3 *d_image,
                     unsigned int *d_body,
                     Scalar4 *d_orientation,
+                    Scalar4 *d_angmom,
                     unsigned int *d_tag,
                     unsigned int *d_rtag,
                     const pdata_element *d_in,
                     unsigned int *d_comm_flags)
     {
-    // wrap device arrays into thrust ptr
-    thrust::device_ptr<Scalar4> pos_ptr(d_pos);
-    thrust::device_ptr<Scalar4> vel_ptr(d_vel);
-    thrust::device_ptr<Scalar3> accel_ptr(d_accel);
-    thrust::device_ptr<Scalar> charge_ptr(d_charge);
-    thrust::device_ptr<Scalar> diameter_ptr(d_diameter);
-    thrust::device_ptr<int3> image_ptr(d_image);
-    thrust::device_ptr<unsigned int> body_ptr(d_body);
-    thrust::device_ptr<Scalar4> orientation_ptr(d_orientation);
-    thrust::device_ptr<unsigned int> tag_ptr(d_tag);
-    thrust::device_ptr<unsigned int> comm_flags_ptr(d_comm_flags);
+    unsigned int block_size = 512;
+    unsigned int n_blocks = num_add_ptls/block_size + 1;
 
-    // wrap input array
-    thrust::device_ptr<const pdata_element> in_ptr(d_in);
-
-    // Construct zip iterator
-    pdata_zip_gpu pdata_begin(
-       thrust::make_tuple(
-            tag_ptr,
-            pos_ptr,
-            vel_ptr,
-            accel_ptr,
-            charge_ptr,
-            diameter_ptr,
-            image_ptr,
-            body_ptr,
-            orientation_ptr,
-            comm_flags_ptr
-            )
-        );
-    pdata_zip_gpu pdata_end = pdata_begin + old_nparticles;
-
-    // wrap reverse-lookup table
-    thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
-
-    typedef thrust::counting_iterator<unsigned int> count_it;
-
-    // add new particles at the end
-    thrust::transform(in_ptr, in_ptr + num_add_ptls, pdata_end, to_pdata_tuple_gpu());
-
-    // update rtags
-    thrust::counting_iterator<unsigned int> idx(old_nparticles);
-    thrust::scatter(idx, idx + num_add_ptls, tag_ptr+old_nparticles, rtag_ptr);
+    gpu_pdata_add_particles_kernel<<<n_blocks, block_size>>>(old_nparticles,
+        num_add_ptls,
+        d_pos,
+        d_vel,
+        d_accel,
+        d_charge,
+        d_diameter,
+        d_image,
+        d_body,
+        d_orientation,
+        d_angmom,
+        d_tag,
+        d_rtag,
+        d_in,
+        d_comm_flags);
     }
 
 #endif // ENABLE_MPI

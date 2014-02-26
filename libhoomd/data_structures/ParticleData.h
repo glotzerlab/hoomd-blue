@@ -236,6 +236,7 @@ struct SnapshotParticleData {
     std::vector<int3> image;        //!< images
     std::vector<unsigned int> body; //!< body ids
     std::vector<Scalar4> orientation; //!< orientations
+    std::vector<Scalar4> angmom;    //!< Angular momentum quaternion
     std::vector<InertiaTensor> inertia_tensor; //!< Moments of inertia
 
     unsigned int size;              //!< number of particles in this snapshot
@@ -255,6 +256,7 @@ struct pdata_element
     int3 image;                //!< Image
     unsigned int body;         //!< Body id
     Scalar4 orientation;       //!< Orientation
+    Scalar4 angmom;            //!< Angular momentum
     unsigned int tag;          //!< global tag
     };
 
@@ -614,6 +616,12 @@ class ParticleData : boost::noncopyable
         //! Swap in orientations
         inline void swapOrientations() { m_orientation.swap(m_orientation_alt); }
 
+        //! Get the angular momenta (alternate array)
+        const GPUArray< Scalar4 >& getAltAngularMomentumArray() const { return m_angmom_alt; }
+
+        //! Swap in angular momenta
+        inline void swapAngularMomenta() { m_angmom.swap(m_angmom_alt); }
+
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
         */
@@ -663,6 +671,9 @@ class ParticleData : boost::noncopyable
 
         //! Get the orientation array
         const GPUArray< Scalar4 >& getOrientationArray() const { return m_orientation; }
+
+        //! Get the angular momentum array
+        const GPUArray< Scalar4 >& getAngularMomentumArray() const { return m_angmom; }
 
         #ifdef ENABLE_MPI
         //! Get the communication flags array
@@ -725,6 +736,9 @@ class ParticleData : boost::noncopyable
         //! Get the orientation of a particle with a given tag
         Scalar4 getOrientation(unsigned int tag) const;
 
+        //! Get the orientation of a particle with a given tag
+        Scalar4 getAngularMomentum(unsigned int tag) const;
+
         //! Get the inertia tensor of a particle with a given tag
         const InertiaTensor& getInertiaTensor(unsigned int tag) const
             {
@@ -765,6 +779,9 @@ class ParticleData : boost::noncopyable
 
         //! Set the orientation of a particle with a given tag
         void setOrientation(unsigned int tag, const Scalar4& orientation);
+
+        //! Set the orientation of a particle with a given tag
+        void setAngularMomentum(unsigned int tag, const Scalar4& angmom);
 
         //! Get the inertia tensor of a particle with a given tag
         void setInertiaTensor(unsigned int tag, const InertiaTensor& tensor)
@@ -928,6 +945,7 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
         GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
+        GPUArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
         #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
         #endif
@@ -951,6 +969,7 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_tag_alt;           //!< particle tags (swap-in)
         GPUArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
         GPUArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
+        GPUArray<Scalar4> m_angmom_alt;             //!< angular momenta (swap-in)
         GPUArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
         GPUArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
         GPUArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
