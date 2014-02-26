@@ -2142,6 +2142,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
     swapBodies();
     swapOrientations();
     swapAngularMomenta();
+    swapMomentsOfInertia();
     swapTags();
 
         {
@@ -2359,6 +2360,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
     swapBodies();
     swapOrientations();
     swapAngularMomenta();
+    swapMomentsOfInertia();
     swapTags();
 
     // notify subscribers

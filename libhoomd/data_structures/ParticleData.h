@@ -587,8 +587,14 @@ class ParticleData : boost::noncopyable
         //! Get the angular momenta (alternate array)
         const GPUArray< Scalar4 >& getAltAngularMomentumArray() const { return m_angmom_alt; }
 
+        //! Get the moments of inertia array (alternate array)
+        const GPUArray< Scalar3 >& getAltMomentsOfInertiaArray() const { return m_inertia_alt; }
+
         //! Swap in angular momenta
         inline void swapAngularMomenta() { m_angmom.swap(m_angmom_alt); }
+
+        //! Swap in moments of inertia
+        inline void swapMomentsOfInertia() { m_inertia.swap(m_inertia_alt); }
 
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling

@@ -196,7 +196,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
- 
+
     if (m_aniso)
         {
         // second part of angular update

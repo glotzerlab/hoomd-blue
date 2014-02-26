@@ -206,7 +206,7 @@ void SFCPackUpdaterGPU::applySortOrder()
         ArrayHandle<Scalar4> d_orientation_alt(m_pdata->getAltOrientationArray(), access_location::device, access_mode::overwrite);
 
         ArrayHandle<Scalar4> d_angmom_alt(m_pdata->getAltAngularMomentumArray(), access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar3> d_inertia_alt(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar3> d_inertia_alt(m_pdata->getAltMomentsOfInertiaArray(), access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_net_virial_alt(m_pdata->getAltNetVirial(), access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_net_force_alt(m_pdata->getAltNetForce(), access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_net_torque_alt(m_pdata->getAltNetTorqueArray(), access_location::device, access_mode::overwrite);
@@ -280,6 +280,8 @@ void SFCPackUpdaterGPU::applySortOrder()
     m_pdata->swapBodies();
     m_pdata->swapTags();
     m_pdata->swapOrientations();
+    m_pdata->swapAngularMomenta();
+    m_pdata->swapMomentsOfInertia();
     m_pdata->swapNetVirial();
     m_pdata->swapNetForce();
     m_pdata->swapNetTorque();
