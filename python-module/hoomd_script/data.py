@@ -632,6 +632,7 @@ class particle_data_proxy:
         result += "typeid      : " + str(self.typeid) + "\n";
         result += "body        : " + str(self.body) + "\n";
         result += "orientation : " + str(self.orientation) + "\n";
+        result += "angular_momentum: " + str(self.angular_momentum) + "\n";
         result += "net_force   : " + str(self.net_force) + "\n";
         result += "net_energy  : " + str(self.net_energy) + "\n";
         result += "net_torque  : " + str(self.net_torque) + "\n";
@@ -668,6 +669,9 @@ class particle_data_proxy:
         if name == "orientation":
             o = self.pdata.getOrientation(self.tag);
             return (o.x, o.y, o.z, o.w);
+        if name == "angular_momentum":
+            a = self.pdata.getAngularMomentum(self.angular_momentum);
+            return (a.x, a.y, a.z, a.w);
         if name == "net_force":
             f = self.pdata.getPNetForce(self.tag);
             return (f.x, f.y, f.z);
@@ -732,6 +736,14 @@ class particle_data_proxy:
             o.z = float(value[2]);
             o.w = float(value[3]);
             self.pdata.setOrientation(self.tag, o);
+            return;
+        if name == "angular_momentum":
+            a = hoomd.Scalar4();
+            a.x = float(value[0]);
+            a.y = float(value[1]);
+            a.z = float(value[2]);
+            a.w = float(value[3]);
+            self.pdata.setAngularMomentum(self.tag, a);
             return;
         if name == "net_force":
             raise AttributeError;
