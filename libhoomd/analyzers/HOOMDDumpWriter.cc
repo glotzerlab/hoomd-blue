@@ -631,6 +631,8 @@ void export_HOOMDDumpWriter()
     .def("setOutputAccel", &HOOMDDumpWriter::setOutputAccel)
     .def("setOutputCharge", &HOOMDDumpWriter::setOutputCharge)
     .def("setOutputOrientation", &HOOMDDumpWriter::setOutputOrientation)
+    .def("setOutputAngularMomentum", &HOOMDDumpWriter::setOutputAngularMomentum)
+    .def("setOutputMomentInertia", &HOOMDDumpWriter::setOutputMomentInertia)
     .def("setVizSigma", &HOOMDDumpWriter::setVizSigma)
     .def("writeFile", &HOOMDDumpWriter::writeFile)
     ;
