@@ -418,6 +418,138 @@ inline HOSTDEVICE double acos(double x)
     }
 }
 
+//! Maximum accuracy math routines
+/*! Routines in the slow namespace map to the most accurate version of the math routines on the CPU and GPU.
+    The routines are provide overloads for both single and double
+    so that macro tricks aren't needed to handle single and double precision code.
+
+    These routines are intended to be used e.g. in integrators, where numerical stability is most important.
+*/
+namespace slow
+{
+
+//! Compute the reciprocal square root of x
+inline HOSTDEVICE float rsqrt(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return ::rsqrtf(x);
+    #else
+    return 1.0f / ::sqrtf(x);
+    #endif
+    }
+
+//! Compute the reciprocal square root of x
+inline HOSTDEVICE double rsqrt(double x)
+    {
+    #ifdef __CUDA_ARCH__
+    return ::rsqrt(x);
+    #else
+    return 1.0 / ::sqrt(x);
+    #endif
+    }
+
+//! Compute the sin of x
+inline HOSTDEVICE float sin(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return sinf(x);
+    #else
+    return ::sinf(x);
+    #endif
+    }
+
+//! Compute the sin of x
+inline HOSTDEVICE double sin(double x)
+    {
+    return ::sin(x);
+    }
+
+//! Compute the cos of x
+inline HOSTDEVICE float cos(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return cosf(x);
+    #else
+    return ::cosf(x);
+    #endif
+    }
+
+//! Compute the cos of x
+inline HOSTDEVICE double cos(double x)
+    {
+    return ::cos(x);
+    }
+
+//! Compute the pow of x,y
+inline HOSTDEVICE float pow(float x, float y)
+    {
+    #ifdef __CUDA_ARCH__
+    return powf(x, y);
+    #else
+    return ::powf(x, y);
+    #endif
+    }
+
+//! Compute the sin of x
+inline HOSTDEVICE double pow(double x, double y)
+    {
+    return ::pow(x, y);
+    }
+
+//! Compute the exp of x
+inline HOSTDEVICE float exp(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return expf(x);
+    #else
+    return ::expf(x);
+    #endif
+    }
+
+//! Compute the exp of x
+inline HOSTDEVICE double exp(double x)
+    {
+    return ::exp(x);
+    }
+
+//! Compute the sqrt of x
+inline HOSTDEVICE float sqrt(float x)
+    {
+    return ::sqrtf(x);
+    }
+
+//! Compute the sqrt of x
+inline HOSTDEVICE double sqrt(double x)
+    {
+    return ::sqrt(x);
+    }
+
+//! Compute the erfc of x
+inline HOSTDEVICE float erfc(float x)
+    {
+    return ::erfcf(x);
+    }
+
+//! Compute the erfc of x
+inline HOSTDEVICE double erfc(double x)
+    {
+    return ::erfc(x);
+    }
+
+//! Compute the acos of x
+inline HOSTDEVICE float acos(float x)
+    {
+    return ::acosf(x);
+    }
+
+//! Compute the acos of x
+inline HOSTDEVICE double acos(double x)
+    {
+    return ::acos(x);
+    }
+}
+
+
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE
 

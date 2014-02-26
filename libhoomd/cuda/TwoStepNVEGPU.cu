@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepNVEGPU.cuh"
+#include "VectorMath.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -189,6 +190,150 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
     return cudaSuccess;
     }
 
+//! NO_SQUISH angular part of the first half step
+/*! \param d_orientation array of particle orientations
+    \param d_angmom array of particle conjugate quaternions
+    \param d_inertia array of moments of inertia
+    \param d_net_torque array of net torques
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param deltaT timestep
+*/
+__global__ void gpu_nve_angular_step_one_kernel(Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar deltaT)
+    {
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+    
+        // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
+        quat<Scalar> q(d_orientation[idx]);
+        quat<Scalar> p(d_angmom[idx]);
+        vec3<Scalar> t(d_net_torque[idx]);
+        vec3<Scalar> I(d_inertia[idx]);
+
+        // rotate torque into principal frame
+        t = rotate(conj(q),t);
+
+        // check for zero moment of inertia
+        bool x_zero, y_zero, z_zero;
+        x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
+
+        // ignore torque component along an axis for which the moment of inertia zero
+        if (x_zero) t.x = Scalar(0.0);
+        if (y_zero) t.y = Scalar(0.0);
+        if (z_zero) t.z = Scalar(0.0);
+
+        // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
+        p += deltaT*q*t;
+
+        quat<Scalar> p1, p2, p3; // permutated quaternions
+        quat<Scalar> q1, q2, q3;
+        Scalar phi1, cphi1, sphi1;
+        Scalar phi2, cphi2, sphi2;
+        Scalar phi3, cphi3, sphi3;
+
+        if (!z_zero)
+            {
+            p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
+            q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+            phi3 = Scalar(1./4.)/I.z*dot(p,q3);
+            cphi3 = slow::cos(Scalar(1./2.)*deltaT*phi3);
+            sphi3 = slow::sin(Scalar(1./2.)*deltaT*phi3);
+
+            p=cphi3*p+sphi3*p3;
+            q=cphi3*q+sphi3*q3;
+            }
+
+        if (!y_zero)
+            {
+            p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
+            q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+            phi2 = Scalar(1./4.)/I.y*dot(p,q2);
+            cphi2 = slow::cos(Scalar(1./2.)*deltaT*phi2);
+            sphi2 = slow::sin(Scalar(1./2.)*deltaT*phi2);
+
+            p=cphi2*p+sphi2*p2;
+            q=cphi2*q+sphi2*q2;
+            }
+
+        if (!x_zero)
+            {
+            p1 = quat<Scalar>(-p.v.x,vec3<Scalar>(p.s,p.v.z,-p.v.y));
+            q1 = quat<Scalar>(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
+            phi1 = Scalar(1./4.)/I.x*dot(p,q1);
+            cphi1 = slow::cos(deltaT*phi1);
+            sphi1 = slow::sin(deltaT*phi1);
+
+            p=cphi1*p+sphi1*p1;
+            q=cphi1*q+sphi1*q1;
+            }
+
+        if (! y_zero)
+            {
+            p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
+            q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+            phi2 = Scalar(1./4.)/I.y*dot(p,q2);
+            cphi2 = slow::cos(Scalar(1./2.)*deltaT*phi2);
+            sphi2 = slow::sin(Scalar(1./2.)*deltaT*phi2);
+
+            p=cphi2*p+sphi2*p2;
+            q=cphi2*q+sphi2*q2;
+            }
+
+        if (! z_zero)
+            {
+            p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
+            q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+            phi3 = Scalar(1./4.)/I.z*dot(p,q3);
+            cphi3 = slow::cos(Scalar(1./2.)*deltaT*phi3);
+            sphi3 = slow::sin(Scalar(1./2.)*deltaT*phi3);
+
+            p=cphi3*p+sphi3*p3;
+            q=cphi3*q+sphi3*q3;
+            }
+
+        d_orientation[idx] = quat_to_scalar4(q);
+        d_angmom[idx] = quat_to_scalar4(p);
+        }
+    }
+
+/*! \param d_orientation array of particle orientations
+    \param d_angmom array of particle conjugate quaternions
+    \param d_inertia array of moments of inertia
+    \param d_net_torque array of net torques
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param deltaT timestep
+*/
+cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar deltaT)
+    {
+    // setup the grid to run the kernel
+    int block_size = 256;
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+    // run the kernel
+    gpu_nve_angular_step_one_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT);
+    
+    return cudaSuccess;
+    }
+
+
 //! Takes the second half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
@@ -303,6 +448,82 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                                                  limit,
                                                  limit_val,
                                                  zero_force);
+
+    return cudaSuccess;
+    }
+
+//! NO_SQUISH angular part of the second half step
+/*! \param d_orientation array of particle orientations
+    \param d_angmom array of particle conjugate quaternions
+    \param d_inertia array of moments of inertia
+    \param d_net_torque array of net torques
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param deltaT timestep
+*/
+__global__ void gpu_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar deltaT)
+    {
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+    
+        // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
+        quat<Scalar> q(d_orientation[idx]);
+        quat<Scalar> p(d_angmom[idx]);
+        vec3<Scalar> t(d_net_torque[idx]);
+        vec3<Scalar> I(d_inertia[idx]);
+
+        // rotate torque into principal frame
+        t = rotate(conj(q),t);
+
+        // check for zero moment of inertia
+        bool x_zero, y_zero, z_zero;
+        x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
+
+        // ignore torque component along an axis for which the moment of inertia zero
+        if (x_zero) t.x = Scalar(0.0);
+        if (y_zero) t.y = Scalar(0.0);
+        if (z_zero) t.z = Scalar(0.0);
+
+        // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
+        p += deltaT*q*t;
+
+        d_angmom[idx] = quat_to_scalar4(p);
+        }
+    }
+
+/*! \param d_orientation array of particle orientations
+    \param d_angmom array of particle conjugate quaternions
+    \param d_inertia array of moments of inertia
+    \param d_net_torque array of net torques
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param deltaT timestep
+*/
+cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar deltaT)
+    {
+    // setup the grid to run the kernel
+    int block_size = 256;
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+    // run the kernel
+    gpu_nve_angular_step_two_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT);
 
     return cudaSuccess;
     }

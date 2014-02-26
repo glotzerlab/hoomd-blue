@@ -79,6 +79,7 @@ class ComputeThermoGPU : public ComputeThermo
     protected:
         GPUArray<Scalar4> m_scratch;  //!< Scratch space for partial sums
         GPUArray<Scalar> m_scratch_pressure_tensor; //!< Scratch space for pressure tensor partial sums
+        GPUArray<Scalar> m_scratch_rot; //!< Scratch space for rotational kinetic energy partial sums
         unsigned int m_num_blocks;   //!< Number of blocks participating in the reduction
         unsigned int m_block_size;   //!< Block size executed
         cudaEvent_t m_event;         //!< CUDA event for synchronization

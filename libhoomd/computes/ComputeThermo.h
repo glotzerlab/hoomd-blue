@@ -231,8 +231,17 @@ class ComputeThermo : public Compute
         */
         Scalar getRotationalKineticEnergy()
             {
-            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            return h_properties.data[thermo_index::rotational_ke];
+            // return NaN if the flags are not valid
+            PDataFlags flags = m_pdata->getFlags();
+            if (flags[pdata_flag::rotational_ke])
+                {
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermo_index::rotational_ke];
+                }
+            else
+                {
+                return std::numeric_limits<Scalar>::quiet_NaN();
+                }
             }
 
         //! Get the gpu array of properties

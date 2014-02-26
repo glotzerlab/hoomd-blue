@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "ComputeThermoGPU.cuh"
+#include "VectorMath.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -60,8 +61,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Shared memory used in reducing the sums
 extern __shared__ Scalar3 compute_thermo_sdata[];
+//! Shared memory used in final reduction
+extern __shared__ Scalar4 compute_thermo_final_sdata[];
 //! Shared memory used in reducing the sums of the pressure tensor
 extern __shared__ Scalar compute_pressure_tensor_sdata[];
+//! Shared memory used in reducing the sum of the rotational kinetic energy
+extern __shared__ Scalar compute_ke_rot_sdata[];
 
 /*! \file ComputeThermoGPU.cu
     \brief Defines GPU kernel code for computing thermodynamic properties on the GPU. Used by ComputeThermoGPU.
@@ -228,9 +233,91 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
         }
     }
 
+//! Perform partial sums of the rotational KE on the GPU
+/*! \param d_scratch Scratch space to hold partial sums. One element is written per block
+    \param d_orientation Orientation quaternions from ParticleData
+    \param d_angmom Conjugate quaternions from ParticleData
+    \param d_inertia Moments of inertia from ParticleData
+    \param d_group_members List of group members for which to sum properties
+    \param group_size Number of particles in the group
+*/
+
+__global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
+                                                        const Scalar4 *d_orientation,
+                                                        const Scalar4 *d_angmom,
+                                                        const Scalar3 *d_inertia,
+                                                        unsigned int *d_group_members,
+                                                        unsigned int group_size)
+    {
+    // determine which particle this thread works on
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    Scalar my_element; // element of scratch space read in
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+   
+        // update positions to the next timestep and update velocities to the next half step
+        quat<Scalar> q(d_orientation[idx]);
+        quat<Scalar> p(d_angmom[idx]);
+        vec3<Scalar> I(d_inertia[idx]);
+
+        Scalar ke_rot(0.0);
+
+        if (I.x >= EPSILON)
+            {
+            quat<Scalar> q1(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
+            Scalar s = dot(p,q1);
+            ke_rot += s*s/I.x;
+            }
+        if (I.y >= EPSILON)
+            {
+            quat<Scalar> q2(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+            Scalar s = dot(p,q2);
+            ke_rot += s*s/I.y;
+            }
+        if (I.z >= EPSILON)
+            {
+            quat<Scalar> q3(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+            Scalar s = dot(p,q3);
+            ke_rot += s*s/I.z;
+            }
+
+        // compute our contribution to the sum
+        my_element = ke_rot*Scalar(1.0/8.0);
+        }
+    else
+        {
+        // non-participating thread: contribute 0 to the sum
+        my_element = Scalar(0.0);
+        }
+        
+    compute_ke_rot_sdata[threadIdx.x] = my_element;
+    __syncthreads();
+    
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            compute_ke_rot_sdata[threadIdx.x] += compute_ke_rot_sdata[threadIdx.x + offs];
+
+        offs >>= 1;
+        __syncthreads();
+        }
+        
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        d_scratch[blockIdx.x] = compute_ke_rot_sdata[0];
+        }
+    }
+
+
 //! Complete partial sums and compute final thermodynamic quantities (for pressure, only isotropic contribution)
 /*! \param d_properties Property array to write final values
     \param d_scratch Partial sums
+    \param d_scratch_rot Partial sums of rotational kinetic energy
     \param ndof Number of degrees of freedom this group posesses
     \param box Box the particles are in
     \param D Dimensionality of the system
@@ -241,11 +328,12 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
 
     Only one block is executed. In that block, the partial sums are read in and reduced to final values. From the final
     sums, the thermodynamic properties are computed and written to d_properties.
-
-    sizeof(Scalar3)*block_size bytes of shared memory are needed for this kernel to run.
+    
+    sizeof(Scalar4)*block_size bytes of shared memory are needed for this kernel to run.
 */
 __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
                                               Scalar4 *d_scratch,
+                                              Scalar *d_scratch_rot,
                                               unsigned int ndof,
                                               BoxDim box,
                                               unsigned int D,
@@ -254,8 +342,8 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
                                               Scalar external_virial
                                               )
     {
-    Scalar3 final_sum = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-
+    Scalar4 final_sum = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0),Scalar(0.0));
+    
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_partial_sums; start += blockDim.x)
         {
@@ -263,10 +351,12 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
         if (start + threadIdx.x < num_partial_sums)
             {
             Scalar4 scratch = d_scratch[start + threadIdx.x];
-            compute_thermo_sdata[threadIdx.x] = make_scalar3(scratch.x, scratch.y, scratch.z);
+            Scalar scratch_rot = d_scratch_rot[start + threadIdx.x];
+
+            compute_thermo_final_sdata[threadIdx.x] = make_scalar4(scratch.x, scratch.y, scratch.z, scratch_rot);
             }
         else
-            compute_thermo_sdata[threadIdx.x] = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+            compute_thermo_final_sdata[threadIdx.x] = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
         __syncthreads();
 
         // reduce the sum in parallel
@@ -275,9 +365,10 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
             {
             if (threadIdx.x < offs)
                 {
-                compute_thermo_sdata[threadIdx.x].x += compute_thermo_sdata[threadIdx.x + offs].x;
-                compute_thermo_sdata[threadIdx.x].y += compute_thermo_sdata[threadIdx.x + offs].y;
-                compute_thermo_sdata[threadIdx.x].z += compute_thermo_sdata[threadIdx.x + offs].z;
+                compute_thermo_final_sdata[threadIdx.x].x += compute_thermo_final_sdata[threadIdx.x + offs].x;
+                compute_thermo_final_sdata[threadIdx.x].y += compute_thermo_final_sdata[threadIdx.x + offs].y;
+                compute_thermo_final_sdata[threadIdx.x].z += compute_thermo_final_sdata[threadIdx.x + offs].z;
+                compute_thermo_final_sdata[threadIdx.x].w += compute_thermo_final_sdata[threadIdx.x + offs].w;
                 }
             offs >>= 1;
             __syncthreads();
@@ -285,9 +376,10 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
 
         if (threadIdx.x == 0)
             {
-            final_sum.x += compute_thermo_sdata[0].x;
-            final_sum.y += compute_thermo_sdata[0].y;
-            final_sum.z += compute_thermo_sdata[0].z;
+            final_sum.x += compute_thermo_final_sdata[0].x;
+            final_sum.y += compute_thermo_final_sdata[0].y;
+            final_sum.z += compute_thermo_final_sdata[0].z;
+            final_sum.w += compute_thermo_final_sdata[0].w;
             }
         }
 
@@ -297,7 +389,7 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
         Scalar ke_total = final_sum.x * Scalar(0.5);
         Scalar pe_total = final_sum.y;
         Scalar W = final_sum.z + external_virial;
-
+        Scalar ke_rot_total = final_sum.w;
         // compute the temperature
         Scalar temperature = Scalar(2.0) * Scalar(ke_total) / Scalar(ndof);
 
@@ -327,6 +419,7 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
         d_properties[thermo_index::pressure] = pressure;
         d_properties[thermo_index::kinetic_energy] = Scalar(ke_total);
         d_properties[thermo_index::potential_energy] = Scalar(pe_total);
+        d_properties[thermo_index::rotational_ke] = Scalar(ke_rot_total);
         }
     }
 
@@ -439,7 +532,8 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                unsigned int group_size,
                                const BoxDim& box,
                                const compute_thermo_args& args,
-                               const bool compute_pressure_tensor
+                               const bool compute_pressure_tensor,
+                               const bool compute_rotational_energy
                                )
     {
     assert(d_properties);
@@ -481,15 +575,32 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                                                                   group_size);
         }
 
+    if (compute_rotational_energy)
+        {
+        assert(args.d_scratch_pressure_tensor);
+
+        shared_bytes = sizeof(Scalar) * args.block_size;
+        // run the kernel
+        gpu_compute_rotational_ke_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch_rot,
+                                               args.d_orientation,
+                                               args.d_angmom,
+                                               args.d_inertia,
+                                               d_group_members,
+                                               group_size);
+        }
+
+
     // setup the grid to run the final kernel
     int final_block_size = 512;
     grid = dim3(1, 1, 1);
     threads = dim3(final_block_size, 1, 1);
-    shared_bytes = sizeof(Scalar3)*final_block_size;
+
+    shared_bytes = sizeof(Scalar4)*final_block_size;
 
     // run the kernel
     gpu_compute_thermo_final_sums<<<grid, threads, shared_bytes>>>(d_properties,
                                                                    args.d_scratch,
+                                                                   args.d_scratch_rot,
                                                                    args.ndof,
                                                                    box,
                                                                    args.D,

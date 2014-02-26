@@ -225,8 +225,8 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
                 q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
                 phi3 = Scalar(1./4.)/I.z*dot(p,q3);
-                cphi3 = cos(Scalar(1./2.)*m_deltaT*phi3);
-                sphi3 = sin(Scalar(1./2.)*m_deltaT*phi3);
+                cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
+                sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
                  
                 p=cphi3*p+sphi3*p3;
                 q=cphi3*q+sphi3*q3;
@@ -237,8 +237,8 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
                 q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
                 phi2 = Scalar(1./4.)/I.y*dot(p,q2);
-                cphi2 = cos(Scalar(1./2.)*m_deltaT*phi2);
-                sphi2 = sin(Scalar(1./2.)*m_deltaT*phi2);
+                cphi2 = slow::cos(Scalar(1./2.)*m_deltaT*phi2);
+                sphi2 = slow::sin(Scalar(1./2.)*m_deltaT*phi2);
 
                 p=cphi2*p+sphi2*p2;
                 q=cphi2*q+sphi2*q2;
@@ -249,8 +249,8 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 p1 = quat<Scalar>(-p.v.x,vec3<Scalar>(p.s,p.v.z,-p.v.y));
                 q1 = quat<Scalar>(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
                 phi1 = Scalar(1./4.)/I.x*dot(p,q1);
-                cphi1 = cos(m_deltaT*phi1);
-                sphi1 = sin(m_deltaT*phi1);
+                cphi1 = slow::cos(m_deltaT*phi1);
+                sphi1 = slow::sin(m_deltaT*phi1);
 
                 p=cphi1*p+sphi1*p1;
                 q=cphi1*q+sphi1*q1;
@@ -261,8 +261,8 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
                 q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
                 phi2 = Scalar(1./4.)/I.y*dot(p,q2);
-                cphi2 = cos(Scalar(1./2.)*m_deltaT*phi2);
-                sphi2 = sin(Scalar(1./2.)*m_deltaT*phi2);
+                cphi2 = slow::cos(Scalar(1./2.)*m_deltaT*phi2);
+                sphi2 = slow::sin(Scalar(1./2.)*m_deltaT*phi2);
 
                 p=cphi2*p+sphi2*p2;
                 q=cphi2*q+sphi2*q2;
@@ -273,8 +273,8 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
                 q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
                 phi3 = Scalar(1./4.)/I.z*dot(p,q3);
-                cphi3 = cos(Scalar(1./2.)*m_deltaT*phi3);
-                sphi3 = sin(Scalar(1./2.)*m_deltaT*phi3);
+                cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
+                sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
                  
                 p=cphi3*p+sphi3*p3;
                 q=cphi3*q+sphi3*q3;

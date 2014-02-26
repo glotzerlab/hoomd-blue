@@ -102,6 +102,9 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
     GPUArray< Scalar > scratch_pressure_tensor(m_num_blocks * 6, exec_conf);
     m_scratch_pressure_tensor.swap(scratch_pressure_tensor);
 
+    GPUArray< Scalar > scratch_rot(m_num_blocks, exec_conf);
+    m_scratch_rot.swap(scratch_rot);
+
     // override base class allocation using mapped memory
     GPUArray< Scalar > properties(thermo_index::num_quantities, exec_conf,true);
     m_properties.swap(properties);
@@ -142,8 +145,12 @@ void ComputeThermoGPU::computeProperties()
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_scratch_pressure_tensor(m_scratch_pressure_tensor, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_scratch_rot(m_scratch_rot, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_properties(m_properties, access_location::device, access_mode::overwrite);
 
     // access the group
@@ -154,11 +161,15 @@ void ComputeThermoGPU::computeProperties()
     compute_thermo_args args;
     args.d_net_force = d_net_force.data;
     args.d_net_virial = d_net_virial.data;
+    args.d_orientation = d_orientation.data;
+    args.d_angmom = d_angmom.data;
+    args.d_inertia = d_inertia.data;
     args.virial_pitch = net_virial.getPitch();
     args.ndof = m_ndof;
     args.D = m_sysdef->getNDimensions();
     args.d_scratch = d_scratch.data;
     args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
+    args.d_scratch_rot = d_scratch_rot.data;
     args.block_size = m_block_size;
     args.n_blocks = m_num_blocks;
     args.external_virial_xx = m_pdata->getExternalVirial(0);
@@ -175,7 +186,8 @@ void ComputeThermoGPU::computeProperties()
                         group_size,
                         box,
                         args,
-                        flags[pdata_flag::pressure_tensor]);
+                        flags[pdata_flag::pressure_tensor],
+                        flags[pdata_flag::rotational_ke]);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
