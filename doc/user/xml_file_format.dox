@@ -132,6 +132,7 @@ A number of data nodes can be included inside the configuration node <b>in any o
  - \b type (\ref sec_xml_type)
  - \b body (\ref sec_xml_body)
  - \b orientation (\ref sec_xml_orientation)
+ - \b angmom (\ref sec_xml_angmom)
  - \b moment_inertia (\ref sec_xml_moment_inertia)
  - \b bond (\ref sec_xml_bond)
  - \b angle (\ref sec_xml_angle)
@@ -421,6 +422,32 @@ except that four scalar values are specified for each particle. Each group of fo
 where (1 0 0 0) is the unit quaternion.
 
 When specifying both position and orientation in an input file, include the same number of particles in each.
+
+\section sec_xml_angmom Particle angular momentum
+
+The `<angmom>` node specifies the angular momentum of each particle as a quaternion.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
+Version: 1.6 and newer
+
+\b Example:
+~~~~
+<angmom>
+1 0 0 0
+0.0333   -0.0667    0.1000    0.1333
+</angmom>
+~~~~
+
+\b Attributes:
+
+- \a num (\b optional) number of particles coming in the node content. This attribute is written by
+    \link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
+
+The format of the node data is similar to that of `<position>` (see \ref sec_xml_position),
+except that four scalar values are specified for each particle. Each group of four values represents a quaternion,
+where (1 0 0 0) is the unit quaternion.
+
+When specifying both position and angmom in an input file, include the same number of particles in each.
 
 \section sec_xml_moment_inertia Particle moment of inertia
 
