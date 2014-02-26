@@ -301,6 +301,9 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4 *d_orientation,
             q=cphi3*q+sphi3*q3;
             }
 
+        // renormalize
+        q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+
         d_orientation[idx] = quat_to_scalar4(q);
         d_angmom[idx] = quat_to_scalar4(p);
         }

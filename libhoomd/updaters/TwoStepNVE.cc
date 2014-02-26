@@ -213,7 +213,7 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
             // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
             // using Trotter factorization of rotation Liouvillian
             p += m_deltaT*q*t;
-            
+
             quat<Scalar> p1, p2, p3; // permutated quaternions
             quat<Scalar> q1, q2, q3;
             Scalar phi1, cphi1, sphi1;
@@ -227,7 +227,7 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 phi3 = Scalar(1./4.)/I.z*dot(p,q3);
                 cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
                 sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
-                 
+
                 p=cphi3*p+sphi3*p3;
                 q=cphi3*q+sphi3*q3;
                 }
@@ -275,14 +275,16 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 phi3 = Scalar(1./4.)/I.z*dot(p,q3);
                 cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
                 sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
-                 
+
                 p=cphi3*p+sphi3*p3;
                 q=cphi3*q+sphi3*q3;
                 }
 
+            // renormalize
+            q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+
             h_orientation.data[j] = quat_to_scalar4(q);
             h_angmom.data[j] = quat_to_scalar4(p);
-
             }
         }
 
