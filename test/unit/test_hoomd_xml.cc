@@ -719,7 +719,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "dihedralA 3 2 1 0");
+        BOOST_CHECK_EQUAL(line, "improperA 3 2 1 0");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
