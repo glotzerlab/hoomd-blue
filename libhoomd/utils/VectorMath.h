@@ -926,6 +926,18 @@ DEVICE inline Scalar4 quat_to_scalar4(const quat<Scalar>& a)
     return make_scalar4(a.s, a.v.x, a.v.y, a.v.z);
     }
 
+//! dot product of two quats
+/*! \param a First quat
+    \param b Second quat
+
+    \returns the dot product a.s*b.s+a.v.x*b.v.x + a.v.y*b.v.y + a.v.z*b.v.z.
+*/
+template < class Real >
+DEVICE inline Real dot(const quat<Real>& a, const quat<Real>& b)
+    {
+    return (a.s*b.s+dot(a.v,b.v));
+    }
+
 /////////////////////////////// rotmat2 ////////////////////////////////
 
 //! 2x2 rotation matrix

@@ -74,9 +74,10 @@ struct thermo_index
         pressure_yy,         //!< Index for the yy component of the pressure tensor in the GPUArray
         pressure_yz,         //!< Index for the yz component of the pressure tensor in the GPUArray
         pressure_zz,         //!< Index for the zz component of the pressure tensor in the GPUArray
+        rotational_ke        //!< Rotational kinetic energy
         };
 
-        const static unsigned int num_quantities = 10;
+        const static unsigned int num_quantities = 11;
     };
 
 //! structure for storing the components of the pressure tensor

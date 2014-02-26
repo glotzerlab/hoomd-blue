@@ -135,6 +135,7 @@ struct pdata_flag
         isotropic_virial=0,  //!< Bit id in PDataFlags for the isotropic virial
         potential_energy,    //!< Bit id in PDataFlags for the potential energy
         pressure_tensor,     //!< Bit id in PDataFlags for the full virial
+        rotational_ke        //!< Bit id in PDataFlags for the rotational kinetic energy
         };
     };
 

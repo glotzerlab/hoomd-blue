@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ComputeThermo.h"
 #include <boost/python.hpp>
+#include "VectorMath.h"
 using namespace boost::python;
 
 #ifdef ENABLE_MPI
@@ -93,6 +94,7 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     m_logname_list.push_back(string("pressure_yy") + suffix);
     m_logname_list.push_back(string("pressure_yz") + suffix);
     m_logname_list.push_back(string("pressure_zz") + suffix);
+    m_logname_list.push_back(string("rotational_ke") + suffix);
 
     #ifdef ENABLE_MPI
     m_properties_reduced = true;
@@ -185,6 +187,10 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         {
         return Scalar(getPressureTensor().zz);
         }
+    else if (quantity == m_logname_list[12])
+        {
+        return Scalar(getRotationalKineticEnergy());
+        }
     else
         {
         m_exec_conf->msg->error() << "compute.thermo: " << quantity << " is not a valid log quantity" << endl;
@@ -258,6 +264,47 @@ void ComputeThermo::computeProperties()
             }
 
         ke_total *= Scalar(0.5);
+        }
+
+    // total rotational kinetic energy
+    double ke_rot_total = 0.0;
+  
+    if (flags[pdata_flag::rotational_ke])
+        {
+        // Calculate rotational part of kinetic energy
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            Scalar3 I = h_inertia.data[j];
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+
+            // only if the moment of inertia along one principal axis is non-zero, that axis carries angular momentum
+            if (I.x >= EPSILON)
+                {
+                quat<Scalar> q1(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
+                Scalar s = dot(p,q1);
+                ke_rot_total += s*s/I.x;
+                }
+            if (I.y >= EPSILON)
+                {
+                quat<Scalar> q2(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+                Scalar s = dot(p,q2);
+                ke_rot_total += s*s/I.y;
+                }
+            if (I.z >= EPSILON)
+                {
+                quat<Scalar> q3(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+                Scalar s = dot(p,q3);
+                ke_rot_total += s*s/I.z;
+                }
+            }
+
+        ke_rot_total /= Scalar(8.0);
         }
 
     // total potential energy
@@ -358,6 +405,7 @@ void ComputeThermo::computeProperties()
     h_properties.data[thermo_index::pressure_yy] = pressure_yy;
     h_properties.data[thermo_index::pressure_yz] = pressure_yz;
     h_properties.data[thermo_index::pressure_zz] = pressure_zz;
+    h_properties.data[thermo_index::rotational_ke] = Scalar(ke_rot_total);
 
     #ifdef ENABLE_MPI
     // in MPI, reduce extensive quantities only when they're needed

@@ -81,6 +81,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      - pressure (valid for the all group)
      - kinetic energy
      - potential energy
+     - rotational kinetic energy
 
     Values available all the time
      - number of degrees of freedom (ndof)
@@ -223,6 +224,15 @@ class ComputeThermo : public Compute
                 p.zz = std::numeric_limits<Scalar>::quiet_NaN();
                 }
             return p;
+            }
+
+        //! Returns the rotational kinetic energy last computed by compute()
+        /*! \returns Instantaneous rotational kinetic energy of the system
+        */
+        Scalar getRotationalKineticEnergy()
+            {
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+            return h_properties.data[thermo_index::rotational_ke];
             }
 
         //! Get the gpu array of properties

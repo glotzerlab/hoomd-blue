@@ -742,7 +742,7 @@ class nve(_integration_method):
     # integrate.nve(group=typeA, limit=0.01)
     # integrate.nve(group=typeA, zero_force=True)
     # \endcode
-    def __init__(self, group, limit=None, zero_force=False):
+    def __init__(self, group, limit=None, zero_force=False,aniso=None):
         util.print_status_line();
 
         # initialize base class
@@ -760,6 +760,10 @@ class nve(_integration_method):
         # set the limit
         if limit is not None:
             self.cpp_method.setLimit(limit);
+       
+        # set the anisotropic option
+        if aniso is not None:
+            self.cpp_method.setAnisotropic(aniso)
 
         self.cpp_method.setZeroForce(zero_force);
 
@@ -780,7 +784,7 @@ class nve(_integration_method):
     # integrator.set_params(limit=0.01)
     # integrator.set_params(limit=False)
     # \endcode
-    def set_params(self, limit=None, zero_force=None):
+    def set_params(self, limit=None, zero_force=None, aniso=None):
         util.print_status_line();
         self.check_initialization();
 
@@ -793,6 +797,9 @@ class nve(_integration_method):
 
         if zero_force is not None:
             self.cpp_method.setZeroForce(zero_force);
+
+        if aniso is not None:
+            self.cpp_method.setAnisotropic(aniso);
 
 ## NVT integration via Brownian dynamics
 #

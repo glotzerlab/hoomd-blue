@@ -92,16 +92,30 @@ class TwoStepNVE : public IntegrationMethodTwoStep
             m_zero_force = zero_force;
             }
 
+        //! Sets the anisotropic option
+        /*! \param aniso Set to true to enable integration of anisotropic particle properties (angular momentum)
+        */
+        void setAnisotropic(bool aniso) 
+            {
+            m_aniso = aniso;
+            }
+        
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
 
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
+    
+        //! Get the number of degrees of freedom granted to a given group
+        /*! \param query_group group over which to do the counting
+         */
+        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> query_group);
 
     protected:
         bool m_limit;       //!< True if we should limit the distance a particle moves in one step
         Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
         bool m_zero_force;  //!< True if the integration step should ignore computed forces
+        bool m_aniso;       //!< True if anisotropic particle equations of motion are integrated
     };
 
 //! Exports the TwoStepNVE class to python

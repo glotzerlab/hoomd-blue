@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include "TwoStepNVE.h"
+#include "VectorMath.h"
 
 /*! \file TwoStepNVE.h
     \brief Contains code for the TwoStepNVE class
@@ -71,7 +72,7 @@ using namespace boost::python;
 TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
                        bool skip_restart)
-    : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
+    : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false), m_aniso(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVE" << endl;
 
@@ -179,6 +180,112 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
         box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
+    // Integration of angular degrees of freedom using sympletic and
+    // time-reversal symmetric integration scheme of Miller et al.
+    if (m_aniso)
+        {
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+            vec3<Scalar> t(h_net_torque.data[j]);
+            vec3<Scalar> I(h_inertia.data[j]);
+
+            // rotate torque into principal frame
+            t = rotate(conj(q),t);
+
+            // check for zero moment of inertia
+            bool x_zero, y_zero, z_zero;
+            x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+            // ignore torque component along an axis for which the moment of inertia zero
+            if (x_zero) t.x = 0;
+            if (y_zero) t.y = 0;
+            if (z_zero) t.z = 0;
+
+            // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
+            // using Trotter factorization of rotation Liouvillian
+            p += m_deltaT*q*t;
+            
+            quat<Scalar> p1, p2, p3; // permutated quaternions
+            quat<Scalar> q1, q2, q3;
+            Scalar phi1, cphi1, sphi1;
+            Scalar phi2, cphi2, sphi2;
+            Scalar phi3, cphi3, sphi3;
+
+            if (!z_zero)
+                {
+                p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
+                q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+                phi3 = Scalar(1./4.)/I.z*dot(p,q3);
+                cphi3 = cos(Scalar(1./2.)*m_deltaT*phi3);
+                sphi3 = sin(Scalar(1./2.)*m_deltaT*phi3);
+                 
+                p=cphi3*p+sphi3*p3;
+                q=cphi3*q+sphi3*q3;
+                }
+
+            if (!y_zero)
+                {
+                p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
+                q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+                phi2 = Scalar(1./4.)/I.y*dot(p,q2);
+                cphi2 = cos(Scalar(1./2.)*m_deltaT*phi2);
+                sphi2 = sin(Scalar(1./2.)*m_deltaT*phi2);
+
+                p=cphi2*p+sphi2*p2;
+                q=cphi2*q+sphi2*q2;
+                }
+            
+            if (!x_zero)
+                {
+                p1 = quat<Scalar>(-p.v.x,vec3<Scalar>(p.s,p.v.z,-p.v.y));
+                q1 = quat<Scalar>(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
+                phi1 = Scalar(1./4.)/I.x*dot(p,q1);
+                cphi1 = cos(m_deltaT*phi1);
+                sphi1 = sin(m_deltaT*phi1);
+
+                p=cphi1*p+sphi1*p1;
+                q=cphi1*q+sphi1*q1;
+                }
+
+            if (! y_zero)
+                {
+                p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
+                q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+                phi2 = Scalar(1./4.)/I.y*dot(p,q2);
+                cphi2 = cos(Scalar(1./2.)*m_deltaT*phi2);
+                sphi2 = sin(Scalar(1./2.)*m_deltaT*phi2);
+
+                p=cphi2*p+sphi2*p2;
+                q=cphi2*q+sphi2*q2;
+                }
+
+            if (! z_zero)
+                { 
+                p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
+                q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+                phi3 = Scalar(1./4.)/I.z*dot(p,q3);
+                cphi3 = cos(Scalar(1./2.)*m_deltaT*phi3);
+                sphi3 = sin(Scalar(1./2.)*m_deltaT*phi3);
+                 
+                p=cphi3*p+sphi3*p3;
+                q=cphi3*q+sphi3*q3;
+                }
+
+            h_orientation.data[j] = quat_to_scalar4(q);
+            h_angmom.data[j] = quat_to_scalar4(p);
+
+            }
+        }
+
     // done profiling
     if (m_prof)
         m_prof->pop();
@@ -240,9 +347,92 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
             }
         }
 
+    if (m_aniso)
+        {
+        // angular degrees of freedom
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+            vec3<Scalar> t(h_net_torque.data[j]);
+            vec3<Scalar> I(h_inertia.data[j]);
+
+            // rotate torque into principal frame
+            t = rotate(conj(q),t);
+
+            // check for zero moment of inertia
+            bool x_zero, y_zero, z_zero;
+            x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+            // ignore torque component along an axis for which the moment of inertia zero
+            if (x_zero) t.x = 0;
+            if (y_zero) t.y = 0;
+            if (z_zero) t.z = 0;
+
+            // advance p(t+deltaT/2)->p(t+deltaT)
+            p += m_deltaT*q*t;
+
+            h_angmom.data[j] = quat_to_scalar4(p);
+            }
+        }
+
     // done profiling
     if (m_prof)
         m_prof->pop();
+    }
+
+unsigned int TwoStepNVE::getNDOF(boost::shared_ptr<ParticleGroup> query_group)
+    {
+    // If we are not in anisotropic integration mode, just use the default implementation
+    if (!m_aniso)
+        return IntegrationMethodTwoStep::getNDOF(query_group);
+
+    ArrayHandle<Scalar3> h_moment_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+     
+    // count the number of particles both in query_group and m_group
+    boost::shared_ptr<ParticleGroup> intersect_particles = ParticleGroup::groupIntersection(m_group, query_group);
+    
+    // Counting body DOF: 
+    // 3D systems: a body has 6 DOF by default, subtracted by the number of zero moments of inertia
+    // 2D systems: a body has 3 DOF by default
+    unsigned int query_group_dof = 0;
+    unsigned int dimension = m_sysdef->getNDimensions();
+    unsigned int dof_one;
+    for (unsigned int group_idx = 0; group_idx < intersect_particles->getNumMembers(); group_idx++)
+        {
+        unsigned int j = intersect_particles->getMemberIndex(group_idx);
+            {
+            if (dimension == 3)
+                {
+                dof_one = 6;
+                if (h_moment_inertia.data[j].x < EPSILON)
+                    dof_one--;
+                
+                if (h_moment_inertia.data[j].y < EPSILON)
+                    dof_one--;
+                
+                if (h_moment_inertia.data[j].z < EPSILON)
+                    dof_one--;
+                }
+            else 
+                {
+                dof_one = 3;
+                if (h_moment_inertia.data[j].z < EPSILON)
+                    dof_one--;
+                }
+            
+            query_group_dof += dof_one;
+            }
+        }
+    
+    return query_group_dof;  
     }
 
 void export_TwoStepNVE()
@@ -252,6 +442,7 @@ void export_TwoStepNVE()
         .def("setLimit", &TwoStepNVE::setLimit)
         .def("removeLimit", &TwoStepNVE::removeLimit)
         .def("setZeroForce", &TwoStepNVE::setZeroForce)
+        .def("setAnisotropic", &TwoStepNVE::setAnisotropic)
         ;
     }
 
