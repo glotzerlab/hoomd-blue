@@ -142,7 +142,9 @@ class xml(analyze._analyzer):
     # \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
     # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml
     # \param charge (if set) Set to True/False to enable/disable the output of particle charge in the xml
-    # \param orientation (if set) Set to True/False to enable/disable the output of paritle orientations in the xml file
+    # \param orientation (if set) Set to True/False to enable/disable the output of particle orientations in the xml file
+    # \param angmom (if set) Set to True/False to enable/disable the output of particle angular momenta in the xml file
+    # \param inertia (if set) Set to True/False to enable/disable the output of particle moments of inertia in the xml file
     # \param vizsigma (if set) Set to a floating point value to include as vizsigma in the xml file
     #
     # Using set_params() requires that the %dump was saved in a variable when it was specified.
@@ -177,13 +179,15 @@ class xml(analyze._analyzer):
                    acceleration=None,
                    charge=None,
                    orientation=None,
+                   angmom=None,
+                   inertia=None,
                    vizsigma=None):
         util.print_status_line();
         self.check_initialization();
 
         if all:
             position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
-            acceleration = charge = body = orientation = True;
+            acceleration = charge = body = orientation = angmom = inertia = True;
 
         if vis:
             position = mass = diameter = type = body = bond = angle = dihedral = improper = charge = True;
@@ -232,6 +236,12 @@ class xml(analyze._analyzer):
 
         if orientation is not None:
             self.cpp_analyzer.setOutputOrientation(orientation);
+
+        if angmom is not None:
+            self.cpp_analyzer.setOutputAngularMomentum(angmom);
+
+        if inertia is not None:
+            self.cpp_analyzer.setOutputMomentInertia(inertia);
 
         if vizsigma is not None:
             self.cpp_analyzer.setVizSigma(vizsigma);

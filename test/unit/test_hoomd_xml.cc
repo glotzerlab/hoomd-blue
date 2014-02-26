@@ -82,7 +82,7 @@ using namespace std;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     {
-    InertiaTensor I;
+    Scalar3 I;
 
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(35), Scalar(55), Scalar(125));
@@ -131,8 +131,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     h_body.data[0] = NO_BODY;
 
-    I.set(0, 1, 2, 3, 4, 5);
-    pdata->setInertiaTensor(0, I);
+    I = make_scalar3(0, 1, 2);
+    pdata->setMomentsOfInertia(0, I);
 
     h_pos.data[1].x = Scalar(1.5);
     h_pos.data[1].y = Scalar(2.5);
@@ -154,8 +154,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     h_body.data[1] = 1;
 
-    I.set(5, 4, 3, 2, 1, 0);
-    pdata->setInertiaTensor(1, I);
+    I = make_scalar3(5, 4, 3);
+    pdata->setMomentsOfInertia(1, I);
 
     h_pos.data[2].x = Scalar(-1.5);
     h_pos.data[2].y = Scalar(2.5);
@@ -177,8 +177,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     h_body.data[2] = 1;
 
-    I.set(1, 11, 21, 31, 41, 51);
-    pdata->setInertiaTensor(2, I);
+    I = make_scalar3(1, 11, 21);
+    pdata->setMomentsOfInertia(2, I);
 
     h_pos.data[3].x = Scalar(-1.5);
     h_pos.data[3].y = Scalar(2.5);
@@ -200,9 +200,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     h_body.data[3] = 0;
 
-    I.set(51, 41, 31, 21, 11, 1);
-    pdata->setInertiaTensor(3, I);
-
+    I = make_scalar3(51,41,31);
+    pdata->setMomentsOfInertia(3, I);
     }
 
     // add a couple walls for fun
@@ -249,7 +248,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.5\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.6\">");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
@@ -797,19 +796,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "0 1 2 3 4 5");
+        BOOST_CHECK_EQUAL(line, "0 1 2");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "5 4 3 2 1 0");
+        BOOST_CHECK_EQUAL(line, "5 4 3");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1 11 21 31 41 51");
+        BOOST_CHECK_EQUAL(line, "1 11 21");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "51 41 31 21 11 1");
+        BOOST_CHECK_EQUAL(line, "51 41 31");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
@@ -909,7 +908,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.5\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.6\">");
         BOOST_REQUIRE(!f.bad());
 
         getline(f, line);
@@ -1232,12 +1231,11 @@ im_b 5 4 3 2\n\
         BOOST_CHECK_EQUAL(h_rtag.data[i], (unsigned int)i);
 
         // check the moment_inertia values
-        InertiaTensor I;
-        I = pdata->getInertiaTensor(i);
-        for (unsigned int c = 0; c < 6; c++)
-            {
-            MY_BOOST_CHECK_CLOSE(I.components[c], i*10 + c, tol);
-            }
+        Scalar3 I;
+        I = pdata->getMomentsOfInertia(i);
+        MY_BOOST_CHECK_CLOSE(I.x, i*10, tol);
+        MY_BOOST_CHECK_CLOSE(I.y, i*10+1, tol);
+        MY_BOOST_CHECK_CLOSE(I.z, i*10+2, tol);
         }
     }
 

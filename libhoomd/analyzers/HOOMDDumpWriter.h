@@ -131,6 +131,8 @@ class HOOMDDumpWriter : public Analyzer
         void setOutputCharge(bool enable);
         //! Enables/disables the writing of orientation
         void setOutputOrientation(bool enable);
+        //! Enables/disables the writing of angular momentum
+        void setOutputAngularMomentum(bool enable);
         //! Enables/disables the writing of moment_inertia
         void setOutputMomentInertia(bool enable);
         //! Sets the vizsigma value to write
@@ -159,6 +161,7 @@ class HOOMDDumpWriter : public Analyzer
         bool m_output_body;         //!< true if body should be written
         bool m_output_charge;       //!< true if body should be written
         bool m_output_orientation;  //!< true if orientation should be written
+        bool m_output_angmom;       //!< true if angular momenta should be written
         bool m_output_moment_inertia;  //!< true if moment_inertia should be written
         Scalar m_vizsigma;          //!< vizsigma value to write out to xml files
         bool m_vizsigma_set;        //!< true if vizsigma has been set
