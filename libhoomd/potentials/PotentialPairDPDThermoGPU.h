@@ -185,9 +185,6 @@ template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args
                                                 const typename evaluator::param_type *d_params) >
 void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned int timestep)
     {
-    // start by updating the neighborlist
-    this->m_nlist->compute(timestep);
-
     if (!m_precompute)
         this->m_nlist->compute(timestep);
 
