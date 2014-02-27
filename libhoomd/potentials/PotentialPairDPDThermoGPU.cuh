@@ -412,11 +412,6 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     if (threadIdx.x % tpp == 0)
         d_force[idx] = force;
 
-
-    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    if (threadIdx.x % tpp == 0)
-        d_force[idx] = force;
-
     if (compute_virial)
         {
         for (unsigned int i = 0; i < 6; ++i)
