@@ -202,6 +202,8 @@ def all():
         globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
+    name = 'all';
+
     # the all group is special: when the first one is created, it is cached in globals and future calls to group.all()
     # return the cached version
     if globals.group_all is not None:
@@ -213,6 +215,7 @@ def all():
             tag_max = globals.system_definition.getParticleData().getNGlobal()-1;
             selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
             globals.group_all.cpp_group.updateMemberTags(selector)
+            globals.msg.notice(2, 'Group "' + name + '" updated containing ' + str(globals.group_all.cpp_group.getNumMembersGlobal()) + ' particles\n');
 
         return globals.group_all;
 
@@ -221,7 +224,6 @@ def all():
     tag_max = globals.system_definition.getParticleData().getNGlobal()-1;
 
     # create the group
-    name = 'all';
     selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
