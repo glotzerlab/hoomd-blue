@@ -1987,7 +1987,7 @@ void SnapshotParticleData::resize(unsigned int N)
     body.resize(N,NO_BODY);
     orientation.resize(N,make_scalar4(1.0,0.0,0.0,0.0));
     angmom.resize(N,make_scalar4(0.0,0.0,0.0,0.0));
-    inertia.resize(N,make_scalar3(0.0,0.0,0.0));
+    inertia.resize(N,make_scalar3(1.0,1.0,1.0));
     size = N;
     }
 
