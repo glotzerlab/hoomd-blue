@@ -74,10 +74,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     pair potentials, forces and torques.  In the same way as PotentialPair, this class serves as a shell dealing
     with all the details common to every pair potential calculation while te \a evaluator
     calculates \f$V(\vec r,\vec e_i, \vec e_j)\f$ in a generic way.
-    
+
     \tparam evaluator EvaluatorPair class used to evaluate potential, force and torque.
     \tparam gpu_cgpf Driver function that calls gpu_compute_pair_forces<evaluator>()
-    
+
     \sa export_AnisoPotentialPairGPU()
 */
 template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
@@ -91,19 +91,48 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
                          const std::string& log_suffix="");
         //! Destructor
         virtual ~AnisoPotentialPairGPU() { };
-        
-        //! Set the block size to execute on the GPU
-        /*! \param block_size Size of the block to run on the device
-            Performance of the code may be dependant on the block size run
-            on the GPU. \a block_size should be set to be a multiple of 32.
-        */
-        void setBlockSize(int block_size)
+
+        //! Set the kernel runtime parameters
+        /*! \param param Kernel parameters
+         */
+        void setTuningParam(unsigned int param)
             {
-            m_block_size = block_size;
+            m_param = param;
             }
+
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+
+            Derived classes should override this to set the parameters of their autotuners.
+         */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            AnisoPotentialPair<evaluator>::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
+            }
+
+        #ifdef ENABLE_MPI
+        /*! Precompute the pair force without rebuilding the neighbor list
+         *
+         * \param timestep The time step
+         */
+        virtual void preCompute(unsigned int timestep)
+            {
+            m_precompute = true;
+            this->forceCompute(timestep);
+            m_precompute = false;
+            m_has_been_precomputed = true;
+            }
+        #endif
+
     protected:
-        unsigned int m_block_size;  //!< Block size to execute on the GPU
-        
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
+        unsigned int m_param;                 //!< Kernel tuning parameter
+        bool m_precompute;                    //!< True if we are pre-computing the force
+        bool m_has_been_precomputed;          //!< True if the forces have been precomputed
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
@@ -112,7 +141,7 @@ template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
-    : AnisoPotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
+    : AnisoPotentialPair<evaluator>(sysdef, nlist, log_suffix), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
@@ -122,6 +151,29 @@ AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(boost::share
                   << std::endl << std::endl;
         throw std::runtime_error("Error initializing AnisoPotentialPairGPU");
         }
+
+    // initialize autotuner
+    // the full block size and threads_per_particle matrix is searched,
+    // encoded as block_size*10000 + threads_per_particle
+    std::vector<unsigned int> valid_params;
+    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        {
+        int s=1;
+        while (s <= this->m_exec_conf->dev_prop.warpSize)
+            {
+            valid_params.push_back(block_size*10000 + s);
+            s = s * 2;
+            }
+        }
+
+    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "aniso_pair_" + evaluator::getName(), this->m_exec_conf));
+    #ifdef ENABLE_MPI
+    // synchronize autotuner results across ranks
+    m_tuner->setSync(this->m_pdata->getDomainDecomposition());
+    #endif
+
+    m_precompute = false;
+    m_has_been_precomputed = false;
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
@@ -129,11 +181,17 @@ template< class evaluator, cudaError_t gpu_cgpf(const a_pair_args_t& pair_args,
 void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
-    this->m_nlist->compute(timestep);
-    
+    if (!m_precompute)
+        this->m_nlist->compute(timestep);
+
+    // if we have already computed and the neighbor list remains current do not recompute
+    if (!m_precompute && m_has_been_precomputed && !this->m_nlist->hasBeenUpdated(timestep)) return;
+
+    m_has_been_precomputed = false;
+
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
-    
+
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
@@ -143,7 +201,7 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
                   << std::endl << std::endl;
         throw std::runtime_error("Error computing forces in AnisoPotentialPairGPU");
         }
-        
+
     // access the neighbor list
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
@@ -156,42 +214,49 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
     ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(),access_location::device,access_mode::read);
 
     BoxDim box = this->m_pdata->getBox();
-    
+
     // access parameters
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
-    
+
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_torque(this->m_torque, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
-    
+
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
+    if (! m_param) this->m_tuner->begin();
+    unsigned int param = !m_param ?  this->m_tuner->getParam() : m_param;
+    unsigned int block_size = param / 10000;
+    unsigned int threads_per_particle = param % 10000;
+
     gpu_cgpf(a_pair_args_t(d_force.data,
-			               d_torque.data,
+                           d_torque.data,
                            d_virial.data,
                            this->m_virial.getPitch(),
                            this->m_pdata->getN(),
-                           this->m_pdata->getNGhosts(),
+                           this->m_pdata->getMaxN(),
                            d_pos.data,
                            d_diameter.data,
                            d_charge.data,
-             			   d_orientation.data,
+                           d_orientation.data,
                            box,
                            d_n_neigh.data,
                            d_nlist.data,
                            nli,
                            d_rcutsq.data,
                            this->m_pdata->getNTypes(),
-                           m_block_size,
+                           block_size,
                            this->m_shift_mode,
-                           flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]),
+                           flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                           threads_per_particle),
              d_params.data);
-    
+    if (!m_param) this->m_tuner->end();
+
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
 
@@ -204,7 +269,7 @@ template < class T, class Base > void export_AnisoPotentialPairGPU(const std::st
     {
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
-              .def("setBlockSize", &T::setBlockSize)
+              .def("setTuningParam",&T::setTuningParam)
               ;
     }
 

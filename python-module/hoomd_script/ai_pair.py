@@ -69,7 +69,6 @@ from hoomd_script import force
 from hoomd_script import util
 from hoomd_script import globals
 from hoomd_script import data
-from hoomd_script import tune
 import hoomd
 import math
 
@@ -277,7 +276,6 @@ class gb(ai_pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.AnisoPotentialPairGBGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.AnisoPotentialPairGBGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('ai_pair.gb'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
