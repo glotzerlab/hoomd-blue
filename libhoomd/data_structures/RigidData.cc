@@ -1196,7 +1196,7 @@ void RigidData::initializeFromSnapshot(const SnapshotRigidData& snapshot)
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && !snapshot.validate())
         {
-        m_exec_conf->msg->error() << "init.*: inconsistent size of rigid body snapshot."
+        m_exec_conf->msg->error() << "init.*: invalid rigid body snapshot."
                                 << std::endl << std::endl;
         throw std::runtime_error("Error initializing rigid bodies.");
         }
@@ -1209,7 +1209,7 @@ void RigidData::initializeFromSnapshot(const SnapshotRigidData& snapshot)
     // Error out if snapshot contains a different number of bodies
     if (getNumBodies() != snapshot.size)
         {
-        m_exec_conf->msg->error() << "SnapshotRigidData has mismatched size." << std::endl << std::endl;
+        m_exec_conf->msg->error() << "Re-initialization of rigid bodies not supported." << std::endl << std::endl;
         throw std::runtime_error("Error initializing RigidData.");
         }
 
@@ -1246,6 +1246,29 @@ void RigidData::takeSnapshot(SnapshotRigidData& snapshot) const
         snapshot.vel[i] = make_scalar3(h_vel.data[i].x,h_vel.data[i].y,h_vel.data[i].z);
         snapshot.angmom[i] = make_scalar3(h_angmom.data[i].x,h_angmom.data[i].y,h_angmom.data[i].z);
         snapshot.body_image[i] = h_body_image.data[i];
+        }
+    }
+
+void SnapshotRigidData::replicate(unsigned int n)
+    {
+    unsigned int old_size = size;
+    size = n*old_size;
+
+    com.resize(n*old_size);
+    vel.resize(n*old_size);
+    angmom.resize(n*old_size);
+    body_image.resize(n*old_size);
+
+    for (unsigned int i = 0; i < old_size; ++i)
+        {
+        for (unsigned int j = 0; j < n; ++j)
+            {
+            unsigned int k = j*old_size + i;
+            com[k] = com[i];
+            vel[k] = vel[i];
+            angmom[k] = angmom[i];
+            body_image[k] = body_image[i];
+            }
         }
     }
 

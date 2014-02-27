@@ -206,9 +206,13 @@ def all():
     # return the cached version
     if globals.group_all is not None:
         expected_N = globals.system_definition.getParticleData().getNGlobal();
+
         if len(globals.group_all) != expected_N:
-            globals.msg.error("globals.group_all does not appear to be the group of all particles!\n");
-            raise RuntimeError('Error creating group');
+            # update group_all
+            tag_min = 0;
+            tag_max = globals.system_definition.getParticleData().getNGlobal()-1;
+            selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
+            globals.group_all.cpp_group.updateMemberTags(selector)
 
         return globals.group_all;
 

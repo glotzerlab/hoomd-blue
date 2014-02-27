@@ -1053,8 +1053,8 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
     m_group_num_change_signal();
     m_groups_dirty = true;
     }
-
 #endif
+
 template<class T, typename Group>
 void export_BondedGroupData(std::string name, std::string snapshot_name, bool export_struct)
     {
@@ -1085,8 +1085,38 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         .def_readwrite("groups", &Snapshot::groups)
         .def_readwrite("type_id", &Snapshot::type_id)
         .def_readwrite("type_mapping", &Snapshot::type_mapping)
+        .def("resize", &Snapshot::resize)
         ;
    }
+
+template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::Snapshot::replicate(unsigned int n,
+    unsigned int old_n_particles)
+    {
+    unsigned int old_size = groups.size();
+    groups.resize(n*old_size);
+    type_id.resize(n*old_size);
+
+    for (unsigned int i = 0; i < old_size; ++i)
+        {
+        typename BondedGroupData<group_size, Group, name>::members_t g;
+        g = groups[i];
+        unsigned int type = type_id[i];
+
+        // replicate bonded group
+        for (unsigned int j = 0; j < n; ++j)
+            {
+            typename BondedGroupData<group_size, Group, name>::members_t h;
+
+            // update particle tags
+            for (unsigned int k = 0; k < group_size; ++k)
+                h.tag[k] = g.tag[k] + old_n_particles*j;
+
+            groups[old_size*j+i] = h;
+            type_id[old_size*j+i] = type;
+            }
+        }
+    }
 
 //! Explicit template instantiations
 template class BondedGroupData<2, Bond, name_bond_data>;

@@ -134,11 +134,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
-
-    // this violates O(N/P) memory scaling
-    // in the future this should be done using a hash table
     GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
+
     GPUArray<unsigned int> ex_list_tag(m_pdata->getNGlobal(), 1, exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
 
@@ -342,6 +340,16 @@ Scalar NeighborList::estimateNNeigh()
 */
 void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     {
+    if (m_n_ex_tag.getNumElements() != m_pdata->getNGlobal())
+        {
+        // lazy re-allocate exclusion lists
+        GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
+        m_n_ex_tag.swap(n_ex_tag);
+
+        GPUArray<unsigned int> ex_list_tag(m_pdata->getNGlobal(), 1, exec_conf);
+        m_ex_list_tag.swap(ex_list_tag);
+        }
+
     assert(tag1 < m_pdata->getNGlobal());
     assert(tag2 < m_pdata->getNGlobal());
 

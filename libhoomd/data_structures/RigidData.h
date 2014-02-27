@@ -113,6 +113,11 @@ struct SnapshotRigidData
         if (! body_image.size() == size) return false;
         return true;
         }
+
+    //! Replicate the snapshot
+    /*! \param n Number of times to replicate the snapshot
+     */
+    void replicate(unsigned int n);
     };
 
 //! Stores all per rigid body values
