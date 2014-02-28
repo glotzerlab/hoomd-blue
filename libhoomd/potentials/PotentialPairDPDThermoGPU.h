@@ -253,8 +253,9 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              this->m_T->getValue(timestep),
                              this->m_shift_mode,
                              flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                             threads_per_particle),
-                             d_params.data);
+                             threads_per_particle,
+                             this->m_exec_conf->getComputeCapability()/10),
+             d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

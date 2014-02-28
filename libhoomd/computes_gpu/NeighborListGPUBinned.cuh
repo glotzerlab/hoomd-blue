@@ -90,7 +90,8 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                      const unsigned int block_size,
                                      bool filter_body,
                                      bool filter_diameter,
-                                     const Scalar3& ghost_width);
+                                     const Scalar3& ghost_width,
+                                     const unsigned int compute_capability);
 
 //! Kernel driver for gpu_compute_nlist_binned_1x_kernel()
 cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,

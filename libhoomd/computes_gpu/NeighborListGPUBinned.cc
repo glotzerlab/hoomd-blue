@@ -239,7 +239,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  block_size,
                                  m_filter_body,
                                  m_filter_diameter,
-                                 m_cl->getGhostWidth());
+                                 m_cl->getGhostWidth(),
+                                 m_exec_conf->getComputeCapability()/10);
         if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         if (tune) this->m_tuner->end();
 
