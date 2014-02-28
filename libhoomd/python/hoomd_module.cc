@@ -392,8 +392,6 @@ void cuda_profile_stop()
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
-char env_enable_mpi_gdr[] = "MV2_USE_GPUDIRECT=1";
-char env_enable_mpi_cuda_cray[] = "MPICH_RDMA_ENABLED_CUDA=1";
 
 //! Initialize the MPI environment
 void initialize_mpi()
@@ -402,8 +400,6 @@ void initialize_mpi()
     // if we are using an MPI-CUDA implementation, enable this feature
     // before the MPI_Init
     putenv(env_enable_mpi_cuda);
-    putenv(env_enable_mpi_gdr);
-    putenv(env_enable_mpi_cuda_cray);
     #endif
 
     // initalize MPI
