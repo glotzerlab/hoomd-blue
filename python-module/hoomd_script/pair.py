@@ -438,8 +438,7 @@ class nlist:
     # than necessary if
     # d_max is greater than 1.0.
     #
-    # A single global neighbor list is created for the entire simulation. Change parameters by using
-    # the built-in variable \b %nlist.
+    # A single global neighbor list is created for the entire simulation.
     #
     # \b Examples:
     # \code
@@ -626,9 +625,6 @@ def _update_global_nlist(r_cut):
     # check to see if we need to create the neighbor list
     if globals.neighbor_list is None:
         globals.neighbor_list = nlist(r_cut);
-        # set the global neighbor list using the evil import __main__ trick to provide the user with a default variable
-        import __main__;
-        __main__.nlist = globals.neighbor_list;
 
     else:
         # otherwise, we need to update r_cut
