@@ -13,8 +13,8 @@ class update_sorter_tests (unittest.TestCase):
 
     # test set_params
     def test_set_params(self):
-        import __main__;
-        __main__.sorter.set_params(grid=20);
+
+        sorter.set_params(grid=20);
 
     def tearDown(self):
         init.reset();

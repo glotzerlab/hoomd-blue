@@ -695,9 +695,8 @@ def _perform_common_init_tasks():
     from hoomd_script import group;
     from hoomd_script import compute;
 
-    # create the sorter, using the evil import __main__ trick to provide the user with a default variable
-    import __main__;
-    __main__.sorter = update.sort();
+    # create the sorter
+    globals.sorter = update.sort();
 
     # create the default compute.thermo on the all group
     util._disable_status_lines = True;

@@ -19,8 +19,8 @@ class angle_harmonic_tests (unittest.TestCase):
 
         angle_data = globals.system_definition.getAngleData();
         sys.angles.add('angleA', 0, 1, 2);
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     # test to see that se can create an angle.harmonic
     def test_create(self):

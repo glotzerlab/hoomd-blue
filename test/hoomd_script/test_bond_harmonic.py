@@ -15,8 +15,8 @@ class bond_harmonic_tests (unittest.TestCase):
         self.box = hoomd.BoxDim(35);
         self.separation=dict(A=0.35, B=0.35)
         init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     # test to see that se can create a force.constant
     def test_create(self):

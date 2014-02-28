@@ -50,84 +50,49 @@
 
 # Maintainer: joaander
 
-## \package hoomd_script.globals
-# \brief Global variables
+from hoomd_script import globals;
+from hoomd_script import util;
+
+## \package hoomd_script.sorter
+# \brief Wrapper for "global" sorter commands
 #
-# To present a simple procedural user interface, hoomd_script
-# needs to track many variables globally. These are stored here.
+# This package is a thin wrapper around globals.sorter. It takes the place of the old model for making the
+# global sorter available as "sorter" in the __main__ namespace. Moving it into the hoomd_script namespace
+# is backwards compatible as long as the user does "from hoomd_script import *" - but it also makes it much easier
+# to reference the sorter from modules other than __main__.
 #
-# User scripts are not intended to access these variables. However,
-# there may be some special cases where it is needed. Any variable
-# defined here can be accessed in a user script by prepending
-# "globals." to the variable name. For example, to access the
-# global SystemDefinition, a user script can access \c globals.system_definition .
-
-import hoomd;
-
-## Global variable that holds the execution configuration for reference by the python API
-exec_conf = None;
-
-## Global variable that holds the SystemDefinition shared by all parts of hoomd_script
-system_definition = None;
-
-## Global variable that holds the System shared by all parts of hoomd_script
-system = None;
-
-## Global variable that holds the sorter
-sorter = None;
-
-## Global variable that tracks the all of the force computes specified in the script so far
-forces = [];
-
-## Global variable that tracks the all of the constraint force computes specified in the script so far
-constraint_forces = [];
-
-## Global variable that tracks all the integration methods that have been specified in the script so far
-integration_methods = [];
-
-## Global variable tracking the last _integrator set
-integrator = None;
-
-## Global variable tracking the system's neighborlist
-neighbor_list = None;
-
-## Global variable tracking all the loggers that have been created
-loggers = [];
-
-## Global variable tracking all the compute thermos that have been created
-thermos = [];
-
-## Cached all group
-group_all = None;
-
-## Global options
-options = None;
-
-## Global Messenger
-# \note This is initialized to a default messenger on load so that python code may have a unified path for sending
-# messages
-msg = hoomd.Messenger();
+# Backwards compatibility is only ensured if the script only uses the public python facing API. Bypassing this to get
+# at the C++ interface should be done through globals.sorter
+#
 
 ## \internal
-# \brief Clears all global variables to default values
-# \details called by hoomd_script.reset()
-def clear():
-    global system_definition, system, forces, constraint_forces, external_forces, integration_methods, integrator, neighbor_list, loggers, thermos;
-    global sorter, group_all, exec_conf;
+# \brief Thin wrapper for set_params
+def set_params(*args, **kwargs):
+    util.print_status_line();
+    util._disable_status_lines = True;
+    globals.sorter.set_params(*args, **kwargs);
+    util._disable_status_lines = False;
 
-    # do NOT reset exec_conf, this variable is cached
-    # to prevent re-initialization of MPI when init.reset/init.* is
-    # called from within the same script
-    system_definition = None;
-    system = None;
-    forces = [];
-    constraint_forces = [];
-    external_forces = [];
-    integration_methods = [];
-    integrator = None;
-    neighbor_list = None;
-    loggers = [];
-    thermos = [];
-    group_all = None;
-    sorter = None;
-    exec_conf = None
+## \internal
+# \brief Thin wrapper for disable
+def disable(*args, **kwargs):
+    util.print_status_line();
+    util._disable_status_lines = True;
+    globals.sorter.disable(*args, **kwargs);
+    util._disable_status_lines = False;
+
+## \internal
+# \brief Thin wrapper for enable
+def enable(*args, **kwargs):
+    util.print_status_line();
+    util._disable_status_lines = True;
+    globals.sorter.enable(*args, **kwargs);
+    util._disable_status_lines = False;
+
+## \internal
+# \brief Thin wrapper for set_period
+def set_period(*args, **kwargs):
+    util.print_status_line();
+    util._disable_status_lines = True;
+    globals.sorter.set_period(*args, **kwargs);
+    util._disable_status_lines = False;

@@ -19,8 +19,8 @@ class dihedral_harmonic_tests (unittest.TestCase):
 
         dihedral_data = globals.system_definition.getDihedralData();
         sys.dihedrals.add('dihedralA', 0, 1, 2, 3);
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     # test to see that se can create an angle.harmonic
     def test_create(self):

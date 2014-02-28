@@ -32,8 +32,8 @@ class pair_group_tests (unittest.TestCase):
         sysdef.particles[9].type = 'B';
         sysdef.particles[10].position = (0,0,-2);
         sysdef.particles[10].type = 'B';
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     def test_all(self):
         all = group.all()

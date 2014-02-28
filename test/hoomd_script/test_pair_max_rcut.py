@@ -10,8 +10,8 @@ class pair_max_rcut_tests (unittest.TestCase):
     def setUp(self):
         #print
         init.create_empty(N=100, box=(20,20,20), n_particle_types=2);
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     def test_max_rcut(self):
         lj = pair.lj(r_cut=2.5);

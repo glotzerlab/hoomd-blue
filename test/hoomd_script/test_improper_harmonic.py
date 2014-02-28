@@ -17,8 +17,8 @@ class improper_harmonic_tests (unittest.TestCase):
         self.separation=dict(A=0.35, B=0.35)
         sys = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         sys.impropers.add('improperA',0, 1, 2, 3);
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     # test to see that se can create an angle.harmonic
     def test_create(self):
