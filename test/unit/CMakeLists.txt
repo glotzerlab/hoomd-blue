@@ -45,6 +45,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/configure.ocelot ${CMAKE_CURRENT_BINA
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
+    test_quat
+    test_rotmat2
+    test_rotmat3
+    test_vec2
+    test_vec3
     test_messenger
     test_cell_list
     test_const_external_field_dipole
