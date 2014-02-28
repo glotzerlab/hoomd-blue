@@ -2400,28 +2400,16 @@ void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned 
         p = old_box.shift(p, img);
         Scalar3 f = old_box.makeFraction(p);
 
-        // we are replicating to the positive direction, so only
-        // shift by a whole box vector for negative image flags
-        img.x = (img.x < 0) ? img.x : (int) 0;
-        img.y = (img.y < 0) ? img.y : (int) 0;
-        img.z = (img.z < 0) ? img.z : (int) 0;
-
         unsigned int j = 0;
         for (unsigned int l = 0; l < nx; l++)
             for (unsigned int m = 0; m < ny; m++)
                 for (unsigned int n = 0; n < nz; n++)
                     {
                     Scalar3 f_new;
-                    // shift such that bonds spanning boundaries
-                    // in the old box are accounted for correctly
-                    f_new.x = f.x/(Scalar)nx - (Scalar) img.x;
-                    f_new.y = f.y/(Scalar)ny - (Scalar) img.y;
-                    f_new.z = f.z/(Scalar)nz - (Scalar) img.z;
-
-                    // shift into replica
-                    f_new.x += (Scalar)l/(Scalar)nx;
-                    f_new.y += (Scalar)m/(Scalar)ny;
-                    f_new.z += (Scalar)n/(Scalar)nz;
+                    // replicate particle
+                    f_new.x = f.x/(Scalar)nx + (Scalar)l/(Scalar)nx;
+                    f_new.y = f.y/(Scalar)ny + (Scalar)m/(Scalar)ny;
+                    f_new.z = f.z/(Scalar)nz + (Scalar)n/(Scalar)nz;
 
                     unsigned int k = j*old_size + i;
 
