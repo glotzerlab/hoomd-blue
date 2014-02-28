@@ -1,3 +1,5 @@
+# number of builds to retain
+NRPMS=8
 BRANCH=master
 
 echo "--- Building nightly Mac OS X hoomd package on `date`"
@@ -31,11 +33,18 @@ else
     mkdir build
     cd build
 
-    cmake -DENABLE_DOXYGEN=OFF -DENABLE_APP_BUNDLE_INSTALL=ON -DBOOST_ROOT=/opt/boost-1.48.0/ -DBoost_NO_SYSTEM_PATHS=ON -DPYTHON_EXECUTABLE=/usr/bin/python ../code
+    cmake -DENABLE_OPENMP=OFF -DENABLE_DOXYGEN=OFF -DENABLE_APP_BUNDLE_INSTALL=ON -DBOOST_ROOT=/opt/boost-1.52.0/ -DBoost_NO_SYSTEM_PATHS=ON -DPYTHON_EXECUTABLE=/usr/bin/python ../code
 
     make package -j6
-    mv hoomd-*.dmg /Users/joaander/devel/incoming/mac
+    destination="daily/incoming/mac"
+    rsync -ue /usr/bin/ssh hoomd-*.dmg joaander@petry.engin.umich.edu:$destination/
 fi
+
+rpmfiles=( `ls -td hoomd-*.dmg` )
+numfiles=${#rpmfiles[*]}
+for ((  i=$(( $NRPMS )); $i < $numfiles ; i++ )); do
+    rm ${rpmfiles[$i]};
+done
 
 echo "--- Done!"
 echo ""
