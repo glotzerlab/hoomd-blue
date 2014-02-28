@@ -1057,7 +1057,7 @@ void NeighborList::buildNlist(unsigned int timestep)
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getNearestPlaneDistance();
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -1066,7 +1066,9 @@ void NeighborList::buildNlist(unsigned int timestep)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
 
-    if (L.x <= rmax * 2.0 || L.y <= rmax * 2.0 || L.z <= rmax * 2.0)
+    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
         {
         m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
         throw runtime_error("Error updating neighborlist bins");

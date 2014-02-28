@@ -119,6 +119,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -126,6 +127,14 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
+
+    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
+        {
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
+        throw runtime_error("Error updating neighborlist bins");
+        }
 
     // access the cell list data arrays
     ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(), access_location::host, access_mode::read);

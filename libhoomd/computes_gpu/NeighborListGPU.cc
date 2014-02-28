@@ -122,17 +122,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
 
     // check that the simulation box is big enough
     const BoxDim& box = m_pdata->getBox();
-
-    Scalar3 L = box.getNearestPlaneDistance();
-
-    if (L.x <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
-        L.y <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
-        L.z <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0)
-        {
-        m_exec_conf->msg->error() << "Simulation box is too small! Particles would be interacting with themselves."
-             << endl;
-        throw runtime_error("Error computing neighbor list");
-        }
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     if (m_prof)
         m_prof->push(exec_conf, "compute");
@@ -151,6 +141,14 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
+
+    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
+        {
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
+        throw runtime_error("Error updating neighborlist bins");
+        }
 
     gpu_compute_nlist_nsq(d_nlist.data,
                           d_n_neigh.data,
