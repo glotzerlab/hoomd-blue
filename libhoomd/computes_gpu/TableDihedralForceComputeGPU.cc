@@ -71,7 +71,7 @@ using namespace std;
 TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
-    : TableDihedralForceCompute(sysdef, table_width, log_suffix), m_block_size(64)
+    : TableDihedralForceCompute(sysdef, table_width, log_suffix)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
@@ -83,13 +83,8 @@ TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(boost::shared_ptr<Sys
      // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->exec_conf);
     m_flags.swap(flags);
-    }
 
-/*! \param block_size Block size to set
-*/
-void TableDihedralForceComputeGPU::setBlockSize(int block_size)
-    {
-    m_block_size = block_size;
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "table_dihedral", this->m_exec_conf));
     }
 
 /*! \post The table based forces are computed for the given timestep.
@@ -122,6 +117,7 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
 
 
         // run the kernel on all GPUs in parallel
+        m_tuner->begin();
         gpu_compute_table_dihedral_forces(d_force.data,
                              d_virial.data,
                              m_virial.getPitch(),
@@ -135,7 +131,7 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
                              d_tables.data,
                              m_table_width,
                              m_table_value,
-                             m_block_size);
+                             m_tuner->getParam());
         }
 
 
@@ -143,6 +139,8 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
         {
         CHECK_CUDA_ERROR();
         }
+
+    m_tuner->end();
 
     if (m_prof) m_prof->pop(exec_conf);
     }
@@ -154,6 +152,5 @@ void export_TableDihedralForceComputeGPU()
      init< boost::shared_ptr<SystemDefinition>,
      unsigned int,
      const std::string& >())
-    .def("setBlockSize", &TableDihedralForceComputeGPU::setBlockSize)
     ;
     }
