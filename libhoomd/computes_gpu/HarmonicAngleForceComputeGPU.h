@@ -92,20 +92,23 @@ class HarmonicAngleForceComputeGPU : public HarmonicAngleForceCompute
         //! Destructor
         ~HarmonicAngleForceComputeGPU();
 
-        //! Sets the block size to run on the device
-        /*! \param block_size Block size to set
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
         */
-        void setBlockSize(int block_size)
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_block_size = block_size;
+            HarmonicAngleForceCompute::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
             }
 
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0);
 
     protected:
-        int m_block_size;            //!< Block size to run calculation on
-        GPUArray<Scalar2>  m_params;  //!< Parameters stored on the GPU
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        GPUArray<Scalar2>  m_params;          //!< Parameters stored on the GPU
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
