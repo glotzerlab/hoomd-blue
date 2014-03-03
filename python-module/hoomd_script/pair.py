@@ -2524,7 +2524,6 @@ class tersoff(pair):
         else:
             self.cpp_force = hoomd.PotentialTersoffGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialTersoffGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.tersoff'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

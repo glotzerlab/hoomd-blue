@@ -81,17 +81,19 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
         //! Destructor
         virtual ~PotentialTersoffGPU();
 
-        //! Set the block size to execute on the GPU
-        /*! \param block_size Size of the block to run on the device
-            Performance of the code may be dependant on the block size run
-            on the GPU. \a block_size should be set to be a multiple of 32.
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
         */
-        void setBlockSize(int block_size)
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_block_size = block_size;
+            PotentialTersoff<evaluator>::setAutotunerParams(enable, period);
+            this->m_tuner->setPeriod(period);
+            this->m_tuner->setEnabled(enable);
             }
+
     protected:
-        unsigned int m_block_size;  //!< Block size to execute on the GPU
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -102,7 +104,7 @@ template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
 PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                                 boost::shared_ptr<NeighborList> nlist,
                                                                 const std::string& log_suffix)
-    : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
+    : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix)
     {
     this->exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << endl;
 
@@ -113,6 +115,8 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(boost::shared_pt
                   << std::endl;
         throw std::runtime_error("Error initializing PotentialTersoffGPU");
         }
+
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_tersoff", this->m_exec_conf));
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
@@ -159,6 +163,7 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
+    this->m_tuner->begin();
     gpu_cgpf(tersoff_args_t(d_force.data,
                             this->m_pdata->getN(),
                             d_pos.data,
@@ -169,11 +174,13 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             d_rcutsq.data,
                             d_ronsq.data,
                             this->m_pdata->getNTypes(),
-                            m_block_size),
+                            this->m_tuner->getParam()),
                             d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    this->m_tuner->end();
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
@@ -187,7 +194,6 @@ template < class T, class Base > void export_PotentialTersoffGPU(const std::stri
     {
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
-              .def("setBlockSize", &T::setBlockSize)
               ;
     }
 
