@@ -82,11 +82,19 @@ class TablePotentialGPU : public TablePotential
         //! Destructor
         virtual ~TablePotentialGPU() { }
 
-        //! Set the block size
-        void setBlockSize(int block_size);
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            TablePotential::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
+            }
 
     private:
-        int m_block_size;   //!< the block size
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

@@ -78,7 +78,7 @@ TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                      boost::shared_ptr<NeighborList> nlist,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
-    : TablePotential(sysdef, nlist, table_width, log_suffix), m_block_size(64)
+    : TablePotential(sysdef, nlist, table_width, log_suffix)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
@@ -86,13 +86,8 @@ TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->error() << "Creating a TableForceComputeGPUwith no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TableForceComputeGPU");
         }
-    }
 
-/*! \param block_size Block size to set
-*/
-void TablePotentialGPU::setBlockSize(int block_size)
-    {
-    m_block_size = block_size;
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_table", this->m_exec_conf));
     }
 
 /*! \post The table based forces are computed for the given timestep. The neighborlist's
@@ -135,6 +130,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
     // run the kernel on all GPUs in parallel
+    m_tuner->begin();
     gpu_compute_table_forces(d_force.data,
                              d_virial.data,
                              m_virial.getPitch(),
@@ -149,10 +145,11 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
                              d_params.data,
                              m_ntypes,
                              m_table_width,
-                             m_block_size);
+                             m_tuner->getParam());
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner->end();
 
     if (m_prof) m_prof->pop(exec_conf);
     }
@@ -165,7 +162,6 @@ void export_TablePotentialGPU()
      boost::shared_ptr<NeighborList>,
      unsigned int,
      const std::string& >())
-    .def("setBlockSize", &TablePotentialGPU::setBlockSize)
     ;
     }
 

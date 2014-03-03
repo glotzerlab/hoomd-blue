@@ -1517,7 +1517,6 @@ class table(force._force):
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
