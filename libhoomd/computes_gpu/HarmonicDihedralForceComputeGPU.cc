@@ -72,7 +72,7 @@ using namespace std;
 /*! \param sysdef System to compute bond forces on
 */
 HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
-    : HarmonicDihedralForceCompute(sysdef), m_block_size(64)
+    : HarmonicDihedralForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
@@ -84,6 +84,8 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_p
     // allocate and zero device memory
     GPUArray<Scalar4> params(m_dihedral_data->getNTypes(),exec_conf);
     m_params.swap(params);
+
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_dihedral", this->m_exec_conf));
     }
 
 HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()
@@ -132,6 +134,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
 
     // run the kernel in parallel on all GPUs
+    this->m_tuner->begin();
     gpu_compute_harmonic_dihedral_forces(d_force.data,
                                          d_virial.data,
                                          m_virial.getPitch(),
@@ -144,10 +147,10 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
                                          d_n_dihedrals.data,
                                          d_params.data,
                                          m_dihedral_data->getNTypes(),
-                                         m_block_size);
+                                         this->m_tuner->getParam());
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-
+    this->m_tuner->end();
 
     if (m_prof) m_prof->pop(exec_conf);
     }
@@ -156,6 +159,5 @@ void export_HarmonicDihedralForceComputeGPU()
     {
     class_<HarmonicDihedralForceComputeGPU, boost::shared_ptr<HarmonicDihedralForceComputeGPU>, bases<HarmonicDihedralForceCompute>, boost::noncopyable >
     ("HarmonicDihedralForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
-    .def("setBlockSize", &HarmonicDihedralForceComputeGPU::setBlockSize)
     ;
     }
