@@ -214,37 +214,46 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const BoxDim& box,
                                   const Index3D& ci,
                                   const Index2D& cli,
-                                  const Scalar3& ghost_width)
+                                  const Scalar3& ghost_width,
+                                  const unsigned int block_size)
     {
-    unsigned int block_size = 256;
-    int n_blocks = (N+n_ghost)/block_size + 1;
-
     cudaError_t err;
     err = cudaMemsetAsync(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements(),0);
 
     if (err != cudaSuccess)
         return err;
 
-    gpu_compute_cell_list_kernel<<<n_blocks, block_size>>>(d_cell_size,
-                                                           d_xyzf,
-                                                           d_tdb,
-                                                           d_cell_orientation,
-                                                           d_cell_idx,
-                                                           d_conditions,
-                                                           d_pos,
-                                                           d_orientation,
-                                                           d_charge,
-                                                           d_diameter,
-                                                           d_body,
-                                                           N,
-                                                           n_ghost,
-                                                           Nmax,
-                                                           flag_charge,
-                                                           flag_type,
-                                                           box,
-                                                           ci,
-                                                           cli,
-                                                           ghost_width);
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_compute_cell_list_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+    int n_blocks = (N+n_ghost)/run_block_size + 1;
+
+    gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size,
+                                                               d_xyzf,
+                                                               d_tdb,
+                                                               d_cell_orientation,
+                                                               d_cell_idx,
+                                                               d_conditions,
+                                                               d_pos,
+                                                               d_orientation,
+                                                               d_charge,
+                                                               d_diameter,
+                                                               d_body,
+                                                               N,
+                                                               n_ghost,
+                                                               Nmax,
+                                                               flag_charge,
+                                                               flag_type,
+                                                               box,
+                                                               ci,
+                                                               cli,
+                                                               ghost_width);
 
     return cudaSuccess;
     }
