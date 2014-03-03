@@ -69,14 +69,15 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
         PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              const std::string& log_suffix="");
 
-        //! Set the block size to execute on the GPU
-        /*! \param block_size Size of the block to run on the device
-            Performance of the code may be dependant on the block size run
-            on the GPU. \a block_size should be set to be a multiple of 32.
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
         */
-        void setBlockSize(int block_size)
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_block_size = block_size;
+            PotentialExternal<evaluator>::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
             }
 
     protected:
@@ -84,8 +85,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
 
-        //! block size
-        unsigned int m_block_size;
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     };
 
 /*! Constructor
@@ -95,8 +95,9 @@ template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& 
                                                const typename evaluator::param_type *d_params)>
 PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                                 const std::string& log_suffix)
-    : PotentialExternal<evaluator>(sysdef, log_suffix), m_block_size(128)
+    : PotentialExternal<evaluator>(sysdef, log_suffix)
     {
+    this->m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "external_" + evaluator::getName(), this->m_exec_conf));
     }
 
 /*! Computes the specified constraint forces
@@ -117,13 +118,15 @@ void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int times
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
 
+    this->m_tuner->begin();
     gpu_cpef(external_potential_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
                          this->m_pdata->getN(),
                          d_pos.data,
                          box,
-                         m_block_size), d_params.data);
+                         this->m_tuner->getParam()), d_params.data);
+    this->m_tuner->end();
 
     if (this->m_prof) this->m_prof->pop();
 
@@ -139,7 +142,6 @@ void export_PotentialExternalGPU(const std::string& name)
     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<base>, boost::noncopyable >
                   (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string&  >())
                   .def("setParams", &T::setParams)
-                  .def("setBlockSize", &T::setBlockSize)
                   ;
     }
 
