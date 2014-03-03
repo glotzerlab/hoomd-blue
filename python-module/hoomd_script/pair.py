@@ -1370,7 +1370,7 @@ class cgcmm(force._force):
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.cgcmm'));
+            self.cpp_force.setBlockSize(128);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
