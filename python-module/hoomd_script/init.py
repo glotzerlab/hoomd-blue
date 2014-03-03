@@ -734,36 +734,32 @@ def _create_exec_conf():
             globals.msg.warning("Requesting more CPU cores than there are available in the system\n");
         hoomd.set_num_threads(globals.options.ncpu);
 
-    # if no command line options were specified, create a default ExecutionConfiguration
-    if globals.options.mode is None:
+    # error out on nyx/flux if the auto mode is set
+    if globals.options.mode == 'auto':
         if (re.match("flux*", platform.node()) is not None) or (re.match("nyx*", platform.node()) is not None):
             globals.msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
             raise RuntimeError("Error initializing");
-
-        if mpi_available and globals.options.nrank is not None:
-            exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
-        else:
-            exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg);
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.AUTO;
+    elif globals.options.mode == "cpu":
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.CPU;
+    elif globals.options.mode == "gpu":
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.GPU;
     else:
-        # determine the GPU on which to execute
-        if globals.options.gpu is not None:
-            gpu_id = int(globals.options.gpu);
-        else:
-            gpu_id = -1;
+        raise RuntimeError("Invalid mode");
 
-        # create the specified configuration
-        if globals.options.mode == "cpu":
-            if mpi_available and globals.options.nrank is not None:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
-            else:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
-        elif globals.options.mode == "gpu":
-            if mpi_available and globals.options.nrank is not None:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
-            else:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
-        else:
-            raise RuntimeError("Error initializing");
+    # convert None options to defaults
+    if globals.options.gpu is None:
+        gpu_id = -1;
+    else:
+        gpu_id = int(globals.options.gpu);
+
+    if globals.options.nrank is None:
+        nrank = 0;
+    else:
+        nrank = int(globals.options.nrank);
+
+    # create the specified configuration
+    exec_conf = hoomd.ExecutionConfiguration(exec_mode, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, nrank);
 
     # if gpu_error_checking is set, enable it on the GPU
     if globals.options.gpu_error_checking:

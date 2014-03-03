@@ -104,27 +104,16 @@ struct ExecutionConfiguration : boost::noncopyable
         {
         GPU,    //!< Execute on the GPU
         CPU,    //!< Execute on the CPU
+        AUTO,   //!< Auto select between GPU and CPU
         };
 
-    //! Default constructor
-    ExecutionConfiguration(bool min_cpu=false,
-                           bool ignore_display=false,
-                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
-#ifdef ENABLE_MPI
-                           , unsigned int n_ranks = 0
-#endif
-                           );
-
-    //! Force a mode selection
-    ExecutionConfiguration(executionMode mode,
+    //! Constructor
+    ExecutionConfiguration(executionMode mode=AUTO,
                            int gpu_id=-1,
                            bool min_cpu=false,
                            bool ignore_display=false,
-                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
-#ifdef ENABLE_MPI
-                           , unsigned int n_ranks = 0
-#endif
-                           );
+                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>(),
+                           unsigned int n_ranks = 0);
 
     ~ExecutionConfiguration();
 

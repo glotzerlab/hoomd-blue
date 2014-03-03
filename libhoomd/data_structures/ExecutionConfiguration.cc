@@ -91,69 +91,12 @@ using namespace boost;
     \brief Defines ExecutionConfiguration and related classes
 */
 
-/*! \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
-    \param ignore_display If set to true, try to ignore GPUs attached to the display
-    \param _msg Messenger to use for status message printing
-
-    If there are capable GPUs present in the system, the default chosen by CUDA will be used. Specifically,
-    cudaSetDevice is not called, so systems with compute-exclusive GPUs will see automatic choice of free GPUs.
-    If there are no capable GPUs present in the system, then the execution mode will revert run on the CPU.
-*/
-ExecutionConfiguration::ExecutionConfiguration(bool min_cpu,
-                                               bool ignore_display,
-                                               boost::shared_ptr<Messenger> _msg
-#ifdef ENABLE_MPI
-                                               , unsigned int n_ranks
-#endif
-                                               )
-    : m_cuda_error_checking(false), msg(_msg)
-    {
-    if (!msg)
-        msg = boost::shared_ptr<Messenger>(new Messenger());
-
-    msg->notice(5) << "Constructing ExecutionConfiguration: " << min_cpu << " " << ignore_display << endl;
-
-    m_rank = 0;
-
-#ifdef ENABLE_CUDA
-    // scan the available GPUs
-    scanGPUs(ignore_display);
-
-    // if there are available GPUs, initialize them. Otherwise, default to running on the CPU
-    int dev_count = getNumCapableGPUs();
-
-    if (dev_count > 0)
-        {
-        exec_mode = GPU;
-
-        // if we are not running in compute exclusive mode, use
-        // local MPI rank as preferred GPU id
-        int gpu_id_hint = m_system_compute_exclusive ? -1 : guessLocalRank();
-        initializeGPU(gpu_id_hint, min_cpu);
-
-        // initialize cached allocator
-        m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
-        }
-    else
-        exec_mode = CPU;
-
-#else
-    exec_mode=CPU;
-#endif
-
-    #ifdef ENABLE_MPI
-    m_n_rank = n_ranks;
-    initializeMPI();
-    #endif
-
-    setupStats();
-    }
-
 /*! \param mode Execution mode to set (cpu or gpu)
     \param gpu_id ID of the GPU on which to run, or -1 for automatic selection
     \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
     \param _msg Messenger to use for status message printing
+    \param n_ranks Number of ranks per partition
 
     Explicitly force the use of either CPU or GPU execution. If GPU exeuction is selected, then a default GPU choice
     is made by not calling cudaSetDevice.
@@ -162,11 +105,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                int gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
-                                               boost::shared_ptr<Messenger> _msg
-#ifdef ENABLE_MPI
-                                               , unsigned int n_ranks
-#endif
-                                               )
+                                               boost::shared_ptr<Messenger> _msg,
+                                               unsigned int n_ranks)
     : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
@@ -180,6 +120,26 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
+
+    // auto select a mode
+    if (exec_mode == AUTO)
+        {
+        // if there are available GPUs, initialize them. Otherwise, default to running on the CPU
+        int dev_count = getNumCapableGPUs();
+
+        if (dev_count > 0)
+            {
+            exec_mode = GPU;
+
+            // if we are not running in compute exclusive mode, use
+            // local MPI rank as preferred GPU id
+            gpu_id = m_system_compute_exclusive ? -1 : guessLocalRank();
+            }
+        else
+            exec_mode = CPU;
+        }
+
+    // now, exec_mode should be either CPU or GPU - proceed with initialization
 
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
@@ -195,6 +155,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         msg->error() << "GPU execution requested, but this hoomd was built without CUDA support" << endl;
         throw runtime_error("Error initializing execution configuration");
         }
+    // "auto-select" the CPU
+    exec_mode = CPU;
 #endif
 
     #ifdef ENABLE_MPI
@@ -702,10 +664,14 @@ void ExecutionConfiguration::setupStats()
 
     if (exec_mode == CPU)
         {
-        #ifdef ENABLE_OPENMP
         ostringstream s;
+
+        #ifdef ENABLE_OPENMP
         // We print this information in rank oder
         s << "OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
+        msg->collectiveNoticeStr(1,s.str());
+        #else
+        s << "HOOMD-blue is running on the CPU" << endl;
         msg->collectiveNoticeStr(1,s.str());
         #endif
         }
@@ -723,12 +689,7 @@ unsigned int ExecutionConfiguration::getNRanks() const
 void export_ExecutionConfiguration()
     {
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
-                         ("ExecutionConfiguration", init< bool, bool, boost::shared_ptr<Messenger> >())
-                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger> >())
-#ifdef ENABLE_MPI
-                         .def(init< bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
-                         .def(init<ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
-#endif
+                         ("ExecutionConfiguration", init< ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
                          .def("getGPUName", &ExecutionConfiguration::getGPUName)
@@ -753,6 +714,7 @@ void export_ExecutionConfiguration()
     enum_<ExecutionConfiguration::executionMode>("executionMode")
     .value("GPU", ExecutionConfiguration::GPU)
     .value("CPU", ExecutionConfiguration::CPU)
+    .value("AUTO", ExecutionConfiguration::AUTO)
     ;
 
     // allow classes to take shared_ptr<const ExecutionConfiguration> arguments

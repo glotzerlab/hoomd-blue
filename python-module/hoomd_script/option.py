@@ -116,7 +116,7 @@ class options:
 # Parses all hoomd_script command line options into the module variable cmd_options
 def _parse_command_line():
     parser = OptionParser();
-    parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)");
+    parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)", default='auto');
     parser.add_option("--gpu", dest="gpu", help="GPU on which to execute");
     parser.add_option("--ncpu", dest="ncpu", help="Number of CPU cores on which to execute");
     parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
@@ -137,8 +137,8 @@ def _parse_command_line():
 
     # chedk for valid mode setting
     if cmd_options.mode is not None:
-        if not (cmd_options.mode == "cpu" or cmd_options.mode == "gpu"):
-            parser.error("--mode must be either cpu or gpu");
+        if not (cmd_options.mode == "cpu" or cmd_options.mode == "gpu" or cmd_options.mode == "auto"):
+            parser.error("--mode must be either cpu, gpu, or auto");
 
     # check for sane options
     if cmd_options.mode == "cpu" and (cmd_options.gpu is not None):
@@ -163,7 +163,7 @@ def _parse_command_line():
             parser.error('--ncpu must be an integer')
 
     # convert gpu to an integer
-    if cmd_options.gpu:
+    if cmd_options.gpu is not None:
         try:
             cmd_options.gpu = int(cmd_options.gpu);
         except ValueError:
