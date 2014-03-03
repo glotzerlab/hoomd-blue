@@ -275,6 +275,7 @@ void NeighborListGPU::filterNlist()
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
 
+    m_tuner_filter->begin();
     gpu_nlist_filter(d_n_neigh.data,
                      d_nlist.data,
                      m_nlist_indexer,
@@ -282,8 +283,9 @@ void NeighborListGPU::filterNlist()
                      d_ex_list_idx.data,
                      m_ex_list_indexer,
                      m_pdata->getN(),
-                     m_block_size_filter);
+                     m_tuner_filter->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    m_tuner_filter->end();
 
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -323,7 +325,6 @@ void export_NeighborListGPU()
     {
     class_<NeighborListGPU, boost::shared_ptr<NeighborListGPU>, bases<NeighborList>, boost::noncopyable >
                      ("NeighborListGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
-                     .def("setBlockSizeFilter", &NeighborListGPU::setBlockSizeFilter)
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;
     }
