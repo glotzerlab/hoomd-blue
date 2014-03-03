@@ -274,7 +274,6 @@ class harmonic(force._force):
             self.cpp_force = hoomd.HarmonicAngleForceCompute(globals.system_definition);
         else:
             self.cpp_force = hoomd.HarmonicAngleForceComputeGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -385,7 +384,6 @@ class cgcmm(force._force):
             self.cpp_force = hoomd.CGCMMAngleForceCompute(globals.system_definition);
         else:
             self.cpp_force = hoomd.CGCMMAngleForceComputeGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.cgcmm'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -577,7 +575,6 @@ class table(force._force):
             self.cpp_force = hoomd.TableAngleForceCompute(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.TableAngleForceComputeGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

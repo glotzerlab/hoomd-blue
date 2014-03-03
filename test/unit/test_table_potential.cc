@@ -368,8 +368,6 @@ boost::shared_ptr<TablePotential> gpu_table_creator(boost::shared_ptr<SystemDefi
     {
     nlist->setStorageMode(NeighborList::full);
     boost::shared_ptr<TablePotentialGPU> table(new TablePotentialGPU(sysdef, nlist, width));
-    // the default block size kills valgrind :) reduce it
-    table->setBlockSize(64);
     return table;
     }
 #endif

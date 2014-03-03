@@ -162,9 +162,19 @@ template< class evaluator >
 cudaError_t gpu_compute_external_forces(const external_potential_args_t& external_potential_args,
                                     const typename evaluator::param_type *d_params)
     {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_compute_external_forces_kernel<evaluator>);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(external_potential_args.block_size, max_block_size);
+
     // setup the grid to run the kernel
-    dim3 grid( external_potential_args.N / external_potential_args.block_size + 1, 1, 1);
-    dim3 threads(external_potential_args.block_size, 1, 1);
+    dim3 grid( external_potential_args.N / run_block_size + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // bind the position texture
     gpu_compute_external_forces_kernel<evaluator>

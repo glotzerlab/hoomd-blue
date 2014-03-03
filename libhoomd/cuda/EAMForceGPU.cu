@@ -313,9 +313,23 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     const EAMTexInterArrays& eam_arrays,
     const EAMTexInterData& eam_data)
     {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel);
+
+        cudaFuncAttributes attr2;
+        cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2);
+
+        max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+        }
+
+    unsigned int run_block_size = min(eam_data.block_size, max_block_size);
+
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)eam_data.block_size), 1, 1);
-    dim3 threads(eam_data.block_size, 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // bind the texture
     #ifdef SINGLE_PRECISION

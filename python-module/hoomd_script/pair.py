@@ -354,7 +354,6 @@ class nlist:
                 cl_g = hoomd.CellListGPU(globals.system_definition);
                 globals.system.addCompute(cl_g, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
-                self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             else:
                 globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
@@ -1371,7 +1370,7 @@ class cgcmm(force._force):
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.cgcmm'));
+            self.cpp_force.setBlockSize(128);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -1518,7 +1517,6 @@ class table(force._force):
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2039,7 +2037,6 @@ class eam(force._force):
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
         else:
             self.cpp_force = hoomd.EAMForceComputeGPU(globals.system_definition, file, type_of_file);
-            self.cpp_force.setBlockSize(64);
             #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
             r_cut_new = self.cpp_force.get_r_cut();
             neighbor_list = _update_global_nlist(r_cut_new);
@@ -2172,8 +2169,6 @@ class dpdlj(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairDPDLJThermoDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDLJThermoDPDGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.dpdlj'));
-
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2528,7 +2523,6 @@ class tersoff(pair):
         else:
             self.cpp_force = hoomd.PotentialTersoffGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialTersoffGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.tersoff'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

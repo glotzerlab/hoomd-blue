@@ -327,7 +327,6 @@ class harmonic(_bond):
             self.cpp_force = hoomd.PotentialBondHarmonic(globals.system_definition,self.name);
         else:
             self.cpp_force = hoomd.PotentialBondHarmonicGPU(globals.system_definition,self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -399,7 +398,6 @@ class fene(_bond):
             self.cpp_force = hoomd.PotentialBondFENE(globals.system_definition,self.name);
         else:
             self.cpp_force = hoomd.PotentialBondFENEGPU(globals.system_definition,self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.fene'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -530,7 +528,6 @@ class table(force._force):
             self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

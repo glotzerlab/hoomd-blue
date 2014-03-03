@@ -85,14 +85,22 @@ class EAMForceComputeGPU : public EAMForceCompute
         //! Destructor
         virtual ~EAMForceComputeGPU();
 
-        //! Sets the block size to run at
-        void setBlockSize(int block_size);
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            EAMForceCompute::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
+            }
 
     protected:
         EAMTexInterData eam_data;                   //!< Undocumented parameter
         EAMtex eam_tex_data;                        //!< Undocumented parameter
         Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
-        int m_block_size;                           //!< The block size to run on the GPU
+        boost::scoped_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep, bool ghost);

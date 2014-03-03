@@ -258,7 +258,6 @@ Table of contents:
 
 <h2>Miscellaneous commands</h2>
 \section sec_index_tuning Tune
- - \link hoomd_script.tune.find_optimal_block_sizes() tune.find_optimal_block_sizes\endlink - <i>Determine optimal block size tuning parameters </i>
  - \link hoomd_script.tune.r_buff() tune.r_buff()\endlink - <i>Make a series of short runs to determine the fastest performing r_buff setting </i>
 
 \section sec_index_benchmark Benchmark

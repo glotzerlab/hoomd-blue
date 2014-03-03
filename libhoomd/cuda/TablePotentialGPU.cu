@@ -284,12 +284,22 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
     assert(ntypes > 0);
     assert(table_width > 1);
 
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_compute_table_forces_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+
     // index calculation helper
     Index2DUpperTriangular table_index(ntypes);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // bind the pdata position texture
     pdata_pos_tex.normalized = false;

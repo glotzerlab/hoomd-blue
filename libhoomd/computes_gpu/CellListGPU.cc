@@ -71,6 +71,8 @@ CellListGPU::CellListGPU(boost::shared_ptr<SystemDefinition> sysdef)
         m_exec_conf->msg->error() << "Creating a CellListGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing CellListGPU");
         }
+
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "cell_list", this->m_exec_conf));
     }
 
 void CellListGPU::computeCellList()
@@ -98,6 +100,8 @@ void CellListGPU::computeCellList()
     // take optimized code paths for different GPU generations
     if (exec_conf->getComputeCapability() >= 200)
         {
+        // autotune block sizes
+        m_tuner->begin();
         gpu_compute_cell_list(d_cell_size.data,
                               d_xyzf.data,
                               d_tdb.data,
@@ -117,7 +121,11 @@ void CellListGPU::computeCellList()
                               box,
                               m_cell_indexer,
                               m_cell_list_indexer,
-                              getGhostWidth());
+                              getGhostWidth(),
+                              m_tuner->getParam());
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        m_tuner->end();
         }
     else
         {

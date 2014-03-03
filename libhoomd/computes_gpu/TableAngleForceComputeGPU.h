@@ -81,12 +81,21 @@ class TableAngleForceComputeGPU : public TableAngleForceCompute
         //! Destructor
         virtual ~TableAngleForceComputeGPU() { }
 
-        //! Set the block size
-        void setBlockSize(int block_size);
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            TableAngleForceCompute::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
+            }
 
     private:
-        int m_block_size;   //!< the block size
-        GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };

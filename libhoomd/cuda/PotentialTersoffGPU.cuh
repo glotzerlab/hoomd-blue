@@ -601,9 +601,19 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     assert(pair_args.d_ronsq);
     assert(pair_args.ntypes > 0);
 
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator>);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(pair_args.block_size, max_block_size);
+
     // setup the grid to run the kernel
-    dim3 grid( pair_args.N / pair_args.block_size + 1, 1, 1);
-    dim3 threads(pair_args.block_size, 1, 1);
+    dim3 grid( pair_args.N / run_block_size + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // bind the position texture
     pdata_pos_tex.normalized = false;

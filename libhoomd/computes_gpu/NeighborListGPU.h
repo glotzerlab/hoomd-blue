@@ -86,13 +86,14 @@ class NeighborListGPU : public NeighborList
 
             // default to full mode
             m_storage_mode = full;
-            m_block_size_filter = 192;
             m_checkn = 1;
             m_distcheck_scheduled = false;
             m_last_schedule_tstep = 0;
 
             // create cuda event
             cudaEventCreate(&m_event,cudaEventDisableTiming);
+
+            m_tuner_filter.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_filter", this->m_exec_conf));
             }
 
         //! Destructor
@@ -106,10 +107,15 @@ class NeighborListGPU : public NeighborList
             cudaEventDestroy(m_event);
             }
 
-        //! Set block size for filter kernel
-        void setBlockSizeFilter(unsigned int block_size)
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_block_size_filter = block_size;
+            NeighborList::setAutotunerParams(enable, period);
+            m_tuner_filter->setPeriod(period/10);
+            m_tuner_filter->setEnabled(enable);
             }
 
         //! Benchmark the filter kernel
@@ -158,7 +164,8 @@ class NeighborListGPU : public NeighborList
         virtual void filterNlist();
 
     private:
-        unsigned int m_block_size_filter;   //!< Block size for the filter kernel
+        boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
+
         unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update
         bool m_distcheck_scheduled;         //!< True if a distance check kernel has been queued
         unsigned int m_last_schedule_tstep; //!< Time step of last kernel schedule
