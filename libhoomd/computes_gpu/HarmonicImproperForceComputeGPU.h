@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HarmonicImproperForceCompute.h"
 #include "HarmonicImproperForceGPU.cuh"
+#include "Autotuner.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>
@@ -92,20 +93,23 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
         //! Destructor
         ~HarmonicImproperForceComputeGPU();
 
-        //! Sets the block size to run on the device
-        /*! \param block_size Block size to set
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
         */
-        void setBlockSize(int block_size)
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_block_size = block_size;
+            HarmonicImproperForceCompute::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
             }
 
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar chi);
 
     protected:
-        int m_block_size;               //!< Block size to run calculation on
-        GPUArray<Scalar2>  m_params;     //!< Parameters stored on the GPU (k,chi)
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        GPUArray<Scalar2>  m_params;          //!< Parameters stored on the GPU (k,chi)
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

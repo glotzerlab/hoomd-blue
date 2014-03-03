@@ -112,7 +112,6 @@ class harmonic(force._force):
             self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.system_definition);
         else:
             self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('improper.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

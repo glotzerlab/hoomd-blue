@@ -72,7 +72,7 @@ using namespace std;
 /*! \param sysdef System to compute improper forces on
 */
 HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
-        : HarmonicImproperForceCompute(sysdef), m_block_size(64)
+        : HarmonicImproperForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
@@ -84,6 +84,7 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
     // allocate and zero device memory
     GPUArray<Scalar2> params(m_improper_data->getNTypes(), exec_conf);
     m_params.swap(params);
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_improper", this->m_exec_conf));
     }
 
 HarmonicImproperForceComputeGPU::~HarmonicImproperForceComputeGPU()
@@ -131,6 +132,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar2> d_params(m_params, access_location::device, access_mode::read);
 
     // run the kernel in parallel on all GPUs
+    m_tuner->begin();
     gpu_compute_harmonic_improper_forces(d_force.data,
                                          d_virial.data,
                                          m_virial.getPitch(),
@@ -143,9 +145,10 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
                                          d_n_dihedrals.data,
                                          d_params.data,
                                          m_improper_data->getNTypes(),
-                                         m_block_size);
+                                         m_tuner->getParam());
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner->end();
 
     if (m_prof) m_prof->pop(exec_conf);
     }
@@ -154,6 +157,5 @@ void export_HarmonicImproperForceComputeGPU()
     {
     class_<HarmonicImproperForceComputeGPU, boost::shared_ptr<HarmonicImproperForceComputeGPU>, bases<HarmonicImproperForceCompute>, boost::noncopyable >
     ("HarmonicImproperForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
-    .def("setBlockSize", &HarmonicImproperForceComputeGPU::setBlockSize)
     ;
     }
