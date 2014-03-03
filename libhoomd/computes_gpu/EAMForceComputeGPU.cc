@@ -92,7 +92,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
         throw std::runtime_error("Error initializing EAMForceComputeGPU");
         }
 
-    m_block_size = 64;
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_eam", this->m_exec_conf));
 
     // allocate the coeff data on the GPU
     loadFile(filename, type_of_file);
@@ -104,7 +104,6 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysde
     eam_data.rdrho = 1.0/drho;
     eam_data.r_cut = m_r_cut;
     eam_data.r_cutsq = m_r_cut * m_r_cut;
-    eam_data.block_size = m_block_size;
 
     cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(Scalar));
     cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(Scalar));
@@ -143,15 +142,6 @@ EAMForceComputeGPU::~EAMForceComputeGPU()
     cudaFreeArray(eam_tex_data.derivativeEmbeddingFunction);
     }
 
-/*! \param block_size Size of the block to run on the device
-    Performance of the code may be dependant on the block size run
-    on the GPU. \a block_size should be set to be a multiple of 32.
-*/
-void EAMForceComputeGPU::setBlockSize(int block_size)
-    {
-    m_block_size = block_size;
-    }
-
 
 void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
     {
@@ -184,6 +174,8 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
 
     EAMTexInterArrays eam_arrays;
     eam_arrays.atomDerivativeEmbeddingFunction = (Scalar *)d_atomDerivativeEmbeddingFunction;
+    m_tuner->begin();
+    eam_data.block_size = m_tuner->getParam();
     gpu_compute_eam_tex_inter_forces(d_force.data,
                                      d_virial.data,
                                      m_virial.getPitch(),
@@ -199,6 +191,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner->end();
 
     if (m_prof) m_prof->pop(exec_conf);
     }
@@ -207,7 +200,6 @@ void export_EAMForceComputeGPU()
     {
     class_<EAMForceComputeGPU, boost::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
         ("EAMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
-        .def("setBlockSize", &EAMForceComputeGPU::setBlockSize)
         ;
     }
 
