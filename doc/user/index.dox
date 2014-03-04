@@ -124,11 +124,11 @@ Table of contents:
  - In script
     - \link hoomd_script.option.set_mode() option.set_mode\endlink - <i>Set the execution mode</i>
     - \link hoomd_script.option.set_gpu() option.set_gpu\endlink - <i>Set the gpu</i>
-    - \link hoomd_script.option.set_ncpu() option.set_ncpu\endlink - <i>Set the number of CPU threads</i>
     - \link hoomd_script.option.set_gpu_error_checking() option.set_gpu_error_checking\endlink - <i>Set the error checking flag</i>
     - \link hoomd_script.option.set_min_cpu() option.set_min_cpu\endlink - <i>Set the minimize CPU usage flag</i>
     - \link hoomd_script.option.set_ignore_display() option.set_ignore_display\endlink - <i>Set the ignore display GPU flag</i>
     - \link hoomd_script.option.get_user() option.get_user\endlink - <i>Get user options</i>
+    - \link hoomd_script.option.set_autotuner_params() option.set_autotuner_params\endlink - <i>Set autotuner params</i>
 
 \section sec_index_init Initialize
  - \link hoomd_script.init.create_empty() init.create_empty\endlink - <i>Create an empty system</i>

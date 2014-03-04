@@ -157,7 +157,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     // for each local particle
     unsigned int nparticles = m_pdata->getN();
 
-#pragma omp parallel for schedule(dynamic, 100)
     for (int i = 0; i < (int)nparticles; i++)
         {
         unsigned int cur_n_neigh = 0;

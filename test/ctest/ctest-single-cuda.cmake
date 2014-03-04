@@ -20,14 +20,14 @@
 # (set to ON to enable CUDA build)
 SET (ENABLE_CUDA "ON")
 
-# (set to ON to enable OpenMP build)
-SET (ENABLE_OPENMP "OFF")
-
 # (set to OFF to enable double precision build) (ENABLE_CUDA must be off if this is set off)
 SET (SINGLE_PRECISION "ON")
 
 # (set to OFF to enable shared library builds)
 SET (ENABLE_STATIC "OFF")
+
+# (set to ON to enable MPI)
+SET (ENABLE_MPI "OFF")
 
 # (set tests to ignore, see the example for the format)
 # (bdnvt and npt take minutes to run, and an enternity with valgrind enabled, so they are ignored by default)
@@ -39,7 +39,7 @@ SET (MEMORYCHECK_COMMAND "")
 #SET (MEMORYCHECK_COMMAND "/usr/bin/valgrind")
 
 # (architectures to compile CUDA for 10=compute 1.0 11=compute 1.1, ...)
-SET (CUDA_ARCH_LIST 12 13 20)
+SET (CUDA_ARCH_LIST 20 30 35)
 
 # (set to ON to enable coverage tests: these extensive tests don't really need to be done on every single build)
 SET (ENABLE_COVERAGE OFF)
@@ -50,4 +50,3 @@ SET (BUILD_TYPE Release)
 # Bring in the settings common to all ctest scripts
 include(site_options.cmake)
 include(test_setup.cmake)
-

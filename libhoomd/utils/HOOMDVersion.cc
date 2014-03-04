@@ -83,10 +83,6 @@ void output_version_info(bool verbose)
     cout << " DOUBLE";
     #endif
 
-    #ifdef ENABLE_OPENMP
-    cout << " OPENMP";
-    #endif
-
     #ifdef ENABLE_MPI
     cout << " MPI";
     #endif

@@ -1084,7 +1084,6 @@ void NeighborList::buildNlist(unsigned int timestep)
     memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
 
     // now we can loop over all particles in n^2 fashion and build the list
-#pragma omp parallel for schedule(dynamic, 100)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
@@ -1120,24 +1119,21 @@ void NeighborList::buildNlist(unsigned int timestep)
                 {
                 if (m_storage_mode == full)
                     {
-                    #pragma omp critical
-                        {
-                        unsigned int posi = h_n_neigh.data[i];
-                        if (posi < m_Nmax)
-                            h_nlist.data[m_nlist_indexer(i, posi)] = j;
-                        else
-                            conditions = max(conditions, h_n_neigh.data[i]+1);
+                    unsigned int posi = h_n_neigh.data[i];
+                    if (posi < m_Nmax)
+                        h_nlist.data[m_nlist_indexer(i, posi)] = j;
+                    else
+                        conditions = max(conditions, h_n_neigh.data[i]+1);
 
-                        h_n_neigh.data[i]++;
+                    h_n_neigh.data[i]++;
 
-                        unsigned int posj = h_n_neigh.data[j];
-                        if (posj < m_Nmax)
-                            h_nlist.data[m_nlist_indexer(j, posj)] = i;
-                        else
-                            conditions = max(conditions, h_n_neigh.data[j]+1);
+                    unsigned int posj = h_n_neigh.data[j];
+                    if (posj < m_Nmax)
+                        h_nlist.data[m_nlist_indexer(j, posj)] = i;
+                    else
+                        conditions = max(conditions, h_n_neigh.data[j]+1);
 
-                        h_n_neigh.data[j]++;
-                        }
+                    h_n_neigh.data[j]++;
                     }
                 else
                     {

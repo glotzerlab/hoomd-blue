@@ -201,10 +201,6 @@ using namespace boost::python;
 #include <sstream>
 using namespace std;
 
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
-
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
@@ -312,22 +308,10 @@ string get_hoomd_version()
     return ver.str();
     }
 
-//! Layer for omp_set_num_threads
-void set_num_threads(int nthreads)
-    {
-    #ifdef ENABLE_OPENMP
-    omp_set_num_threads(nthreads);
-    #endif
-    }
-
 //! Layer for omp_get_num_procs()
 int get_num_procs()
     {
-    #ifdef ENABLE_OPENMP
-    return omp_get_num_procs();
-    #else
     return 1;
-    #endif
     }
 
 //! Get the hoomd version as a tuple
@@ -432,7 +416,6 @@ BOOST_PYTHON_MODULE(hoomd)
     def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
 
-    def("set_num_threads", &set_num_threads);
     def("get_num_procs", &get_num_procs);
     scope().attr("__version__") = get_hoomd_version_tuple();
     scope().attr("__git_sha1__") = HOOMD_GIT_SHA1;

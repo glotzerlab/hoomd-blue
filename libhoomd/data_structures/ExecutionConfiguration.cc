@@ -61,10 +61,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
-
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
@@ -638,11 +634,7 @@ int ExecutionConfiguration::guessLocalRank()
 */
 void ExecutionConfiguration::setupStats()
     {
-    #ifdef ENABLE_OPENMP
-    n_cpu = omp_get_max_threads();
-    #else
     n_cpu = 1;
-    #endif
 
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
@@ -654,11 +646,6 @@ void ExecutionConfiguration::setupStats()
 
         // GPU runs only use 1 CPU core
         n_cpu = 1;
-        #ifdef ENABLE_OPENMP
-        // need to set the number of threads. Some code in hoomd assumes that n_cpu is the same as the number of threads
-        // that OpenMP will execute in a parallel section
-        omp_set_num_threads(1);
-        #endif
         }
     #endif
 
@@ -666,14 +653,8 @@ void ExecutionConfiguration::setupStats()
         {
         ostringstream s;
 
-        #ifdef ENABLE_OPENMP
-        // We print this information in rank oder
-        s << "OpenMP is available. HOOMD-blue is running on " << n_cpu << " CPU core(s)" << endl;
-        msg->collectiveNoticeStr(1,s.str());
-        #else
         s << "HOOMD-blue is running on the CPU" << endl;
         msg->collectiveNoticeStr(1,s.str());
-        #endif
         }
     }
 

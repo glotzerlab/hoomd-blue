@@ -728,12 +728,6 @@ def _create_exec_conf():
 
     mpi_available = hoomd.is_MPI_available();
 
-    # set the openmp thread limits
-    if globals.options.ncpu is not None:
-        if globals.options.ncpu > hoomd.get_num_procs():
-            globals.msg.warning("Requesting more CPU cores than there are available in the system\n");
-        hoomd.set_num_threads(globals.options.ncpu);
-
     # error out on nyx/flux if the auto mode is set
     if globals.options.mode == 'auto':
         if (re.match("flux*", platform.node()) is not None) or (re.match("nyx*", platform.node()) is not None):

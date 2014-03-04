@@ -597,10 +597,6 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTKGPU_cubic_NPH)
 BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_tests )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1, _2,_3,_4,_5, _6, _7, _8,_9);
-    #ifdef ENABLE_OPENMP
-    // speed up CPU test
-    omp_set_num_threads(omp_get_num_procs());
-    #endif
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     npt_mtk_updater_test(npt_mtk_creator, exec_conf);
     }

@@ -68,10 +68,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #endif
 
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
-
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
@@ -216,9 +212,6 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
-
-    // initialize memory for per thread reduction
-    allocateThreadPartial();
     }
 
 template< class evaluator >
@@ -362,20 +355,11 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
 
-#pragma omp parallel
-    {
-    #ifdef ENABLE_OPENMP
-    int tid = omp_get_thread_num();
-    #else
-    int tid = 0;
-    #endif
-
     // need to start from a zero force, energy and virial
-    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*m_pdata->getN());
-    memset(&m_virial_partial[6*m_index_thread_partial(0,tid)] , 0, 6*sizeof(Scalar)*m_pdata->getN());
+    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
     // for each particle
-#pragma omp for schedule(guided)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
@@ -511,71 +495,40 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                 // only add force to local particles
                 if (third_law && j < m_pdata->getN())
                     {
-                    unsigned int mem_idx = m_index_thread_partial(j,tid);
-                    m_fdata_partial[mem_idx].x -= dx.x*force_divr;
-                    m_fdata_partial[mem_idx].y -= dx.y*force_divr;
-                    m_fdata_partial[mem_idx].z -= dx.z*force_divr;
-                    m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
+                    unsigned int mem_idx = j;
+                    h_force.data[mem_idx].x -= dx.x*force_divr;
+                    h_force.data[mem_idx].y -= dx.y*force_divr;
+                    h_force.data[mem_idx].z -= dx.z*force_divr;
+                    h_force.data[mem_idx].w += pair_eng * Scalar(0.5);
                     if (compute_virial)
                         {
-                        m_virial_partial[0+6*mem_idx] += force_div2r*dx.x*dx.x;
-                        m_virial_partial[1+6*mem_idx] += force_div2r*dx.x*dx.y;
-                        m_virial_partial[2+6*mem_idx] += force_div2r*dx.x*dx.z;
-                        m_virial_partial[3+6*mem_idx] += force_div2r*dx.y*dx.y;
-                        m_virial_partial[4+6*mem_idx] += force_div2r*dx.y*dx.z;
-                        m_virial_partial[5+6*mem_idx] += force_div2r*dx.z*dx.z;
+                        h_virial.data[0*m_virial_pitch+mem_idx] += force_div2r*dx.x*dx.x;
+                        h_virial.data[1*m_virial_pitch+mem_idx] += force_div2r*dx.x*dx.y;
+                        h_virial.data[2*m_virial_pitch+mem_idx] += force_div2r*dx.x*dx.z;
+                        h_virial.data[3*m_virial_pitch+mem_idx] += force_div2r*dx.y*dx.y;
+                        h_virial.data[4*m_virial_pitch+mem_idx] += force_div2r*dx.y*dx.z;
+                        h_virial.data[5*m_virial_pitch+mem_idx] += force_div2r*dx.z*dx.z;
                         }
                     }
                 }
             }
 
         // finally, increment the force, potential energy and virial for particle i
-        unsigned int mem_idx = m_index_thread_partial(i,tid);
-        m_fdata_partial[mem_idx].x += fi.x;
-        m_fdata_partial[mem_idx].y += fi.y;
-        m_fdata_partial[mem_idx].z += fi.z;
-        m_fdata_partial[mem_idx].w += pei;
+        unsigned int mem_idx = i;
+        h_force.data[mem_idx].x += fi.x;
+        h_force.data[mem_idx].y += fi.y;
+        h_force.data[mem_idx].z += fi.z;
+        h_force.data[mem_idx].w += pei;
         if (compute_virial)
             {
-            m_virial_partial[0+6*mem_idx] += virialxxi;
-            m_virial_partial[1+6*mem_idx] += virialxyi;
-            m_virial_partial[2+6*mem_idx] += virialxzi;
-            m_virial_partial[3+6*mem_idx] += virialyyi;
-            m_virial_partial[4+6*mem_idx] += virialyzi;
-            m_virial_partial[5+6*mem_idx] += virialzzi;
+            h_virial.data[0*m_virial_pitch+mem_idx] += virialxxi;
+            h_virial.data[1*m_virial_pitch+mem_idx] += virialxyi;
+            h_virial.data[2*m_virial_pitch+mem_idx] += virialxzi;
+            h_virial.data[3*m_virial_pitch+mem_idx] += virialyyi;
+            h_virial.data[4*m_virial_pitch+mem_idx] += virialyzi;
+            h_virial.data[5*m_virial_pitch+mem_idx] += virialzzi;
             }
         }
-#pragma omp barrier
-
-    // now that the partial sums are complete, sum up the results in parallel
-#pragma omp for
-    for (int i = 0; i < (int) m_pdata->getN(); i++)
-        {
-        // assign result from thread 0
-        h_force.data[i].x = m_fdata_partial[i].x;
-        h_force.data[i].y = m_fdata_partial[i].y;
-        h_force.data[i].z = m_fdata_partial[i].z;
-        h_force.data[i].w = m_fdata_partial[i].w;
-
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*m_virial_pitch+i] = m_virial_partial[j+6*i];
-
-        #ifdef ENABLE_OPENMP
-        // add results from other threads
-        int nthreads = omp_get_num_threads();
-        for (int thread = 1; thread < nthreads; thread++)
-            {
-            unsigned int mem_idx = m_index_thread_partial(i,thread);
-            h_force.data[i].x += m_fdata_partial[mem_idx].x;
-            h_force.data[i].y += m_fdata_partial[mem_idx].y;
-            h_force.data[i].z += m_fdata_partial[mem_idx].z;
-            h_force.data[i].w += m_fdata_partial[mem_idx].w;
-            for (int j = 0; j < 6; j++)
-                h_virial.data[j*m_virial_pitch+i] += m_virial_partial[j+6*mem_idx];
-            }
-        #endif
-        }
-    } // end omp parallel
 
     if (m_prof) m_prof->pop();
     }

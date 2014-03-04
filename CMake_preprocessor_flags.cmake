@@ -31,10 +31,6 @@ elseif(UNIX)
     add_definitions(-D_REENTRANT)
 endif(WIN32)
 
-if (ENABLE_OPENMP)
-    add_definitions (-DENABLE_OPENMP)
-endif (ENABLE_OPENMP)
-
 if (ENABLE_MPI)
     add_definitions (-DENABLE_MPI)
 

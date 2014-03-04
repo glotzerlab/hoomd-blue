@@ -54,10 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "NeighborList.h"
 
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
-
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
@@ -176,9 +172,6 @@ PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefiniti
     // initialize name
     m_prof_name = std::string("Triplet ") + evaluator::getName();
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
-
-    // initialize memory for per thread reduction
-    allocateThreadPartial();
     }
 
 template < class evaluator >
@@ -321,19 +314,10 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
-#pragma omp parallel
-{
-    #ifdef ENABLE_OPENMP
-    int tid = omp_get_thread_num();
-    #else
-    int tid = 0;
-    #endif
-
     // need to start from a zero force, energy
-    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*m_pdata->getN());
+    memset(h_force.data, 0, sizeof(Scalar4)*m_pdata->getN());
 
     // for each particle
-#pragma omp for schedule(guided)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
@@ -509,53 +493,27 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                         fk.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
 
                         // increment the force for particle k
-                        unsigned int mem_idx = m_index_thread_partial(kk, tid);
-                        m_fdata_partial[mem_idx].x += fk.x;
-                        m_fdata_partial[mem_idx].y += fk.y;
-                        m_fdata_partial[mem_idx].z += fk.z;
+                        unsigned int mem_idx = kk;
+                        h_force.data[mem_idx].x += fk.x;
+                        h_force.data[mem_idx].y += fk.y;
+                        h_force.data[mem_idx].z += fk.z;
                         }
                     }
                 }
             // increment the force and potential energy for particle j
-            unsigned int mem_idx = m_index_thread_partial(jj, tid);
-            m_fdata_partial[mem_idx].x += fj.x;
-            m_fdata_partial[mem_idx].y += fj.y;
-            m_fdata_partial[mem_idx].z += fj.z;
-            m_fdata_partial[mem_idx].w += pej;
+            unsigned int mem_idx = jj;
+            h_force.data[mem_idx].x += fj.x;
+            h_force.data[mem_idx].y += fj.y;
+            h_force.data[mem_idx].z += fj.z;
+            h_force.data[mem_idx].w += pej;
             }
         // finally, increment the force and potential energy for particle i
-        unsigned int mem_idx = m_index_thread_partial(i,tid);
-        m_fdata_partial[mem_idx].x += fi.x;
-        m_fdata_partial[mem_idx].y += fi.y;
-        m_fdata_partial[mem_idx].z += fi.z;
-        m_fdata_partial[mem_idx].w += pei;
+        unsigned int mem_idx = i;
+        h_force.data[mem_idx].x += fi.x;
+        h_force.data[mem_idx].y += fi.y;
+        h_force.data[mem_idx].z += fi.z;
+        h_force.data[mem_idx].w += pei;
         }
-#pragma omp barrier
-
-    // now that the partial sums are complete, sum up the results in parallel
-#pragma omp for
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
-        {
-        // assign result from thread 0
-        h_force.data[i].x  = m_fdata_partial[i].x;
-        h_force.data[i].y = m_fdata_partial[i].y;
-        h_force.data[i].z = m_fdata_partial[i].z;
-        h_force.data[i].w = m_fdata_partial[i].w;
-
-        #ifdef ENABLE_OPENMP
-        // add results from other threads
-        int nthreads = omp_get_num_threads();
-        for (int thread = 1; thread < nthreads; thread++)
-            {
-            unsigned int mem_idx = m_index_thread_partial(i,thread);
-            h_force.data[i].x += m_fdata_partial[mem_idx].x;
-            h_force.data[i].y += m_fdata_partial[mem_idx].y;
-            h_force.data[i].z += m_fdata_partial[mem_idx].z;
-            h_force.data[i].w += m_fdata_partial[mem_idx].w;
-            }
-        #endif
-        }
-    } // end omp parallel
 
     if (m_prof) m_prof->pop();
     }

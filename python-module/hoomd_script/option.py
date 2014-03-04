@@ -74,7 +74,6 @@ class options:
     def __init__(self):
         self.mode = None;
         self.gpu = None;
-        self.ncpu = None;
         self.gpu_error_checking = None;
         self.min_cpu = None;
         self.ignore_display = None;
@@ -94,7 +93,6 @@ class options:
     def __repr__(self):
         tmp = dict(mode=self.mode,
                    gpu=self.gpu,
-                   ncpu=self.ncpu,
                    gpu_error_checking=self.gpu_error_checking,
                    min_cpu=self.min_cpu,
                    ignore_display=self.ignore_display,
@@ -118,7 +116,6 @@ def _parse_command_line():
     parser = OptionParser();
     parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)", default='auto');
     parser.add_option("--gpu", dest="gpu", help="GPU on which to execute");
-    parser.add_option("--ncpu", dest="ncpu", help="Number of CPU cores on which to execute");
     parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
     parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
     parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
@@ -144,23 +141,9 @@ def _parse_command_line():
     if cmd_options.mode == "cpu" and (cmd_options.gpu is not None):
         parser.error("--mode=cpu cannot be specified along with --gpu")
 
-    if cmd_options.mode == "gpu" and (cmd_options.ncpu is not None):
-        parser.error("--mode=gpu cannot be specified along with --ncpu")
-
     # set the mode to gpu if the gpu # was set
     if cmd_options.gpu is not None and cmd_options.mode is None:
         cmd_options.mode = "gpu"
-
-    # set the mode to cpu if the ncpu was set
-    if cmd_options.ncpu is not None and cmd_options.mode is None:
-        cmd_options.mode = "cpu"
-
-    # convert ncpu to an integer
-    if cmd_options.ncpu is not None:
-        try:
-            cmd_options.ncpu = int(cmd_options.ncpu);
-        except ValueError:
-            parser.error('--ncpu must be an integer')
 
     # convert gpu to an integer
     if cmd_options.gpu is not None:
@@ -209,7 +192,6 @@ def _parse_command_line():
     # copy command line options over to global options
     globals.options.mode = cmd_options.mode;
     globals.options.gpu = cmd_options.gpu;
-    globals.options.ncpu = cmd_options.ncpu;
     globals.options.gpu_error_checking = cmd_options.gpu_error_checking;
     globals.options.min_cpu = cmd_options.min_cpu;
     globals.options.ignore_display = cmd_options.ignore_display;
@@ -293,31 +275,6 @@ def set_gpu(gpu):
 
     globals.options.gpu = gpu;
 
-## Set the number of CPU threads
-#
-# \param ncpu Specifies the number of CPU cores on which to execute (OpenMP). Must be an integer.
-# \note When set to None, the number of threads is automatically chosen.
-# \note When not None, implies \a mode = "cpu"
-# \note Overrides --ncpu on the command line.
-# \sa \ref page_command_line_options
-#
-def set_ncpu(ncpu):
-    if init.is_initialized():
-            globals.msg.error("Cannot change number of threads after initialization\n");
-            raise RuntimeError('Error setting option');
-
-    if ncpu is not None:
-        try:
-            ncpu = int(ncpu);
-        except ValueError:
-            globals.msg.error("ncpu must be an integer\n");
-            raise RuntimeError('Error setting option');
-
-        # imply mode=cpu
-        globals.options.mode = "cpu";
-
-    globals.options.ncpu = ncpu;
-
 ## Set the error checking flag
 #
 # \param gpu_error_checking Specifies whether error checks are made after every GPU call. (True or False)
@@ -378,7 +335,7 @@ def set_notice_level(notice_level):
     try:
         notice_level = int(notice_level);
     except ValueError:
-        globals.msg.error("ncpu must be an integer\n");
+        globals.msg.error("notice-level must be an integer\n");
         raise RuntimeError('Error setting option');
 
     globals.msg.setNoticeLevel(notice_level);
