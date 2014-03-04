@@ -439,34 +439,33 @@ class enforce2d(_updater):
 #
 # \MPI_SUPPORTED
 class box_resize(_updater):
-    ## Initialize box size resizer
+    ## Initialize box size resize updater
     #
-    # \param Lx (if set) the value of the box length in the x direction as a function of time (in distance units)
-    # \param Ly (if set) the value of the box length in the y direction as a function of time (in distance units)
-    # \param Lz (if set) the value of the box length in the z direction as a function of time (in distance units)
-    # \param xy (if set) the value of the X-Y tilt factor as a function of time (dimensionless)
-    # \param xz (if set) the value of the X-Z tilt factor as a function of time (dimensionless)
-    # \param yz (if set) the value of the Y-Z tilt factor as a function of time (dimensionless)
+    # \param L (if set) box length in the x,y, and z directions as a function of time (in distance units)
+    # \param Lx (if set) box length in the x direction as a function of time (in distance units)
+    # \param Ly (if set) box length in the y direction as a function of time (in distance units)
+    # \param Lz (if set) box length in the z direction as a function of time (in distance units)
+    # \param xy (if set) X-Y tilt factor as a function of time (dimensionless)
+    # \param xz (if set) X-Z tilt factor as a function of time (dimensionless)
+    # \param yz (if set) Y-Z tilt factor as a function of time (dimensionless)
     # \param period The box size will be updated every \a period time steps
     #
-    # \a Lx, \a Ly, \a Lz, \a xy, \a xz, \a yz can either be set to a constant number or a variant may be provided.
+    # \a L, Lx, \a Ly, \a Lz, \a xy, \a xz, \a yz can either be set to a constant number or a variant may be provided.
+    # if any of the box parameters are not specified, they are set to maintain the same value in the current box.
     #
-    # \note If Ly or Lz (or both) are left as None, then they will be set to Lx as a convenience for
-    # defining cubes. If Lx is left as None, the current box length in the x-direction will be used.
+    # Use \a L as a shorthand to specify Lx, Ly, and Lz to the same value.
     #
-    # \note
     # By default, particle positions are rescaled with the box. To change this behavior,
     # use set_params().
     #
-    # \note
     # If, under rescaling, tilt factors get too large, the simulation may slow down due to too many ghost atoms
     # being communicated. update.box.resize does NOT reset the box to orthorhombic shape if this occurs (and does not
     # move the next periodic image into the primary cell).
     #
     # \b Examples:
     # \code
-    # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
-    # box_resize = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
+    # update.box_resize(L = variant.linear_interp([(0, 20), (1e6, 50)]))
+    # box_resize = update.box_resize(L = variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
     # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]),
     #                   Ly = variant.linear_interp([(0, 20), (1e6, 60)]),
     #                   Lz = variant.linear_interp([(0, 10), (1e6, 80)]))
@@ -481,31 +480,37 @@ class box_resize(_updater):
     # If \a period is set to None, then the given box lengths are applied immediately and periodic updates
     # are not performed.
     #
-    def __init__(self, Lx=None, Ly = None, Lz = None, xy=None, xz=None, yz=None, period = 1):
+    def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None):
         util.print_status_line();
 
         # initialize base class
         _updater.__init__(self);
 
+        if L is not None:
+            Lx = L;
+            Ly = L;
+            Lz = L;
+
         if Lx is None and Ly is None and Lz is None and xy is None and xz is None and yz is None:
             globals.msg.warning("update.box_resize: Ignoring request to setup updater without parameters\n")
             return
 
+
+        box = globals.system_definition.getParticleData().getGlobalBox();
         # setup arguments
         if Lx is None:
-            # use current box length in x-direction
-            Lx = globals.system_definition.getParticleData().getGlobalBox().getL().x;
+            Lx = box.getL().x;
         if Ly is None:
-            Ly = Lx;
+            Ly = box.getL().y;
         if Lz is None:
-            Lz = Lx;
+            Lz = box.getL().z;
 
         if xy is None:
-            xy = 0.0;
+            xy = box.getTiltFactorXY();
         if xz is None:
-            xz = 0.0;
+            xz = box.getTiltFactorXZ();
         if yz is None:
-            yz = 0.0;
+            yz = box.getTiltFactorYZ();
 
         Lx = variant._setup_variant_input(Lx);
         Ly = variant._setup_variant_input(Ly);

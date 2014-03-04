@@ -15,7 +15,7 @@ class update_box_resize_tests (unittest.TestCase):
 
     # tests basic creation of the updater
     def test(self):
-        update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
+        update.box_resize(L = variant.linear_interp([(0, 20), (1e6, 50)]))
         run(100);
 
     # test the setting of more args
