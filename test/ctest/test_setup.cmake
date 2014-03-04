@@ -12,7 +12,7 @@ endif ()
 
 if (ENABLE_STATIC MATCHES "ON")
     SET (BUILDNAME "${BUILDNAME}-static")
-endif()
+endif ()
 
 if (NOT SINGLE_PRECISION MATCHES "ON")
     SET (BUILDNAME "${BUILDNAME}-double")
@@ -32,11 +32,11 @@ endif ()
 
 if (ENABLE_MPI MATCHES "ON")
     SET (BUILDNAME "${BUILDNAME}-mpi")
-endif()
+endif ()
 
 if (GPU_GENERATION)
     SET (BUILDNAME "${BUILDNAME}-${GPU_GENERATION}")
-endif()
+endif ()
 
 if (ENABLE_COVERAGE)
     SET (COVERAGE_FLAGS "-fprofile-arcs -ftest-coverage")
