@@ -13,7 +13,7 @@ class angle_cgcmm_tests (unittest.TestCase):
         self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
         self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
         self.polymers = [self.polymer1, self.polymer2]
-        self.box = hoomd.BoxDim(35);
+        self.box = data.boxdim(L=35);
         self.separation=dict(A=0.35, B=0.35)
         sys=init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         sys.angles.add('angleA', 0, 1, 2)

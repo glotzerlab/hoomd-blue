@@ -9,7 +9,7 @@ import os
 class constraint_sphere_tests (unittest.TestCase):
     def setUp(self):
         print
-        sysdef = init.create_empty(N=2, box=(40,40,40), n_particle_types=1);
+        sysdef = init.create_empty(N=2, box=data.boxdim(L=40), n_particle_types=1);
         sysdef.particles[0].position = (5,0,0);
         sysdef.particles[1].position = (-5,1,1);
 

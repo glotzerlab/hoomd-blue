@@ -1767,11 +1767,13 @@ void export_BoxDim()
     .def("getLo", &BoxDim::getLo)
     .def("getHi", &BoxDim::getHi)
     .def("setLoHi", &BoxDim::setLoHi)
+    .def("setTiltFactors", &BoxDim::setTiltFactors)
     .def("getTiltFactorXY", &BoxDim::getTiltFactorXY)
     .def("getTiltFactorXZ", &BoxDim::getTiltFactorXZ)
     .def("getTiltFactorYZ", &BoxDim::getTiltFactorYZ)
     .def("makeFraction", &BoxDim::makeFraction)
     .def("minImage", &BoxDim::minImage)
+    .def("getVolume", &BoxDim::getVolume)
     ;
     }
 

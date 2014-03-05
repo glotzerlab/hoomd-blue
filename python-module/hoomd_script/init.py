@@ -142,7 +142,7 @@ def reset():
 ## Create an empty system
 #
 # \param N Number of particles to create
-# \param box A 3-tuple of floats specifying the box lengths (Lx, Ly, Lz) (in distance units)
+# \param box a data.boxdim object that defines the simulation box
 # \param n_particle_types Number of particle types to create
 # \param n_bond_types Number of bond types to create
 # \param n_angle_types Number of angle types to create
@@ -151,9 +151,9 @@ def reset():
 #
 # \b Examples:
 # \code
-# system = init.create_empty(N=1000, box=(10, 10, 10)
-# system = init.create_empty(N=64000, box=(20,20,20), n_particle_types=2)
-# system = init.create_empty(N=64000, box=(20,20,20), n_bond_types=1, n_dihedral_types=2, n_improper_types=4)
+# system = init.create_empty(N=1000, box=data.boxdim(L=10)
+# system = init.create_empty(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), n_particle_types=2)
+# system = init.create_empty(N=64000, box=data.boxdim(L=20), n_bond_types=1, n_dihedral_types=2, n_improper_types=4)
 # \endcode
 #
 # After init.create_empty returns, the requested number of particles will have been created <b>but all of them
@@ -164,13 +164,13 @@ def reset():
 # - At position 0,0,0
 # - Have velocity 0,0,0
 # - In box image 0,0,0
+# - Have orientation 1,0,0,0
 # - Have the type 'A'
 # - Have charge 0
 # - Have a mass of 1.0
 #
-# Furthermore, as a current limitation in the way create_empty works the defined particle type names are:
-# 'A', 'B', 'C', ... up to \a n_particle_types types. An intuitive way for resetting these types to user-defined ones
-# will come in a future enhancement.
+# The defined particle type names are:
+# 'A', 'B', 'C', ... up to \a n_particle_types types.
 #
 # \note The resulting empty system must have its particles fully initialized via python code, \b BEFORE
 # any other hoomd_script commands are executed. As as example of what might go wrong, if the pair.lj command were to be
@@ -189,7 +189,11 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     my_exec_conf = _create_exec_conf();
 
     # create the empty system
-    boxdim = hoomd.BoxDim(float(box[0]), float(box[1]), float(box[2]));
+    if not isinstance(box, data.boxdim):
+        globals.msg.error('box must be a data.boxdim object');
+        raise TypeError('box must be a data.boxdim object');
+
+    boxdim = box._getBoxDim();
 
     my_domain_decomposition = _create_domain_decomposition(boxdim);
     if my_domain_decomposition is not None:
@@ -211,6 +215,8 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
                                                            n_dihedral_types,
                                                            n_improper_types,
                                                            my_exec_conf)
+
+    globals.system_definition.setNDimensions(box.dimensions);
 
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
@@ -341,15 +347,21 @@ def read_bin(filename, time_step = None):
 # \param phi_p Packing fraction of particles in the simulation box (unitless)
 # \param name Name of the particle type to create
 # \param min_dist Minimum distance particles will be separated by (in distance units)
+# \param box Simulation box dimensions (data.boxdim object)
+# \param seed Random seed
+#
+# Either \a phi_p or \a box must be specified. If \a phi_p is provided, it overrides the value of \a box.
 #
 # \b Examples:
 # \code
 # init.create_random(N=2400, phi_p=0.20)
 # init.create_random(N=2400, phi_p=0.40, min_dist=0.5)
-# system = init.create_random(N=2400, phi_p=0.20)
+# system = init.create_random(N=2400, box=data.boxdim(L=20))
 # \endcode
 #
-# \a N particles are randomly placed in the simulation box. The
+# \a N particles are randomly placed in the simulation box.
+#
+# When phi_p is set, the
 # dimensions of the created box are such that the packing fraction
 # of particles in the box is \a phi_p. The number density \e n
 # is related to the packing fraction by \f$n = 6/\pi \cdot \phi_P\f$
@@ -359,7 +371,7 @@ def read_bin(filename, time_step = None):
 # The result of init.create_random can be saved in a variable and later used to read and/or change particle properties
 # later in the script. See hoomd_script.data for more information.
 #
-def create_random(N, phi_p, name="A", min_dist=0.7):
+def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
@@ -372,12 +384,20 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 
     # abuse the polymer generator to generate single particles
 
-    # calculat the box size
-    L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
-    box = hoomd.BoxDim(L);
+    if phi_p is not None:
+        # calculate the box size
+        L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
+        box = data.boxdim(L=L);
+
+    if box is None:
+        raise RuntimeError('box or phi_p must be specified');
+
+    if not isinstance(box, data.boxdim):
+        globals.msg.error('box must be a data.boxdim object');
+        raise TypeError('box must be a data.boxdim object');
 
     # create the generator
-    generator = hoomd.RandomGenerator(my_exec_conf, box, 12345);
+    generator = hoomd.RandomGenerator(my_exec_conf, box._getBoxDim(), seed);
 
     # build type list
     type_vector = hoomd.std_vector_string();
@@ -413,7 +433,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 
 ## Generates any number of randomly positioned polymers of configurable types
 #
-# \param box BoxDim specifying the simulation box to generate the polymers in
+# \param box Simulation box dimensions (data.boxdim object)
 # \param polymers Specification for the different polymers to create (see below)
 # \param separation Separation radii for different particle types (see below)
 # \param seed Random seed to use
@@ -465,21 +485,21 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 #
 # \b Examples:
 # \code
-# init.create_random_polymers(box=hoomd.BoxDim(35),
+# init.create_random_polymers(box=data.boxdim(L=35),
 #                             polymers=[polymer1, polymer2],
 #                             separation=dict(A=0.35, B=0.35));
 #
-# init.create_random_polymers(box=hoomd.BoxDim(31),
+# init.create_random_polymers(box=data.boxdim(L=31),
 #                             polymers=[polymer1],
 #                             separation=dict(A=0.35, B=0.35), seed=52);
 #
 # # create polymers in an orthorhombic box
-# init.create_random_polymers(box=hoomd.BoxDim(18,10,25),
+# init.create_random_polymers(box=data.boxdim(Lx=18,Ly=10,Lz=25),
 #                             polymers=[polymer2],
 #                             separation=dict(A=0.35, B=0.35), seed=12345);
 #
 # # create a triclinic box with tilt factors xy=0.1 xz=0.2 yz=0.3
-# init.create_random_polymers(box=hoomd.BoxDim(18, 0.1, 0.2, 0.3),
+# init.create_random_polymers(box=data.boxdim(L=18, xy=0.1, xz=0.2, yz=0.3),
 #                             polymeres=[polymer2],
 #                             separation=dict(A=0.35, B=0.35));
 # \endcode
@@ -533,8 +553,12 @@ def create_random_polymers(box, polymers, separation, seed=1):
         globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
         raise RuntimeError("Error creating random polymers");
 
+    if not isinstance(box, data.boxdim):
+        globals.msg.error('box must be a data.boxdim object');
+        raise TypeError('box must be a data.boxdim object');
+
     # create the generator
-    generator = hoomd.RandomGenerator(my_exec_conf,box, seed);
+    generator = hoomd.RandomGenerator(my_exec_conf,box._getBoxDim(), seed);
 
     # make a list of types used for an eventual check vs the types in separation for completeness
     types_used = [];

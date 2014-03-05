@@ -3,6 +3,7 @@ hoomd_script::init::create_empty hoomd_script::pair::lj hoomd_script::integrate:
 # run this script with "python -x filename" to skip the first line, or remove this header
 
 # ---- init_create_empty.py ----
+from __future__ import division
 from hoomd_script import *
 import random
 
@@ -10,12 +11,12 @@ import random
 a = 1.2
 m = 10
 
-system = init.create_empty(N=m*m*m, box=(m*a, m*a, m*a), n_particle_types=2)
+system = init.create_empty(N=m*m*m, box=data.boxdim(L=m*a), n_particle_types=2)
 
 # initialize a simple cubic array of particles
 lo = - m*a / 2.0;
 for p in system.particles:
-    (i, j, k) = (p.tag % m, p.tag/m % m, p.tag/m**2  % m)
+    (i, j, k) = (p.tag % m, p.tag//m % m, p.tag//m**2  % m)
     p.position = (lo + i*a + a/2, lo + j*a + a/2, lo + k*a + a/2)
 
 # make the top half type B
@@ -32,9 +33,9 @@ for p in system.particles:
     vx = random.gauss(0, T / mass)
     vy = random.gauss(0, T / mass)
     vz = random.gauss(0, T / mass)
-    
+
     p.velocity = (vx, vy, vz)
-    
+
     # sum the total system momentum
     px += mass*vx;
     py += mass*vy;

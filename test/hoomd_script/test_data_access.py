@@ -15,18 +15,14 @@ class particle_data_access_tests (unittest.TestCase):
 
     # tests reading/setting of the box
     def test_box(self):
-        self.s.box = (15, 20, 30);
+        self.s.box = data.boxdim(Lx=15, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=2.0);
         b = self.s.box;
-        self.assertEqual(3, len(b));
-        self.assertAlmostEqual(15, b[0], 5)
-        self.assertAlmostEqual(20, b[1], 5)
-        self.assertAlmostEqual(30, b[2], 5)
-
-    # test reading/setting of the dimensions
-    def test_dimensions(self):
-        self.s.dimensions = 2;
-        self.assertEqual(self.s.dimensions, 2);
-        self.s.dimensions = 3;
+        self.assertAlmostEqual(15, b.Lx, 5)
+        self.assertAlmostEqual(20, b.Ly, 5)
+        self.assertAlmostEqual(30, b.Lz, 5)
+        self.assertAlmostEqual(1.0, b.xy, 5)
+        self.assertAlmostEqual(0.5, b.xz, 5)
+        self.assertAlmostEqual(2.0, b.yz, 5)
 
     # test particles
     def test_particles(self):
@@ -91,7 +87,7 @@ class particle_data_access_tests (unittest.TestCase):
 class bond_data_access_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = init.create_empty(N=100, box=(10,10,10), n_bond_types=2, n_angle_types=2, n_dihedral_types=2, n_improper_types=2);
+        self.s = init.create_empty(N=100, box=data.boxdim(L=10), n_bond_types=2, n_angle_types=2, n_dihedral_types=2, n_improper_types=2);
 
         sorter.set_params(grid=8)
 
