@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborList.h"
 #include "GPUFlags.h"
+#include "Autotuner.h"
 
 /*! \file NeighborListGPU.h
     \brief Declares the NeighborListGPU class

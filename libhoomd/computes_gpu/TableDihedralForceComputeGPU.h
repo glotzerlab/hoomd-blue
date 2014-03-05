@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TableDihedralForceCompute.h"
 #include "TableDihedralForceGPU.cuh"
+#include "Autotuner.h"
 
 /*! \file TableDihedralForceComputeGPU.h
     \brief Declares the TableDihedralForceComputeGPU class

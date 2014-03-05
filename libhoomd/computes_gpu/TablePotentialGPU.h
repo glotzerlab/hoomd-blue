@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TablePotential.h"
 #include "TablePotentialGPU.cuh"
+#include "Autotuner.h"
 
 /*! \file TablePotentialGPU.h
     \brief Declares the TablePotentialGPU class

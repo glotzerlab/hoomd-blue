@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HarmonicAngleForceCompute.h"
 #include "HarmonicAngleForceGPU.cuh"
+#include "Autotuner.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>

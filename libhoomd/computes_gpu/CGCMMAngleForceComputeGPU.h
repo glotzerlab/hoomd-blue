@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CGCMMAngleForceCompute.h"
 #include "CGCMMAngleForceGPU.cuh"
+#include "Autotuner.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>
