@@ -76,6 +76,7 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
                                      const Scalar2 *d_tables,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
-                                     const unsigned int block_size);
+                                     const unsigned int block_size,
+                                     const unsigned int compute_capability);
 
 #endif

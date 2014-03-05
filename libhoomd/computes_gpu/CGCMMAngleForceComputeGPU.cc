@@ -186,7 +186,8 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
                                    d_CGCMMsr.data,
                                    d_CGCMMepow.data,
                                    m_CGCMMAngle_data->getNTypes(),
-                                   m_tuner->getParam());
+                                   m_tuner->getParam(),
+                                   m_exec_conf->getComputeCapability());
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

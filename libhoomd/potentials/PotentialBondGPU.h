@@ -183,7 +183,8 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                              gpu_table_indexer,
                              d_gpu_n_bonds.data,
                              this->m_bond_data->getNTypes(),
-                             this->m_tuner->getParam()),
+                             this->m_tuner->getParam(),
+                             this->m_exec_conf->getComputeCapability()),
                  d_params.data,
                  d_flags.data);
         }

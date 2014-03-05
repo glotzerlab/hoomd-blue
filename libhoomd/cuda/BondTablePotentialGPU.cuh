@@ -78,6 +78,7 @@ cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
                                      unsigned int *d_flags,
-                                     const unsigned int block_size);
+                                     const unsigned int block_size,
+                                     const unsigned int compute_capability);
 
 #endif

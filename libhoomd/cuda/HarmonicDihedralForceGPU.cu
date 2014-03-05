@@ -349,6 +349,7 @@ void gpu_compute_harmonic_dihedral_forces_kernel(Scalar4* d_force,
     \param d_params K, sign,multiplicity params packed as padded Scalar4 variables
     \param n_dihedral_types Number of dihedral types in d_params
     \param block_size Block size to use when performing calculations
+    \param compute_capability Compute capability of the device (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
@@ -368,7 +369,8 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar4 *d_params,
                                                  unsigned int n_dihedral_types,
-                                                 int block_size)
+                                                 int block_size,
+                                                 const unsigned int compute_capability)
     {
     assert(d_params);
 
@@ -386,10 +388,13 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
     dim3 grid( N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    // bind the texture
-    cudaError_t error = cudaBindTexture(0, dihedral_params_tex, d_params, sizeof(Scalar4) * n_dihedral_types);
-    if (error != cudaSuccess)
-        return error;
+    // bind the texture on pre sm35 devices
+    if (compute_capability < 350)
+        {
+        cudaError_t error = cudaBindTexture(0, dihedral_params_tex, d_params, sizeof(Scalar4) * n_dihedral_types);
+        if (error != cudaSuccess)
+            return error;
+        }
 
     // run the kernel
     gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);

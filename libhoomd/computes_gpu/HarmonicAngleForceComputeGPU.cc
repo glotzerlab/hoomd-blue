@@ -147,7 +147,8 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
                                       d_gpu_n_angles.data,
                                       d_params.data,
                                       m_angle_data->getNTypes(),
-                                      m_tuner->getParam());
+                                      m_tuner->getParam(),
+                                      m_exec_conf->getComputeCapability());
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

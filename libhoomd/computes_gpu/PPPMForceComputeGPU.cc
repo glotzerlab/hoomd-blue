@@ -250,7 +250,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                                 d_field.data,
                                 d_index_array.data,
                                 group_size,
-                                m_block_size);
+                                m_block_size,
+                                m_exec_conf->getComputeCapability());
 
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -275,7 +276,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                            m_kappa,
                            d_index_array.data,
                            group_size,
-                           m_block_size);
+                           m_block_size,
+                           m_exec_conf->getComputeCapability());
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }

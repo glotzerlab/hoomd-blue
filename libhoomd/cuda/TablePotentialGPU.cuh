@@ -76,6 +76,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                      const Scalar4 *d_params,
                                      const unsigned int ntypes,
                                      const unsigned int table_width,
-                                     const unsigned int block_size);
+                                     const unsigned int block_size,
+                                     const unsigned int compute_capability);
 
 #endif

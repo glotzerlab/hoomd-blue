@@ -74,6 +74,7 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar4 *d_params,
                                                  unsigned int n_dihedral_types,
-                                                 int block_size);
+                                                 int block_size,
+                                                 const unsigned int compute_capability);
 
 #endif

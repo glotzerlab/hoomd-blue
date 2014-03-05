@@ -475,7 +475,8 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
                                     Scalar3 *E_field,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
-                                    int block_size)
+                                    int block_size,
+                                    const unsigned int compute_capability)
     {
 
     cudaMemcpyToSymbol(GPU_rho_coeff, &(CPU_rho_coeff[0]), order * (2*order+1) * sizeof(Scalar));
@@ -492,14 +493,17 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
     dim3 N_grid( (int)ceil((double)Nx*Ny*Nz / (double)block_size), 1, 1);
     dim3 N_threads(block_size, 1, 1);
 
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
-    if (error != cudaSuccess)
-        return error;
+    // bind the textures on pre sm35 arches
+    if (compute_capability < 350)
+        {
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
+        if (error != cudaSuccess)
+            return error;
 
-    error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
-    if (error != cudaSuccess)
-        return error;
+        error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
+        if (error != cudaSuccess)
+            return error;
+        }
 
     // set the grid charge to zero
     cudaMemset(GPU_rho_real_space, 0, sizeof(CUFFTCOMPLEX)*Nx*Ny*Nz);
@@ -1150,19 +1154,23 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
                            Scalar kappa,
                            unsigned int *d_group_members,
                            unsigned int group_size,
-                           int block_size)
+                           int block_size,
+                           const unsigned int compute_capability)
     {
     dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
-    if (error != cudaSuccess)
-        return error;
+    // bind the textures on pre sm35 arches
+    if (compute_capability < 350)
+        {
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
+        if (error != cudaSuccess)
+            return error;
 
-    error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
-    if (error != cudaSuccess)
-        return error;
+        error = cudaBindTexture(0, pdata_charge_tex, d_charge, sizeof(Scalar) * N);
+        if (error != cudaSuccess)
+            return error;
+        }
 
     gpu_fix_exclusions_kernel <<< grid, threads >>>  (d_force,
                                                       d_virial,

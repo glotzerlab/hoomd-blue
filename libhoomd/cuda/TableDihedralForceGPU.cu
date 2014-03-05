@@ -366,6 +366,7 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
     \param table_width Number of points in each table
     \param table_value indexer helper
     \param block_size Block size at which to run the kernel
+    \param compute_capability Compute capability of the device (200, 300, 350, ...)
 
     \note This is just a kernel driver. See gpu_compute_table_dihedral_forces_kernel for full documentation.
 */
@@ -382,7 +383,8 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
                                      const Scalar2 *d_tables,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
-                                     const unsigned int block_size)
+                                     const unsigned int block_size,
+                                     const unsigned int compute_capability)
     {
     assert(d_tables);
     assert(table_width > 1);
@@ -401,13 +403,15 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
     dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-
-    // bind the tables texture
-    tables_tex.normalized = false;
-    tables_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_value.getNumElements());
-    if (error != cudaSuccess)
-        return error;
+    // bind the tables texture on pre sm35 devices
+    if (compute_capability < 350)
+        {
+        tables_tex.normalized = false;
+        tables_tex.filterMode = cudaFilterModePoint;
+        cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_value.getNumElements());
+        if (error != cudaSuccess)
+            return error;
+        }
 
     Scalar delta_phi = M_PI/(table_width - 1.0f);
 

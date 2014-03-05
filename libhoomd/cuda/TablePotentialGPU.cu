@@ -260,6 +260,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     \param ntypes Number of particle types in the system
     \param table_width Number of points in each table
     \param block_size Block size at which to run the kernel
+    \param compute_capability Compute capability of the device (200, 300, 350)
 
     \note This is just a kernel driver. See gpu_compute_table_forces_kernel for full documentation.
 */
@@ -277,7 +278,8 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                      const Scalar4 *d_params,
                                      const unsigned int ntypes,
                                      const unsigned int table_width,
-                                     const unsigned int block_size)
+                                     const unsigned int block_size,
+                                     const unsigned int compute_capability)
     {
     assert(d_params);
     assert(d_tables);
@@ -301,19 +303,22 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
     dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    // bind the pdata position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4) * (N+n_ghost));
-    if (error != cudaSuccess)
-        return error;
+    if (compute_capability < 350)
+        {
+        // bind the pdata position texture
+        pdata_pos_tex.normalized = false;
+        pdata_pos_tex.filterMode = cudaFilterModePoint;
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4) * (N+n_ghost));
+        if (error != cudaSuccess)
+            return error;
 
-    // bind the tables texture
-    tables_tex.normalized = false;
-    tables_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_width * table_index.getNumElements());
-    if (error != cudaSuccess)
-        return error;
+        // bind the tables texture
+        tables_tex.normalized = false;
+        tables_tex.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_width * table_index.getNumElements());
+        if (error != cudaSuccess)
+            return error;
+        }
 
     gpu_compute_table_forces_kernel<<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>
             (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_tables, d_params, ntypes, table_width);

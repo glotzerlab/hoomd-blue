@@ -90,7 +90,8 @@ cudaError_t gpu_compute_pppm_forces(Scalar4 *d_force,
                                     Scalar3 *E_field,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
-                                    int block_size);
+                                    int block_size,
+                                    const unsigned int compute_capability);
 
 
 void gpu_compute_pppm_thermo(int Nx,
@@ -140,5 +141,6 @@ cudaError_t fix_exclusions(Scalar4 *d_force,
                            Scalar m_kappa,
                            unsigned int *d_group_members,
                            unsigned int group_size,
-                           int block_size);
+                           int block_size,
+                           const unsigned int compute_capability);
 #endif

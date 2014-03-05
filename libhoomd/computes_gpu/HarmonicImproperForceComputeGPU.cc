@@ -145,7 +145,8 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
                                          d_n_dihedrals.data,
                                          d_params.data,
                                          m_improper_data->getNTypes(),
-                                         m_tuner->getParam());
+                                         m_tuner->getParam(),
+                                         m_exec_conf->getComputeCapability());
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
