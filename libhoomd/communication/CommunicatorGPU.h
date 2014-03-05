@@ -127,11 +127,13 @@ class CommunicatorGPU : public Communicator
             {
             Communicator::setAutotunerParams(enable, period);
 
+            #ifndef ENABLE_MPI_CUDA
             m_tuner_ghost_recv->setPeriod(period);
             m_tuner_ghost_recv->setEnabled(enable);
 
             m_tuner_ghost_send->setPeriod(period);
             m_tuner_ghost_send->setEnabled(enable);
+            #endif
             }
 
 
