@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BondTablePotential.h"
 #include "BondTablePotentialGPU.cuh"
+#include "Autotuner.h"
 
 /*! \file BondTablePotentialGPU.h
     \brief Declares the BondTablePotentialGPU class
