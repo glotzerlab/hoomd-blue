@@ -397,7 +397,7 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
         raise TypeError('box must be a data.boxdim object');
 
     # create the generator
-    generator = hoomd.RandomGenerator(my_exec_conf, box._getBoxDim(), seed);
+    generator = hoomd.RandomGenerator(my_exec_conf, box._getBoxDim(), seed, box.dimensions);
 
     # build type list
     type_vector = hoomd.std_vector_string();
@@ -408,7 +408,7 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
     bond_type = hoomd.std_vector_string();
 
     # create the generator
-    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(my_exec_conf, 1.0, type_vector, bond_ab, bond_ab, bond_type, 100));
+    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(my_exec_conf, 1.0, type_vector, bond_ab, bond_ab, bond_type, 100, box.dimensions));
 
     # set the separation radius
     generator.setSeparationRadius(name, min_dist/2.0);
@@ -558,7 +558,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
         raise TypeError('box must be a data.boxdim object');
 
     # create the generator
-    generator = hoomd.RandomGenerator(my_exec_conf,box._getBoxDim(), seed);
+    generator = hoomd.RandomGenerator(my_exec_conf,box._getBoxDim(), seed, box.dimensions);
 
     # make a list of types used for an eventual check vs the types in separation for completeness
     types_used = [];
@@ -629,7 +629,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
             raise RuntimeError("Error creating random polymers");
 
         # create the generator
-        generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(my_exec_conf, poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100));
+        generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(my_exec_conf, poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100, box.dimensions));
 
 
     # check that all used types are in the separation list

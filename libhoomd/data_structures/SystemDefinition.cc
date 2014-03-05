@@ -124,7 +124,7 @@ SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> s
                                    boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                    boost::shared_ptr<DomainDecomposition> decomposition)
     {
-    m_n_dimensions = snapshot->dimensions;
+    setNDimensions(snapshot->dimensions);
 
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
                  snapshot->global_box,
