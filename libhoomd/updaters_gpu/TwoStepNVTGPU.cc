@@ -184,13 +184,6 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
         advanceThermostat(timestep);
         }
 
-
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep);
-
-    // get temperature and advance thermostat
-    advanceThermostat(timestep);
-
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     IntegratorVariables v = getIntegratorVariables();
