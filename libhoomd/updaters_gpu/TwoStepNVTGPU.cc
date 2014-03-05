@@ -145,27 +145,28 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
 
-    #ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // lazy register update of thermodynamic quantities with Communicator
-        if (! m_comm_connection.connected())
-            m_comm_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVTGPU::advanceThermostat, this, _1));
-        // note: requesting the address of m_thermo would normally mean circumventing reference
-        // counting, but here we are safe since there is still a shared_ptr ref
-        // to ComputeThermo in the class
-        if (! m_compute_connection.connected())
-            m_compute_connection = m_comm->addLocalComputeCallback(bind(&ComputeThermo::compute, m_thermo.get(), _1));
-        }
-    else
-    #endif
-        {
-        // compute the current thermodynamic properties
-        m_thermo->compute(timestep+1);
+    // commenting out for now, need to see how much of a performance hit there is
+    // #ifdef ENABLE_MPI
+    // if (m_comm)
+    //     {
+    //     // lazy register update of thermodynamic quantities with Communicator
+    //     if (! m_comm_connection.connected())
+    //         m_comm_connection = m_comm->addCommunicationCallback(bind(&TwoStepNVTGPU::advanceThermostat, this, _1));
+    //     // note: requesting the address of m_thermo would normally mean circumventing reference
+    //     // counting, but here we are safe since there is still a shared_ptr ref
+    //     // to ComputeThermo in the class
+    //     if (! m_compute_connection.connected())
+    //         m_compute_connection = m_comm->addLocalComputeCallback(bind(&ComputeThermo::compute, m_thermo.get(), _1));
+    //     }
+    // else
+    // #endif
+    //     {
+    //     // compute the current thermodynamic properties
+    //     m_thermo->compute(timestep+1);
 
-        // get temperature and advance thermostat
-        advanceThermostat(timestep+1);
-        }
+    //     // get temperature and advance thermostat
+    //     advanceThermostat(timestep+1);
+    //     }
 
     // done profiling
     if (m_prof)
@@ -178,6 +179,12 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
+
+    // compute the current thermodynamic properties
+    m_thermo->compute(timestep);
+
+    // get temperature and advance thermostat
+    advanceThermostat(timestep);
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
