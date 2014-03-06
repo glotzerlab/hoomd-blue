@@ -651,6 +651,9 @@ class ParticleData : boost::noncopyable
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type) const;
 
+        //! Rename a type
+        void setTypeName(unsigned int type, const std::string& name);
+
         //! Get the net force array
         const GPUArray< Scalar4 >& getNetForce() const { return m_net_force; }
 

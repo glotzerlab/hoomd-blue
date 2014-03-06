@@ -395,6 +395,24 @@ std::string ParticleData::getNameByType(unsigned int type) const
     return m_type_mapping[type];
     }
 
+/*! \param type Type index to get the name of
+    \param name New name for this type
+
+    This is designed for use by init.create_empty. It probably will cause things to fail in strange ways if called
+    after initialization.
+*/
+void ParticleData::setTypeName(unsigned int type, const std::string& name)
+    {
+    // check for an invalid request
+    if (type >= getNTypes())
+        {
+        m_exec_conf->msg->error() << "Setting name for non-existant type " << type << endl;
+        throw runtime_error("Error mapping type name");
+        }
+
+    m_type_mapping[type] = name;
+    }
+
 
 /*! \param N Number of particles to allocate memory for
     \pre No memory is allocated and the per-particle GPUArrays are unitialized
@@ -1805,6 +1823,7 @@ void export_ParticleData()
     .def("getMaximumDiameter", &ParticleData::getMaxDiameter)
     .def("getNameByType", &ParticleData::getNameByType)
     .def("getTypeByName", &ParticleData::getTypeByName)
+    .def("setTypeName", &ParticleData::setTypeName)
     .def("setProfiler", &ParticleData::setProfiler)
     .def("getExecConf", &ParticleData::getExecConf)
     .def("__str__", &print_ParticleData)

@@ -87,7 +87,12 @@ class particle_data_access_tests (unittest.TestCase):
 class bond_data_access_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = init.create_empty(N=100, box=data.boxdim(L=10), n_bond_types=2, n_angle_types=2, n_dihedral_types=2, n_improper_types=2);
+        self.s = init.create_empty(N=100, box=data.boxdim(L=10),
+                                   particle_types=['A'],
+                                   bond_types=['bondA', 'bondB'],
+                                   angle_types=['angleA', 'angleB'],
+                                   dihedral_types=['dihedralA', 'dihedralB'],
+                                   improper_types=['improperA', 'improperB']);
 
         sorter.set_params(grid=8)
 

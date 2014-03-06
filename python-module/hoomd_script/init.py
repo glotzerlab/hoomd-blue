@@ -142,21 +142,21 @@ def reset():
 #
 # \param N Number of particles to create
 # \param box a data.boxdim object that defines the simulation box
-# \param n_particle_types Number of particle types to create
-# \param n_bond_types Number of bond types to create
-# \param n_angle_types Number of angle types to create
-# \param n_dihedral_types Number of dihedral types to create
-# \param n_improper_types Number of improper types to create
+# \param particle_types List of particle type names (must not be zero length)
+# \param bond_types List of bond type names (may be zero length)
+# \param angle_types List of angle type names (may be zero length)
+# \param dihedral_types List of Dihedral type names (may be zero length)
+# \param improper_types List of improper type names (may be zero length)
 #
 # \b Examples:
 # \code
 # system = init.create_empty(N=1000, box=data.boxdim(L=10)
-# system = init.create_empty(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), n_particle_types=2)
-# system = init.create_empty(N=64000, box=data.boxdim(L=20), n_bond_types=1, n_dihedral_types=2, n_improper_types=4)
+# system = init.create_empty(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
+# system = init.create_empty(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
 # \endcode
 #
-# After init.create_empty returns, the requested number of particles will have been created <b>but all of them
-# will have <i> DEFAULT VALUES</i> </b> and further initialization \b MUST be performed. See hoomd_script.data
+# After init.create_empty returns, the requested number of particles will have been created with
+# <b> <i> DEFAULT VALUES</i> </b> and further initialization \b MUST be performed. See hoomd_script.data
 # for full details on how such initialization can be performed.
 #
 # Specifically, all created particles will be:
@@ -164,20 +164,20 @@ def reset():
 # - Have velocity 0,0,0
 # - In box image 0,0,0
 # - Have orientation 1,0,0,0
-# - Have the type 'A'
+# - Have the type `particle_types[0]`
 # - Have charge 0
 # - Have a mass of 1.0
 #
-# The defined particle type names are:
-# 'A', 'B', 'C', ... up to \a n_particle_types types.
+# The particle, bond, angle, dihedral, and improper types will be created and set to the names specified. Use these
+# type names later in the job script to refer to particles (i.e. in lj.set_params)
 #
 # \note The resulting empty system must have its particles fully initialized via python code, \b BEFORE
-# any other hoomd_script commands are executed. As as example of what might go wrong, if the pair.lj command were to be
+# any other hoomd_script commands are executed. For example, if the pair.lj command were to be
 # run before the initial particle positions were set, \b all particles would have position 0,0,0 and the memory
 # initialized by the neighbor list would be so large that the memory allocation would fail.
 #
 # \sa hoomd_script.data
-def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0):
+def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[]):
     util.print_status_line();
 
     # check if initialization has already occurred
@@ -198,24 +198,36 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     if my_domain_decomposition is not None:
         globals.system_definition = hoomd.SystemDefinition(N,
                                                            boxdim,
-                                                           n_particle_types,
-                                                           n_bond_types,
-                                                           n_angle_types,
-                                                           n_dihedral_types,
-                                                           n_improper_types,
+                                                           len(particle_types),
+                                                           len(bond_types),
+                                                           len(angle_types),
+                                                           len(dihedral_types),
+                                                           len(improper_types),
                                                            my_exec_conf,
                                                            my_domain_decomposition);
     else:
         globals.system_definition = hoomd.SystemDefinition(N,
                                                            boxdim,
-                                                           n_particle_types,
-                                                           n_bond_types,
-                                                           n_angle_types,
-                                                           n_dihedral_types,
-                                                           n_improper_types,
+                                                           len(particle_types),
+                                                           len(bond_types),
+                                                           len(angle_types),
+                                                           len(dihedral_types),
+                                                           len(improper_types),
                                                            my_exec_conf)
 
     globals.system_definition.setNDimensions(box.dimensions);
+
+    # transfer names to C++
+    for i,name in enumerate(particle_types):
+        globals.system_definition.getParticleData().setTypeName(i,name);
+    for i,name in enumerate(bond_types):
+        globals.system_definition.getBondData().setTypeName(i,name);
+    for i,name in enumerate(angle_types):
+        globals.system_definition.getAngleData().setTypeName(i,name);
+    for i,name in enumerate(dihedral_types):
+        globals.system_definition.getDihedralData().setTypeName(i,name);
+    for i,name in enumerate(improper_types):
+        globals.system_definition.getImproperData().setTypeName(i,name);
 
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);

@@ -9,7 +9,7 @@ import os
 class pair_group_tests (unittest.TestCase):
     def setUp(self):
         print
-        sysdef = init.create_empty(N=11, box=data.boxdim(L=4), n_particle_types=2);
+        sysdef = init.create_empty(N=11, box=data.boxdim(L=4), particle_types=['A', 'B']);
         sysdef.particles[0].position = (0,0,0);
         sysdef.particles[0].type = 'A';
         sysdef.particles[1].position = (1,1,1);

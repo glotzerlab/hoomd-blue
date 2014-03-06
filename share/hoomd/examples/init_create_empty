@@ -11,7 +11,7 @@ import random
 a = 1.2
 m = 10
 
-system = init.create_empty(N=m*m*m, box=data.boxdim(L=m*a), n_particle_types=2)
+system = init.create_empty(N=m*m*m, box=data.boxdim(L=m*a), particle_types=['A', 'B'])
 
 # initialize a simple cubic array of particles
 lo = - m*a / 2.0;

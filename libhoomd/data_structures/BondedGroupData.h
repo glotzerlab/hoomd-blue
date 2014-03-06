@@ -259,6 +259,9 @@ class BondedGroupData : boost::noncopyable
         //! Get the type name by id
         const std::string getNameByType(unsigned int type) const;
 
+        //! Rename a type
+        void setTypeName(unsigned int type, const std::string& new_name);
+
         //! Return the nth active global tag
         unsigned int getNthTag(unsigned int n) const;
 

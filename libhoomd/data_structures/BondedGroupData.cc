@@ -631,6 +631,19 @@ const std::string BondedGroupData<group_size, Group, name>::getNameByType(unsign
     }
 
 template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::setTypeName(unsigned int type, const std::string& new_name)
+    {
+    // check for an invalid request
+    if (type >= this->m_type_mapping.size())
+        {
+        m_exec_conf->msg->error() << "Setting type name for non-existant type " << type << endl;
+        throw runtime_error("Error mapping type name");
+        }
+
+    m_type_mapping[type] = new_name;
+    }
+
+template<unsigned int group_size, typename Group, const char *name>
 void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
     {
     #ifdef ENABLE_CUDA
@@ -1072,6 +1085,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         .def("getNthTag", &T::getNthTag)
         .def("getGroupByTag", &T::getGroupByTag)
         .def("getTypeByName", &T::getTypeByName)
+        .def("setTypeName", &T::setTypeName)
         .def("getNameByType", &T::getNameByType)
         .def("addBondedGroup", &T::addBondedGroup)
         .def("removeBondedGroup", &T::removeBondedGroup)

@@ -9,7 +9,7 @@ import os
 class pair_max_rcut_tests (unittest.TestCase):
     def setUp(self):
         #print
-        init.create_empty(N=100, box=data.boxdim(L=20), n_particle_types=2);
+        init.create_empty(N=100, box=data.boxdim(L=20), particle_types=['A', 'B']);
 
         sorter.set_params(grid=8)
 
