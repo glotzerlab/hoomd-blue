@@ -58,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PotentialBond.h"
 #include "PotentialBondGPU.cuh"
+#include "Autotuner.h"
 
 /*! \file PotentialBondGPU.h
     \brief Defines the template class for standard bond potentials on the GPU
