@@ -53,13 +53,14 @@ import ctypes;
 import os;
 
 # need to import HOOMD with RTLD_GLOBAL in python sitedir builds
-if 'HOOMD_PYTHON_SITEDIR' in os.environ:
+if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
+    print("setting ldflags");
     flags = sys.getdlopenflags();
     sys.setdlopenflags(flags | ctypes.RTLD_GLOBAL);
 
 import hoomd;
 
-if 'HOOMD_PYTHON_SITEDIR' in os.environ:
+if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
 from hoomd_script import util;

@@ -135,6 +135,9 @@ string find_hoomd_script()
 */
 int main(int argc, char **argv)
     {
+    // set the env var to communicate to __init__.py that it does not need to apply the RTLD_GLOBAL hack
+    setenv("NOT_HOOMD_PYTHON_SITEDIR", "1", 1);
+
     if (argc == 1)
         {
         // This shell is an interactive launch with no arguments
