@@ -16,9 +16,15 @@ class init_create_random_tests (unittest.TestCase):
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
 
-    # tests creation with a few more arugments specified
+    # tests creation with a few more arguments specified
     def test_moreargs(self):
         init.create_random(name="B", min_dist=0.1, N=100, phi_p=0.05);
+        self.assert_(globals.system_definition);
+        self.assert_(globals.system);
+
+    # tests creation with a specified box
+    def test_box(self):
+        init.create_random(name="B", min_dist=0.1, N=100, box=data.boxdim(L=100));
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
 

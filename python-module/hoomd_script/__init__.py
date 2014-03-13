@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -54,13 +53,14 @@ import ctypes;
 import os;
 
 # need to import HOOMD with RTLD_GLOBAL in python sitedir builds
-if 'HOOMD_PYTHON_SITEDIR' in os.environ:
+if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
+    print("setting ldflags");
     flags = sys.getdlopenflags();
     sys.setdlopenflags(flags | ctypes.RTLD_GLOBAL);
 
 import hoomd;
 
-if 'HOOMD_PYTHON_SITEDIR' in os.environ:
+if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
 from hoomd_script import util;
@@ -81,6 +81,7 @@ __all__ = [ "analyze",
             "benchmark",
             "angle",
             "dihedral",
+            "data",
             "improper",
             "dump",
             "force",
@@ -91,7 +92,9 @@ __all__ = [ "analyze",
             "init",
             "integrate",
             "option",
+            "nlist",
             "pair",
+            "sorter",
             "update",
             "wall",
             "variant",
@@ -283,3 +286,9 @@ def get_step():
         raise RuntimeError('Error getting step');
 
     return globals.system.getCurrentTimeStep();
+
+# Check to see if we are built without MPI support and the user used mpirun
+if (not hoomd.is_MPI_available()) and ('OMPI_COMM_WORLD_RANK' in os.environ or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ):
+    print('HOOMD-blue is built without MPI support, but seems to have been launched with mpirun');
+    print('exiting now to prevent many sequential jobs from starting');
+    raise RuntimeError('Error launching hoomd')

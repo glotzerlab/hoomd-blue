@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -223,22 +222,32 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
                              const unsigned int N,
                              const unsigned int block_size)
     {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_nlist_filter_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+
     // determine parameters for kernel launch
-    int n_blocks = N/block_size + 1;
+    int n_blocks = N/run_block_size + 1;
 
     // split the processing of the full exclusion list up into a number of batches
     unsigned int n_batches = (unsigned int)ceil(double(exli.getH())/double(FILTER_BATCH_SIZE));
     unsigned int ex_start = 0;
     for (unsigned int batch = 0; batch < n_batches; batch++)
         {
-        gpu_nlist_filter_kernel<<<n_blocks, block_size>>>(d_n_neigh,
-                                                          d_nlist,
-                                                          nli,
-                                                          d_n_ex,
-                                                          d_ex_list,
-                                                          exli,
-                                                          N,
-                                                          ex_start);
+        gpu_nlist_filter_kernel<<<n_blocks, run_block_size>>>(d_n_neigh,
+                                                              d_nlist,
+                                                              nli,
+                                                              d_n_ex,
+                                                              d_ex_list,
+                                                              exli,
+                                                              N,
+                                                              ex_start);
 
         ex_start += FILTER_BATCH_SIZE;
         }

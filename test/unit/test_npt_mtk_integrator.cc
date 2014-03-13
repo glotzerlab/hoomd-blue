@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -112,7 +111,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     // we use a tightly packed cubic LJ crystal for testing,
     // because this one has a sufficient shear elasticity
     // to avoid that the box gets too tilted during triclinic NPT
-    const unsigned int L = 8; // number of particles along one box edge
+    const unsigned int L = 9; // number of particles along one box edge
     Scalar P = 142.5; // use a REALLY high value of pressure to keep the system in solid state
     Scalar T0 = .9;
     Scalar deltaT = 0.001;
@@ -156,14 +155,14 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
     if (exec_conf->isCUDAEnabled())
         {
         cl = boost::shared_ptr<CellList>( new CellListGPU(sysdef) );
-        nlist = boost::shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        nlist = boost::shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.4),cl));
         fc = boost::shared_ptr<PotentialPairLJ>( new PotentialPairLJGPU(sysdef, nlist));
         }
     else
     #endif
         {
         cl = boost::shared_ptr<CellList>( new CellList(sysdef) );
-        nlist = boost::shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
+        nlist = boost::shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.4),cl));
         fc = boost::shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
         }
 
@@ -219,7 +218,14 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, boost::shared
             {
             timestep = offs + i;
             if (i % 1000 == 0)
+                {
                 std::cout << i << std::endl;
+                BoxDim box = pdata->getBox();
+                Scalar3 npd = box.getNearestPlaneDistance();
+                std::cout << "Box L: " << box.getL().x << " " << box.getL().y << " " << box.getL().z
+                          << " t: " << box.getTiltFactorXY() << " " << box.getTiltFactorXZ() << " " << box.getTiltFactorYZ()
+                          << " npd: " << npd.x << " " << npd.y << " " << npd.z << std::endl;
+                }
             npt_mtk->update(timestep);
             }
 
@@ -597,10 +603,6 @@ BOOST_AUTO_TEST_CASE( TwoStepNPTMTKGPU_cubic_NPH)
 BOOST_AUTO_TEST_CASE( TwoStepNPTMTK_tests )
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1, _2,_3,_4,_5, _6, _7, _8,_9);
-    #ifdef ENABLE_OPENMP
-    // speed up CPU test
-    omp_set_num_threads(omp_get_num_procs());
-    #endif
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     npt_mtk_updater_test(npt_mtk_creator, exec_conf);
     }

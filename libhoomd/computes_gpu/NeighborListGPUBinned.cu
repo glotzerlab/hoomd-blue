@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -344,14 +343,6 @@ int get_max_block_size(T func)
     return max_threads;
     }
 
-template<typename T>
-int get_compute_capability(T func)
-    {
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, func);
-    return attr.binaryVersion;
-    }
-
 void gpu_nlist_binned_bind_texture(const Scalar4 *d_cell_xyzf, unsigned int n_elements)
     {
     // bind the position texture
@@ -383,6 +374,7 @@ inline void launcher(unsigned int *d_nlist,
               const Scalar r_maxsq,
               const Scalar r_max,
               const Scalar3 ghost_width,
+              const unsigned int compute_capability,
               unsigned int tpp,
               bool filter_diameter,
               bool filter_body,
@@ -395,22 +387,19 @@ inline void launcher(unsigned int *d_nlist,
         if (!filter_diameter && !filter_body)
             {
             static unsigned int max_block_size = UINT_MAX;
-            static unsigned int sm = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<0,cur_tpp>);
-            if (sm == UINT_MAX)
-                sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<0,cur_tpp>);
-            if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
-            if (sm < 30 && grid.x > 65535)
+            if (compute_capability < 30 && grid.x > 65535)
                 {
                 grid.y = grid.x/65535 + 1;
                 grid.x = 65535;
                 }
 
-            if (sm < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+            if (compute_capability < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
             gpu_compute_nlist_binned_shared_kernel<0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
@@ -436,22 +425,19 @@ inline void launcher(unsigned int *d_nlist,
         else if (!filter_diameter && filter_body)
             {
             static unsigned int max_block_size = UINT_MAX;
-            static unsigned int sm = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<1,cur_tpp>);
-            if (sm == UINT_MAX)
-                sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<1,cur_tpp>);
-            if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
-            if (sm < 30 && grid.x > 65535)
+            if (compute_capability < 30 && grid.x > 65535)
                 {
                 grid.y = grid.x/65535 + 1;
                 grid.x = 65535;
                 }
 
-            if (sm < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+            if (compute_capability < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
             gpu_compute_nlist_binned_shared_kernel<1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
@@ -477,22 +463,19 @@ inline void launcher(unsigned int *d_nlist,
         else if (filter_diameter && !filter_body)
             {
             static unsigned int max_block_size = UINT_MAX;
-            static unsigned int sm = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
-            if (sm == UINT_MAX)
-                sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
-            if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
-            if (sm < 30 && grid.x > 65535)
+            if (compute_capability < 30 && grid.x > 65535)
                 {
                 grid.y = grid.x/65535 + 1;
                 grid.x = 65535;
                 }
 
-            if (sm < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+            if (compute_capability < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
             gpu_compute_nlist_binned_shared_kernel<2,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
@@ -518,22 +501,19 @@ inline void launcher(unsigned int *d_nlist,
         else if (filter_diameter && filter_body)
             {
             static unsigned int max_block_size = UINT_MAX;
-            static unsigned int sm = UINT_MAX;
             if (max_block_size == UINT_MAX)
                 max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
-            if (sm == UINT_MAX)
-                sm = get_compute_capability(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
-            if (sm < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1);
-            if (sm < 30 && grid.x > 65535)
+            if (compute_capability < 30 && grid.x > 65535)
                 {
                 grid.y = grid.x/65535 + 1;
                 grid.x = 65535;
                 }
 
-            if (sm < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+            if (compute_capability < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
 
             gpu_compute_nlist_binned_shared_kernel<3,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
                                                                              d_n_neigh,
@@ -579,6 +559,7 @@ inline void launcher(unsigned int *d_nlist,
                      r_maxsq,
                      sqrtf(r_maxsq),
                      ghost_width,
+                     compute_capability,
                      tpp,
                      filter_diameter,
                      filter_body,
@@ -609,6 +590,7 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               const Scalar r_maxsq,
               const Scalar r_max,
               const Scalar3 ghost_width,
+              const unsigned int compute_capability,
               unsigned int tpp,
               bool filter_diameter,
               bool filter_body,
@@ -637,7 +619,8 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                      const unsigned int block_size,
                                      bool filter_body,
                                      bool filter_diameter,
-                                     const Scalar3& ghost_width)
+                                     const Scalar3& ghost_width,
+                                     const unsigned int compute_capability)
     {
     launcher<max_threads_per_particle>(d_nlist,
                                    d_n_neigh,
@@ -659,6 +642,7 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                    r_maxsq,
                                    sqrtf(r_maxsq),
                                    ghost_width,
+                                   compute_capability,
                                    threads_per_particle,
                                    filter_diameter,
                                    filter_body,

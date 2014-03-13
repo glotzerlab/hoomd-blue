@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -72,7 +71,7 @@ using namespace std;
 /*! \param sysdef System to compute angle forces on
 */
 CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
-        : CGCMMAngleForceCompute(sysdef), m_block_size(64)
+        : CGCMMAngleForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!exec_conf->isCUDAEnabled())
@@ -103,6 +102,8 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
     m_CGCMMsr.swap(CGCMMsr);
     GPUArray<Scalar4> CGCMMepow(m_CGCMMAngle_data->getNTypes(),exec_conf);
     m_CGCMMepow.swap(CGCMMepow);
+
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "cgcmm_angle", this->m_exec_conf));
     }
 
 CGCMMAngleForceComputeGPU::~CGCMMAngleForceComputeGPU()
@@ -169,6 +170,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<unsigned int> d_gpu_n_angles(m_CGCMMAngle_data->getNGroupsArray(), access_location::device, access_mode::read);
 
     // run the kernel
+    m_tuner->begin();
     gpu_compute_CGCMM_angle_forces(d_force.data,
                                    d_virial.data,
                                    m_virial.getPitch(),
@@ -183,10 +185,12 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
                                    d_CGCMMsr.data,
                                    d_CGCMMepow.data,
                                    m_CGCMMAngle_data->getNTypes(),
-                                   m_block_size);
+                                   m_tuner->getParam(),
+                                   m_exec_conf->getComputeCapability());
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner->end();
 
     if (m_prof) m_prof->pop(exec_conf);
     }
@@ -195,6 +199,5 @@ void export_CGCMMAngleForceComputeGPU()
     {
     class_<CGCMMAngleForceComputeGPU, boost::shared_ptr<CGCMMAngleForceComputeGPU>, bases<CGCMMAngleForceCompute>, boost::noncopyable >
     ("CGCMMAngleForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
-    .def("setBlockSize", &CGCMMAngleForceComputeGPU::setBlockSize)
     ;
     }

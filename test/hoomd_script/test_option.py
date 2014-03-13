@@ -33,16 +33,6 @@ class init_create_random_tests (unittest.TestCase):
 
         self.assertRaises(RuntimeError, option.set_gpu, 'foo');
 
-    def test_ncpu(self):
-        option.set_ncpu(1);
-        self.assert_(globals.options.ncpu == 1);
-        self.assert_(globals.options.mode == 'cpu');
-
-        option.set_ncpu(None);
-        self.assert_(globals.options.ncpu is None);
-
-        self.assertRaises(RuntimeError, option.set_ncpu, 'foo');
-
     def test_gpu_error_checking(self):
         option.set_gpu_error_checking(False);
         self.assert_(globals.options.gpu_error_checking == False);

@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -354,7 +353,6 @@ class nlist:
                 cl_g = hoomd.CellListGPU(globals.system_definition);
                 globals.system.addCompute(cl_g, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
-                self.cpp_nlist.setBlockSizeFilter(tune._get_optimal_block_size('nlist.filter'));
             else:
                 globals.msg.error("Invalid neighbor list mode\n");
                 raise RuntimeError("Error creating neighbor list");
@@ -438,8 +436,7 @@ class nlist:
     # than necessary if
     # d_max is greater than 1.0.
     #
-    # A single global neighbor list is created for the entire simulation. Change parameters by using
-    # the built-in variable \b %nlist.
+    # A single global neighbor list is created for the entire simulation.
     #
     # \b Examples:
     # \code
@@ -626,9 +623,6 @@ def _update_global_nlist(r_cut):
     # check to see if we need to create the neighbor list
     if globals.neighbor_list is None:
         globals.neighbor_list = nlist(r_cut);
-        # set the global neighbor list using the evil import __main__ trick to provide the user with a default variable
-        import __main__;
-        __main__.nlist = globals.neighbor_list;
 
     else:
         # otherwise, we need to update r_cut
@@ -1375,7 +1369,7 @@ class cgcmm(force._force):
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.cgcmm'));
+            self.cpp_force.setBlockSize(128);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -1522,7 +1516,6 @@ class table(force._force):
         else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2043,7 +2036,6 @@ class eam(force._force):
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
         else:
             self.cpp_force = hoomd.EAMForceComputeGPU(globals.system_definition, file, type_of_file);
-            self.cpp_force.setBlockSize(64);
             #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
             r_cut_new = self.cpp_force.get_r_cut();
             neighbor_list = _update_global_nlist(r_cut_new);
@@ -2176,8 +2168,6 @@ class dpdlj(pair):
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairDPDLJThermoDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDLJThermoDPDGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.dpdlj'));
-
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -2532,7 +2522,6 @@ class tersoff(pair):
         else:
             self.cpp_force = hoomd.PotentialTersoffGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialTersoffGPU;
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.tersoff'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

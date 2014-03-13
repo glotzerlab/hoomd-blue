@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -109,7 +108,8 @@ struct dpd_pair_args_t
                     const Scalar _T,
                     const unsigned int _shift_mode,
                     const unsigned int _compute_virial,
-                    const unsigned int _threads_per_particle)
+                    const unsigned int _threads_per_particle,
+                    const unsigned int _compute_capability)
                         : d_force(_d_force),
                         d_virial(_d_virial),
                         virial_pitch(_virial_pitch),
@@ -131,7 +131,8 @@ struct dpd_pair_args_t
                         T(_T),
                         shift_mode(_shift_mode),
                         compute_virial(_compute_virial),
-                        threads_per_particle(_threads_per_particle)
+                        threads_per_particle(_threads_per_particle),
+                        compute_capability(_compute_capability)
         {
         };
 
@@ -157,6 +158,7 @@ struct dpd_pair_args_t
     const unsigned int shift_mode;  //!< The potential energy shift mode
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
+    const unsigned int compute_capability;  //!< Compute capability of the device (20, 30, 35, ...)
     };
 
 #ifdef NVCC
@@ -434,14 +436,6 @@ int dpd_get_max_block_size(T func)
     return max_threads;
     }
 
-template<typename T>
-int dpd_get_compute_capability(T func)
-    {
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, func);
-    return attr.binaryVersion;
-    }
-
 void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
     {
     // bind the position texture
@@ -489,17 +483,14 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
             case 0:
                 {
                 static unsigned int max_block_size = UINT_MAX;
-                static unsigned int sm = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, 0, 1>);
-                if (sm == UINT_MAX)
-                    sm = dpd_get_compute_capability(gpu_compute_dpd_forces_kernel<evaluator, 0, 1>);
 
-                if (sm < 35) gpu_dpd_pair_force_bind_textures(args);
+                if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
-                if (sm < 30 && grid.x > 65535)
+                if (args.compute_capability < 30 && grid.x > 65535)
                     {
                     grid.y = grid.x/65535 + 1;
                     grid.x = 65535;
@@ -533,17 +524,14 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
             case 1:
                 {
                 static unsigned int max_block_size = UINT_MAX;
-                static unsigned int sm = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, 1, 1>);
-                if (sm == UINT_MAX)
-                    sm = dpd_get_compute_capability(gpu_compute_dpd_forces_kernel<evaluator, 1, 1>);
 
-                if (sm < 35) gpu_dpd_pair_force_bind_textures(args);
+                if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
-                if (sm < 30 && grid.x > 65535)
+                if (args.compute_capability < 30 && grid.x > 65535)
                     {
                     grid.y = grid.x/65535 + 1;
                     grid.x = 65535;
@@ -585,17 +573,14 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
             case 0:
                 {
                 static unsigned int max_block_size = UINT_MAX;
-                static unsigned int sm = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, 0, 0>);
-                if (sm == UINT_MAX)
-                    sm = dpd_get_compute_capability(gpu_compute_dpd_forces_kernel<evaluator, 0, 0>);
 
-                if (sm < 35) gpu_dpd_pair_force_bind_textures(args);
+                if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
-                if (sm < 30 && grid.x > 65535)
+                if (args.compute_capability < 30 && grid.x > 65535)
                     {
                     grid.y = grid.x/65535 + 1;
                     grid.x = 65535;
@@ -629,17 +614,14 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
             case 1:
                 {
                 static unsigned int max_block_size = UINT_MAX;
-                static unsigned int sm = UINT_MAX;
                 if (max_block_size == UINT_MAX)
                     max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, 1, 0>);
-                if (sm == UINT_MAX)
-                    sm = dpd_get_compute_capability(gpu_compute_dpd_forces_kernel<evaluator, 1, 0>);
 
-                if (sm < 35) gpu_dpd_pair_force_bind_textures(args);
+                if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
 
                 block_size = block_size < max_block_size ? block_size : max_block_size;
                 dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
-                if (sm < 30 && grid.x > 65535)
+                if (args.compute_capability < 30 && grid.x > 65535)
                     {
                     grid.y = grid.x/65535 + 1;
                     grid.x = 65535;

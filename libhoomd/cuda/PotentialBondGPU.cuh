@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -87,7 +86,8 @@ struct bond_args_t
               const Index2D & _gpu_table_indexer,
               const unsigned int *_d_gpu_n_bonds,
               const unsigned int _n_bond_types,
-              const unsigned int _block_size)
+              const unsigned int _block_size,
+              const unsigned int _compute_capability)
                 : d_force(_d_force),
                   d_virial(_d_virial),
                   virial_pitch(_virial_pitch),
@@ -101,7 +101,8 @@ struct bond_args_t
                   gpu_table_indexer(_gpu_table_indexer),
                   d_gpu_n_bonds(_d_gpu_n_bonds),
                   n_bond_types(_n_bond_types),
-                  block_size(_block_size)
+                  block_size(_block_size),
+                  compute_capability(_compute_capability)
         {
         };
 
@@ -119,6 +120,7 @@ struct bond_args_t
     const unsigned int *d_gpu_n_bonds; //!< List of number of bonds stored on the GPU
     const unsigned int n_bond_types;   //!< Number of bond types in the simulation
     const unsigned int block_size;     //!< Block size to execute
+    const unsigned int compute_capability;  //!< Compute capability of the device
     };
 
 #ifdef NVCC
@@ -313,29 +315,42 @@ cudaError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     // chck that block_size is valid
     assert(bond_args.block_size != 0);
 
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_compute_bond_forces_kernel<evaluator>);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(bond_args.block_size, max_block_size);
+
     // setup the grid to run the kernel
-    dim3 grid( bond_args.N / bond_args.block_size + 1, 1, 1);
-    dim3 threads(bond_args.block_size, 1, 1);
+    dim3 grid( bond_args.N / run_block_size + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-    // bind the position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, bond_args.d_pos, sizeof(Scalar4)*(bond_args.n_max));
-    if (error != cudaSuccess)
-        return error;
+    // bind the position texture on pre sm35 devices
+    if (bond_args.compute_capability < 350)
+        {
+        pdata_pos_tex.normalized = false;
+        pdata_pos_tex.filterMode = cudaFilterModePoint;
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, bond_args.d_pos, sizeof(Scalar4)*(bond_args.n_max));
+        if (error != cudaSuccess)
+            return error;
 
-    // bind the diamter texture
-    pdata_diam_tex.normalized = false;
-    pdata_diam_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.n_max));
-    if (error != cudaSuccess)
-        return error;
+        // bind the diamter texture
+        pdata_diam_tex.normalized = false;
+        pdata_diam_tex.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, pdata_diam_tex, bond_args.d_diameter, sizeof(Scalar) *(bond_args.n_max));
+        if (error != cudaSuccess)
+            return error;
 
-    pdata_charge_tex.normalized = false;
-    pdata_charge_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, pdata_charge_tex, bond_args.d_charge, sizeof(Scalar) * (bond_args.n_max));
-    if (error != cudaSuccess)
-        return error;
+        pdata_charge_tex.normalized = false;
+        pdata_charge_tex.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, pdata_charge_tex, bond_args.d_charge, sizeof(Scalar) * (bond_args.n_max));
+        if (error != cudaSuccess)
+            return error;
+        }
 
     unsigned int shared_bytes = sizeof(typename evaluator::param_type) *
                                 bond_args.n_bond_types;

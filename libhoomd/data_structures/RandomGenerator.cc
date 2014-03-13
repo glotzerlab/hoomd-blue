@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -351,13 +350,16 @@ void GeneratedParticles::addBond(unsigned int a, unsigned int b, const std::stri
 /*! \param exec_conf Execution configuration
     \param box Box dimensions to generate in
     \param seed Random number generator seed
+    \param dimensions Number of dimensions in the simulation box
 */
 RandomGenerator::RandomGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
                                  const BoxDim& box,
-                                 unsigned int seed)
+                                 unsigned int seed,
+                                 unsigned int dimensions)
     : m_exec_conf(exec_conf),
       m_box(box),
-      m_seed(seed)
+      m_seed(seed),
+      m_dimensions(dimensions)
     {
     }
 
@@ -400,6 +402,8 @@ boost::shared_ptr<SnapshotSystemData> RandomGenerator::getSnapshot() const
         }
 
     bdata_snap.type_mapping = m_bond_type_mapping;
+
+    snapshot->dimensions = m_dimensions;
 
     return snapshot;
     }
@@ -522,12 +526,21 @@ static Scalar random01(boost::mt19937& rnd)
     \param bond_b List of the 2nd particle in each bond
     \param bond_type List of the bond type names for each bond
     \param max_attempts The maximum number of attempts to place each particle
+    \param dimensions Number of dimensions in the system
 
     A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
     Hence, the sizes of \a bond_a and \a bond_b \b must be the same.
 */
-PolymerParticleGenerator::PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf, Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts)
-        : m_exec_conf(exec_conf), m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_bond_type(bond_type), m_max_attempts(max_attempts)
+PolymerParticleGenerator::PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                                   Scalar bond_len,
+                                                   const std::vector<std::string>& types,
+                                                   const std::vector<unsigned int>& bond_a,
+                                                   const std::vector<unsigned int>& bond_b,
+                                                   const std::vector<string>& bond_type,
+                                                   unsigned int max_attempts,
+                                                   unsigned int dimensions)
+        : m_exec_conf(exec_conf), m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b),
+          m_bond_type(bond_type), m_max_attempts(max_attempts), m_dimensions(dimensions)
     {
     assert(m_types.size() > 0);
     assert(m_max_attempts > 0);
@@ -552,6 +565,8 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
         {
         // generate the position of the first particle
         Scalar3 f = make_scalar3(random01(rnd),random01(rnd),random01(rnd));
+        if (m_dimensions == 2)
+            f.z = 0;
         Scalar3 pos = box.makeCoordinates(f);
         p.x = pos.x;
         p.y = pos.y;
@@ -608,10 +623,21 @@ bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particle
         // generate a vector to move by to get to the next polymer bead
         Scalar r = m_bond_len;
 
-        Scalar dy = Scalar(2.0 * random01(rnd) - 1.0);
-        Scalar phi = Scalar(2.0 * M_PI*random01(rnd));
-        Scalar dx = sin(phi) * cos(asin(dy));
-        Scalar dz = cos(phi) * cos(asin(dy));
+        Scalar dy, dx, dz;
+        if (m_dimensions==3)
+            {
+            dy = Scalar(2.0 * random01(rnd) - 1.0);
+            Scalar phi = Scalar(2.0 * M_PI*random01(rnd));
+            dx = sin(phi) * cos(asin(dy));
+            dz = cos(phi) * cos(asin(dy));
+            }
+        else
+            {
+            Scalar phi = Scalar(2.0 * M_PI*random01(rnd));
+            dx = cos(phi);
+            dy = sin(phi);
+            dz = 0;
+            }
 
         p.x = prev_particle.x + r*dx;
         p.y = prev_particle.y + r*dy;
@@ -669,7 +695,7 @@ void export_RandomGenerator()
     .def(vector_indexing_suite<std::vector<string> >())
     ;
 
-    class_< RandomGenerator >("RandomGenerator", init<boost::shared_ptr<const ExecutionConfiguration>, const BoxDim&, unsigned int>())
+    class_< RandomGenerator >("RandomGenerator", init<boost::shared_ptr<const ExecutionConfiguration>, const BoxDim&, unsigned int, unsigned int>())
     // virtual methods from ParticleDataInitializer are inherited
     .def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
     .def("addGenerator", &RandomGenerator::addGenerator)
@@ -681,7 +707,7 @@ void export_RandomGenerator()
     // no methods exposed to python
     ;
 
-    class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< boost::shared_ptr<const ExecutionConfiguration>, Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int >())
+    class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< boost::shared_ptr<const ExecutionConfiguration>, Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int, unsigned int >())
     // all methods are internal C++ methods
     ;
     }

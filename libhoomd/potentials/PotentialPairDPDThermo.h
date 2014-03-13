@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -55,10 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PotentialPair.h"
 #include "Variant.h"
-
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
 
 #ifdef WIN32
 #pragma warning( push )
@@ -196,20 +191,11 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> h_rcutsq(this->m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(this->m_params, access_location::host, access_mode::read);
 
-#pragma omp parallel
-    {
-    #ifdef ENABLE_OPENMP
-    int tid = omp_get_thread_num();
-    #else
-    int tid = 0;
-    #endif
-
     // need to start from a zero force, energy and virial
-    memset(&(this->m_fdata_partial[this->m_index_thread_partial(0,tid)]) , 0, sizeof(Scalar4)*this->m_pdata->getN());
-    memset(&(this->m_virial_partial[6*this->m_index_thread_partial(0,tid)]) , 0, 6*sizeof(Scalar)*this->m_pdata->getN());
+    memset((void*)h_force.data,0,sizeof(Scalar4)*this->m_force.getNumElements());
+    memset((void*)h_virial.data,0,sizeof(Scalar)*this->m_virial.getNumElements());
 
     // for each particle
-#pragma omp for schedule(guided)
     for (int i = 0; i < (int)this->m_pdata->getN(); i++)
         {
         // access the particle's position, velocity, and type (MEM TRANSFER: 7 scalars)
@@ -309,58 +295,26 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
                 if (third_law)
                     {
-                    unsigned int mem_idx = this->m_index_thread_partial(j,tid);
-                    this->m_fdata_partial[mem_idx].x -= dx.x*force_divr;
-                    this->m_fdata_partial[mem_idx].y -= dx.y*force_divr;
-                    this->m_fdata_partial[mem_idx].z -= dx.z*force_divr;
-                    this->m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
+                    unsigned int mem_idx = j;
+                    h_force.data[mem_idx].x -= dx.x*force_divr;
+                    h_force.data[mem_idx].y -= dx.y*force_divr;
+                    h_force.data[mem_idx].z -= dx.z*force_divr;
+                    h_force.data[mem_idx].w += pair_eng * Scalar(0.5);
                     for (unsigned int l = 0; l < 6; l++)
-                        this->m_virial_partial[l+6*mem_idx] += pair_virial[l];
-
+                        h_virial.data[l * this->m_virial_pitch + mem_idx] += pair_virial[l];
                     }
                 }
             }
 
         // finally, increment the force, potential energy and virial for particle i
-        unsigned int mem_idx = this->m_index_thread_partial(i,tid);
-        this->m_fdata_partial[mem_idx].x += fi.x;
-        this->m_fdata_partial[mem_idx].y += fi.y;
-        this->m_fdata_partial[mem_idx].z += fi.z;
-        this->m_fdata_partial[mem_idx].w += pei;
+        unsigned int mem_idx = i;
+        h_force.data[mem_idx].x += fi.x;
+        h_force.data[mem_idx].y += fi.y;
+        h_force.data[mem_idx].z += fi.z;
+        h_force.data[mem_idx].w += pei;
         for (unsigned int l = 0; l < 6; l++)
-            this->m_virial_partial[l+6*mem_idx] += viriali[l];
+            h_virial.data[l * this->m_virial_pitch + mem_idx] += viriali[l];
         }
-#pragma omp barrier
-
-    // now that the partial sums are complete, sum up the results in parallel
-#pragma omp for
-    for (int i = 0; i < (int)this->m_pdata->getN(); i++)
-        {
-        // assign result from thread 0
-        h_force.data[i].x = this->m_fdata_partial[i].x;
-        h_force.data[i].y = this->m_fdata_partial[i].y;
-        h_force.data[i].z = this->m_fdata_partial[i].z;
-        h_force.data[i].w = this->m_fdata_partial[i].w;
-        for (unsigned int l = 0; l < 6; l++)
-            h_virial.data[l*this->m_virial_pitch+i]  = this->m_virial_partial[l+6*i];
-
-        #ifdef ENABLE_OPENMP
-        // add results from other threads
-        int nthreads = omp_get_num_threads();
-        for (int thread = 1; thread < nthreads; thread++)
-            {
-            unsigned int mem_idx = this->m_index_thread_partial(i,thread);
-            h_force.data[i].x += this->m_fdata_partial[mem_idx].x;
-            h_force.data[i].y += this->m_fdata_partial[mem_idx].y;
-            h_force.data[i].z += this->m_fdata_partial[mem_idx].z;
-            h_force.data[i].w += this->m_fdata_partial[mem_idx].w;
-            h_virial.data[i]  += this->m_virial_partial[mem_idx];
-            for (unsigned int l = 0; l < 6; l++)
-                 h_virial.data[l*this->m_virial_pitch+i]  = this->m_virial_partial[l+6*mem_idx];
-            }
-        #endif
-        }
-    } // end omp parallel
 
     if (this->m_prof) this->m_prof->pop();
     }
