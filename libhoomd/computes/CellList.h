@@ -225,6 +225,7 @@ class CellList : public Compute
         void slotBoxChanged()
             {
             m_box_changed = true;
+            m_force_compute = true;
             }
 
         //! Set the multiple value
