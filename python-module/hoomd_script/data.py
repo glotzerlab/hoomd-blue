@@ -426,6 +426,30 @@ class boxdim:
         b = self._getBoxDim();
         return b.getVolume(self.dimensions == 2);
 
+    ## Get a lattice vector
+    #
+    # \param i (=0,1,2) direction of lattice vector
+    #
+    # \returns a lattice vector (3-tuple) along direction \a i
+    #
+    def get_lattice_vector(self,i):
+        b = self._getBoxDim();
+        v = b.getLatticeVector(int(i))
+        return (v.x, v.y, v.z)
+
+    ## Wrap a vector using the periodic boundary conditions
+    #
+    # \param v The vector to wrap
+    #
+    # \returns the wrapped vector
+    #
+    def wrap(self,v):
+        u = hoomd.make_scalar3(v[0],v[1],v[2])
+        i = hoomd.make_int3(0,0,0)
+        c = hoomd.make_char3(0,0,0)
+        self._getBoxDim().wrap(u,i,c)
+        return (u.x, u.y, u.z)
+
     ## \internal
     # \brief Get a C++ boxdim
     def _getBoxDim(self):
