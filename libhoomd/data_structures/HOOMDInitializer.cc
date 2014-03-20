@@ -80,9 +80,11 @@ using namespace boost;
     The file will be read and parsed fully during the constructor call.
 */
 HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
-    const std::string &fname)
+    const std::string &fname,
+    bool wrap_coordinates)
     : m_timestep(0),
-      m_exec_conf(exec_conf)
+      m_exec_conf(exec_conf),
+      m_wrap(wrap_coordinates)
     {
     // we only execute on rank 0
     if (m_exec_conf->getRank()) return;
@@ -165,6 +167,15 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
 
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             pdata.image[i] = make_int3(m_image_array[i].x, m_image_array[i].y, m_image_array[i].z);
+        }
+
+    if (m_wrap)
+        {
+        // wrap coordinates into box
+        for (unsigned int i = 0; i < m_pos_array.size(); i++)
+            {
+            m_box.wrap(pdata.pos[i],pdata.image[i]);
+            }
         }
 
     if (m_vel_array.size() != 0)
@@ -1159,6 +1170,7 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
 void export_HOOMDInitializer()
     {
     class_< HOOMDInitializer >("HOOMDInitializer", init<boost::shared_ptr<const ExecutionConfiguration>, const string&>())
+    .def(init<boost::shared_ptr<const ExecutionConfiguration>, const string&, bool>())
     .def("getTimeStep", &HOOMDInitializer::getTimeStep)
     .def("setTimeStep", &HOOMDInitializer::setTimeStep)
     .def("getSnapshot", &HOOMDInitializer::getSnapshot)
