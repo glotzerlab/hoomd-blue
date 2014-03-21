@@ -177,11 +177,15 @@ void NeighborList::reallocate()
 
     if (m_n_ex_tag.getNumElements() != m_pdata->getNGlobal())
         {
-        // lazy re-allocate number of exclusions list
-        // exclusions need to be re-initialized after changing the global number of particles
+        unsigned int old_size = m_n_ex_tag.getNumElements();
         m_n_ex_tag.resize(m_pdata->getNGlobal());
-
         m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_indexer_tag.getH());
+        // reset number of exclusions for new particles
+        ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::readwrite);
+        for (unsigned int i = old_size; i < m_n_ex_tag.getNumElements(); ++i)
+            {
+            h_n_ex_tag.data[i] = 0;
+            }
         }
     }
 
