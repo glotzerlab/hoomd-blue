@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -209,7 +208,14 @@ class PolymerParticleGenerator : public ParticleGenerator
     {
     public:
         //! Constructor
-        PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf, Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts);
+        PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                 Scalar bond_len,
+                                 const std::vector<std::string>& types,
+                                 const std::vector<unsigned int>& bond_a,
+                                 const std::vector<unsigned int>& bond_b,
+                                 const std::vector<string>& bond_type,
+                                 unsigned int max_attempts,
+                                 unsigned int dimensions);
 
         //! Returns the number of particles in each polymer
         virtual unsigned int getNumToGenerate()
@@ -228,6 +234,7 @@ class PolymerParticleGenerator : public ParticleGenerator
         std::vector<unsigned int> m_bond_b; //!< Second particle in the bond pair
         std::vector<string> m_bond_type;    //!< Type name of the bond
         unsigned int m_max_attempts;        //!< Number of attemps to make for each particle placement
+        unsigned int m_dimensions;          //!< Number of dimensions
 
         //! helper function to place particles recursively
         bool generateNextParticle(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int i, unsigned int start_idx, const GeneratedParticles::particle& prev_particle);
@@ -262,7 +269,8 @@ class RandomGenerator
         //! Set the parameters
         RandomGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
                         const BoxDim& box,
-                        unsigned int seed);
+                        unsigned int seed,
+                        unsigned int dimensions);
 
         //! Empty Destructor
         virtual ~RandomGenerator() { }
@@ -289,6 +297,7 @@ class RandomGenerator
         std::vector< unsigned int > m_generator_repeat;     //!< Repeat count for each generator
         std::vector<std::string> m_type_mapping;            //!< The created mapping between particle types and ids
         std::vector<std::string> m_bond_type_mapping;       //!< The created mapping between bond types and ids
+        unsigned int m_dimensions;                          //!< Number of dimensions
 
         //! Helper function for identifying the particle type id
         unsigned int getTypeId(const std::string& name);

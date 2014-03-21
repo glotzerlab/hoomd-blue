@@ -1,34 +1,42 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
 University of Michigan the right to modify and/or distribute such Contributions.
 
-Redistribution and use of HOOMD-blue, in source and binary forms, with or
-without modification, are permitted, provided that the following conditions are
-met:
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
 
 * Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer.
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
 
 * Redistributions in binary form must reproduce the above copyright notice, this
 list of conditions, and the following disclaimer in the documentation and/or
 other materials provided with the distribution.
 
-* Neither the name of the copyright holder nor the names of HOOMD-blue's
-contributors may be used to endorse or promote products derived from this
-software without specific prior written permission.
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
 
 Disclaimer
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
-ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
 INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
@@ -45,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #include "PotentialExternal.h"
 #include "PotentialExternalGPU.cuh"
+#include "Autotuner.h"
 
 /*! \file PotentialExternalGPU.h
     \brief Declares a class for computing an external potential field on the GPU
@@ -69,14 +78,15 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
         PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              const std::string& log_suffix="");
 
-        //! Set the block size to execute on the GPU
-        /*! \param block_size Size of the block to run on the device
-            Performance of the code may be dependant on the block size run
-            on the GPU. \a block_size should be set to be a multiple of 32.
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
         */
-        void setBlockSize(int block_size)
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_block_size = block_size;
+            PotentialExternal<evaluator>::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
             }
 
     protected:
@@ -84,8 +94,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
 
-        //! block size
-        unsigned int m_block_size;
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     };
 
 /*! Constructor
@@ -95,8 +104,9 @@ template<class evaluator, cudaError_t gpu_cpef(const external_potential_args_t& 
                                                const typename evaluator::param_type *d_params)>
 PotentialExternalGPU<evaluator, gpu_cpef>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                                 const std::string& log_suffix)
-    : PotentialExternal<evaluator>(sysdef, log_suffix), m_block_size(128)
+    : PotentialExternal<evaluator>(sysdef, log_suffix)
     {
+    this->m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "external_" + evaluator::getName(), this->m_exec_conf));
     }
 
 /*! Computes the specified constraint forces
@@ -117,13 +127,15 @@ void PotentialExternalGPU<evaluator, gpu_cpef>::computeForces(unsigned int times
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
 
+    this->m_tuner->begin();
     gpu_cpef(external_potential_args_t(d_force.data,
                          d_virial.data,
                          this->m_virial.getPitch(),
                          this->m_pdata->getN(),
                          d_pos.data,
                          box,
-                         m_block_size), d_params.data);
+                         this->m_tuner->getParam()), d_params.data);
+    this->m_tuner->end();
 
     if (this->m_prof) this->m_prof->pop();
 
@@ -139,7 +151,6 @@ void export_PotentialExternalGPU(const std::string& name)
     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<base>, boost::noncopyable >
                   (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string&  >())
                   .def("setParams", &T::setParams)
-                  .def("setBlockSize", &T::setBlockSize)
                   ;
     }
 

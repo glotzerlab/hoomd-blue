@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -61,10 +60,6 @@ using namespace boost::python;
 
 #include "TablePotential.h"
 
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
-
 #include <stdexcept>
 
 /*! \file TablePotential.cc
@@ -109,9 +104,6 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
 
     assert(!m_tables.isNull());
     assert(!m_params.isNull());
-
-    // initialize memory for per thread reduction
-    allocateThreadPartial();
 
     m_log_name = std::string("pair_table_energy") + log_suffix;
     }
@@ -230,7 +222,7 @@ void TablePotential::computeForces(unsigned int timestep)
     assert(h_virial.data);
     assert(h_pos.data);
 
-    // Zero data for force calculation.
+    // need to start from a zero force, energy and virial
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
@@ -245,20 +237,7 @@ void TablePotential::computeForces(unsigned int timestep)
     Index2DUpperTriangular table_index(m_ntypes);
     Index2D table_value(m_table_width);
 
-#pragma omp parallel
-    {
-    #ifdef ENABLE_OPENMP
-    int tid = omp_get_thread_num();
-    #else
-    int tid = 0;
-    #endif
-
-    // need to start from a zero force, energy and virial
-    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*m_pdata->getN());
-    memset(&m_virial_partial[6*m_index_thread_partial(0,tid)] , 0, 6*sizeof(Scalar)*m_pdata->getN());
-
     // for each particle
-#pragma omp for schedule(guided)
     for (int i = 0; i < (int) m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
@@ -355,66 +334,34 @@ void TablePotential::computeForces(unsigned int timestep)
                 // only add force to local particles
                 if (third_law && k < m_pdata->getN())
                     {
-                    unsigned int mem_idx = m_index_thread_partial(k,tid);
-                    m_fdata_partial[mem_idx].x -= dx.x*forcemag_divr;
-                    m_fdata_partial[mem_idx].y -= dx.y*forcemag_divr;
-                    m_fdata_partial[mem_idx].z -= dx.z*forcemag_divr;
-                    m_fdata_partial[mem_idx].w += pair_eng;
-                    m_virial_partial[0+6*mem_idx] += forcemag_div2r * dx.x * dx.x;
-                    m_virial_partial[1+6*mem_idx] += forcemag_div2r * dx.x * dx.y;
-                    m_virial_partial[2+6*mem_idx] += forcemag_div2r * dx.x * dx.z;
-                    m_virial_partial[3+6*mem_idx] += forcemag_div2r * dx.y * dx.y;
-                    m_virial_partial[4+6*mem_idx] += forcemag_div2r * dx.y * dx.z;
-                    m_virial_partial[5+6*mem_idx] += forcemag_div2r * dx.z * dx.z;
+                    unsigned int mem_idx = k;
+                    h_force.data[mem_idx].x -= dx.x*forcemag_divr;
+                    h_force.data[mem_idx].y -= dx.y*forcemag_divr;
+                    h_force.data[mem_idx].z -= dx.z*forcemag_divr;
+                    h_force.data[mem_idx].w += pair_eng;
+                    h_virial.data[0*m_virial_pitch+mem_idx] += forcemag_div2r * dx.x * dx.x;
+                    h_virial.data[1*m_virial_pitch+mem_idx] += forcemag_div2r * dx.x * dx.y;
+                    h_virial.data[2*m_virial_pitch+mem_idx] += forcemag_div2r * dx.x * dx.z;
+                    h_virial.data[3*m_virial_pitch+mem_idx] += forcemag_div2r * dx.y * dx.y;
+                    h_virial.data[4*m_virial_pitch+mem_idx] += forcemag_div2r * dx.y * dx.z;
+                    h_virial.data[5*m_virial_pitch+mem_idx] += forcemag_div2r * dx.z * dx.z;
                     }
                 }
             }
 
         // finally, increment the force, potential energy and virial for particle i
-        unsigned int mem_idx = m_index_thread_partial(i,tid);
-        m_fdata_partial[mem_idx].x += fi.x;
-        m_fdata_partial[mem_idx].y += fi.y;
-        m_fdata_partial[mem_idx].z += fi.z;
-        m_fdata_partial[mem_idx].w += pei;
-        m_virial_partial[0+6*mem_idx] += virialxxi;
-        m_virial_partial[1+6*mem_idx] += virialxyi;
-        m_virial_partial[2+6*mem_idx] += virialxzi;
-        m_virial_partial[3+6*mem_idx] += virialyyi;
-        m_virial_partial[4+6*mem_idx] += virialyzi;
-        m_virial_partial[5+6*mem_idx] += virialzzi;
+        unsigned int mem_idx = i;
+        h_force.data[mem_idx].x += fi.x;
+        h_force.data[mem_idx].y += fi.y;
+        h_force.data[mem_idx].z += fi.z;
+        h_force.data[mem_idx].w += pei;
+        h_virial.data[0*m_virial_pitch+mem_idx] += virialxxi;
+        h_virial.data[1*m_virial_pitch+mem_idx] += virialxyi;
+        h_virial.data[2*m_virial_pitch+mem_idx] += virialxzi;
+        h_virial.data[3*m_virial_pitch+mem_idx] += virialyyi;
+        h_virial.data[4*m_virial_pitch+mem_idx] += virialyzi;
+        h_virial.data[5*m_virial_pitch+mem_idx] += virialzzi;
         }
-
-#pragma omp barrier
-
-    // now that the partial sums are complete, sum up the results in parallel
-#pragma omp for
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
-        {
-        // assign result from thread 0
-        h_force.data[i].x = m_fdata_partial[i].x;
-        h_force.data[i].y = m_fdata_partial[i].y;
-        h_force.data[i].z = m_fdata_partial[i].z;
-        h_force.data[i].w = m_fdata_partial[i].w;
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*m_virial_pitch+i] = m_virial_partial[j+6*i];
-
-        #ifdef ENABLE_OPENMP
-        // add results from other threads
-        int nthreads = omp_get_num_threads();
-        for (int thread = 1; thread < nthreads; thread++)
-            {
-            unsigned int mem_idx = m_index_thread_partial(i,thread);
-            h_force.data[i].x += m_fdata_partial[mem_idx].x;
-            h_force.data[i].y += m_fdata_partial[mem_idx].y;
-            h_force.data[i].z += m_fdata_partial[mem_idx].z;
-            h_force.data[i].w += m_fdata_partial[mem_idx].w;
-            for (int j = 0; j < 6; j++)
-                h_virial.data[j*m_virial_pitch+i] += m_virial_partial[j+6*mem_idx];
-            }
-        #endif
-        }
-    } // end omp parallel
-
 
     if (m_prof) m_prof->pop();
     }

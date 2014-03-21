@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -59,6 +58,7 @@ Moscow group.
 #include "EAMForceCompute.h"
 #include "NeighborList.h"
 #include "EAMForceGPU.cuh"
+#include "Autotuner.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -85,14 +85,22 @@ class EAMForceComputeGPU : public EAMForceCompute
         //! Destructor
         virtual ~EAMForceComputeGPU();
 
-        //! Sets the block size to run at
-        void setBlockSize(int block_size);
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            EAMForceCompute::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
+            }
 
     protected:
         EAMTexInterData eam_data;                   //!< Undocumented parameter
         EAMtex eam_tex_data;                        //!< Undocumented parameter
         Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
-        int m_block_size;                           //!< The block size to run on the GPU
+        boost::scoped_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep, bool ghost);

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -127,11 +126,13 @@ class CommunicatorGPU : public Communicator
             {
             Communicator::setAutotunerParams(enable, period);
 
+            #ifndef ENABLE_MPI_CUDA
             m_tuner_ghost_recv->setPeriod(period);
             m_tuner_ghost_recv->setEnabled(enable);
 
             m_tuner_ghost_send->setPeriod(period);
             m_tuner_ghost_send->setEnabled(enable);
+            #endif
             }
 
 

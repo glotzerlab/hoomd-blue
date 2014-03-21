@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -187,6 +186,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // access the cell list data arrays
     ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -204,6 +204,14 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
+
+    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
+        {
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
+        throw runtime_error("Error updating neighborlist bins");
+        }
 
     if (exec_conf->getComputeCapability() >= 200)
         {
@@ -239,7 +247,8 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  block_size,
                                  m_filter_body,
                                  m_filter_diameter,
-                                 m_cl->getGhostWidth());
+                                 m_cl->getGhostWidth(),
+                                 m_exec_conf->getComputeCapability()/10);
         if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         if (tune) this->m_tuner->end();
 

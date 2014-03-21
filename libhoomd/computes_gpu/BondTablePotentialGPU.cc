@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -71,7 +70,7 @@ using namespace std;
 BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
-    : BondTablePotential(sysdef, table_width, log_suffix), m_block_size(64)
+    : BondTablePotential(sysdef, table_width, log_suffix)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondTablePotentialGPU" << endl;
 
@@ -85,19 +84,14 @@ BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition>
      // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->exec_conf);
     m_flags.swap(flags);
+
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "table_bond", this->m_exec_conf));
     }
 
 BondTablePotentialGPU::~BondTablePotentialGPU()
         {
         m_exec_conf->msg->notice(5) << "Destroying BondTablePotentialGPU" << endl;
         }
-
-/*! \param block_size Block size to set
-*/
-void BondTablePotentialGPU::setBlockSize(int block_size)
-    {
-    m_block_size = block_size;
-    }
 
 /*! \post The table based forces are computed for the given timestep.
 
@@ -131,6 +125,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
 
 
         // run the kernel on all GPUs in parallel
+        m_tuner->begin();
         gpu_compute_bondtable_forces(d_force.data,
                              d_virial.data,
                              m_virial.getPitch(),
@@ -146,7 +141,8 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
                              m_table_width,
                              m_table_value,
                              d_flags.data,
-                             m_block_size);
+                             m_tuner->getParam(),
+                             m_exec_conf->getComputeCapability());
         }
 
 
@@ -163,6 +159,7 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
             throw std::runtime_error("Error in bond calculation");
             }
         }
+    m_tuner->end();
 
     if (m_prof) m_prof->pop(exec_conf);
     }
@@ -174,6 +171,5 @@ void export_BondTablePotentialGPU()
      init< boost::shared_ptr<SystemDefinition>,
      unsigned int,
      const std::string& >())
-    .def("setBlockSize", &BondTablePotentialGPU::setBlockSize)
     ;
     }

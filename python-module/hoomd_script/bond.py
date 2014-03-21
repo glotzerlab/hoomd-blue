@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -327,7 +326,6 @@ class harmonic(_bond):
             self.cpp_force = hoomd.PotentialBondHarmonic(globals.system_definition,self.name);
         else:
             self.cpp_force = hoomd.PotentialBondHarmonicGPU(globals.system_definition,self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -399,7 +397,6 @@ class fene(_bond):
             self.cpp_force = hoomd.PotentialBondFENE(globals.system_definition,self.name);
         else:
             self.cpp_force = hoomd.PotentialBondFENEGPU(globals.system_definition,self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.fene'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -530,7 +527,6 @@ class table(force._force):
             self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

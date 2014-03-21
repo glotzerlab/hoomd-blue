@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -142,43 +141,43 @@ def reset():
 ## Create an empty system
 #
 # \param N Number of particles to create
-# \param box A 3-tuple of floats specifying the box lengths (Lx, Ly, Lz) (in distance units)
-# \param n_particle_types Number of particle types to create
-# \param n_bond_types Number of bond types to create
-# \param n_angle_types Number of angle types to create
-# \param n_dihedral_types Number of dihedral types to create
-# \param n_improper_types Number of improper types to create
+# \param box a data.boxdim object that defines the simulation box
+# \param particle_types List of particle type names (must not be zero length)
+# \param bond_types List of bond type names (may be zero length)
+# \param angle_types List of angle type names (may be zero length)
+# \param dihedral_types List of Dihedral type names (may be zero length)
+# \param improper_types List of improper type names (may be zero length)
 #
 # \b Examples:
 # \code
-# system = init.create_empty(N=1000, box=(10, 10, 10)
-# system = init.create_empty(N=64000, box=(20,20,20), n_particle_types=2)
-# system = init.create_empty(N=64000, box=(20,20,20), n_bond_types=1, n_dihedral_types=2, n_improper_types=4)
+# system = init.create_empty(N=1000, box=data.boxdim(L=10)
+# system = init.create_empty(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
+# system = init.create_empty(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
 # \endcode
 #
-# After init.create_empty returns, the requested number of particles will have been created <b>but all of them
-# will have <i> DEFAULT VALUES</i> </b> and further initialization \b MUST be performed. See hoomd_script.data
+# After init.create_empty returns, the requested number of particles will have been created with
+# <b> <i> DEFAULT VALUES</i> </b> and further initialization \b MUST be performed. See hoomd_script.data
 # for full details on how such initialization can be performed.
 #
 # Specifically, all created particles will be:
 # - At position 0,0,0
 # - Have velocity 0,0,0
 # - In box image 0,0,0
-# - Have the type 'A'
+# - Have orientation 1,0,0,0
+# - Have the type `particle_types[0]`
 # - Have charge 0
 # - Have a mass of 1.0
 #
-# Furthermore, as a current limitation in the way create_empty works the defined particle type names are:
-# 'A', 'B', 'C', ... up to \a n_particle_types types. An intuitive way for resetting these types to user-defined ones
-# will come in a future enhancement.
+# The particle, bond, angle, dihedral, and improper types will be created and set to the names specified. Use these
+# type names later in the job script to refer to particles (i.e. in lj.set_params)
 #
 # \note The resulting empty system must have its particles fully initialized via python code, \b BEFORE
-# any other hoomd_script commands are executed. As as example of what might go wrong, if the pair.lj command were to be
+# any other hoomd_script commands are executed. For example, if the pair.lj command were to be
 # run before the initial particle positions were set, \b all particles would have position 0,0,0 and the memory
 # initialized by the neighbor list would be so large that the memory allocation would fail.
 #
 # \sa hoomd_script.data
-def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0):
+def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[]):
     util.print_status_line();
 
     # check if initialization has already occurred
@@ -189,28 +188,46 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     my_exec_conf = _create_exec_conf();
 
     # create the empty system
-    boxdim = hoomd.BoxDim(float(box[0]), float(box[1]), float(box[2]));
+    if not isinstance(box, data.boxdim):
+        globals.msg.error('box must be a data.boxdim object');
+        raise TypeError('box must be a data.boxdim object');
+
+    boxdim = box._getBoxDim();
 
     my_domain_decomposition = _create_domain_decomposition(boxdim);
     if my_domain_decomposition is not None:
         globals.system_definition = hoomd.SystemDefinition(N,
                                                            boxdim,
-                                                           n_particle_types,
-                                                           n_bond_types,
-                                                           n_angle_types,
-                                                           n_dihedral_types,
-                                                           n_improper_types,
+                                                           len(particle_types),
+                                                           len(bond_types),
+                                                           len(angle_types),
+                                                           len(dihedral_types),
+                                                           len(improper_types),
                                                            my_exec_conf,
                                                            my_domain_decomposition);
     else:
         globals.system_definition = hoomd.SystemDefinition(N,
                                                            boxdim,
-                                                           n_particle_types,
-                                                           n_bond_types,
-                                                           n_angle_types,
-                                                           n_dihedral_types,
-                                                           n_improper_types,
+                                                           len(particle_types),
+                                                           len(bond_types),
+                                                           len(angle_types),
+                                                           len(dihedral_types),
+                                                           len(improper_types),
                                                            my_exec_conf)
+
+    globals.system_definition.setNDimensions(box.dimensions);
+
+    # transfer names to C++
+    for i,name in enumerate(particle_types):
+        globals.system_definition.getParticleData().setTypeName(i,name);
+    for i,name in enumerate(bond_types):
+        globals.system_definition.getBondData().setTypeName(i,name);
+    for i,name in enumerate(angle_types):
+        globals.system_definition.getAngleData().setTypeName(i,name);
+    for i,name in enumerate(dihedral_types):
+        globals.system_definition.getDihedralData().setTypeName(i,name);
+    for i,name in enumerate(improper_types):
+        globals.system_definition.getImproperData().setTypeName(i,name);
 
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
@@ -341,15 +358,21 @@ def read_bin(filename, time_step = None):
 # \param phi_p Packing fraction of particles in the simulation box (unitless)
 # \param name Name of the particle type to create
 # \param min_dist Minimum distance particles will be separated by (in distance units)
+# \param box Simulation box dimensions (data.boxdim object)
+# \param seed Random seed
+#
+# Either \a phi_p or \a box must be specified. If \a phi_p is provided, it overrides the value of \a box.
 #
 # \b Examples:
 # \code
 # init.create_random(N=2400, phi_p=0.20)
 # init.create_random(N=2400, phi_p=0.40, min_dist=0.5)
-# system = init.create_random(N=2400, phi_p=0.20)
+# system = init.create_random(N=2400, box=data.boxdim(L=20))
 # \endcode
 #
-# \a N particles are randomly placed in the simulation box. The
+# \a N particles are randomly placed in the simulation box.
+#
+# When phi_p is set, the
 # dimensions of the created box are such that the packing fraction
 # of particles in the box is \a phi_p. The number density \e n
 # is related to the packing fraction by \f$n = 6/\pi \cdot \phi_P\f$
@@ -359,7 +382,7 @@ def read_bin(filename, time_step = None):
 # The result of init.create_random can be saved in a variable and later used to read and/or change particle properties
 # later in the script. See hoomd_script.data for more information.
 #
-def create_random(N, phi_p, name="A", min_dist=0.7):
+def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
@@ -372,12 +395,20 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 
     # abuse the polymer generator to generate single particles
 
-    # calculat the box size
-    L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
-    box = hoomd.BoxDim(L);
+    if phi_p is not None:
+        # calculate the box size
+        L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
+        box = data.boxdim(L=L);
+
+    if box is None:
+        raise RuntimeError('box or phi_p must be specified');
+
+    if not isinstance(box, data.boxdim):
+        globals.msg.error('box must be a data.boxdim object');
+        raise TypeError('box must be a data.boxdim object');
 
     # create the generator
-    generator = hoomd.RandomGenerator(my_exec_conf, box, 12345);
+    generator = hoomd.RandomGenerator(my_exec_conf, box._getBoxDim(), seed, box.dimensions);
 
     # build type list
     type_vector = hoomd.std_vector_string();
@@ -388,7 +419,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
     bond_type = hoomd.std_vector_string();
 
     # create the generator
-    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(my_exec_conf, 1.0, type_vector, bond_ab, bond_ab, bond_type, 100));
+    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(my_exec_conf, 1.0, type_vector, bond_ab, bond_ab, bond_type, 100, box.dimensions));
 
     # set the separation radius
     generator.setSeparationRadius(name, min_dist/2.0);
@@ -413,7 +444,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 
 ## Generates any number of randomly positioned polymers of configurable types
 #
-# \param box BoxDim specifying the simulation box to generate the polymers in
+# \param box Simulation box dimensions (data.boxdim object)
 # \param polymers Specification for the different polymers to create (see below)
 # \param separation Separation radii for different particle types (see below)
 # \param seed Random seed to use
@@ -465,21 +496,21 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 #
 # \b Examples:
 # \code
-# init.create_random_polymers(box=hoomd.BoxDim(35),
+# init.create_random_polymers(box=data.boxdim(L=35),
 #                             polymers=[polymer1, polymer2],
 #                             separation=dict(A=0.35, B=0.35));
 #
-# init.create_random_polymers(box=hoomd.BoxDim(31),
+# init.create_random_polymers(box=data.boxdim(L=31),
 #                             polymers=[polymer1],
 #                             separation=dict(A=0.35, B=0.35), seed=52);
 #
 # # create polymers in an orthorhombic box
-# init.create_random_polymers(box=hoomd.BoxDim(18,10,25),
+# init.create_random_polymers(box=data.boxdim(Lx=18,Ly=10,Lz=25),
 #                             polymers=[polymer2],
 #                             separation=dict(A=0.35, B=0.35), seed=12345);
 #
 # # create a triclinic box with tilt factors xy=0.1 xz=0.2 yz=0.3
-# init.create_random_polymers(box=hoomd.BoxDim(18, 0.1, 0.2, 0.3),
+# init.create_random_polymers(box=data.boxdim(L=18, xy=0.1, xz=0.2, yz=0.3),
 #                             polymeres=[polymer2],
 #                             separation=dict(A=0.35, B=0.35));
 # \endcode
@@ -533,8 +564,12 @@ def create_random_polymers(box, polymers, separation, seed=1):
         globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
         raise RuntimeError("Error creating random polymers");
 
+    if not isinstance(box, data.boxdim):
+        globals.msg.error('box must be a data.boxdim object');
+        raise TypeError('box must be a data.boxdim object');
+
     # create the generator
-    generator = hoomd.RandomGenerator(my_exec_conf,box, seed);
+    generator = hoomd.RandomGenerator(my_exec_conf,box._getBoxDim(), seed, box.dimensions);
 
     # make a list of types used for an eventual check vs the types in separation for completeness
     types_used = [];
@@ -605,7 +640,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
             raise RuntimeError("Error creating random polymers");
 
         # create the generator
-        generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(my_exec_conf, poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100));
+        generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(my_exec_conf, poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100, box.dimensions));
 
 
     # check that all used types are in the separation list
@@ -695,9 +730,8 @@ def _perform_common_init_tasks():
     from hoomd_script import group;
     from hoomd_script import compute;
 
-    # create the sorter, using the evil import __main__ trick to provide the user with a default variable
-    import __main__;
-    __main__.sorter = update.sort();
+    # create the sorter
+    globals.sorter = update.sort();
 
     # create the default compute.thermo on the all group
     util._disable_status_lines = True;
@@ -729,42 +763,32 @@ def _create_exec_conf():
 
     mpi_available = hoomd.is_MPI_available();
 
-    # set the openmp thread limits
-    if globals.options.ncpu is not None:
-        if globals.options.ncpu > hoomd.get_num_procs():
-            globals.msg.warning("Requesting more CPU cores than there are available in the system\n");
-        hoomd.set_num_threads(globals.options.ncpu);
-
-    # if no command line options were specified, create a default ExecutionConfiguration
-    if globals.options.mode is None:
+    # error out on nyx/flux if the auto mode is set
+    if globals.options.mode == 'auto':
         if (re.match("flux*", platform.node()) is not None) or (re.match("nyx*", platform.node()) is not None):
             globals.msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
             raise RuntimeError("Error initializing");
-
-        if mpi_available and globals.options.nrank is not None:
-            exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
-        else:
-            exec_conf = hoomd.ExecutionConfiguration(globals.options.min_cpu, globals.options.ignore_display, globals.msg);
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.AUTO;
+    elif globals.options.mode == "cpu":
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.CPU;
+    elif globals.options.mode == "gpu":
+        exec_mode = hoomd.ExecutionConfiguration.executionMode.GPU;
     else:
-        # determine the GPU on which to execute
-        if globals.options.gpu is not None:
-            gpu_id = int(globals.options.gpu);
-        else:
-            gpu_id = -1;
+        raise RuntimeError("Invalid mode");
 
-        # create the specified configuration
-        if globals.options.mode == "cpu":
-            if mpi_available and globals.options.nrank is not None:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
-            else:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
-        elif globals.options.mode == "gpu":
-            if mpi_available and globals.options.nrank is not None:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, globals.options.nrank);
-            else:
-                exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg);
-        else:
-            raise RuntimeError("Error initializing");
+    # convert None options to defaults
+    if globals.options.gpu is None:
+        gpu_id = -1;
+    else:
+        gpu_id = int(globals.options.gpu);
+
+    if globals.options.nrank is None:
+        nrank = 0;
+    else:
+        nrank = int(globals.options.nrank);
+
+    # create the specified configuration
+    exec_conf = hoomd.ExecutionConfiguration(exec_mode, gpu_id, globals.options.min_cpu, globals.options.ignore_display, globals.msg, nrank);
 
     # if gpu_error_checking is set, enable it on the GPU
     if globals.options.gpu_error_checking:

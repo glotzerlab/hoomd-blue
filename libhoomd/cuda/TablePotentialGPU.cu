@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -260,6 +259,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     \param ntypes Number of particle types in the system
     \param table_width Number of points in each table
     \param block_size Block size at which to run the kernel
+    \param compute_capability Compute capability of the device (200, 300, 350)
 
     \note This is just a kernel driver. See gpu_compute_table_forces_kernel for full documentation.
 */
@@ -277,33 +277,47 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                      const Scalar4 *d_params,
                                      const unsigned int ntypes,
                                      const unsigned int table_width,
-                                     const unsigned int block_size)
+                                     const unsigned int block_size,
+                                     const unsigned int compute_capability)
     {
     assert(d_params);
     assert(d_tables);
     assert(ntypes > 0);
     assert(table_width > 1);
 
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_compute_table_forces_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+
     // index calculation helper
     Index2DUpperTriangular table_index(ntypes);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-    // bind the pdata position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4) * (N+n_ghost));
-    if (error != cudaSuccess)
-        return error;
+    if (compute_capability < 350)
+        {
+        // bind the pdata position texture
+        pdata_pos_tex.normalized = false;
+        pdata_pos_tex.filterMode = cudaFilterModePoint;
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4) * (N+n_ghost));
+        if (error != cudaSuccess)
+            return error;
 
-    // bind the tables texture
-    tables_tex.normalized = false;
-    tables_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_width * table_index.getNumElements());
-    if (error != cudaSuccess)
-        return error;
+        // bind the tables texture
+        tables_tex.normalized = false;
+        tables_tex.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_width * table_index.getNumElements());
+        if (error != cudaSuccess)
+            return error;
+        }
 
     gpu_compute_table_forces_kernel<<< grid, threads, sizeof(Scalar4)*table_index.getNumElements() >>>
             (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_tables, d_params, ntypes, table_width);

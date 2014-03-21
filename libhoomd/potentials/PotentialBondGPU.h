@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -59,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PotentialBond.h"
 #include "PotentialBondGPU.cuh"
+#include "Autotuner.h"
 
 /*! \file PotentialBondGPU.h
     \brief Defines the template class for standard bond potentials on the GPU
@@ -89,19 +89,20 @@ class PotentialBondGPU : public PotentialBond<evaluator>
         //! Destructor
         virtual ~PotentialBondGPU() {}
 
-        //! Set the block size to execute on the GPU
-        /*! \param block_size Size of the block to run on the device
-            Performance of the code may be dependant on the block size run
-            on the GPU. \a block_size should be set to be a multiple of 32.
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
         */
-        void setBlockSize(int block_size)
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_block_size = block_size;
+            PotentialBond<evaluator>::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
             }
-    protected:
-        unsigned int m_block_size;      //!< Block size to execute on the GPU
 
-        GPUArray<unsigned int> m_flags; //!< Flags set during the kernel execution
+    protected:
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -112,7 +113,7 @@ template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 unsigned int *d_flags) >
 PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                                           const std::string& log_suffix)
-    : PotentialBond<evaluator>(sysdef, log_suffix), m_block_size(64)
+    : PotentialBond<evaluator>(sysdef, log_suffix)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->exec_conf->isCUDAEnabled())
@@ -132,6 +133,8 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(boost::shared_ptr<Syst
     // reset flags
     ArrayHandle<unsigned int> h_flags(m_flags,access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
+
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
 template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
@@ -166,6 +169,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
         // access the flags array for overwriting
         ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
 
+        this->m_tuner->begin();
         gpu_cgbf(bond_args_t(d_force.data,
                              d_virial.data,
                              this->m_virial.getPitch(),
@@ -179,7 +183,8 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
                              gpu_table_indexer,
                              d_gpu_n_bonds.data,
                              this->m_bond_data->getNTypes(),
-                             m_block_size),
+                             this->m_tuner->getParam(),
+                             this->m_exec_conf->getComputeCapability()),
                  d_params.data,
                  d_flags.data);
         }
@@ -197,6 +202,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
             throw std::runtime_error("Error in bond calculation");
             }
         }
+    this->m_tuner->end();
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
@@ -210,7 +216,6 @@ template < class T, class Base > void export_PotentialBondGPU(const std::string&
     {
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
               (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string& >())
-              .def("setBlockSize", &T::setBlockSize)
               ;
     }
 
