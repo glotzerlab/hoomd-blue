@@ -171,10 +171,19 @@ void NeighborList::reallocate()
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
 
+    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
 
-    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_n_neigh.resize(m_pdata->getMaxN());
+
+    if (m_n_ex_tag.getNumElements() != m_pdata->getNGlobal())
+        {
+        // lazy re-allocate number of exclusions list
+        // exclusions need to be re-initialized after changing the global number of particles
+        m_n_ex_tag.resize(m_pdata->getNGlobal());
+
+        m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_indexer_tag.getH());
+        }
     }
 
 NeighborList::~NeighborList()
@@ -340,16 +349,6 @@ Scalar NeighborList::estimateNNeigh()
 */
 void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     {
-    if (m_n_ex_tag.getNumElements() != m_pdata->getNGlobal())
-        {
-        // lazy re-allocate exclusion lists
-        GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
-        m_n_ex_tag.swap(n_ex_tag);
-
-        GPUArray<unsigned int> ex_list_tag(m_pdata->getNGlobal(), 1, exec_conf);
-        m_ex_list_tag.swap(ex_list_tag);
-        }
-
     assert(tag1 < m_pdata->getNGlobal());
     assert(tag2 < m_pdata->getNGlobal());
 
