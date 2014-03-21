@@ -548,6 +548,11 @@ class system_data:
     #
     # \note Replication of rigid bodies is currently not supported.
     #
+    # \note It is a limitation that in MPI simulations the dimensions of the processor grid
+    # are not updated upon replication. For example, if an initially cubic box is replicated along only one
+    # spatial direction, this could lead to decreased performance if the processor grid was
+    # optimal for the original box dimensions, but not for the new ones.
+    #
     # \MPI_SUPPORTED
     def replicate(self, nx=1, ny=1, nz=1):
         util.print_status_line()
