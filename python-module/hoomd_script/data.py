@@ -358,6 +358,7 @@ from hoomd_script import util
 class boxdim:
     ## Initialize a boxdim object
     #
+    # \param L shorthand for specifying Lx=Ly=Lz=L (distance units)
     # \param Lx box extent in the x direction (distance units)
     # \param Ly box extent in the y direction (distance units)
     # \param Lz box extent in the z direction (distance units)
@@ -365,10 +366,9 @@ class boxdim:
     # \param xz tilt factor xz (dimensionless)
     # \param yz tilt factor yz (dimensionless)
     # \param dimensions Number of dimensions in the box (2 or 3).
-    # \param L shorthand for specifying Lx=Ly=Lz=L (distance units)
     # \param volume Scale the given box dimensions up to the this volume (area if dimensions=2)
     #
-    def __init__(self, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0, dimensions=3, L=None, volume=None):
+    def __init__(self, L=None, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0, dimensions=3, volume=None):
         if L is not None:
             Lx = L;
             Ly = L;
