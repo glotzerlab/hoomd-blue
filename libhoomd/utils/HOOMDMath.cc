@@ -144,7 +144,11 @@ void export_hoomd_math_functions()
         .def_readwrite("z", &int4::z)
         .def_readwrite("z", &int4::w)
         ;
-
+    class_<char3>("char3", init<>())
+        .def_readwrite("x", &char3::x)
+        .def_readwrite("y", &char3::y)
+        .def_readwrite("z", &char3::z)
+        ;
 
     def("make_scalar2", &make_scalar2);
     def("make_scalar3", &make_scalar3);
@@ -155,6 +159,7 @@ void export_hoomd_math_functions()
     def("make_int2", &make_int2);
     def("make_int3", &make_int3);
     def("make_int4", &make_int4);
+    def("make_char3", &make_char3);
     def("int_as_scalar", &__int_as_scalar);
     }
 
