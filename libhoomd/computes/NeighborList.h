@@ -269,6 +269,11 @@ class NeighborList : public Compute
             return m_exclusions_set;
             }
 
+        bool wantExclusions()
+            {
+            return m_want_exclusions;
+            }
+
         //! Gives an estimate of the number of nearest neighbors per particle
         virtual Scalar estimateNNeigh();
 
@@ -473,6 +478,8 @@ class NeighborList : public Compute
         bool m_last_check_result;          //!< Last result of rebuild check
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
         vector<unsigned int> m_update_periods;    //!< Steps between updates
+
+        bool m_want_exclusions;       //!< True if we want updated exclusions
 
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
