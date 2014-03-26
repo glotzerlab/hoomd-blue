@@ -99,7 +99,7 @@ xy &=& \frac{a_{2x}}{L_y}\\
 L_z &=& \vec v_3 \cdot \frac{\vec v_1 \times \vec v_2}{\left| \vec v_1 \times \vec v_2 \right|}\\
 a_{3x} &=& \frac{\vec v_1 \cdot \vec v_3}{v_1}\\
 xz &=& \frac{a_{3x}}{L_z}\\
-yz &=& \frac{1}{L_z} \sqrt{v_3^2 - a_{3x}^2 - L_z^2}
+yz &=& \frac{\vec v_2 \cdot \vec v_3 - a_{2x}a_{3x}}{L_x L_z}\\
 \f}
 
 Example:
@@ -117,7 +117,7 @@ v0xv1mag = numpy.sqrt(numpy.dot(v0xv1, v0xv1))
 Lz = numpy.dot(v[2], v0xv1) / v0xv1mag
 a3x = numpy.dot(v[0], v[2]) / Lx
 xz = a3x / Lz
-yz = numpy.sqrt(numpy.dot(v[2], v[2]) - a3x*a3x - Lz*Lz) / Lz
+yz = (numpy.dot(v[1],v[2]) - a2x*a3x) / (Ly*Lz)
 ~~~
 
 \section sec_triclinic_specify Initializing a system with a triclinic box
