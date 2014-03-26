@@ -83,6 +83,7 @@ A B C
     def tearDown(self):
         if (comm.get_rank()==0):
             os.remove("test.xml");
+            os.remove("test_out_of_box.xml");
         init.reset();
 
 if __name__ == '__main__':
