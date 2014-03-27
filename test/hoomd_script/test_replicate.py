@@ -37,6 +37,7 @@ class replicate(unittest.TestCase):
     def tearDown(self):
         del self.harmonic
         del self.pair
+        del self.s
         init.reset();
 
 if __name__ == '__main__':
