@@ -2122,9 +2122,6 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
             boost::make_transform_iterator(pdata_end, to_pdata_element()),
             out.begin(),
             std::not1(pdata_element_select(h_rtag.data,NOT_LOCAL)));
-
-        out.resize(num_remove_ptls);
-        comm_flags.resize(num_remove_ptls);
         }
 
     // swap particle data arrays
