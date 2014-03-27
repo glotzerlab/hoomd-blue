@@ -1088,7 +1088,6 @@ void Communicator::migrateParticles()
 
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
-    if (m_last_flags[comm_flag::tag])
         {
         // wipe out reverse-lookup tag -> idx for old ghost atoms
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -1452,23 +1451,20 @@ void Communicator::exchangeGhosts()
                 m_mpi_comm,
                 &reqs[nreq++]);
 
-            if (flags[comm_flag::tag])
-                {
-                MPI_Isend(h_copy_ghosts.data,
-                    m_num_copy_ghosts[dir]*sizeof(unsigned int),
-                    MPI_BYTE,
-                    send_neighbor,
-                    2,
-                    m_mpi_comm,
-                    &reqs[nreq++]);
-                MPI_Irecv(h_tag.data + start_idx,
-                    m_num_recv_ghosts[dir]*sizeof(unsigned int),
-                    MPI_BYTE,
-                    recv_neighbor,
-                    2,
-                    m_mpi_comm,
-                    &reqs[nreq++]);
-                }
+            MPI_Isend(h_copy_ghosts.data,
+                m_num_copy_ghosts[dir]*sizeof(unsigned int),
+                MPI_BYTE,
+                send_neighbor,
+                2,
+                m_mpi_comm,
+                &reqs[nreq++]);
+            MPI_Irecv(h_tag.data + start_idx,
+                m_num_recv_ghosts[dir]*sizeof(unsigned int),
+                MPI_BYTE,
+                recv_neighbor,
+                2,
+                m_mpi_comm,
+                &reqs[nreq++]);
 
             if (flags[comm_flag::position])
                 {
@@ -1584,7 +1580,6 @@ void Communicator::exchangeGhosts()
                 }
             }
 
-        if (flags[comm_flag::tag])
             {
             // set reverse-lookup tag -> idx
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
