@@ -574,7 +574,7 @@ class system_data:
         cpp_snapshot = self.take_snapshot(all=True)
         util._disable_status_lines = False
 
-        import comm
+        from hoomd_script import comm
         if comm.get_rank() == 0:
             # replicate
             cpp_snapshot.replicate(nx, ny, nz)
