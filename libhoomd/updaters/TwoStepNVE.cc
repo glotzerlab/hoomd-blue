@@ -71,7 +71,7 @@ using namespace boost::python;
 TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
                        bool skip_restart)
-    : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false), m_aniso(false)
+    : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVE" << endl;
 
@@ -389,53 +389,6 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-unsigned int TwoStepNVE::getNDOF(boost::shared_ptr<ParticleGroup> query_group)
-    {
-    // If we are not in anisotropic integration mode, just use the default implementation
-    if (!m_aniso)
-        return IntegrationMethodTwoStep::getNDOF(query_group);
-
-    ArrayHandle<Scalar3> h_moment_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
-     
-    // count the number of particles both in query_group and m_group
-    boost::shared_ptr<ParticleGroup> intersect_particles = ParticleGroup::groupIntersection(m_group, query_group);
-    
-    // Counting body DOF: 
-    // 3D systems: a body has 6 DOF by default, subtracted by the number of zero moments of inertia
-    // 2D systems: a body has 3 DOF by default
-    unsigned int query_group_dof = 0;
-    unsigned int dimension = m_sysdef->getNDimensions();
-    unsigned int dof_one;
-    for (unsigned int group_idx = 0; group_idx < intersect_particles->getNumMembers(); group_idx++)
-        {
-        unsigned int j = intersect_particles->getMemberIndex(group_idx);
-            {
-            if (dimension == 3)
-                {
-                dof_one = 6;
-                if (h_moment_inertia.data[j].x < EPSILON)
-                    dof_one--;
-                
-                if (h_moment_inertia.data[j].y < EPSILON)
-                    dof_one--;
-                
-                if (h_moment_inertia.data[j].z < EPSILON)
-                    dof_one--;
-                }
-            else 
-                {
-                dof_one = 3;
-                if (h_moment_inertia.data[j].z < EPSILON)
-                    dof_one--;
-                }
-            
-            query_group_dof += dof_one;
-            }
-        }
-    
-    return query_group_dof;  
-    }
-
 void export_TwoStepNVE()
     {
     class_<TwoStepNVE, boost::shared_ptr<TwoStepNVE>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
@@ -443,7 +396,6 @@ void export_TwoStepNVE()
         .def("setLimit", &TwoStepNVE::setLimit)
         .def("removeLimit", &TwoStepNVE::removeLimit)
         .def("setZeroForce", &TwoStepNVE::setZeroForce)
-        .def("setAnisotropic", &TwoStepNVE::setAnisotropic)
         ;
     }
 

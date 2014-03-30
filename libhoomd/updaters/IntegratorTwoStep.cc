@@ -151,8 +151,13 @@ void IntegratorTwoStep::update(unsigned int timestep)
     if (m_prof)
         m_prof->push("Integrate");
 
-    // perform the first step of the integration on all groups
+    // set (an-)isotropic integration mode
+    bool aniso = getAnisotropic();
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        (*method)->setAnisotropic(aniso);
+
+    // perform the first step of the integration on all groups
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
 

@@ -885,6 +885,23 @@ void Integrator::computeCallback(unsigned int timestep)
     }
 #endif
 
+bool Integrator::getAnisotropic()
+    {
+    bool aniso = false;
+    // pre-compute all active forces
+    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+
+    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+        aniso |= (*force_compute)->isAnisotropic();
+
+    // pre-compute all active constraint forces
+    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
+        aniso |= (*force_constraint)->isAnisotropic();
+
+    return aniso;
+    }
+
 void export_Integrator()
     {
     class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>

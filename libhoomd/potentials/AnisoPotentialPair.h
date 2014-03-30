@@ -75,29 +75,29 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     cuttoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
     by an aniso_evaluator class (e.g. EvaluatorPairLJ) which is passed in as a template parameter so the compuations
     are performed as efficiently as possible.
-    
+
     AnisoPotentialPair handles most of the gory internal details common to all standard pair potentials.
      - A cuttoff radius to be specified per particle type pair
      - The energy can be globally shifted to 0 at the cuttoff
      - Per type pair parameters are stored and a set method is provided
      - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
-    
-    \note XPLOR switching is not supported 
+
+    \note XPLOR switching is not supported
 
     <b>Implementation details</b>
-    
+
     rcutsq and the params are stored per particle type pair. It wastes a little bit of space, but benchmarks
     show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
     and indexing with Index2DUpperTriangular. All of these values are stored in GPUArray
     for easy access on the GPU by a derived class. The type of the parameters is defined by \a param_type in the
     potential aniso_evaluator class passed in. See the appropriate documentation for the aniso_evaluator for the definition of each
     element of the parameters.
-    
+
     For profiling and logging, AnisoPotentialPair needs to know the name of the potential. For now, that will be queried from
     the aniso_evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
     independantly.
-    
+
     \sa export_AnisoAnisoPotentialPair()
 */
 
@@ -107,7 +107,7 @@ class AnisoPotentialPair : public ForceCompute
     public:
         //! Param type from aniso_evaluator
         typedef typename aniso_evaluator::param_type param_type;
-    
+
         //! Construct the pair potential
         AnisoPotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
                       boost::shared_ptr<NeighborList> nlist,
@@ -119,12 +119,12 @@ class AnisoPotentialPair : public ForceCompute
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
-        
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
         //! Shifting modes that can be applied to the energy
         enum energyShiftMode
             {
@@ -132,7 +132,7 @@ class AnisoPotentialPair : public ForceCompute
             shift,
             xplor
             };
-        
+
         //! Set the mode to use for shifting the energy
         void setShiftMode(energyShiftMode mode)
             {
@@ -144,6 +144,12 @@ class AnisoPotentialPair : public ForceCompute
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
 
+        //! Returns true because we compute the torque
+        virtual bool isAnisotropic()
+            {
+            return true;
+            }
+
 protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
@@ -152,7 +158,7 @@ protected:
         GPUArray<param_type> m_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
-        
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };

@@ -189,6 +189,9 @@ class Integrator : public Updater
         CommFlags determineFlags(unsigned int timestep);
 #endif
 
+        //! Helper function to determine (an-)isotropic integration mode
+        bool getAnisotropic();
+
     private:
         #ifdef ENABLE_MPI
         boost::signals2::connection m_request_flags_connection;     //!< Connection to Communicator to request communication flags
