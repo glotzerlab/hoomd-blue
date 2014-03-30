@@ -754,8 +754,11 @@ class particle_data_proxy:
             o = self.pdata.getOrientation(self.tag);
             return (o.x, o.y, o.z, o.w);
         if name == "angular_momentum":
-            a = self.pdata.getAngularMomentum(self.angular_momentum);
+            a = self.pdata.getAngularMomentum(self.tag);
             return (a.x, a.y, a.z, a.w);
+        if name == "moment_inertia":
+            m = self.pdata.getMomentsOfInertia(self.tag)
+            return (m.x, m.y, m.z);
         if name == "net_force":
             f = self.pdata.getPNetForce(self.tag);
             return (f.x, f.y, f.z);
@@ -828,6 +831,13 @@ class particle_data_proxy:
             a.z = float(value[2]);
             a.w = float(value[3]);
             self.pdata.setAngularMomentum(self.tag, a);
+            return;
+        if name == "moment_inertia":
+            m = hoomd.Scalar3();
+            m.x = float(value[0]);
+            m.y = float(value[1]);
+            m.z = float(value[2]);
+            self.pdata.setMomentsOfInertia(self.tag, m);
             return;
         if name == "net_force":
             raise AttributeError;
