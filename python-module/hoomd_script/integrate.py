@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -94,6 +93,7 @@
 # This code snippet runs the first 100 time steps with T=1.2 and the next 100 with T=1.0
 
 import hoomd;
+import copy;
 from hoomd_script import globals;
 from hoomd_script import compute;
 import sys;
@@ -407,7 +407,17 @@ class nvt(_integration_method):
         T = variant._setup_variant_input(T);
 
         # create the compute thermo
-        thermo = compute._get_unique_thermo(group=group);
+        # as an optimization, NVT on the GPU uses the thermo is a way that produces incorrect values for the pressure
+        # if we are given the overall group_all, create a new group so that the invalid pressure is not passed to
+        # analyze.log
+        if group is globals.group_all:
+            group_copy = copy.copy(group);
+            group_copy.name = "__nvt_all";
+            util._disable_status_lines = True;
+            thermo = compute.thermo(group_copy);
+            util._disable_status_lines = False;
+        else:
+            thermo = compute._get_unique_thermo(group=group);
 
         # setup suffix
         suffix = '_' + group.name;

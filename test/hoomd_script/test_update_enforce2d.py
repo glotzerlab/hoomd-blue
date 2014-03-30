@@ -9,10 +9,10 @@ import os
 class update_enforce2d_tests (unittest.TestCase):
     def setUp(self):
         print
-        s = init.create_random(N=100, phi_p=0.05);
+        s = init.create_random(N=100, box=data.boxdim(L=100, dimensions=2));
         s.dimensions = 2
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     # tests basic creation of the updater
     def test(self):

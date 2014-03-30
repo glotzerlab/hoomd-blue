@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -272,7 +271,6 @@ class harmonic(force._force):
             self.cpp_force = hoomd.HarmonicDihedralForceCompute(globals.system_definition);
         else:
             self.cpp_force = hoomd.HarmonicDihedralForceComputeGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('dihedral.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -422,7 +420,6 @@ class table(force._force):
             self.cpp_force = hoomd.TableDihedralForceCompute(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.TableDihedralForceComputeGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('dihedral.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

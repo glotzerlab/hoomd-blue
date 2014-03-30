@@ -10,12 +10,12 @@ class update_box_resize_tests (unittest.TestCase):
     def setUp(self):
         print
         init.create_random(N=100, phi_p=0.05);
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     # tests basic creation of the updater
     def test(self):
-        update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
+        update.box_resize(L = variant.linear_interp([(0, 20), (1e6, 50)]))
         run(100);
 
     # test the setting of more args

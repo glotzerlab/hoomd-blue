@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -394,6 +393,24 @@ std::string ParticleData::getNameByType(unsigned int type) const
 
     // return the name
     return m_type_mapping[type];
+    }
+
+/*! \param type Type index to get the name of
+    \param name New name for this type
+
+    This is designed for use by init.create_empty. It probably will cause things to fail in strange ways if called
+    after initialization.
+*/
+void ParticleData::setTypeName(unsigned int type, const std::string& name)
+    {
+    // check for an invalid request
+    if (type >= getNTypes())
+        {
+        m_exec_conf->msg->error() << "Setting name for non-existant type " << type << endl;
+        throw runtime_error("Error mapping type name");
+        }
+
+    m_type_mapping[type] = name;
     }
 
 
@@ -1893,11 +1910,13 @@ void export_BoxDim()
     .def("getLo", &BoxDim::getLo)
     .def("getHi", &BoxDim::getHi)
     .def("setLoHi", &BoxDim::setLoHi)
+    .def("setTiltFactors", &BoxDim::setTiltFactors)
     .def("getTiltFactorXY", &BoxDim::getTiltFactorXY)
     .def("getTiltFactorXZ", &BoxDim::getTiltFactorXZ)
     .def("getTiltFactorYZ", &BoxDim::getTiltFactorYZ)
     .def("makeFraction", &BoxDim::makeFraction)
     .def("minImage", &BoxDim::minImage)
+    .def("getVolume", &BoxDim::getVolume)
     ;
     }
 
@@ -1930,6 +1949,7 @@ void export_ParticleData()
     .def("getMaximumDiameter", &ParticleData::getMaxDiameter)
     .def("getNameByType", &ParticleData::getNameByType)
     .def("getTypeByName", &ParticleData::getTypeByName)
+    .def("setTypeName", &ParticleData::setTypeName)
     .def("setProfiler", &ParticleData::setProfiler)
     .def("getExecConf", &ParticleData::getExecConf)
     .def("__str__", &print_ParticleData)

@@ -16,13 +16,6 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/icons ${CMAKE_CURRENT_SOURCE_DIR}/
         )
 endif (NOT WIN32 AND NOT APPLE)
 
-## install the icon file in windows
-if (WIN32)
-install(FILES ${HOOMD_SOURCE_DIR}/data/art/HOOMDScriptIcon.ico
-        DESTINATION ${DATA_INSTALL_DIR}
-        )
-endif (WIN32)
-
 ## install the license file
 install(FILES ${HOOMD_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/hoomd_data_dir
         DESTINATION ${DATA_INSTALL_DIR}

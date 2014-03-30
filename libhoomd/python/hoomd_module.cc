@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -202,10 +201,6 @@ using namespace boost::python;
 #include <sstream>
 using namespace std;
 
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
-
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
@@ -313,22 +308,10 @@ string get_hoomd_version()
     return ver.str();
     }
 
-//! Layer for omp_set_num_threads
-void set_num_threads(int nthreads)
-    {
-    #ifdef ENABLE_OPENMP
-    omp_set_num_threads(nthreads);
-    #endif
-    }
-
 //! Layer for omp_get_num_procs()
 int get_num_procs()
     {
-    #ifdef ENABLE_OPENMP
-    return omp_get_num_procs();
-    #else
     return 1;
-    #endif
     }
 
 //! Get the hoomd version as a tuple
@@ -393,8 +376,6 @@ void cuda_profile_stop()
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
-char env_enable_mpi_gdr[] = "MV2_USE_GPUDIRECT=1";
-char env_enable_mpi_cuda_cray[] = "MPICH_RDMA_ENABLED_CUDA=1";
 
 //! Initialize the MPI environment
 void initialize_mpi()
@@ -403,8 +384,6 @@ void initialize_mpi()
     // if we are using an MPI-CUDA implementation, enable this feature
     // before the MPI_Init
     putenv(env_enable_mpi_cuda);
-    putenv(env_enable_mpi_gdr);
-    putenv(env_enable_mpi_cuda_cray);
     #endif
 
     // initalize MPI
@@ -437,7 +416,6 @@ BOOST_PYTHON_MODULE(hoomd)
     def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
 
-    def("set_num_threads", &set_num_threads);
     def("get_num_procs", &get_num_procs);
     scope().attr("__version__") = get_hoomd_version_tuple();
     scope().attr("__git_sha1__") = HOOMD_GIT_SHA1;

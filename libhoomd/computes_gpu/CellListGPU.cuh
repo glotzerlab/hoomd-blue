@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -83,7 +82,8 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const BoxDim& box,
                                   const Index3D& ci,
                                   const Index2D& cli,
-                                  const Scalar3& ghost_width);
+                                  const Scalar3& ghost_width,
+                                  const unsigned int block_size);
 
 //! Kernel driver for gpu_compute_cell_list_1x_kernel()
 cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,

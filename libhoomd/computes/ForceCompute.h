@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -191,12 +190,6 @@ class ForceCompute : public Compute
         //! Reallocate internal arrays
         void reallocate();
 
-        //! Allocates the force and virial partial data
-        void allocateThreadPartial();
-
-        //! Re-allocates the force and virial partial data
-        void reallocateThreadPartial();
-
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
 
         GPUArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
@@ -211,12 +204,6 @@ class ForceCompute : public Compute
         unsigned int m_virial_pitch;    //!< The pitch of the 2D virial array
         GPUArray<Scalar4> m_torque;    //!< per-particle torque
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
-
-        Scalar4* m_fdata_partial;  //!< Stores partial force/pe for each CPU thread
-        Scalar*  m_virial_partial; //!< Stores partial virial data summed for each CPU thread
-        Scalar4* m_torque_partial; //!< Stores partial torque data
-
-        Index2D m_index_thread_partial;         //!< Indexer to index the above 2 arrays by (particle, thread)
 
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
 

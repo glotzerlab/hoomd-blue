@@ -74,25 +74,6 @@ if (ENABLE_DOXYGEN)
     endif ()
 endif ()
 
-################################
-## detect and optionally enable OpenMP
-
-# Apple's openmp is buggy, disable it
-if (NOT APPLE)
-# needs CMake 2.6.4 or newer
-set (_cmake_ver "${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}")
-if (_cmake_ver VERSION_GREATER 2.6.3)
-
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    option(ENABLE_OPENMP "Enable openmp compliation to accelerate CPU code on multi-core machines" OFF)
-endif (OPENMP_FOUND)
-
-else (_cmake_ver VERSION_GREATER 2.6.3)
-message(STATUS "Upgrade to CMake 2.6.4 or newer to enable OpenMP compilation")
-endif (_cmake_ver VERSION_GREATER 2.6.3)
-endif (NOT APPLE)
-
 ###############################
 ## install python code into the system site dir, if a system python installation is desired
 SET(PYTHON_SITEDIR "" CACHE STRING "System python site-packages directory to install python module code to. If unspecified, install to lib/hoomd/python-module")

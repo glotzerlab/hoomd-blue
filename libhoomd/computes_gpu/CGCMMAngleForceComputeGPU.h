@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -57,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CGCMMAngleForceCompute.h"
 #include "CGCMMAngleForceGPU.cuh"
+#include "Autotuner.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>
@@ -92,20 +92,23 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
         //! Destructor
         ~CGCMMAngleForceComputeGPU();
 
-        //! Sets the block size to run on the device
-        /*! \param block_size Block size to set
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
         */
-        void setBlockSize(int block_size)
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_block_size = block_size;
+            CGCMMAngleForceCompute::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
             }
 
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma);
 
     protected:
-        int m_block_size;               //!< Block size to run calculation on
-        GPUArray<Scalar2> m_params;      //!< k, t0 Parameters stored on the GPU
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        GPUArray<Scalar2> m_params;           //!< k, t0 Parameters stored on the GPU
 
         // below are just for the CG-CMM angle potential
         GPUArray<Scalar2>  m_CGCMMsr;    //!< GPU copy of the angle's epsilon/sigma/rcut (esr)

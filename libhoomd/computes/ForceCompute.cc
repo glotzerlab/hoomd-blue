@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -79,8 +78,7 @@ using namespace boost;
     \post \c force and \c virial GPUarrays are initialized
     \post All forces are initialized to 0
 */
-ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false),
-    m_index_thread_partial(0)
+ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false)
     {
     assert(m_pdata);
     assert(m_pdata->getMaxN() > 0);
@@ -95,9 +93,6 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     m_torque.swap(torque);
 
     m_virial_pitch = m_virial.getPitch();
-    m_fdata_partial = NULL;
-    m_virial_partial = NULL;
-    m_torque_partial = NULL;
 
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
@@ -111,18 +106,6 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
 
     }
 
-/*! \post m_fdata and virial _partial are both allocated, and m_index_thread_partial is intiialized for indexing them
-*/
-void ForceCompute::allocateThreadPartial()
-    {
-    assert(exec_conf->n_cpu >= 1);
-    m_index_thread_partial = Index2D(m_pdata->getMaxN(), exec_conf->n_cpu);
-    //Don't use GPU arrays here, *_partial's only used on CPU
-    m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
-    m_virial_partial = new Scalar[6*m_index_thread_partial.getNumElements()];
-    m_torque_partial = new Scalar4[m_index_thread_partial.getNumElements()];
-    }
-
 /*! \post m_force, m_virial and m_torque are resized to the current maximum particle number
  */
 void ForceCompute::reallocate()
@@ -133,38 +116,12 @@ void ForceCompute::reallocate()
 
     // the pitch of the virial array may have changed
     m_virial_pitch = m_virial.getPitch();
-
-    reallocateThreadPartial();
-    }
-
-/*! \post m_fdata and virial _partial are both reallocated, and m_index_thread_partial is intiialized for indexing them
-*/
-void ForceCompute::reallocateThreadPartial()
-    {
-    assert(exec_conf->n_cpu >= 1);
-
-    // never allocated ? do nothing.
-    if (! m_fdata_partial || ! m_virial_partial || ! m_torque_partial) return;
-
-    delete[] m_fdata_partial;
-    delete[] m_virial_partial;
-    delete[] m_torque_partial;
-    allocateThreadPartial();
     }
 
 /*! Frees allocated memory
 */
 ForceCompute::~ForceCompute()
     {
-    if (m_fdata_partial)
-        {
-        delete[] m_fdata_partial;
-        m_fdata_partial = NULL;
-        delete[] m_virial_partial;
-        m_virial_partial = NULL;
-        delete[] m_torque_partial;
-        m_torque_partial=NULL;
-        }
     m_sort_connection.disconnect();
     m_max_particle_num_change_connection.disconnect();
     }
