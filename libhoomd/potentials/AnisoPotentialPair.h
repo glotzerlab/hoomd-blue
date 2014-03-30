@@ -58,10 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
-
 /*! \file AnisoPotentialPair.h
     \brief Defines the template class for anisotropic pair potentials
     \details The heart of the code that computes anisotropic pair potentials is in this file.
@@ -75,7 +71,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
     AnisoPotentialPair computes standard pair potentials (and forces) between all particle pairs in the simulation. It
-    employs the use of a neighbor list to limit the number of computations done to only those particles with the 
+    employs the use of a neighbor list to limit the number of computations done to only those particles with the
     cuttoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
     by an aniso_evaluator class (e.g. EvaluatorPairLJ) which is passed in as a template parameter so the compuations
     are performed as efficiently as possible.
@@ -173,18 +169,15 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(boost::shared_ptr<Syst
     {
     assert(m_pdata);
     assert(m_nlist);
-    
+
     GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
     m_rcutsq.swap(rcutsq);
     GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
     m_params.swap(params);
-    
+
     // initialize name
     m_prof_name = std::string("Aniso_Pair ") + aniso_evaluator::getName();
     m_log_name = std::string("aniso_pair_") + aniso_evaluator::getName() + std::string("_energy") + log_suffix;
-
-    // initialize memory for per thread reduction
-    allocateThreadPartial();
     }
 
 /*! \param typ1 First type index in the pair
@@ -295,32 +288,24 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-    
-#pragma omp parallel
-    {
-    #ifdef ENABLE_OPENMP
-    int tid = omp_get_thread_num();
-    #else
-    int tid = 0;
-    #endif
 
+    {
     // need to start from a zero force, energy and virial
-    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*m_pdata->getN());
-    memset(&m_torque_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*m_pdata->getN());
-    memset(&m_virial_partial[6*m_index_thread_partial(0,tid)] , 0, 6*sizeof(Scalar)*m_pdata->getN());
-    
+    memset(&h_force.data[0] , 0, sizeof(Scalar4)*m_pdata->getN());
+    memset(&h_torque.data[0] , 0, sizeof(Scalar4)*m_pdata->getN());
+    memset(&h_virial.data[0] , 0, 6*sizeof(Scalar)*m_pdata->getN());
+
     // for each particle
-#pragma omp for schedule(guided)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         Scalar4 quat_i = h_orientation.data[i];
-            
+
         // sanity check
         assert(typei < m_pdata->getNTypes());
-        
+
         // access diameter and charge (if needed)
         Scalar di = Scalar(0.0);
         Scalar qi = Scalar(0.0);
@@ -328,14 +313,14 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
             di = h_diameter.data[i];
         if (aniso_evaluator::needsCharge())
             qi = h_charge.data[i];
-        
+
         // initialize current particle force, torque, potential energy, and virial to 0
         Scalar fxi = Scalar(0.0);
         Scalar fyi = Scalar(0.0);
         Scalar fzi = Scalar(0.0);
         Scalar txi = Scalar(0.0);
         Scalar tyi = Scalar(0.0);
-        Scalar tzi = Scalar(0.0); 
+        Scalar tzi = Scalar(0.0);
         Scalar pei = Scalar(0.0);
         Scalar virialxxi = 0.0;
         Scalar virialxyi = 0.0;
@@ -343,7 +328,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
         Scalar virialyyi = 0.0;
         Scalar virialyzi = 0.0;
         Scalar virialzzi = 0.0;
-        
+
         // loop over all of the neighbors of this particle
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
         for (unsigned int k = 0; k < size; k++)
@@ -351,7 +336,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_nlist.data[nli(i, k)];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
-            
+
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
             Scalar3 dx = pi - pj;
@@ -360,7 +345,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
             // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < m_pdata->getNTypes());
-            
+
             // access diameter and charge (if needed)
             Scalar dj = Scalar(0.0);
             Scalar qj = Scalar(0.0);
@@ -371,18 +356,18 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
 
             // apply periodic boundary conditions
             dx = box.minImage(dx);
-                
+
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
             param_type param = h_params.data[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
-            
+
             // design specifies that energies are shifted if
             // shift mode is set to shift
             bool energy_shift = false;
             if (m_shift_mode == shift)
                 energy_shift = true;
-            
+
             // compute the force and potential energy
             Scalar3 force = make_scalar3(0.0,0.0,0.0);
             Scalar3 torque_i = make_scalar3(0.0,0.0,0.0);
@@ -396,13 +381,13 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
                 eval.setDiameter(di, dj);
             if (aniso_evaluator::needsCharge())
                 eval.setCharge(qi, qj);
-            
+
             bool evaluated = eval.evaluate(force, pair_eng, energy_shift,torque_i,torque_j);
-            
+
             if (evaluated)
                 {
                 Scalar3 force2 = Scalar(0.5)*force;
-                    
+
                 // add the force, potential energy and virial to the particle i
                 // (FLOPS: 8)
                 fxi += force.x;
@@ -423,76 +408,39 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
                 if (third_law)
                     {
-                    unsigned int mem_idx = m_index_thread_partial(j,tid);
-                    m_fdata_partial[mem_idx].x -= force.x;
-                    m_fdata_partial[mem_idx].y -= force.y;
-                    m_fdata_partial[mem_idx].z -= force.z;
-                    m_torque_partial[mem_idx].x += torque_j.x;
-                    m_torque_partial[mem_idx].y += torque_j.y;
-                    m_torque_partial[mem_idx].z += torque_j.z;
-                    m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
-                    m_virial_partial[0+6*mem_idx] += dx.x*force2.x;
-                    m_virial_partial[1+6*mem_idx] += dx.x*force2.y;
-                    m_virial_partial[2+6*mem_idx] += dx.x*force2.z;
-                    m_virial_partial[3+6*mem_idx] += dx.y*force2.y;
-                    m_virial_partial[4+6*mem_idx] += dx.y*force2.z;
-                    m_virial_partial[5+6*mem_idx] += dx.z*force2.z;
+                    h_force.data[j].x -= force.x;
+                    h_force.data[j].y -= force.y;
+                    h_force.data[j].z -= force.z;
+                    h_torque.data[j].x += torque_j.x;
+                    h_torque.data[j].y += torque_j.y;
+                    h_torque.data[j].z += torque_j.z;
+                    h_force.data[j].w += pair_eng * Scalar(0.5);
+                    h_virial.data[0+6*j] += dx.x*force2.x;
+                    h_virial.data[1+6*j] += dx.x*force2.y;
+                    h_virial.data[2+6*j] += dx.x*force2.z;
+                    h_virial.data[3+6*j] += dx.y*force2.y;
+                    h_virial.data[4+6*j] += dx.y*force2.z;
+                    h_virial.data[5+6*j] += dx.z*force2.z;
                     }
                 }
             }
-            
-        // finally, increment the force, potential energy and virial for particle i
-        unsigned int mem_idx = m_index_thread_partial(i,tid);
-        m_fdata_partial[mem_idx].x += fxi;
-        m_fdata_partial[mem_idx].y += fyi;
-        m_fdata_partial[mem_idx].z += fzi;
-        m_torque_partial[mem_idx].x += txi;
-        m_torque_partial[mem_idx].y += tyi;
-        m_torque_partial[mem_idx].z += tzi;
-        m_fdata_partial[mem_idx].w += pei;
-        m_virial_partial[0+6*mem_idx] += virialxxi;
-        m_virial_partial[1+6*mem_idx] += virialxyi;
-        m_virial_partial[2+6*mem_idx] += virialxzi;
-        m_virial_partial[3+6*mem_idx] += virialyyi;
-        m_virial_partial[4+6*mem_idx] += virialyzi;
-        m_virial_partial[5+6*mem_idx] += virialzzi;
-        }
-#pragma omp barrier
-    
-    // now that the partial sums are complete, sum up the results in parallel
-#pragma omp for
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
-        {
-        // assign result from thread 0
-        h_force.data[i].x = m_fdata_partial[i].x;
-        h_force.data[i].y = m_fdata_partial[i].y;
-        h_force.data[i].z = m_fdata_partial[i].z;
-        h_force.data[i].w = m_fdata_partial[i].w;
-        h_torque.data[i].x = m_torque_partial[i].x;
-        h_torque.data[i].y = m_torque_partial[i].y;
-        h_torque.data[i].z = m_torque_partial[i].z;
-        for (int j = 0; j < 6; j++)
-            h_virial.data[j*m_virial_pitch+i] = m_virial_partial[j+6*i];
 
-        #ifdef ENABLE_OPENMP
-        // add results from other threads
-        int nthreads = omp_get_num_threads();
-        for (int thread = 1; thread < nthreads; thread++)
-            {
-            unsigned int mem_idx = m_index_thread_partial(i,thread);
-            h_force.data[i].x += m_fdata_partial[mem_idx].x;
-            h_force.data[i].y += m_fdata_partial[mem_idx].y;
-            h_force.data[i].z += m_fdata_partial[mem_idx].z;
-            h_force.data[i].w += m_fdata_partial[mem_idx].w;
-            h_torque.data[i].x += m_torque_partial[mem_idx].x;
-            h_torque.data[i].y += m_torque_partial[mem_idx].y;
-            h_torque.data[i].z += m_torque_partial[mem_idx].z;
-            for (int j = 0; j < 6; j++)
-                h_virial.data[j*m_virial_pitch+i] = m_virial_partial[j+6*i];
-            }
-        #endif
+        // finally, increment the force, potential energy and virial for particle i
+        h_force.data[i].x += fxi;
+        h_force.data[i].y += fyi;
+        h_force.data[i].z += fzi;
+        h_torque.data[i].x += txi;
+        h_torque.data[i].y += tyi;
+        h_torque.data[i].z += tzi;
+        h_force.data[i].w += pei;
+        h_virial.data[0+6*i] += virialxxi;
+        h_virial.data[1+6*i] += virialxyi;
+        h_virial.data[2+6*i] += virialxzi;
+        h_virial.data[3+6*i] += virialyyi;
+        h_virial.data[4+6*i] += virialyzi;
+        h_virial.data[5+6*i] += virialzzi;
         }
-    } // end omp parallel
+    }
 
     if (m_prof) m_prof->pop();
     }
@@ -526,14 +474,14 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
 */
 template < class T > void export_AnisoPotentialPair(const std::string& name)
     {
-    boost::python::scope in_aniso_pair = 
+    boost::python::scope in_aniso_pair =
         boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
                   (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setRcut", &T::setRcut)
                   .def("setShiftMode", &T::setShiftMode)
                   ;
-                  
+
     boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")
         .value("no_shift", T::no_shift)
         .value("shift", T::shift)
