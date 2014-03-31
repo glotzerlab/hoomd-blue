@@ -2502,7 +2502,8 @@ void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned 
                     diameter[k] = diameter[i];
                     body[k] = body[i];
                     orientation[k] = orientation[i];
-                    inertia_tensor[k] = inertia_tensor[i];
+                    angmom[k] = angmom[i];
+                    inertia[k] = inertia[i];
                     j++;
                     }
         }
