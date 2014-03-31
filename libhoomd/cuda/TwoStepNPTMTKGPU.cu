@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: jglaser
 
 #include "TwoStepNPTMTKGPU.cuh"
+#include "VectorMath.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -564,6 +565,46 @@ cudaError_t gpu_npt_mtk_thermostat(Scalar4 *d_vel,
                                                      d_group_members,
                                                      group_size,
                                                      exp_v_fac_thermo);
+
+    return cudaSuccess;
+    }
+
+__global__ void gpu_npt_rescale_angular_momentum_kernel(
+                             Scalar4 *d_angmom,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar exp_fac)
+    {
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+
+        quat<Scalar> p(d_angmom[idx]);
+        p = p*exp_fac;
+        d_angmom[idx] = quat_to_scalar4(p);
+        }
+    }
+
+/*! \param d_angmom array of particle conjugate quaternions
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param exp_fac Scaling factor
+*/
+cudaError_t gpu_npt_rescale_angular_momentum(Scalar4 *d_angmom,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar exp_fac)
+    {
+    // setup the grid to run the kernel
+    int block_size = 256;
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+    // run the kernel
+    gpu_npt_rescale_angular_momentum_kernel<<< grid, threads >>>(d_angmom, d_group_members, group_size, exp_fac);
 
     return cudaSuccess;
     }

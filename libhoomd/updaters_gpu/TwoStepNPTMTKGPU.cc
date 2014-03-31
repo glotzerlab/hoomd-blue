@@ -60,6 +60,9 @@ using namespace boost::python;
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNPTMTKGPU.cuh"
 
+#include "TwoStepNVEGPU.cuh"
+#include "TwoStepNVTGPU.cuh"
+
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #include "HOOMDMPI.h"
@@ -162,6 +165,8 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     advanceBarostat(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz, P, timestep);
 
     Scalar exp_thermo_fac(1.0);
+    Scalar exp_thermo_fac_rot(1.0);
+
     if (!m_nph)
         {
         // advance thermostat (xi, eta) half a time step
@@ -173,6 +178,24 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 
         // precompute loop invariant quantities
         exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
+
+        if (m_aniso)
+            {
+            // thermostat rotational degrees of freedom
+            Scalar& xi_rot = v.variable[8];
+            Scalar& eta_rot = v.variable[9];
+
+            Scalar rotational_ke = m_thermo_group->getRotationalKineticEnergy();
+            unsigned int ndof = m_thermo_group->getRotationalNDOF();
+            Scalar xi_rot_prime = xi_rot + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(Scalar(2.0)*rotational_ke/ndof/m_T->getValue(timestep) - Scalar(1.0));
+            xi_rot = xi_rot_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(Scalar(2.0)*rotational_ke/ndof/m_T->getValue(timestep)*
+                  exp(-xi_rot_prime*m_deltaT) - Scalar(1.0));
+
+            eta_rot += Scalar(1.0/2.0)*xi_rot_prime*m_deltaT;
+
+            // precompute loop invariant quantities
+            exp_thermo_fac_rot = exp(-Scalar(1.0/2.0)*xi_rot_prime*m_deltaT);
+            }
         }
 
     // update the propagator matrix
@@ -232,6 +255,15 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
         MPI_Bcast(&a,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&b,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&c,sizeof(Scalar3), MPI_BYTE, 0, m_exec_conf->getMPICommunicator());
+
+        if (m_aniso)
+            {
+            Scalar& xi_rot = v.variable[8];
+            Scalar& eta_rot = v.variable[9];
+
+            MPI_Bcast(&eta_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+            MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+            }
         }
 #endif
 
@@ -268,6 +300,29 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
                          d_image.data,
                          box);
         }
+
+    if (m_aniso)
+        {
+        // first part of angular update
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+
+        gpu_nvt_angular_step_one(d_orientation.data,
+                                 d_angmom.data,
+                                 d_inertia.data,
+                                 d_net_torque.data,
+                                 d_index_array.data,
+                                 group_size,
+                                 m_deltaT,
+                                 exp_thermo_fac_rot);
+
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
 
     setIntegratorVariables(v);
 
@@ -368,6 +423,27 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 
     } // end GPUArray scope
 
+    if (m_aniso)
+        {
+        // apply angular (NO_SQUISH) equations of motion
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+
+        gpu_nve_angular_step_two(d_orientation.data,
+                                 d_angmom.data,
+                                 d_inertia.data,
+                                 d_net_torque.data,
+                                 d_index_array.data,
+                                 group_size,
+                                 m_deltaT);
+
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
     if (m_prof)
         m_prof->pop();
 
@@ -376,6 +452,35 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 
     if (m_prof)
         m_prof->push("NPT step 2");
+
+    if (m_aniso && !m_nph)
+        {
+        // advance thermostat for angular degrees of freedom
+        Scalar& xi_rot = v.variable[8];
+        Scalar& eta_rot = v.variable[9];
+
+        Scalar rotational_ke = m_thermo_group->getRotationalKineticEnergy();
+        unsigned int ndof = m_thermo_group->getRotationalNDOF();
+        Scalar xi_rot_prime = xi_rot + Scalar(1.0/4.0)*m_deltaT/m_tau/m_tau*(Scalar(2.0)*rotational_ke/ndof/m_T->getValue(timestep) - Scalar(1.0));
+        xi_rot = xi_rot_prime+ Scalar(1.0/4.0)*m_deltaT/(m_tau*m_tau)*(Scalar(2.0)*rotational_ke/ndof/m_T->getValue(timestep)*
+              exp(-xi_rot_prime*m_deltaT) - Scalar(1.0));
+
+        eta_rot += Scalar(1.0/2.0)*xi_rot_prime*m_deltaT;
+
+        Scalar exp_thermo_fac_rot = exp(-Scalar(1.0/2.0)*xi_rot_prime*m_deltaT);
+
+        // call rescaling kernel
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+        gpu_npt_rescale_angular_momentum(
+             d_angmom.data,
+             d_index_array.data,
+             group_size,
+             exp_thermo_fac_rot);
+
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
 
     // compute temperature for the next half time step
     m_curr_group_T = m_thermo_group->getTemperature();
@@ -405,6 +510,15 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         MPI_Bcast(&nuyy, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&nuyz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&nuzz, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+
+        if (m_aniso)
+            {
+            Scalar& xi_rot = v.variable[8];
+            Scalar& eta_rot = v.variable[9];
+
+            MPI_Bcast(&eta_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+            MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+            }
         }
 #endif
 

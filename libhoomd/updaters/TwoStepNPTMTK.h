@@ -173,6 +173,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             {
             PDataFlags flags;
             flags[pdata_flag::pressure_tensor] = 1;
+            if (m_aniso) flags[pdata_flag::rotational_ke] = 1;
             return flags;
             }
 
