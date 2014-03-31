@@ -359,6 +359,7 @@ class nlist:
 
         self.cpp_nlist.setEvery(1, True);
         self.is_exclusion_overridden = False;
+        self.exclusions = None
 
         globals.system.addCompute(self.cpp_nlist, "auto_nlist");
 
@@ -394,6 +395,11 @@ class nlist:
         if not self.is_exclusion_overridden:
             util._disable_status_lines = True;
             self.reset_exclusions(exclusions=['body', 'bond']);
+            util._disable_status_lines = False;
+        if self.cpp_nlist.wantExclusions() and self.exclusions is not None:
+            util._disable_status_lines = True;
+            # update exclusions using stored values
+            self.reset_exclusions(exclusions=self.exclusions)
             util._disable_status_lines = False;
 
     ## Change neighbor list parameters
@@ -508,6 +514,9 @@ class nlist:
     def reset_exclusions(self, exclusions = None):
         util.print_status_line();
         self.is_exclusion_overridden = True;
+
+        # store exclusions for later use
+        self.exclusions = list(exclusions)
 
         if self.cpp_nlist is None:
             globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');

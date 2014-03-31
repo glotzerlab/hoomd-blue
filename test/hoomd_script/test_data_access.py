@@ -23,6 +23,22 @@ class particle_data_access_tests (unittest.TestCase):
         self.assertAlmostEqual(1.0, b.xy, 5)
         self.assertAlmostEqual(0.5, b.xz, 5)
         self.assertAlmostEqual(2.0, b.yz, 5)
+        l = [b.get_lattice_vector(0), b.get_lattice_vector(1), b.get_lattice_vector(2)]
+        self.assertAlmostEqual(l[0][0], 15, 5)
+        self.assertAlmostEqual(l[0][1], 0, 5)
+        self.assertAlmostEqual(l[0][2], 0, 5)
+        self.assertAlmostEqual(l[1][0], 20*1.0, 5)
+        self.assertAlmostEqual(l[1][1], 20, 5)
+        self.assertAlmostEqual(l[1][2], 0)
+        self.assertAlmostEqual(l[1][2], 0)
+        self.assertAlmostEqual(l[2][0], 30*0.5, 5)
+        self.assertAlmostEqual(l[2][1], 30*2.0)
+        self.assertAlmostEqual(l[2][2], 30)
+        v = (1+l[0][0],2+l[0][1],3+l[0][2])
+        v = b.wrap(v)
+        self.assertAlmostEqual(v[0],1)
+        self.assertAlmostEqual(v[1],2)
+        self.assertAlmostEqual(v[2],3)
 
     # test particles
     def test_particles(self):

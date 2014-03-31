@@ -1088,7 +1088,6 @@ void Communicator::migrateParticles()
 
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
-    if (m_last_flags[comm_flag::tag])
         {
         // wipe out reverse-lookup tag -> idx for old ghost atoms
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -1466,7 +1465,6 @@ void Communicator::exchangeGhosts()
                 2,
                 m_mpi_comm,
                 &reqs[nreq++]);
-
 
             if (flags[comm_flag::position])
                 {

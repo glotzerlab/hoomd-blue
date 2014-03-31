@@ -365,6 +365,12 @@ CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timeste
 
     flags[comm_flag::tag] = 1;
 
+    if (evaluator::needsCharge())
+        flags[comm_flag::charge] = 1;
+
+    if (evaluator::needsDiameter())
+        flags[comm_flag::diameter] = 1;
+
     flags |= ForceCompute::getRequestedCommFlags(timestep);
 
     return flags;

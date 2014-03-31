@@ -259,11 +259,15 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
 # If \a time_step is specified, its value will be used as the initial time
 # step of the simulation instead of the one read from the XML file.
 #
+# If \a wrap_coordinates is set to True, input coordinates will be wrapped
+# into the box specified inside the XML file. If it is set to False, out-of-box
+# coordinates will result in an error.
+#
 # The result of init.read_xml can be saved in a variable and later used to read and/or change particle properties
 # later in the script. See hoomd_script.data for more information.
 #
 # \sa dump.xml
-def read_xml(filename, time_step = None):
+def read_xml(filename, time_step = None, wrap_coordinates = False):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
@@ -275,7 +279,7 @@ def read_xml(filename, time_step = None):
         raise RuntimeError("Error creating random polymers");
 
     # read in the data
-    initializer = hoomd.HOOMDInitializer(my_exec_conf,filename);
+    initializer = hoomd.HOOMDInitializer(my_exec_conf,filename,wrap_coordinates);
     snapshot = initializer.getSnapshot()
 
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);

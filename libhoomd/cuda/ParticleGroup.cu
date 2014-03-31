@@ -109,6 +109,7 @@ cudaError_t gpu_rebuild_index_list(unsigned int N,
 
     unsigned int block_size = 512;
     unsigned int n_blocks = N/block_size + 1;
+
     gpu_rebuild_index_list_kernel<<<n_blocks,block_size>>>(N,
                                                          d_tag,
                                                          d_is_member_tag,

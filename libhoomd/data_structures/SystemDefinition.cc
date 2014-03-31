@@ -252,7 +252,8 @@ boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot(bool partic
         {
         for (unsigned int i = 0; i < m_wall_data->getNumWalls(); ++i)
             snap->wall_data.push_back(m_wall_data->getWall(i));
-        snap->has_wall_data = true;
+        if (snap->wall_data.size())
+            snap->has_wall_data = true;
         }
     else
         snap->has_wall_data = false;
@@ -284,7 +285,6 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr<SnapshotSystemDa
     if (snapshot->has_particle_data)
         {
         m_particle_data->setGlobalBox(snapshot->global_box);
-
         m_particle_data->initializeFromSnapshot(snapshot->particle_data);
         }
 
