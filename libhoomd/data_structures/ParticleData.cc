@@ -209,8 +209,8 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     // it is an error for particles to be initialized outside of their box
     if (!inBox())
         {
-        m_exec_conf->msg->error() << "Not all particles were found inside the given box" << endl;
-        throw runtime_error("Error initializing ParticleData");
+        m_exec_conf->msg->warning() << "Not all particles were found inside the given box" << endl;
+        //throw runtime_error("Error initializing ParticleData");
         }
 
     // reset external virial
@@ -1771,6 +1771,8 @@ void ParticleData::setOrientation(unsigned int tag, const Scalar4& orientation)
 
 void export_BoxDim()
     {
+    void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
+
     class_<BoxDim>("BoxDim")
     .def(init<Scalar>())
     .def(init<Scalar, Scalar, Scalar>())
@@ -1788,6 +1790,8 @@ void export_BoxDim()
     .def("getTiltFactorXY", &BoxDim::getTiltFactorXY)
     .def("getTiltFactorXZ", &BoxDim::getTiltFactorXZ)
     .def("getTiltFactorYZ", &BoxDim::getTiltFactorYZ)
+    .def("getLatticeVector", &BoxDim::getLatticeVector)
+    .def("wrap", wrap_overload)
     .def("makeFraction", &BoxDim::makeFraction)
     .def("minImage", &BoxDim::minImage)
     .def("getVolume", &BoxDim::getVolume)
