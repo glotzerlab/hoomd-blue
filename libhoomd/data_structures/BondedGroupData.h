@@ -208,6 +208,12 @@ class BondedGroupData : boost::noncopyable
                 return true;
                 }
 
+            //! Replicate this snapshot
+            /*! \param n Number of times to replicate each particle and its bonded groups
+             *  \param old_n_particles Number of particles in system to be replicated
+             */
+            void replicate(unsigned int n, unsigned int old_n_particles);
+
             std::vector<unsigned int> type_id;             //!< Stores type for each group
             std::vector<members_t> groups;     //!< Stores the data for each group
             std::vector<std::string> type_mapping;         //!< Names of group types

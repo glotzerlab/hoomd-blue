@@ -141,7 +141,7 @@ def _parse_command_line():
         parser.error("--mode=cpu cannot be specified along with --gpu")
 
     # set the mode to gpu if the gpu # was set
-    if cmd_options.gpu is not None and cmd_options.mode is None:
+    if cmd_options.gpu is not None and cmd_options.mode == 'auto':
         cmd_options.mode = "gpu"
 
     # convert gpu to an integer
