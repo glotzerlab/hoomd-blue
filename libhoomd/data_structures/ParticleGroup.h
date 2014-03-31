@@ -214,6 +214,9 @@ class ParticleGroup
         //! Destructor
         ~ParticleGroup();
 
+        //! Updates the members tags of a particle group according to a selection
+        void updateMemberTags(boost::shared_ptr<ParticleSelector> selector);
+
         // @}
         //! \name Accessor methods
         // @{
@@ -326,6 +329,7 @@ class ParticleGroup
     private:
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         GPUArray<unsigned char> m_is_member;            //!< One byte per particle, == 1 if index is a local member of the group
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal

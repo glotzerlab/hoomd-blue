@@ -509,7 +509,7 @@ class system_data:
     # \endcode
     #
     # \MPI_SUPPORTED
-    def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None ):
+    def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None):
         util.print_status_line();
 
         if all is True:
@@ -555,6 +555,58 @@ class system_data:
         cpp_snapshot = self.sysdef.takeSnapshot(particles,bonds,angles,dihedrals,impropers,rigid_bodies,walls,integrators)
 
         return cpp_snapshot
+
+    ## Replicates the system along the three spatial dimensions
+    #
+    # \param nx Number of times to replicate the system along the x-direction
+    # \param ny Number of times to replicate the system along the y-direction
+    # \param nz Number of times to replicate the system along the z-direction
+    #
+    # This method explictly replicates particles along all three spatial directions, as
+    # opposed to replication implied by periodic boundary conditions.
+    # The box is resized and the number of particles is updated so that the new box
+    # holds the specified number of replicas of the old box along all directions.
+    # Particle coordinates are updated accordingly to fit into the new box. All velocities and
+    # other particle properties are replicated as well. Also bonded groups between particles
+    # are replicated.
+    #
+    # \note Replication of rigid bodies is currently not supported.
+    #
+    # \note It is a limitation that in MPI simulations the dimensions of the processor grid
+    # are not updated upon replication. For example, if an initially cubic box is replicated along only one
+    # spatial direction, this could lead to decreased performance if the processor grid was
+    # optimal for the original box dimensions, but not for the new ones.
+    #
+    # \MPI_SUPPORTED
+    def replicate(self, nx=1, ny=1, nz=1):
+        util.print_status_line()
+
+        nx = int(nx)
+        ny = int(ny)
+        nz = int(nz)
+
+        if nx == ny == nz == 1:
+            globals.msg.warning("All replication factors == 1. Not replicating system.\n")
+            return
+
+        if nx <= 0 or ny <= 0 or nz <= 0:
+            globals.msg.error("Cannot replicate by zero or by a negative value along any direction.")
+            raise RuntimeError("nx, ny, nz need to be positive integers")
+
+        # Take a snapshot
+        util._disable_status_lines = True
+        cpp_snapshot = self.take_snapshot(all=True)
+        util._disable_status_lines = False
+
+        from hoomd_script import comm
+        if comm.get_rank() == 0:
+            # replicate
+            cpp_snapshot.replicate(nx, ny, nz)
+
+        # restore from snapshot
+        util._disable_status_lines = True
+        self.restore_snapshot(cpp_snapshot)
+        util._disable_status_lines = False
 
     ## Re-initializes the system from a snapshot
     #

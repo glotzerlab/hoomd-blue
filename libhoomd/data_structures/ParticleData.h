@@ -225,6 +225,16 @@ struct SnapshotParticleData {
      */
     bool validate() const;
 
+    //! Replicate this snapshot
+    /*! \param nx Number of times to replicate the system along the x direction
+     *  \param ny Number of times to replicate the system along the y direction
+     *  \param nz Number of times to replicate the system along the z direction
+     *  \param old_box Old box dimensions
+     *  \param new_box Dimensions of replicated box
+     */
+    void replicate(unsigned int nx, unsigned int ny, unsigned int nz,
+        const BoxDim& old_box, const BoxDim& new_box);
+
     std::vector<Scalar3> pos;       //!< positions
     std::vector<Scalar3> vel;       //!< velocities
     std::vector<Scalar3> accel;     //!< accelerations
@@ -909,6 +919,7 @@ class ParticleData : boost::noncopyable
         boost::signals2::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
         boost::signals2::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
         boost::signals2::signal<void ()> m_ghost_particle_num_signal; //!< Signal that is triggered when ghost particles are added to or deleted
+        boost::signals2::signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
 
         #ifdef ENABLE_MPI
         boost::signals2::signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains

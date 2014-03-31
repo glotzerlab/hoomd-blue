@@ -258,14 +258,14 @@ void ParticleData::setGlobalBox(const BoxDim& box)
     assert(box.getPeriodic().z);
     m_global_box = box;
 
-#ifdef ENABLE_MPI
+    #ifdef ENABLE_MPI
     if (m_decomposition)
         {
         bcast(m_global_box, 0, m_exec_conf->getMPICommunicator());
         m_box = m_decomposition->calculateLocalBox(m_global_box);
         }
     else
-#endif
+    #endif
         {
         // local box = global box
         m_box = box;
@@ -797,6 +797,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                     flags.z = 1;
                     }
 
+                unsigned int tag = it - snapshot.pos.begin();
                 int3 img = snapshot.image[tag];
 
                 // only wrap if the particles is on one of the boundaries
@@ -805,7 +806,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 global_box.wrap(pos, img, flags);
 
                 unsigned int rank = h_cart_ranks.data[di(i,j,k)];
-                unsigned int tag = it - snapshot.pos.begin();
 
                 if (rank >= n_ranks)
                     {
@@ -982,6 +982,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         m_type_mapping = snapshot.type_mapping;
         }
 
+    // notify listeners about resorting of local particles
     notifyParticleSort();
 
     // zero the origin
@@ -1793,6 +1794,7 @@ void export_BoxDim()
     .def("getLatticeVector", &BoxDim::getLatticeVector)
     .def("wrap", wrap_overload)
     .def("makeFraction", &BoxDim::makeFraction)
+    .def("makeCoordinates", &BoxDim::makeFraction)
     .def("minImage", &BoxDim::minImage)
     .def("getVolume", &BoxDim::getVolume)
     ;
@@ -2405,6 +2407,56 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
+void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned int nz,
+        const BoxDim& old_box, const BoxDim& new_box)
+    {
+    unsigned int old_size = size;
+
+    // resize snapshot
+    resize(old_size*nx*ny*nz);
+
+    for (unsigned int i = 0; i < old_size; ++i)
+        {
+        // unwrap position of particle i in old box using image flags
+        Scalar3 p = pos[i];
+        int3 img = image[i];
+
+        p = old_box.shift(p, img);
+        Scalar3 f = old_box.makeFraction(p);
+
+        unsigned int j = 0;
+        for (unsigned int l = 0; l < nx; l++)
+            for (unsigned int m = 0; m < ny; m++)
+                for (unsigned int n = 0; n < nz; n++)
+                    {
+                    Scalar3 f_new;
+                    // replicate particle
+                    f_new.x = f.x/(Scalar)nx + (Scalar)l/(Scalar)nx;
+                    f_new.y = f.y/(Scalar)ny + (Scalar)m/(Scalar)ny;
+                    f_new.z = f.z/(Scalar)nz + (Scalar)n/(Scalar)nz;
+
+                    unsigned int k = j*old_size + i;
+
+                    // wrap into new box
+                    Scalar3 q = new_box.makeCoordinates(f_new);
+                    image[k] = make_int3(0,0,0);
+                    new_box.wrap(q,image[k]);
+
+                    pos[k] = q;
+                    vel[k] = vel[i];
+                    accel[k] = accel[i];
+                    type[k] = type[i];
+                    mass[k] = mass[i];
+                    charge[k] = charge[i];
+                    diameter[k] = diameter[i];
+                    body[k] = body[i];
+                    orientation[k] = orientation[i];
+                    inertia_tensor[k] = inertia_tensor[i];
+                    j++;
+                    }
+        }
+    }
+
 void export_SnapshotParticleData()
     {
     class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData> >("SnapshotParticleData", init<unsigned int>())
@@ -2419,6 +2471,7 @@ void export_SnapshotParticleData()
     .def_readwrite("body", &SnapshotParticleData::body)
     .def_readwrite("type_mapping", &SnapshotParticleData::type_mapping)
     .def_readwrite("size", &SnapshotParticleData::size)
+    .def("resize", &SnapshotParticleData::resize)
     ;
     }
 

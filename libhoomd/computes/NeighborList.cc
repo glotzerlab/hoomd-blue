@@ -87,7 +87,7 @@ using namespace std;
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
       m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
-      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
+      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false), m_want_exclusions(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -133,11 +133,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
-
-    // this violates O(N/P) memory scaling
-    // in the future this should be done using a hash table
     GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
+
     GPUArray<unsigned int> ex_list_tag(m_pdata->getNGlobal(), 1, exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
 
@@ -172,10 +170,23 @@ void NeighborList::reallocate()
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
 
+    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
 
-    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_n_neigh.resize(m_pdata->getMaxN());
+
+    if (m_n_ex_tag.getNumElements() != m_pdata->getNGlobal())
+        {
+        m_n_ex_tag.resize(m_pdata->getNGlobal());
+        m_ex_list_tag.resize(m_pdata->getNGlobal(), m_ex_list_tag.getHeight());
+        m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
+
+        // clear all exclusions
+        clearExclusions();
+
+        // they need to be added again
+        m_want_exclusions = true;
+        }
     }
 
 NeighborList::~NeighborList()
@@ -385,6 +396,9 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         h_ex_list_tag.data[m_ex_list_indexer_tag(tag2,pos2)] = tag1;
         h_n_ex_tag.data[tag2]++;
         }
+
+    // Exclusions have been added, so assume the exclusion list is now current
+    m_want_exclusions = false;
 
     forceUpdate();
     }
@@ -1375,6 +1389,7 @@ void export_NeighborList()
                      .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
                      .def("getNumUpdates", &NeighborList::getNumUpdates)
                      .def("getNumExclusions", &NeighborList::getNumExclusions)
+                     .def("wantExclusions", &NeighborList::wantExclusions)
 #ifdef ENABLE_MPI
                      .def("setCommunicator", &NeighborList::setCommunicator)
 #endif
