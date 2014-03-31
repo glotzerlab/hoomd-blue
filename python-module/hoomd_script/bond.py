@@ -385,7 +385,7 @@ class fene(_bond):
         util.print_status_line();
 
         # check that some bonds are defined
-        if globals.system_definition.getBondData().getN() == 0:
+        if globals.system_definition.getBondData().getNGlobal() == 0:
             globals.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
 
