@@ -300,6 +300,24 @@ unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
     return res - m_sysdef->getNDimensions() - getNDOFRemoved();
     }
 
+/*! \param group Group over which to count degrees of freedom.
+    IntegratorTwoStep totals up the rotational degrees of freedom that each integration method provide to the group.
+*/
+unsigned int IntegratorTwoStep::getRotationalNDOF(boost::shared_ptr<ParticleGroup> group)
+    {
+    int res = 0;
+
+    // loop through all methods
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // dd them all together
+        res += (*method)->getRotationalNDOF(group);
+        }
+
+    return res;
+    }
+
 /*! Compute accelerations if needed for the first step.
     If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
     are available for the logger. This solves ticket #393

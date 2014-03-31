@@ -119,6 +119,18 @@ class ComputeThermo : public Compute
             return m_ndof;
             }
 
+        //! Change the number of degrees of freedom
+        void setRotationalNDOF(unsigned int ndof)
+            {
+            m_ndof_rot = ndof;
+            }
+
+        //! Get the number of degrees of freedom
+        unsigned int getRotationalNDOF()
+            {
+            return m_ndof_rot;
+            }
+
         //! Returns the temperature last computed by compute()
         /*! \returns Instantaneous temperature of the system
         */
@@ -262,7 +274,8 @@ class ComputeThermo : public Compute
     protected:
         boost::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
-        unsigned int m_ndof;            //!< Stores the number of degrees of freedom in the system
+        unsigned int m_ndof;            //!< Stores the number of translational degrees of freedom in the system
+        unsigned int m_ndof_rot;        //!< Stores the number of rotational degrees of freedom in the system
         vector<string> m_logname_list;  //!< Cache all generated logged quantities names
 
         //! Does the actual computation

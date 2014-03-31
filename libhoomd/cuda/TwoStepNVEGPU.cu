@@ -208,11 +208,11 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4 *d_orientation,
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-    
+
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
         quat<Scalar> q(d_orientation[idx]);
         quat<Scalar> p(d_angmom[idx]);
@@ -300,7 +300,7 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4 *d_orientation,
             q=cphi3*q+sphi3*q3;
             }
 
-        // renormalize
+        // renormalize (improves stability)
         q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
 
         d_orientation[idx] = quat_to_scalar4(q);
@@ -331,7 +331,7 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
 
     // run the kernel
     gpu_nve_angular_step_one_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT);
-    
+
     return cudaSuccess;
     }
 
@@ -473,11 +473,11 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-    
+
         // read the particle's orientation, conjugate quaternion, moment of inertia and net torque
         quat<Scalar> q(d_orientation[idx]);
         quat<Scalar> p(d_angmom[idx]);

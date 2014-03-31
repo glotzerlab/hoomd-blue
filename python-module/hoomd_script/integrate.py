@@ -206,6 +206,10 @@ class _integrator:
             ndof = self.cpp_integrator.getNDOF(t.group.cpp_group);
             t.cpp_compute.setNDOF(ndof);
 
+            ndof_rot = self.cpp_integrator.getRotationalNDOF(t.group.cpp_group);
+            t.cpp_compute.setRotationalNDOF(ndof_rot);
+
+
 ## \internal
 # \brief Base class for integration methods
 #

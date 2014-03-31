@@ -242,7 +242,7 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 p=cphi2*p+sphi2*p2;
                 q=cphi2*q+sphi2*q2;
                 }
-            
+
             if (!x_zero)
                 {
                 p1 = quat<Scalar>(-p.v.x,vec3<Scalar>(p.s,p.v.z,-p.v.y));
@@ -279,7 +279,7 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
                 q=cphi3*q+sphi3*q3;
                 }
 
-            // renormalize
+            // renormalize (improves stability)
             q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
 
             h_orientation.data[j] = quat_to_scalar4(q);

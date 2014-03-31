@@ -141,7 +141,7 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(IntegratorVariables& v, std:
     return good;
     }
 
-/*! \param query_group Group over which to count degrees of freedom.
+/*! \param query_group Group over which to count (translational) degrees of freedom.
     A majority of the integration methods add D degrees of freedom per particle in \a query_group that is also in the
     group assigned to the method. Hence, the base class IntegrationMethodTwoStep will implement that counting.
     Derived classes can ovveride if needed.
@@ -152,6 +152,53 @@ unsigned int IntegrationMethodTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> 
     unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();
 
     return m_sysdef->getNDimensions() * intersect_size;
+    }
+
+unsigned int IntegrationMethodTwoStep::getRotationalNDOF(boost::shared_ptr<ParticleGroup> query_group)
+    {
+    // get the size of the intersecion between query_group and m_group
+    boost::shared_ptr<ParticleGroup> intersect = ParticleGroup::groupIntersection(query_group, m_group);
+
+    unsigned int local_group_size = intersect->getNumMembers();
+
+    unsigned int query_group_dof = 0;
+    unsigned int dimension = m_sysdef->getNDimensions();
+    unsigned int dof_one;
+    ArrayHandle<Scalar3> h_moment_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+    for (unsigned int group_idx = 0; group_idx < local_group_size; group_idx++)
+        {
+        unsigned int j = intersect->getMemberIndex(group_idx);
+        if (dimension == 3)
+            {
+            dof_one = 3;
+            if (fabs(h_moment_inertia.data[j].x) < EPSILON)
+                dof_one--;
+
+            if (fabs(h_moment_inertia.data[j].y) < EPSILON)
+                dof_one--;
+
+            if (fabs(h_moment_inertia.data[j].z) < EPSILON)
+                dof_one--;
+            }
+        else
+            {
+            dof_one = 1;
+            if (fabs(h_moment_inertia.data[j].z) < EPSILON)
+                dof_one--;
+            }
+
+        query_group_dof += dof_one;
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &query_group_dof, 1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    return query_group_dof;
     }
 
 /*! Checks that every particle in the group is valid. This method may be called by anyone wishing to make this

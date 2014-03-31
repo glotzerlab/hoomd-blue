@@ -144,6 +144,31 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
 
+    if (m_aniso)
+        {
+        Scalar xi_rot = v.variable[2];
+        Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
+
+        // first part of angular update
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+
+        gpu_nvt_angular_step_one(d_orientation.data,
+                                 d_angmom.data,
+                                 d_inertia.data,
+                                 d_net_torque.data,
+                                 d_index_array.data,
+                                 group_size,
+                                 m_deltaT,
+                                 exp_fac);
+
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+
     // if MPI is enabled and we have a communicator, register the thermo to compute during communication
     #ifdef ENABLE_MPI
     if (m_comm)
@@ -213,6 +238,30 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
         CHECK_CUDA_ERROR();
 
     m_tuner_two->end();
+
+    if (m_aniso)
+        {
+        // second part of angular update
+        Scalar xi_rot = v.variable[2];
+        Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
+
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+
+        gpu_nvt_angular_step_two(d_orientation.data,
+                                 d_angmom.data,
+                                 d_inertia.data,
+                                 d_net_torque.data,
+                                 d_index_array.data,
+                                 group_size,
+                                 m_deltaT,
+                                 exp_fac);
+
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
 
     // done profiling
     if (m_prof)

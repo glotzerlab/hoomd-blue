@@ -247,6 +247,11 @@ class IntegrationMethodTwoStep : boost::noncopyable
             m_aniso = aniso;
             }
 
+        //! Compute rotational degrees of freedom
+        /*! \param query_group The group of particles to compute rotational DOF for
+         */
+        virtual unsigned int getRotationalNDOF(boost::shared_ptr<ParticleGroup> query_group);
+
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
         const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on

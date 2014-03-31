@@ -267,7 +267,7 @@ void ComputeThermo::computeProperties()
 
     // total rotational kinetic energy
     double ke_rot_total = 0.0;
-  
+
     if (flags[pdata_flag::rotational_ke])
         {
         // Calculate rotational part of kinetic energy
@@ -435,6 +435,7 @@ void export_ComputeThermo()
                       boost::shared_ptr<ParticleGroup>,
                       const std::string& >())
     .def("setNDOF", &ComputeThermo::setNDOF)
+    .def("setRotationalNDOF", &ComputeThermo::setRotationalNDOF)
     .def("getTemperature", &ComputeThermo::getTemperature)
     .def("getPressure", &ComputeThermo::getPressure)
     .def("getKineticEnergy", &ComputeThermo::getKineticEnergy)

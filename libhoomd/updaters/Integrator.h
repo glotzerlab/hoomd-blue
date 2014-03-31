@@ -142,6 +142,15 @@ class Integrator : public Updater
             return 0;
             }
 
+        //! Get the number of rotational degrees of freedom granted to a given group
+        /*! \param group Group over which to count degrees of freedom.
+            Base class Integrator returns 0. Derived classes should override.
+        */
+        virtual unsigned int getRotationalNDOF(boost::shared_ptr<ParticleGroup> group)
+            {
+            return 0;
+            }
+
         //! Count the total number of degrees of freedom removed by all constraint forces
         unsigned int getNDOFRemoved();
 
