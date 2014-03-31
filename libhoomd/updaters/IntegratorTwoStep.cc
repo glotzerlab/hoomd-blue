@@ -151,13 +151,8 @@ void IntegratorTwoStep::update(unsigned int timestep)
     if (m_prof)
         m_prof->push("Integrate");
 
-    // set (an-)isotropic integration mode
-    bool aniso = getAnisotropic();
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->setAnisotropic(aniso);
-
     // perform the first step of the integration on all groups
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
 
@@ -324,6 +319,12 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(boost::shared_ptr<ParticleGrou
 */
 void IntegratorTwoStep::prepRun(unsigned int timestep)
     {
+    // set (an-)isotropic integration mode
+    bool aniso = getAnisotropic();
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        (*method)->setAnisotropic(aniso);
+
     // if we haven't been called before, then the net force and accelerations have not been set and we need to calculate them
     if (m_first_step)
         {
