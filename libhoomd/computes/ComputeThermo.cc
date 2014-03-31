@@ -306,6 +306,50 @@ void ComputeThermo::computeProperties()
         ke_rot_total /= Scalar(8.0);
         }
 
+    Scalar pressure_rot_xx = 0.0;
+    Scalar pressure_rot_xy = 0.0;
+    Scalar pressure_rot_xz = 0.0;
+    Scalar pressure_rot_yy = 0.0;
+    Scalar pressure_rot_yz = 0.0;
+    Scalar pressure_rot_zz = 0.0;
+
+    if (flags[pdata_flag::rotational_virial])
+        {
+        // Calculate rotational part of kinetic virial
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            Scalar3 I = h_inertia.data[j];
+            quat<Scalar> q(h_orientation.data[j]);
+            quat<Scalar> p(h_angmom.data[j]);
+
+            // only if the moment of inertia along one principal axis is non-zero, that axis carries angular momentum
+            quat<Scalar> q1(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
+            quat<Scalar> q2(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+            quat<Scalar> q3(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+            if (I.x >= EPSILON)
+                {
+                pressure_rot_xx += dot(p,q1)*dot(p,q1)/I.x;
+                pressure_rot_xy += dot(p,q1)*dot(p,q2)/I.x;
+                pressure_rot_xz += dot(p,q1)*dot(p,q3)/I.x;
+                }
+            if (I.y >= EPSILON)
+                {
+                pressure_rot_yy += dot(p,q2)*dot(p,q2)/I.y;
+                pressure_rot_yz += dot(p,q2)*dot(p,q3)/I.y;
+                }
+            if (I.z >= EPSILON)
+                {
+                pressure_rot_zz += dot(p,q3)*dot(p,q3)/I.z;
+                }
+            }
+        }
+
+
     // total potential energy
     double pe_total = 0.0;
     if (flags[pdata_flag::potential_energy])
@@ -385,12 +429,12 @@ void ComputeThermo::computeProperties()
     Scalar pressure =  (2.0 * ke_total / Scalar(D) + W) / volume;
 
     // pressure tensor = (kinetic part + virial) / V
-    Scalar pressure_xx = (pressure_kinetic_xx + virial_xx) / volume;
-    Scalar pressure_xy = (pressure_kinetic_xy + virial_xy) / volume;
-    Scalar pressure_xz = (pressure_kinetic_xz + virial_xz) / volume;
-    Scalar pressure_yy = (pressure_kinetic_yy + virial_yy) / volume;
-    Scalar pressure_yz = (pressure_kinetic_yz + virial_yz) / volume;
-    Scalar pressure_zz = (pressure_kinetic_zz + virial_zz) / volume;
+    Scalar pressure_xx = (pressure_kinetic_xx + virial_xx + pressure_rot_xx) / volume;
+    Scalar pressure_xy = (pressure_kinetic_xy + virial_xy + pressure_rot_xy) / volume;
+    Scalar pressure_xz = (pressure_kinetic_xz + virial_xz + pressure_rot_xz) / volume;
+    Scalar pressure_yy = (pressure_kinetic_yy + virial_yy + pressure_rot_yy) / volume;
+    Scalar pressure_yz = (pressure_kinetic_yz + virial_yz + pressure_rot_yz) / volume;
+    Scalar pressure_zz = (pressure_kinetic_zz + virial_zz + pressure_rot_zz) / volume;
 
     // fill out the GPUArray
     ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::overwrite);

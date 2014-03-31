@@ -150,6 +150,8 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     // update degrees of freedom
     m_ndof = m_thermo_group->getNDOF();
 
+    if (m_aniso) m_ndof += m_thermo_group->getRotationalNDOF();
+
     // compute the current thermodynamic properties
     m_thermo_group->compute(timestep);
 
@@ -730,7 +732,7 @@ Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int time
         Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
         Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
-        Scalar W = m_thermo_group->getNDOF()*m_T->getValue(timestep)*m_tauP*m_tauP;
+        Scalar W = m_ndof*m_T->getValue(timestep)*m_tauP*m_tauP;
         Scalar barostat_energy = Scalar(0.0);
         barostat_energy = W*(nuxx*nuxx+nuyy*nuyy+nuzz*nuzz+nuxy*nuxy+nuxz*nuxz+nuyz*nuyz) / Scalar(2.0);
 

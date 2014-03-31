@@ -250,12 +250,12 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     Scalar my_element; // element of scratch space read in
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-   
+
         // update positions to the next timestep and update velocities to the next half step
         quat<Scalar> q(d_orientation[idx]);
         quat<Scalar> p(d_angmom[idx]);
@@ -290,10 +290,10 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
         // non-participating thread: contribute 0 to the sum
         my_element = Scalar(0.0);
         }
-        
+
     compute_ke_rot_sdata[threadIdx.x] = my_element;
     __syncthreads();
-    
+
     // reduce the sum in parallel
     int offs = blockDim.x >> 1;
     while (offs > 0)
@@ -304,11 +304,100 @@ __global__ void gpu_compute_rotational_ke_partial_sums(Scalar *d_scratch,
         offs >>= 1;
         __syncthreads();
         }
-        
+
     // write out our partial sum
     if (threadIdx.x == 0)
         {
         d_scratch[blockIdx.x] = compute_ke_rot_sdata[0];
+        }
+    }
+
+//! Perform partial sums of the pressure tensor on the GPU
+/*! \param d_scratch Scratch space to hold partial sums. One element is written per block
+    \param d_angmom Angular momentum device array
+    \param d_orientaton Orientations device array
+    \param d_inertia Moments of inertia device array
+    \param d_group_members List of group members for which to sum properties
+    \param group_size Number of particles in the group
+
+    One thread is executed per group member. That thread reads in the six values (components of the presure tensor)
+    for its member into shared memory and then the block performs a reduction in parallel to produce a partial sum output for the block.
+    These partial sums are written to d_scratch[i*gridDim.x + blockIdx.x], where i=0..5 is the index of the component.
+    For this kernel to run, 6*sizeof(Scalar)*block_size of dynamic shared memory are needed.
+*/
+
+__global__ void gpu_compute_rotational_virial_partial_sums(Scalar *d_scratch,
+                                                Scalar4 *d_angmom,
+                                                Scalar4 *d_orientation,
+                                                Scalar3 *d_inertia,
+                                                unsigned int *d_group_members,
+                                                unsigned int group_size)
+    {
+    // determine which particle this thread works on
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    Scalar my_element[6]; // element of scratch space read in
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+
+        // compute contribution to rotational kinetic virial and store it in my_element
+        quat<Scalar> q(d_orientation[idx]);
+        quat<Scalar> p(d_angmom[idx]);
+        Scalar3 I = d_inertia[idx];
+        quat<Scalar> q1(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
+        quat<Scalar> q2(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
+        quat<Scalar> q3(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
+        if (I.x >= EPSILON)
+            {
+            my_element[0] = dot(p,q1)*dot(p,q1)/I.x;
+            my_element[1] = dot(p,q1)*dot(p,q2)/I.x;
+            my_element[2] = dot(p,q1)*dot(p,q3)/I.x;
+            }
+        if (I.y >= EPSILON)
+            {
+            my_element[3] = dot(p,q2)*dot(p,q2)/I.y;
+            my_element[4] = dot(p,q2)*dot(p,q3)/I.y;
+            }
+        if (I.z >= EPSILON)
+            {
+            my_element[5] = dot(p,q3)*dot(p,q3)/I.z;
+            }
+        }
+    else
+        {
+        // non-participating thread: contribute 0 to the sum
+        my_element[0] = 0;
+        my_element[1] = 0;
+        my_element[2] = 0;
+        my_element[3] = 0;
+        my_element[4] = 0;
+        my_element[5] = 0;
+        }
+
+    for (unsigned int i = 0; i < 6; i++)
+        compute_pressure_tensor_sdata[i*blockDim.x+threadIdx.x] = my_element[i];
+
+    __syncthreads();
+
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            {
+            for (unsigned int i = 0; i < 6; i++)
+                compute_pressure_tensor_sdata[i*blockDim.x+threadIdx.x] += compute_pressure_tensor_sdata[i*blockDim.x + threadIdx.x + offs];
+            }
+        offs >>= 1;
+        __syncthreads();
+        }
+
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        for (unsigned int i = 0; i < 6; i++)
+            d_scratch[gridDim.x * i + blockIdx.x] = compute_pressure_tensor_sdata[i*blockDim.x];
         }
     }
 
@@ -452,7 +541,8 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
                                               Scalar external_virial_yy,
                                               Scalar external_virial_yz,
                                               Scalar external_virial_zz,
-                                              bool twod)
+                                              bool twod,
+                                              bool rotational)
     {
     Scalar final_sum[6];
 
@@ -504,12 +594,24 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
         // and the virial part, the definition includes an inverse factor of the box volume
         Scalar V = box.getVolume(twod);
 
-        d_properties[thermo_index::pressure_xx] = final_sum[0]/V;
-        d_properties[thermo_index::pressure_xy] = final_sum[1]/V;
-        d_properties[thermo_index::pressure_xz] = final_sum[2]/V;
-        d_properties[thermo_index::pressure_yy] = final_sum[3]/V;
-        d_properties[thermo_index::pressure_yz] = final_sum[4]/V;
-        d_properties[thermo_index::pressure_zz] = final_sum[5]/V;
+        if (!rotational)
+            {
+            d_properties[thermo_index::pressure_xx] = final_sum[0]/V;
+            d_properties[thermo_index::pressure_xy] = final_sum[1]/V;
+            d_properties[thermo_index::pressure_xz] = final_sum[2]/V;
+            d_properties[thermo_index::pressure_yy] = final_sum[3]/V;
+            d_properties[thermo_index::pressure_yz] = final_sum[4]/V;
+            d_properties[thermo_index::pressure_zz] = final_sum[5]/V;
+            }
+        else
+            {
+            d_properties[thermo_index::virial_rot_xx] = final_sum[0]/V;
+            d_properties[thermo_index::virial_rot_xy] = final_sum[1]/V;
+            d_properties[thermo_index::virial_rot_xz] = final_sum[2]/V;
+            d_properties[thermo_index::virial_rot_yy] = final_sum[3]/V;
+            d_properties[thermo_index::virial_rot_yz] = final_sum[4]/V;
+            d_properties[thermo_index::virial_rot_zz] = final_sum[5]/V;
+            }
         }
     }
 
@@ -521,6 +623,8 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar *d_properties,
     \param box Box the particles are in
     \param args Additional arguments
     \param compute_pressure_tensor whether to compute the full pressure tensor
+    \param compute_rotational_energy whether to compute the rotational kinetic energy
+    \param compute_rotational_virial whether to compute the angular kinetic contribution to the virial
 
     This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
 */
@@ -531,8 +635,9 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                unsigned int group_size,
                                const BoxDim& box,
                                const compute_thermo_args& args,
-                               const bool compute_pressure_tensor,
-                               const bool compute_rotational_energy
+                               bool compute_pressure_tensor,
+                               bool compute_rotational_energy,
+                               bool compute_rotational_virial
                                )
     {
     assert(d_properties);
@@ -622,8 +727,45 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                                                                args.external_virial_yy,
                                                                                args.external_virial_yz,
                                                                                args.external_virial_zz,
-                                                                               args.D == 2
-                                                                               );
+                                                                               args.D == 2,
+                                                                               false);
+        }
+
+    if (compute_rotational_virial)
+        {
+        assert(args.d_scratch_pressure_tensor);
+
+        shared_bytes = 6 * sizeof(Scalar) * args.block_size;
+        grid = dim3(args.n_blocks, 1, 1);
+        threads = dim3(args.block_size, 1, 1);
+
+        // partial reduction of angular part
+        gpu_compute_rotational_virial_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch_pressure_tensor,
+                                                   args.d_angmom,
+                                                   args.d_orientation,
+                                                   args.d_inertia,
+                                                   d_group_members,
+                                                   group_size);
+
+
+        // run the kernel
+        grid = dim3(1, 1, 1);
+        threads = dim3(final_block_size, 1, 1);
+        shared_bytes = 6 * sizeof(Scalar) * final_block_size;
+        gpu_compute_pressure_tensor_final_sums<<<grid, threads, shared_bytes>>>(d_properties,
+                                                                               args.d_scratch_pressure_tensor,
+                                                                               box,
+                                                                               group_size,
+                                                                               args.n_blocks,
+                                                                               0,
+                                                                               0,
+                                                                               0,
+                                                                               0,
+                                                                               0,
+                                                                               0,
+                                                                               args.D == 2,
+                                                                               true);
+
         }
 
     return cudaSuccess;

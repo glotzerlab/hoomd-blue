@@ -93,8 +93,9 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                unsigned int group_size,
                                const BoxDim& box,
                                const compute_thermo_args& args,
-                               const bool compute_pressure_tensor,
-                               const bool compute_rotational_energy
+                               bool compute_pressure_tensor,
+                               bool compute_rotational_energy,
+                               bool compute_rotational_viral
                                );
 
 #endif

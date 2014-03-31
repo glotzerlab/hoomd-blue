@@ -131,6 +131,8 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     // update degrees of freedom
     m_ndof = m_thermo_group->getNDOF();
 
+    if (m_aniso) m_ndof += m_thermo_group->getRotationalNDOF();
+
     // compute the current thermodynamic properties
     m_thermo_group->compute(timestep);
 
