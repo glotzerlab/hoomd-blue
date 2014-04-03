@@ -998,8 +998,11 @@ class ParticleData : boost::noncopyable
         //! Helper function to reallocate particle data
         void reallocate(unsigned int max_n);
 
-        //! Helper function to check that particles are in the box
-        bool inBox();
+        //! Helper function to check that particles of a snapshot are in the box
+        /*! \return true If and only if all particles are in the simulation box
+         * \param Snapshot to check
+         */
+        bool inBox(const SnapshotParticleData& snap);
     };
 
 
