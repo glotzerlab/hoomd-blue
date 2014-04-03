@@ -119,7 +119,7 @@ struct DeviceGroup {
 				delete cudaDevices[i];
 			delete [] cudaDevices;
 		}
-		cudaDeviceReset();
+		//cudaDeviceReset();
 	}
 };
 
