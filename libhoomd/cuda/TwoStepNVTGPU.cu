@@ -142,9 +142,19 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
                              Scalar Xi,
                              Scalar deltaT)
     {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_nvt_step_one_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+
     // setup the grid to run the kernel
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid( (group_size/run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
     gpu_nvt_step_one_kernel<<< grid, threads >>>(d_pos,
@@ -224,9 +234,19 @@ cudaError_t gpu_nvt_step_two(Scalar4 *d_vel,
                              Scalar Xi,
                              Scalar deltaT)
     {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, gpu_nvt_step_two_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+
     // setup the grid to run the kernel
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid( (group_size/run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
     gpu_nvt_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_group_members, group_size, d_net_force, Xi, deltaT);
