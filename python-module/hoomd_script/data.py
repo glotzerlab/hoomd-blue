@@ -336,7 +336,8 @@ from hoomd_script import util
 # Simulation boxes in hoomd are specified by six parameters, *Lx*, *Ly*, *Lz*, *xy*, *xz* and *yz*. For full details,
 # see \ref page_box. A boxdim provides a way to specify all six parameters for a given box and perform some common
 # operations with them. Modifying a boxdim does not modify the underlying simulation box in hoomd. A boxdim can be passed
-# to an initialization method or to assigned to a saved system.
+# to an initialization method or to assigned to a saved sysdef variable (`system.box = new_box`) to set the simulation
+# box.
 #
 # boxdim parameters may be accessed directly.
 # ~~~~
@@ -353,12 +354,27 @@ from hoomd_script import util
 # will pass the dimensionality along to the system. When you assign a new boxdim to an already initialized system,
 # the dimensionality flag is ignored. Changing the number of dimensions during a simulation run is not supported.
 #
-# In 2D boxes, "volume" refers to area.
+# In 2D boxes, *volume* is in units of area.
+#
+# **Shorthand notation**
+#
+# data.boxdim accepts the keyword argument *L=x* as shorthand notation for `Lx=x, Ly=x, Lz=x` in 3D
+# and `Lx=x, Ly=z, Lz=1` in 2D. If you specify both `L=` and `Lx,Ly, or Lz`, then the value for `L` will override
+# the others.
+#
+# **Examples:**
+#
+# There are many ways to define boxes.
+#
+# * Cubic box with given volume: `data.boxdim(volume=V)`
+# * Triclinic box in 2D with given area: `data.boxdim(xy=1.0, dimensions=2, volume=A)`
+# * Rectangular box in 2D with given area and aspect ratio: `data.boxdim(Lx=1, Ly=aspect, dimensions=2, volume=A)`
+# * Cubic box with given length: `data.boxdim(L=10)`
+# * Fully define all box parameters: `data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)`
 #
 class boxdim:
     ## Initialize a boxdim object
     #
-    # \param L shorthand for specifying Lx=Ly=Lz=L (distance units)
     # \param Lx box extent in the x direction (distance units)
     # \param Ly box extent in the y direction (distance units)
     # \param Lz box extent in the z direction (distance units)
@@ -366,9 +382,10 @@ class boxdim:
     # \param xz tilt factor xz (dimensionless)
     # \param yz tilt factor yz (dimensionless)
     # \param dimensions Number of dimensions in the box (2 or 3).
+    # \param L shorthand for specifying Lx=Ly=Lz=L (distance units)
     # \param volume Scale the given box dimensions up to the this volume (area if dimensions=2)
     #
-    def __init__(self, L=None, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0, dimensions=3, volume=None):
+    def __init__(self, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0, dimensions=3, L=None, volume=None):
         if L is not None:
             Lx = L;
             Ly = L;
