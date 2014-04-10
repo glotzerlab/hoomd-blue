@@ -71,11 +71,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PathUtils.h"
 
+#include <iostream>
+
 /*! \returns The path
     getExePath uses different methods on different platforms. It identifies the real file for the running executable.
 */
 std::string getExePath()
     {
+    #ifdef PATH_MAX
+    const unsigned int path_max=PATH_MAX;
+    #else
+    const unsigned int path_max=1024;
+    #endif
+
     // exe path identification from: http://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
     std::string result;
 
@@ -88,21 +96,16 @@ std::string getExePath()
     if (retval != 0)
         throw std::runtime_error("Unable to determine executable path");
 
+    std::cout << "NSGetExecutablePath: " << retval << " " << buf << std::endl;
     // turn it into a real path
-    char *result_buf = NULL;
-    #ifdef PATH_MAX
-    result_buf = (char *)malloc(PATH_MAX);
-    #endif
-    char *realbuf = realpath(buf, result_buf);
+    char *realbuf = realpath(buf, NULL);
     result = std::string(realbuf);
     free(realbuf);
 
+    std::cout << "realpath: " << realbuf << std::endl;
+    std::cout << "result: " << realbuf << std::endl;
+
     #elif __linux__
-    #ifdef PATH_MAX
-    const unsigned int path_max=PATH_MAX;
-    #else
-    const unsigned int path_max=1024;
-    #endif
 
     char buf[path_max];
     memset(buf, 0, path_max);
