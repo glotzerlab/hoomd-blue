@@ -1043,11 +1043,14 @@ class nvt_rigid(_integration_method):
         # create the compute thermo
         thermo = compute._get_unique_thermo(group=group);
 
+        # setup suffix
+        suffix = '_' + group.name;
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant, tau, suffix);
         else:
-            self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant, tau, suffix);
 
         self.cpp_method.validateGroup()
 
