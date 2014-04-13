@@ -694,6 +694,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             #ifdef ENABLE_MPI_CUDA
             ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<rank_element_t> ranks_recvbuf_handle(m_ranks_recvbuf, access_location::device, access_mode::overwrite);
+            cudaDeviceSynchronize();
             #else
             ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<rank_element_t> ranks_recvbuf_handle(m_ranks_recvbuf, access_location::host, access_mode::overwrite);
@@ -1730,6 +1731,7 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> diameter_ghost_sendbuf_handle(m_diameter_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::device, access_mode::read);
+            cudaDeviceSynchronize();
             #else
             // recv buffers
             ArrayHandleAsync<unsigned int> tag_ghost_recvbuf_handle(m_tag_ghost_recvbuf, access_location::host, access_mode::overwrite);
@@ -2154,6 +2156,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
 
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
+            cudaDeviceSynchronize();
             #else
             // recv buffers
             ArrayHandle<Scalar4> pos_ghost_recvbuf_handle(m_pos_ghost_recvbuf, access_location::host, access_mode::overwrite);

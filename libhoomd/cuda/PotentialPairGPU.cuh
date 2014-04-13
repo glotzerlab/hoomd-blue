@@ -472,7 +472,7 @@ int get_max_block_size(T func)
     return max_threads;
     }
 
-void gpu_pair_force_bind_textures(const pair_args_t pair_args)
+inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     {
     // bind the position texture
     pdata_pos_tex.normalized = false;

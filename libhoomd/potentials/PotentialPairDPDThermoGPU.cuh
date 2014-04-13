@@ -436,7 +436,7 @@ int dpd_get_max_block_size(T func)
     return max_threads;
     }
 
-void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
+inline void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
     {
     // bind the position texture
     pdata_dpd_pos_tex.normalized = false;
