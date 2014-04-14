@@ -1031,6 +1031,12 @@ void Communicator::communicate(unsigned int timestep)
 
     bool update = !m_is_first_step && !m_force_migrate;
 
+    bool precompute = m_tuner_precompute ? m_tuner_precompute->getParam() : false;
+
+    update &= precompute;
+
+    if (m_tuner_precompute) m_tuner_precompute->begin();
+
     if (update)
         beginUpdateGhosts(timestep);
 
@@ -1039,10 +1045,6 @@ void Communicator::communicate(unsigned int timestep)
 
     if (update)
         finishUpdateGhosts(timestep);
-
-    bool precompute = m_tuner_precompute ? m_tuner_precompute->getParam() : true;
-
-    if (m_tuner_precompute) m_tuner_precompute->begin();
 
     if (precompute && update)
         {
@@ -1058,7 +1060,10 @@ void Communicator::communicate(unsigned int timestep)
 
     if (!precompute && !migrate)
         {
-        // call *after* synchronization, but only if particles do not migrate
+        // *after* synchronization, but only if particles do not migrate
+        beginUpdateGhosts(timestep);
+        finishUpdateGhosts(timestep);
+
         m_compute_callbacks(timestep);
         }
 
