@@ -140,6 +140,9 @@ Table of contents:
  - \link hoomd_script.init.is_initialized() init.is_initialized\endlink - <i>Tests if the system has been initialized </i>
 
  - \link hoomd_script.data data access\endlink - <i>Access particles, bonds, and other state information inside scripts </i>
+ - \link hoomd_script.data.system_data.take_snapshot system_data.take_snapshot\endlink - <i>Take a snapshot of the current configuration </i>
+ - \link hoomd_script.data.system_data.restore_snapshot system_data.restore_snapshot\endlink - <i>Load the current system with a previously taken snapshot</i>
+ - \link hoomd_script.data.system_data.replicate system_data.replicate\endlink - <i>Replicate the system periodically along specified dimensions</i>
 
 \section sec_index_integration Integrate
  - \link hoomd_script.integrate.mode_minimize_fire integrate.mode_minimize_fire\endlink - <i>Energy Minimizer (FIRE) </i>

@@ -69,7 +69,7 @@ from hoomd_script import util
 # If modifications need to be done on more than just a few particles, e.g.
 # setting new positions for all particles, or updating the velocities, etc., \b snapshots can be used.
 # \ref data_snapshot store the entire system state in a single (currently opaque) object and can
-# be used to re-initialize the system system.restore_snapshot().
+# be used to re-initialize the system system_data.restore_snapshot().
 #
 # <h2>Documentation by example</h2>
 #
@@ -322,7 +322,7 @@ from hoomd_script import util
 # about the simulation box, particles, bonds, angles, dihedrals, impropers, walls and rigid bodies.
 # Once taken, it is not updated anymore (as opposed to the particle %data proxies, which always
 # return the current state). Instead, it can be used to restart the simulation
-# using system.restore_snapshot().
+# using system_data.restore_snapshot().
 #
 # In future releases it will be possible to modify or %analyze the contents of a snapshot.
 #
@@ -586,6 +586,12 @@ class system_data:
     # Particle coordinates are updated accordingly to fit into the new box. All velocities and
     # other particle properties are replicated as well. Also bonded groups between particles
     # are replicated.
+    #
+    # Example usage:
+    # \code
+    # system = init.read_xml("some_file.xml")
+    # system.replicate(nx=2,ny=2,nz=2)
+    # \endcode
     #
     # \note Replication of rigid bodies is currently not supported.
     #
