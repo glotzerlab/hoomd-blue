@@ -515,9 +515,6 @@ class nlist:
         util.print_status_line();
         self.is_exclusion_overridden = True;
 
-        # store exclusions for later use
-        self.exclusions = list(exclusions)
-
         if self.cpp_nlist is None:
             globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
             raise RuntimeError('Error resetting exclusions');
@@ -531,6 +528,9 @@ class nlist:
             # confirm that no exclusions are left.
             self.cpp_nlist.countExclusions();
             return
+
+        # store exclusions for later use
+        self.exclusions = list(exclusions)
 
         # exclusions given directly in bond/angle/dihedral notation
         if 'bond' in exclusions:

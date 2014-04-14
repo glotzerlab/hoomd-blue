@@ -694,6 +694,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             #ifdef ENABLE_MPI_CUDA
             ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<rank_element_t> ranks_recvbuf_handle(m_ranks_recvbuf, access_location::device, access_mode::overwrite);
+
+            // MPI library may use non-zero stream
             cudaDeviceSynchronize();
             #else
             ArrayHandle<rank_element_t> ranks_sendbuf_handle(m_ranks_sendbuf, access_location::host, access_mode::read);
@@ -1731,6 +1733,8 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar> charge_ghost_sendbuf_handle(m_charge_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar> diameter_ghost_sendbuf_handle(m_diameter_ghost_sendbuf, access_location::device, access_mode::read);
             ArrayHandle<Scalar4> orientation_ghost_sendbuf_handle(m_orientation_ghost_sendbuf, access_location::device, access_mode::read);
+
+            // MPI library may use non-zero stream
             cudaDeviceSynchronize();
             #else
             // recv buffers
@@ -1944,7 +1948,10 @@ void CommunicatorGPU::exchangeGhosts()
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             } // end ArrayHandle scope
 
-        #ifndef ENABLE_MPI_CUDA
+        #ifdef ENABLE_MPI_CUDA
+        // MPI library may use non-zero stream
+        cudaDeviceSynchronize();
+        #else
         // only unpack in non-CUDA MPI builds
             {
             // access receive buffers
@@ -2156,6 +2163,8 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
 
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_ghost_begin(m_ghost_begin, access_location::host, access_mode::read);
+
+            // MPI library may use non-zero stream
             cudaDeviceSynchronize();
             #else
             // recv buffers
@@ -2369,7 +2378,10 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
         MPI_Waitall(m_reqs.size(), &m_reqs.front(), &stats.front());
         if (m_prof) m_prof->pop(m_exec_conf);
 
-        #ifndef ENABLE_MPI_CUDA
+        #ifdef ENABLE_MPI_CUDA
+        // MPI library may use non-zero stream
+        cudaDeviceSynchronize();
+        #else
         // only unpack in non-CUDA-MPI builds
         assert(m_num_stages == 1);
         unsigned int stage = 0;

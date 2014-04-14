@@ -180,17 +180,33 @@ void TwoStepNVERigid::setup()
     ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::read);
 
     //! Total translational and rotational degrees of freedom of rigid bodies
-    nf_t = 3 * m_n_bodies;
-    nf_r = 3 * m_n_bodies;
-
-    //! Subtract from nf_r one for each singular moment inertia of a rigid body
-    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+    if (m_sysdef->getNDimensions() == 3)
         {
-        unsigned int body = m_body_group->getMemberIndex(group_idx);
+        nf_t = 3 * m_n_bodies;
+        nf_r = 3 * m_n_bodies;
 
-        if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1.0;
-        if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1.0;
-        if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
+        //! Subtract from nf_r one for each singular moment inertia of a rigid body
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+            {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+
+            if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1.0;
+            if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1.0;
+            if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
+            }
+        }
+    else
+        {
+        nf_t = 2 * m_n_bodies;
+        nf_r = m_n_bodies;
+
+        //! Subtract from nf_r one for each singular moment inertia of a rigid body
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+            {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+
+            if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
+            }
         }
 
     g_f = nf_t + nf_r;

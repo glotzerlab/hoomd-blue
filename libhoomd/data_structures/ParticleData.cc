@@ -203,15 +203,15 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     // initialize box dimensions on all procesors
     setGlobalBox(global_box);
 
-    // initialize particle data with snapshot contents
-    initializeFromSnapshot(snapshot);
-
     // it is an error for particles to be initialized outside of their box
-    if (!inBox())
+    if (!inBox(snapshot))
         {
         m_exec_conf->msg->warning() << "Not all particles were found inside the given box" << endl;
-        //throw runtime_error("Error initializing ParticleData");
+        throw runtime_error("Error initializing ParticleData");
         }
+
+    // initialize particle data with snapshot contents
+    initializeFromSnapshot(snapshot);
 
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
@@ -664,44 +664,39 @@ void ParticleData::reallocate(unsigned int max_n)
 
 /*! \return true If and only if all particles are in the simulation box
 */
-bool ParticleData::inBox()
+bool ParticleData::inBox(const SnapshotParticleData &snap)
     {
-    Scalar3 lo = m_box.getLo();
-    Scalar3 hi = m_box.getHi();
-
-    const Scalar tol = Scalar(1e-5);
-
-    ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
-    for (unsigned int i = 0; i < getN(); i++)
+    bool in_box = true;
+    if (m_exec_conf->getRank() == 0)
         {
-        Scalar3 pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        Scalar3 f = m_box.makeFraction(pos);
-        if (f.x < -tol || f.x > Scalar(1.0)+tol)
+        Scalar3 lo = m_global_box.getLo();
+        Scalar3 hi = m_global_box.getHi();
+
+        const Scalar tol = Scalar(1e-5);
+
+        for (unsigned int i = 0; i < snap.size; i++)
             {
-            m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            m_exec_conf->msg->warning() << "fractional pos :" << setprecision(12) << f.x << " " << f.y << " " << f.z << endl;
-            m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
-            m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
-            return false;
-            }
-        if (f.y < -tol || f.y > Scalar(1.0)+tol)
-            {
-            m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            m_exec_conf->msg->warning() << "fractional pos :" << setprecision(12) << f.x << " " << f.y << " " << f.z << endl;
-            m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
-            m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
-            return false;
-            }
-        if (f.z < -tol || f.z > Scalar(1.0)+tol)
-            {
-            m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            m_exec_conf->msg->warning() << "fractional pos :" << setprecision(12) << f.x << " " << f.y << " " << f.z << endl;
-            m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
-            m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
-            return false;
+            Scalar3 f = m_global_box.makeFraction(snap.pos[i]);
+            if (f.x < -tol || f.x > Scalar(1.0)+tol ||
+                f.y < -tol || f.y > Scalar(1.0)+tol ||
+                f.z < -tol || f.z > Scalar(1.0)+tol)
+                {
+                m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << snap.pos[i].x << " " << snap.pos[i].y << " " << snap.pos[i].z << endl;
+                m_exec_conf->msg->warning() << "fractional pos :" << setprecision(12) << f.x << " " << f.y << " " << f.z << endl;
+                m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+                m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
+                in_box = false;
+                break;
+                }
             }
         }
-    return true;
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        bcast(in_box, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return in_box;
     }
 
 //! Initialize from a snapshot

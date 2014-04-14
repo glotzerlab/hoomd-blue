@@ -239,6 +239,7 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
 #
 # \param filename File to read
 # \param time_step (if specified) Time step number to use instead of the one stored in the XML file
+# \param wrap_coordinates Wrap input coordinates back into the box
 #
 # \b Examples:
 # \code
