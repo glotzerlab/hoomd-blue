@@ -72,6 +72,7 @@ using namespace boost::python;
  \param thermo compute for thermodynamic quantities
  \param T Controlled temperature
  \param tau Time constant
+ \param suffix Suffix to attach to the end of log quantity names
  \param skip_restart Flag indicating if restart info is skipped
 */
 TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
@@ -79,8 +80,9 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<ComputeThermo> thermo,
                                  boost::shared_ptr<Variant> T,
                                  Scalar tau,
+                                 const std::string& suffix,
                                  bool skip_restart)
-: TwoStepNVERigid(sysdef, group, true)
+    : TwoStepNVERigid(sysdef, group, true), m_log_names()
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTRigid" << endl;
 
@@ -145,6 +147,8 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
         setRestartIntegratorVariables();
         }
 
+    m_log_names.push_back(string("nvt_rigid_xi_t") + suffix);
+    m_log_names.push_back(string("nvt_rigid_xi_r") + suffix);
     }
 
 TwoStepNVTRigid::~TwoStepNVTRigid()
@@ -245,6 +249,40 @@ void TwoStepNVTRigid::setup()
         wdti2[i] = wdti1[i] / 2.0;
         wdti4[i] = wdti1[i] / 4.0;
         }
+    }
+
+/*! Returns a list of log quantities this compute calculates
+*/
+std::vector< std::string > TwoStepNVTRigid::getProvidedLogQuantities()
+    {
+    return m_log_names;
+    }
+
+/*! \param quantity Name of the log quantity to get
+    \param timestep Current time step of the simulation
+    \param my_quantity_flag passed as false, changed to true if quanity logged here
+*/
+
+Scalar TwoStepNVTRigid::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
+    {
+    if (quantity == m_log_names[0])
+        {
+        my_quantity_flag = true;
+        if (eta_dot_t)
+            return eta_dot_t[0];
+        else
+            return Scalar(0);
+        }
+    else if (quantity == m_log_names[1])
+        {
+        my_quantity_flag = true;
+        if (eta_dot_r)
+            return eta_dot_r[0];
+        else
+            return Scalar(0);
+        }
+    else
+        return Scalar(0);
     }
 
 /*!
@@ -458,7 +496,9 @@ void export_TwoStepNVTRigid()
         ("TwoStepNVTRigid", init< boost::shared_ptr<SystemDefinition>,
         boost::shared_ptr<ParticleGroup>,
         boost::shared_ptr<ComputeThermo>,
-        boost::shared_ptr<Variant> >());
+        boost::shared_ptr<Variant>,
+        Scalar,
+        const std::string& >());
     }
 
 #ifdef WIN32

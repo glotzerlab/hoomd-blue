@@ -75,7 +75,8 @@ class TwoStepNVTRigidGPU : public TwoStepNVTRigid
                             boost::shared_ptr<ParticleGroup> group,
                             boost::shared_ptr<ComputeThermo> thermo,
                             boost::shared_ptr<Variant> T,
-                            Scalar tau=10.0,
+                            Scalar tau,
+                            const std::string& suffix,
                             bool skip_restart=false);
 
         virtual ~TwoStepNVTRigidGPU() {};
