@@ -399,9 +399,22 @@ class BoxDim
             {
             Scalar3 L = getL();
 
+            // allow for a shifted box with periodic boundary conditions
+            Scalar3 origin = (m_hi + m_lo)/Scalar(2.0);
+
+            // tilt factors for nonperiodic boxes are always calculated w.r.t. to the global box with origin (0,0,0)
+            if (! m_periodic.y)
+                {
+                origin.y = Scalar(0.0);
+                }
+            if (! m_periodic.z)
+                {
+                origin.z = Scalar(0.0);
+                }
+
             if (m_periodic.x)
                 {
-                Scalar tilt_x = (m_xz - m_xy*m_yz) * w.z + m_xy * w.y;
+                Scalar tilt_x = (m_xz - m_xy*m_yz) * (w.z-origin.z) + m_xy * (w.y-origin.y);
                 if (((w.x >= m_hi.x + tilt_x) && !flags.x) || flags.x == 1)
                     {
                     w.x -= L.x;
@@ -416,7 +429,7 @@ class BoxDim
 
             if (m_periodic.y)
                 {
-                Scalar tilt_y = m_yz * w.z;
+                Scalar tilt_y = m_yz * (w.z-origin.z);
                 if (((w.y >= m_hi.y + tilt_y) && !flags.y)  || flags.y == 1)
                     {
                     w.y -= L.y;
