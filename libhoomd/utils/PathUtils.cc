@@ -96,14 +96,10 @@ std::string getExePath()
     if (retval != 0)
         throw std::runtime_error("Unable to determine executable path");
 
-    std::cout << "NSGetExecutablePath: " << retval << " " << buf << std::endl;
     // turn it into a real path
     char *realbuf = realpath(buf, NULL);
     result = std::string(realbuf);
     free(realbuf);
-
-    std::cout << "realpath: " << realbuf << std::endl;
-    std::cout << "result: " << realbuf << std::endl;
 
     #elif __linux__
 
