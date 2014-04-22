@@ -62,14 +62,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     as long as block_size * num_blocks is >= the number of particles.
 */
 extern "C" __global__ 
-void gpu_zero_velocities_kernel(float4 *d_vel, unsigned int N)
+void gpu_zero_velocities_kernel(Scalar4 *d_vel, unsigned int N)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N)
         {
         // vel.w is the mass, don't want to modify that
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
         vel.x = vel.y = vel.z = 0.0f;
         d_vel[idx] = vel;
         }
@@ -79,7 +79,7 @@ void gpu_zero_velocities_kernel(float4 *d_vel, unsigned int N)
     \param N Number of particles
     This is just a driver for gpu_zero_velocities_kernel(), see it for the details
 */
-cudaError_t gpu_zero_velocities(float4 *d_vel, unsigned int N)
+cudaError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N)
     {
     // setup the grid to run the kernel
     int block_size = 256;
