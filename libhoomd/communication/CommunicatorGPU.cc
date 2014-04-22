@@ -131,7 +131,7 @@ CommunicatorGPU::~CommunicatorGPU()
 
 void CommunicatorGPU::allocateBuffers()
     {
-    #ifndef ENABLE_MPI
+    #ifndef ENABLE_MPI_CUDA
     // mapped buffers for particle migration
     bool mapped = true;
     #else
