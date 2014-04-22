@@ -1510,7 +1510,7 @@ class dihedral_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class dihedral_data_proxy:
     ## \internal
     # \brief create a dihedral_data_proxy

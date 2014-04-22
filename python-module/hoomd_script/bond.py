@@ -492,7 +492,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 #
 # \note Coefficients for all bond types in the simulation must be
 # set before it can be started with run().
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class table(force._force):
     ## Specify the Tabulated %bond %force
     #
