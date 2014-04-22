@@ -204,7 +204,7 @@ class BondedGroupData : boost::noncopyable
              */
             bool validate() const
                 {
-                if (! groups.size() == type_id.size()) return false;
+                if (groups.size() != type_id.size()) return false;
                 return true;
                 }
 
