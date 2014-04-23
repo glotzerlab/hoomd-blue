@@ -89,6 +89,7 @@ set(TEST_LIST
     test_constraint_sphere
     test_ewald_force
     test_pppm_force
+    test_table_dihedral_force
     )
 
     # put the longest tests last

@@ -326,7 +326,7 @@ class harmonic(force._force):
 # The command dihedral.table specifies that a tabulated  %dihedral %force should be added to every bonded triple of particles
 # in the simulation.
 #
-# The %torque \f$ \vec{F}\f$ is (in force units)
+# The %force \f$ \vec{F}\f$ is (in force units)
 # \f{eqnarray*}
 #  \vec{F}(\theta)     = & F_{\mathrm{user}}(r)\hat{r} & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
 # \f}
@@ -336,12 +336,13 @@ class harmonic(force._force):
 # \f}
 # ,where \f$ \theta \f$ is the angle between the triple to the other in the %dihedral.
 #
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between
-# \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
+# \f$  F_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ are evaluated on *width* grid points between
+# \f$ -\pi\f$ and \f$ \pi f$. Values are interpolated linearly between grid points.
+# For correctness, you must specify the derivative of the potential w.r.t. the dihedral angle,
+# defined by: \f$ T = -\frac{\partial V}{\partial theta}\f$
 #
 # The following coefficients must be set per unique %pair of particle types.
-# - \f$ F_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ - evaluated by `func` (see example)
+# - \f$ F_{\mathrm{user}}(\theta) \f$ and \f$ T_{\mathrm{user}} (\theta) \f$ - evaluated by `func` (see example)
 # - coefficients passed to `func` - `coeff` (see example)
 #
 # The table *width* is set once when dihedral.table is specified (see table.__init__())
@@ -352,14 +353,14 @@ class harmonic(force._force):
 # directly into python. dihedral.table will evaluate the given function over \a width points between \a rmin and \a rmax
 # and use the resulting values in the table.
 # ~~~~~~~~~~~~~
-#def harmonic(r, rmin, rmax, kappa, r0):
-#    V = 0.5 * kappa * (r-r0)**2;
-#    F = -kappa*(r-r0);
+#def harmonic(theta, kappa, theta0):
+#    V = 0.5 * kappa * (theta-theta0)**2;
+#    F = -kappa*(theta-theta0);
 #    return (V, F)
 #
 # dtable = dihedral.table(width=1000)
-# dtable.dihedral_coeff.set('dihedral1', func=harmonic, coeff=dict(kappa=330, r0=0.84))
-# dtable.dihedral_coeff.set('dihedral2', func=harmonic,coeff=dict(kappa=30, r0=1.0))
+# dtable.dihedral_coeff.set('dihedral1', func=harmonic, coeff=dict(kappa=330, theta0=0.84))
+# dtable.dihedral_coeff.set('dihedral2', func=harmonic,coeff=dict(kappa=30, theta0=1.0))
 # ~~~~~~~~~~~~~
 #
 # \par Example: Set a table from a file
@@ -373,13 +374,9 @@ class harmonic(force._force):
 #
 # \par Example: Mix functions and files
 # ~~~~~~~~~~~~~
-# dtable.dihedral_coeff.set('dihedral1', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
+# dtable.dihedral_coeff.set('dihedral1', func=harmonic, coeff=dict(kappa=330, theta0=0.84))
 # dtable.set_from_file('dihedral2', 'dtable.file')
 # ~~~~~~~~~~~~~
-#
-#
-# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
-# not diverge near r=0, then a setting of \c rmin=0 is valid.
 #
 # \note %Dihedral coefficients for all type dihedrals in the simulation must be
 # set before it can be started with run().
@@ -435,11 +432,11 @@ class table(force._force):
         Ttable = hoomd.std_vector_scalar();
 
         # calculate dth
-        dth = math.pi / float(self.width-1);
+        dth = 2.0*math.pi / float(self.width-1);
 
         # evaluate each point of the function
         for i in range(0, self.width):
-            theta = dth * i;
+            theta = -math.pi+dth * i;
             (V,T) = func(theta, **coeff);
 
             # fill out the tables
@@ -474,10 +471,12 @@ class table(force._force):
       # \param dihedralname Name of dihedral
       # \param filename Name of the file to read
       #
-     # The provided file specifies V and F at equally spaced theta values.
+      # The provided file specifies V and F at equally spaced theta values.
       # Example:
       # \code
       # #t  V    T
+      # -3.1414 2.0 -3.0
+      # 1.5707 3.0 - 4.0
       # 0.0 2.0 -3.0
       # 1.5707 3.0 -4.0
       # 3.1414 2.0 -3.0
@@ -526,11 +525,11 @@ class table(force._force):
 
 
           # check for even spacing
-          dth = math.pi / float(self.width-1);
+          dth = 2.0*math.pi / float(self.width-1);
           for i in range(0,self.width):
-              theta =  dth * i;
+              theta =  -math.pi+dnth * i;
               if math.fabs(theta - theta_table[i]) > 1e-3:
-                  globals.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced\n");
+                  globals.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi");
                   raise RuntimeError("Error reading table file");
 
           util._disable_status_lines = True;
