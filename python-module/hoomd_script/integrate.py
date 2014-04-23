@@ -524,7 +524,7 @@ class npt(_integration_method):
     # \param group Group of particles on which to apply this method.
     # \param T Temperature set point for the thermostat, not needed if \b nph=True (in energy units)
     # \param P Pressure set point for the barostat (in pressure units)
-    # \param tau Coupling constant for the thermostat, not needed if \nph=True (in time units)
+    # \param tau Coupling constant for the thermostat, not needed if \a nph=True (in time units)
     # \param tauP Coupling constant for the barostat (in time units)
     # \param couple Couplings of diagonal elements of the stress tensor, can be \b "none", \b "xy", \b "xz",\b "yz", or \b "xyz" (default)
     # \param x if \b True, rescale \a Lx and x component of particle coordinates and velocities
@@ -685,7 +685,7 @@ class npt(_integration_method):
 # \note A time scale \b tau_p for the relaxation of the barostat is required. This is defined as the
 #       relaxation time the barostat would have at an average temperature \f$ T_0 =1 \f$, and it
 #       is related to the internally used (Andersen) Barostat mass \f$W\f$ via
-#       \f $W=d N T_0 \tau_p^2 \f $, where \f$ d \f$ is the dimensionsality and \f$ N \f$ the number
+#       \f$ W=d N T_0 \tau_p^2 \f$, where \f$ d \f$ is the dimensionsality and \f$ N \f$ the number
 #       of particles.
 #
 # integrate.nph is an integration method. It must be used in concert with an integration mode. It can be used while
