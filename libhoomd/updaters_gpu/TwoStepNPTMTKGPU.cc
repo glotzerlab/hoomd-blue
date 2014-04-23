@@ -178,6 +178,24 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
     // update the propagator matrix
     updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
 
+    if (m_rescale_all)
+        {
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+
+        // perform the particle update on the GPU
+        gpu_npt_mtk_rescale(m_pdata->getN(),
+                             d_pos.data,
+                             m_mat_exp_r[0],
+                             m_mat_exp_r[1],
+                             m_mat_exp_r[2],
+                             m_mat_exp_r[3],
+                             m_mat_exp_r[4],
+                             m_mat_exp_r[5]);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
         {
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
@@ -197,7 +215,11 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
                              m_mat_exp_v_int,
                              m_mat_exp_r,
                              m_mat_exp_r_int,
-                             m_deltaT);
+                             m_deltaT,
+                             m_rescale_all);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
 
         } // end of GPUArray scope
 
@@ -318,6 +340,9 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
                      m_mat_exp_v_int,
                      m_deltaT);
 
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
         {
         // recalulate temperature
         ArrayHandle<Scalar> d_temperature(m_temperature, access_location::device, access_mode::overwrite);
@@ -334,6 +359,8 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
                                 d_index_array.data,
                                 group_size,
                                 m_thermo_group->getNDOF());
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
     // read back intermediate temperature from GPU

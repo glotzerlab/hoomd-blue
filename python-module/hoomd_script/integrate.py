@@ -535,6 +535,7 @@ class npt(_integration_method):
     # \param yz if \b True, rescale \a yz tilt factor and y and z components of particle coordinates and velocities
     # \param all if \b True, rescale all lengths and tilt factors and components of particle coordinates and velocities
     # \param nph if \b True, integrate without a thermostat, i.e. in the NPH ensemble
+    # \param rescale_all if \b True, rescale all particles, not only those in the group
     #
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
@@ -555,7 +556,7 @@ class npt(_integration_method):
     # # triclinic symmetry
     # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
     # \endcode
-    def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None):
+    def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None, rescale_all=None):
         util.print_status_line();
 
         # check the input
@@ -636,6 +637,9 @@ class npt(_integration_method):
         else:
             self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
 
+        if rescale_all is not None:
+            self.cpp_method.setRescaleAll(rescale_all)
+
         self.cpp_method.validateGroup()
 
     ## Changes parameters of an existing integrator
@@ -643,6 +647,7 @@ class npt(_integration_method):
     # \param tau New coupling constant (if set) (in time units)
     # \param P New pressure (if set) (in pressure units)
     # \param tauP New barostat coupling constant (if set) (in time units)
+    # \param rescale_all if \b True, rescale all particles, not only those in the group
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -655,7 +660,7 @@ class npt(_integration_method):
     # integrator.set_params(tau=0.6)
     # integrator.set_params(dt=3e-3, T=2.0, P=1.0)
     # \endcode
-    def set_params(self, T=None, tau=None, P=None, tauP=None):
+    def set_params(self, T=None, tau=None, P=None, tauP=None, rescale_all=None):
         util.print_status_line();
         self.check_initialization();
 
@@ -672,6 +677,9 @@ class npt(_integration_method):
             self.cpp_method.setP(P.cpp_variant);
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
+        if rescale_all is not None:
+            self.cpp_method.setRescaleAll(rescale_all)
+
 
 ## NPH Integration via MTK barostat-thermostat with triclinic unit cell
 #

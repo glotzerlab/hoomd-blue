@@ -96,7 +96,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
                        unsigned int flags,
                        const bool nph)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group),
-      m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags), m_nph(nph)
+      m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags), m_nph(nph), m_rescale_all(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
 
@@ -199,7 +199,28 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     // update the propagator matrix
     updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
 
-       {
+    if (m_rescale_all)
+        {
+        // rescale all particle positions
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        unsigned int nparticles = m_pdata->getN();
+
+        for (unsigned int i = 0; i < nparticles; i++)
+            {
+            Scalar3 r = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+
+            r.x = m_mat_exp_r[0] * r.x + m_mat_exp_r[1] * r.y + m_mat_exp_r[2] * r.z;
+            r.y = m_mat_exp_r[3] * r.y + m_mat_exp_r[4] * r.z;
+            r.z = m_mat_exp_r[5] * r.z;
+
+            h_pos.data[i].x = r.x;
+            h_pos.data[i].y = r.y;
+            h_pos.data[i].z = r.z;
+            }
+        }
+
+        {
         ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -224,9 +245,12 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
             v.y += m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
             v.z += m_mat_exp_v_int[5] * accel.z;
 
-            r.x = m_mat_exp_r[0] * r.x + m_mat_exp_r[1] * r.y + m_mat_exp_r[2] * r.z;
-            r.y = m_mat_exp_r[3] * r.y + m_mat_exp_r[4] * r.z;
-            r.z = m_mat_exp_r[5] * r.z;
+            if (! m_rescale_all)
+                {
+                r.x = m_mat_exp_r[0] * r.x + m_mat_exp_r[1] * r.y + m_mat_exp_r[2] * r.z;
+                r.y = m_mat_exp_r[3] * r.y + m_mat_exp_r[4] * r.z;
+                r.z = m_mat_exp_r[5] * r.z;
+                }
 
             r.x += m_mat_exp_r_int[0] * v.x + m_mat_exp_r_int[1] * v.y + m_mat_exp_r_int[2] * v.z;
             r.y += m_mat_exp_r_int[3] * v.y + m_mat_exp_r_int[4] * v.z;
@@ -727,7 +751,7 @@ void export_TwoStepNPTMTK()
         .def("setP", &TwoStepNPTMTK::setP)
         .def("setTau", &TwoStepNPTMTK::setTau)
         .def("setTauP", &TwoStepNPTMTK::setTauP)
-        .def("setPartialScale", &TwoStepNPTMTK::setPartialScale)
+        .def("setRescaleAll", &TwoStepNPTMTK::setRescaleAll)
         ;
 
     enum_<TwoStepNPTMTK::couplingMode>("couplingMode")

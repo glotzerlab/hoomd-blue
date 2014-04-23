@@ -95,7 +95,8 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
                              Scalar mat_exp_r_int_yy,
                              Scalar mat_exp_r_int_yz,
                              Scalar mat_exp_r_int_zz,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             bool rescale_all)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -127,9 +128,13 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
         v.y += mat_exp_v_int_yy * accel.y + mat_exp_v_int_yz * accel.z;
         v.z += mat_exp_v_int_zz * accel.z;
 
-        r.x = mat_exp_r_xx * r.x + mat_exp_r_xy * r.y + mat_exp_r_xz * r.z;
-        r.y = mat_exp_r_yy * r.y + mat_exp_r_yz * r.z;
-        r.z = mat_exp_r_zz * r.z;
+        if (!rescale_all)
+            {
+            // rescale this group of particles
+            r.x = mat_exp_r_xx * r.x + mat_exp_r_xy * r.y + mat_exp_r_xz * r.z;
+            r.y = mat_exp_r_yy * r.y + mat_exp_r_yz * r.z;
+            r.z = mat_exp_r_zz * r.z;
+            }
 
         r.x += mat_exp_r_int_xx * v.x + mat_exp_r_int_xy * v.y + mat_exp_r_int_xz * v.z;
         r.y += mat_exp_r_int_yy * v.y + mat_exp_r_int_yz * v.z;
@@ -153,6 +158,7 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
     \param mat_exp_r_int Integrated matrix exp for position update
     \param deltaT Time to advance (for one full step)
     \param deltaT Time to move forward in one whole step
+    \param rescale_all True if all particles in the system should be rescaled at once
 
     This is just a kernel driver for gpu_npt_mtk_step_one_kernel(). See it for more details.
 */
@@ -166,7 +172,8 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              Scalar *mat_exp_v_int,
                              Scalar *mat_exp_r,
                              Scalar *mat_exp_r_int,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             bool rescale_all)
     {
     // setup the grid to run the kernel
     unsigned int block_size = 256;
@@ -204,7 +211,8 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                                                  mat_exp_r_int[3],
                                                  mat_exp_r_int[4],
                                                  mat_exp_r_int[5],
-                                                 deltaT);
+                                                 deltaT,
+                                                 rescale_all);
 
     return cudaSuccess;
     }
@@ -566,4 +574,52 @@ cudaError_t gpu_npt_mtk_thermostat(Scalar4 *d_vel,
                                                      exp_v_fac_thermo);
 
     return cudaSuccess;
+    }
+
+__global__ void gpu_npt_mtk_rescale_kernel(unsigned int N,
+                                           Scalar4 *d_postype,
+                                           Scalar mat_exp_r_xx,
+                                           Scalar mat_exp_r_xy,
+                                           Scalar mat_exp_r_xz,
+                                           Scalar mat_exp_r_yy,
+                                           Scalar mat_exp_r_yz,
+                                           Scalar mat_exp_r_zz)
+    {
+    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+
+    if (idx >= N) return;
+
+    // rescale position
+    Scalar4 postype = d_postype[idx];
+    Scalar3 r = make_scalar3(postype.x,postype.y,postype.z);
+
+    r.x = mat_exp_r_xx * r.x + mat_exp_r_xy * r.y + mat_exp_r_xz * r.z;
+    r.y = mat_exp_r_yy * r.y + mat_exp_r_yz* r.z;
+    r.z = mat_exp_r_zz * r.z;
+
+    d_postype[idx] = make_scalar4(r.x, r.y, r.z, postype.w);
+    }
+
+void gpu_npt_mtk_rescale(unsigned int N,
+                       Scalar4 *d_postype,
+                       Scalar mat_exp_r_xx,
+                       Scalar mat_exp_r_xy,
+                       Scalar mat_exp_r_xz,
+                       Scalar mat_exp_r_yy,
+                       Scalar mat_exp_r_yz,
+                       Scalar mat_exp_r_zz)
+    {
+    unsigned int block_size = 256;
+
+    dim3 grid( (N / block_size) + 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+    gpu_npt_mtk_rescale_kernel<<<grid, threads>>> (N,
+        d_postype,
+        mat_exp_r_xx,
+        mat_exp_r_xy,
+        mat_exp_r_xz,
+        mat_exp_r_yy,
+        mat_exp_r_yz,
+        mat_exp_r_zz);
     }
