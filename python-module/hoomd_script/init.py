@@ -301,6 +301,7 @@ def read_xml(filename, time_step = None, wrap_coordinates = False):
 ## Reads initial system state from a binary file
 #
 # \param filename File to read
+# \param time_step Override time_step value in the bin file
 #
 # \b Examples:
 # \code
