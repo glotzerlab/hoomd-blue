@@ -500,6 +500,9 @@ class nvt(_integration_method):
 # Any of the six keywords can be combined together. By default, the \b x, \b y, and \b z degrees of freedom
 # are updated.
 #
+# \note If any of the diagonal \x, \y, \z degrees of freedom is not being integrated, pressure tensor components
+#       along that direction are not considered for the remaining degrees of freedom.
+#
 # For example:
 # - Specifying \b xyz copulings and \b x, \b y, and \b z degrees of freedom amounts to \a cubic symmetry (default)
 # - Specifying \b xy couplings and \b x, \b y, and \b z degrees of freedom amounts to \a tetragonal symmetry.

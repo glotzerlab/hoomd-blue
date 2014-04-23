@@ -688,33 +688,69 @@ void TwoStepNPTMTK::advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Sc
     Scalar W = m_ndof*m_T->getValue(timestep)*m_tauP*m_tauP;
     Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
 
+    couplingMode couple = m_couple; 
+    // disable irrelevant couplings
+    if (! (m_flags & baro_x))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_yz;
+            }
+        if (couple == couple_xy || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_y))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xz;
+            }
+        if (couple == couple_yz || couple == couple_xy)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_z))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xy;
+            }
+        if (couple == couple_yz || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+
     // couple diagonal elements of pressure tensor together
     Scalar3 P_diag = make_scalar3(0.0,0.0,0.0);
-    if (m_couple == couple_none)
+    if (couple == couple_none)
         {
         P_diag.x = P.xx;
         P_diag.y = P.yy;
         P_diag.z = P.zz;
         }
-    else if (m_couple == couple_xy)
+    else if (couple == couple_xy)
         {
         P_diag.x = Scalar(1.0/2.0)*(P.xx + P.yy);
         P_diag.y = Scalar(1.0/2.0)*(P.xx + P.yy);
         P_diag.z = P.zz;
         }
-    else if (m_couple == couple_xz)
+    else if (couple == couple_xz)
         {
         P_diag.x = Scalar(1.0/2.0)*(P.xx + P.zz);
         P_diag.y = P.yy;
         P_diag.z = Scalar(1.0/2.0)*(P.xx + P.zz);
         }
-    else if (m_couple == couple_yz)
+    else if (couple == couple_yz)
         {
         P_diag.x = P.xx;
         P_diag.y = Scalar(1.0/2.0)*(P.yy + P.zz);
         P_diag.z = Scalar(1.0/2.0)*(P.yy + P.zz);
         }
-    else if (m_couple == couple_xyz)
+    else if (couple == couple_xyz)
         {
         Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
         P_diag.x = P_diag.y = P_diag.z = P_iso;
