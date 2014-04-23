@@ -355,8 +355,8 @@ unsigned int Autotuner::computeOptimalParameter()
         // now find the minimum and maximum times in the medians
         float min = m_sample_median[0];
         unsigned int min_idx = 0;
-        float max = m_sample_median[0];
-        unsigned int max_idx = 0;
+        //float max = m_sample_median[0];
+        //unsigned int max_idx = 0;
 
         for (unsigned int i = 1; i < m_parameters.size(); i++)
             {
