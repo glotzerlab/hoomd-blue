@@ -109,10 +109,7 @@ sudo zypper install hoomd*.rpm
 4. To **install** *or upgrade* double click on the downloaded file, or open a terminal, cd to the directory where you downloaded the file and run
 ~~~~
 sudo dpkg -i hoomd-blue*.deb
-sudo apt-get -f install
 ~~~~
-
-Ignore the errors that you see after the dpkg command. The second command corrects them and completes the install.
 
 \subsection sec_install_hoomd_linux_homedir Home directory installation
 
@@ -138,19 +135,28 @@ alias hoomd="/Applications/HOOMD-blue.app/Contents/MacOS/hoomd"
 ~~~~
 Adjust the name of the directory to match the one you installed. The alias will only take effect in newly opened terminal windows. You **must** remove the alias if you switch to compiling HOOMD-blue from source or by any other installation method.
 
+\b Experimental:
+The OS X .dmg application installation method is experimental. It only works if the OS X default python is installed and on the PATH. If you have installed any other python distribution (such as through macports), this application might not run. Macports users: restore the system python to the PATH with "sudo port select python python27-apple. Also, clicking on the HOOMD-blue application icon does nothing.
+
 <hr>
 
 \section sec_install_hoomd_test Test your installation
 
 Run the standard benchmark scripts to test your installation.
-(linux)
+
+\b Linux:
 ~~~~~
  cd /usr/share/hoomd/benchmarks
  hoomd lj_liquid_bmark.hoomd
  # ... watch the simulation run ...
 ~~~~~
 
-(mac)
+On CentOS 6, RHEL 6, and Fedora 18 you need to launch hoomd with mpirun even when running on a single core/GPU:
+~~~~~
+ /usr/lib64/openmpi/bin/mpirun -n 1 hoomd lj_liquid_bmark.hoomd
+~~~~~
+
+\b Mac:
 ~~~~~
 cd /Applications/HOOMD-blue.app/Contents/share/hoomd/benchmarks/
 hoomd lj_liquid_bmark.hoomd
