@@ -323,7 +323,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
 
         /// Here we use the table!!
         unsigned int dihedral_type = m_dihedral_data->getTypeByIndex(i);
-        unsigned int value_i = (unsigned int)floor(value_f);
+        unsigned int value_i = value_f;
         Scalar2 VT0 = h_tables.data[m_table_value(value_i, dihedral_type)];
         Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, dihedral_type)];
         // unpack the data

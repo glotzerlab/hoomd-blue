@@ -82,7 +82,7 @@ typedef boost::function<boost::shared_ptr<TableDihedralForceCompute>  (boost::sh
 void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     /////////////////////////////////////////////////////////
-    // start with the simplest possible test: 4 particles in a huge box with only one dihedral type !!!! NO DIHEDRALS
+    // start with the simplest possible test: 4 particles in a huge box with only one dihedral type
     boost::shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(2.5), 1, 0, 0, 1, 0, exec_conf));
     boost::shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 
