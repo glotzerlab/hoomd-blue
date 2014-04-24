@@ -34,7 +34,7 @@ class dihedral_table_tests (unittest.TestCase):
             return (V, T)
 
         harmonic = dihedral.table(width=1000)
-        harmonic.dihedral_coeff.set('dihedralA', func=har, coeff=dict(kappa=30,theta_0=.1))
+        harmonic.dihedral_coeff.set('dihedralA', func=har, coeff=dict(kappa=1,theta_0=.1))
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nve(all);
@@ -51,9 +51,9 @@ class dihedral_table_tests (unittest.TestCase):
     # compare against harmonic dihedral
     def test_harmonic_compare(self):
         harmonic_1 = dihedral.table(width=1000)
-        harmonic_1.dihedral_coeff.set('dihedralA', func=lambda theta: (0.5*30*( 1 + math.cos(theta)), 0.5*30*math.sin(theta)),coeff=dict())
+        harmonic_1.dihedral_coeff.set('dihedralA', func=lambda theta: (0.5*1*( 1 + math.cos(theta)), 0.5*1*math.sin(theta)),coeff=dict())
         harmonic_2 = dihedral.harmonic()
-        harmonic_2.set_coeff('dihedralA', k=30.0, d=1,n=1)
+        harmonic_2.set_coeff('dihedralA', k=1.0, d=1,n=1)
         integrate.mode_standard(dt=0.005);
         all = group.all()
         integrate.nve(all)
@@ -63,10 +63,10 @@ class dihedral_table_tests (unittest.TestCase):
             f_2 = harmonic_2.forces[i]
             # we have to have a very rough tolerance (~10%) because
             # of 1) discretization of the potential and 2) different handling of precision issues in both potentials
-            self.assertAlmostEqual(f_1.energy, f_2.energy,0)
-            self.assertAlmostEqual(f_1.force[0], f_2.force[0],0)
-            self.assertAlmostEqual(f_1.force[1], f_2.force[1],0)
-            self.assertAlmostEqual(f_1.force[2], f_2.force[2],0)
+            self.assertAlmostEqual(f_1.energy, f_2.energy,3)
+            self.assertAlmostEqual(f_1.force[0], f_2.force[0],2)
+            self.assertAlmostEqual(f_1.force[1], f_2.force[1],2)
+            self.assertAlmostEqual(f_1.force[2], f_2.force[2],2)
 
     def tearDown(self):
         del self.sys

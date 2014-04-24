@@ -251,7 +251,7 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         if (det < 0) phi = -phi;
 
         // precomputed term
-        Scalar value_f = phi / delta_phi;
+        Scalar value_f = (Scalar(M_PI)+phi) / delta_phi;
 
         // compute index into the table and read in values
         unsigned int value_i = value_f;
@@ -397,7 +397,7 @@ cudaError_t gpu_compute_table_dihedral_forces(Scalar4* d_force,
             return error;
         }
 
-    Scalar delta_phi = Scalar(M_PI)/(Scalar)(table_width - 1);
+    Scalar delta_phi = Scalar(2.0*M_PI)/(Scalar)(table_width - 1);
 
     gpu_compute_table_dihedral_forces_kernel<<< grid, threads>>>
             (d_force,
