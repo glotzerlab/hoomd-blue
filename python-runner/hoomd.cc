@@ -180,6 +180,7 @@ int main(int argc, char **argv)
         mbstowcs(argv_w[i], argv[i], n);
         }
     int retval = Py_Main(argc, argv_w);
+    delete[] argv_w;
 #else
     int retval = Py_Main(argc, argv);
 #endif
