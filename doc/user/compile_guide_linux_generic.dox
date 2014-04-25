@@ -426,7 +426,7 @@ export MPI_HOME=${HOME}/local
 ~~~~
 Then log out and back in before attempting to build boost (so that it can find MPI).
 
-**Build hoomd**
+### Build hoomd
 
 Configure and build HOOMD-blue as normal (see \ref sec_build_linux_generic_compile). During the cmake step, MPI should
 be detected and enabled. For cuda-aware MPI, additionally supply the **ENABLE_MPI_CUDA=ON** option to cmake.
