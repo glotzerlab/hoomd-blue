@@ -533,6 +533,7 @@ def _table_eval(theta, V, T, width):
 #
 # \note %Angle coefficients for all type angles in the simulation must be
 # set before it can be started with run().
+# \MPI_SUPPORTED
 class table(force._force):
     ## Specify the Tabulated %angle %force
     #

@@ -370,6 +370,7 @@ class harmonic(force._force):
 #
 # \note %Dihedral coefficients for all type dihedrals in the simulation must be
 # set before it can be started with run().
+# \MPI_SUPPORTED
 class table(force._force):
     ## Specify the Tabulated %dihedral %force
     #
