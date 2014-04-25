@@ -134,19 +134,19 @@ class bond_data_access_tests (unittest.TestCase):
         ####################################
         ## The bond deletion feature is currently disabled
         # test deletion by tag
-        #self.s.bonds.remove(b1);
-        #self.assertEqual(2, len(self.s.bonds));
+        self.s.bonds.remove(b1);
+        self.assertEqual(2, len(self.s.bonds));
 
         # test deletion by index (check bond a value to delete the bond with a=0)
-        #if self.s.bonds[0].tag == b0:
-        #    del self.s.bonds[0];
-        #else:
-        #    del self.s.bonds[1];
+        if self.s.bonds[0].tag == b0:
+            del self.s.bonds[0];
+        else:
+            del self.s.bonds[1];
 
-        #self.assertEqual(b2, self.s.bonds[0].tag);
-        #self.assertEqual(50, self.s.bonds[0].a);
-        #self.assertEqual(20, self.s.bonds[0].b);
-        #self.assertEqual('bondB', self.s.bonds[0].type);
+        self.assertEqual(b2, self.s.bonds[0].tag);
+        self.assertEqual(50, self.s.bonds[0].a);
+        self.assertEqual(20, self.s.bonds[0].b);
+        self.assertEqual('bondB', self.s.bonds[0].type);
 
     # tests angles
     def test_angles(self):
@@ -293,73 +293,77 @@ class pair_access_tests (unittest.TestCase):
 # tests for body data access
 class body_data_access_tests (unittest.TestCase):
     def setUp(self):
-        print
-        self.s = init.create_random(N=100, phi_p=0.05);
+        # only for single rank execution
+        if comm.get_num_ranks() == 1:
+            print
+            self.s = init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+            sorter.set_params(grid=8)
 
-        for p in self.s.particles:
-            p.body = p.tag % 50
+            for p in self.s.particles:
+                p.body = p.tag % 50
 
-        self.s.sysdef.getRigidData().initializeData()
+            self.s.sysdef.getRigidData().initializeData()
 
     # test bodies
     def test_bodies(self):
-        self.assertEqual(50, len(self.s.bodies));
+        if comm.get_num_ranks() == 1:
+            self.assertEqual(50, len(self.s.bodies));
 
-        for b in self.s.bodies:
-            # just access values to check that they can be read
-            t = b.COM
-            t = b.orientation
-            t = b.velocity
-            t = b.mass
-            t = b.angular_momentum
-            t = b.moment_inertia
-            t = b.particle_tags
-            t = b.particle_disp
-            t = b.net_force
-            t = b.net_torque
+            for b in self.s.bodies:
+                # just access values to check that they can be read
+                t = b.COM
+                t = b.orientation
+                t = b.velocity
+                t = b.mass
+                t = b.angular_momentum
+                t = b.moment_inertia
+                t = b.particle_tags
+                t = b.particle_disp
+                t = b.net_force
+                t = b.net_torque
 
-        self.s.bodies[0].mass = 7.9;
-        self.assertAlmostEqual(7.9, self.s.bodies[0].mass, 5)
+            self.s.bodies[0].mass = 7.9;
+            self.assertAlmostEqual(7.9, self.s.bodies[0].mass, 5)
 
-        self.s.bodies[0].moment_inertia = (4,5,6);
-        t = self.s.bodies[0].moment_inertia;
-        self.assertAlmostEqual(4, t[0], 5)
-        self.assertAlmostEqual(5, t[1], 5)
-        self.assertAlmostEqual(6, t[2], 5)
+            self.s.bodies[0].moment_inertia = (4,5,6);
+            t = self.s.bodies[0].moment_inertia;
+            self.assertAlmostEqual(4, t[0], 5)
+            self.assertAlmostEqual(5, t[1], 5)
+            self.assertAlmostEqual(6, t[2], 5)
 
-        self.s.bodies[0].orientation = (0,0,0,1);
-        t = self.s.bodies[0].orientation;
-        self.assertAlmostEqual(0, t[0], 5)
-        self.assertAlmostEqual(0, t[1], 5)
-        self.assertAlmostEqual(0, t[2], 5)
-        self.assertAlmostEqual(1, t[3], 5)
+            self.s.bodies[0].orientation = (0,0,0,1);
+            t = self.s.bodies[0].orientation;
+            self.assertAlmostEqual(0, t[0], 5)
+            self.assertAlmostEqual(0, t[1], 5)
+            self.assertAlmostEqual(0, t[2], 5)
+            self.assertAlmostEqual(1, t[3], 5)
 
-        self.s.bodies[0].particle_disp = [(0,0,0),(1,0,0)];
-        t = self.s.bodies[0].particle_disp;
-        self.assertAlmostEqual(0, t[0][0], 5)
-        self.assertAlmostEqual(0, t[0][1], 5)
-        self.assertAlmostEqual(0, t[0][2], 5)
-        self.assertAlmostEqual(1, t[1][0], 5)
-        self.assertAlmostEqual(0, t[1][1], 5)
-        self.assertAlmostEqual(0, t[1][2], 5)
+            self.s.bodies[0].particle_disp = [(0,0,0),(1,0,0)];
+            t = self.s.bodies[0].particle_disp;
+            self.assertAlmostEqual(0, t[0][0], 5)
+            self.assertAlmostEqual(0, t[0][1], 5)
+            self.assertAlmostEqual(0, t[0][2], 5)
+            self.assertAlmostEqual(1, t[1][0], 5)
+            self.assertAlmostEqual(0, t[1][1], 5)
+            self.assertAlmostEqual(0, t[1][2], 5)
 
-        self.s.bodies[0].velocity = (1,2,3);
-        t = self.s.bodies[0].velocity;
-        self.assertAlmostEqual(1, t[0], 5)
-        self.assertAlmostEqual(2, t[1], 5)
-        self.assertAlmostEqual(3, t[2], 5)
+            self.s.bodies[0].velocity = (1,2,3);
+            t = self.s.bodies[0].velocity;
+            self.assertAlmostEqual(1, t[0], 5)
+            self.assertAlmostEqual(2, t[1], 5)
+            self.assertAlmostEqual(3, t[2], 5)
 
-        self.s.bodies[0].angular_momentum = (3,2,1);
-        t = self.s.bodies[0].angular_momentum;
-        self.assertAlmostEqual(3, t[0], 5)
-        self.assertAlmostEqual(2, t[1], 5)
-        self.assertAlmostEqual(1, t[2], 5)
+            self.s.bodies[0].angular_momentum = (3,2,1);
+            t = self.s.bodies[0].angular_momentum;
+            self.assertAlmostEqual(3, t[0], 5)
+            self.assertAlmostEqual(2, t[1], 5)
+            self.assertAlmostEqual(1, t[2], 5)
 
     def tearDown(self):
-        del self.s
-        init.reset();
+        if comm.get_num_ranks() == 1:
+            del self.s
+            init.reset();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

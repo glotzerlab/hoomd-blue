@@ -60,7 +60,6 @@ endforeach(test)
 SET(EXCLUDE_FROM_MPI
     test_charge_pppm
     test_constraint_sphere
-    test_data_access
     test_dump_mol2
     test_dump_pdb
     test_integrate_bdnvt_rigid
