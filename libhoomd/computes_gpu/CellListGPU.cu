@@ -226,7 +226,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, gpu_compute_cell_list_kernel);
+        cudaFuncGetAttributes(&attr, (const void*)gpu_compute_cell_list_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
