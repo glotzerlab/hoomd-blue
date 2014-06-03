@@ -84,6 +84,15 @@ BOOST_AUTO_TEST_CASE( construction )
     MY_BOOST_CHECK_CLOSE(c.v.x, s4.y, tol);
     MY_BOOST_CHECK_CLOSE(c.v.y, s4.z, tol);
     MY_BOOST_CHECK_CLOSE(c.v.z, s4.w, tol);
+
+    Scalar pi = M_PI;
+    Scalar alpha = pi/2.0; // angle of rotation
+    quat<Scalar> d = quat<Scalar>::fromAxisAngle(vec3<Scalar>(0,0,1), alpha);
+    quat<Scalar> q1(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternions
+    MY_BOOST_CHECK_CLOSE(d.s, q1.s, tol);
+    MY_BOOST_CHECK_CLOSE(d.v.x, q1.v.x, tol);
+    MY_BOOST_CHECK_CLOSE(d.v.y, q1.v.y, tol);
+    MY_BOOST_CHECK_CLOSE(d.v.z, q1.v.z, tol);
     }
 
 BOOST_AUTO_TEST_CASE( arithmetic )

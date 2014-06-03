@@ -755,6 +755,20 @@ struct quat
         {
         }
 
+    DEVICE static quat fromAxisAngle(const vec3<Real>& axis, const Real& theta)
+        {
+        //! Construct a quat from an axis and an angle.
+        //! convenience function
+        /*! \param axis angle to represent
+            \param theta angle to represent
+
+            This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
+            The rotmat3 will initialize to the same rotation as the angle around the specified axis.
+        */
+        quat<Real> q(fast::cos(theta/2.0), (Real)fast::sin(theta/2.0) * axis);
+        return q;
+        }
+
     Real s;         //!< scalar component
     vec3<Real> v;   //!< vector component
     };
@@ -1034,10 +1048,10 @@ struct rotmat2
         */
         vec2<Real> row0;
         vec2<Real> row1;
-        row0.x = cosf(theta);
-        row0.y = -sinf(theta);
-        row1.x = sinf(theta);
-        row1.y = cosf(theta);
+        row0.x = fast::cos(theta);
+        row0.y = -fast::sin(theta);
+        row1.x = fast::sin(theta);
+        row1.y = fast::cos(theta);
         return rotmat2<Real>(row0, row1);
         }
 
@@ -1132,18 +1146,16 @@ struct rotmat3
         {
         }
 
+    //! Construct a rotmat3 from an axis and an angle.
+    /*! \param axis angle to represent
+        \param theta angle to represent
+
+        This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
+        The rotmat3 will initialize to the same rotation as the angle around the specified axis.
+    */
     DEVICE static rotmat3 fromAxisAngle(const vec3<Real>& axis, const Real& theta)
         {
-        //! Construct a rotmat3 from an axis and an angle.
-        //! convenience function
-        /*! \param axis angle to represent
-            \param theta angle to represent
-
-            This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
-            The rotmat3 will initialize to the same rotation as the angle around the specified axis.
-        */
-        quat<Real> q(theta, axis);
-        return rotmat3<Real>(q);
+        return rotmat3<Real>(quat<Real>::fromAxisAngle(axis, theta));
         }
 
     vec3<Real> row0;   //!< First row
