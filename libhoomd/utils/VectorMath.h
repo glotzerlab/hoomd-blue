@@ -755,16 +755,15 @@ struct quat
         {
         }
 
+    //! Construct a quat from an axis and an angle.
+    /*! \param axis angle to represent
+        \param theta angle to represent
+
+        This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
+        The rotmat3 will initialize to the same rotation as the angle around the specified axis.
+    */
     DEVICE static quat fromAxisAngle(const vec3<Real>& axis, const Real& theta)
         {
-        //! Construct a quat from an axis and an angle.
-        //! convenience function
-        /*! \param axis angle to represent
-            \param theta angle to represent
-
-            This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
-            The rotmat3 will initialize to the same rotation as the angle around the specified axis.
-        */
         quat<Real> q(fast::cos(theta/2.0), (Real)fast::sin(theta/2.0) * axis);
         return q;
         }
@@ -1017,10 +1016,12 @@ struct rotmat2
 
         This is a convenience function for easy initialization of rotmat2s from quats. The rotmat2 will initialize to
         the same rotation as the quaternion.
+
+        formula from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+
     */
     DEVICE explicit rotmat2(const quat<Real>& q)
         {
-        // formula from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
         Real a = q.s,
              b = q.v.x,
              c = q.v.y,
@@ -1037,15 +1038,15 @@ struct rotmat2
         {
         }
 
+    //! Construct a rotmat2 from a float. formula from http://en.wikipedia.org/wiki/Rotation_matrix
+    /*! \param theta angle to represent
+
+        This is a convenience function for easy initialization of rotmat2s from angles. The rotmat2 will initialize to
+        the same rotation as the angle.
+
+    */
     DEVICE static rotmat2 fromAngle(const Real& theta)
         {
-        //! Construct a rotmat2 from a float.
-        //! formula from http://en.wikipedia.org/wiki/Rotation_matrix
-        /*! \param theta angle to represent
-
-            This is a convenience function for easy initialization of rotmat2s from angles. The rotmat2 will initialize to
-            the same rotation as the angle.
-        */
         vec2<Real> row0;
         vec2<Real> row1;
         row0.x = fast::cos(theta);
