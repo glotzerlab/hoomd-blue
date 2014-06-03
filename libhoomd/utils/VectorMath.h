@@ -1023,7 +1023,7 @@ struct rotmat2
         {
         }
 
-    DEVICE static rotmat2 fromAngle(const float& theta)
+    DEVICE static rotmat2 fromAngle(const Real& theta)
         {
         //! Construct a rotmat2 from a float.
         //! formula from http://en.wikipedia.org/wiki/Rotation_matrix
@@ -1038,29 +1038,6 @@ struct rotmat2
         row0.y = -sinf(theta);
         row1.x = sinf(theta);
         row1.y = cosf(theta);
-        return rotmat2<Real>(row0, row1);
-        }
-
-    DEVICE static rotmat2 fromQuat(const quat<Real>& q)
-        {
-        //! Construct a rotmat2 from a quat
-        /*! \param q quaternion to represent
-
-            This is a convenience function for easy initialization of rotmat2s from quats. The rotmat2 will initialize to
-            the same rotation as the quaternion.
-        */
-        // formula from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
-        Real a = q.s,
-             b = q.v.x,
-             c = q.v.y,
-             d = q.v.z;
-
-        vec2<Real> row0;
-        vec2<Real> row1;
-        row0.x = a*a + b*b - c*c - d*d;
-        row0.y = 2*b*c - 2*a*d;
-        row1.x = 2*b*c + 2*a*d;
-        row1.y = a*a - b*b + c*c - d*d;
         return rotmat2<Real>(row0, row1);
         }
 
@@ -1153,6 +1130,20 @@ struct rotmat3
     //! Default construct an identity matrix
     DEVICE rotmat3() : row0(vec3<Real>(1,0,0)), row1(vec3<Real>(0,1,0)), row2(vec3<Real>(0,0,1))
         {
+        }
+
+    DEVICE static rotmat3 fromAxisAngle(const vec3<Real>& axis, const Real& theta)
+        {
+        //! Construct a rotmat3 from an axis and an angle.
+        //! convenience function
+        /*! \param axis angle to represent
+            \param theta angle to represent
+
+            This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
+            The rotmat3 will initialize to the same rotation as the angle around the specified axis.
+        */
+        quat<Real> q(theta, axis);
+        return rotmat3<Real>(q);
         }
 
     vec3<Real> row0;   //!< First row
