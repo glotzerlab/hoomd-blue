@@ -68,27 +68,24 @@ except ImportError:
 # \param warmup Number of time steps to run() to warm up the benchmark
 # \param repeat Number of times to repeat the benchmark \a steps
 # \param steps Number of time steps to run() at each benchmark point
+# \param limit_hours Limit each individual run() length to this time
 #
 # series_run() executes \a warmup time steps. After that, it simply
 # calls run(steps), \a repeat times and returns a list containing the average TPS for each of those runs.
 #
-# If numpy is available, a brief summary of the benchmark results will be printed to the screen
 # \MPI_SUPPORTED
-def series(warmup=100000, repeat=20, steps=10000):
+def series(warmup=100000, repeat=20, steps=10000, limit_hours=None):
     # check if initialization has occurred
     if not init.is_initialized():
         globals.msg.error("Cannot tune r_buff before initialization\n");
 
     tps_list = [];
 
-    hoomd_script.run(warmup);
-    for i in range(0,repeat):
-        hoomd_script.run(steps);
-        tps_list.append(globals.system.getLastTPS());
+    if warmup > 0:
+        hoomd_script.run(warmup);
 
-    if numpy is not None:
-        globals.msg.notice(1, "**Notice: Series average TPS: %4.2f\n" % numpy.average(tps_list));
-        globals.msg.notice(1, "          Series median TPS : %4.2f\n" % numpy.median(tps_list));
-        globals.msg.notice(1, "          Series TPS std dev: %4.2f" % numpy.std(tps_list));
+    for i in range(0,repeat):
+        hoomd_script.run(steps, limit_hours=limit_hours);
+        tps_list.append(globals.system.getLastTPS());
 
     return tps_list;

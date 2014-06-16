@@ -270,7 +270,7 @@ cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, gpu_compute_bondtable_forces_kernel);
+        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_bondtable_forces_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 

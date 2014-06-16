@@ -429,7 +429,7 @@ template<typename T>
 int dpd_get_max_block_size(T func)
     {
     cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, func);
+    cudaFuncGetAttributes(&attr, (const void *)func);
     int max_threads = attr.maxThreadsPerBlock;
     // number of threads has to be multiple of warp size
     max_threads -= max_threads % gpu_dpd_pair_force_max_tpp;

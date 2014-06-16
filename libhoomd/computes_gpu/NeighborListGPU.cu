@@ -226,7 +226,7 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, gpu_nlist_filter_kernel);
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_filter_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
