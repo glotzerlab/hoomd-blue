@@ -1328,6 +1328,11 @@ int3 ParticleData::getImage(unsigned int tag) const
         }
 #endif
     assert(found);
+
+    //corect for origin shift
+    result.x-=m_o_image.x;
+    result.y-=m_o_image.y;
+    result.z-=m_o_image.z;
     return result;
     }
 
@@ -1523,7 +1528,7 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
 void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     {
     //shift using gridtshift origin
-    pos = pos + m_origin;
+    Scalar3& tmp_pos = pos + m_origin;
     unsigned int idx = getRTag(tag);
     bool ptl_local = (idx < getN());
 
@@ -1536,7 +1541,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     if (ptl_local)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
-        h_pos.data[idx].x = pos.x; h_pos.data[idx].y = pos.y; h_pos.data[idx].z = pos.z;
+        h_tmp_pos.data[idx].x = tmp_pos.x; h_tmp_pos.data[idx].y = tmp_pos.y; h_tmp_pos.data[idx].z = tmp_pos.z;
         }
 
     #ifdef ENABLE_MPI
@@ -1550,7 +1555,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
         assert(!ptl_local || owner_rank == my_rank);
 
         // get rank where the particle should be according to new position
-        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, pos);
+        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, tmp_pos);
 
         // should the particle migrate?
         if (new_rank != owner_rank)
@@ -1653,7 +1658,9 @@ void ParticleData::setImage(unsigned int tag, const int3& image)
     if (found)
         {
         ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::readwrite);
-        h_image.data[idx].x = image.x; h_image.data[idx].y = image.y; h_image.data[idx].z = image.z;
+        h_image.data[idx].x = image.x + m_o_image.x;
+        h_image.data[idx].y = image.y + m_o_image.y;
+        h_image.data[idx].z = image.z + m_o_image.z;
         }
     }
 
