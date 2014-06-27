@@ -1528,7 +1528,7 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
 void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     {
     //shift using gridtshift origin
-    Scalar3& tmp_pos = pos + m_origin;
+    Scalar3 tmp_pos = pos + m_origin;
     unsigned int idx = getRTag(tag);
     bool ptl_local = (idx < getN());
 
@@ -1541,7 +1541,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     if (ptl_local)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
-        h_tmp_pos.data[idx].x = tmp_pos.x; h_tmp_pos.data[idx].y = tmp_pos.y; h_tmp_pos.data[idx].z = tmp_pos.z;
+        h_pos.data[idx].x = tmp_pos.x; h_pos.data[idx].y = tmp_pos.y; h_pos.data[idx].z = tmp_pos.z;
         }
 
     #ifdef ENABLE_MPI
