@@ -1259,7 +1259,7 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
         }
 #endif
     assert(found);
-    return result;
+    return result-m_origin;
     }
 
 //! Get the current velocity of a particle
@@ -1522,6 +1522,8 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
  */
 void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     {
+    //shift using gridtshift origin
+    pos = pos + m_origin;
     unsigned int idx = getRTag(tag);
     bool ptl_local = (idx < getN());
 
