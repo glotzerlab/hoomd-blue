@@ -1245,21 +1245,32 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
     unsigned int idx = getRTag(tag);
     bool found = (idx < getN());
     Scalar3 result = make_scalar3(0.0,0.0,0.0);
+    int3 img = make_int3(0,0,0);
     if (found)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
         result = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+        result = result - m_origin;
+
+        ArrayHandle< int3 > h_img(m_image, access_location::host, access_mode::read);
+        img = make_int3(h_img.data[idx].x, h_img.data[idx].y, h_img.data[idx].z);
+        img.x -= m_o_image.x;
+        img.y -= m_o_image.y;
+        img.z -= m_o_image.z;
         }
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
         bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(img, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
     assert(found);
-    return result-m_origin;
+
+    m_global_box.wrap(result, img);
+    return result;
     }
 
 //! Get the current velocity of a particle
@@ -1529,6 +1540,9 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     {
     //shift using gridtshift origin
     Scalar3 tmp_pos = pos + m_origin;
+    int3 img = make_int3(0,0,0);
+    m_global_box.wrap(tmp_pos, img);
+
     unsigned int idx = getRTag(tag);
     bool ptl_local = (idx < getN());
 
