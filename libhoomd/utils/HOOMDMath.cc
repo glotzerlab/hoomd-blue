@@ -65,9 +65,8 @@ using namespace boost::python;
 
 void export_hoomd_math_functions()
     {
-    // The use of shared_ptr's for exporting CUDA vector types is a
-    // a workaround
-    //i http://stackoverflow.com/questions/13177573/how-to-expose-aligned-class-with-boost-python
+    // The use of shared_ptr's for exporting CUDA vector types is a workaround
+    // see http://stackoverflow.com/questions/13177573/how-to-expose-aligned-class-with-boost-python
     #ifdef SINGLE_PRECISION
     class_<double2, boost::shared_ptr<double2> >("double2", init<>())
         .def_readwrite("x", &double2::x)
