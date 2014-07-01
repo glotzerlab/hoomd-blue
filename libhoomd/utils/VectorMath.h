@@ -755,6 +755,19 @@ struct quat
         {
         }
 
+    //! Construct a quat from an axis and an angle.
+    /*! \param axis angle to represent
+        \param theta angle to represent
+
+        This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
+        The rotmat3 will initialize to the same rotation as the angle around the specified axis.
+    */
+    DEVICE static quat fromAxisAngle(const vec3<Real>& axis, const Real& theta)
+        {
+        quat<Real> q(fast::cos(theta/2.0), (Real)fast::sin(theta/2.0) * axis);
+        return q;
+        }
+
     Real s;         //!< scalar component
     vec3<Real> v;   //!< vector component
     };
@@ -1015,10 +1028,12 @@ struct rotmat2
 
         This is a convenience function for easy initialization of rotmat2s from quats. The rotmat2 will initialize to
         the same rotation as the quaternion.
+
+        formula from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+
     */
     DEVICE explicit rotmat2(const quat<Real>& q)
         {
-        // formula from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
         Real a = q.s,
              b = q.v.x,
              c = q.v.y,
@@ -1033,6 +1048,24 @@ struct rotmat2
     //! Default construct an identity matrix
     DEVICE rotmat2() : row0(vec2<Real>(1,0)), row1(vec2<Real>(0,1))
         {
+        }
+
+    //! Construct a rotmat2 from a float. formula from http://en.wikipedia.org/wiki/Rotation_matrix
+    /*! \param theta angle to represent
+
+        This is a convenience function for easy initialization of rotmat2s from angles. The rotmat2 will initialize to
+        the same rotation as the angle.
+
+    */
+    DEVICE static rotmat2 fromAngle(const Real& theta)
+        {
+        vec2<Real> row0;
+        vec2<Real> row1;
+        row0.x = fast::cos(theta);
+        row0.y = -fast::sin(theta);
+        row1.x = fast::sin(theta);
+        row1.y = fast::cos(theta);
+        return rotmat2<Real>(row0, row1);
         }
 
     vec2<Real> row0;   //!< First row
@@ -1124,6 +1157,18 @@ struct rotmat3
     //! Default construct an identity matrix
     DEVICE rotmat3() : row0(vec3<Real>(1,0,0)), row1(vec3<Real>(0,1,0)), row2(vec3<Real>(0,0,1))
         {
+        }
+
+    //! Construct a rotmat3 from an axis and an angle.
+    /*! \param axis angle to represent
+        \param theta angle to represent
+
+        This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
+        The rotmat3 will initialize to the same rotation as the angle around the specified axis.
+    */
+    DEVICE static rotmat3 fromAxisAngle(const vec3<Real>& axis, const Real& theta)
+        {
+        return rotmat3<Real>(quat<Real>::fromAxisAngle(axis, theta));
         }
 
     vec3<Real> row0;   //!< First row

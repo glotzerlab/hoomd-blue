@@ -97,10 +97,10 @@ class HarmonicDihedralForceCompute : public ForceCompute
         */
         virtual CommFlags getRequestedCommFlags(unsigned int timestep)
             {
-                CommFlags flags = CommFlags(0);
-                flags[comm_flag::tag] = 1;
-                flags |= ForceCompute::getRequestedCommFlags(timestep);
-                return flags;
+            CommFlags flags = CommFlags(0);
+            flags[comm_flag::tag] = 1;
+            flags |= ForceCompute::getRequestedCommFlags(timestep);
+            return flags;
             }
         #endif
 

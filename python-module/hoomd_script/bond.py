@@ -432,12 +432,17 @@ def _table_eval(r, rmin, rmax, V, F, width):
 # in the simulation.
 #
 # The %force \f$ \vec{F}\f$ is (in force units)
+# The %force \f$ \vec{F}\f$ is (in force units)
 # \f{eqnarray*}
-#  \vec{F}(\vec{r})     = & F_{\mathrm{user}}(r)\hat{r} & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
+#  \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
+#                       = & F_{\mathrm{user}}(r)\hat{r} & r < r_{\mathrm{max}} \\
+#                       = & 0                           & r \ge r_{\mathrm{max}} \\
 # \f}
 # and the potential \f$ V(r) \f$ is (in energy units)
 # \f{eqnarray*}
-#            = & V_{\mathrm{user}}(r) & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
+# V(r)       = & 0                    & r < r_{\mathrm{min}} \\
+#            = & V_{\mathrm{user}}(r) & r < r_{\mathrm{max}} \\
+#            = & 0                    & r \ge r_{\mathrm{max}} \\
 # \f}
 # ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.  Care should be taken to
 # define the range of the bond so that it is not possible for the distance between two bonded particles to be outside the
@@ -492,7 +497,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 #
 # \note Coefficients for all bond types in the simulation must be
 # set before it can be started with run().
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class table(force._force):
     ## Specify the Tabulated %bond %force
     #

@@ -131,7 +131,7 @@ CommunicatorGPU::~CommunicatorGPU()
 
 void CommunicatorGPU::allocateBuffers()
     {
-    #ifndef ENABLE_MPI
+    #ifndef ENABLE_MPI_CUDA
     // mapped buffers for particle migration
     bool mapped = true;
     #else
@@ -1149,10 +1149,21 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
 //! Transfer particles between neighboring domains
 void CommunicatorGPU::migrateParticles()
     {
+    m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
+
+    // check if box is sufficiently large for communication
+    Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
+    const Index3D& di = m_decomposition->getDomainIndexer();
+    if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
+        (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
+        (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
+        {
+        m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
+        throw std::runtime_error("Error during communication");
+        }
+
     if (m_prof)
         m_prof->push(m_exec_conf,"comm_migrate");
-
-    m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
 
     if (m_last_flags[comm_flag::tag])
         {

@@ -147,7 +147,7 @@ cudaError_t gpu_nvt_step_one(Scalar4 *d_pos,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, gpu_nvt_step_one_kernel);
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nvt_step_one_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -239,7 +239,7 @@ cudaError_t gpu_nvt_step_two(Scalar4 *d_vel,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, gpu_nvt_step_two_kernel);
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nvt_step_two_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 

@@ -100,7 +100,7 @@ struct DeviceGroup {
 			// Get the compiler version for this device.
 			cudaSetDevice(ordinal);
 			cudaFuncAttributes attr;
-			error = cudaFuncGetAttributes(&attr, KernelVersionShim);
+			error = cudaFuncGetAttributes(&attr, (const void *)KernelVersionShim);
 			if(cudaSuccess == error)
 				device->_ptxVersion = 10 * attr.ptxVersion;
 			else {

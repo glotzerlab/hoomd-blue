@@ -65,5 +65,7 @@ $ sudo apt-get install g++ libboost-all-dev zlib1g-dev python-dev git-core openm
 
 \section  software_req_install_ubuntu_build Compile hoomd
 
+Ubuntu provides an experimental pytyon3 packages alongside python27, but it does not provide boost::python compatible with python3. To build hoomd on an ubuntu system with python3 installed, you must specify `-DPYTHON_EXECUTABLE=/usr/bin/python2` in the initial cmake command to force python2.
+
 See \ref sec_build_linux_generic_compile for instructions on compiling hoomd.
 */

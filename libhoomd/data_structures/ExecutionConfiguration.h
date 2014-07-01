@@ -118,7 +118,7 @@ struct ExecutionConfiguration : boost::noncopyable
 
 #ifdef ENABLE_MPI
     //! Returns the boost MPI communicator
-    const MPI_Comm getMPICommunicator() const
+    MPI_Comm getMPICommunicator() const
         {
         return m_mpi_comm;
         }

@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hoomd/PotentialPairGPU.cuh"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ2
-cudaError_t gpu_compute_lj2_forces(const pair_args_t& pair_args, const float2 *d_params);
+cudaError_t gpu_compute_lj2_forces(const pair_args_t& pair_args, const Scalar2 *d_params);
 // the last argument on the previous line is a pointer to the per type pair parameters passed into the pair potential
 // it must be the same as the param_type in the evaluator this function uses
 #endif

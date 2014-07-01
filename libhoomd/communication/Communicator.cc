@@ -1088,10 +1088,21 @@ void Communicator::communicate(unsigned int timestep)
 //! Transfer particles between neighboring domains
 void Communicator::migrateParticles()
     {
+    m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
+
+    // check if box is sufficiently large for communication
+    Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
+    const Index3D& di = m_decomposition->getDomainIndexer();
+    if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
+        (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
+        (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
+        {
+        m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
+        throw std::runtime_error("Error during communication");
+        }
+
     if (m_prof)
         m_prof->push("comm_migrate");
-
-    m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
         {
         // wipe out reverse-lookup tag -> idx for old ghost atoms
@@ -1793,6 +1804,7 @@ const BoxDim Communicator::getShiftedBox() const
 
     Scalar tol = 0.0001;
     shift += tol*make_scalar3(1.0,1.0,1.0);
+
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         if (m_decomposition->isAtBoundary(dir) &&  isCommunicating(dir))

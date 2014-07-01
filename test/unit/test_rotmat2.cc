@@ -85,6 +85,12 @@ BOOST_AUTO_TEST_CASE( construction )
     MY_BOOST_CHECK_CLOSE(C.row0.y, -1.0, tol);
     MY_BOOST_CHECK_CLOSE(C.row1.x, 1.0, tol);
     MY_BOOST_CHECK_SMALL(C.row1.y, tol_small);
+
+    rotmat2<Scalar> D = rotmat2<Scalar>::fromAngle(alpha);
+    MY_BOOST_CHECK_SMALL(D.row0.x, tol_small);
+    MY_BOOST_CHECK_CLOSE(D.row0.y, -1.0, tol);
+    MY_BOOST_CHECK_CLOSE(D.row1.x, 1.0, tol);
+    MY_BOOST_CHECK_SMALL(D.row1.y, tol_small);
     }
 
 BOOST_AUTO_TEST_CASE( rotation_2 )

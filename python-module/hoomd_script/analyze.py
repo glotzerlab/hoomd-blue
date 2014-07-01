@@ -386,6 +386,8 @@ class imd(_analyzer):
 #   - **nvt_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
 #   - **npt_thermostat_energy** (integrate.npt) - Energy of the NPT thermostat
 #   - **npt_barostat_energy** (integrate.npt & integrate.nph) - Energy of the NPT (or NPH) barostat
+#   - **nvt_rigid_xi_t**_groupname (integrate.nvt_rigid) - NVT momentum rescaling factor \f$ \xi_1^t \f$
+#   - **nvt_rigid_xi_r**_groupname (integrate.nvt_rigid) - NVT angular momentum rescaling factor \f$ \xi_1^r \f$
 #
 # Additionally, the following commands can be provided user-defined names that are appended as suffixes to the
 # logged quantitiy (e.g. with \c pair.lj(r_cut=2.5, \c name="alpha"), the logged quantity would be pair_lj_energy_alpha).

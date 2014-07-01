@@ -106,10 +106,10 @@ struct SnapshotRigidData
      */
     bool validate() const
         {
-        if (! com.size() == size) return false;
-        if (! vel.size() == size) return false;
-        if (! angmom.size() == size) return false;
-        if (! body_image.size() == size) return false;
+        if (com.size() != size) return false;
+        if (vel.size() != size) return false;
+        if (angmom.size() != size) return false;
+        if (body_image.size() != size) return false;
         return true;
         }
 

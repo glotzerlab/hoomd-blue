@@ -72,7 +72,8 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              Scalar *mat_exp_v_int,
                              Scalar *mat_exp_r,
                              Scalar *mat_exp_r_int,
-                             Scalar deltaT);
+                             Scalar deltaT,
+                             bool rescale_all);
 
 //! Kernel driver for wrapping particles back in the box (part of first step)
 cudaError_t gpu_npt_mtk_wrap(const unsigned int N,
@@ -112,4 +113,15 @@ cudaError_t gpu_npt_rescale_angular_momentum(Scalar4 *d_angmom,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              Scalar exp_fac);
+
+//! Rescale all velocities
+void gpu_npt_mtk_rescale(unsigned int N,
+                       Scalar4 *d_postype,
+                       Scalar mat_exp_r_xx,
+                       Scalar mat_exp_r_xy,
+                       Scalar mat_exp_r_xz,
+                       Scalar mat_exp_r_yy,
+                       Scalar mat_exp_r_yz,
+                       Scalar mat_exp_r_zz);
+
 #endif

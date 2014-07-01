@@ -113,7 +113,7 @@ Peter Palm, Jens Glaser, Leipzig University
  - misc bug fixes
  - conversion of bond forces to template evaluator implementation
 
-Jens Glaser, University of Minnesota
+Jens Glaser, University of Michigan
  - integrate.npt anisotropic integration (mkt)
  - pair.force_shifted_lj
  - Dynamic addition/removal of bonds
@@ -126,6 +126,8 @@ Jens Glaser, University of Minnesota
  - Optimization of MPI communication for strong scaling
  - Neighborlist and pair force performance improvements (multiple threads per particle)
  - Enable cell based neighbor list on small boxes
+ - Testing of angle.table and dihedral.table
+ - Replicate command
 
 Pavani Medapuram, University of Minnesota
  - Framework for external potentials
@@ -136,7 +138,7 @@ Brandon D. Smith, University of Michigan
  - integrate.berendsen
  - pair.tersoff
 
-Trung Dac Nguyen
+Trung Dac Nguyen, University of Michigan
  - integreate.nve_rigid
  - integrate.bdnvt_rigid
  - integrate.nvt_rigid
@@ -145,11 +147,11 @@ Trung Dac Nguyen
  - associated rigid body data structures and helper functions
  - integrate.nph_rigid
 
-Ryan Marson
+Ryan Marson, University of Michigan
  - unwrap_rigid option to dump.dcd
 
-While not having contributed a significant amount of code to HOOMD-blue, David Tarjan at the University of Virginia is
-responsible for numerous performance tweaks to the neighbor list and pair force code.
+David Tarjan, University of Virginia
+ - performance tweaks to the neighbor list and pair force code
 
 <hr>
 <h1>Source code</h1>

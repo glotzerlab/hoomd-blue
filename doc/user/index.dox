@@ -67,13 +67,6 @@ Welcome to the user documentation for HOOMD-blue!
 9. \subpage page_license
 10. \subpage page_citing
 11. \subpage page_credits
-
-<hr>
-
-Up to date documentation can be found at the following links:
- - <a href="http://codeblue.umich.edu/hoomd-blue/doc/">Documentation</a> for the latest <b>packaged release</b>.
- - <a href="http://codeblue.umich.edu/hoomd-blue/doc-master/">Documentation</a> for the current <b>development version</b> in \em master.
- - Documentation consistent with any given version can be built from the source code by following the instructions in \ref page_compile_guide.
 */
 
 /*! \page page_command_list Index of Script Commands
@@ -203,7 +196,7 @@ Table of contents:
 
 \section sec_index_manybody Many-body potentials
  - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM many-body %pair %force </i>
- - \link hoomd_sciprt.pair.tersoff pair.tersoff\endlink - <i>Tersoff three-body %pair %force</i>
+ - \link hoomd_script.pair.tersoff pair.tersoff\endlink - <i>Tersoff three-body %pair %force</i>
 
 \section sec_index_bond Bond potentials
  - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>Harmonic %bond force </i>

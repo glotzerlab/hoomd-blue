@@ -71,6 +71,7 @@ using namespace boost;
     \param thermo compute for thermodynamic quantities
     \param T Controlled temperature
     \param tau Time constant
+    \param suffix Suffix to attach to the end of log quantity names
     \param skip_restart Skip initialization of the restart information
 */
 TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
@@ -78,8 +79,9 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
                              boost::shared_ptr<ComputeThermo> thermo,
                              boost::shared_ptr<Variant> T,
                              Scalar tau,
+                             const std::string& suffix,
                              bool skip_restart)
-    : TwoStepNVTRigid(sysdef, group, thermo, T, tau, skip_restart)
+    : TwoStepNVTRigid(sysdef, group, thermo, T, tau, suffix, skip_restart)
     {
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
@@ -356,7 +358,9 @@ void export_TwoStepNVTRigidGPU()
         ("TwoStepNVTRigidGPU", init< boost::shared_ptr<SystemDefinition>,
         boost::shared_ptr<ParticleGroup>,
         boost::shared_ptr<ComputeThermo>,
-        boost::shared_ptr<Variant> >())
+        boost::shared_ptr<Variant>,
+        Scalar,
+        const std::string& >())
         ;
     }
 

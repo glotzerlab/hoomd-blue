@@ -328,15 +328,6 @@ class Communicator
         void setGhostLayerWidth(Scalar ghost_width)
             {
             assert(ghost_width > 0);
-            Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
-            const Index3D& di = m_decomposition->getDomainIndexer();
-            if ((ghost_width >= L.x/Scalar(2.0) && di.getW() > 1) ||
-                (ghost_width >= L.y/Scalar(2.0) && di.getH() > 1) ||
-                (ghost_width >= L.z/Scalar(2.0) && di.getD() > 1))
-                {
-                m_exec_conf->msg->error() << "Ghost layer width exceeds half the sub-domain length." << std::endl;
-                throw std::runtime_error("Error setting up Communicator");
-                }
             m_r_ghost = ghost_width;
             }
 

@@ -97,7 +97,7 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
                        unsigned int flags,
                        const bool nph)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group),
-      m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags), m_nph(nph)
+      m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags), m_nph(nph), m_rescale_all(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
 
@@ -222,7 +222,28 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     // update the propagator matrix
     updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
 
-       {
+    if (m_rescale_all)
+        {
+        // rescale all particle positions
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        unsigned int nparticles = m_pdata->getN();
+
+        for (unsigned int i = 0; i < nparticles; i++)
+            {
+            Scalar3 r = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
+
+            r.x = m_mat_exp_r[0] * r.x + m_mat_exp_r[1] * r.y + m_mat_exp_r[2] * r.z;
+            r.y = m_mat_exp_r[3] * r.y + m_mat_exp_r[4] * r.z;
+            r.z = m_mat_exp_r[5] * r.z;
+
+            h_pos.data[i].x = r.x;
+            h_pos.data[i].y = r.y;
+            h_pos.data[i].z = r.z;
+            }
+        }
+
+        {
         ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -247,9 +268,12 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
             v.y += m_mat_exp_v_int[3] * accel.y + m_mat_exp_v_int[4] * accel.z;
             v.z += m_mat_exp_v_int[5] * accel.z;
 
-            r.x = m_mat_exp_r[0] * r.x + m_mat_exp_r[1] * r.y + m_mat_exp_r[2] * r.z;
-            r.y = m_mat_exp_r[3] * r.y + m_mat_exp_r[4] * r.z;
-            r.z = m_mat_exp_r[5] * r.z;
+            if (! m_rescale_all)
+                {
+                r.x = m_mat_exp_r[0] * r.x + m_mat_exp_r[1] * r.y + m_mat_exp_r[2] * r.z;
+                r.y = m_mat_exp_r[3] * r.y + m_mat_exp_r[4] * r.z;
+                r.z = m_mat_exp_r[5] * r.z;
+                }
 
             r.x += m_mat_exp_r_int[0] * v.x + m_mat_exp_r_int[1] * v.y + m_mat_exp_r_int[2] * v.z;
             r.y += m_mat_exp_r_int[3] * v.y + m_mat_exp_r_int[4] * v.z;
@@ -899,33 +923,69 @@ void TwoStepNPTMTK::advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Sc
     Scalar W = m_ndof*m_T->getValue(timestep)*m_tauP*m_tauP;
     Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
 
+    couplingMode couple = m_couple; 
+    // disable irrelevant couplings
+    if (! (m_flags & baro_x))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_yz;
+            }
+        if (couple == couple_xy || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_y))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xz;
+            }
+        if (couple == couple_yz || couple == couple_xy)
+            {
+            couple = couple_none;
+            }
+        }
+    if (! (m_flags & baro_z))
+        {
+        if (couple == couple_xyz)
+            {
+            couple = couple_xy;
+            }
+        if (couple == couple_yz || couple == couple_xz)
+            {
+            couple = couple_none;
+            }
+        }
+
     // couple diagonal elements of pressure tensor together
     Scalar3 P_diag = make_scalar3(0.0,0.0,0.0);
-    if (m_couple == couple_none)
+    if (couple == couple_none)
         {
         P_diag.x = P.xx;
         P_diag.y = P.yy;
         P_diag.z = P.zz;
         }
-    else if (m_couple == couple_xy)
+    else if (couple == couple_xy)
         {
         P_diag.x = Scalar(1.0/2.0)*(P.xx + P.yy);
         P_diag.y = Scalar(1.0/2.0)*(P.xx + P.yy);
         P_diag.z = P.zz;
         }
-    else if (m_couple == couple_xz)
+    else if (couple == couple_xz)
         {
         P_diag.x = Scalar(1.0/2.0)*(P.xx + P.zz);
         P_diag.y = P.yy;
         P_diag.z = Scalar(1.0/2.0)*(P.xx + P.zz);
         }
-    else if (m_couple == couple_yz)
+    else if (couple == couple_yz)
         {
         P_diag.x = P.xx;
         P_diag.y = Scalar(1.0/2.0)*(P.yy + P.zz);
         P_diag.z = Scalar(1.0/2.0)*(P.yy + P.zz);
         }
-    else if (m_couple == couple_xyz)
+    else if (couple == couple_xyz)
         {
         Scalar P_iso = Scalar(1.0/3.0)*(P.xx + P.yy + P.zz);
         P_diag.x = P_diag.y = P_diag.z = P_iso;
@@ -962,7 +1022,7 @@ void export_TwoStepNPTMTK()
         .def("setP", &TwoStepNPTMTK::setP)
         .def("setTau", &TwoStepNPTMTK::setTau)
         .def("setTauP", &TwoStepNPTMTK::setTauP)
-        .def("setPartialScale", &TwoStepNPTMTK::setPartialScale)
+        .def("setRescaleAll", &TwoStepNPTMTK::setRescaleAll)
         ;
 
     enum_<TwoStepNPTMTK::couplingMode>("couplingMode")

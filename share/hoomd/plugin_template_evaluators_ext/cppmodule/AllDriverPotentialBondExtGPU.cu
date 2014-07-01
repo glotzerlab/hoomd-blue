@@ -55,7 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // template argument to the correct evaluator <EvaluatorBondMine>, and update the type of the 2nd argument to the
 // param_type of the evaluator
 cudaError_t gpu_compute_harmonic_dpd_forces(const bond_args_t& bond_args,
-                                   const float4 *d_params,
+                                   const Scalar4 *d_params,
                                    unsigned int *d_flags)
     {
     return gpu_compute_bond_forces<EvaluatorBondHarmonicDPD>(bond_args, d_params, d_flags);

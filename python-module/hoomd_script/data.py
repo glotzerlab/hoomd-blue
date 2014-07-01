@@ -1130,10 +1130,10 @@ class bond_data:
     ## \internal
     # \brief Get a bond_proxy reference to the bond with id \a id
     # \param id Bond id to access
-    def __getitem__(self, tag):
-        if tag >= len(self) or tag < 0:
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
             raise IndexError;
-        return bond_data_proxy(self.bdata, tag);
+        return bond_data_proxy(self.bdata, id);
 
     ## \internal
     # \brief Set a bond's properties
@@ -1149,7 +1149,7 @@ class bond_data:
         if id >= len(self) or id < 0:
             raise IndexError;
         tag = self.bdata.getNthTag(id);
-        self.bdata.removeBond(tag);
+        self.bdata.removeBondedGroup(tag);
 
     ## \internal
     # \brief Get the number of bonds
@@ -1190,9 +1190,9 @@ class bond_data_proxy:
     #
     # \param bdata BondData to which this proxy belongs
     # \param id index of this bond in \a bdata (at time of proxy creation)
-    def __init__(self, bdata, tag):
+    def __init__(self, bdata, id):
         self.bdata = bdata;
-        self.tag = tag
+        self.tag = bdata.getNthTag(id)
 
     ## \internal
     # \brief Get an informal string representing the object
@@ -1532,7 +1532,7 @@ class dihedral_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class dihedral_data_proxy:
     ## \internal
     # \brief create a dihedral_data_proxy

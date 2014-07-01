@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hoomd/PotentialBondGPU.cuh"
 
 //! Compute harmonic+DPD bond forces on the GPU with EvaluatorBondHarmonicDPD
-cudaError_t gpu_compute_harmonic_dpd_forces(const bond_args_t& bond_args, const float4 *d_params, unsigned int *d_flags);
+cudaError_t gpu_compute_harmonic_dpd_forces(const bond_args_t& bond_args, const Scalar4 *d_params, unsigned int *d_flags);
 // NOTE: The argument d_params must be of the type param_type specified
 // in the evaluator class
 #endif
