@@ -65,33 +65,35 @@ using namespace boost::python;
 
 void export_hoomd_math_functions()
     {
+    // The use of shared_ptr's for exporting CUDA vector types is a workaround
+    // see http://stackoverflow.com/questions/13177573/how-to-expose-aligned-class-with-boost-python
     #ifdef SINGLE_PRECISION
-    class_<double2>("double2", init<>())
+    class_<double2, boost::shared_ptr<double2> >("double2", init<>())
         .def_readwrite("x", &double2::x)
         .def_readwrite("y", &double2::y)
         ;
-    class_<double3>("double3", init<>())
+    class_<double3, boost::shared_ptr<double3> >("double3", init<>())
         .def_readwrite("x", &double3::x)
         .def_readwrite("y", &double3::y)
         .def_readwrite("z", &double3::z)
         ;
-    class_<double4>("double4", init<>())
+    class_<double4, boost::shared_ptr<double4> >("double4", init<>())
         .def_readwrite("x", &double4::x)
         .def_readwrite("y", &double4::y)
         .def_readwrite("z", &double4::z)
         .def_readwrite("w", &double4::w)
         ;
     #else
-    class_<float2>("float2", init<>())
+    class_<float2, boost::shared_ptr<float2> >("float2", init<>())
         .def_readwrite("x", &float2::x)
         .def_readwrite("y", &float2::y)
         ;
-    class_<float3>("float3", init<>())
+    class_<float3, boost::shared_ptr<float3> >("float3", init<>())
         .def_readwrite("x", &float3::x)
         .def_readwrite("y", &float3::y)
         .def_readwrite("z", &float3::z)
         ;
-    class_<float4>("float4", init<>())
+    class_<float4, boost::shared_ptr<float4> >("float4", init<>())
         .def_readwrite("x", &float4::x)
         .def_readwrite("y", &float4::y)
         .def_readwrite("z", &float4::z)
@@ -99,52 +101,52 @@ void export_hoomd_math_functions()
         ;
     #endif
 
-    class_<Scalar2>("Scalar2", init<>())
+    class_<Scalar2, boost::shared_ptr<Scalar2> >("Scalar2", init<>())
         .def_readwrite("x", &Scalar2::x)
         .def_readwrite("y", &Scalar2::y)
         ;
-    class_<Scalar3>("Scalar3", init<>())
+    class_<Scalar3, boost::shared_ptr<Scalar3> >("Scalar3", init<>())
         .def_readwrite("x", &Scalar3::x)
         .def_readwrite("y", &Scalar3::y)
         .def_readwrite("z", &Scalar3::z)
         ;
-    class_<Scalar4>("Scalar4", init<>())
+    class_<Scalar4, boost::shared_ptr<Scalar4> >("Scalar4", init<>())
         .def_readwrite("x", &Scalar4::x)
         .def_readwrite("y", &Scalar4::y)
         .def_readwrite("z", &Scalar4::z)
         .def_readwrite("w", &Scalar4::w)
         ;
-    class_<uint2>("uint2", init<>())
+    class_<uint2, boost::shared_ptr<uint2> >("uint2", init<>())
         .def_readwrite("x", &uint2::x)
         .def_readwrite("y", &uint2::y)
         ;
-    class_<uint3>("uint3", init<>())
+    class_<uint3, boost::shared_ptr<uint3> >("uint3", init<>())
         .def_readwrite("x", &uint3::x)
         .def_readwrite("y", &uint3::y)
         .def_readwrite("z", &uint3::z)
         ;
-    class_<uint4>("uint4", init<>())
+    class_<uint4, boost::shared_ptr<uint4> >("uint4", init<>())
         .def_readwrite("x", &uint4::x)
         .def_readwrite("y", &uint4::y)
         .def_readwrite("z", &uint4::z)
         .def_readwrite("z", &uint4::w)
         ;
-    class_<int2>("int2", init<>())
+    class_<int2, boost::shared_ptr<int2> >("int2", init<>())
         .def_readwrite("x", &int2::x)
         .def_readwrite("y", &int2::y)
         ;
-    class_<int3>("int3", init<>())
+    class_<int3, boost::shared_ptr<int3> >("int3", init<>())
         .def_readwrite("x", &int3::x)
         .def_readwrite("y", &int3::y)
         .def_readwrite("z", &int3::z)
         ;
-    class_<int4>("int4", init<>())
+    class_<int4, boost::shared_ptr<int4> >("int4", init<>())
         .def_readwrite("x", &int4::x)
         .def_readwrite("y", &int4::y)
         .def_readwrite("z", &int4::z)
         .def_readwrite("z", &int4::w)
         ;
-    class_<char3>("char3", init<>())
+    class_<char3, boost::shared_ptr<char3> >("char3", init<>())
         .def_readwrite("x", &char3::x)
         .def_readwrite("y", &char3::y)
         .def_readwrite("z", &char3::z)
