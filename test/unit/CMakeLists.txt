@@ -78,6 +78,7 @@ set(TEST_LIST
     test_force_shifted_lj
     test_nve_integrator
     test_nvt_integrator
+    test_nvt_mtk_integrator
     test_berendsen_integrator
     test_zero_momentum_updater
     test_temp_rescale_updater
