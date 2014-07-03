@@ -1542,7 +1542,10 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     Scalar3 tmp_pos = pos + m_origin;
     int3 img = make_int3(0,0,0);
     m_global_box.wrap(tmp_pos, img);
-
+    std::cout<<tmp_pos.x<<", "<<tmp_pos.y<<", "<<tmp_pos.z<<std::endl;
+    std::cout<<pos.x<<", "<<pos.y<<", "<<pos.z<<std::endl;
+    std::cout<<m_origin.x<<", "<<m_origin.y<<", "<<m_origin.z<<std::endl;
+    std::cout<<"-==================================-"<<std::endl;
     unsigned int idx = getRTag(tag);
     bool ptl_local = (idx < getN());
 
