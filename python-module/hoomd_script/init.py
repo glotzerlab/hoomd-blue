@@ -719,7 +719,7 @@ def read_snapshot(snapshot):
         globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf);
 
     # initialize the system
-    globals.system = hoomd.System(globals.system_definition, time_step);
+    globals.system = hoomd.System(globals.system_definition, 0);
 
     _perform_common_init_tasks();
     return data.system_data(globals.system_definition);
