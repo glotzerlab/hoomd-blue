@@ -538,11 +538,11 @@ __global__ void gpu_npt_mtk_thermostat_kernel(Scalar4 *d_vel,
         Scalar4 vel = d_vel[idx];
         Scalar3 v = make_scalar3(vel.x, vel.y, vel.z);
 
-        v = v*exp_v_fac_thermo;
+        // rescale
+        v *= exp_v_fac_thermo;
 
         // write out the results
         d_vel[idx] = make_scalar4(v.x,v.y,v.z,vel.w);
-
         }
     }
 
@@ -557,15 +557,12 @@ __global__ void gpu_npt_mtk_thermostat_kernel(Scalar4 *d_vel,
 cudaError_t gpu_npt_mtk_thermostat(Scalar4 *d_vel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar xi,
-                             Scalar deltaT)
+                             Scalar exp_v_fac_thermo)
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;
     dim3 grid( (group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
-
-    Scalar exp_v_fac_thermo = exp(-Scalar(1.0/2.0)*xi*deltaT);
 
     // run the kernel
     gpu_npt_mtk_thermostat_kernel<<< grid, threads >>>(d_vel,

@@ -49,72 +49,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifndef __TWOSTEP_NPT_MTK_GPU_CUH__
-#define __TWOSTEP_NPT_MTK_GPU_CUH__
-
-#include <cuda_runtime.h>
+/*! \file TwoStepNVTGPU.cuh
+    \brief Declares GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
+*/
 
 #include "ParticleData.cuh"
 #include "HOOMDMath.h"
 
-/*! \file TwoStepNPTMTKGPU.cuh
-    \brief Declares GPU kernel code for NPT integration on the GPU using the Martyna-Tobias-Klein (MTK) equations. Used by TwoStepNPTMTKGPU.
-*/
+#ifndef __TWO_STEP_NVT_MTK_GPU_CUH__
+#define __TWO_STEP_NVT_MTK_GPU_CUH__
 
-//! Kernel driver for the the first step of the computation
-cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
+//! Kernel driver for the first part of the NVT update called by TwoStepNVTGPU
+cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
+                             int3 *d_image,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar exp_thermo_fac,
-                             Scalar *mat_exp_v,
-                             Scalar *mat_exp_v_int,
-                             Scalar *mat_exp_r,
-                             Scalar *mat_exp_r_int,
-                             Scalar deltaT,
-                             bool rescale_all);
+                             const BoxDim& box,
+                             unsigned int block_size,
+                             Scalar exp_fac,
+                             Scalar deltaT);
 
-//! Kernel driver for wrapping particles back in the box (part of first step)
-cudaError_t gpu_npt_mtk_wrap(const unsigned int N,
-                             Scalar4 *d_pos,
-                             int3 *d_image,
-                             const BoxDim& box);
-
-//! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
+//! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
+cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              Scalar4 *d_net_force,
-                             Scalar *mat_exp_v,
-                             Scalar *mat_exp_v_int,
+                             unsigned int block_size,
                              Scalar deltaT);
 
-//! Kernel driver for reduction of temperature (part of second step)
-cudaError_t gpu_npt_mtk_temperature(Scalar *d_temperature,
-                                    Scalar4 *d_vel,
-                                    Scalar *d_scratch,
-                                    unsigned int num_blocks,
-                                    unsigned int block_size,
-                                    unsigned int *d_group_members,
-                                    unsigned int group_size,
-                                    unsigned int ndof);
-
-//! Kernel driver for rescaling of velocities (part of second step)
-cudaError_t gpu_npt_mtk_thermostat(Scalar4 *d_vel,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             Scalar exp_v_fac_thermo);
-
-//! Rescale all velocities
-void gpu_npt_mtk_rescale(unsigned int N,
-                       Scalar4 *d_postype,
-                       Scalar mat_exp_r_xx,
-                       Scalar mat_exp_r_xy,
-                       Scalar mat_exp_r_xz,
-                       Scalar mat_exp_r_yy,
-                       Scalar mat_exp_r_yz,
-                       Scalar mat_exp_r_zz);
-
-#endif
+#endif //__TWO_STEP_NVT_MTK_GPU_CUH__
