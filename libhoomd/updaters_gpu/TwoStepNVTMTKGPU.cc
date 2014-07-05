@@ -110,7 +110,7 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
     GPUArray< Scalar > scratch(m_num_blocks, exec_conf);
     m_scratch.swap(scratch);
 
-    GPUArray< Scalar> temperature(1, exec_conf);
+    GPUArray< Scalar> temperature(1, exec_conf, true);
     m_temperature.swap(temperature);
     }
 
