@@ -103,6 +103,7 @@ string find_hoomd_script()
     list<path> search_paths;
     search_paths.push_back(exepath / "python-module");                            // windows
     search_paths.push_back(exepath / ".." / "lib" / "hoomd" / "python-module");   // linux/mac
+    search_paths.push_back(path(HOOMD_INSTALL_PREFIX) / "lib" / "hoomd" / "python-module"); // installation directory
     search_paths.push_back(path(HOOMD_SOURCE_DIR) / "python-module");             // from source builds
     if (getenv("HOOMD_PYTHON_DIR"))
         {
