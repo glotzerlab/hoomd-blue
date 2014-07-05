@@ -563,15 +563,15 @@ def create_random_polymers(box, polymers, separation, seed=1):
         raise RuntimeError("Error creating random polymers");
 
     if type(polymers) != type([]) or len(polymers) == 0:
-        globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
+        globals.msg.error("Polymers specified incorrectly. See the hoomd_script documentation\n");
         raise RuntimeError("Error creating random polymers");
 
     if type(separation) != type(dict()) or len(separation) == 0:
-        globals.msg.error("polymers specified incorrectly. See the hoomd_script documentation\n");
+        globals.msg.error("Polymers specified incorrectly. See the hoomd_script documentation\n");
         raise RuntimeError("Error creating random polymers");
 
     if not isinstance(box, data.boxdim):
-        globals.msg.error('box must be a data.boxdim object');
+        globals.msg.error('Box must be a data.boxdim object\n');
         raise TypeError('box must be a data.boxdim object');
 
     # create the generator
