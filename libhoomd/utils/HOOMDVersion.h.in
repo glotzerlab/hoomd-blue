@@ -50,6 +50,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define COMPILE_DATE "${COMPILE_DATE}"
 // Set to the src dir to be used as the root to read data files from
 #define HOOMD_SOURCE_DIR "${HOOMD_SOURCE_DIR}"
+// Set the installation directory as a hint for locating libraries
+#define HOOMD_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}"
 // Current git refspec checked out
 #define HOOMD_GIT_REFSPEC "${HOOMD_GIT_REFSPEC}"
 // Current git hash
