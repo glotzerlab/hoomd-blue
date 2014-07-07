@@ -91,6 +91,7 @@ set(TEST_LIST
     test_pppm_force
     test_table_dihedral_force
     test_table_angle_force
+    test_gridshift_correct
     )
 
     # put the longest tests last
