@@ -108,6 +108,18 @@ __all__ = [ "analyze",
             "comm",
             "ai_pair"];
 
+default_excepthook = sys.excepthook;
+
+## \internal
+# \brief Override pythons except hook to abort MPI runs
+def hoomd_sys_excepthook(type, value, traceback):
+    default_excepthook(type, value, traceback);
+    sys.stderr.flush();
+    hoomd.abort_mpi(globals.exec_conf);
+
+# install the hoomd excepthook to abort MPI runs if there are uncaught exceptions
+sys.excepthook = hoomd_sys_excepthook;
+
 ## \internal
 # \brief Major version of hoomd_script
 version_major = 1;

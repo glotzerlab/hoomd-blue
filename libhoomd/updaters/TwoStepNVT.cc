@@ -329,10 +329,10 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     unsigned int group_size = m_group->getNumMembers();
 
     // compute the current thermodynamic properties
-    m_thermo->compute(timestep);
+    m_thermo->compute(timestep+1);
 
     // get temperature and advance thermostat
-    advanceThermostat(timestep);
+    advanceThermostat(timestep+1);
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

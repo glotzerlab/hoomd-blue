@@ -397,6 +397,17 @@ void finalize_mpi()
     }
 #endif
 
+//! Abort MPI runs
+void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    #ifdef ENABLE_MPI
+    if (exec_conf->getNRanksGlobal() > 1)
+        {
+        MPI_Abort(exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
+        }
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -410,6 +421,8 @@ BOOST_PYTHON_MODULE(hoomd)
     // register clean-up function
     Py_AtExit(finalize_mpi);
     #endif
+
+    def("abort_mpi", abort_mpi);
 
     // write out the version information on the module import
     output_version_info(false);

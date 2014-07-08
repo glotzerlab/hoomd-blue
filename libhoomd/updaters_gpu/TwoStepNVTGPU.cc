@@ -202,10 +202,10 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     #endif
         {
         // compute the current thermodynamic properties
-        m_thermo->compute(timestep);
+        m_thermo->compute(timestep+1);
 
         // get temperature and advance thermostat
-        advanceThermostat(timestep);
+        advanceThermostat(timestep+1);
         }
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
