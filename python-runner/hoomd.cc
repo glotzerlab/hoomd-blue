@@ -99,12 +99,26 @@ string find_hoomd_script()
     {
     // this works on the requirement in the hoomd build scripts that the python module is always
     // installed in lib/hoomd/python-module on linux and mac. On windows, it actually ends up in bin/python-module
-    path exepath = path(getExePath());
+    string exepath_str = getExePath();
+    path exepath = path(exepath_str);
     list<path> search_paths;
-    search_paths.push_back(exepath / "python-module");                            // windows
-    search_paths.push_back(exepath / ".." / "lib" / "hoomd" / "python-module");   // linux/mac
-    search_paths.push_back(path(HOOMD_INSTALL_PREFIX) / "lib" / "hoomd" / "python-module"); // installation directory
-    search_paths.push_back(path(HOOMD_SOURCE_DIR) / "python-module");             // from source builds
+
+    // if we are running out of the build directory, pull hoomd_script from the source dir.
+    // this check assumes that both paths are absolute, but that should always be the case
+    string binary_dir_str = string(HOOMD_BINARY_DIR);
+    if (binary_dir_str == exepath_str.substr(0, binary_dir_str.size()))
+        {
+        cout << "Adding source dir" << endl;
+        search_paths.push_back(path(HOOMD_SOURCE_DIR) / "python-module");             // from source builds
+        }
+    else
+        {
+        cout << "Adding install dir" << endl;
+        search_paths.push_back(exepath / "python-module");                            // windows
+        search_paths.push_back(exepath / ".." / "lib" / "hoomd" / "python-module");   // linux/mac
+        search_paths.push_back(path(HOOMD_INSTALL_PREFIX) / "lib" / "hoomd" / "python-module"); // installation directory
+        }
+
     if (getenv("HOOMD_PYTHON_DIR"))
         {
         string hoomd_script_dir = string(getenv("HOOMD_PYTHON_DIR"));
