@@ -279,9 +279,9 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
             Scalar3 pos = make_scalar3(m_initial_x[tag], m_initial_y[tag], m_initial_z[tag]);
             int3 image_i = make_int3(image.x, image.y, image.z);
             Scalar3 unwrapped = box.shift(pos, image_i);
-            m_initial_x[tag] += unwrapped.x;
-            m_initial_y[tag] += unwrapped.y;
-            m_initial_z[tag] += unwrapped.z;
+            m_initial_x[tag] = unwrapped.x;
+            m_initial_y[tag] = unwrapped.y;
+            m_initial_z[tag] = unwrapped.z;
             }
         }
     }
