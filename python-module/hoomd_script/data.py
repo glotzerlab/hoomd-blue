@@ -815,6 +815,7 @@ class particle_data_proxy:
         result += "typeid      : " + str(self.typeid) + "\n";
         result += "body        : " + str(self.body) + "\n";
         result += "orientation : " + str(self.orientation) + "\n";
+        result += "mom. inertia: " + str(self.moment_inertia) + "\n";
         result += "angular_momentum: " + str(self.angular_momentum) + "\n";
         result += "net_force   : " + str(self.net_force) + "\n";
         result += "net_energy  : " + str(self.net_energy) + "\n";
