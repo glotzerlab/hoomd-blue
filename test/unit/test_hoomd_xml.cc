@@ -132,6 +132,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     I = make_scalar3(0, 1, 2);
     pdata->setMomentsOfInertia(0, I);
+    pdata->setAngularMomentum(0,make_scalar4(0,1,2,3));
 
     h_pos.data[1].x = Scalar(1.5);
     h_pos.data[1].y = Scalar(2.5);
@@ -155,6 +156,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     I = make_scalar3(5, 4, 3);
     pdata->setMomentsOfInertia(1, I);
+    pdata->setAngularMomentum(1,make_scalar4(9,8,7,6));
 
     h_pos.data[2].x = Scalar(-1.5);
     h_pos.data[2].y = Scalar(2.5);
@@ -178,6 +180,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     I = make_scalar3(1, 11, 21);
     pdata->setMomentsOfInertia(2, I);
+    pdata->setAngularMomentum(2,make_scalar4(1, 2, 3, 4));
 
     h_pos.data[3].x = Scalar(-1.5);
     h_pos.data[3].y = Scalar(2.5);
@@ -201,6 +204,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
     I = make_scalar3(51,41,31);
     pdata->setMomentsOfInertia(3, I);
+    pdata->setAngularMomentum(3,make_scalar4(51,41,31,21));
     }
 
     // add a couple walls for fun
@@ -776,8 +780,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->setOutputMomentInertia(true);
 
         // make sure the first output file is deleted
-        remove_all("test.0000000130.xml");
-        BOOST_REQUIRE(!exists("test.0000000130.xml"));
+        remove_all("test.0000000120.xml");
+        BOOST_REQUIRE(!exists("test.0000000120.xml"));
 
         // write the file
         writer->analyze(130);
@@ -815,6 +819,52 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         f.close();
         }
 
+    // fourteenth test: the angmom array
+        {
+        writer->setOutputMomentInertia(false);
+        writer->setOutputAngularMomentum(true);
+
+        // make sure the first output file is deleted
+        remove_all("test.0000000130.xml");
+        BOOST_REQUIRE(!exists("test.0000000130.xml"));
+
+        // write the file
+        writer->analyze(140);
+
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f("test.0000000140.xml");
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<angmom num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "0 1 2 3");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "9 8 7 6");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "1 2 3 4");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "51 41 31 21");
+        BOOST_REQUIRE(!f.bad());
+
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</angmom>");
+        f.close();
+        }
+
+
     remove_all("test.0000000000.xml");
     remove_all("test.0000000010.xml");
     remove_all("test.0000000020.xml");
@@ -829,6 +879,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     remove_all("test.0000000110.xml");
     remove_all("test.0000000120.xml");
     remove_all("test.0000000130.xml");
+    remove_all("test.0000000140.xml");
     }
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
@@ -1066,7 +1117,7 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     // create a test input file
     ofstream f("test_input.xml");
     f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
-<hoomd_xml version=\"1.3\">\n\
+<hoomd_xml version=\"1.6\">\n\
 <configuration time_step=\"150000000\" dimensions=\"2\">\n\
 <box lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" xy=\".12\" xz=\".23\" yz=\".34\"/>\n\
 <position >\n\
@@ -1134,13 +1185,21 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 50.0\n\
 </charge>\n\
 <moment_inertia>\n\
-0 1 2 3 4 5\n\
-10 11 12 13 14 15\n\
-20 21 22 23 24 25\n\
-30 31 32 33 34 35\n\
-40 41 42 43 44 45\n\
-50 51 52 53 54 55\n\
+0 1 2 \n\
+10 11 12\n\
+20 21 22\n\
+30 31 32\n\
+40 41 42\n\
+50 51 52\n\
 </moment_inertia>\n\
+<angmom>\n\
+1 10 100 1000\n\
+2 20 200 2000\n\
+3 30 300 3000\n\
+4 40 400 4000\n\
+5 50 500 5000\n\
+6 60 600 6000\n\
+</angmom>\n\
 <wall>\n\
 <coord ox=\"1.0\" oy=\"2.0\" oz=\"3.0\" nx=\"4.0\" ny=\"5.0\" nz=\"6.0\"/>\n\
 <coord ox=\"7.0\" oy=\"8.0\" oz=\"9.0\" nx=\"10.0\" ny=\"11.0\" nz=\"-12.0\"/>\n\
@@ -1235,6 +1294,14 @@ im_b 5 4 3 2\n\
         MY_BOOST_CHECK_CLOSE(I.x, i*10, tol);
         MY_BOOST_CHECK_CLOSE(I.y, i*10+1, tol);
         MY_BOOST_CHECK_CLOSE(I.z, i*10+2, tol);
+
+        // check the angular momentum values
+        Scalar4 M;
+        M = pdata->getAngularMomentum(i);
+        MY_BOOST_CHECK_CLOSE(M.x, i+1, tol);
+        MY_BOOST_CHECK_CLOSE(M.y, (i+1)*10, tol);
+        MY_BOOST_CHECK_CLOSE(M.z, (i+1)*100, tol);
+        MY_BOOST_CHECK_CLOSE(M.w, (i+1)*1000, tol);
         }
     }
 

@@ -33,6 +33,7 @@ class dmp_xml_tests (unittest.TestCase):
         xml.set_params(bond=True);
         xml.set_params(image=True);
         xml.set_params(all=True);
+        xml.set_params(angmom=True);
 
     def tearDown(self):
         init.reset();

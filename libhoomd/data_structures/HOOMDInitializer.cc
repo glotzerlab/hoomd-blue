@@ -110,6 +110,7 @@ HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguratio
     m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
     m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
     m_parser_map["moment_inertia"] = bind(&HOOMDInitializer::parseMomentInertiaNode, this, _1);
+    m_parser_map["angmom"] = bind(&HOOMDInitializer::parseAngularMomentumNode, this, _1);
 
     // read in the file
     readFile(fname);
@@ -233,6 +234,9 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
 
     // Initialize orientations
     if (m_orientation.size()) pdata.orientation = m_orientation;
+
+    // Initialize angular momenta
+    if (m_angmom.size()) pdata.angmom = m_angmom;
 
     /*
      * Initialize bond data
@@ -499,6 +503,13 @@ void HOOMDInitializer::readFile(const string &fname)
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
+    if (m_angmom.size() != 0 && m_angmom.size() != m_pos_array.size())
+        {
+        m_exec_conf->msg->error() << endl << m_angmom.size() << " angmom values != " << m_pos_array.size()
+             << " positions" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_xml file");
+        }
+
 
     // notify the user of what we have accomplished
     m_exec_conf->msg->notice(2) << "--- hoomd_xml file read summary" << endl;
@@ -530,6 +541,8 @@ void HOOMDInitializer::readFile(const string &fname)
         m_exec_conf->msg->notice(2) << m_orientation.size() << " orientations" << endl;
     if (m_moment_inertia.size() > 0)
         m_exec_conf->msg->notice(2) << m_moment_inertia.size() << " moments of inertia" << endl;
+    if (m_angmom.size() > 0)
+        m_exec_conf->msg->notice(2) << m_angmom.size() << " angular moments" << endl;
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
@@ -1051,6 +1064,34 @@ void HOOMDInitializer::parseOrientationNode(const XMLNode &node)
             m_orientation.push_back(make_scalar4(ox, oy, oz, ow));
         }
     }
+
+/*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b angmom node and fills out m_angmom. The number
+    of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseAngularMomentumNode(const XMLNode &node)
+    {
+    // check that this is actually a charge node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("angmom"));
+
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        Scalar mx, my, mz, mw;
+        parser >> mx >> my >> mz >> mw;
+        if (parser.good())
+            m_angmom.push_back(make_scalar4(mx, my, mz, mw));
+        }
+    }
+
 
 /*! \param node XMLNode passed from the top level parser in readFile
     This function extracts all of the data in a \b moment_inertia node and fills out m_moment_inertia. The number
