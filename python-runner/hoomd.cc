@@ -108,12 +108,10 @@ string find_hoomd_script()
     string binary_dir_str = string(HOOMD_BINARY_DIR);
     if (binary_dir_str == exepath_str.substr(0, binary_dir_str.size()))
         {
-        cout << "Adding source dir" << endl;
         search_paths.push_back(path(HOOMD_SOURCE_DIR) / "python-module");             // from source builds
         }
     else
         {
-        cout << "Adding install dir" << endl;
         search_paths.push_back(exepath / "python-module");                            // windows
         search_paths.push_back(exepath / ".." / "lib" / "hoomd" / "python-module");   // linux/mac
         search_paths.push_back(path(HOOMD_INSTALL_PREFIX) / "lib" / "hoomd" / "python-module"); // installation directory
