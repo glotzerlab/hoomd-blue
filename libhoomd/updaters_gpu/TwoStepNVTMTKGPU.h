@@ -102,6 +102,10 @@ class TwoStepNVTMTKGPU : public TwoStepNVTMTK
             m_tuner_one->setEnabled(enable);
             m_tuner_two->setPeriod(period);
             m_tuner_two->setEnabled(enable);
+            m_tuner_rescale->setPeriod(period);
+            m_tuner_rescale->setEnabled(enable);
+            m_tuner_reduce->setPeriod(period);
+            m_tuner_reduce->setEnabled(enable);
             }
 
     protected:
