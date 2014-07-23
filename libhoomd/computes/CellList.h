@@ -236,6 +236,13 @@ class CellList : public Compute
                 m_multiple = 1;
             }
 
+        //! Set the sort flag
+        void setSortCellList(bool sort)
+            {
+            m_sort_cell_list = sort;
+            m_params_changed = true;
+            }
+
         // @}
         //! \name Get properties
         // @{
@@ -374,6 +381,8 @@ class CellList : public Compute
         GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
         boost::signals2::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
+
+        bool m_sort_cell_list;               //!< If true, sort cell list
 
         //! Computes what the dimensions should me
         uint3 computeDimensions();

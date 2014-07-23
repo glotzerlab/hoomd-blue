@@ -67,7 +67,7 @@ using namespace std;
 */
 CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
-      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false)
+      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
@@ -384,7 +384,7 @@ void CellList::initializeMemory()
         m_orientation.swap(orientation);
         }
 
-    if (m_compute_idx)
+    if (m_compute_idx || m_sort_cell_list)
         {
         GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), exec_conf);
         m_idx.swap(idx);
@@ -709,6 +709,7 @@ void export_CellList()
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
+        .def("setSortCellList", &CellList::setSortCellList)
         .def("getDim", &CellList::getDim, return_internal_reference<>())
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark)

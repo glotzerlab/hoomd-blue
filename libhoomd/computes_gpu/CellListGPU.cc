@@ -72,6 +72,14 @@ CellListGPU::CellListGPU(boost::shared_ptr<SystemDefinition> sysdef)
         }
 
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "cell_list", this->m_exec_conf));
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
+    #endif
     }
 
 void CellListGPU::computeCellList()
@@ -152,6 +160,34 @@ void CellListGPU::computeCellList()
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    if (m_sort_cell_list)
+        {
+        ScopedAllocation<uint2> d_sort_idx(m_exec_conf->getCachedAllocator(), m_cell_list_indexer.getNumElements());
+        ScopedAllocation<unsigned int> d_sort_permutation(m_exec_conf->getCachedAllocator(), m_cell_list_indexer.getNumElements());
+        ScopedAllocation<unsigned int> d_cell_idx_new(m_exec_conf->getCachedAllocator(), m_idx.getNumElements());
+        ScopedAllocation<Scalar4> d_xyzf_new(m_exec_conf->getCachedAllocator(), m_xyzf.getNumElements());
+        ScopedAllocation<Scalar4> d_cell_orientation_new(m_exec_conf->getCachedAllocator(), m_orientation.getNumElements());
+        ScopedAllocation<Scalar4> d_tdb_new(m_exec_conf->getCachedAllocator(), m_tdb.getNumElements());
+
+        gpu_sort_cell_list(d_cell_size.data,
+                           d_xyzf.data,
+                           d_xyzf_new.data,
+                           d_tdb.data,
+                           d_tdb_new.data,
+                           d_cell_orientation.data,
+                           d_cell_orientation_new.data,
+                           d_cell_idx.data,
+                           d_cell_idx_new.data,
+                           d_sort_idx.data,
+                           d_sort_permutation.data,
+                           m_cell_indexer,
+                           m_cell_list_indexer,
+                           m_mgpu_context);
+
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
 
     if (m_prof)
         m_prof->pop(exec_conf);

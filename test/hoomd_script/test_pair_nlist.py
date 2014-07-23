@@ -20,6 +20,7 @@ class pair_nlist_tests (unittest.TestCase):
     def test_set_params(self):
         globals.neighbor_list.set_params(r_buff=0.6);
         globals.neighbor_list.set_params(check_period = 20);
+        globals.neighbor_list.set_params(deterministic = True);
 
     # test reset_exclusions
     def test_reset_exclusions_works(self):

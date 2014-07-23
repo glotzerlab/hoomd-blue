@@ -342,7 +342,7 @@ class nlist:
         # create the C++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             if mode == "binned":
-                cl_c = hoomd.CellList(globals.system_definition);
+                self.cpp_cl = cl_c = hoomd.CellList(globals.system_definition);
                 globals.system.addCompute(cl_c, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
             else:
@@ -350,7 +350,7 @@ class nlist:
                 raise RuntimeError("Error creating neighbor list");
         else:
             if mode == "binned":
-                cl_g = hoomd.CellListGPU(globals.system_definition);
+                self.cpp_cl = cl_g = hoomd.CellListGPU(globals.system_definition);
                 globals.system.addCompute(cl_g, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
             else:
@@ -411,6 +411,7 @@ class nlist:
     #        run() commands. (in distance units)
     # \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
     #        \a check_period steps
+    # \param deterministic (if set) Enable deterministic runs on the GPU by sorting the cell list (not enabled by default)
     #
     # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
     # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
@@ -451,7 +452,7 @@ class nlist:
     # nlist.set_params(r_buff = 0.7, check_period = 4)
     # nlist.set_params(d_max = 3.0)
     # \endcode
-    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True):
+    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=None):
         util.print_status_line();
 
         if self.cpp_nlist is None:
@@ -468,6 +469,9 @@ class nlist:
 
         if d_max is not None:
             self.cpp_nlist.setMaximumDiameter(d_max);
+
+        if deterministic is not None:
+            self.cpp_cl.setSortCellList(deterministic)
 
     ## Resets all exclusions in the neighborlist
     #
