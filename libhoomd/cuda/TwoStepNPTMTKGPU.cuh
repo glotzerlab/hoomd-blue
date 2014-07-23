@@ -105,7 +105,8 @@ cudaError_t gpu_npt_mtk_temperature(Scalar *d_temperature,
 cudaError_t gpu_npt_mtk_thermostat(Scalar4 *d_vel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar exp_v_fac_thermo);
+                             Scalar exp_v_fac_thermo,
+                             unsigned int block_size);
 
 //! Rescale all velocities
 void gpu_npt_mtk_rescale(unsigned int N,

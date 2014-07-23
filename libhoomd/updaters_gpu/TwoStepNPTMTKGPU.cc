@@ -390,7 +390,8 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     gpu_npt_mtk_thermostat(d_vel.data,
                            d_index_array.data,
                            group_size,
-                           exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT));
+                           exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT),
+                           256);
 
     } // end GPUArray scope
 

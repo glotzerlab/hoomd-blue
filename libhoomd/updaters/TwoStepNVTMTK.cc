@@ -295,7 +295,7 @@ void TwoStepNVTMTK::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool reduce)
+void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     {
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -311,7 +311,7 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool reduce)
     m_exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT);
 
     #ifdef ENABLE_MPI
-    if (m_comm && reduce)
+    if (m_comm && broadcast)
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());

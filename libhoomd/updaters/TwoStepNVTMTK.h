@@ -140,9 +140,9 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
 
         // advance the thermostat
         /*!\param timestep The time step
-         * \param reduce True if we should reduce the integrator variables via MPI
+         * \param broadcast True if we should broadcast the integrator variables via MPI
          */
-        void advanceThermostat(unsigned int timestep, bool reduce=true);
+        void advanceThermostat(unsigned int timestep, bool broadcast=true);
     };
 
 //! Exports the TwoStepNVTMTK class to python

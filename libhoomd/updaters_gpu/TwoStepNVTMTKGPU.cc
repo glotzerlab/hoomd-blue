@@ -102,12 +102,17 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
     m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_one", this->m_exec_conf));
     m_tuner_two.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two", this->m_exec_conf));
 
-    m_reduction_block_size = 512;
+    m_tuner_rescale.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two_rescale", this->m_exec_conf));
 
-    // this breaks memory scaling (calculate memory requirements from global group size)
-    // unless we reallocate memory with every change of the maximum particle number
-    m_num_blocks = m_group->getNumMembersGlobal() / m_reduction_block_size + 1;
-    GPUArray< Scalar > scratch(m_num_blocks, exec_conf);
+    // generate power-of-two block sizes
+    valid_params.clear();
+    for (unsigned int block_size = 32; block_size <= 1024; block_size *= 2)
+        {
+        valid_params.push_back(block_size);
+        }
+    m_tuner_reduce.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two_reduce", this->m_exec_conf));
+
+    GPUVector< Scalar > scratch(exec_conf);
     m_scratch.swap(scratch);
 
     GPUArray< Scalar> temperature(1, exec_conf, true);
@@ -201,24 +206,33 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
 
     m_tuner_two->end();
 
+
         {
+        // get block size from autotuner
+        unsigned int block_size = m_tuner_reduce->getParam();
+        unsigned int num_blocks = m_group->getNumMembers() / block_size + 1;
+
+        // resize scratch if necessary
+        m_scratch.resize(num_blocks);
+
         // recalulate temperature
         ArrayHandle<Scalar> d_temperature(m_temperature, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
 
         // update number of blocks to current group size
-        m_num_blocks = m_group->getNumMembers() / m_reduction_block_size + 1;
-
+        m_tuner_reduce->begin();
         gpu_npt_mtk_temperature(d_temperature.data,
                                 d_vel.data,
                                 d_scratch.data,
-                                m_num_blocks,
-                                m_reduction_block_size,
+                                num_blocks,
+                                block_size,
                                 d_index_array.data,
                                 group_size,
                                 m_thermo->getNDOF());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+
+        m_tuner_reduce->end();
         }
 
     // read back intermediate temperature from GPU
@@ -238,14 +252,20 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
     // get temperature and advance thermostat
     advanceThermostat(timestep+1,true);
 
+    m_tuner_rescale->begin();
+    unsigned int block_size = m_tuner_rescale->getParam();
+
     // rescale velocities
     gpu_npt_mtk_thermostat(d_vel.data,
                            d_index_array.data,
                            group_size,
-                           m_exp_thermo_fac);
+                           m_exp_thermo_fac,
+                           block_size);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_tuner_rescale->end();
 
     // done profiling
     if (m_prof)

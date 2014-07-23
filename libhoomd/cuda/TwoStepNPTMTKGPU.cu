@@ -549,18 +549,18 @@ __global__ void gpu_npt_mtk_thermostat_kernel(Scalar4 *d_vel,
 /*! \param d_vel array of particle velocities
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
-    \param xi Thermostat velocity
-    \param deltaT Time to move forward in one whole step
+    \param exp_v_fac_thermo Rescaling factor
+    \param block_size Kernel block size
 
     This is just a kernel driver for gpu_npt_step_kernel(). See it for more details.
 */
 cudaError_t gpu_npt_mtk_thermostat(Scalar4 *d_vel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar exp_v_fac_thermo)
+                             Scalar exp_v_fac_thermo,
+                             unsigned int block_size)
     {
     // setup the grid to run the kernel
-    unsigned int block_size=256;
     dim3 grid( (group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
