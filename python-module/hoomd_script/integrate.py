@@ -411,10 +411,10 @@ class nvt(_integration_method):
         T = variant._setup_variant_input(T);
 
         # create the compute thermo
-        # as an optimization, NVT on the GPU uses the thermo is a way that produces incorrect values for the pressure
+        # as an optimization, NVT (without MTK) on the GPU uses the thermo is a way that produces incorrect values for the pressure
         # if we are given the overall group_all, create a new group so that the invalid pressure is not passed to
         # analyze.log
-        if group is globals.group_all:
+        if group is globals.group_all and not mtk:
             group_copy = copy.copy(group);
             group_copy.name = "__nvt_all";
             util._disable_status_lines = True;
