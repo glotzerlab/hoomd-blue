@@ -1,6 +1,6 @@
 # number of builds to retain
 NRPMS=8
-BRANCH=master
+BRANCH=maint
 
 echo "--- Building nightly Mac OS X hoomd package on `date`"
 
