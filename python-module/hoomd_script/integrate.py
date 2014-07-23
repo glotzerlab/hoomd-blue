@@ -380,6 +380,7 @@ class nvt(_integration_method):
     # \param group Group of particles on which to apply this method.
     # \param T Temperature set point for the Nos&eacute;-Hoover thermostat. (in energy units)
     # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. (in time units)
+    # \param mtk If *true* (default), use the time-reversible and measure-preserving Martyna-Tobias-Klein (MTK) update equations
     #
     # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
@@ -389,15 +390,18 @@ class nvt(_integration_method):
     #
     # Internally, a compute.thermo is automatically specified and associated with \a group.
     #
+    # The MTK equations are described in Refs. \cite{Martyna1994,Martyna1996} and exhibit superior time stability.
+    #
     # \b Examples:
     # \code
     # all = group.all()
     # integrate.nvt(group=all, T=1.0, tau=0.5)
     # integrator = integrate.nvt(group=all, tau=1.0, T=0.65)
+    # integrator = integrate.nvt(group=all, tau=1.0, T=0.65, mtk=False)
     # typeA = group.type('A')
     # integrator = integrate.nvt(group=typeA, tau=1.0, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     # \endcode
-    def __init__(self, group, T, tau):
+    def __init__(self, group, T, tau, mtk=True):
         util.print_status_line();
 
         # initialize base class
@@ -407,10 +411,10 @@ class nvt(_integration_method):
         T = variant._setup_variant_input(T);
 
         # create the compute thermo
-        # as an optimization, NVT on the GPU uses the thermo is a way that produces incorrect values for the pressure
+        # as an optimization, NVT (without MTK) on the GPU uses the thermo is a way that produces incorrect values for the pressure
         # if we are given the overall group_all, create a new group so that the invalid pressure is not passed to
         # analyze.log
-        if group is globals.group_all:
+        if group is globals.group_all and not mtk:
             group_copy = copy.copy(group);
             group_copy.name = "__nvt_all";
             util._disable_status_lines = True;
@@ -423,10 +427,17 @@ class nvt(_integration_method):
         suffix = '_' + group.name;
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+        if mtk is False:
+            if not globals.exec_conf.isCUDAEnabled():
+                self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+            else:
+                self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         else:
-            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+            if not globals.exec_conf.isCUDAEnabled():
+                self.cpp_method = hoomd.TwoStepNVTMTK(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+            else:
+                self.cpp_method = hoomd.TwoStepNVTMTKGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+
 
         self.cpp_method.validateGroup()
 

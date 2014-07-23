@@ -384,6 +384,7 @@ class imd(_analyzer):
 # - Integrators
 #   - **bdnvt_reservoir_energy**_groupname (integrate.bdnvt) - Energy reservoir for the BD thermostat (in energy units)
 #   - **nvt_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT thermostat (in energy units)
+#   - **nvt_mtk_reservoir_energy**_groupname (integrate.nvt) - Energy reservoir for the NVT MTK thermostat (in energy units)
 #   - **npt_thermostat_energy** (integrate.npt) - Energy of the NPT thermostat
 #   - **npt_barostat_energy** (integrate.npt & integrate.nph) - Energy of the NPT (or NPH) barostat
 #   - **nvt_rigid_xi_t**_groupname (integrate.nvt_rigid) - NVT momentum rescaling factor \f$ \xi_1^t \f$

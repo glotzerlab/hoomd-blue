@@ -107,13 +107,13 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftGetMethods )
 
     // check that the particle positions are still the original ones
     Scalar3 pos = pdata->getPosition(0);
-    MY_BOOST_CHECK_SMALL(pos.x-0.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.y-0.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.z-0.0, tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.x-0.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.y-0.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.z-0.0), tol_small);
     pos = pdata->getPosition(1);
-    MY_BOOST_CHECK_SMALL(pos.x-1.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.y-1.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.z-1.0, tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.x-1.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.y-1.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
 
     int3 pimg = pdata->getImage(0);
     BOOST_CHECK_EQUAL(pimg.x, 0);
@@ -144,13 +144,13 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftGetMethods )
 
     // check that the particle positions are still the original ones
     pos = pdata->getPosition(0);
-    MY_BOOST_CHECK_SMALL(pos.x-0.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.y-0.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.z-0.0, tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.x-0.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.y-0.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.z-0.0), tol_small);
     pos = pdata->getPosition(1);
-    MY_BOOST_CHECK_SMALL(pos.x-1.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.y-1.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.z-1.0, tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.x-1.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.y-1.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
 
     pimg = pdata->getImage(0);
     BOOST_CHECK_EQUAL(pimg.x, 0);
@@ -196,13 +196,13 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftSetMethods )
 
     // check that the particle positions are still the original ones
     Scalar3 pos = pdata->getPosition(0);
-    MY_BOOST_CHECK_SMALL(pos.x-0.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.y-0.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.z-0.0, tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.x-0.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.y-0.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.z-0.0), tol_small);
     pos = pdata->getPosition(1);
-    MY_BOOST_CHECK_SMALL(pos.x-1.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.y-1.0, tol_small);
-    MY_BOOST_CHECK_SMALL(pos.z-1.0, tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.x-1.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.y-1.0), tol_small);
+    MY_BOOST_CHECK_SMALL(Scalar(pos.z-1.0), tol_small);
 
     int3 pimg = pdata->getImage(0);
     BOOST_CHECK_EQUAL(pimg.x, 0);
