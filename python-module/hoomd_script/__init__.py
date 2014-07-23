@@ -114,7 +114,8 @@ default_excepthook = sys.excepthook;
 def hoomd_sys_excepthook(type, value, traceback):
     default_excepthook(type, value, traceback);
     sys.stderr.flush();
-    hoomd.abort_mpi(globals.exec_conf);
+    if globals.exec_conf is not None:
+        hoomd.abort_mpi(globals.exec_conf);
 
 # install the hoomd excepthook to abort MPI runs if there are uncaught exceptions
 sys.excepthook = hoomd_sys_excepthook;
