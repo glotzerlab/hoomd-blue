@@ -95,7 +95,7 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
     if (!restartInfoTestValid(v, "nvt", 4))
         {
         v.type = "nvt";
-        v.variable.resize(2);
+        v.variable.resize(4);
         v.variable[0] = Scalar(0.0);
         v.variable[1] = Scalar(0.0);
         v.variable[2] = Scalar(0.0);
