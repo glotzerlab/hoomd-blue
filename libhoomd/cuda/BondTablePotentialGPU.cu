@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -240,6 +239,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
     \param d_flags flags on the device - a 1 will be written if evaluation
                    of forces failed for any bond
     \param block_size Block size at which to run the kernel
+    \param compute_capability Compute capability of the execution device (200, 3000, 350, ...)
 
     \note This is just a kernel driver. See gpu_compute_bondtable_forces_kernel for full documentation.
 */
@@ -258,25 +258,37 @@ cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                      const unsigned int table_width,
                                      const Index2D &table_value,
                                      unsigned int *d_flags,
-                                     const unsigned int block_size)
+                                     const unsigned int block_size,
+                                     const unsigned int compute_capability)
     {
     assert(d_params);
     assert(d_tables);
     assert(n_bond_type > 0);
     assert(table_width > 1);
 
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_bondtable_forces_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-
-    // bind the tables texture
-    tables_tex.normalized = false;
-    tables_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_value.getNumElements());
-    if (error != cudaSuccess)
-        return error;
+    // bind the tables texture only on pre sm 35 arches
+    if (compute_capability < 350)
+        {
+        tables_tex.normalized = false;
+        tables_tex.filterMode = cudaFilterModePoint;
+        cudaError_t error = cudaBindTexture(0, tables_tex, d_tables, sizeof(Scalar2) * table_value.getNumElements());
+        if (error != cudaSuccess)
+            return error;
+        }
 
     gpu_compute_bondtable_forces_kernel<<< grid, threads, sizeof(Scalar4)*n_bond_type >>>
             (d_force,

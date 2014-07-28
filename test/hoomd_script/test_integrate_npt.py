@@ -9,10 +9,11 @@ import os
 class integrate_npt_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        init.create_random(N=1000, phi_p=0.05);
         force.constant(fx=0.1, fy=0.1, fz=0.1)
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+        lj = pair.lj(r_cut=2.5)
+        lj.pair_coeff.set('A','A', epsilon=1.0, sigma=1.0)
+        sorter.set_params(grid=8)
 
     # tests basic creation of the integrator
     def test(self):
@@ -54,6 +55,7 @@ class integrate_npt_tests (unittest.TestCase):
         npt.set_params(tau=0.6);
         npt.set_params(P=0.5);
         npt.set_params(tauP=0.6);
+        npt.set_params(rescale_all=True)
         run(100);
 
     # test w/ empty group

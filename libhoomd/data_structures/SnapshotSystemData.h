@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -121,6 +120,13 @@ struct SnapshotSystemData {
         has_wall_data = true;
         has_integrator_data = true;
         }
+
+    // Replicate the system along three spatial dimensions
+    /*! \param nx Number of times to replicate the system along the x direction
+     *  \param ny Number of times to replicate the system along the y direction
+     *  \param nz Number of times to replicate the system along the z direction
+     */
+    void replicate(unsigned int nx, unsigned int ny, unsigned int nz);
     };
 
 //! Export SnapshotParticleData to python

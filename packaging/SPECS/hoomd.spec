@@ -3,8 +3,8 @@
 # The version number to tag the build with is %{version}.
 # Both should be specified, as we cannot determine the version until we have checked out the code
 #  - if they are not speicified, then the most recent tag is built
-%global version	%{?version}%{!?version:0.11.3}
-%global refspec	%{?refspec}%{!?refspec:v0.11.3}
+%global version	%{?version}%{!?version:1.0.0}
+%global refspec	%{?refspec}%{!?refspec:v1.0.0}
 %global release	%{?release}%{!?release:0}
 
 # the Red Hat convention is to put 64-bit libs in lib64
@@ -20,7 +20,7 @@ Name: 			hoomd
 Version: 		%{version}
 Release: 		%{release}
 # sources will be retrieved with subversion
-# Source: 		http://codeblue.umich.edu/hoomd-blue/downloads/0.11/hoomd-0.11.3.tar.bz2
+# Source: 		http://codeblue.umich.edu/hoomd-blue/downloads/1.0/hoomd-1.0.0.tar.bz2
 URL:			http://codeblue.umich.edu/hoomd-blue/
 Prefix:			/usr
 Group: 			Applications
@@ -48,7 +48,7 @@ if [ $? -ne 0 ]; then
 fi
 
 
-cmake -DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr -DLIB_SUFFIX=%{libsuffix} -DENABLE_MPI=ON -DENABLE_OPENMP=OFF -DENABLE_EMBED_CUDA=ON -DPYTHON_SITEDIR=$RPM_BUILD_ROOT/%{sitedir} -DPYTHON_EXECUTABLE=%{python}
+cmake -DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr -DLIB_SUFFIX=%{libsuffix} -DENABLE_MPI=ON -DENABLE_EMBED_CUDA=ON -DPYTHON_SITEDIR=$RPM_BUILD_ROOT/%{sitedir} -DPYTHON_EXECUTABLE=%{python}
 
 %build
 cd $RPM_BUILD_DIR/%{name}-%{version}

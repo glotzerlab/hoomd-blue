@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -89,12 +88,19 @@ class TwoStepNVTRigid : public TwoStepNVERigid
                         boost::shared_ptr<ParticleGroup> group,
                         boost::shared_ptr<ComputeThermo> thermo,
                         boost::shared_ptr<Variant> T,
-                        Scalar tau=10.0,
+                        Scalar tau,
+                        const std::string& suffix,
                         bool skip_restart=false);
         ~TwoStepNVTRigid();
 
         //! Setup the initial net forces, torques and angular momenta
         void setup();
+
+        //! Returns a list of log quantities this integrator calculates
+        virtual std::vector< std::string > getProvidedLogQuantities();
+
+        //! Returns logged values
+        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
         //! First step of velocit Verlet integration
         virtual void integrateStepOne(unsigned int timestep);
@@ -106,6 +112,8 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         //! Integrator variables
         virtual void setRestartIntegratorVariables();
 
+        //! Names of log variables
+        std::vector<std::string> m_log_names;
     };
 
 //! Exports the TwoStepNVTRigid class to python

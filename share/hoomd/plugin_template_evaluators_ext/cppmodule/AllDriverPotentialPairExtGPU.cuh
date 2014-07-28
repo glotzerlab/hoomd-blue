@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -58,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hoomd/PotentialPairGPU.cuh"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ2
-cudaError_t gpu_compute_lj2_forces(const pair_args_t& pair_args, const float2 *d_params);
+cudaError_t gpu_compute_lj2_forces(const pair_args_t& pair_args, const Scalar2 *d_params);
 // the last argument on the previous line is a pointer to the per type pair parameters passed into the pair potential
 // it must be the same as the param_type in the evaluator this function uses
 #endif

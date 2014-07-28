@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -249,7 +248,7 @@ class coeff:
 # set_coeff().
 #
 # \note Specifying the dihedral.harmonic command when no dihedrals are defined in the simulation results in an error.
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class harmonic(force._force):
     ## Specify the %harmonic %dihedral %force
     #
@@ -272,7 +271,6 @@ class harmonic(force._force):
             self.cpp_force = hoomd.HarmonicDihedralForceCompute(globals.system_definition);
         else:
             self.cpp_force = hoomd.HarmonicDihedralForceComputeGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('dihedral.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -328,68 +326,55 @@ class harmonic(force._force):
 # The command dihedral.table specifies that a tabulated  %dihedral %force should be added to every bonded triple of particles
 # in the simulation.
 #
-# The %torque \f$ \vec{F}\f$ is (in force units)
-# \f{eqnarray*}
-#  \vec{F}(\theta)     = & F_{\mathrm{user}}(r)\hat{r} & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
-# \f}
-# and the potential \f$ V(\theta) \f$ is (in energy units)
-# \f{eqnarray*}
-#            = & V_{\mathrm{user}}(\theta) \\
-# \f}
-# ,where \f$ \theta \f$ is the angle between the triple to the other in the %dihedral.
-#
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between
-# \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
+# \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ are evaluated on *width* grid points between
+# \f$ -\pi \f$ and \f$ \pi \f$. Values are interpolated linearly between grid points.
+# For correctness, you must specify the derivative of the potential with respect to the dihedral angle,
+# defined by: \f$ T = -\frac{\partial V}{\partial \theta} \f$
 #
 # The following coefficients must be set per unique %pair of particle types.
-# - \f$ F_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ - evaluated by `func` (see example)
+# - \f$ T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}} (\theta) \f$ - evaluated by `func` (see example)
 # - coefficients passed to `func` - `coeff` (see example)
 #
 # The table *width* is set once when dihedral.table is specified (see table.__init__())
 # There are two ways to specify the other parameters.
 #
 # \par Example: Set table from a given function
-# When you have a functional form for V and F, you can enter that
-# directly into python. dihedral.table will evaluate the given function over \a width points between \a rmin and \a rmax
+# When you have a functional form for V and T, you can enter that
+# directly into python. dihedral.table will evaluate the given function over \a width points between \f$ -\pi \f$ and \f$ \pi \f$
 # and use the resulting values in the table.
 # ~~~~~~~~~~~~~
-#def harmonic(r, rmin, rmax, kappa, r0):
-#    V = 0.5 * kappa * (r-r0)**2;
-#    F = -kappa*(r-r0);
+#def harmonic(theta, kappa, theta0):
+#    V = 0.5 * kappa * (theta-theta0)**2;
+#    F = -kappa*(theta-theta0);
 #    return (V, F)
 #
 # dtable = dihedral.table(width=1000)
-# dtable.dihedral_coeff.set('dihedral1', func=harmonic, coeff=dict(kappa=330, r0=0.84))
-# dtable.dihedral_coeff.set('dihedral2', func=harmonic,coeff=dict(kappa=30, r0=1.0))
+# dtable.dihedral_coeff.set('dihedral1', func=harmonic, coeff=dict(kappa=330, theta_0=0.0))
+# dtable.dihedral_coeff.set('dihedral2', func=harmonic,coeff=dict(kappa=30, theta_0=1.0))
 # ~~~~~~~~~~~~~
 #
 # \par Example: Set a table from a file
-# When you have no function for for *V* or *F*, or you otherwise have the data listed in a file, dihedral.table can use the given
+# When you have no function for for *V* or *T*, or you otherwise have the data listed in a file, dihedral.table can use the given
 # values direcly. You must first specify the number of rows in your tables when initializing dihedral.table. Then use
 # table.set_from_file() to read the file.
 # ~~~~~~~~~~~~~
 # dtable = dihedral.table(width=1000)
-# dtable.set_from_file('polymer', 'dtable.file')
+# dtable.set_from_file('polymer', 'dihedral.dat')
 # ~~~~~~~~~~~~~
 #
 # \par Example: Mix functions and files
 # ~~~~~~~~~~~~~
-# dtable.dihedral_coeff.set('dihedral1', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
-# dtable.set_from_file('dihedral2', 'dtable.file')
+# dtable.dihedral_coeff.set('dihedral1', func=harmonic, coeff=dict(kappa=330, theta_0=0.0))
+# dtable.set_from_file('dihedral2', 'dihedral.dat')
 # ~~~~~~~~~~~~~
-#
-#
-# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
-# not diverge near r=0, then a setting of \c rmin=0 is valid.
 #
 # \note %Dihedral coefficients for all type dihedrals in the simulation must be
 # set before it can be started with run().
-
+# \MPI_SUPPORTED
 class table(force._force):
     ## Specify the Tabulated %dihedral %force
     #
-    # \param width Number of points to use to interpolate V and F (see documentation above)
+    # \param width Number of points to use to interpolate V and T (see documentation above)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -400,15 +385,10 @@ class table(force._force):
     #   return (V, T)
     #
     # dtable = dihedral.table(width=1000)
-    # dtable.dihedral_coeff.set('polymer', func=har, coeff=dict(kappa=330, theta_0=0.84))
+    # dtable.dihedral_coeff.set('polymer', func=har, coeff=dict(kappa=330, theta_0=1.0))
     # \endcode
     #
-    #
-    #
-    # \note, be sure that \c rmin and \c rmax cover the range of dihedral values.  If gpu eror checking is on, a error will
-    # be thrown if a dihedral distance is outside than this range.
-    #
-    # \note %Pair coefficients for all type dihedrals in the simulation must be
+    # \note coefficients for all type dihedrals in the simulation must be
     # set before it can be started with run()
     def __init__(self, width, name=None):
         util.print_status_line();
@@ -422,7 +402,6 @@ class table(force._force):
             self.cpp_force = hoomd.TableDihedralForceCompute(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.TableDihedralForceComputeGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('dihedral.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -438,11 +417,11 @@ class table(force._force):
         Ttable = hoomd.std_vector_scalar();
 
         # calculate dth
-        dth = math.pi / float(self.width-1);
+        dth = 2.0*math.pi / float(self.width-1);
 
         # evaluate each point of the function
         for i in range(0, self.width):
-            theta = dth * i;
+            theta = -math.pi+dth * i;
             (V,T) = func(theta, **coeff);
 
             # fill out the tables
@@ -473,22 +452,24 @@ class table(force._force):
 
             self.update_dihedral_table(i, func, coeff);
 
-      ## Set a dihedral pair interaction from a file
-      # \param dihedralname Name of dihedral
-      # \param filename Name of the file to read
-      #
-     # The provided file specifies V and F at equally spaced theta values.
-      # Example:
-      # \code
-      # #t  V    T
-      # 0.0 2.0 -3.0
-      # 1.5707 3.0 -4.0
-      # 3.1414 2.0 -3.0
-      #\endcode
-      #
-      # Note: The theta values are not used by the code.  It is assumed that a table that has N rows will start at 0, end at \pi
-      # and that the \delta \theta = \pi/(N-1). The table is read
-      # directly into the grid points used to evaluate \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$.
+    ## Set a dihedral pair interaction from a file
+    # \param dihedralname Name of dihedral
+    # \param filename Name of the file to read
+    #
+    # The provided file specifies V and F at equally spaced theta values.
+    # Example:
+    # \code
+    # #t  V    T
+    # -3.1414 2.0 -3.0
+    # 1.5707 3.0 - 4.0
+    # 0.0 2.0 -3.0
+    # 1.5707 3.0 -4.0
+    # 3.1414 2.0 -3.0
+    #\endcode
+    #
+    # Note: The theta values are not used by the code.  It is assumed that a table that has N rows will start at \f$ -\pi \f$, end at \f$ \pi \f$
+    # and that \f$ \delta \theta = 2\pi/(N-1) \f$. The table is read
+    # directly into the grid points used to evaluate \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$.
     #
     def set_from_file(self, dihedralname, filename):
           util.print_status_line();
@@ -529,11 +510,11 @@ class table(force._force):
 
 
           # check for even spacing
-          dth = math.pi / float(self.width-1);
+          dth = 2.0*math.pi / float(self.width-1);
           for i in range(0,self.width):
-              theta =  dth * i;
+              theta =  -math.pi+dnth * i;
               if math.fabs(theta - theta_table[i]) > 1e-3:
-                  globals.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced\n");
+                  globals.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi");
                   raise RuntimeError("Error reading table file");
 
           util._disable_status_lines = True;

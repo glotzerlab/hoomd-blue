@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -274,7 +273,6 @@ class harmonic(force._force):
             self.cpp_force = hoomd.HarmonicAngleForceCompute(globals.system_definition);
         else:
             self.cpp_force = hoomd.HarmonicAngleForceComputeGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -385,7 +383,6 @@ class cgcmm(force._force):
             self.cpp_force = hoomd.CGCMMAngleForceCompute(globals.system_definition);
         else:
             self.cpp_force = hoomd.CGCMMAngleForceComputeGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.cgcmm'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -483,64 +480,60 @@ def _table_eval(theta, V, T, width):
 # The command angle.table specifies that a tabulated  %angle %force should be added to every bonded triple of particles
 # in the simulation.
 #
-# The %torque \f$ \vec{F}\f$ is (in force units)
+# The %torque \f$ T\f$ is (in units of force * distance)
 # \f{eqnarray*}
-#  \vec{F}(\theta)     = & F_{\mathrm{user}}(r)\hat{r} & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
+#  T(\theta)     = & T_{\mathrm{user}}(\theta) \\
 # \f}
 # and the potential \f$ V(\theta) \f$ is (in energy units)
 # \f{eqnarray*}
 #            = & V_{\mathrm{user}}(\theta) \\
 # \f}
-# ,where \f$ \theta \f$ is the angle between the triple to the other in the %angle.
+# ,where \f$ \theta \f$ is the %angle from A-B to B-C in the triple.
 #
-# \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on *width* grid points between
-# \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
-# For correctness, you must specify the force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$
+# \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ are evaluated on *width* grid points
+# between \f$ 0 \f$ and \f$ \pi \f$. Values are interpolated linearly between grid points.
+# For correctness, you must specify: \f$ T = -\frac{\partial V}{\partial \theta}\f$
 #
 # The following coefficients must be set per unique %pair of particle types.
-# - \f$ F_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ - evaluated by `func` (see example)
+# - \f$ T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ - evaluated by `func` (see example)
 # - coefficients passed to `func` - `coeff` (see example)
 #
 # The table *width* is set once when angle.table is specified (see table.__init__())
 # There are two ways to specify the other parameters.
 #
 # \par Example: Set table from a given function
-# When you have a functional form for V and F, you can enter that
-# directly into python. angle.table will evaluate the given function over \a width points between \a rmin and \a rmax
+# When you have a functional form for T and F, you can enter that
+# directly into python. angle.table will evaluate the given function over \a width points between \f$ 0 \f$ and \f$ \pi \f$
 # and use the resulting values in the table.
 # ~~~~~~~~~~~~~
-#def harmonic(r, rmin, rmax, kappa, r0):
-#    V = 0.5 * kappa * (r-r0)**2;
-#    F = -kappa*(r-r0);
-#    return (V, F)
+# def harmonic(theta, kappa, theta_0):
+#     V = 0.5 * kappa * (theta-theta_0)**2;
+#     T = -kappa*(theta-theta_0);
+#     return (V, T)
 #
 # btable = angle.table(width=1000)
-# btable.angle_coeff.set('angle1', func=harmonic, coeff=dict(kappa=330, r0=0.84))
-# btable.angle_coeff.set('angle2', func=harmonic,coeff=dict(kappa=30, r0=1.0))
+# btable.angle_coeff.set('angle1', func=harmonic, coeff=dict(kappa=330, theta_0=0))
+# btable.angle_coeff.set('angle2', func=harmonic,coeff=dict(kappa=30, theta_0=0.1))
 # ~~~~~~~~~~~~~
 #
 # \par Example: Set a table from a file
-# When you have no function for for *V* or *F*, or you otherwise have the data listed in a file, angle.table can use the given
+# When you have no function for for *T* or *F*, or you otherwise have the data listed in a file, angle.table can use the given
 # values direcly. You must first specify the number of rows in your tables when initializing angle.table. Then use
 # table.set_from_file() to read the file.
 # ~~~~~~~~~~~~~
 # btable = angle.table(width=1000)
-# btable.set_from_file('polymer', 'btable.file')
+# btable.set_from_file('polymer', 'angle.dat')
 # ~~~~~~~~~~~~~
 #
 # \par Example: Mix functions and files
 # ~~~~~~~~~~~~~
-# btable.angle_coeff.set('angle1', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
-# btable.set_from_file('angle2', 'btable.file')
+# btable.angle_coeff.set('angle1', unc=harmonic, coeff=dict(kappa=330, theta_0=0))
+# btable.set_from_file('angle2', 'angle.dat')
 # ~~~~~~~~~~~~~
-#
-#
-# \note For potentials that diverge near r=0, make sure to set \c rmin to a reasonable value. If a potential does
-# not diverge near r=0, then a setting of \c rmin=0 is valid.
 #
 # \note %Angle coefficients for all type angles in the simulation must be
 # set before it can be started with run().
-
+# \MPI_SUPPORTED
 class table(force._force):
     ## Specify the Tabulated %angle %force
     #
@@ -555,13 +548,8 @@ class table(force._force):
     #   return (V, T)
     #
     # atable = angle.table(width=1000)
-    # atable.angle_coeff.set('polymer', func=har, coeff=dict(kappa=330, theta_0=0.84))
+    # atable.angle_coeff.set('polymer', func=har, coeff=dict(kappa=330, theta_0=0.0))
     # \endcode
-    #
-    #
-    #
-    # \note, be sure that \c rmin and \c rmax cover the range of angle values.  If gpu eror checking is on, a error will
-    # be thrown if a angle distance is outside than this range.
     #
     # \note %Pair coefficients for all type angles in the simulation must be
     # set before it can be started with run()
@@ -577,7 +565,6 @@ class table(force._force):
             self.cpp_force = hoomd.TableAngleForceCompute(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.TableAngleForceComputeGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -628,22 +615,22 @@ class table(force._force):
 
             self.update_angle_table(i, func, coeff);
 
-      ## Set a angle pair interaction from a file
-      # \param anglename Name of angle
-      # \param filename Name of the file to read
-      #
-     # The provided file specifies V and F at equally spaced theta values.
-      # Example:
-      # \code
-      # #t  V    T
-      # 0.0 2.0 -3.0
-      # 1.5707 3.0 -4.0
-      # 3.1414 2.0 -3.0
-      #\endcode
-      #
-      # Note: The theta values are not used by the code.  It is assumed that a table that has N rows will start at 0, end at \pi
-      # and that the \delta \theta = \pi/(N-1). The table is read
-      # directly into the grid points used to evaluate \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$.
+    ## Set a angle pair interaction from a file
+    # \param anglename Name of angle
+    # \param filename Name of the file to read
+    #
+    # The provided file specifies V and F at equally spaced theta values.
+    # Example:
+    # \code
+    # #t  V    T
+    # 0.0 2.0 -3.0
+    # 1.5707 3.0 -4.0
+    # 3.1414 2.0 -3.0
+    # \endcode
+    #
+    # Note: The theta values are not used by the code.  It is assumed that a table that has N rows will start at 0, end at \f$ \pi \f$
+    # and that \f$ \delta \theta = \pi/(N-1) \f$. The table is read
+    # directly into the grid points used to evaluate \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$.
     #
     def set_from_file(self, anglename, filename):
           util.print_status_line();

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -654,6 +653,36 @@ void System::setStatsPeriod(unsigned int seconds)
     m_stats_period = seconds;
     }
 
+/*! \param enable Enable/disable autotuning
+    \param period period (approximate) in time steps when returning occurs
+*/
+void System::setAutotunerParams(bool enabled, unsigned int period)
+    {
+    // set the autotuner parameters on everything
+    if (m_integrator)
+        m_integrator->setAutotunerParams(enabled, period);
+
+    // analyzers
+    vector<analyzer_item>::iterator analyzer;
+    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+        analyzer->m_analyzer->setAutotunerParams(enabled, period);
+
+    // updaters
+    vector<updater_item>::iterator updater;
+    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
+        updater->m_updater->setAutotunerParams(enabled, period);
+
+    // computes
+    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
+        compute->second->setAutotunerParams(enabled, period);
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        m_comm->setAutotunerParams(enabled, period);
+    #endif
+    }
+
 // --------- Steps in the simulation run implemented in helper functions
 
 void System::setupProfiling()
@@ -811,6 +840,7 @@ void export_System()
 
     .def("registerLogger", &System::registerLogger)
     .def("setStatsPeriod", &System::setStatsPeriod)
+    .def("setAutotunerParams", &System::setAutotunerParams)
     .def("enableProfiler", &System::enableProfiler)
     .def("enableQuietRun", &System::enableQuietRun)
     .def("run", &System::run)

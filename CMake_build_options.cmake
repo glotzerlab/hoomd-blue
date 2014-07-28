@@ -38,14 +38,15 @@ if (CMAKE_CXX_COMPILER MATCHES "icpc")
 endif (CMAKE_CXX_COMPILER MATCHES "icpc")
 
 if (ENABLE_CUDA)
-    # optional ocelot emulation mode
-    option(ENABLE_OCELOT "Enable ocelot emulation for CUDA GPU code" off)
-    if (ENABLE_OCELOT)
-        set(CUDA_ARCH "11")
-        add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
-        list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")
-    endif (ENABLE_OCELOT)
+    # optional ocelot emulation mode (not tested any more)
+    # option(ENABLE_OCELOT "Enable ocelot emulation for CUDA GPU code" off)
+    # if (ENABLE_OCELOT)
+    #     set(CUDA_ARCH "11")
+    #     add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
+    #     list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")
+    # endif (ENABLE_OCELOT)
 
+    option(ENABLE_NVTOOLS "Enable NVTools profiler integration" off)
 endif (ENABLE_CUDA)
 
 ############################
@@ -72,25 +73,6 @@ if (ENABLE_DOXYGEN)
         endif (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
     endif ()
 endif ()
-
-################################
-## detect and optionally enable OpenMP
-
-# Apple's openmp is buggy, disable it
-if (NOT APPLE)
-# needs CMake 2.6.4 or newer
-set (_cmake_ver "${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}")
-if (_cmake_ver VERSION_GREATER 2.6.3)
-
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    option(ENABLE_OPENMP "Enable openmp compliation to accelerate CPU code on multi-core machines" OFF)
-endif (OPENMP_FOUND)
-
-else (_cmake_ver VERSION_GREATER 2.6.3)
-message(STATUS "Upgrade to CMake 2.6.4 or newer to enable OpenMP compilation")
-endif (_cmake_ver VERSION_GREATER 2.6.3)
-endif (NOT APPLE)
 
 ###############################
 ## install python code into the system site dir, if a system python installation is desired

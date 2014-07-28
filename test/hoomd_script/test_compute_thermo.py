@@ -10,8 +10,8 @@ class compute_thermo_tests (unittest.TestCase):
     def setUp(self):
         print
         init.create_random(N=100, phi_p=0.05);
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     # tests basic creation of the compute
     def test(self):

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -151,13 +150,12 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             m_tauP = tauP;
             }
 
-        //! Set the partial scale option
-        /*! \param partial_scale New partial_scale option to set
+        //! Set the scale all particles option
+        /*! \param rescale_all If true, rescale all particles
         */
-        void setPartialScale(bool partial_scale)
+        void setRescaleAll(bool rescale_all)
             {
-            m_exec_conf->msg->error() << "integrate.npt: partial_scale option not supported with mtk=True" << endl;
-            throw runtime_error("Error setting params in TwoStepNPTMTK");
+            m_rescale_all = rescale_all;
             }
 
         //! Performs the first step of the integration
@@ -201,6 +199,8 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar m_mat_exp_r[6];          //!< Matrix exponential for position update (upper triangular)
         Scalar m_mat_exp_v_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
         Scalar m_mat_exp_r_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
+
+        bool m_rescale_all;             //!< If true, rescale all particles in the system irrespective of group
 
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
 

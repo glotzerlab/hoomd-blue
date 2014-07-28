@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -88,7 +87,7 @@ using namespace std;
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
       m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
-      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
+      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false), m_want_exclusions(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -134,11 +133,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
-
-    // this violates O(N/P) memory scaling
-    // in the future this should be done using a hash table
     GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
+
     GPUArray<unsigned int> ex_list_tag(m_pdata->getNGlobal(), 1, exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
 
@@ -173,10 +170,23 @@ void NeighborList::reallocate()
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
 
+    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
 
-    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
     m_n_neigh.resize(m_pdata->getMaxN());
+
+    if (m_n_ex_tag.getNumElements() != m_pdata->getNGlobal())
+        {
+        m_n_ex_tag.resize(m_pdata->getNGlobal());
+        m_ex_list_tag.resize(m_pdata->getNGlobal(), m_ex_list_tag.getHeight());
+        m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
+
+        // clear all exclusions
+        clearExclusions();
+
+        // they need to be added again
+        m_want_exclusions = true;
+        }
     }
 
 NeighborList::~NeighborList()
@@ -386,6 +396,9 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         h_ex_list_tag.data[m_ex_list_indexer_tag(tag2,pos2)] = tag1;
         h_n_ex_tag.data[tag2]++;
         }
+
+    // Exclusions have been added, so assume the exclusion list is now current
+    m_want_exclusions = false;
 
     forceUpdate();
     }
@@ -1057,7 +1070,7 @@ void NeighborList::buildNlist(unsigned int timestep)
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
-    Scalar3 L = box.getNearestPlaneDistance();
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut + m_r_buff;
@@ -1066,7 +1079,9 @@ void NeighborList::buildNlist(unsigned int timestep)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
 
-    if (L.x <= rmax * 2.0 || L.y <= rmax * 2.0 || L.z <= rmax * 2.0)
+    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
         {
         m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
         throw runtime_error("Error updating neighborlist bins");
@@ -1082,7 +1097,6 @@ void NeighborList::buildNlist(unsigned int timestep)
     memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
 
     // now we can loop over all particles in n^2 fashion and build the list
-#pragma omp parallel for schedule(dynamic, 100)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
@@ -1118,24 +1132,21 @@ void NeighborList::buildNlist(unsigned int timestep)
                 {
                 if (m_storage_mode == full)
                     {
-                    #pragma omp critical
-                        {
-                        unsigned int posi = h_n_neigh.data[i];
-                        if (posi < m_Nmax)
-                            h_nlist.data[m_nlist_indexer(i, posi)] = j;
-                        else
-                            conditions = max(conditions, h_n_neigh.data[i]+1);
+                    unsigned int posi = h_n_neigh.data[i];
+                    if (posi < m_Nmax)
+                        h_nlist.data[m_nlist_indexer(i, posi)] = j;
+                    else
+                        conditions = max(conditions, h_n_neigh.data[i]+1);
 
-                        h_n_neigh.data[i]++;
+                    h_n_neigh.data[i]++;
 
-                        unsigned int posj = h_n_neigh.data[j];
-                        if (posj < m_Nmax)
-                            h_nlist.data[m_nlist_indexer(j, posj)] = i;
-                        else
-                            conditions = max(conditions, h_n_neigh.data[j]+1);
+                    unsigned int posj = h_n_neigh.data[j];
+                    if (posj < m_Nmax)
+                        h_nlist.data[m_nlist_indexer(j, posj)] = i;
+                    else
+                        conditions = max(conditions, h_n_neigh.data[j]+1);
 
-                        h_n_neigh.data[j]++;
-                        }
+                    h_n_neigh.data[j]++;
                     }
                 else
                     {
@@ -1378,6 +1389,7 @@ void export_NeighborList()
                      .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
                      .def("getNumUpdates", &NeighborList::getNumUpdates)
                      .def("getNumExclusions", &NeighborList::getNumExclusions)
+                     .def("wantExclusions", &NeighborList::wantExclusions)
 #ifdef ENABLE_MPI
                      .def("setCommunicator", &NeighborList::setCommunicator)
 #endif

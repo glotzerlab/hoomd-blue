@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -118,6 +117,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     const Index2D nli,
     Scalar* atomDerivativeEmbeddingFunction)
     {
+    #ifdef SINGLE_PRECISION
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -166,21 +166,18 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         if (rsq < eam_data_ti.r_cutsq)
             {
             Scalar position_scalar = sqrtf(rsq) * eam_data_ti.rdr;
-            #ifdef SINGLE_PRECISION
             atomElectronDensity += tex1D(electronDensity_tex, position_scalar + nr * (typei * ntypes + typej) + Scalar(0.5) ); //electronDensity[r_index + eam_data_ti.nr * typej] + derivativeElectronDensity[r_index + eam_data_ti.nr * typej] * position * eam_data_ti.dr;
-            #endif
             }
         }
 
     Scalar position = atomElectronDensity * eam_data_ti.rdrho;
     /*unsigned int r_index = (unsigned int)position;
     position -= (Scalar)r_index;*/
-    #ifdef SINGLE_PRECISION
     atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data_ti.nrho + Scalar(0.5));//derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho];
 
     force.w += tex1D(embeddingFunction_tex, position + typei * eam_data_ti.nrho + Scalar(0.5));//embeddingFunction[r_index + typei * eam_data_ti.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho] * position * eam_data_ti.drho;
-    #endif
     d_force[idx] = force;
+    #endif
     }
 
 //! Second stage kernel for computing EAM forces on the GPU
@@ -196,6 +193,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     const Index2D nli,
     Scalar* atomDerivativeEmbeddingFunction)
     {
+    #ifdef SINGLE_PRECISION
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -254,23 +252,14 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         Scalar r = Scalar(1.0) / inverseR;
         position = r * eam_data_ti.rdr;
         int shift = (typei>=typej)?(int)((2 * ntypes - typej -1)*typej/2 + typei) * nr:(int)((2 * ntypes - typei -1)*typei/2 + typej) * nr;
-        #ifdef SINGLE_PRECISION
         Scalar2 pair_potential = tex1D(pairPotential_tex, position + shift + Scalar(0.5));
-        #else
-        Scalar2 pair_potential = make_scalar2(Scalar(0.0), Scalar(0.0));
-        #endif
         Scalar pair_eng =  pair_potential.x * inverseR;
 
         Scalar derivativePhi = (pair_potential.y - pair_eng) * inverseR;
 
-        #ifdef SINGLE_PRECISION
         Scalar derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data_ti.nr + Scalar(0.5));
 
         Scalar derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * eam_data_ti.nr + Scalar(0.5));
-        #else
-        Scalar derivativeRhoI = Scalar(0.0);
-        Scalar derivativeRhoJ = Scalar(0.0);
-        #endif
 
         Scalar fullDerivativePhi = adef * derivativeRhoJ +
                 atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
@@ -297,6 +286,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     d_force[idx] = force;
     for (int i = 0; i < 6; i++)
         d_virial[i*virial_pitch+idx] = virial[i];
+
+    #endif
     }
 
 cudaError_t gpu_compute_eam_tex_inter_forces(
@@ -313,9 +304,23 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     const EAMTexInterArrays& eam_arrays,
     const EAMTexInterData& eam_data)
     {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_eam_tex_inter_forces_kernel);
+
+        cudaFuncAttributes attr2;
+        cudaFuncGetAttributes(&attr2, (const void *)gpu_compute_eam_tex_inter_forces_kernel_2);
+
+        max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+        }
+
+    unsigned int run_block_size = min(eam_data.block_size, max_block_size);
+
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)eam_data.block_size), 1, 1);
-    dim3 threads(eam_data.block_size, 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // bind the texture
     #ifdef SINGLE_PRECISION

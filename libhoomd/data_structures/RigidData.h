@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -107,12 +106,17 @@ struct SnapshotRigidData
      */
     bool validate() const
         {
-        if (! com.size() == size) return false;
-        if (! vel.size() == size) return false;
-        if (! angmom.size() == size) return false;
-        if (! body_image.size() == size) return false;
+        if (com.size() != size) return false;
+        if (vel.size() != size) return false;
+        if (angmom.size() != size) return false;
+        if (body_image.size() != size) return false;
         return true;
         }
+
+    //! Replicate the snapshot
+    /*! \param n Number of times to replicate the snapshot
+     */
+    void replicate(unsigned int n);
     };
 
 //! Stores all per rigid body values

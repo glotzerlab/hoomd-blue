@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -202,13 +201,20 @@ def all():
         globals.msg.error("Cannot create a group before initialization\n");
         raise RuntimeError('Error creating group');
 
+    name = 'all';
+
     # the all group is special: when the first one is created, it is cached in globals and future calls to group.all()
     # return the cached version
     if globals.group_all is not None:
         expected_N = globals.system_definition.getParticleData().getNGlobal();
+
         if len(globals.group_all) != expected_N:
-            globals.msg.error("globals.group_all does not appear to be the group of all particles!\n");
-            raise RuntimeError('Error creating group');
+            # update group_all
+            tag_min = 0;
+            tag_max = globals.system_definition.getParticleData().getNGlobal()-1;
+            selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
+            globals.group_all.cpp_group.updateMemberTags(selector)
+            globals.msg.notice(2, 'Group "' + name + '" updated containing ' + str(globals.group_all.cpp_group.getNumMembersGlobal()) + ' particles\n');
 
         return globals.group_all;
 
@@ -217,7 +223,6 @@ def all():
     tag_max = globals.system_definition.getParticleData().getNGlobal()-1;
 
     # create the group
-    name = 'all';
     selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 

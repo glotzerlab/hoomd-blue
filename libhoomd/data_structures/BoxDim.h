@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -69,13 +68,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline
-#endif
-
-// RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
-#ifdef NVCC
-#define RSQRT(x) rsqrtf( (x) )
-#else
-#define RSQRT(x) Scalar(1.0) / sqrt( (x) )
 #endif
 
 //! Stores box dimensions
@@ -282,7 +274,7 @@ class BoxDim
 
         //! Compute fractional coordinates, allowing for a ghost layer
         /*! \param v Vector to scale
-            \param ghost_width Width of extra ghost padding layer to take into account
+            \param ghost_width Width of extra ghost padding layer to take into account (along reciprocal lattice directions)
             \return a vector with coordinates scaled to range between 0 and 1 (if inside the box + ghost layer).
             The returned vector \a f and the given vector \a v are related by:
             \a v = \a f * (L+2*ghost_width) + lo - ghost_width
@@ -292,7 +284,8 @@ class BoxDim
             Scalar3 delta = v - m_lo;
             delta.x -= (m_xz-m_yz*m_xy)*v.z+m_xy*v.y;
             delta.y -= m_yz * v.z;
-            return (delta + ghost_width)/ (m_L + Scalar(2.0)*ghost_width);
+            Scalar3 ghost_frac = ghost_width/getNearestPlaneDistance();
+            return (delta*m_Linv+ghost_frac)/(make_scalar3(1,1,1)+Scalar(2.0)*ghost_frac);
             }
 
         //! Convert fractional coordinates into real coordinates
@@ -400,9 +393,22 @@ class BoxDim
             {
             Scalar3 L = getL();
 
+            // allow for a shifted box with periodic boundary conditions
+            Scalar3 origin = (m_hi + m_lo)/Scalar(2.0);
+
+            // tilt factors for nonperiodic boxes are always calculated w.r.t. to the global box with origin (0,0,0)
+            if (! m_periodic.y)
+                {
+                origin.y = Scalar(0.0);
+                }
+            if (! m_periodic.z)
+                {
+                origin.z = Scalar(0.0);
+                }
+
             if (m_periodic.x)
                 {
-                Scalar tilt_x = (m_xz - m_xy*m_yz) * w.z + m_xy * w.y;
+                Scalar tilt_x = (m_xz - m_xy*m_yz) * (w.z-origin.z) + m_xy * (w.y-origin.y);
                 if (((w.x >= m_hi.x + tilt_x) && !flags.x) || flags.x == 1)
                     {
                     w.x -= L.x;
@@ -417,7 +423,7 @@ class BoxDim
 
             if (m_periodic.y)
                 {
-                Scalar tilt_y = m_yz * w.z;
+                Scalar tilt_y = m_yz * (w.z-origin.z);
                 if (((w.y >= m_hi.y + tilt_y) && !flags.y)  || flags.y == 1)
                     {
                     w.y -= L.y;
@@ -507,8 +513,8 @@ class BoxDim
         HOSTDEVICE Scalar3 getNearestPlaneDistance() const
             {
             Scalar3 dist;
-            dist.x = m_L.x*RSQRT(Scalar(1.0) + m_xy*m_xy + (m_xy*m_yz - m_xz)*(m_xy*m_yz - m_xz));
-            dist.y = m_L.y*RSQRT(Scalar(1.0) + m_yz*m_yz);
+            dist.x = m_L.x*fast::rsqrt(Scalar(1.0) + m_xy*m_xy + (m_xy*m_yz - m_xz)*(m_xy*m_yz - m_xz));
+            dist.y = m_L.y*fast::rsqrt(Scalar(1.0) + m_yz*m_yz);
             dist.z = m_L.z;
 
             return dist;
@@ -579,5 +585,4 @@ class BoxDim
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE
-#undef RSQRT
 #endif // __BOXDIM_H__

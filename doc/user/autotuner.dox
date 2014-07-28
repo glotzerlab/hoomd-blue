@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -79,13 +78,12 @@ during the profile.
 Default parameters should be sufficient for the autotuner to work well in almost any situation. Controllable parameters
 are:
 
-- `n_samples`: Number of samples to take at each parameter (to find the best among the noise)
 - `period`: Approximate number of time steps before retuning occurs
 - `enabled`: Boolean to control whether the autotuner is enabled. If disabled after the warm up period, no retuning will
     occur, but it will still use the found optimal values. If disabled during the warm up period, a warning is issued
     and the system will use non-optimal values.
 
-Defaults are `n_samples = 5`, `period=100000`, and `enabled=True`. Other parameters can be set by calling
+Defaults are `period=100000`, and `enabled=True`. Other parameters can be set by calling
 \link hoomd_script.option.set_autotuner_params() option.set_autotuner_params()\endlink . This period is short enough to
 pick up changes after just a few 100 thousand time steps, but long enough so that the performance loss of occasionally
 running at nonoptimal parameters is small (most per time step calls can complete tuning in less than 200 time steps).

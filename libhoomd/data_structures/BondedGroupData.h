@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -205,9 +204,15 @@ class BondedGroupData : boost::noncopyable
              */
             bool validate() const
                 {
-                if (! groups.size() == type_id.size()) return false;
+                if (groups.size() != type_id.size()) return false;
                 return true;
                 }
+
+            //! Replicate this snapshot
+            /*! \param n Number of times to replicate each particle and its bonded groups
+             *  \param old_n_particles Number of particles in system to be replicated
+             */
+            void replicate(unsigned int n, unsigned int old_n_particles);
 
             std::vector<unsigned int> type_id;             //!< Stores type for each group
             std::vector<members_t> groups;     //!< Stores the data for each group
@@ -259,6 +264,9 @@ class BondedGroupData : boost::noncopyable
 
         //! Get the type name by id
         const std::string getNameByType(unsigned int type) const;
+
+        //! Rename a type
+        void setTypeName(unsigned int type, const std::string& new_name);
 
         //! Return the nth active global tag
         unsigned int getNthTag(unsigned int n) const;

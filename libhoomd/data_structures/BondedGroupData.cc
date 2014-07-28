@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -632,6 +631,19 @@ const std::string BondedGroupData<group_size, Group, name>::getNameByType(unsign
     }
 
 template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::setTypeName(unsigned int type, const std::string& new_name)
+    {
+    // check for an invalid request
+    if (type >= this->m_type_mapping.size())
+        {
+        m_exec_conf->msg->error() << "Setting type name for non-existant type " << type << endl;
+        throw runtime_error("Error mapping type name");
+        }
+
+    m_type_mapping[type] = new_name;
+    }
+
+template<unsigned int group_size, typename Group, const char *name>
 void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
     {
     #ifdef ENABLE_CUDA
@@ -1053,8 +1065,8 @@ void BondedGroupData<group_size, Group, name>::moveParticleGroups(unsigned int t
     m_group_num_change_signal();
     m_groups_dirty = true;
     }
-
 #endif
+
 template<class T, typename Group>
 void export_BondedGroupData(std::string name, std::string snapshot_name, bool export_struct)
     {
@@ -1073,6 +1085,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         .def("getNthTag", &T::getNthTag)
         .def("getGroupByTag", &T::getGroupByTag)
         .def("getTypeByName", &T::getTypeByName)
+        .def("setTypeName", &T::setTypeName)
         .def("getNameByType", &T::getNameByType)
         .def("addBondedGroup", &T::addBondedGroup)
         .def("removeBondedGroup", &T::removeBondedGroup)
@@ -1085,8 +1098,38 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         .def_readwrite("groups", &Snapshot::groups)
         .def_readwrite("type_id", &Snapshot::type_id)
         .def_readwrite("type_mapping", &Snapshot::type_mapping)
+        .def("resize", &Snapshot::resize)
         ;
    }
+
+template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::Snapshot::replicate(unsigned int n,
+    unsigned int old_n_particles)
+    {
+    unsigned int old_size = groups.size();
+    groups.resize(n*old_size);
+    type_id.resize(n*old_size);
+
+    for (unsigned int i = 0; i < old_size; ++i)
+        {
+        typename BondedGroupData<group_size, Group, name>::members_t g;
+        g = groups[i];
+        unsigned int type = type_id[i];
+
+        // replicate bonded group
+        for (unsigned int j = 0; j < n; ++j)
+            {
+            typename BondedGroupData<group_size, Group, name>::members_t h;
+
+            // update particle tags
+            for (unsigned int k = 0; k < group_size; ++k)
+                h.tag[k] = g.tag[k] + old_n_particles*j;
+
+            groups[old_size*j+i] = h;
+            type_id[old_size*j+i] = type;
+            }
+        }
+    }
 
 //! Explicit template instantiations
 template class BondedGroupData<2, Bond, name_bond_data>;

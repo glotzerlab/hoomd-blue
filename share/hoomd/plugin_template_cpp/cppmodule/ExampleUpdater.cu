@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -63,14 +62,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     as long as block_size * num_blocks is >= the number of particles.
 */
 extern "C" __global__ 
-void gpu_zero_velocities_kernel(float4 *d_vel, unsigned int N)
+void gpu_zero_velocities_kernel(Scalar4 *d_vel, unsigned int N)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N)
         {
         // vel.w is the mass, don't want to modify that
-        float4 vel = d_vel[idx];
+        Scalar4 vel = d_vel[idx];
         vel.x = vel.y = vel.z = 0.0f;
         d_vel[idx] = vel;
         }
@@ -80,7 +79,7 @@ void gpu_zero_velocities_kernel(float4 *d_vel, unsigned int N)
     \param N Number of particles
     This is just a driver for gpu_zero_velocities_kernel(), see it for the details
 */
-cudaError_t gpu_zero_velocities(float4 *d_vel, unsigned int N)
+cudaError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N)
     {
     // setup the grid to run the kernel
     int block_size = 256;

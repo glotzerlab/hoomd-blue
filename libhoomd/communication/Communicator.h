@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -72,6 +71,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>
+
+#include "Autotuner.h"
 
 /*! \ingroup hoomd_lib
     @{
@@ -292,12 +293,21 @@ class Communicator
             return m_local_compute_callbacks.connect(subscriber);
             }
 
-        //! Subscribe to list of call-backs for computation that depends on ghost positions
+        //! Subscribe to list of *optional* call-backs for computation using ghost particles
         /*!
-         * Functions subscribed to the compute callback signal are those
-         * that can be overlapped with all-to-all synchronization. For good
-         * MPI performance, the callbacks should NOT synchronize the GPU
-         * execution stream.
+         * Subscribe to a list of call-backs that precompute quantities using information about ghost particles
+         * before awaiting the result of the particle migration check. Pre-computation must be entirely *optional* for
+         * the subscribing class. When the signal is triggered the class may pre-compute quantities
+         * under the assumption that no particle migration will occur. Since the result of the
+         * particle migration check is in general available only *after* the signal has been triggered,
+         * the class must *not* rely on this assumption. Plus, triggering of the signal is not guaruanteed
+         * when particle migration does occur.
+         *
+         * Methods subscribed to the compute callback signal are those that improve performance by
+         * overlapping computation with all-to-all MPI synchronization and communication callbacks.
+         * For this optimization to work, subscribing methods should NOT synchronize the GPU execution stream.
+         *
+         * \note Triggering of the signal before or after MPI synchronization is dependent upon runtime (auto-) tuning.
          *
          * \note Subscribers are called only after updated ghost information is available
          *       but BEFORE particle migration
@@ -318,15 +328,6 @@ class Communicator
         void setGhostLayerWidth(Scalar ghost_width)
             {
             assert(ghost_width > 0);
-            Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
-            const Index3D& di = m_decomposition->getDomainIndexer();
-            if ((ghost_width >= L.x/Scalar(2.0) && di.getW() > 1) ||
-                (ghost_width >= L.y/Scalar(2.0) && di.getH() > 1) ||
-                (ghost_width >= L.z/Scalar(2.0) && di.getD() > 1))
-                {
-                m_exec_conf->msg->error() << "Ghost layer width exceeds half the sub-domain length." << std::endl;
-                throw std::runtime_error("Error setting up Communicator");
-                }
             m_r_ghost = ghost_width;
             }
 
@@ -450,8 +451,22 @@ class Communicator
             send_down = 32
             };
 
-        //@}
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
 
+            Derived classes should override this to set the parameters of their autotuners.
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            if (m_tuner_precompute)
+                {
+                m_tuner_precompute->setPeriod(period);
+                m_tuner_precompute->setEnabled(enable);
+                }
+            }
+
+        //@}
     protected:
         //! Helper class to perform the communication tasks related to bonded groups
         template<class group_data>
@@ -570,6 +585,8 @@ class Communicator
 
         boost::signals2::signal<void (unsigned int timestep)>
             m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
+
+        boost::scoped_ptr<Autotuner> m_tuner_precompute; //!< Autotuner for precomputation of quantites
 
         CommFlags m_flags;                       //!< The ghost communication flags
         CommFlags m_last_flags;                       //!< Flags of last ghost exchange

@@ -56,13 +56,13 @@ mark_as_advanced(ENABLE_DOXYGEN_HOOMD_STYLE)
 if (ENABLE_DOXYGEN_HOOMD_STYLE)
     set(DOXYGEN_HTML_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/user/header.html)
     set(DOXYGEN_HTML_FOOTER ${CMAKE_CURRENT_SOURCE_DIR}/user/footer.html)
-    set(DOXYGEN_HTML_STYLESHEET ${CMAKE_CURRENT_SOURCE_DIR}/user/stylesheet.css)
+    set(DOXYGEN_HTML_EXTRA_STYLESHEET ${CMAKE_CURRENT_SOURCE_DIR}/user/header-style.css)
     set(DOXYGEN_USE_MATHJAX YES)
     set(DOXYGEN_DISABLE_INDEX YES)
 else (ENABLE_DOXYGEN_HOOMD_STYLE)
     set(DOXYGEN_HTML_HEADER "")
     set(DOXYGEN_HTML_FOOTER "")
-    set(DOXYGEN_HTML_STYLESHEET "")
+    set(DOXYGEN_HTML_EXTRA_STYLESHEET "")
     set(DOXYGEN_USE_MATHJAX NO)
     set(DOXYGEN_DISABLE_INDEX NO)
 endif (ENABLE_DOXYGEN_HOOMD_STYLE)
@@ -89,7 +89,6 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/license.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/citing.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.dox
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/stylesheet.css
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/header.html
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/footer.html
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/mpi.dox

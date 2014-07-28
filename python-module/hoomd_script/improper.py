@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -89,7 +88,7 @@ import sys;
 #
 # \note Specifying the improper.harmonic command when no impropers are defined in the simulation results in an error.
 #
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class harmonic(force._force):
     ## Specify the %harmonic %improper %force
     #
@@ -112,7 +111,6 @@ class harmonic(force._force):
             self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.system_definition);
         else:
             self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(globals.system_definition);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('improper.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -890,6 +889,25 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     m_end.swap(end);
 
     initializeNeighborArrays();
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // set up autotuners to determine whether to use mapped memory (boolean values)
+        std::vector<unsigned int> valid_params(2);
+        valid_params[0] = 0; valid_params[1]  = 1;
+
+        // use a sufficiently long measurement period to average over
+        unsigned int nsteps = 100;
+        m_tuner_precompute.reset(new Autotuner(valid_params, nsteps, 100000, "comm_precompute", this->m_exec_conf));
+
+        // average execution times instead of median
+        m_tuner_precompute->setAverage(true);
+
+        // we require syncing for aligned execution streams
+        m_tuner_precompute->setSync(true);
+        }
+    #endif
     }
 
 //! Destructor
@@ -1013,6 +1031,12 @@ void Communicator::communicate(unsigned int timestep)
 
     bool update = !m_is_first_step && !m_force_migrate;
 
+    bool precompute = m_tuner_precompute ? m_tuner_precompute->getParam() : false;
+
+    update &= precompute;
+
+    if (m_tuner_precompute) m_tuner_precompute->begin();
+
     if (update)
         beginUpdateGhosts(timestep);
 
@@ -1022,14 +1046,28 @@ void Communicator::communicate(unsigned int timestep)
     if (update)
         finishUpdateGhosts(timestep);
 
-    // call subscribers that depend on updated ghosts
-    if (update) m_compute_callbacks(timestep);
+    if (precompute && update)
+        {
+        // call subscribers *before* MPI synchronization, but after ghost update
+        m_compute_callbacks(timestep);
+        }
 
     // other functions involving syncing
     m_comm_callbacks(timestep);
 
     // distance check (synchronizes the GPU execution stream)
     bool migrate = m_force_migrate || m_migrate_requests(timestep) || m_is_first_step;
+
+    if (!precompute && !migrate)
+        {
+        // *after* synchronization, but only if particles do not migrate
+        beginUpdateGhosts(timestep);
+        finishUpdateGhosts(timestep);
+
+        m_compute_callbacks(timestep);
+        }
+
+    if (m_tuner_precompute) m_tuner_precompute->end();
 
     // Check if migration of particles is requested
     if (migrate)
@@ -1050,12 +1088,22 @@ void Communicator::communicate(unsigned int timestep)
 //! Transfer particles between neighboring domains
 void Communicator::migrateParticles()
     {
+    m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
+
+    // check if box is sufficiently large for communication
+    Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
+    const Index3D& di = m_decomposition->getDomainIndexer();
+    if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
+        (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
+        (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
+        {
+        m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
+        throw std::runtime_error("Error during communication");
+        }
+
     if (m_prof)
         m_prof->push("comm_migrate");
 
-    m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
-
-    if (m_last_flags[comm_flag::tag])
         {
         // wipe out reverse-lookup tag -> idx for old ghost atoms
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -1434,7 +1482,6 @@ void Communicator::exchangeGhosts()
                 m_mpi_comm,
                 &reqs[nreq++]);
 
-
             if (flags[comm_flag::position])
                 {
                 MPI_Isend(h_pos_copybuf.data,
@@ -1757,6 +1804,7 @@ const BoxDim Communicator::getShiftedBox() const
 
     Scalar tol = 0.0001;
     shift += tol*make_scalar3(1.0,1.0,1.0);
+
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         if (m_decomposition->isAtBoundary(dir) &&  isCommunicating(dir))

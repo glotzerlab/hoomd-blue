@@ -13,7 +13,7 @@ initial_L = system.box[0];
 shrink_L = variant.linear_interp(points = [(0, initial_L),
                                            (100, initial_L/4.0)])
 
-resizer = update.box_resize(Lx=shrink_L, period=1);
+resizer = update.box_resize(L=shrink_L, period=1);
 
 # uncomment the next line to enable no scaling of the particles in the box
 resizer.set_params(scale_particles=False)

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -204,15 +203,15 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     // initialize box dimensions on all procesors
     setGlobalBox(global_box);
 
-    // initialize particle data with snapshot contents
-    initializeFromSnapshot(snapshot);
-
     // it is an error for particles to be initialized outside of their box
-    if (!inBox())
+    if (!inBox(snapshot))
         {
-        m_exec_conf->msg->error() << "Not all particles were found inside the given box" << endl;
+        m_exec_conf->msg->warning() << "Not all particles were found inside the given box" << endl;
         throw runtime_error("Error initializing ParticleData");
         }
+
+    // initialize particle data with snapshot contents
+    initializeFromSnapshot(snapshot);
 
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
@@ -259,14 +258,14 @@ void ParticleData::setGlobalBox(const BoxDim& box)
     assert(box.getPeriodic().z);
     m_global_box = box;
 
-#ifdef ENABLE_MPI
+    #ifdef ENABLE_MPI
     if (m_decomposition)
         {
         bcast(m_global_box, 0, m_exec_conf->getMPICommunicator());
         m_box = m_decomposition->calculateLocalBox(m_global_box);
         }
     else
-#endif
+    #endif
         {
         // local box = global box
         m_box = box;
@@ -394,6 +393,24 @@ std::string ParticleData::getNameByType(unsigned int type) const
 
     // return the name
     return m_type_mapping[type];
+    }
+
+/*! \param type Type index to get the name of
+    \param name New name for this type
+
+    This is designed for use by init.create_empty. It probably will cause things to fail in strange ways if called
+    after initialization.
+*/
+void ParticleData::setTypeName(unsigned int type, const std::string& name)
+    {
+    // check for an invalid request
+    if (type >= getNTypes())
+        {
+        m_exec_conf->msg->error() << "Setting name for non-existant type " << type << endl;
+        throw runtime_error("Error mapping type name");
+        }
+
+    m_type_mapping[type] = name;
     }
 
 
@@ -634,44 +651,39 @@ void ParticleData::reallocate(unsigned int max_n)
 
 /*! \return true If and only if all particles are in the simulation box
 */
-bool ParticleData::inBox()
+bool ParticleData::inBox(const SnapshotParticleData &snap)
     {
-    Scalar3 lo = m_box.getLo();
-    Scalar3 hi = m_box.getHi();
-
-    const Scalar tol = Scalar(1e-5);
-
-    ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::read);
-    for (unsigned int i = 0; i < getN(); i++)
+    bool in_box = true;
+    if (m_exec_conf->getRank() == 0)
         {
-        Scalar3 pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        Scalar3 f = m_box.makeFraction(pos);
-        if (f.x < -tol || f.x > Scalar(1.0)+tol)
+        Scalar3 lo = m_global_box.getLo();
+        Scalar3 hi = m_global_box.getHi();
+
+        const Scalar tol = Scalar(1e-5);
+
+        for (unsigned int i = 0; i < snap.size; i++)
             {
-            m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            m_exec_conf->msg->warning() << "fractional pos :" << setprecision(12) << f.x << " " << f.y << " " << f.z << endl;
-            m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
-            m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
-            return false;
-            }
-        if (f.y < -tol || f.y > Scalar(1.0)+tol)
-            {
-            m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            m_exec_conf->msg->warning() << "fractional pos :" << setprecision(12) << f.x << " " << f.y << " " << f.z << endl;
-            m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
-            m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
-            return false;
-            }
-        if (f.z < -tol || f.z > Scalar(1.0)+tol)
-            {
-            m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << h_pos.data[i].x << " " << h_pos.data[i].y << " " << h_pos.data[i].z << endl;
-            m_exec_conf->msg->warning() << "fractional pos :" << setprecision(12) << f.x << " " << f.y << " " << f.z << endl;
-            m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
-            m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
-            return false;
+            Scalar3 f = m_global_box.makeFraction(snap.pos[i]);
+            if (f.x < -tol || f.x > Scalar(1.0)+tol ||
+                f.y < -tol || f.y > Scalar(1.0)+tol ||
+                f.z < -tol || f.z > Scalar(1.0)+tol)
+                {
+                m_exec_conf->msg->warning() << "pos " << i << ":" << setprecision(12) << snap.pos[i].x << " " << snap.pos[i].y << " " << snap.pos[i].z << endl;
+                m_exec_conf->msg->warning() << "fractional pos :" << setprecision(12) << f.x << " " << f.y << " " << f.z << endl;
+                m_exec_conf->msg->warning() << "lo: " << lo.x << " " << lo.y << " " << lo.z << endl;
+                m_exec_conf->msg->warning() << "hi: " << hi.x << " " << hi.y << " " << hi.z << endl;
+                in_box = false;
+                break;
+                }
             }
         }
-    return true;
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        bcast(in_box, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return in_box;
     }
 
 //! Initialize from a snapshot
@@ -780,6 +792,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                     flags.z = 1;
                     }
 
+                unsigned int tag = it - snapshot.pos.begin();
                 int3 img = snapshot.image[tag];
 
                 // only wrap if the particles is on one of the boundaries
@@ -788,7 +801,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                 global_box.wrap(pos, img, flags);
 
                 unsigned int rank = h_cart_ranks.data[di(i,j,k)];
-                unsigned int tag = it - snapshot.pos.begin();
 
                 if (rank >= n_ranks)
                     {
@@ -965,6 +977,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         m_type_mapping = snapshot.type_mapping;
         }
 
+    // notify listeners about resorting of local particles
     notifyParticleSort();
 
     // zero the origin
@@ -1232,20 +1245,31 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
     unsigned int idx = getRTag(tag);
     bool found = (idx < getN());
     Scalar3 result = make_scalar3(0.0,0.0,0.0);
+    int3 img = make_int3(0,0,0);
     if (found)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
         result = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+        result = result - m_origin;
+
+        ArrayHandle< int3 > h_img(m_image, access_location::host, access_mode::read);
+        img = make_int3(h_img.data[idx].x, h_img.data[idx].y, h_img.data[idx].z);
+        img.x -= m_o_image.x;
+        img.y -= m_o_image.y;
+        img.z -= m_o_image.z;
         }
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
         bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(img, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
     assert(found);
+
+    m_global_box.wrap(result, img);
     return result;
     }
 
@@ -1315,6 +1339,11 @@ int3 ParticleData::getImage(unsigned int tag) const
         }
 #endif
     assert(found);
+
+    //corect for origin shift
+    result.x-=m_o_image.x;
+    result.y-=m_o_image.y;
+    result.z-=m_o_image.z;
     return result;
     }
 
@@ -1509,6 +1538,10 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
  */
 void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     {
+    //shift using gridtshift origin
+    Scalar3 tmp_pos = pos + m_origin;
+    int3 img = make_int3(0,0,0);
+    m_global_box.wrap(tmp_pos, img);
     unsigned int idx = getRTag(tag);
     bool ptl_local = (idx < getN());
 
@@ -1521,7 +1554,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     if (ptl_local)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
-        h_pos.data[idx].x = pos.x; h_pos.data[idx].y = pos.y; h_pos.data[idx].z = pos.z;
+        h_pos.data[idx].x = tmp_pos.x; h_pos.data[idx].y = tmp_pos.y; h_pos.data[idx].z = tmp_pos.z;
         }
 
     #ifdef ENABLE_MPI
@@ -1535,7 +1568,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
         assert(!ptl_local || owner_rank == my_rank);
 
         // get rank where the particle should be according to new position
-        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, pos);
+        unsigned int new_rank = m_decomposition->placeParticle(m_global_box, tmp_pos);
 
         // should the particle migrate?
         if (new_rank != owner_rank)
@@ -1638,7 +1671,9 @@ void ParticleData::setImage(unsigned int tag, const int3& image)
     if (found)
         {
         ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::readwrite);
-        h_image.data[idx].x = image.x; h_image.data[idx].y = image.y; h_image.data[idx].z = image.z;
+        h_image.data[idx].x = image.x + m_o_image.x;
+        h_image.data[idx].y = image.y + m_o_image.y;
+        h_image.data[idx].z = image.z + m_o_image.z;
         }
     }
 
@@ -1754,6 +1789,8 @@ void ParticleData::setOrientation(unsigned int tag, const Scalar4& orientation)
 
 void export_BoxDim()
     {
+    void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
+
     class_<BoxDim>("BoxDim")
     .def(init<Scalar>())
     .def(init<Scalar, Scalar, Scalar>())
@@ -1767,11 +1804,16 @@ void export_BoxDim()
     .def("getLo", &BoxDim::getLo)
     .def("getHi", &BoxDim::getHi)
     .def("setLoHi", &BoxDim::setLoHi)
+    .def("setTiltFactors", &BoxDim::setTiltFactors)
     .def("getTiltFactorXY", &BoxDim::getTiltFactorXY)
     .def("getTiltFactorXZ", &BoxDim::getTiltFactorXZ)
     .def("getTiltFactorYZ", &BoxDim::getTiltFactorYZ)
+    .def("getLatticeVector", &BoxDim::getLatticeVector)
+    .def("wrap", wrap_overload)
     .def("makeFraction", &BoxDim::makeFraction)
+    .def("makeCoordinates", &BoxDim::makeFraction)
     .def("minImage", &BoxDim::minImage)
+    .def("getVolume", &BoxDim::getVolume)
     ;
     }
 
@@ -1804,6 +1846,7 @@ void export_ParticleData()
     .def("getMaximumDiameter", &ParticleData::getMaxDiameter)
     .def("getNameByType", &ParticleData::getNameByType)
     .def("getTypeByName", &ParticleData::getTypeByName)
+    .def("setTypeName", &ParticleData::setTypeName)
     .def("setProfiler", &ParticleData::setProfiler)
     .def("getExecConf", &ParticleData::getExecConf)
     .def("__str__", &print_ParticleData)
@@ -2381,6 +2424,56 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
+void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned int nz,
+        const BoxDim& old_box, const BoxDim& new_box)
+    {
+    unsigned int old_size = size;
+
+    // resize snapshot
+    resize(old_size*nx*ny*nz);
+
+    for (unsigned int i = 0; i < old_size; ++i)
+        {
+        // unwrap position of particle i in old box using image flags
+        Scalar3 p = pos[i];
+        int3 img = image[i];
+
+        p = old_box.shift(p, img);
+        Scalar3 f = old_box.makeFraction(p);
+
+        unsigned int j = 0;
+        for (unsigned int l = 0; l < nx; l++)
+            for (unsigned int m = 0; m < ny; m++)
+                for (unsigned int n = 0; n < nz; n++)
+                    {
+                    Scalar3 f_new;
+                    // replicate particle
+                    f_new.x = f.x/(Scalar)nx + (Scalar)l/(Scalar)nx;
+                    f_new.y = f.y/(Scalar)ny + (Scalar)m/(Scalar)ny;
+                    f_new.z = f.z/(Scalar)nz + (Scalar)n/(Scalar)nz;
+
+                    unsigned int k = j*old_size + i;
+
+                    // wrap into new box
+                    Scalar3 q = new_box.makeCoordinates(f_new);
+                    image[k] = make_int3(0,0,0);
+                    new_box.wrap(q,image[k]);
+
+                    pos[k] = q;
+                    vel[k] = vel[i];
+                    accel[k] = accel[i];
+                    type[k] = type[i];
+                    mass[k] = mass[i];
+                    charge[k] = charge[i];
+                    diameter[k] = diameter[i];
+                    body[k] = body[i];
+                    orientation[k] = orientation[i];
+                    inertia_tensor[k] = inertia_tensor[i];
+                    j++;
+                    }
+        }
+    }
+
 void export_SnapshotParticleData()
     {
     class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData> >("SnapshotParticleData", init<unsigned int>())
@@ -2395,6 +2488,7 @@ void export_SnapshotParticleData()
     .def_readwrite("body", &SnapshotParticleData::body)
     .def_readwrite("type_mapping", &SnapshotParticleData::type_mapping)
     .def_readwrite("size", &SnapshotParticleData::size)
+    .def("resize", &SnapshotParticleData::resize)
     ;
     }
 

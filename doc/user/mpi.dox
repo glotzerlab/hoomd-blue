@@ -1,8 +1,7 @@
-x/*
+/*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -148,28 +147,34 @@ cutoff radii can greatly change scaling behavior.
 
 \subsection sec_mpi_clusters Execution on multi-GPU clusters
 
-When executing HOOMD-blue on multiple nodes, Infiniband (or other high-performance) interconnects are necessary to
+When executing HOOMD-blue on multiple nodes, Infiniband (or similar high-performance) interconnects are necessary to
 obtain good performance.
 
-HOOMD-blue uses shared libraries. This may cause problems on some supercomputers
-(notably Cray), which expect a static executable.
+HOOMD-blue uses shared libraries, unless built with -D ENABLE_STATIC=ON. On some supercomputers, static binaries
+are mandatory. Currently this is only available for the main HOOMD executable (but not for plugins).
 
-\subsection sec_mpi_cluster CUDA-aware MPI libraries
+\subsection sec_mpi_cuda_aware CUDA-aware MPI libraries
 
 The main benefit of using a CUDA-enabled MPI library is that it enables intra-node
-peer-to-peer (P2P) access between several GPUs on the same PCIe bus, which increases
+peer-to-peer (P2P) access between several GPUs on the same PCIe root complex, which increases
 bandwidth. Secondarily, it may offer some additional optimization
 for direct data transfer between the GPU and a network adapter.
 To use these features with an MPI library that supports it,
 set `ENABLE_MPI_CUDA` to **ON** for compilation.
 
 Currently, we recommend building with `ENABLE_MPI_CUDA` **OFF**. On MPI libraries available at time of release,
-enabling `ENABLE_MPI_CUDA` cuts performance in half. Systems with GPUDirect RDMA enabled improve on this somewhat,
+enabling `ENABLE_MPI_CUDA` cuts performance in half. Systems with *GPUDirect RDMA* enabled improve on this somewhat,
 but even on such systems typical benchmarks still run faster with `ENABLE_MPI_CUDA` **OFF**.
+
+\subsection sec_mpi_gdr GPUDirect RDMA
+HOOMD does support *GPUDirect RDMA* with network adapters that support it (i.e. Mellanox) and compatible GPUs (Kepler),
+through a cuda-aware MPI library (i.e. OpenMPI 1.7.5 or MVAPICH 2.0b GDR). On HOOMD's side, nothing is required beyond setting
+'ENABLE_MPI_CUDA' to **ON** before compilation. On the side of the MPI library, special flags may need to be set
+to enable *GPUDirect RDMA*, consult the documentation of your MPI library for that. 
 
 \subsection sec_mpi_linear Slab decomposition
 
-For small numbers of GPUs per job (typically <= 8) that are non-prime,
+For small numbers of GPUs per job (typically <= 8 for cubic boxes) that are non-prime,
 the performance may be increased by using a slab decomposition.
 A one-dimensional decomposition is enforced if the `--linear`
 \link page_command_line_options command-line option\endlink is given.
@@ -197,15 +202,15 @@ Inside the command script, the current partition can be queried using
 
 \section sec_mpi_troubleshooting Troubleshooting
 
-- <b>My simulation does not run significantly faster on two GPUs compared to
+- <b>My simulation does not run significantly faster on exactly two GPUs compared to
    one GPU.</b><br>
    This is expected.  HOOMD uses internal optimizations for single-GPU runs, which
    means that there is no overhead due to MPI calls. The communication overhead can be
    20-25\% of the total performance, and is only incurred when running on more
    than one GPU.
 
-- <b> I get a message saying "Invalid bond" </b><br>
-   In multi-GPU simulations, there is a restriction on the maximal length of a single
+- <b> I get a message saying "Bond incomplete" </b><br>
+   In multi-GPU simulations, there is an implicit restriction on the maximal length of a single
    bond. A bond cannot be longer than half the local domain size. If this happens,
    an error is thrown. The problem can be fixed by running HOOMD on fewer
    processors, or with a larger box size.
@@ -219,6 +224,19 @@ Inside the command script, the current partition can be queried using
    synchronization between all MPI ranks and is therefore slow.
    See \link hoomd_script.pair.nlist nlist \endlink on how to increase
    the interval (\b check_period) between distance checks, to improve performance.
+
+- <b> My simulation crashes on multiple GPUs when I set ENABLE_MPI_CUDA=ON</b><br>
+   First, check that cuda-aware MPI support is enabled in your MPI library. Usually this is
+   determined at compile time of the MPI library. For MVAPICH2, HOOMD automatically sets
+   the required environment variable <b>MV2_USE_CUDA=1</b>. If you are using *GPUDirect RDMA*
+   in a dual-rail configuration,  special considerations need to be taken to ensure correct GPU-core affinity,
+   not doing so may result in crashing or slow simulations.
+
+   Example: To run HOOMD on GPUs 0 and 1 of every node, with deterministic GPU-rank mapping, use the command
+   option.set_gpu() in your python script before the init.* command
+   \code
+   option.set_gpu(comm.get_rank() % 2)
+   \endcode
 
 \section sec_mpi_features Unsupported features in MPI
 

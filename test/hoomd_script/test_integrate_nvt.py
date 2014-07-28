@@ -11,14 +11,21 @@ class integrate_nvt_tests (unittest.TestCase):
         print
         init.create_random(N=100, phi_p=0.05);
         force.constant(fx=0.1, fy=0.1, fz=0.1)
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     # tests basic creation of the dump
     def test(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
         integrate.nvt(all, T=1.2, tau=0.5);
+        run(100);
+
+    # tests mtk=False
+    def test(self):
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nvt(all, T=1.2, tau=0.5,mtk=False);
         run(100);
 
     # test set_params

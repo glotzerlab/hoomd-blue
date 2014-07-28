@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -94,6 +93,7 @@
 # This code snippet runs the first 100 time steps with T=1.2 and the next 100 with T=1.0
 
 import hoomd;
+import copy;
 from hoomd_script import globals;
 from hoomd_script import compute;
 import sys;
@@ -380,6 +380,7 @@ class nvt(_integration_method):
     # \param group Group of particles on which to apply this method.
     # \param T Temperature set point for the Nos&eacute;-Hoover thermostat. (in energy units)
     # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. (in time units)
+    # \param mtk If *true* (default), use the time-reversible and measure-preserving Martyna-Tobias-Klein (MTK) update equations
     #
     # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
@@ -389,15 +390,18 @@ class nvt(_integration_method):
     #
     # Internally, a compute.thermo is automatically specified and associated with \a group.
     #
+    # The MTK equations are described in Refs. \cite{Martyna1994,Martyna1996} and exhibit superior time stability.
+    #
     # \b Examples:
     # \code
     # all = group.all()
     # integrate.nvt(group=all, T=1.0, tau=0.5)
     # integrator = integrate.nvt(group=all, tau=1.0, T=0.65)
+    # integrator = integrate.nvt(group=all, tau=1.0, T=0.65, mtk=False)
     # typeA = group.type('A')
     # integrator = integrate.nvt(group=typeA, tau=1.0, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     # \endcode
-    def __init__(self, group, T, tau):
+    def __init__(self, group, T, tau, mtk=True):
         util.print_status_line();
 
         # initialize base class
@@ -407,16 +411,33 @@ class nvt(_integration_method):
         T = variant._setup_variant_input(T);
 
         # create the compute thermo
-        thermo = compute._get_unique_thermo(group=group);
+        # as an optimization, NVT (without MTK) on the GPU uses the thermo is a way that produces incorrect values for the pressure
+        # if we are given the overall group_all, create a new group so that the invalid pressure is not passed to
+        # analyze.log
+        if group is globals.group_all and not mtk:
+            group_copy = copy.copy(group);
+            group_copy.name = "__nvt_all";
+            util._disable_status_lines = True;
+            thermo = compute.thermo(group_copy);
+            util._disable_status_lines = False;
+        else:
+            thermo = compute._get_unique_thermo(group=group);
 
         # setup suffix
         suffix = '_' + group.name;
 
         # initialize the reflected c++ class
-        if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+        if mtk is False:
+            if not globals.exec_conf.isCUDAEnabled():
+                self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+            else:
+                self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         else:
-            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+            if not globals.exec_conf.isCUDAEnabled():
+                self.cpp_method = hoomd.TwoStepNVTMTK(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+            else:
+                self.cpp_method = hoomd.TwoStepNVTMTKGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
+
 
         self.cpp_method.validateGroup()
 
@@ -490,6 +511,9 @@ class nvt(_integration_method):
 # Any of the six keywords can be combined together. By default, the \b x, \b y, and \b z degrees of freedom
 # are updated.
 #
+# \note If any of the diagonal \a x, \a y, \a z degrees of freedom is not being integrated, pressure tensor components
+#       along that direction are not considered for the remaining degrees of freedom.
+#
 # For example:
 # - Specifying \b xyz copulings and \b x, \b y, and \b z degrees of freedom amounts to \a cubic symmetry (default)
 # - Specifying \b xy couplings and \b x, \b y, and \b z degrees of freedom amounts to \a tetragonal symmetry.
@@ -514,7 +538,7 @@ class npt(_integration_method):
     # \param group Group of particles on which to apply this method.
     # \param T Temperature set point for the thermostat, not needed if \b nph=True (in energy units)
     # \param P Pressure set point for the barostat (in pressure units)
-    # \param tau Coupling constant for the thermostat, not needed if \nph=True (in time units)
+    # \param tau Coupling constant for the thermostat, not needed if \a nph=True (in time units)
     # \param tauP Coupling constant for the barostat (in time units)
     # \param couple Couplings of diagonal elements of the stress tensor, can be \b "none", \b "xy", \b "xz",\b "yz", or \b "xyz" (default)
     # \param x if \b True, rescale \a Lx and x component of particle coordinates and velocities
@@ -525,6 +549,7 @@ class npt(_integration_method):
     # \param yz if \b True, rescale \a yz tilt factor and y and z components of particle coordinates and velocities
     # \param all if \b True, rescale all lengths and tilt factors and components of particle coordinates and velocities
     # \param nph if \b True, integrate without a thermostat, i.e. in the NPH ensemble
+    # \param rescale_all if \b True, rescale all particles, not only those in the group
     #
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
@@ -545,7 +570,7 @@ class npt(_integration_method):
     # # triclinic symmetry
     # integrator = integrate.npt(group=all, tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0, couple="none", all=True)
     # \endcode
-    def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None):
+    def __init__(self, group, P, tauP, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, T=None, tau=None, rescale_all=None):
         util.print_status_line();
 
         # check the input
@@ -626,6 +651,9 @@ class npt(_integration_method):
         else:
             self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
 
+        if rescale_all is not None:
+            self.cpp_method.setRescaleAll(rescale_all)
+
         self.cpp_method.validateGroup()
 
     ## Changes parameters of an existing integrator
@@ -633,6 +661,7 @@ class npt(_integration_method):
     # \param tau New coupling constant (if set) (in time units)
     # \param P New pressure (if set) (in pressure units)
     # \param tauP New barostat coupling constant (if set) (in time units)
+    # \param rescale_all if \b True, rescale all particles, not only those in the group
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -645,7 +674,7 @@ class npt(_integration_method):
     # integrator.set_params(tau=0.6)
     # integrator.set_params(dt=3e-3, T=2.0, P=1.0)
     # \endcode
-    def set_params(self, T=None, tau=None, P=None, tauP=None):
+    def set_params(self, T=None, tau=None, P=None, tauP=None, rescale_all=None):
         util.print_status_line();
         self.check_initialization();
 
@@ -662,6 +691,9 @@ class npt(_integration_method):
             self.cpp_method.setP(P.cpp_variant);
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
+        if rescale_all is not None:
+            self.cpp_method.setRescaleAll(rescale_all)
+
 
 ## NPH Integration via MTK barostat-thermostat with triclinic unit cell
 #
@@ -675,7 +707,7 @@ class npt(_integration_method):
 # \note A time scale \b tau_p for the relaxation of the barostat is required. This is defined as the
 #       relaxation time the barostat would have at an average temperature \f$ T_0 =1 \f$, and it
 #       is related to the internally used (Andersen) Barostat mass \f$W\f$ via
-#       \f $W=d N T_0 \tau_p^2 \f $, where \f$ d \f$ is the dimensionsality and \f$ N \f$ the number
+#       \f$ W=d N T_0 \tau_p^2 \f$, where \f$ d \f$ is the dimensionsality and \f$ N \f$ the number
 #       of particles.
 #
 # integrate.nph is an integration method. It must be used in concert with an integration mode. It can be used while
@@ -1033,11 +1065,14 @@ class nvt_rigid(_integration_method):
         # create the compute thermo
         thermo = compute._get_unique_thermo(group=group);
 
+        # setup suffix
+        suffix = '_' + group.name;
+
         # initialize the reflected c++ class
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant, tau, suffix);
         else:
-            self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant, tau, suffix);
 
         self.cpp_method.validateGroup()
 

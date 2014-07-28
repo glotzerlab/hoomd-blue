@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -99,8 +98,8 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
         valid_params.push_back(block_size);
 
-    m_tuner_one.reset(new Autotuner(valid_params, 5, 1e6, "nvt_step_one", this->m_exec_conf));
-    m_tuner_two.reset(new Autotuner(valid_params, 5, 1e6, "nvt_step_two", this->m_exec_conf));
+    m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nvt_step_one", this->m_exec_conf));
+    m_tuner_two.reset(new Autotuner(valid_params, 5, 100000, "nvt_step_two", this->m_exec_conf));
     }
 
 /*! \param timestep Current time step
@@ -145,6 +144,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
 
+    // if MPI is enabled and we have a communicator, register the thermo to compute during communication
     #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -157,15 +157,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
         if (! m_compute_connection.connected())
             m_compute_connection = m_comm->addLocalComputeCallback(bind(&ComputeThermo::compute, m_thermo.get(), _1));
         }
-    else
     #endif
-        {
-        // compute the current thermodynamic properties
-        m_thermo->compute(timestep+1);
-
-        // get temperature and advance thermostat
-        advanceThermostat(timestep+1);
-        }
 
     // done profiling
     if (m_prof)
@@ -178,6 +170,18 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
+
+    // if MPI is disabled or we do not have a communicator, update the thermostat
+    #ifdef ENABLE_MPI
+    if (!m_comm)
+    #endif
+        {
+        // compute the current thermodynamic properties
+        m_thermo->compute(timestep+1);
+
+        // get temperature and advance thermostat
+        advanceThermostat(timestep+1);
+        }
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 

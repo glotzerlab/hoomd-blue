@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -68,13 +67,6 @@ Welcome to the user documentation for HOOMD-blue!
 9. \subpage page_license
 10. \subpage page_citing
 11. \subpage page_credits
-
-<hr>
-
-Up to date documentation can be found at the following links:
- - <a href="http://codeblue.umich.edu/hoomd-blue/doc/">Documentation</a> for the latest <b>packaged release</b>.
- - <a href="http://codeblue.umich.edu/hoomd-blue/doc-master/">Documentation</a> for the current <b>development version</b> in \em master.
- - Documentation consistent with any given version can be built from the source code by following the instructions in \ref page_compile_guide.
 */
 
 /*! \page page_command_list Index of Script Commands
@@ -124,11 +116,11 @@ Table of contents:
  - In script
     - \link hoomd_script.option.set_mode() option.set_mode\endlink - <i>Set the execution mode</i>
     - \link hoomd_script.option.set_gpu() option.set_gpu\endlink - <i>Set the gpu</i>
-    - \link hoomd_script.option.set_ncpu() option.set_ncpu\endlink - <i>Set the number of CPU threads</i>
     - \link hoomd_script.option.set_gpu_error_checking() option.set_gpu_error_checking\endlink - <i>Set the error checking flag</i>
     - \link hoomd_script.option.set_min_cpu() option.set_min_cpu\endlink - <i>Set the minimize CPU usage flag</i>
     - \link hoomd_script.option.set_ignore_display() option.set_ignore_display\endlink - <i>Set the ignore display GPU flag</i>
     - \link hoomd_script.option.get_user() option.get_user\endlink - <i>Get user options</i>
+    - \link hoomd_script.option.set_autotuner_params() option.set_autotuner_params\endlink - <i>Set autotuner params</i>
 
 \section sec_index_init Initialize
  - \link hoomd_script.init.create_empty() init.create_empty\endlink - <i>Create an empty system</i>
@@ -141,6 +133,9 @@ Table of contents:
  - \link hoomd_script.init.is_initialized() init.is_initialized\endlink - <i>Tests if the system has been initialized </i>
 
  - \link hoomd_script.data data access\endlink - <i>Access particles, bonds, and other state information inside scripts </i>
+ - \link hoomd_script.data.system_data.take_snapshot system_data.take_snapshot\endlink - <i>Take a snapshot of the current configuration </i>
+ - \link hoomd_script.data.system_data.restore_snapshot system_data.restore_snapshot\endlink - <i>Load the current system with a previously taken snapshot</i>
+ - \link hoomd_script.data.system_data.replicate system_data.replicate\endlink - <i>Replicate the system periodically along specified dimensions</i>
 
 \section sec_index_integration Integrate
  - \link hoomd_script.integrate.mode_minimize_fire integrate.mode_minimize_fire\endlink - <i>Energy Minimizer (FIRE) </i>
@@ -201,7 +196,7 @@ Table of contents:
 
 \section sec_index_manybody Many-body potentials
  - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM many-body %pair %force </i>
- - \link hoomd_sciprt.pair.tersoff pair.tersoff\endlink - <i>Tersoff three-body %pair %force</i>
+ - \link hoomd_script.pair.tersoff pair.tersoff\endlink - <i>Tersoff three-body %pair %force</i>
 
 \section sec_index_bond Bond potentials
  - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>Harmonic %bond force </i>
@@ -258,7 +253,6 @@ Table of contents:
 
 <h2>Miscellaneous commands</h2>
 \section sec_index_tuning Tune
- - \link hoomd_script.tune.find_optimal_block_sizes() tune.find_optimal_block_sizes\endlink - <i>Determine optimal block size tuning parameters </i>
  - \link hoomd_script.tune.r_buff() tune.r_buff()\endlink - <i>Make a series of short runs to determine the fastest performing r_buff setting </i>
 
 \section sec_index_benchmark Benchmark

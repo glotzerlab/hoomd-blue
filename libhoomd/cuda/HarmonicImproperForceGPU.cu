@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -311,6 +310,7 @@ void gpu_compute_harmonic_improper_forces_kernel(Scalar4* d_force,
     \param d_params K, sign,multiplicity params packed as padded Scalar4 variables
     \param n_improper_types Number of improper types in d_params
     \param block_size Block size to use when performing calculations
+    \param copute_capability Compute capability of the device (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
@@ -330,18 +330,32 @@ cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
                                                  const unsigned int *n_dihedrals_list,
                                                  Scalar2 *d_params,
                                                  unsigned int n_improper_types,
-                                                 int block_size)
+                                                 int block_size,
+                                                 const unsigned int compute_capability)
     {
     assert(d_params);
 
-    // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_harmonic_improper_forces_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
 
-    // bind the texture
-    cudaError_t error = cudaBindTexture(0, improper_params_tex, d_params, sizeof(Scalar2) * n_improper_types);
-    if (error != cudaSuccess)
-        return error;
+    unsigned int run_block_size = min(block_size, max_block_size);
+
+    // setup the grid to run the kernel
+    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+    dim3 threads(run_block_size, 1, 1);
+
+    // bind the texture on pre sm35 devices
+    if (compute_capability < 350)
+        {
+        cudaError_t error = cudaBindTexture(0, improper_params_tex, d_params, sizeof(Scalar2) * n_improper_types);
+        if (error != cudaSuccess)
+            return error;
+        }
 
     // run the kernel
     gpu_compute_harmonic_improper_forces_kernel<<< grid, threads>>>(d_force, d_virial, virial_pitch, N, d_pos, d_params, box, tlist, dihedral_ABCD, pitch, n_dihedrals_list);

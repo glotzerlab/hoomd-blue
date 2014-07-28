@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -124,7 +123,7 @@ SystemDefinition::SystemDefinition(boost::shared_ptr<const SnapshotSystemData> s
                                    boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                    boost::shared_ptr<DomainDecomposition> decomposition)
     {
-    m_n_dimensions = snapshot->dimensions;
+    setNDimensions(snapshot->dimensions);
 
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
                  snapshot->global_box,
@@ -253,7 +252,8 @@ boost::shared_ptr<SnapshotSystemData> SystemDefinition::takeSnapshot(bool partic
         {
         for (unsigned int i = 0; i < m_wall_data->getNumWalls(); ++i)
             snap->wall_data.push_back(m_wall_data->getWall(i));
-        snap->has_wall_data = true;
+        if (snap->wall_data.size())
+            snap->has_wall_data = true;
         }
     else
         snap->has_wall_data = false;
@@ -285,7 +285,6 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr<SnapshotSystemDa
     if (snapshot->has_particle_data)
         {
         m_particle_data->setGlobalBox(snapshot->global_box);
-
         m_particle_data->initializeFromSnapshot(snapshot->particle_data);
         }
 

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -122,17 +121,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
 
     // check that the simulation box is big enough
     const BoxDim& box = m_pdata->getBox();
-
-    Scalar3 L = box.getNearestPlaneDistance();
-
-    if (L.x <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
-        L.y <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0 ||
-        L.z <= (m_r_cut+m_r_buff+m_d_max-Scalar(1.0)) * 2.0)
-        {
-        m_exec_conf->msg->error() << "Simulation box is too small! Particles would be interacting with themselves."
-             << endl;
-        throw runtime_error("Error computing neighbor list");
-        }
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     if (m_prof)
         m_prof->push(exec_conf, "compute");
@@ -151,6 +140,14 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
+
+    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
+        {
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
+        throw runtime_error("Error updating neighborlist bins");
+        }
 
     gpu_compute_nlist_nsq(d_nlist.data,
                           d_n_neigh.data,
@@ -277,6 +274,7 @@ void NeighborListGPU::filterNlist()
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
 
+    m_tuner_filter->begin();
     gpu_nlist_filter(d_n_neigh.data,
                      d_nlist.data,
                      m_nlist_indexer,
@@ -284,8 +282,9 @@ void NeighborListGPU::filterNlist()
                      d_ex_list_idx.data,
                      m_ex_list_indexer,
                      m_pdata->getN(),
-                     m_block_size_filter);
+                     m_tuner_filter->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    m_tuner_filter->end();
 
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -325,7 +324,6 @@ void export_NeighborListGPU()
     {
     class_<NeighborListGPU, boost::shared_ptr<NeighborListGPU>, bases<NeighborList>, boost::noncopyable >
                      ("NeighborListGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
-                     .def("setBlockSizeFilter", &NeighborListGPU::setBlockSizeFilter)
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;
     }

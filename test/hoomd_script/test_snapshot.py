@@ -35,6 +35,16 @@ class init_create_snapshot (unittest.TestCase):
         snapshot = system.take_snapshot(integrators=True)
         del system
 
+
+    def test_read_snapshot(self):
+        system = init.create_random(N=100, phi_p=0.05);
+        self.assertTrue(globals.system_definition);
+        self.assertTrue(globals.system);
+        snapshot = system.take_snapshot(all=True)
+        del system
+        init.reset()
+        init.read_snapshot(snapshot)
+
     def tearDown(self):
         init.reset();
 

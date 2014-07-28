@@ -58,11 +58,8 @@ endforeach(test)
 
 # exclude some tests from MPI
 SET(EXCLUDE_FROM_MPI
-    test_bond_harmonic
-    test_bond_fene
     test_charge_pppm
     test_constraint_sphere
-    test_data_access
     test_dump_mol2
     test_dump_pdb
     test_integrate_bdnvt_rigid
@@ -71,10 +68,6 @@ SET(EXCLUDE_FROM_MPI
     test_pair_cgcmm
     test_update_rescale_temp
     test_wall_lj
-    test_angle_cgcmm
-    test_angle_harmonic
-    test_dihedral_harmonic
-    test_improper_harmonic
     )
 
 if (ENABLE_MPI)

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -56,7 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // template argument to the correct evaluator <EvaluatorBondMine>, and update the type of the 2nd argument to the
 // param_type of the evaluator
 cudaError_t gpu_compute_harmonic_dpd_forces(const bond_args_t& bond_args,
-                                   const float4 *d_params,
+                                   const Scalar4 *d_params,
                                    unsigned int *d_flags)
     {
     return gpu_compute_bond_forces<EvaluatorBondHarmonicDPD>(bond_args, d_params, d_flags);

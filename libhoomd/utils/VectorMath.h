@@ -1,3 +1,52 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include "HOOMDMath.h"
 
 #ifndef __VECTOR_MATH_H__
@@ -706,6 +755,19 @@ struct quat
         {
         }
 
+    //! Construct a quat from an axis and an angle.
+    /*! \param axis angle to represent
+        \param theta angle to represent
+
+        This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
+        The rotmat3 will initialize to the same rotation as the angle around the specified axis.
+    */
+    DEVICE static quat fromAxisAngle(const vec3<Real>& axis, const Real& theta)
+        {
+        quat<Real> q(fast::cos(theta/2.0), (Real)fast::sin(theta/2.0) * axis);
+        return q;
+        }
+
     Real s;         //!< scalar component
     vec3<Real> v;   //!< vector component
     };
@@ -954,10 +1016,12 @@ struct rotmat2
 
         This is a convenience function for easy initialization of rotmat2s from quats. The rotmat2 will initialize to
         the same rotation as the quaternion.
+
+        formula from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+
     */
     DEVICE explicit rotmat2(const quat<Real>& q)
         {
-        // formula from http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
         Real a = q.s,
              b = q.v.x,
              c = q.v.y,
@@ -972,6 +1036,24 @@ struct rotmat2
     //! Default construct an identity matrix
     DEVICE rotmat2() : row0(vec2<Real>(1,0)), row1(vec2<Real>(0,1))
         {
+        }
+
+    //! Construct a rotmat2 from a float. formula from http://en.wikipedia.org/wiki/Rotation_matrix
+    /*! \param theta angle to represent
+
+        This is a convenience function for easy initialization of rotmat2s from angles. The rotmat2 will initialize to
+        the same rotation as the angle.
+
+    */
+    DEVICE static rotmat2 fromAngle(const Real& theta)
+        {
+        vec2<Real> row0;
+        vec2<Real> row1;
+        row0.x = fast::cos(theta);
+        row0.y = -fast::sin(theta);
+        row1.x = fast::sin(theta);
+        row1.y = fast::cos(theta);
+        return rotmat2<Real>(row0, row1);
         }
 
     vec2<Real> row0;   //!< First row
@@ -1063,6 +1145,18 @@ struct rotmat3
     //! Default construct an identity matrix
     DEVICE rotmat3() : row0(vec3<Real>(1,0,0)), row1(vec3<Real>(0,1,0)), row2(vec3<Real>(0,0,1))
         {
+        }
+
+    //! Construct a rotmat3 from an axis and an angle.
+    /*! \param axis angle to represent
+        \param theta angle to represent
+
+        This is a convenience function for easy initialization of rotmat3s from an axis and an angle.
+        The rotmat3 will initialize to the same rotation as the angle around the specified axis.
+    */
+    DEVICE static rotmat3 fromAxisAngle(const vec3<Real>& axis, const Real& theta)
+        {
+        return rotmat3<Real>(quat<Real>::fromAxisAngle(axis, theta));
         }
 
     vec3<Real> row0;   //!< First row

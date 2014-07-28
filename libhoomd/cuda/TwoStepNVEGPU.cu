@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -179,9 +178,19 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
                              bool zero_force,
                              unsigned int block_size)
     {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)gpu_nve_step_one_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+
     // setup the grid to run the kernel
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid( (group_size/run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
     gpu_nve_step_one_kernel<<< grid, threads >>>(d_pos, d_vel, d_accel, d_image, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
@@ -288,10 +297,19 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
                              bool zero_force,
                              unsigned int block_size)
     {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nve_step_two_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
 
     // setup the grid to run the kernel
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid( (group_size/run_block_size) + 1, 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
     gpu_nve_step_two_kernel<<< grid, threads >>>(d_vel,

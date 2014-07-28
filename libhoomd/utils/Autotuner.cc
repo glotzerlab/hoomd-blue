@@ -1,3 +1,52 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+You may redistribute, use, and create derivate works of HOOMD-blue, in source
+and binary forms, provided you abide by the following conditions:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer both in the code and
+prominently in any materials provided with the distribution.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* All publications and presentations based on HOOMD-blue, including any reports
+or published results obtained, in whole or in part, with HOOMD-blue, will
+acknowledge its use according to the terms posted at the time of submission on:
+http://codeblue.umich.edu/hoomd-blue/citations.html
+
+* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
+http://codeblue.umich.edu/hoomd-blue/
+
+* Apart from the above required attributions, neither the name of the copyright
+holder nor the names of HOOMD-blue's contributors may be used to endorse or
+promote products derived from this software without specific prior written
+permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
+WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
@@ -30,7 +79,7 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
                      boost::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name), m_parameters(parameters),
       m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0),
-      m_exec_conf(exec_conf)
+      m_exec_conf(exec_conf), m_avg(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << nsamples << " " << period << " " << name << endl;
 
@@ -61,9 +110,7 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
     CHECK_CUDA_ERROR();
     #endif
 
-    #ifdef ENABLE_MPI
     m_sync = false;
-    #endif
     }
 
 
@@ -86,7 +133,7 @@ Autotuner::Autotuner(unsigned int start,
                      boost::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name),
       m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0), m_current_param(0),
-      m_exec_conf(exec_conf)
+      m_exec_conf(exec_conf), m_avg(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << " " << start << " " << end << " " << step << " "
                                 << nsamples << " " << period << " " << name << endl;
@@ -127,9 +174,7 @@ Autotuner::Autotuner(unsigned int start,
     CHECK_CUDA_ERROR();
     #endif
 
-    #ifdef ENABLE_MPI
     m_sync = false;
-    #endif
     }
 
 Autotuner::~Autotuner()
@@ -144,6 +189,10 @@ Autotuner::~Autotuner()
 
 void Autotuner::begin()
     {
+    // skip if disabled
+    if (!m_enabled)
+        return;
+
     #ifdef ENABLE_CUDA
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == STARTUP || m_state == SCANNING)
@@ -157,6 +206,10 @@ void Autotuner::begin()
 
 void Autotuner::end()
     {
+    // skip if disabled
+    if (!m_enabled)
+        return;
+
     #ifdef ENABLE_CUDA
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
@@ -164,7 +217,7 @@ void Autotuner::end()
         cudaEventRecord(m_stop, 0);
         cudaEventSynchronize(m_stop);
         cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
-        m_exec_conf->msg->notice(10) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
+        m_exec_conf->msg->notice(9) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
                                      << ") = " << m_samples[m_current_element][m_current_sample] << endl;
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -231,6 +284,7 @@ void Autotuner::end()
             // initialize a scan
             m_current_param = m_parameters[m_current_element];
             m_state = SCANNING;
+            m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " - beginning scan" << std::endl;
             }
         }
     }
@@ -276,9 +330,21 @@ unsigned int Autotuner::computeOptimalParameter()
         #endif
         if (is_root)
             {
-            size_t n = v.size() / 2;
-            nth_element(v.begin(), v.begin()+n, v.end());
-            m_sample_median[i] = v[n];
+            if (m_avg)
+                {
+                // compute average
+                float sum = 0.0f;
+                for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
+                    sum += *it;
+                m_sample_median[i] = sum/v.size();
+                }
+            else
+                {
+                // compute median
+                size_t n = v.size() / 2;
+                nth_element(v.begin(), v.begin()+n, v.end());
+                m_sample_median[i] = v[n];
+                }
             }
         }
 
@@ -289,8 +355,8 @@ unsigned int Autotuner::computeOptimalParameter()
         // now find the minimum and maximum times in the medians
         float min = m_sample_median[0];
         unsigned int min_idx = 0;
-        float max = m_sample_median[0];
-        unsigned int max_idx = 0;
+        //float max = m_sample_median[0];
+        //unsigned int max_idx = 0;
 
         for (unsigned int i = 1; i < m_parameters.size(); i++)
             {
@@ -299,20 +365,19 @@ unsigned int Autotuner::computeOptimalParameter()
                 min = m_sample_median[i];
                 min_idx = i;
                 }
-            if (m_sample_median[i] > max)
+            /*if (m_sample_median[i] > max)
                 {
                 max = m_sample_median[i];
                 max_idx = i;
-                }
+                }*/
             }
 
         // get the optimal param
         opt = m_parameters[min_idx];
-        unsigned int percent = int(max/min * 100.0f)-100;
+        // unsigned int percent = int(max/min * 100.0f)-100;
 
         // print stats
-        m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " found optimal parameter " << opt << " which is " << percent
-                                    << " percent faster than " << m_parameters[max_idx] << "." << endl;
+        m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " found optimal parameter " << opt << endl;
         }
 
     #ifdef ENABLE_MPI

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -117,6 +116,26 @@ class CommunicatorGPU : public Communicator
             forceMigrate();
             }
 
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+
+            Derived classes should override this to set the parameters of their autotuners.
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            Communicator::setAutotunerParams(enable, period);
+
+            #ifndef ENABLE_MPI_CUDA
+            m_tuner_ghost_recv->setPeriod(period);
+            m_tuner_ghost_recv->setEnabled(enable);
+
+            m_tuner_ghost_send->setPeriod(period);
+            m_tuner_ghost_send->setEnabled(enable);
+            #endif
+            }
+
+
     protected:
         //! Helper class to perform the communication tasks related to bonded groups
         template<class group_data>
@@ -195,8 +214,14 @@ class CommunicatorGPU : public Communicator
         friend class GroupCommunicatorGPU<ImproperData>;
 
         /* Ghost communication */
-        GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< List of ghost particles tags per stage, ordered by neighbor
+        bool m_mapped_ghost_recv;                        //!< True if using host-mapped memory for ghost recv buffers
+        bool m_mapped_ghost_send;                        //!< True if using host-mapped memory for ghost send buffers
+        boost::scoped_ptr<Autotuner> m_tuner_ghost_recv; //!< Autotuner for mapped memory (recv ghosts)
+        boost::scoped_ptr<Autotuner> m_tuner_ghost_send; //!< Autotuner for mapped memory (recv ghosts)
+
+        GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< Buffer for sending particle tags
         GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags
+
         GPUVector<Scalar4> m_pos_ghost_sendbuf;        //<! Buffer for sending ghost positions
         GPUVector<Scalar4> m_pos_ghost_recvbuf;        //<! Buffer for receiving ghost positions
 
@@ -212,8 +237,26 @@ class CommunicatorGPU : public Communicator
         GPUVector<Scalar4> m_orientation_ghost_sendbuf;//<! Buffer for sending ghost orientations
         GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
 
-        GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf
-        GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf
+        GPUVector<unsigned int> m_tag_ghost_sendbuf_alt;   //!< Buffer for sending particle tags (standby)
+        GPUVector<unsigned int> m_tag_ghost_recvbuf_alt;   //!< Buffer for recveiving particle tags (standby)
+
+        GPUVector<Scalar4> m_pos_ghost_sendbuf_alt;        //<! Buffer for sending ghost positions (standby)
+        GPUVector<Scalar4> m_pos_ghost_recvbuf_alt;        //<! Buffer for receiving ghost positions (standby)
+
+        GPUVector<Scalar4> m_vel_ghost_sendbuf_alt;        //<! Buffer for sending ghost velocities (standby)
+        GPUVector<Scalar4> m_vel_ghost_recvbuf_alt;        //<! Buffer for receiving ghost velocities (standby)
+
+        GPUVector<Scalar> m_charge_ghost_sendbuf_alt;      //!< Buffer for sending ghost charges (standby)
+        GPUVector<Scalar> m_charge_ghost_recvbuf_alt;      //!< Buffer for sending ghost charges (standby)
+
+        GPUVector<Scalar> m_diameter_ghost_sendbuf_alt;    //!< Buffer for sending ghost charges (standby)
+        GPUVector<Scalar> m_diameter_ghost_recvbuf_alt;    //!< Buffer for sending ghost charges (standby)
+
+        GPUVector<Scalar4> m_orientation_ghost_sendbuf_alt;//<! Buffer for sending ghost orientations (standby)
+        GPUVector<Scalar4> m_orientation_ghost_recvbuf_alt;//<! Buffer for receiving ghost orientations (standby)
+
+        GPUVector<unsigned int> m_ghost_begin;          //!< Begin index for every stage and neighbor in send buf_alt
+        GPUVector<unsigned int> m_ghost_end;            //!< Begin index for every and neighbor in send buf_alt
 
         GPUVector<uint2> m_ghost_idx_adj;             //!< Indices and adjacency relationships of ghosts to send
         GPUVector<unsigned int> m_ghost_neigh;        //!< Neighbor ranks for every ghost particle

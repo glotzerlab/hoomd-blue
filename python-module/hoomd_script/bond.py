@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -327,7 +326,6 @@ class harmonic(_bond):
             self.cpp_force = hoomd.PotentialBondHarmonic(globals.system_definition,self.name);
         else:
             self.cpp_force = hoomd.PotentialBondHarmonicGPU(globals.system_definition,self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.harmonic'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -387,7 +385,7 @@ class fene(_bond):
         util.print_status_line();
 
         # check that some bonds are defined
-        if globals.system_definition.getBondData().getN() == 0:
+        if globals.system_definition.getBondData().getNGlobal() == 0:
             globals.msg.error("No bonds are defined.\n");
             raise RuntimeError("Error creating bond forces");
 
@@ -399,7 +397,6 @@ class fene(_bond):
             self.cpp_force = hoomd.PotentialBondFENE(globals.system_definition,self.name);
         else:
             self.cpp_force = hoomd.PotentialBondFENEGPU(globals.system_definition,self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.fene'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
@@ -435,12 +432,17 @@ def _table_eval(r, rmin, rmax, V, F, width):
 # in the simulation.
 #
 # The %force \f$ \vec{F}\f$ is (in force units)
+# The %force \f$ \vec{F}\f$ is (in force units)
 # \f{eqnarray*}
-#  \vec{F}(\vec{r})     = & F_{\mathrm{user}}(r)\hat{r} & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
+#  \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
+#                       = & F_{\mathrm{user}}(r)\hat{r} & r < r_{\mathrm{max}} \\
+#                       = & 0                           & r \ge r_{\mathrm{max}} \\
 # \f}
 # and the potential \f$ V(r) \f$ is (in energy units)
 # \f{eqnarray*}
-#            = & V_{\mathrm{user}}(r) & r \le r_{\mathrm{max}} and  r \ge r_{\mathrm{min}}\\
+# V(r)       = & 0                    & r < r_{\mathrm{min}} \\
+#            = & V_{\mathrm{user}}(r) & r < r_{\mathrm{max}} \\
+#            = & 0                    & r \ge r_{\mathrm{max}} \\
 # \f}
 # ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %bond.  Care should be taken to
 # define the range of the bond so that it is not possible for the distance between two bonded particles to be outside the
@@ -495,7 +497,7 @@ def _table_eval(r, rmin, rmax, V, F, width):
 #
 # \note Coefficients for all bond types in the simulation must be
 # set before it can be started with run().
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class table(force._force):
     ## Specify the Tabulated %bond %force
     #
@@ -530,7 +532,6 @@ class table(force._force):
             self.cpp_force = hoomd.BondTablePotential(globals.system_definition, int(width), self.name);
         else:
             self.cpp_force = hoomd.BondTablePotentialGPU(globals.system_definition, int(width), self.name);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.table'));
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 

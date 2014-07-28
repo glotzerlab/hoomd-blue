@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -59,11 +58,45 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::python;
 
+void SnapshotSystemData::replicate(unsigned int nx, unsigned int ny, unsigned int nz)
+    {
+    assert(nx > 0);
+    assert(ny > 0);
+    assert(nz > 0);
+
+    // Update global box
+    BoxDim old_box = global_box;
+    Scalar3 L = global_box.getL();
+    L.x *= (Scalar) nx;
+    L.y *= (Scalar) ny;
+    L.z *= (Scalar) nz;
+    global_box.setL(L);
+
+    unsigned int old_n = particle_data.size;
+    unsigned int n = nx * ny *nz;
+
+    // replicate snapshots
+    if (has_particle_data)
+        particle_data.replicate(nx, ny, nz, old_box, global_box);
+    if (has_bond_data)
+        bond_data.replicate(n,old_n);
+    if (has_angle_data)
+        angle_data.replicate(n,old_n);
+    if (has_dihedral_data)
+        dihedral_data.replicate(n,old_n);
+    if (has_improper_data)
+        improper_data.replicate(n,old_n);
+    // replication of rigid data is currently pointless,
+    // as RigidData cannot be re-initialized with a different number of rigid bodies
+    if (has_rigid_data)
+        rigid_data.replicate(n);
+    }
+
 void export_SnapshotSystemData()
     {
     class_<SnapshotSystemData, boost::shared_ptr<SnapshotSystemData> >("SnapshotSystemData")
     .def(init<>())
-    .def_readwrite("dimensions", &SnapshotSystemData::global_box)
+    .def_readwrite("dimensions", &SnapshotSystemData::dimensions)
     .def_readwrite("global_box", &SnapshotSystemData::global_box)
     .def_readwrite("particle_data", &SnapshotSystemData::particle_data)
     .def_readwrite("bond_data", &SnapshotSystemData::bond_data)
@@ -79,6 +112,7 @@ void export_SnapshotSystemData()
     .def_readwrite("has_rigid_data", &SnapshotSystemData::has_rigid_data)
     .def_readwrite("has_wall_data", &SnapshotSystemData::has_wall_data)
     .def_readwrite("has_integrator_data", &SnapshotSystemData::has_integrator_data)
+    .def("replicate", &SnapshotSystemData::replicate)
     ;
 
     implicitly_convertible<boost::shared_ptr<SnapshotSystemData>, boost::shared_ptr<const SnapshotSystemData> >();

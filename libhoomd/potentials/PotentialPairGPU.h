@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -108,6 +107,19 @@ class PotentialPairGPU : public PotentialPair<evaluator>
             m_param = param;
             }
 
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+
+            Derived classes should override this to set the parameters of their autotuners.
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            PotentialPair<evaluator>::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
+            }
+
         #ifdef ENABLE_MPI
         /*! Precompute the pair force without rebuilding the neighbor list
          *
@@ -161,7 +173,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
             }
         }
 
-    m_tuner.reset(new Autotuner(valid_params, 5, 1e6, "pair_" + evaluator::getName(), this->m_exec_conf));
+    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "pair_" + evaluator::getName(), this->m_exec_conf));
     #ifdef ENABLE_MPI
     // synchronize autotuner results across ranks
     m_tuner->setSync(this->m_pdata->getDomainDecomposition());
@@ -242,7 +254,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          block_size,
                          this->m_shift_mode,
                          flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                         threads_per_particle),
+                         threads_per_particle,
+                         this->m_exec_conf->getComputeCapability()/10),
              d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

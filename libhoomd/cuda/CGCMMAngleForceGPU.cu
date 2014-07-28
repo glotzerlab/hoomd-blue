@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -310,6 +309,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(Scalar4* d_forc
     \param d_CGCMMepow epsilon, pow1, pow2, and prefactor packed as a Scalar4
     \param n_angle_types Number of angle types in d_params
     \param block_size Block size to use when performing calculations
+    \param compute_capability Compute capability of the device (200, 300, 350, ...)
 
     \returns Any error code resulting from the kernel launch
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
@@ -331,29 +331,42 @@ cudaError_t gpu_compute_CGCMM_angle_forces(Scalar4* d_force,
                                            Scalar2 *d_CGCMMsr,
                                            Scalar4 *d_CGCMMepow,
                                            unsigned int n_angle_types,
-                                           int block_size)
+                                           int block_size,
+                                           const unsigned int compute_capability)
     {
     assert(d_params);
     assert(d_CGCMMsr);
     assert(d_CGCMMepow);
 
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_CGCMM_angle_forces_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+    dim3 threads(run_block_size, 1, 1);
 
-    // bind the textures
-    cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
-    if (error != cudaSuccess)
-        return error;
+    // bind the textures on pre sm 35 arches
+    if (compute_capability < 350)
+        {
+        cudaError_t error = cudaBindTexture(0, angle_params_tex, d_params, sizeof(Scalar2) * n_angle_types);
+        if (error != cudaSuccess)
+            return error;
 
-    error = cudaBindTexture(0, angle_CGCMMsr_tex, d_CGCMMsr, sizeof(Scalar2) * n_angle_types);
-    if (error != cudaSuccess)
-        return error;
+        error = cudaBindTexture(0, angle_CGCMMsr_tex, d_CGCMMsr, sizeof(Scalar2) * n_angle_types);
+        if (error != cudaSuccess)
+            return error;
 
-    error = cudaBindTexture(0, angle_CGCMMepow_tex, d_CGCMMepow, sizeof(Scalar4) * n_angle_types);
-    if (error != cudaSuccess)
-        return error;
+        error = cudaBindTexture(0, angle_CGCMMepow_tex, d_CGCMMepow, sizeof(Scalar4) * n_angle_types);
+        if (error != cudaSuccess)
+            return error;
+        }
 
     // run the kernel
     gpu_compute_CGCMM_angle_forces_kernel<<< grid, threads>>>(d_force,

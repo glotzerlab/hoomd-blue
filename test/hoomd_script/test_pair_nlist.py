@@ -12,8 +12,8 @@ class pair_nlist_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         #indirectly create the neighbor list by creating a pair.lj
         pair.lj(r_cut=3.0);
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
 
     # test set_params
@@ -23,6 +23,7 @@ class pair_nlist_tests (unittest.TestCase):
 
     # test reset_exclusions
     def test_reset_exclusions_works(self):
+        globals.neighbor_list.reset_exclusions();
         globals.neighbor_list.reset_exclusions(exclusions = ['1-2']);
         globals.neighbor_list.reset_exclusions(exclusions = ['1-3']);
         globals.neighbor_list.reset_exclusions(exclusions = ['1-4']);

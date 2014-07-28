@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -250,7 +249,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                                 d_field.data,
                                 d_index_array.data,
                                 group_size,
-                                m_block_size);
+                                m_block_size,
+                                m_exec_conf->getComputeCapability());
 
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -275,7 +275,8 @@ void PPPMForceComputeGPU::computeForces(unsigned int timestep)
                            m_kappa,
                            d_index_array.data,
                            group_size,
-                           m_block_size);
+                           m_block_size,
+                           m_exec_conf->getComputeCapability());
             if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }

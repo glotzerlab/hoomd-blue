@@ -1,8 +1,7 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-# Iowa State University and The Regents of the University of Michigan All rights
-# reserved.
+# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
 # copyright is held, by various Contributors who have granted The Regents of the
@@ -70,7 +69,7 @@ from hoomd_script import util
 # If modifications need to be done on more than just a few particles, e.g.
 # setting new positions for all particles, or updating the velocities, etc., \b snapshots can be used.
 # \ref data_snapshot store the entire system state in a single (currently opaque) object and can
-# be used to re-initialize the system system.restore_snapshot().
+# be used to re-initialize the system system_data.restore_snapshot().
 #
 # <h2>Documentation by example</h2>
 #
@@ -81,36 +80,20 @@ from hoomd_script import util
 # \endcode
 #
 # <hr>
-# <h3>Getting/setting the number of dimensions</h3>
-# You can get the number of dimensions of the system like so:
-# \code
-# >>> print system.dimensions
-# 2
-# \endcode
-# and can change it like so:
-# \code
-# >>> system.dimensions = 3
-# >>> print system.dimensions
-# 3
-# \endcode
-#
-# \b Note: To properly initialize a 2D system, you must set dimensions=2 <b>___PRIOR TO___</b> any other hoomd call (such
-# as pair, integrate, et cetera. Otherwise, the setting may not take effect.
-# <hr>
 # <h3>Getting/setting the box</h3>
 # You can access the dimensions of the simulation box like so:
 # \code
 # >>> print system.box
-# (17.364656448364258, 17.364656448364258, 17.364656448364258)
+# Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0
 # \endcode
 # and can change it like so:
 # \code
-# >>> system.box = (20,25,18)
+# >>> system.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
 # >>> print system.box
-# (20, 25, 18)
+# Box: Lx=10 Ly=20 Lz=30 xy=1.0 xz=0.1 yz=2.0
 # \endcode
-# \b However, all particles must \b always remain inside the box. If a box is set in this way such that a particle ends up outside of the box, expect
-# errors to be thrown or for hoomd to just crash.
+# \b All particles must \b always remain inside the box. If a box is set in this way such that a particle ends up outside of the box, expect
+# errors to be thrown or for hoomd to just crash. The dimensionality of the system cannot change after initialization.
 # <hr>
 # <h3>Particle properties</h3>
 # For a list of all particle properties that can be read and/or set, see the particle_data_proxy. The examples
@@ -339,7 +322,7 @@ from hoomd_script import util
 # about the simulation box, particles, bonds, angles, dihedrals, impropers, walls and rigid bodies.
 # Once taken, it is not updated anymore (as opposed to the particle %data proxies, which always
 # return the current state). Instead, it can be used to restart the simulation
-# using system.restore_snapshot().
+# using system_data.restore_snapshot().
 #
 # In future releases it will be possible to modify or %analyze the contents of a snapshot.
 #
@@ -348,6 +331,152 @@ from hoomd_script import util
 # snapshot = system.take_snapshot(all=True)
 # \endcode
 
+## Define box dimensions
+#
+# Simulation boxes in hoomd are specified by six parameters, *Lx*, *Ly*, *Lz*, *xy*, *xz* and *yz*. For full details,
+# see \ref page_box. A boxdim provides a way to specify all six parameters for a given box and perform some common
+# operations with them. Modifying a boxdim does not modify the underlying simulation box in hoomd. A boxdim can be passed
+# to an initialization method or to assigned to a saved sysdef variable (`system.box = new_box`) to set the simulation
+# box.
+#
+# boxdim parameters may be accessed directly.
+# ~~~~
+# b = data.boxdim(L=20);
+# b.xy = 1.0;
+# b.yz = 0.5;
+# b.Lz = 40;
+# ~~~~
+#
+# **Two dimensional systems**
+#
+# 2D simulations in hoomd are embedded in 3D boxes with short heights in the z direction. To create a 2D box,
+# set dimensions=2 when creating the boxdim. This will force Lz=1 and xz=yz=0. init commands that support 2D boxes
+# will pass the dimensionality along to the system. When you assign a new boxdim to an already initialized system,
+# the dimensionality flag is ignored. Changing the number of dimensions during a simulation run is not supported.
+#
+# In 2D boxes, *volume* is in units of area.
+#
+# **Shorthand notation**
+#
+# data.boxdim accepts the keyword argument *L=x* as shorthand notation for `Lx=x, Ly=x, Lz=x` in 3D
+# and `Lx=x, Ly=z, Lz=1` in 2D. If you specify both `L=` and `Lx,Ly, or Lz`, then the value for `L` will override
+# the others.
+#
+# **Examples:**
+#
+# There are many ways to define boxes.
+#
+# * Cubic box with given volume: `data.boxdim(volume=V)`
+# * Triclinic box in 2D with given area: `data.boxdim(xy=1.0, dimensions=2, volume=A)`
+# * Rectangular box in 2D with given area and aspect ratio: `data.boxdim(Lx=1, Ly=aspect, dimensions=2, volume=A)`
+# * Cubic box with given length: `data.boxdim(L=10)`
+# * Fully define all box parameters: `data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)`
+#
+class boxdim:
+    ## Initialize a boxdim object
+    #
+    # \param Lx box extent in the x direction (distance units)
+    # \param Ly box extent in the y direction (distance units)
+    # \param Lz box extent in the z direction (distance units)
+    # \param xy tilt factor xy (dimensionless)
+    # \param xz tilt factor xz (dimensionless)
+    # \param yz tilt factor yz (dimensionless)
+    # \param dimensions Number of dimensions in the box (2 or 3).
+    # \param L shorthand for specifying Lx=Ly=Lz=L (distance units)
+    # \param volume Scale the given box dimensions up to the this volume (area if dimensions=2)
+    #
+    def __init__(self, Lx=1.0, Ly=1.0, Lz=1.0, xy=0.0, xz=0.0, yz=0.0, dimensions=3, L=None, volume=None):
+        if L is not None:
+            Lx = L;
+            Ly = L;
+            Lz = L;
+
+        if dimensions == 2:
+            Lz = 1.0;
+            xz = yz = 0.0;
+
+        self.Lx = Lx;
+        self.Ly = Ly;
+        self.Lz = Lz;
+        self.xy = xy;
+        self.xz = xz;
+        self.yz = yz;
+        self.dimensions = dimensions;
+
+        if volume is not None:
+            self.set_volume(volume);
+
+    ## Scale box dimensions
+    #
+    # \param sx scale factor in the x direction
+    # \param sy scale factor in the y direction
+    # \param sz scale factor in the z direction
+    #
+    # Scales the box by the given scale factors. Tilt factors are not modified.
+    #
+    def scale(self, sx, sy, sz):
+        self.Lx = self.Lx * sx;
+        self.Ly = self.Ly * sy;
+        self.Lz = self.Lz * sz;
+
+    ## Set the box volume
+    #
+    # \param volume new box volume (area if dimensions=2)
+    #
+    # setVolume() scales the box to the given volume (or area).
+    #
+    def set_volume(self, volume):
+        cur_vol = self.get_volume();
+
+        if self.dimensions == 3:
+            s = (volume / cur_vol)**(1.0/3.0)
+            self.scale(s, s, s);
+        else:
+            s = (volume / cur_vol)**(1.0/2.0)
+            self.scale(s, s, 1.0);
+
+    ## Get the box volume
+    #
+    # Returns the box volume (area in 2D).
+    #
+    def get_volume(self):
+        b = self._getBoxDim();
+        return b.getVolume(self.dimensions == 2);
+
+    ## Get a lattice vector
+    #
+    # \param i (=0,1,2) direction of lattice vector
+    #
+    # \returns a lattice vector (3-tuple) along direction \a i
+    #
+    def get_lattice_vector(self,i):
+        b = self._getBoxDim();
+        v = b.getLatticeVector(int(i))
+        return (v.x, v.y, v.z)
+
+    ## Wrap a vector using the periodic boundary conditions
+    #
+    # \param v The vector to wrap
+    #
+    # \returns the wrapped vector
+    #
+    def wrap(self,v):
+        u = hoomd.make_scalar3(v[0],v[1],v[2])
+        i = hoomd.make_int3(0,0,0)
+        c = hoomd.make_char3(0,0,0)
+        self._getBoxDim().wrap(u,i,c)
+        return (u.x, u.y, u.z)
+
+    ## \internal
+    # \brief Get a C++ boxdim
+    def _getBoxDim(self):
+        b = hoomd.BoxDim(self.Lx, self.Ly, self.Lz);
+        b.setTiltFactors(self.xy, self.xz, self.yz);
+        return b
+
+    def __str__(self):
+        return 'Box: Lx=' + str(self.Lx) + ' Ly=' + str(self.Ly) + ' Lz=' + str(self.Lz) + ' xy=' + str(self.xy) + \
+                    ' xz='+ str(self.xz) + ' yz=' + str(self.yz);
 ##
 # \brief Access system data
 #
@@ -397,7 +526,7 @@ class system_data:
     # \endcode
     #
     # \MPI_SUPPORTED
-    def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None ):
+    def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None):
         util.print_status_line();
 
         if all is True:
@@ -444,6 +573,64 @@ class system_data:
 
         return cpp_snapshot
 
+    ## Replicates the system along the three spatial dimensions
+    #
+    # \param nx Number of times to replicate the system along the x-direction
+    # \param ny Number of times to replicate the system along the y-direction
+    # \param nz Number of times to replicate the system along the z-direction
+    #
+    # This method explictly replicates particles along all three spatial directions, as
+    # opposed to replication implied by periodic boundary conditions.
+    # The box is resized and the number of particles is updated so that the new box
+    # holds the specified number of replicas of the old box along all directions.
+    # Particle coordinates are updated accordingly to fit into the new box. All velocities and
+    # other particle properties are replicated as well. Also bonded groups between particles
+    # are replicated.
+    #
+    # Example usage:
+    # \code
+    # system = init.read_xml("some_file.xml")
+    # system.replicate(nx=2,ny=2,nz=2)
+    # \endcode
+    #
+    # \note Replication of rigid bodies is currently not supported.
+    #
+    # \note It is a limitation that in MPI simulations the dimensions of the processor grid
+    # are not updated upon replication. For example, if an initially cubic box is replicated along only one
+    # spatial direction, this could lead to decreased performance if the processor grid was
+    # optimal for the original box dimensions, but not for the new ones.
+    #
+    # \MPI_SUPPORTED
+    def replicate(self, nx=1, ny=1, nz=1):
+        util.print_status_line()
+
+        nx = int(nx)
+        ny = int(ny)
+        nz = int(nz)
+
+        if nx == ny == nz == 1:
+            globals.msg.warning("All replication factors == 1. Not replicating system.\n")
+            return
+
+        if nx <= 0 or ny <= 0 or nz <= 0:
+            globals.msg.error("Cannot replicate by zero or by a negative value along any direction.")
+            raise RuntimeError("nx, ny, nz need to be positive integers")
+
+        # Take a snapshot
+        util._disable_status_lines = True
+        cpp_snapshot = self.take_snapshot(all=True)
+        util._disable_status_lines = False
+
+        from hoomd_script import comm
+        if comm.get_rank() == 0:
+            # replicate
+            cpp_snapshot.replicate(nx, ny, nz)
+
+        # restore from snapshot
+        util._disable_status_lines = True
+        self.restore_snapshot(cpp_snapshot)
+        util._disable_status_lines = False
+
     ## Re-initializes the system from a snapshot
     #
     # \param snapshot The snapshot to initialize the system from
@@ -481,12 +668,10 @@ class system_data:
     ## \internal
     # \brief Translate attribute accesses into the low level API function calls
     def __setattr__(self, name, value):
-        if name == "dimensions":
-            self.sysdef.setNDimensions(value);
-        elif name == "box":
-            if len(value) != 3:
-                raise TypeError("box must be a 3-tuple")
-            self.sysdef.getParticleData().setGlobalBoxL(hoomd.make_scalar3(value[0], value[1], value[2]));
+        if name == "box":
+            if not isinstance(value, boxdim):
+                raise TypeError('box must be a data.boxdim object');
+            self.sysdef.getParticleData().setGlobalBox(value._getBoxDim());
 
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
@@ -494,12 +679,10 @@ class system_data:
     ## \internal
     # \brief Translate attribute accesses into the low level API function calls
     def __getattr__(self, name):
-        if name == "dimensions":
-            return self.sysdef.getNDimensions();
-        elif name == "box":
+        if name == "box":
             b = self.sysdef.getParticleData().getGlobalBox();
             L = b.getL();
-            return (L.x, L.y, L.z);
+            return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ());
 
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
@@ -925,10 +1108,10 @@ class bond_data:
     ## \internal
     # \brief Get a bond_proxy reference to the bond with id \a id
     # \param id Bond id to access
-    def __getitem__(self, tag):
-        if tag >= len(self) or tag < 0:
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
             raise IndexError;
-        return bond_data_proxy(self.bdata, tag);
+        return bond_data_proxy(self.bdata, id);
 
     ## \internal
     # \brief Set a bond's properties
@@ -944,7 +1127,7 @@ class bond_data:
         if id >= len(self) or id < 0:
             raise IndexError;
         tag = self.bdata.getNthTag(id);
-        self.bdata.removeBond(tag);
+        self.bdata.removeBondedGroup(tag);
 
     ## \internal
     # \brief Get the number of bonds
@@ -985,9 +1168,9 @@ class bond_data_proxy:
     #
     # \param bdata BondData to which this proxy belongs
     # \param id index of this bond in \a bdata (at time of proxy creation)
-    def __init__(self, bdata, tag):
+    def __init__(self, bdata, id):
         self.bdata = bdata;
-        self.tag = tag
+        self.tag = bdata.getNthTag(id)
 
     ## \internal
     # \brief Get an informal string representing the object
@@ -1327,7 +1510,7 @@ class dihedral_data:
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow
 # dynamic creation of new type names from within the python API.
-# \MPI_NOT_SUPPORTED
+# \MPI_SUPPORTED
 class dihedral_data_proxy:
     ## \internal
     # \brief create a dihedral_data_proxy

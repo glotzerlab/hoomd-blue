@@ -4,12 +4,14 @@
 from hoomd_script import *
 import unittest
 import os
+import gc
 
 # group - test grouping commands
 class pair_group_tests (unittest.TestCase):
     def setUp(self):
+        print("setUp");
         print
-        sysdef = init.create_empty(N=11, box=(4,4,4), n_particle_types=2);
+        sysdef = init.create_empty(N=11, box=data.boxdim(L=5), particle_types=['A', 'B']);
         sysdef.particles[0].position = (0,0,0);
         sysdef.particles[0].type = 'A';
         sysdef.particles[1].position = (1,1,1);
@@ -32,8 +34,8 @@ class pair_group_tests (unittest.TestCase):
         sysdef.particles[9].type = 'B';
         sysdef.particles[10].position = (0,0,-2);
         sysdef.particles[10].type = 'B';
-        import __main__;
-        __main__.sorter.set_params(grid=8)
+
+        sorter.set_params(grid=8)
 
     def test_all(self):
         all = group.all()

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -107,6 +106,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegrationMethodTwoStep.h"
 #include "TwoStepNVE.h"
 #include "TwoStepNVT.h"
+#include "TwoStepNVTMTK.h"
 #include "TwoStepBDNVT.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepBerendsen.h"
@@ -142,6 +142,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNPTMTKGPU.h"
+#include "TwoStepNVTMTKGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepNVERigidGPU.h"
 #include "TwoStepNVTRigidGPU.h"
@@ -200,10 +201,6 @@ using namespace boost::python;
 #include <iostream>
 #include <sstream>
 using namespace std;
-
-#ifdef ENABLE_OPENMP
-#include <omp.h>
-#endif
 
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
@@ -312,22 +309,10 @@ string get_hoomd_version()
     return ver.str();
     }
 
-//! Layer for omp_set_num_threads
-void set_num_threads(int nthreads)
-    {
-    #ifdef ENABLE_OPENMP
-    omp_set_num_threads(nthreads);
-    #endif
-    }
-
 //! Layer for omp_get_num_procs()
 int get_num_procs()
     {
-    #ifdef ENABLE_OPENMP
-    return omp_get_num_procs();
-    #else
     return 1;
-    #endif
     }
 
 //! Get the hoomd version as a tuple
@@ -392,8 +377,6 @@ void cuda_profile_stop()
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
-char env_enable_mpi_gdr[] = "MV2_USE_GPUDIRECT=1";
-char env_enable_mpi_cuda_cray[] = "MPICH_RDMA_ENABLED_CUDA=1";
 
 //! Initialize the MPI environment
 void initialize_mpi()
@@ -402,8 +385,6 @@ void initialize_mpi()
     // if we are using an MPI-CUDA implementation, enable this feature
     // before the MPI_Init
     putenv(env_enable_mpi_cuda);
-    putenv(env_enable_mpi_gdr);
-    putenv(env_enable_mpi_cuda_cray);
     #endif
 
     // initalize MPI
@@ -416,6 +397,17 @@ void finalize_mpi()
     MPI_Finalize();
     }
 #endif
+
+//! Abort MPI runs
+void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    #ifdef ENABLE_MPI
+    if (exec_conf->getNRanksGlobal() > 1)
+        {
+        MPI_Abort(exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
+        }
+    #endif
+    }
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
@@ -431,12 +423,13 @@ BOOST_PYTHON_MODULE(hoomd)
     Py_AtExit(finalize_mpi);
     #endif
 
+    def("abort_mpi", abort_mpi);
+
     // write out the version information on the module import
     output_version_info(false);
     def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
 
-    def("set_num_threads", &set_num_threads);
     def("get_num_procs", &get_num_procs);
     scope().attr("__version__") = get_hoomd_version_tuple();
     scope().attr("__git_sha1__") = HOOMD_GIT_SHA1;
@@ -586,6 +579,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BoxResizeUpdater();
     export_TwoStepNVE();
     export_TwoStepNVT();
+    export_TwoStepNVTMTK();
     export_TwoStepBDNVT();
     export_TwoStepNPTMTK();
     export_Berendsen();
@@ -601,6 +595,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_SFCPackUpdaterGPU();
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
+    export_TwoStepNVTMTKGPU();
     export_TwoStepBDNVTGPU();
     export_TwoStepNPTMTKGPU();
     export_BerendsenGPU();

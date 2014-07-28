@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -264,7 +263,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         dcb = box.minImage(dcb);
         dac = box.minImage(dac);
 
-        Scalar delta_th = M_PI/Scalar(m_table_width - 1);
+        Scalar delta_th = Scalar(M_PI)/Scalar(m_table_width - 1);
 
         // start computing the force
         Scalar rsqab = dab.x*dab.x+dab.y*dab.y+dab.z*dab.z;
@@ -288,13 +287,13 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         Scalar theta = acos(c_abbc);
 
         // precomputed term
-        Scalar value_f = (theta) / delta_th;
+        Scalar value_f = theta / delta_th;
 
         // compute index into the table and read in values
 
         /// Here we use the table!!
         unsigned int angle_type = m_angle_data->getTypeByIndex(i);
-        unsigned int value_i = (unsigned int)floor(value_f);
+        unsigned int value_i = floor(value_f);
         Scalar2 VT0 = h_tables.data[m_table_value(value_i, angle_type)];
         Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, angle_type)];
         // unpack the data
@@ -332,13 +331,10 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
         // symmetrized version of virial tensor
         Scalar angle_virial[6];
         angle_virial[0] = Scalar(1./3.) * ( dab.x*fab[0] + dcb.x*fcb[0] );
-        angle_virial[1] = Scalar(1./6.) * ( dab.x*fab[1] + dcb.x*fcb[1]
-                                          + dab.y*fab[0] + dcb.y*fcb[0] );
-        angle_virial[2] = Scalar(1./6.) * ( dab.x*fab[2] + dcb.x*fcb[2]
-                                          + dab.z*fab[0] + dcb.z*fcb[0] );
+        angle_virial[1] = Scalar(1./3.) * ( dab.y*fab[0] + dcb.y*fcb[0] );
+        angle_virial[2] = Scalar(1./3.) * ( dab.z*fab[0] + dcb.z*fcb[0] );
         angle_virial[3] = Scalar(1./3.) * ( dab.y*fab[1] + dcb.y*fcb[1] );
-        angle_virial[4] = Scalar(1./6.) * ( dab.y*fab[2] + dcb.y*fcb[2]
-                                          + dab.z*fab[1] + dcb.z*fcb[1] );
+        angle_virial[4] = Scalar(1./3.) * ( dab.z*fab[1] + dcb.z*fcb[1] );
         angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
 
         // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial

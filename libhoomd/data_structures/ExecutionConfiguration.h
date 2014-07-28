@@ -1,8 +1,7 @@
- /*
+/*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -104,33 +103,22 @@ struct ExecutionConfiguration : boost::noncopyable
         {
         GPU,    //!< Execute on the GPU
         CPU,    //!< Execute on the CPU
+        AUTO,   //!< Auto select between GPU and CPU
         };
 
-    //! Default constructor
-    ExecutionConfiguration(bool min_cpu=false,
-                           bool ignore_display=false,
-                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
-#ifdef ENABLE_MPI
-                           , unsigned int n_ranks = 0
-#endif
-                           );
-
-    //! Force a mode selection
-    ExecutionConfiguration(executionMode mode,
+    //! Constructor
+    ExecutionConfiguration(executionMode mode=AUTO,
                            int gpu_id=-1,
                            bool min_cpu=false,
                            bool ignore_display=false,
-                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>()
-#ifdef ENABLE_MPI
-                           , unsigned int n_ranks = 0
-#endif
-                           );
+                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>(),
+                           unsigned int n_ranks = 0);
 
     ~ExecutionConfiguration();
 
 #ifdef ENABLE_MPI
     //! Returns the boost MPI communicator
-    const MPI_Comm getMPICommunicator() const
+    MPI_Comm getMPICommunicator() const
         {
         return m_mpi_comm;
         }

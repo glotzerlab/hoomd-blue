@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -225,6 +224,16 @@ struct SnapshotParticleData {
     /*! \returns true if the number of elements is consistent
      */
     bool validate() const;
+
+    //! Replicate this snapshot
+    /*! \param nx Number of times to replicate the system along the x direction
+     *  \param ny Number of times to replicate the system along the y direction
+     *  \param nz Number of times to replicate the system along the z direction
+     *  \param old_box Old box dimensions
+     *  \param new_box Dimensions of replicated box
+     */
+    void replicate(unsigned int nx, unsigned int ny, unsigned int nz,
+        const BoxDim& old_box, const BoxDim& new_box);
 
     std::vector<Scalar3> pos;       //!< positions
     std::vector<Scalar3> vel;       //!< velocities
@@ -652,6 +661,9 @@ class ParticleData : boost::noncopyable
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type) const;
 
+        //! Rename a type
+        void setTypeName(unsigned int type, const std::string& name);
+
         //! Get the net force array
         const GPUArray< Scalar4 >& getNetForce() const { return m_net_force; }
 
@@ -907,6 +919,7 @@ class ParticleData : boost::noncopyable
         boost::signals2::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
         boost::signals2::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
         boost::signals2::signal<void ()> m_ghost_particle_num_signal; //!< Signal that is triggered when ghost particles are added to or deleted
+        boost::signals2::signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
 
         #ifdef ENABLE_MPI
         boost::signals2::signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
@@ -985,8 +998,11 @@ class ParticleData : boost::noncopyable
         //! Helper function to reallocate particle data
         void reallocate(unsigned int max_n);
 
-        //! Helper function to check that particles are in the box
-        bool inBox();
+        //! Helper function to check that particles of a snapshot are in the box
+        /*! \return true If and only if all particles are in the simulation box
+         * \param Snapshot to check
+         */
+        bool inBox(const SnapshotParticleData& snap);
     };
 
 

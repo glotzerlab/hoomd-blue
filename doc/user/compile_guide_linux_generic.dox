@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -386,13 +385,14 @@ peer-to-peer communication capability. To find out if this is the case, run the 
 the NVIDIA CUDA SDK.
 
 If you choose to compile your own MPI, you can run it out of your home directory.
-MVAPICH 1.8 (and later) supports CUDA integration that enables fast intra-node GPU performance.
+MVAPICH2 1.8 (and later) supports CUDA integration that enables fast intra-node GPU performance. The minimum
+version of MVAPICH2 required for HOOMD is 1.9.
 
 ~~~~
 $ tar -xvzf mvapich2-1.9.tgz
 $ cd mvapich2-1.9
 $ ./configure --prefix=${HOME}/local --enable-cuda --with-cuda=${CUDA_ROOT} --enable-shared
-$ make -j10 # note: MVAPICH2 (<1.9) doesn't support parallel make (-j..)
+$ make -j10
 $ make install
 ~~~~
 
@@ -426,9 +426,9 @@ export MPI_HOME=${HOME}/local
 ~~~~
 Then log out and back in before attempting to build boost (so that it can find MPI).
 
-**Build hoomd**
+### Build hoomd
 
 Configure and build HOOMD-blue as normal (see \ref sec_build_linux_generic_compile). During the cmake step, MPI should
-be detected and enabled.
+be detected and enabled. For cuda-aware MPI, additionally supply the **ENABLE_MPI_CUDA=ON** option to cmake.
 
 */

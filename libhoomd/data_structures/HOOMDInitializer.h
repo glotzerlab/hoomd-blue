@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -100,7 +99,8 @@ class HOOMDInitializer
     public:
         //! Loads in the file and parses the data
         HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
-                         const std::string &fname);
+                         const std::string &fname,
+                         bool wrap_coordinates = false);
 
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
@@ -239,6 +239,7 @@ class HOOMDInitializer
         std::vector<InertiaTensor> m_moment_inertia;    //!< Inertia tensor for each particle
 
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        bool m_wrap;                                     //!< If true, wrap input coordinates into box
     };
 
 //! Exports HOOMDInitializer to python

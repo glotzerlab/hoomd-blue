@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -72,6 +71,7 @@ using namespace boost;
     \param thermo compute for thermodynamic quantities
     \param T Controlled temperature
     \param tau Time constant
+    \param suffix Suffix to attach to the end of log quantity names
     \param skip_restart Skip initialization of the restart information
 */
 TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
@@ -79,8 +79,9 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
                              boost::shared_ptr<ComputeThermo> thermo,
                              boost::shared_ptr<Variant> T,
                              Scalar tau,
+                             const std::string& suffix,
                              bool skip_restart)
-    : TwoStepNVTRigid(sysdef, group, thermo, T, tau, skip_restart)
+    : TwoStepNVTRigid(sysdef, group, thermo, T, tau, suffix, skip_restart)
     {
     // only one GPU is supported
     if (!exec_conf->isCUDAEnabled())
@@ -357,7 +358,9 @@ void export_TwoStepNVTRigidGPU()
         ("TwoStepNVTRigidGPU", init< boost::shared_ptr<SystemDefinition>,
         boost::shared_ptr<ParticleGroup>,
         boost::shared_ptr<ComputeThermo>,
-        boost::shared_ptr<Variant> >())
+        boost::shared_ptr<Variant>,
+        Scalar,
+        const std::string& >())
         ;
     }
 

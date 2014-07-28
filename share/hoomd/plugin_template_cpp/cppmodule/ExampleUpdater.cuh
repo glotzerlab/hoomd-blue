@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -62,7 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // A C API call to run a CUDA kernel is needed for ExampleUpdaterGPU to call
 //! Zeros velocities on the GPU
-extern "C" cudaError_t gpu_zero_velocities(float4 *d_vel, unsigned int N);
+extern "C" cudaError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N);
 
 #endif // _EXAMPLE_UPDATER_CUH_
 

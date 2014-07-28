@@ -17,6 +17,10 @@ endif(SINGLE_PRECISION)
 
 if (ENABLE_CUDA)
     add_definitions (-DENABLE_CUDA)
+
+    if (ENABLE_NVTOOLS)
+        add_definitions(-DENABLE_NVTOOLS)
+    endif()
 endif (ENABLE_CUDA)
 
 ################################
@@ -27,10 +31,6 @@ elseif(UNIX)
     add_definitions(-D_REENTRANT)
 endif(WIN32)
 
-if (ENABLE_OPENMP)
-    add_definitions (-DENABLE_OPENMP)
-endif (ENABLE_OPENMP)
-
 if (ENABLE_MPI)
     add_definitions (-DENABLE_MPI)
 
@@ -38,3 +38,6 @@ if (ENABLE_MPI)
           add_definitions (-DENABLE_MPI_CUDA)
     endif(ENABLE_MPI_CUDA)
 endif(ENABLE_MPI)
+
+# define this as a main hoomd build (as opposed to a plugin build)
+add_definitions(-DBUILDING_HOOMD)

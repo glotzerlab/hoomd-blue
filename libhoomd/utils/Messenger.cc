@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -75,8 +74,9 @@ using namespace boost::python;
 */
 Messenger::Messenger()
     {
-    m_err_stream = &cerr;
-    m_warning_stream = &cerr;
+    //m_err_stream = &cerr;
+    m_err_stream = &clog;
+    m_warning_stream = &clog;
     m_notice_stream = &cout;
     m_nullstream = boost::shared_ptr<nullstream>(new nullstream());
     m_notice_level = 2;
@@ -89,7 +89,7 @@ Messenger::Messenger()
     m_mpi_comm = MPI_COMM_WORLD;
     initializeSharedMem();
     m_shared_filename = "";
-    m_error_flag = 0;
+    m_error_flag = NULL;
     m_has_lock = false;
 #endif
 
@@ -128,6 +128,10 @@ Messenger::Messenger(const Messenger& msg)
 
 Messenger& Messenger::operator=(Messenger& msg)
     {
+    #ifdef ENABLE_MPI
+    releaseSharedMem();
+    #endif
+
     m_err_stream = msg.m_err_stream;
     m_warning_stream = msg.m_warning_stream;
     m_notice_stream = msg.m_notice_stream;
@@ -147,6 +151,7 @@ Messenger& Messenger::operator=(Messenger& msg)
     m_mpi_comm = msg.m_mpi_comm;
     m_error_flag = NULL;
     m_has_lock = false;
+    initializeSharedMem();
     #endif
 
     return *this;
@@ -172,6 +177,8 @@ std::ostream& Messenger::error() const
     {
     assert(m_err_stream);
     #ifdef ENABLE_MPI
+    assert(m_error_flag);
+    if (m_nranks > 1)
         {
         int one = 1;
         int flag;
@@ -398,12 +405,20 @@ void mpi_io::close()
 
 void Messenger::initializeSharedMem()
     {
-    MPI_Win_create(&m_error_flag, sizeof(int), sizeof(int), MPI_INFO_NULL, m_mpi_comm, &m_mpi_win);
+    // allocate memory for counter
+    MPI_Alloc_mem(sizeof(int), MPI_INFO_NULL, &m_error_flag);
+
+    // reset to zero
+    *m_error_flag = 0;
+
+    // create window for exclusive access to the error stream
+    MPI_Win_create(m_error_flag, sizeof(int), sizeof(int), MPI_INFO_NULL, m_mpi_comm, &m_mpi_win);
     }
 
 void Messenger::releaseSharedMem()
     {
     MPI_Win_free(&m_mpi_win);
+    MPI_Free_mem(m_error_flag);
     }
 
 #endif

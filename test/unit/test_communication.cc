@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -76,6 +75,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <algorithm>
+
+#define TO_TRICLINIC(v) dest_box.makeCoordinates(ref_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
+#define TO_POS4(v) make_scalar4(v.x,v.y,v.z,h_pos.data[rtag].w)
+#define FROM_TRICLINIC(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
 
 using namespace boost;
 
@@ -178,57 +181,59 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 
     // check that the positions have been transferred correctly
     Scalar3 pos = pdata->getPosition(0);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(1);
-    BOOST_CHECK_CLOSE(pos.x, 0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    BOOST_CHECK_CLOSE(pos.x, 0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(2);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(3);
-    BOOST_CHECK_CLOSE(pos.x,  0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(4);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol_small);
+    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
 
     pos = pdata->getPosition(5);
-    BOOST_CHECK_CLOSE(pos.x,  0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol_small);
+    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
 
     pos = pdata->getPosition(6);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol_small);
+    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
 
     pos = pdata->getPosition(7);
-    BOOST_CHECK_CLOSE(pos.x,  0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol_small);
+    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
     }
 
 //! Test particle migration of Communicator
-void test_communicator_migrate(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_migrate(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf,
+    BoxDim dest_box)
     {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     BOOST_REQUIRE_EQUAL(size,8);
 
+    BoxDim ref_box = BoxDim(2.0);
     // create a system with eight particles
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
-                                                             BoxDim(2.0), // box dimensions
+                                                             dest_box, // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
                                                              0,           // number of angle types
@@ -240,50 +245,21 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
 
     boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
-
-        {
-        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
-
-        // set up eight particles, one in every domain
-        h_pos.data[0].x = -0.5;
-        h_pos.data[0].y = -0.5;
-        h_pos.data[0].z = -0.5;
-
-        h_pos.data[1].x = 0.5;
-        h_pos.data[1].y = -0.5;
-        h_pos.data[1].z = -0.5;
-
-        h_pos.data[2].x = -0.5;
-        h_pos.data[2].y = 0.5;
-        h_pos.data[2].z = -0.5;
-
-        h_pos.data[3].x = 0.5;
-        h_pos.data[3].y = 0.5;
-        h_pos.data[3].z = -0.5;
-
-        h_pos.data[4].x = -0.5;
-        h_pos.data[4].y = -0.5;
-        h_pos.data[4].z = 0.5;
-
-        h_pos.data[5].x = 0.5;
-        h_pos.data[5].y = -0.5;
-        h_pos.data[5].z = 0.5;
-
-        h_pos.data[6].x = -0.5;
-        h_pos.data[6].y = 0.5;
-        h_pos.data[6].z = 0.5;
-
-        h_pos.data[7].x = 0.5;
-        h_pos.data[7].y = 0.5;
-        h_pos.data[7].z = 0.5;
-        }
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.5,-0.5,-0.5)),false);
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3( 0.5,-0.5,-0.5)),false);
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(-0.5, 0.5,-0.5)),false);
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3( 0.5, 0.5,-0.5)),false);
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(-0.5,-0.5, 0.5)),false);
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3( 0.5,-0.5, 0.5)),false);
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(-0.5, 0.5, 0.5)),false);
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3( 0.5, 0.5, 0.5)),false);
 
     SnapshotParticleData snap(8);
 
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL()));
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(),2,2,2));
 
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
@@ -308,21 +284,21 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 7);
 
     // Now move particle 0 into domain 1
-    pdata->setPosition(0, make_scalar3(0.1,-0.5,-0.5),false);
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(0.1,-0.5,-0.5)),false);
     // move particle 1 into domain 2
-    pdata->setPosition(1, make_scalar3(-0.2, 0.5, -0.5),false);
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3(-0.2, 0.5, -0.5)),false);
     // move particle 2 into domain 3
-    pdata->setPosition(2, make_scalar3(0.2, 0.3, -0.5),false);
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(0.2, 0.3, -0.5)),false);
     // move particle 3 into domain 4
-    pdata->setPosition(3, make_scalar3(-0.5, -0.3, 0.2),false);
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3(-0.5, -0.3, 0.2)),false);
     // move particle 4 into domain 5
-    pdata->setPosition(4, make_scalar3(0.1, -0.3, 0.2),false);
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(0.1, -0.3, 0.2)),false);
     // move particle 5 into domain 6
-    pdata->setPosition(5, make_scalar3(-0.2, 0.4, 0.2),false);
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3(-0.2, 0.4, 0.2)),false);
     // move particle 6 into domain 7
-    pdata->setPosition(6, make_scalar3(0.6, 0.1, 0.2),false);
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(0.6, 0.1, 0.2)),false);
     // move particle 7 into domain 0
-    pdata->setPosition(7, make_scalar3(-0.6, -0.1,- 0.2),false);
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3(-0.6, -0.1,- 0.2)),false);
 
     // migrate atoms
     comm->migrateParticles();
@@ -339,65 +315,73 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
 
     // check positions
     Scalar3 pos = pdata->getPosition(0);
-    BOOST_CHECK_CLOSE(pos.x,  0.1, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.1, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(1);
-    BOOST_CHECK_CLOSE(pos.x, -0.2, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.2, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(2);
-    BOOST_CHECK_CLOSE(pos.x,  0.2, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.3, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.2, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.3, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(3);
-    BOOST_CHECK_CLOSE(pos.x,  -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  -0.3, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.3, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(4);
-    BOOST_CHECK_CLOSE(pos.x,  0.1, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.3, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.1, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.3, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(5);
-    BOOST_CHECK_CLOSE(pos.x, -0.2, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.4, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.2, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.4, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(6);
-    BOOST_CHECK_CLOSE(pos.x,  0.6, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.1, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.6, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.1, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(7);
-    BOOST_CHECK_CLOSE(pos.x, -0.6, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.1, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.2, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.6, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.1, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.2, tol);
 
     //
     // check that that particles are correctly wrapped across the boundary
     //
 
     // particle 0 crosses the global boundary in +x direction
-    pdata->setPosition(0, make_scalar3(1.1,-0.5,-0.5),false);
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(1.1,-0.5,-0.5)),false);
     //  particle 1 crosses the global bounadry in the -x direction
-    pdata->setPosition(1, make_scalar3(-1.1, 0.5, -0.5),false);
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3(-1.1, 0.5, -0.5)),false);
     // particle 2 crosses the global boundary in the + y direction
-    pdata->setPosition(2, make_scalar3(0.2, 1.3, -0.5),false);
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(0.2, 1.3, -0.5)),false);
     // particle 3 crosses the global boundary in the - y direction
-    pdata->setPosition(3, make_scalar3(-0.5, -1.5, 0.2),false);
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3(-0.5, -1.5, 0.2)),false);
     // particle 4 crosses the global boundary in the + z direction
-    pdata->setPosition(4, make_scalar3(0.1, -0.3, 1.6),false);
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(0.1, -0.3, 1.6)),false);
     // particle 5 crosses the global boundary in the + z direction and in the -x direction
-    pdata->setPosition(5, make_scalar3(-1.1, 0.4, 1.25),false);
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3(-1.1, 0.4, 1.25)),false);
     // particle 6 crosses the global boundary in the + z direction and in the +x direction
-    pdata->setPosition(6, make_scalar3(1.3, 0.1, 1.05),false);
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(1.3, 0.1, 1.05)),false);
     // particle 7 crosses the global boundary in the - z direction
-    pdata->setPosition(7, make_scalar3(-0.6, -0.1,- 1.5),false);
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3(-0.6, -0.1,- 1.5)),false);
 
     // migrate particles
     comm->migrateParticles();
@@ -443,48 +427,56 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
 
     // check positions (taking into account that particles should have been wrapped)
     pos = pdata->getPosition(0);
-    BOOST_CHECK_CLOSE(pos.x,  -0.9, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  -0.9, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(1);
-    BOOST_CHECK_CLOSE(pos.x, 0.9, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, 0.9, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(2);
-    BOOST_CHECK_CLOSE(pos.x,  0.2, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  -0.7, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.2, tol);
+    BOOST_CHECK_CLOSE(pos.y,  -0.7, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(3);
-    BOOST_CHECK_CLOSE(pos.x,  -0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,   0.5, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  -0.5, tol);
+    BOOST_CHECK_CLOSE(pos.y,   0.5, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(4);
-    BOOST_CHECK_CLOSE(pos.x,  0.1, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.3, tol_small);
-    BOOST_CHECK_CLOSE(pos.z, -0.4, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.1, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.3, tol);
+    BOOST_CHECK_CLOSE(pos.z, -0.4, tol);
 
     pos = pdata->getPosition(5);
-    BOOST_CHECK_CLOSE(pos.x,  0.9, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.4, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,-0.75, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x,  0.9, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.4, tol);
+    BOOST_CHECK_CLOSE(pos.z,-0.75, tol);
 
     pos = pdata->getPosition(6);
-    BOOST_CHECK_CLOSE(pos.x, -0.7, tol_small);
-    BOOST_CHECK_CLOSE(pos.y,  0.1, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,-0.95, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.7, tol);
+    BOOST_CHECK_CLOSE(pos.y,  0.1, tol);
+    BOOST_CHECK_CLOSE(pos.z,-0.95, tol);
 
     pos = pdata->getPosition(7);
-    BOOST_CHECK_CLOSE(pos.x, -0.6, tol_small);
-    BOOST_CHECK_CLOSE(pos.y, -0.1, tol_small);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol_small);
+    pos = FROM_TRICLINIC(pos);
+    BOOST_CHECK_CLOSE(pos.x, -0.6, tol);
+    BOOST_CHECK_CLOSE(pos.y, -0.1, tol);
+    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
     }
 
 //! Test ghost particle communication
-void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
     {
     // this test needs to be run on eight processors
     int size;
@@ -493,7 +485,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
     // create a system with eight particles
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(16,          // number of particles
-                                                             BoxDim(2.0), // box dimensions
+                                                             dest_box, // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
                                                              0,           // number of angle types
@@ -504,34 +496,35 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
 
    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+   BoxDim ref_box = BoxDim(2.0);
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
-    pdata->setPosition(0, make_scalar3(-0.5,-0.5,-0.5),false);
-    pdata->setPosition(1, make_scalar3( 0.5,-0.5,-0.5),false);
-    pdata->setPosition(2, make_scalar3(-0.5, 0.5,-0.5),false);
-    pdata->setPosition(3, make_scalar3( 0.5, 0.5,-0.5),false);
-    pdata->setPosition(4, make_scalar3(-0.5,-0.5, 0.5),false);
-    pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5),false);
-    pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5),false);
-    pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5),false);
+    pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.5,-0.5,-0.5)),false);
+    pdata->setPosition(1, TO_TRICLINIC(make_scalar3( 0.5,-0.5,-0.5)),false);
+    pdata->setPosition(2, TO_TRICLINIC(make_scalar3(-0.5, 0.5,-0.5)),false);
+    pdata->setPosition(3, TO_TRICLINIC(make_scalar3( 0.5, 0.5,-0.5)),false);
+    pdata->setPosition(4, TO_TRICLINIC(make_scalar3(-0.5,-0.5, 0.5)),false);
+    pdata->setPosition(5, TO_TRICLINIC(make_scalar3( 0.5,-0.5, 0.5)),false);
+    pdata->setPosition(6, TO_TRICLINIC(make_scalar3(-0.5, 0.5, 0.5)),false);
+    pdata->setPosition(7, TO_TRICLINIC(make_scalar3( 0.5, 0.5, 0.5)),false);
 
     // place particle 8 in the same box as particle 0 and in the ghost layer of its +x neighbor
-    pdata->setPosition(8, make_scalar3(-0.02,-0.5,-0.5),false);
+    pdata->setPosition(8, TO_TRICLINIC(make_scalar3(-0.02,-0.5,-0.5)),false);
     // place particle 9 in the same box as particle 0 and in the ghost layer of its +y neighbor
-    pdata->setPosition(9, make_scalar3(-0.5,-0.05,-0.5),false);
+    pdata->setPosition(9, TO_TRICLINIC(make_scalar3(-0.5,-0.05,-0.5)),false);
     // place particle 10 in the same box as particle 0 and in the ghost layer of its +y and +z neighbor
-    pdata->setPosition(10, make_scalar3(-0.5, -0.01,-0.05),false);
+    pdata->setPosition(10, TO_TRICLINIC(make_scalar3(-0.5, -0.01,-0.05)),false);
     // place particle 11 in the same box as particle 0 and in the ghost layer of its +x and +y neighbor
-    pdata->setPosition(11, make_scalar3(-0.05, -0.03,-0.5),false);
+    pdata->setPosition(11, TO_TRICLINIC(make_scalar3(-0.05, -0.03,-0.5)),false);
     // place particle 12 in the same box as particle 0 and in the ghost layer of its +x , +y and +z neighbor
-    pdata->setPosition(12, make_scalar3(-0.05, -0.03,-0.001),false);
+    pdata->setPosition(12, TO_TRICLINIC(make_scalar3(-0.05, -0.03,-0.001)),false);
     // place particle 13 in the same box as particle 1 and in the ghost layer of its -x neighbor
-    pdata->setPosition(13, make_scalar3( 0.05, -0.5, -0.5),false);
+    pdata->setPosition(13, TO_TRICLINIC(make_scalar3( 0.05, -0.5, -0.5)),false);
     // place particle 14 in the same box as particle 1 and in the ghost layer of its -x neighbor and its +y neighbor
-    pdata->setPosition(14, make_scalar3( 0.01, -0.0123, -0.5),false);
+    pdata->setPosition(14, TO_TRICLINIC(make_scalar3( 0.01, -0.0123, -0.5)),false);
     // place particle 15 in the same box as particle 1 and in the ghost layer of its -x neighbor, of its +y neighbor, and of its +z neighbor
-    pdata->setPosition(15, make_scalar3( 0.01, -0.0123, -0.09),false);
+    pdata->setPosition(15, TO_TRICLINIC(make_scalar3( 0.01, -0.0123, -0.09)),false);
 
     // distribute particle data on processors
     SnapshotParticleData snap(16);
@@ -546,7 +539,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
     pdata->initializeFromSnapshot(snap);
 
     // width of ghost layer
-    Scalar ghost_layer_width = Scalar(0.1);
+    Scalar ghost_layer_width = Scalar(0.05)*ref_box.getL().x;
     comm->setGhostLayerWidth(ghost_layer_width);
     // Check number of particles
     switch (exec_conf->getRank())
@@ -589,6 +582,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
     // exchange ghosts
     comm->exchangeGhosts();
 
+    Scalar3 cmp;
    // check ghost atom numbers and positions
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
@@ -601,42 +595,48 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[13];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.05,tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.05,tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.5,tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.01,tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01,tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.09, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
                 break;
             case 1:
                 BOOST_CHECK_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.02, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
 
                 break;
             case 2:
@@ -644,39 +644,45 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[9];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.5, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.5, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.05, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.05, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,  0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,  0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.09, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
 
                 break;
             case 3:
@@ -684,27 +690,31 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.01,tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01,tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.09, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
 
                 break;
             case 4:
@@ -712,21 +722,24 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.5, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.05, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.05, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.09, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
                 break;
 
             case 5:
@@ -734,15 +747,17 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.09, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
                 break;
 
             case 6:
@@ -750,21 +765,24 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.5, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.05, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.05, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.09, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
                 break;
 
             case 7:
@@ -772,15 +790,17 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.05, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.001, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.0123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.09, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.0123, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.09, tol);
                 break;
             }
         }
@@ -798,21 +818,21 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
     // place some atoms in a ghost layer at a global boundary
 
     // place particle 8 in the same box as particle 0 and in the ghost layer of its -x neighbor and -y neighbor
-    pdata->setPosition(8, make_scalar3(-0.02,-0.95,-0.5),false);
+    pdata->setPosition(8, TO_TRICLINIC(make_scalar3(-0.02,-0.95,-0.5)),false);
     // place particle 9 in the same box as particle 0 and in the ghost layer of its -y neighbor
-    pdata->setPosition(9, make_scalar3(-0.5,-0.96,-0.5),false);
+    pdata->setPosition(9, TO_TRICLINIC(make_scalar3(-0.5,-0.96,-0.5)),false);
     // place particle 10 in the same box as particle 0 and in the ghost layer of its +y neighbor and -z neighbor
-    pdata->setPosition(10, make_scalar3(-0.5, -0.01,-0.97),false);
+    pdata->setPosition(10, TO_TRICLINIC(make_scalar3(-0.5, -0.01,-0.97)),false);
     // place particle 11 in the same box as particle 0 and in the ghost layer of its -x and -y neighbor
-    pdata->setPosition(11, make_scalar3(-0.97, -0.99,-0.5),false);
+    pdata->setPosition(11, TO_TRICLINIC(make_scalar3(-0.97, -0.99,-0.5)),false);
     // place particle 12 in the same box as particle 0 and in the ghost layer of its -x , -y and -z neighbor
-    pdata->setPosition(12, make_scalar3(-0.997, -0.998,-0.999),false);
+    pdata->setPosition(12, TO_TRICLINIC(make_scalar3(-0.997, -0.998,-0.999)),false);
     // place particle 13 in the same box as particle 0 and in the ghost layer of its -x neighbor and +y neighbor
-    pdata->setPosition(13, make_scalar3( -0.96, -0.005, -0.50),false);
+    pdata->setPosition(13, TO_TRICLINIC(make_scalar3( -0.96, -0.005, -0.50)),false);
     // place particle 14 in the same box as particle 7 and in the ghost layer of its +x neighbor and its +y neighbor
-    pdata->setPosition(14, make_scalar3( 0.901, .98, 0.50),false);
+    pdata->setPosition(14, TO_TRICLINIC(make_scalar3( 0.901, .98, 0.50)),false);
     // place particle 15 in the same box as particle 7 and in the ghost layer of its +x neighbor, of its +y neighbor, and of its +z neighbor
-    pdata->setPosition(15, make_scalar3( 0.99, 0.999, 0.9999),false);
+    pdata->setPosition(15, TO_TRICLINIC(make_scalar3( 0.99, 0.999, 0.9999)),false);
 
     // migrate atoms in their respective boxes
     comm->migrateParticles();
@@ -862,9 +882,10 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -1.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -1.001, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -1.0001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -1.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -1.001, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -1.0001, tol);
                 break;
 
             case 1:
@@ -872,79 +893,91 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.02, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.95, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.95, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,  1.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.99, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,  1.03, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.99, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 1.003, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.998, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.999, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 1.003, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.998, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.999, tol);
 
                 rtag = h_global_rtag.data[13];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 1.04, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.005, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.50, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 1.04, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.50, tol);
 
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.99, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-1.001, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-1.0001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.99, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-1.001, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-1.0001, tol);
                 break;
 
             case 2:
                 BOOST_CHECK_EQUAL(pdata->getNGhosts(), 7);
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.02, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  1.05, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[9];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.5, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.04, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  1.04, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.5, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  -0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.97, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  -0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.97, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.97, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.97, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  1.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.997, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.002, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.999, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.997, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  1.002, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.999, tol);
 
                 rtag = h_global_rtag.data[13];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.96, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.005, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.50, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.96, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.50, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -1.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 0.999, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-1.0001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -1.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.999, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-1.0001, tol);
                break;
 
             case 3:
@@ -952,33 +985,38 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.02, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  1.05, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,  1.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,  1.03, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  1.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 1.003, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 1.002, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.999, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 1.003, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 1.002, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.999, tol);
 
                 rtag = h_global_rtag.data[13];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 1.04, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.005, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.50, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 1.04, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.50, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.99, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 0.999, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-1.0001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.99, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.999, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-1.0001, tol);
                 break;
 
             case 4:
@@ -986,27 +1024,31 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.5, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,  1.03, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z,  1.03, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-0.997, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.998, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, 1.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-0.997, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.998, tol);
+                BOOST_CHECK_CLOSE(cmp.z, 1.001, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.099, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -1.02, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,  0.50, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-1.099, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -1.02, tol);
+                BOOST_CHECK_CLOSE(cmp.z,  0.50, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-1.001, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.9999, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-1.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-1.001, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.9999, tol);
                 break;
 
             case 5:
@@ -1014,21 +1056,24 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,1.003, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.998, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,1.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,1.003, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.998, tol);
+                BOOST_CHECK_CLOSE(cmp.z,1.001, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,0.901, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-1.02, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.50, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,0.901, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-1.02, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.50, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,0.99, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-1.001, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.9999, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,0.99, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-1.001, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.9999, tol);
                 break;
 
             case 6:
@@ -1036,27 +1081,31 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-0.5, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,1.03, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-0.5, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z,1.03, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-0.997, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,1.002, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,1.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-0.997, tol);
+                BOOST_CHECK_CLOSE(cmp.y,1.002, tol);
+                BOOST_CHECK_CLOSE(cmp.z,1.001, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.099, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,0.98, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.50, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-1.099, tol);
+                BOOST_CHECK_CLOSE(cmp.y,0.98, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.50, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,0.999, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.9999, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-1.01, tol);
+                BOOST_CHECK_CLOSE(cmp.y,0.999, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.9999, tol);
                 break;
 
             case 7:
@@ -1064,9 +1113,10 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,1.003, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,1.002, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,1.001, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,1.003, tol);
+                BOOST_CHECK_CLOSE(cmp.y,1.002, tol);
+                BOOST_CHECK_CLOSE(cmp.z,1.001, tol);
                 break;
             }
         }
@@ -1092,31 +1142,37 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 h_pos.data[rtag].x = -0.12;
                 h_pos.data[rtag].y = -1.05;
                 h_pos.data[rtag].z = -0.6;
+                h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 rtag = h_rtag.data[9];
                 h_pos.data[rtag].x = -0.03;
                 h_pos.data[rtag].y = -1.09;
                 h_pos.data[rtag].z = -0.3;
+                h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 rtag = h_rtag.data[10];
                 h_pos.data[rtag].x = -0.11;
                 h_pos.data[rtag].y = 0.01;
                 h_pos.data[rtag].z = -1.02;
+                h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 rtag = h_rtag.data[11];
                 h_pos.data[rtag].x = -0.81;
                 h_pos.data[rtag].y = -0.92;
                 h_pos.data[rtag].z = -0.2;
+                h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 rtag = h_rtag.data[12];
                 h_pos.data[rtag].x = -1.02;
                 h_pos.data[rtag].y = -1.05;
                 h_pos.data[rtag].z = -1.100;
+                h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 rtag = h_rtag.data[13];
                 h_pos.data[rtag].x = -0.89;
                 h_pos.data[rtag].y = 0.005;
                 h_pos.data[rtag].z = -0.99;
+                h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 break;
             case 7:
@@ -1124,11 +1180,13 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
                 h_pos.data[rtag].x = 1.123;
                 h_pos.data[rtag].y = 1.121;
                 h_pos.data[rtag].z = 0.9;
+                h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 rtag = h_rtag.data[15];
                 h_pos.data[rtag].x = 0.85;
                 h_pos.data[rtag].y = 1.001;
                 h_pos.data[rtag].z = 1.012;
+                h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
                 break;
             default:
@@ -1152,198 +1210,228 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
             case 0:
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -1.15, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.999, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.988, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -1.15, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.999, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.988, tol);
                 break;
 
             case 1:
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.12, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -1.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.6, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.12, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -1.05, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.6, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,  1.19, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.92, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.2, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,  1.19, tol);
+                BOOST_CHECK_CLOSE(cmp.y, -0.92, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.2, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.98,  tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-1.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-1.100, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.98,  tol);
+                BOOST_CHECK_CLOSE(cmp.y,-1.05, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-1.100, tol);
 
                 rtag = h_global_rtag.data[13];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 1.11, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 0.005, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.99, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 1.11, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.99, tol);
 
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.85, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.999, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.988, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.85, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.999, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.988, tol);
                 break;
 
             case 2:
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.12, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  0.95, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.6, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.12, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  0.95, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.6, tol);
 
                 rtag = h_global_rtag.data[9];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.03, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  0.91, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.3, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.03, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  0.91, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.3, tol);
 
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.11, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-1.02, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.11, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-1.02, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.81, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.08, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.2, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.81, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  1.08, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.2, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -1.02, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  0.95, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -1.100, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -1.02, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  0.95, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -1.100, tol);
 
                 rtag = h_global_rtag.data[13];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.89, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  0.005, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.99, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.89, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.99, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -1.15, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 1.001, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.988, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -1.15, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 1.001, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.988, tol);
                break;
 
             case 3:
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -.12, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 0.95, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.6, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -.12, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.95, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.6, tol);
 
                 rtag = h_global_rtag.data[11];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,  1.19, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  1.08, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.2, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,  1.19, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  1.08, tol);
+                BOOST_CHECK_CLOSE(cmp.z, -0.2, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.98, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 0.95, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-1.100, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.98, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.95, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-1.100, tol);
 
                 rtag = h_global_rtag.data[13];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 1.11, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 0.005, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.99, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 1.11, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.005, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.99, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, 0.85, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 1.001, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,-0.988, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, 0.85, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 1.001, tol);
+                BOOST_CHECK_CLOSE(cmp.z,-0.988, tol);
                 break;
 
             case 4:
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.11, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,  0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,  0.98, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x, -0.11, tol);
+                BOOST_CHECK_CLOSE(cmp.y,  0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z,  0.98, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.02, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-1.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, 0.90, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-1.02, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-1.05, tol);
+                BOOST_CHECK_CLOSE(cmp.z, 0.90, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-0.877, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.879, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,  0.90, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-0.877, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.879, tol);
+                BOOST_CHECK_CLOSE(cmp.z,  0.90, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.15, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.999, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, 1.012, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-1.15, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.999, tol);
+                BOOST_CHECK_CLOSE(cmp.z, 1.012, tol);
                 break;
 
             case 5:
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,0.98, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-1.05, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.900, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,0.98, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-1.05, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.900, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,1.123, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.879, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.90, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,1.123, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.879, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.90, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,0.85, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,-0.999, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,1.012, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,0.85, tol);
+                BOOST_CHECK_CLOSE(cmp.y,-0.999, tol);
+                BOOST_CHECK_CLOSE(cmp.z,1.012, tol);
                 break;
 
             case 6:
                 rtag = h_global_rtag.data[10];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-0.11, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 0.01, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.98, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-0.11, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.01, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.98, tol);
 
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.02, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, 0.95, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, 0.90, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-1.02, tol);
+                BOOST_CHECK_CLOSE(cmp.y, 0.95, tol);
+                BOOST_CHECK_CLOSE(cmp.z, 0.90, tol);
 
                 rtag = h_global_rtag.data[14];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-0.877, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,1.121, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.90, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-0.877, tol);
+                BOOST_CHECK_CLOSE(cmp.y,1.121, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.90, tol);
 
                 rtag = h_global_rtag.data[15];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,-1.15, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,1.001, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,1.012, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,-1.15, tol);
+                BOOST_CHECK_CLOSE(cmp.y,1.001, tol);
+                BOOST_CHECK_CLOSE(cmp.z,1.012, tol);
                 break;
 
             case 7:
                 rtag = h_global_rtag.data[12];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x,0.980, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y,0.950, tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z,0.900, tol_small);
+                cmp = FROM_TRICLINIC(h_pos.data[rtag]);
+                BOOST_CHECK_CLOSE(cmp.x,0.980, tol);
+                BOOST_CHECK_CLOSE(cmp.y,0.950, tol);
+                BOOST_CHECK_CLOSE(cmp.z,0.900, tol);
                 break;
             }
         }
@@ -2314,10 +2402,10 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
                 if (has_ghost_1 && has_ghost_2)
                     {
-                    Scalar tol = .1;
-                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol);
-                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol);
-                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol);
+                    Scalar tol_rough = .1;
+                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_rough);
+                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_rough);
+                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_rough);
                     }
                 }
             }
@@ -2459,21 +2547,21 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
 
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05,tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05,tol);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol);
 
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].x, 1.0,tol_small);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].y, 2.0,tol_small);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].z, 3.0,tol_small);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].w, 4.0,tol_small); // mass
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].x, 1.0,tol);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].y, 2.0,tol);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].z, 3.0,tol);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].w, 4.0,tol); // mass
 
-                BOOST_CHECK_CLOSE(h_charge.data[rtag], 5.0,tol_small);
-                BOOST_CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol_small);
+                BOOST_CHECK_CLOSE(h_charge.data[rtag], 5.0,tol);
+                BOOST_CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol);
 
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].x, 97.0,tol_small);
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].y, 98.0,tol_small);
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].z, 99.0,tol_small);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].x, 97.0,tol);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].y, 98.0,tol);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].z, 99.0,tol);
                 break;
 
             case 2:
@@ -2515,22 +2603,22 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
 
                 rtag = h_global_rtag.data[8];
                 BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.13,tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol_small);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol_small);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.13,tol);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol);
+                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol);
 
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].x, -3.0,tol_small);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].y, -2.0,tol_small);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].z, -1.0,tol_small);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].w, 0.1,tol_small); // mass
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].x, -3.0,tol);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].y, -2.0,tol);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].z, -1.0,tol);
+                BOOST_CHECK_CLOSE(h_vel.data[rtag].w, 0.1,tol); // mass
 
                 // charge and diameter should be unchanged
-                BOOST_CHECK_CLOSE(h_charge.data[rtag], 5.0,tol_small);
-                BOOST_CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol_small);
+                BOOST_CHECK_CLOSE(h_charge.data[rtag], 5.0,tol);
+                BOOST_CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol);
 
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].x, 22.0,tol_small);
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].y, 23.0,tol_small);
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].z, 24.0,tol_small);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].x, 22.0,tol);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].y, 23.0,tol);
+                BOOST_CHECK_CLOSE(h_orientation.data[rtag].z, 24.0,tol);
                 break;
 
             case 0:
@@ -2570,13 +2658,26 @@ BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
 BOOST_AUTO_TEST_CASE( communicator_migrate_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    // cubic box
+    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(2.0));
+    // orthorhombic box
+    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,2.0,3.0));
+    // triclinic box 1
+    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,0.5,0.6,0.8));
+    // triclinic box 1
+    test_communicator_migrate(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,-0.5,0.7,0.3));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
     {
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
-    test_communicator_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+
+    // test in a cubic box
+    test_communicator_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(2.0));
+    // triclinic box 1
+    test_communicator_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,.1,.2,.3));
+    // triclinic box 2
+    test_communicator_ghosts(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),BoxDim(1.0,-.6,.7,.5));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
@@ -2597,7 +2698,6 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
     test_communicator_ghost_fields(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-
 #ifdef ENABLE_CUDA
 
 //! Tests particle distribution on GPU
@@ -2609,13 +2709,25 @@ BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
 BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    // cubic box
+    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(2.0));
+    // orthorhombic box
+    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,2.0,3.0));
+    // triclinic box 1
+    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,0.5,0.6,0.8));
+    // triclinic box 2
+    test_communicator_migrate(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,-0.5,0.7,0.3));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
-    test_communicator_ghosts(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    // test in a cubic box
+    test_communicator_ghosts(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(2.0));
+    // triclinic box 1
+    test_communicator_ghosts(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,.1,.2,.3));
+    // triclinic box 2
+    test_communicator_ghosts(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),BoxDim(1.0,-.6,.7,.5));
     }
 
 BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )

@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -100,11 +99,24 @@ string find_hoomd_script()
     {
     // this works on the requirement in the hoomd build scripts that the python module is always
     // installed in lib/hoomd/python-module on linux and mac. On windows, it actually ends up in bin/python-module
-    path exepath = path(getExePath());
+    string exepath_str = getExePath();
+    path exepath = path(exepath_str);
     list<path> search_paths;
-    search_paths.push_back(exepath / "python-module");                            // windows
-    search_paths.push_back(exepath / ".." / "lib" / "hoomd" / "python-module");   // linux/mac
-    search_paths.push_back(path(HOOMD_SOURCE_DIR) / "python-module");             // from source builds
+
+    // if we are running out of the build directory, pull hoomd_script from the source dir.
+    // this check assumes that both paths are absolute, but that should always be the case
+    string binary_dir_str = string(HOOMD_BINARY_DIR);
+    if (binary_dir_str == exepath_str.substr(0, binary_dir_str.size()))
+        {
+        search_paths.push_back(path(HOOMD_SOURCE_DIR) / "python-module");             // from source builds
+        }
+    else
+        {
+        search_paths.push_back(exepath / "python-module");                            // windows
+        search_paths.push_back(exepath / ".." / "lib" / "hoomd" / "python-module");   // linux/mac
+        search_paths.push_back(path(HOOMD_INSTALL_PREFIX) / "lib" / "hoomd" / "python-module"); // installation directory
+        }
+
     if (getenv("HOOMD_PYTHON_DIR"))
         {
         string hoomd_script_dir = string(getenv("HOOMD_PYTHON_DIR"));
@@ -136,6 +148,9 @@ string find_hoomd_script()
 */
 int main(int argc, char **argv)
     {
+    // set the env var to communicate to __init__.py that it does not need to apply the RTLD_GLOBAL hack
+    setenv("NOT_HOOMD_PYTHON_SITEDIR", "1", 1);
+
     if (argc == 1)
         {
         // This shell is an interactive launch with no arguments
@@ -178,6 +193,7 @@ int main(int argc, char **argv)
         mbstowcs(argv_w[i], argv[i], n);
         }
     int retval = Py_Main(argc, argv_w);
+    delete[] argv_w;
 #else
     int retval = Py_Main(argc, argv);
 #endif

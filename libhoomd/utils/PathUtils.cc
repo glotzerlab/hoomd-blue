@@ -1,8 +1,7 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2008-2011 Ames Laboratory
-Iowa State University and The Regents of the University of Michigan All rights
-reserved.
+(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
 copyright is held, by various Contributors who have granted The Regents of the
@@ -72,11 +71,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PathUtils.h"
 
+#include <iostream>
+
 /*! \returns The path
     getExePath uses different methods on different platforms. It identifies the real file for the running executable.
 */
 std::string getExePath()
     {
+    #ifdef PATH_MAX
+    const unsigned int path_max=PATH_MAX;
+    #else
+    const unsigned int path_max=1024;
+    #endif
+
     // exe path identification from: http://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
     std::string result;
 
@@ -90,20 +97,11 @@ std::string getExePath()
         throw std::runtime_error("Unable to determine executable path");
 
     // turn it into a real path
-    char *result_buf = NULL;
-    #ifdef PATH_MAX
-    result_buf = (char *)malloc(PATH_MAX);
-    #endif
-    char *realbuf = realpath(buf, result_buf);
+    char *realbuf = realpath(buf, NULL);
     result = std::string(realbuf);
     free(realbuf);
 
     #elif __linux__
-    #ifdef PATH_MAX
-    const unsigned int path_max=PATH_MAX;
-    #else
-    const unsigned int path_max=1024;
-    #endif
 
     char buf[path_max];
     memset(buf, 0, path_max);
