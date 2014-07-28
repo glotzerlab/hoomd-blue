@@ -55,7 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include <boost/python.hpp>
-using namespace boost::python;
 
 #include "ForceCompute.h"
 #include "GPUArray.h"
