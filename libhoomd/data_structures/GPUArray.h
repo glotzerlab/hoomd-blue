@@ -665,28 +665,25 @@ template<class T> void GPUArray<T>::allocate()
     // sanity check
     assert(h_data == NULL);
 
-    // allocate memory
+    // allocate host memory
+    // allocate on a page size boundary to allow MPI RMDA
+    // at minimum, alignment needs to be 32 bytes for AVX
+    int retval = posix_memalign((void**)&h_data, getpagesize(), m_num_elements*sizeof(T));
+    if (retval != 0)
+        {
+        if (m_exec_conf)
+            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+        throw std::runtime_error("Error allocating GPUArray.");
+        }
+
 #ifdef ENABLE_CUDA
     assert(d_data == NULL);
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        void *ptr = NULL;
-
-#ifdef ENABLE_MPI
-        // we need to use the hooks provided by the MPI library
-        int retval = posix_memalign(&ptr, getpagesize(), m_num_elements*sizeof(T));
-        if (retval != 0)
-            {
-            if (m_exec_conf)
-                m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
-            throw std::runtime_error("Error allocating GPUArray.");
-            }
+        // register pointer for DMA
         cudaHostRegister(ptr,m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
-#else
-        cudaHostAlloc(&ptr, m_num_elements*sizeof(T), m_mapped ? cudaHostAllocMapped : cudaHostAllocDefault);
-#endif
-        h_data = (T *) ptr;
 
+        // allocate and/or map host memory
         if (m_mapped)
             {
             cudaHostGetDevicePointer(&d_data, h_data, 0);
@@ -698,12 +695,6 @@ template<class T> void GPUArray<T>::allocate()
             CHECK_CUDA_ERROR();
             }
         }
-    else
-        {
-        h_data = new T[m_num_elements];
-        }
-#else
-    h_data = new T[m_num_elements];
 #endif
     }
 
@@ -721,31 +712,23 @@ template<class T> void GPUArray<T>::deallocate()
     assert(h_data);
 
     // free memory
+
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
-#ifdef ENABLE_MPI
         cudaHostUnregister(h_data);
         CHECK_CUDA_ERROR();
-        free(h_data);
-#else
-        cudaFreeHost(h_data);
-        CHECK_CUDA_ERROR();
-#endif
+
         if (! m_mapped)
             {
             cudaFree(d_data);
             CHECK_CUDA_ERROR();
             }
         }
-    else
-        {
-        delete[] h_data;
-        }
-#else
-    delete[] h_data;
 #endif
+
+    free(h_data);
 
     // set pointers to NULL
     h_data = NULL;
@@ -1023,35 +1006,23 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
     // allocate resized array
     T *h_tmp = NULL;
 
+    // allocate host memory
+    // allocate on a page size boundary to allow MPI RMDA
+    // at minimum, alignment needs to be 32 bytes for AVX
+    int retval = posix_memalign((void**)&h_tmp, getpagesize(), num_elements*sizeof(T));
+    if (retval != 0)
+        {
+        if (m_exec_conf)
+            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+        throw std::runtime_error("Error allocating GPUArray.");
+        }
+
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        void *ptr = NULL;
-
-#ifdef ENABLE_MPI
-        // we need to use the hooks provided by the MPI library
-        int retval = posix_memalign(&ptr, getpagesize(), num_elements*sizeof(T));
-        if (retval != 0)
-            {
-            if (m_exec_conf)
-                m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
-            throw std::runtime_error("Error allocating GPUArray.");
-            }
-        cudaHostRegister(ptr, num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
-#else
-        cudaHostAlloc(&ptr, num_elements*sizeof(T), m_mapped ? cudaHostAllocMapped : cudaHostAllocDefault);
-#endif
-
-        h_tmp = (T *) ptr;
+        cudaHostRegister(h_tmp, num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
         }
-    else
-        {
-        h_tmp = new T[num_elements];
-        }
-#else
-    h_tmp = new T[num_elements];
 #endif
-
     // clear memory
     memset(h_tmp, 0, sizeof(T)*num_elements);
 
@@ -1063,23 +1034,12 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-#ifdef ENABLE_MPI
         cudaHostUnregister(h_data);
         CHECK_CUDA_ERROR();
-        free(h_data);
-#else
-        cudaFreeHost(h_data);
-        CHECK_CUDA_ERROR();
-#endif
         }
-    else
-        {
-        delete[] h_data;
-        }
-#else
-    delete[] h_data;
 #endif
 
+    free(h_data);
     h_data = h_tmp;
 
 #ifdef ENABLE_CUDA
@@ -1100,33 +1060,23 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
     // allocate resized array
     T *h_tmp = NULL;
 
+    // allocate host memory
+    // allocate on a page size boundary to allow MPI RMDA
+    // at minimum, alignment needs to be 32 bytes for AVX
+    unsigned int size = new_pitch*new_height*sizeof(T);
+    int retval = posix_memalign((void**)&h_tmp, getpagesize(), size);
+    if (retval != 0)
+        {
+        if (m_exec_conf)
+            m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
+        throw std::runtime_error("Error allocating GPUArray.");
+        }
+
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        unsigned int size = new_pitch*new_height*sizeof(T);
-        void *ptr = NULL;
-#ifdef ENABLE_MPI
-        // we need to use the hooks provided by the MPI library
-        int retval = posix_memalign(&ptr, getpagesize(), size);
-        if (retval != 0)
-            {
-            if (m_exec_conf)
-                m_exec_conf->msg->error() << "Error allocating aligned memory" << std::endl;
-            throw std::runtime_error("Error allocating GPUArray.");
-            }
-
         cudaHostRegister(ptr, size, cudaHostRegisterDefault);
-#else
-        cudaHostAlloc(&ptr, size, m_mapped ? cudaHostAllocMapped : cudaHostAllocDefault);
-#endif
-        h_tmp = (T *) ptr;
         }
-    else
-        {
-        h_tmp = new T[new_pitch * new_height];
-        }
-#else
-    h_tmp = new T[new_pitch * new_height];
 #endif
 
     // clear memory
@@ -1143,23 +1093,12 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-#ifdef ENABLE_MPI
         cudaHostUnregister(h_data);
         CHECK_CUDA_ERROR();
-        free(h_data);
-#else
-        cudaFreeHost(h_data);
-        CHECK_CUDA_ERROR();
-#endif
         }
-    else
-        {
-        delete[] h_data;
-        }
-#else
-    delete[] h_data;
 #endif
 
+    free(h_data);
     h_data = h_tmp;
 
 #ifdef ENABLE_CUDA
