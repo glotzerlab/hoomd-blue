@@ -681,7 +681,7 @@ template<class T> void GPUArray<T>::allocate()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         // register pointer for DMA
-        cudaHostRegister(ptr,m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
+        cudaHostRegister(h_data,m_num_elements*sizeof(T), m_mapped ? cudaHostRegisterMapped : cudaHostRegisterDefault);
 
         // allocate and/or map host memory
         if (m_mapped)
@@ -1075,7 +1075,7 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
 #ifdef ENABLE_CUDA
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
-        cudaHostRegister(ptr, size, cudaHostRegisterDefault);
+        cudaHostRegister(h_tmp, size, cudaHostRegisterDefault);
         }
 #endif
 
