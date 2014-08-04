@@ -90,6 +90,14 @@ void output_version_info(bool verbose)
     cout << " MPI_CUDA";
     #endif
 
+    #ifdef __SSE__
+    cout << " SSE";
+    #endif
+
+    #ifdef __AVX__
+    cout << " AVX";
+    #endif
+
     cout << endl;
 
     // output the compiled date and copyright information
