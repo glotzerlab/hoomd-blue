@@ -67,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #define HOSTDEVICE __host__ __device__ inline
 #else
-#define HOSTDEVICE inline
+#define HOSTDEVICE inline __attribute__((always_inline))
 #endif
 
 //! Stores box dimensions
@@ -356,7 +356,7 @@ class BoxDim
                     w.y -= (Scalar)i*L.y;
                     w.x -= (Scalar)i*L.y * m_xy;
                     }
-                if (w.y < m_lo.y)
+                else if (w.y < m_lo.y)
                     {
                     int i = (-w.y*m_Linv.y+Scalar(0.5));
                     w.y += (Scalar)i*L.y;
@@ -371,7 +371,7 @@ class BoxDim
                     int i = (w.x*m_Linv.x+Scalar(0.5));
                     w.x -= (Scalar)i*L.x;
                     }
-                if (w.x < m_lo.x)
+                else if (w.x < m_lo.x)
                     {
                     int i = (-w.x*m_Linv.x+Scalar(0.5));
                     w.x += (Scalar)i*L.x;
