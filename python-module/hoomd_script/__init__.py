@@ -106,7 +106,7 @@ _default_excepthook = sys.excepthook;
 ## \internal
 # \brief Override pythons except hook to abort MPI runs
 def _hoomd_sys_excepthook(type, value, traceback):
-    default_excepthook(type, value, traceback);
+    _default_excepthook(type, value, traceback);
     sys.stderr.flush();
     if globals.exec_conf is not None:
         hoomd.abort_mpi(globals.exec_conf);
