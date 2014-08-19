@@ -365,7 +365,13 @@ class mode_standard(_integrator):
 ## NVT Integration via the Nos&eacute;-Hoover thermostat
 #
 # integrate.nvt performs constant volume, constant temperature simulations using the Nos&eacute;-Hoover thermostat.
-# Equation 13 in ref. \cite Bond1999 is used to integrate the equations of motion.
+#
+# There are two implementations of NVT in hoomd:
+#   * The MTK equations are described in Refs. \cite Martyna1994 \cite Martyna1996.
+#   * The other mode is Equation 13 in ref. \cite Bond1999.
+#
+# MTK exhibits superior time stability and accuracy, it is the default. The other mode is deprecated and will be
+# removed in a future version of HOOMD-blue. It is kept now for backwards compatibility.
 #
 # integrate.nvt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -389,8 +395,6 @@ class nvt(_integration_method):
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
     # Internally, a compute.thermo is automatically specified and associated with \a group.
-    #
-    # The MTK equations are described in Refs. \cite{Martyna1994,Martyna1996} and exhibit superior time stability.
     #
     # \b Examples:
     # \code
