@@ -62,9 +62,34 @@ import hoomd;
 if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
-from hoomd_script import util;
+from hoomd_script import util as _util;
+from hoomd_script import analyze;
+from hoomd_script import bond;
+from hoomd_script import benchmark;
+from hoomd_script import angle;
+from hoomd_script import dihedral;
 from hoomd_script import data;
+from hoomd_script import improper;
+from hoomd_script import dump;
+from hoomd_script import force;
+from hoomd_script import external;
+from hoomd_script import constrain;
 from hoomd_script import globals;
+from hoomd_script import group;
+from hoomd_script import init;
+from hoomd_script import integrate;
+from hoomd_script import option;
+from hoomd_script import nlist;
+from hoomd_script import pair;
+from hoomd_script import sorter;
+from hoomd_script import update;
+from hoomd_script import wall;
+from hoomd_script import variant;
+from hoomd_script import tune;
+from hoomd_script import hoomd;
+from hoomd_script import compute;
+from hoomd_script import charge;
+from hoomd_script import comm;
 
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API
@@ -75,58 +100,27 @@ from hoomd_script import globals;
 
 ## \internal
 # \brief Internal python variable
-__all__ = [ "analyze",
-            "bond",
-            "benchmark",
-            "angle",
-            "dihedral",
-            "data",
-            "improper",
-            "dump",
-            "force",
-            "external",
-            "constrain",
-            "globals",
-            "group",
-            "init",
-            "integrate",
-            "option",
-            "nlist",
-            "pair",
-            "sorter",
-            "update",
-            "wall",
-            "variant",
-            "run",
-            "run_upto",
-            "get_step",
-            "tune",
-            "hoomd",
-            "compute",
-            "charge",
-            "get_hoomd_script_version",
-            "comm"];
 
-default_excepthook = sys.excepthook;
+_default_excepthook = sys.excepthook;
 
 ## \internal
 # \brief Override pythons except hook to abort MPI runs
-def hoomd_sys_excepthook(type, value, traceback):
-    default_excepthook(type, value, traceback);
+def _hoomd_sys_excepthook(type, value, traceback):
+    _default_excepthook(type, value, traceback);
     sys.stderr.flush();
     if globals.exec_conf is not None:
         hoomd.abort_mpi(globals.exec_conf);
 
 # install the hoomd excepthook to abort MPI runs if there are uncaught exceptions
-sys.excepthook = hoomd_sys_excepthook;
+sys.excepthook = _hoomd_sys_excepthook;
 
 ## \internal
 # \brief Major version of hoomd_script
-version_major = 1;
+_version_major = 1;
 
 ## \internal
 # \brief Minor version of hoomd_script
-version_minor = 0;
+_version_minor = 0;
 
 ## \brief Get the version information of hoomd_script
 # \returns a tuple (major, minor)
@@ -137,7 +131,7 @@ version_minor = 0;
 # or changes that break backwards compatibility are made, then the major version is incremented and the minor reset
 # to 0. Only one such increment of either type will occur per each tagged release of HOOMD.
 def get_hoomd_script_version():
-    return (version_major, version_minor)
+    return (_version_major, _version_minor)
 
 ## \brief Runs the simulation for a given number of time steps
 #
@@ -207,7 +201,7 @@ def get_hoomd_script_version():
 #
 def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False):
     if not quiet:
-        util.print_status_line();
+        _util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
         globals.msg.error("Cannot run before initialization\n");
@@ -268,7 +262,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 #
 def run_upto(step, **keywords):
     if 'quiet' in keywords and not keywords['quiet']:
-        util.print_status_line();
+        _util.print_status_line();
     # check if initialization has occured
     if not init.is_initialized():
         globals.msg.error("Cannot run before initialization\n");
@@ -284,9 +278,9 @@ def run_upto(step, **keywords):
 
     n_steps = step - cur_step;
 
-    util._disable_status_lines = True;
+    _util._disable_status_lines = True;
     run(n_steps, **keywords);
-    util._disable_status_lines = False;
+    _util._disable_status_lines = False;
 
 ## Get the current simulation time step
 #
