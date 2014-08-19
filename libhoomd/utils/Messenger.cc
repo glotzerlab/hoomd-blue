@@ -74,9 +74,8 @@ using namespace boost::python;
 */
 Messenger::Messenger()
     {
-    //m_err_stream = &cerr;
-    m_err_stream = &clog;
-    m_warning_stream = &clog;
+    m_err_stream = &cerr;
+    m_warning_stream = &cerr;
     m_notice_stream = &cout;
     m_nullstream = boost::shared_ptr<nullstream>(new nullstream());
     m_notice_level = 2;
