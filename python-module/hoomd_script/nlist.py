@@ -51,7 +51,6 @@
 
 from hoomd_script import globals;
 from hoomd_script import util;
-from hoomd_script import init;
 
 ## \package hoomd_script.nlist
 # \brief Wrapper for "global" nlist commands
