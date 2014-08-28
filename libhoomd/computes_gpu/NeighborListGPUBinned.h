@@ -85,6 +85,7 @@ class NeighborListGPUBinned : public NeighborListGPU
 
         //! Change the cuttoff radius
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
 
         //! Set the autotuner period
         void setTuningParam(unsigned int param)

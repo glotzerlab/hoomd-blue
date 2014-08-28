@@ -162,7 +162,7 @@ class NeighborList : public Compute
             };
 
         //! Constructs the compute
-        NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
+        NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborList();
@@ -172,6 +172,10 @@ class NeighborList : public Compute
 
         //! Change the cuttoff radius
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        
+        //! Change the cutoff radius by pair
+        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        virtual void setRBuff(Scalar r_buff);
 
         //! Change how many timesteps before checking to see if the list should be rebuilt
         /*! \param every Number of time steps to wait before beignning to check if particles have moved a sufficient distance
@@ -352,7 +356,7 @@ class NeighborList : public Compute
 #ifdef ENABLE_MPI
             if (m_comm)
                 {
-                Scalar rmax = m_r_cut + m_r_buff;
+                Scalar rmax = m_r_cut_max + m_r_buff;
                 // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
                 rmax += m_d_max - Scalar(1.0);
                 m_comm->setGhostLayerWidth(rmax);
@@ -406,7 +410,10 @@ class NeighborList : public Compute
             }
 
    protected:
-        Scalar m_r_cut;             //!< The cuttoff radius
+//         Scalar m_r_cut;             //!< The cuttoff radius (DEPRECATED)
+        Index2D m_typpair_idx;      //!< Indexer for full type pair storage
+        GPUArray<Scalar> m_r_cut;   //!< The cutoff radius stored by pair type
+        Scalar m_r_cut_max;         //!< The maximum cutoff radius of any pair
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered

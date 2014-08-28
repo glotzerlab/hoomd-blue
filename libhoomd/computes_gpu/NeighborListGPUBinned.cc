@@ -73,9 +73,9 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
 
-    m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
+//     m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     m_cl->setRadius(1);
-    m_cl->setComputeTDB(false);
+    m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
 
     CHECK_CUDA_ERROR();
@@ -136,13 +136,20 @@ void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
 
     m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     }
+    
+void NeighborListGPUBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
+    {
+    NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
+    
+    m_cl->setNominalWidth(m_r_cut_max + m_r_buff + m_d_max - Scalar(1.0));
+    }
 
 void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
     {
     NeighborListGPU::setMaximumDiameter(d_max);
 
     // need to update the cell list settings appropriately
-    m_cl->setNominalWidth(m_r_cut + m_r_buff + m_d_max - Scalar(1.0));
+    m_cl->setNominalWidth(m_r_cut_max + m_r_buff + m_d_max - Scalar(1.0));
     }
 
 void NeighborListGPUBinned::setFilterBody(bool filter_body)
@@ -199,7 +206,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
 
     // start by creating a temporary copy of r_cut sqaured
-    Scalar rmax = m_r_cut + m_r_buff;
+    Scalar rmax = m_r_cut_max + m_r_buff;
     // add d_max - 1.0, if diameter filtering is not already taking care of it
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);

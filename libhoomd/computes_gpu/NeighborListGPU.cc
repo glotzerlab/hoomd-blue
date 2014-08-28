@@ -135,7 +135,7 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
 
     // start by creating a temporary copy of r_cut sqaured
-    Scalar rmax = m_r_cut + m_r_buff;
+    Scalar rmax = m_r_cut_max + m_r_buff;
     // add d_max - 1.0, if diameter filtering is not already taking care of it
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
@@ -188,7 +188,7 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     Scalar3 L_g = m_pdata->getGlobalBox().getNearestPlaneDistance();
 
     // Cutoff distance for inclusion in neighbor list
-    Scalar rmax = m_r_cut + m_r_buff;
+    Scalar rmax = m_r_cut_max + m_r_buff;
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
 
@@ -198,7 +198,7 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
 
     // maximum displacement for each particle (after subtraction of homogeneous dilations)
-    Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
+    Scalar delta_max = (rmax*lambda_min - m_r_cut_max)/Scalar(2.0);
     Scalar maxshiftsq = delta_max > 0  ? delta_max*delta_max : 0;
 
     ArrayHandle<unsigned int> h_flags(m_flags, access_location::device, access_mode::readwrite);

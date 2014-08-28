@@ -84,19 +84,13 @@ using namespace std;
         but the list will not be computed until compute is called.
     \post The storage mode defaults to half
 */
-NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
-    : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
-      m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
-      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false), m_want_exclusions(false)
+NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
+    : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_r_cut_max(_r_cut), m_r_buff(r_buff), m_d_max(1.0),
+      m_filter_body(false), m_filter_diameter(false), m_storage_mode(half), m_updates(0), m_forced_updates(0),
+      m_dangerous_updates(0), m_force_update(true), m_dist_check(true), m_has_been_updated_once(false),
+      m_want_exclusions(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
-
-    // check for two sensless errors the user could make
-    if (m_r_cut < 0.0)
-        {
-        m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
-        throw runtime_error("Error initializing NeighborList");
-        }
 
     if (m_r_buff < 0.0)
         {
@@ -112,7 +106,6 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_Nmax = 0;
     m_exclusions_set = false;
 
-
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
     m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
@@ -120,7 +113,11 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // allocate conditions flags
     GPUFlags<unsigned int> conditions(exec_conf);
     m_conditions.swap(conditions);
-
+    
+    // allocate r_cut pair data
+    GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
+    m_r_cut.swap(r_cut);
+    
     // allocate m_n_neigh
     GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
     m_n_neigh.swap(n_neigh);
@@ -292,11 +289,11 @@ double NeighborList::benchmark(unsigned int num_iters)
 */
 void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
     {
-    m_r_cut = r_cut;
+    m_r_cut_max = r_cut;
     m_r_buff = r_buff;
 
     // check for two sensless errors the user could make
-    if (m_r_cut < 0.0)
+    if (m_r_cut_max < 0.0)
         {
         m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
@@ -311,7 +308,7 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        Scalar rmax = m_r_cut + m_r_buff;
+        Scalar rmax = m_r_cut_max + m_r_buff;
         // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
         rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(rmax);
@@ -320,6 +317,77 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
 #endif
     forceUpdate();
     }
+
+/*! \param r_cut New cuttoff radius to set
+    \note Changing the cuttoff radius does NOT immediately update the neighborlist.
+            The new cuttoff will take effect when compute is called for the next timestep.
+*/
+void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
+    {
+    // check that r_cut is not negative
+    if (r_cut < 0.0)
+        {
+        m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
+        throw runtime_error("Error changing NeighborList parameters");
+        }
+        
+    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
+        {
+        this->m_exec_conf->msg->error() << "nlist: Trying to set rcut for a non existant type! "
+                  << typ1 << "," << typ2 << std::endl;
+        throw std::runtime_error("Error changing NeighborList parameters");
+        }
+        
+    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::readwrite);
+    h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
+    h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
+
+    // update the maximum cutoff of all those set so far
+    Scalar r_cut_max(0.0);
+    for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
+        {
+        if (h_r_cut.data[i] > r_cut_max)
+            r_cut_max = h_r_cut.data[i];
+        }
+    m_r_cut_max = r_cut_max;
+        
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        Scalar rmax = m_r_cut_max + m_r_buff;
+        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
+        rmax += m_d_max - Scalar(1.0);
+        m_comm->setGhostLayerWidth(rmax);
+        m_comm->setRBuff(m_r_buff);
+        }
+#endif
+    forceUpdate();
+    }
+/*! \param r_buff New buffer radius to set
+    \note Changing the buffer radius does NOT immediately update the neighborlist.
+            The new buffer will take effect when compute is called for the next timestep.
+*/
+void NeighborList::setRBuff(Scalar r_buff)
+    {
+    m_r_buff = r_buff;
+    if (m_r_buff < 0.0)
+        {
+        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
+        throw runtime_error("Error changing NeighborList parameters");
+        }
+
+#ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        Scalar rmax = m_r_cut_max + m_r_buff;
+        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
+        rmax += m_d_max - Scalar(1.0);
+        m_comm->setGhostLayerWidth(rmax);
+        m_comm->setRBuff(m_r_buff);
+        }
+#endif
+    forceUpdate();
+    }    
 
 /*! \returns an estimate of the number of neighbors per particle
     This mean-field estimate may be very bad dending on how clustered particles are.
@@ -339,7 +407,7 @@ Scalar NeighborList::estimateNNeigh()
 
     // calculate the average number of neighbors by multiplying by the volume
     // within the cutoff
-    Scalar r_max = m_r_cut + m_r_buff;
+    Scalar r_max = m_r_cut_max + m_r_buff;
     Scalar vol_cut = Scalar(4.0/3.0 * M_PI) * r_max * r_max * r_max;
     return n_dens * vol_cut;
     }
@@ -813,7 +881,7 @@ bool NeighborList::distanceCheck(unsigned int timestep)
     Scalar3 L_g = m_pdata->getGlobalBox().getNearestPlaneDistance();
 
     // Cutoff distance for inclusion in neighbor list
-    Scalar rmax = m_r_cut + m_r_buff;
+    Scalar rmax = m_r_cut_max + m_r_buff;
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
 
@@ -823,7 +891,7 @@ bool NeighborList::distanceCheck(unsigned int timestep)
     lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
 
     // maximum displacement for each particle (after subtraction of homogeneous dilations)
-    Scalar delta_max = (rmax*lambda_min - m_r_cut)/Scalar(2.0);
+    Scalar delta_max = (rmax*lambda_min - m_r_cut_max)/Scalar(2.0);
     Scalar maxsq = delta_max > 0  ? delta_max*delta_max : 0;
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -1073,7 +1141,7 @@ void NeighborList::buildNlist(unsigned int timestep)
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // start by creating a temporary copy of r_cut sqaured
-    Scalar rmax = m_r_cut + m_r_buff;
+    Scalar rmax = m_r_cut_max + m_r_buff;
     // add d_max - 1.0, if diameter filtering is not already taking care of it
     if (!m_filter_diameter)
         rmax += m_d_max - Scalar(1.0);
@@ -1335,7 +1403,7 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
         {
         m_comm = comm;
 
-        Scalar rmax = m_r_cut + m_r_buff;
+        Scalar rmax = m_r_cut_max + m_r_buff;
         // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
         rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(rmax);
@@ -1369,6 +1437,8 @@ void export_NeighborList()
     scope in_nlist = class_<NeighborList, boost::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
                      ("NeighborList", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("setRCut", &NeighborList::setRCut)
+                     .def("setRCutPair", &NeighborList::setRCutPair)
+                     .def("setRBuff", &NeighborList::setRBuff)
                      .def("setEvery", &NeighborList::setEvery)
                      .def("setStorageMode", &NeighborList::setStorageMode)
                      .def("addExclusion", &NeighborList::addExclusion)

@@ -294,17 +294,36 @@ class coeff:
     # \param a First name in the type pair
     # \param b Second name in the type pair
     # \param coeff_name Coefficient to get
-    def get(self, a, b, coeff_name):
-        # Find the pair to update
+#     def get(self, a, b, coeff_name):
+#         # Find the pair to update
+#         if (a,b) in self.values:
+#             cur_pair = (a,b);
+#         elif (b,a) in self.values:
+#             cur_pair = (b,a);
+#         else:
+#             globals.msg.error("Bug detected in pair.coeff. Please report\n");
+#             raise RuntimeError("Error setting pair coeff");
+# 
+#         return self.values[cur_pair][coeff_name];
+
+    ## \internal
+    # \brief Try to get whether a single %pair coefficient
+    # \detail
+    # \param a First name in the type pair
+    # \param b Second name in the type pair
+    # \param coeff_name Coefficient to get
+    def get(self,a,b,coeff_name):
         if (a,b) in self.values:
             cur_pair = (a,b);
         elif (b,a) in self.values:
             cur_pair = (b,a);
         else:
-            globals.msg.error("Bug detected in pair.coeff. Please report\n");
-            raise RuntimeError("Error setting pair coeff");
-
-        return self.values[cur_pair][coeff_name];
+            return None;
+        
+        if coeff_name in self.values[cur_pair]:
+            return self.values[cur_pair][coeff_name];
+        else:
+            return None;
 
 ## \internal
 # \brief %nlist r_cut matrix
@@ -461,18 +480,19 @@ class nlist:
     # \brief Constructs a neighbor list
     # \details
     # \param self Python required instance variable
-    # \param r_cut Cutoff radius
-    def __init__(self, r_cut):
+    def __init__(self):
         # check if initialization has occured
         if not init.is_initialized():
             globals.msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
 
+        # moved down from the constructor
+        r_cut = 3.0;
         # magic number leftover from something, should go in the constructor
         default_r_buff = 0.4;
         
         # create the C++ mirror class
-        ## HERE WE NEED TO REMOVE r_cut FROM THE CONSTRUCTOR, SINCE THIS DOES NOT MAKE SENSE ANYMORE ## 
+        ## HERE WE NEED TO REMOVE r_cut FROM THE C++ CONSTRUCTOR, SINCE THIS DOES NOT MAKE SENSE ANYMORE ## 
         if not globals.exec_conf.isCUDAEnabled():
             cl_c = hoomd.CellList(globals.system_definition);
             globals.system.addCompute(cl_c, "auto_cl")
@@ -517,8 +537,10 @@ class nlist:
 
         self.r_cut = r_cut_max;
         for pair,rc in self.r_cut.getValues().iteritems():
-            pass
-#             self.cpp_nlist.setRCut(self.r_cut, self.r_buff);
+            (a,b) = pair
+            i = globals.system_definition.getParticleData().getTypeByName(a);
+            j = globals.system_definition.getParticleData().getTypeByName(b);
+            self.cpp_nlist.setRCutPair(i,j,rc);
 
     ## \internal
     # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
@@ -591,7 +613,7 @@ class nlist:
 
         # update the parameters
         if r_buff is not None:
-            self.cpp_nlist.setRCut(self.r_cut, r_buff);
+            self.cpp_nlist.setRBuff(r_buff);
             self.r_buff = r_buff;
 
         if check_period is not None:
@@ -753,22 +775,25 @@ class nlist:
         return self.cpp_nlist.getSmallestRebuild()-1;
 
 
+## DEPRECATED, TO REMOVE ##
+def _update_global_nlist(rcut):
+    return globals.neighbor_list;
+####
+
+
 ## \internal
 # \brief Creates the global neighbor list
 # \details
-# \param r_cut Cutoff radius to set
-# If no neighbor list has been created, create one. If there is one, increase its r_cut value
-# to be the maximum of the current and the one specified here
-def _update_global_nlist(r_cut):
-    # check to see if we need to create the neighbor list
+# \param cb Callable function passed to subscribe()
+# If no neighbor list has been created, create one. If there is one, subscribe the new potential and update the rcut
+def _subscribe_global_nlist(cb):
+    # create a global neighbor list if it doesn't exist
     if globals.neighbor_list is None:
-        globals.neighbor_list = nlist(r_cut);
-
-    else:
-        # otherwise, we need to update r_cut
-        new_r_cut = max(r_cut, globals.neighbor_list.r_cut);
-        globals.neighbor_list.r_cut = new_r_cut;
-        globals.neighbor_list.cpp_nlist.setRCut(new_r_cut, globals.neighbor_list.r_buff);
+        globals.neighbor_list = nlist();
+    
+    # subscribe and force an update
+    globals.neighbor_list.subscribe(cb);
+    globals.neighbor_list.update_rcut();
 
     return globals.neighbor_list;
 
@@ -934,23 +959,29 @@ class pair(force._force):
         if not self.log: ## MAKE SURE THAT THIS ACTUALLY WORKS! ##
             return None
             
-        # ensure that coefficients are up to date
-        self.update_coeffs()
-            
         # go through the list of only the active particle types in the sim
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
+        # update the rcut by pair type
         r_cut_dict = rcut();
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 # get the r_cut value
                 r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
-                # set the pair in our dictionary (not updating, so force the set)
-                r_cut_dict.set_pair(type_list[i],type_list[j],r_cut);
-                # self.global_rcut
+                if r_cut is not None:
+                    # set the pair in our dictionary (not updating, so force the set)
+                    r_cut_dict.set_pair(type_list[i],type_list[j],r_cut);
+                else:
+                    # using default value for the pair
+                    # it doesn't concern us that the pair has not been explicitly set yet
+                    # because the cutoff will be filled with the default value (or a new value) when
+                    # we pair_coeff.set, and these coefficients will be validated later anyway
+                    # so if something goes wrong there, HOOMD will grind to a halt.
+                    # Plus, update_coeff is always called before update_rcut by run(), so we're solid.
+                    r_cut_dict.set_pair(type_list[i],type_list[j],self.global_r_cut);
                 
         if not r_cut_dict.verify():
             globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
@@ -1026,13 +1057,8 @@ class lj(pair):
 
         # initialize the base class
         pair.__init__(self, r_cut, name);
-
-        # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
         
-        # subscribe the callback with logging as an argument
-        # we can't just use self.log in pair because switching is done within this class
-        neighbor_list.subscribe(lambda: self.get_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda:self.get_rcut())
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -1044,11 +1070,11 @@ class lj(pair):
             self.cpp_class = hoomd.PotentialPairLJGPU;
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-
+        
         # setup the coefficent options
         self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
         self.pair_coeff.set_default_coeff('alpha', 1.0);
-
+        
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         sigma = coeff['sigma'];
