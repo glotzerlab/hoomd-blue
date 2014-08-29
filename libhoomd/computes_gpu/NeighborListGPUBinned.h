@@ -108,10 +108,10 @@ class NeighborListGPUBinned : public NeighborListGPU
         virtual void setMaximumDiameter(Scalar d_max);
 
         //! Enable/disable body filtering
-        virtual void setFilterBody(bool filter_body);
+//         virtual void setFilterBody(bool filter_body);
 
         //! Enable/disable diameter filtering
-        virtual void setFilterDiameter(bool filter_diameter);
+//         virtual void setFilterDiameter(bool filter_diameter);
 
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list

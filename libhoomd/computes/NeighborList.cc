@@ -114,9 +114,13 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     GPUFlags<unsigned int> conditions(exec_conf);
     m_conditions.swap(conditions);
     
-    // allocate r_cut pair data
+    // allocate r_cut pair data for user inputs
     GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
     m_r_cut.swap(r_cut);
+    
+    // allocate the full-blown r_list array, which we will pass to kernels
+    GPUArray<Scalar> r_list(m_typpair_idx.getNumElements(), exec_conf);
+    m_r_list.swap(r_list);
     
     // allocate m_n_neigh
     GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
@@ -211,9 +215,12 @@ void NeighborList::compute(unsigned int timestep)
 
     if (m_prof) m_prof->push("Neighbor");
 
-    // update the exclusion data if this is a forced update
+	// take care of some updates if things have changed since construction
     if (m_force_update)
         {
+        updateRList();
+        
+		// update the exclusion data if this is a forced update        
         if (m_exclusions_set)
             updateExListIdx();
         }
@@ -338,10 +345,20 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
         throw std::runtime_error("Error changing NeighborList parameters");
         }
         
+	// stash the potential rcuts in case filtering changes later
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::readwrite);
     h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
     h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
-
+    
+    // calculate the r_list that goes with this cutoff
+    ArrayHandle<Scalar> h_r_list(m_r_list, access_location::host, access_mode::readwrite);
+    Scalar r_list = r_cut + m_r_buff;
+     // add d_max - 1.0, if diameter filtering is not already taking care of it
+    if (!m_filter_diameter)
+        r_list += m_d_max - Scalar(1.0);
+	h_r_list.data[m_typpair_idx(typ1, typ2)] = r_list;
+    h_r_list.data[m_typpair_idx(typ2, typ1)] = r_list;
+    
     // update the maximum cutoff of all those set so far
     Scalar r_cut_max(0.0);
     for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
@@ -363,6 +380,7 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
 #endif
     forceUpdate();
     }
+    
 /*! \param r_buff New buffer radius to set
     \note Changing the buffer radius does NOT immediately update the neighborlist.
             The new buffer will take effect when compute is called for the next timestep.
@@ -387,7 +405,26 @@ void NeighborList::setRBuff(Scalar r_buff)
         }
 #endif
     forceUpdate();
-    }    
+    } 
+ 
+//! Loops through all pairs, and updates the r_list  
+void NeighborList::updateRList()
+	{
+	// only need a read on the real cutoff
+	ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
+	
+	// now we need to read and write on the r_list
+	ArrayHandle<Scalar> h_r_list(m_r_list, access_location::host, access_mode::readwrite);
+	
+	for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
+		{
+		Scalar r_list = h_r_cut.data[i] + m_r_buff;
+		 // add d_max - 1.0, if diameter filtering is not already taking care of it
+		if (!m_filter_diameter)
+			r_list += m_d_max - Scalar(1.0);
+		h_r_list.data[i] = r_list;
+		}
+	}
 
 /*! \returns an estimate of the number of neighbors per particle
     This mean-field estimate may be very bad dending on how clustered particles are.

@@ -108,13 +108,6 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     // synchronize over MPI
     m_tuner->setSync(m_pdata->getDomainDecomposition());
     #endif
-
-    // When running on compute 1.x, textures are allocated with the height equal to the number of cells
-    // limit the number of cells to the maximum texture dimension
-    if (exec_conf->getComputeCapability() < 200)
-        {
-        m_cl->setMaxCells(exec_conf->dev_prop.maxTexture2D[1]);
-        }
     }
 
 NeighborListGPUBinned::~NeighborListGPUBinned()
@@ -151,28 +144,27 @@ void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
     // need to update the cell list settings appropriately
     m_cl->setNominalWidth(m_r_cut_max + m_r_buff + m_d_max - Scalar(1.0));
     }
+    
+// can't have the user shutting off our types, so just use the regular one
+// void NeighborListGPUBinned::setFilterBody(bool filter_body)
+//     {
+//     NeighborListGPU::setFilterBody(filter_body);
+//  // need to update the cell list settings appropriately
+//     if (m_filter_body || m_filter_diameter)
+//         m_cl->setComputeTDB(true);
+//     else
+//         m_cl->setComputeTDB(false);
+//     }
 
-void NeighborListGPUBinned::setFilterBody(bool filter_body)
-    {
-    NeighborListGPU::setFilterBody(filter_body);
-
-    // need to update the cell list settings appropriately
-    if (m_filter_body || m_filter_diameter)
-        m_cl->setComputeTDB(true);
-    else
-        m_cl->setComputeTDB(false);
-    }
-
-void NeighborListGPUBinned::setFilterDiameter(bool filter_diameter)
-    {
-    NeighborListGPU::setFilterDiameter(filter_diameter);
-
-    // need to update the cell list settings appropriately
-    if (m_filter_body || m_filter_diameter)
-        m_cl->setComputeTDB(true);
-    else
-        m_cl->setComputeTDB(false);
-    }
+// void NeighborListGPUBinned::setFilterDiameter(bool filter_diameter)
+//     {
+//     NeighborListGPU::setFilterDiameter(filter_diameter);
+//	// need to update the cell list settings appropriately
+//     if (m_filter_body || m_filter_diameter)
+//         m_cl->setComputeTDB(true);
+//     else
+//         m_cl->setComputeTDB(false);
+//     }
 
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
@@ -262,55 +254,10 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         m_last_tuned_timestep = timestep;
         }
     else
-        {
-        #ifndef SINGLE_PRECISION
-        m_exec_conf->msg->error() << "NeighborListGPUBinned doesn't work in double precision on compute 1.x" << endl;
-        throw runtime_error("Error computing neighbor list");
-        #endif
-
-        unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
-
-        // upate the cuda array allocations (note, this is smart enough to not reallocate when there has been no change)
-        if (needReallocateCudaArrays())
-            {
-            allocateCudaArrays();
-            cudaMemcpyToArray(dca_cell_adj, 0, 0, d_cell_adj.data, sizeof(unsigned int)*ncell*27, cudaMemcpyDeviceToDevice);
-            }
-
-        // update the values in those arrays
-        if (m_prof) m_prof->push(exec_conf, "copy");
-        cudaMemcpyToArray(dca_cell_xyzf, 0, 0, d_cell_xyzf.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
-        if (m_filter_body || m_filter_diameter)
-            cudaMemcpyToArray(dca_cell_tdb, 0, 0, d_cell_tdb.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
-
-        if (m_prof) m_prof->pop(exec_conf);
-
-        if (exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-
-        gpu_compute_nlist_binned_1x(d_nlist.data,
-                                    d_n_neigh.data,
-                                    d_last_pos.data,
-                                    m_conditions.getDeviceFlags(),
-                                    m_nlist_indexer,
-                                    d_pos.data,
-                                    d_body.data,
-                                    d_diameter.data,
-                                    m_pdata->getN(),
-                                    d_cell_size.data,
-                                    dca_cell_xyzf,
-                                    dca_cell_tdb,
-                                    dca_cell_adj,
-                                    m_cl->getCellIndexer(),
-                                    box,
-                                    rmaxsq,
-                                    m_block_size,
-                                    m_filter_body,
-                                    m_filter_diameter,
-                                    m_cl->getGhostWidth());
-
-        if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-        }
+    	{
+    	m_exec_conf->msg->error() << "nlist: Compute 1.x cards are no longer supported, sorry." << endl;
+        throw runtime_error("Error building neighborlist bins");
+    	}
 
     if (m_prof)
         m_prof->pop(exec_conf);

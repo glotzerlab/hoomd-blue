@@ -76,7 +76,7 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
 
 //     m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     m_cl->setRadius(1);
-    m_cl->setComputeTDB(true);
+    m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
     }
 
@@ -129,10 +129,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut_max + m_r_buff;
-    // add d_max - 1.0, if diameter filtering is not already taking care of it
-    if (!m_filter_diameter)
-        rmax += m_d_max - Scalar(1.0);
-    Scalar rmaxsq = rmax*rmax;
+    ArrayHandle<Scalar> h_r_list(m_r_list, access_location::host, access_mode::read);
 
     if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
         (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
@@ -167,6 +164,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         {
         unsigned int cur_n_neigh = 0;
 
+        unsigned int my_type = __scalar_as_int(h_pos.data[i].w);       
         Scalar3 my_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int bodyi = h_body.data[i];
         Scalar di = h_diameter.data[i];
@@ -199,6 +197,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 {
                 Scalar4& cur_xyzf = h_cell_xyzf.data[cli(cur_offset, neigh_cell)];
                 unsigned int cur_neigh = __scalar_as_int(cur_xyzf.w);
+                
+                // get the current neighbor type from the position data (will use tdb on the GPU)
+                unsigned int cur_neigh_type = __scalar_as_int(h_pos.data[cur_neigh].w);
 
                 Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
 
@@ -211,19 +212,25 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 if (m_filter_body && bodyi != NO_BODY)
                     excluded = excluded | (bodyi == h_body.data[cur_neigh]);
 
-                Scalar sqshift = Scalar(0.0);
+//                 Scalar sqshift = Scalar(0.0);
+//                 if (m_filter_diameter)
+//                     {
+//                     // compute the shift in radius to accept neighbors based on their diameters
+//                     Scalar delta = (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
+//                     // r^2 < (r_max + delta)^2
+//                     // r^2 < r_maxsq + delta^2 + 2*r_max*delta
+//                     sqshift = (delta + Scalar(2.0) * rmax) * delta;
+//                     }
+
+                Scalar my_r_list = h_r_list.data[m_typpair_idx(my_type,cur_neigh_type)];
+                // account for diameter filtering if it is on
                 if (m_filter_diameter)
-                    {
-                    // compute the shift in radius to accept neighbors based on their diameters
-                    Scalar delta = (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
-                    // r^2 < (r_max + delta)^2
-                    // r^2 < r_maxsq + delta^2 + 2*r_max*delta
-                    sqshift = (delta + Scalar(2.0) * rmax) * delta;
+                	{
+                    my_r_list += (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);   
                     }
-
+                
                 Scalar dr_sq = dot(dx,dx);
-
-                if (dr_sq <= (rmaxsq + sqshift) && !excluded)
+                if (dr_sq <= (my_r_list*my_r_list) && !excluded)
                     {
                     if (m_storage_mode == full || i < (int)cur_neigh)
                         {

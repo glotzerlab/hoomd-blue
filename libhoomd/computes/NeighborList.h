@@ -175,6 +175,8 @@ class NeighborList : public Compute
         
         //! Change the cutoff radius by pair
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        
+        //! Change the global buffer radius
         virtual void setRBuff(Scalar r_buff);
 
         //! Change how many timesteps before checking to see if the list should be rebuilt
@@ -410,9 +412,9 @@ class NeighborList : public Compute
             }
 
    protected:
-//         Scalar m_r_cut;             //!< The cuttoff radius (DEPRECATED)
         Index2D m_typpair_idx;      //!< Indexer for full type pair storage
-        GPUArray<Scalar> m_r_cut;   //!< The cutoff radius stored by pair type
+        GPUArray<Scalar> m_r_cut;   //!< The potential cutoffs stored by pair type
+        GPUArray<Scalar> m_r_list;  //!< The neighborlist cutoff radius stored by pair type
         Scalar m_r_cut_max;         //!< The maximum cutoff radius of any pair
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
@@ -458,6 +460,9 @@ class NeighborList : public Compute
 
         //! Updates the idx exlcusion list
         virtual void updateExListIdx();
+        
+        //! Updates all r_list values
+        void updateRList();
 
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
