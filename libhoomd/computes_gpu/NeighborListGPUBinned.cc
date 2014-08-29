@@ -199,10 +199,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut_max + m_r_buff;
+    ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
     // add d_max - 1.0, if diameter filtering is not already taking care of it
-    if (!m_filter_diameter)
-        rmax += m_d_max - Scalar(1.0);
-    Scalar rmaxsq = rmax*rmax;
+//     if (!m_filter_diameter)
+//         rmax += m_d_max - Scalar(1.0);
+//     Scalar rmaxsq = rmax*rmax;
 
     if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
         (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
@@ -241,11 +242,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellListIndexer(),
                                  m_cl->getCellAdjIndexer(),
                                  box,
-                                 rmaxsq,
+                                 d_r_listsq.data,
+                                 m_pdata->getNTypes(),
                                  threads_per_particle,
                                  block_size,
                                  m_filter_body,
-                                 m_filter_diameter,
                                  m_cl->getGhostWidth(),
                                  m_exec_conf->getComputeCapability()/10);
         if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();

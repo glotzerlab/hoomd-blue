@@ -86,7 +86,7 @@ using namespace std;
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
     : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_r_cut_max(_r_cut), m_r_buff(r_buff), m_d_max(1.0),
-      m_filter_body(false), m_filter_diameter(false), m_storage_mode(half), m_updates(0), m_forced_updates(0),
+      m_filter_body(false), m_storage_mode(half), m_updates(0), m_forced_updates(0),
       m_dangerous_updates(0), m_force_update(true), m_dist_check(true), m_has_been_updated_once(false),
       m_want_exclusions(false)
     {
@@ -118,9 +118,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
     m_r_cut.swap(r_cut);
     
-    // allocate the full-blown r_list array, which we will pass to kernels
-    GPUArray<Scalar> r_list(m_typpair_idx.getNumElements(), exec_conf);
-    m_r_list.swap(r_list);
+    // allocate the full-blown r_listsq array, which we will pass to kernels
+    GPUArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), exec_conf);
+    m_r_listsq.swap(r_listsq);
     
     // allocate m_n_neigh
     GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
@@ -315,10 +315,10 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        Scalar rmax = m_r_cut_max + m_r_buff;
+        Scalar r_list_max = m_r_cut_max + m_r_buff;
         // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-        rmax += m_d_max - Scalar(1.0);
-        m_comm->setGhostLayerWidth(rmax);
+//         rmax += m_d_max - Scalar(1.0);
+        m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
 #endif
@@ -345,19 +345,10 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
         throw std::runtime_error("Error changing NeighborList parameters");
         }
         
-	// stash the potential rcuts in case filtering changes later
+	// stash the potential rcuts, r_list will be computed on next forced update
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::readwrite);
     h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
     h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
-    
-    // calculate the r_list that goes with this cutoff
-    ArrayHandle<Scalar> h_r_list(m_r_list, access_location::host, access_mode::readwrite);
-    Scalar r_list = r_cut + m_r_buff;
-     // add d_max - 1.0, if diameter filtering is not already taking care of it
-    if (!m_filter_diameter)
-        r_list += m_d_max - Scalar(1.0);
-	h_r_list.data[m_typpair_idx(typ1, typ2)] = r_list;
-    h_r_list.data[m_typpair_idx(typ2, typ1)] = r_list;
     
     // update the maximum cutoff of all those set so far
     Scalar r_cut_max(0.0);
@@ -371,10 +362,10 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        Scalar rmax = m_r_cut_max + m_r_buff;
+        Scalar r_list_max = m_r_cut_max + m_r_buff;
         // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-        rmax += m_d_max - Scalar(1.0);
-        m_comm->setGhostLayerWidth(rmax);
+//         rmax += m_d_max - Scalar(1.0);
+        m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
 #endif
@@ -397,10 +388,10 @@ void NeighborList::setRBuff(Scalar r_buff)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        Scalar rmax = m_r_cut_max + m_r_buff;
+        Scalar r_list_max = m_r_cut_max + m_r_buff;
         // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-        rmax += m_d_max - Scalar(1.0);
-        m_comm->setGhostLayerWidth(rmax);
+//         rmax += m_d_max - Scalar(1.0);
+        m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
 #endif
@@ -414,15 +405,15 @@ void NeighborList::updateRList()
 	ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
 	
 	// now we need to read and write on the r_list
-	ArrayHandle<Scalar> h_r_list(m_r_list, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::readwrite);
 	
 	for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
 		{
 		Scalar r_list = h_r_cut.data[i] + m_r_buff;
 		 // add d_max - 1.0, if diameter filtering is not already taking care of it
-		if (!m_filter_diameter)
-			r_list += m_d_max - Scalar(1.0);
-		h_r_list.data[i] = r_list;
+// 		if (!m_filter_diameter)
+// 			r_list += m_d_max - Scalar(1.0);
+		h_r_listsq.data[i] = r_list*r_list;
 		}
 	}
 
@@ -589,10 +580,10 @@ void NeighborList::countExclusions()
              << excluded_count[MAX_COUNT_EXCLUDED+1] << endl;
         }
 
-    if (m_filter_diameter)
-        m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : yes" << endl;
-    else
-        m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : no" << endl;
+//     if (m_filter_diameter)
+//         m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : yes" << endl;
+//     else
+//         m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : no" << endl;
 
     if (m_filter_body)
         m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: yes" << endl;
@@ -919,8 +910,8 @@ bool NeighborList::distanceCheck(unsigned int timestep)
 
     // Cutoff distance for inclusion in neighbor list
     Scalar rmax = m_r_cut_max + m_r_buff;
-    if (!m_filter_diameter)
-        rmax += m_d_max - Scalar(1.0);
+//     if (!m_filter_diameter)
+//         rmax += m_d_max - Scalar(1.0);
 
     // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
     Scalar3 lambda = L_g / m_last_L;
@@ -1180,8 +1171,8 @@ void NeighborList::buildNlist(unsigned int timestep)
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut_max + m_r_buff;
     // add d_max - 1.0, if diameter filtering is not already taking care of it
-    if (!m_filter_diameter)
-        rmax += m_d_max - Scalar(1.0);
+//     if (!m_filter_diameter)
+//         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
 
     if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
@@ -1205,7 +1196,7 @@ void NeighborList::buildNlist(unsigned int timestep)
     for (int i = 0; i < (int)m_pdata->getN(); i++)
         {
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-        Scalar di = h_diameter.data[i];
+//         Scalar di = h_diameter.data[i];
         unsigned int bodyi = h_body.data[i];
 
         // for each other particle with i < j, including ghost particles
@@ -1222,14 +1213,14 @@ void NeighborList::buildNlist(unsigned int timestep)
                 excluded = (bodyi == h_body.data[j]);
 
             Scalar sqshift = Scalar(0.0);
-            if (m_filter_diameter)
-                {
-                // compute the shift in radius to accept neighbors based on their diameters
-                Scalar delta = (di + h_diameter.data[j]) * Scalar(0.5) - Scalar(1.0);
-                // r^2 < (r_max + delta)^2
-                // r^2 < r_maxsq + delta^2 + 2*r_max*delta
-                sqshift = (delta + Scalar(2.0) * rmax) * delta;
-                }
+//             if (m_filter_diameter)
+//                 {
+//                 // compute the shift in radius to accept neighbors based on their diameters
+//                 Scalar delta = (di + h_diameter.data[j]) * Scalar(0.5) - Scalar(1.0);
+//                 // r^2 < (r_max + delta)^2
+//                 // r^2 < r_maxsq + delta^2 + 2*r_max*delta
+//                 sqshift = (delta + Scalar(2.0) * rmax) * delta;
+//                 }
 
             // now compare rsq to rmaxsq and add to the list if it meets the criteria
             Scalar rsq = dot(dx, dx);
@@ -1440,10 +1431,10 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
         {
         m_comm = comm;
 
-        Scalar rmax = m_r_cut_max + m_r_buff;
+        Scalar r_list_max = m_r_cut_max + m_r_buff;
         // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-        rmax += m_d_max - Scalar(1.0);
-        m_comm->setGhostLayerWidth(rmax);
+//         rmax += m_d_max - Scalar(1.0);
+        m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
     }
@@ -1488,8 +1479,8 @@ void export_NeighborList()
                      .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
                      .def("setFilterBody", &NeighborList::setFilterBody)
                      .def("getFilterBody", &NeighborList::getFilterBody)
-                     .def("setFilterDiameter", &NeighborList::setFilterDiameter)
-                     .def("getFilterDiameter", &NeighborList::getFilterDiameter)
+//                      .def("setFilterDiameter", &NeighborList::setFilterDiameter)
+//                      .def("getFilterDiameter", &NeighborList::getFilterDiameter)
                      .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)

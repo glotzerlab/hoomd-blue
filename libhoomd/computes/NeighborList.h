@@ -338,17 +338,17 @@ class NeighborList : public Compute
             }
 
         //! Enable/disable diameter filtering
-        virtual void setFilterDiameter(bool filter_diameter)
-            {
-            m_filter_diameter = filter_diameter;
-            forceUpdate();
-            }
+//         virtual void setFilterDiameter(bool filter_diameter)
+//             {
+//             m_filter_diameter = filter_diameter;
+//             forceUpdate();
+//             }
 
         //! Test if diameter filtering is set
-        virtual bool getFilterDiameter()
-            {
-            return m_filter_diameter;
-            }
+//         virtual bool getFilterDiameter()
+//             {
+//             return m_filter_diameter;
+//             }
 
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max)
@@ -358,10 +358,10 @@ class NeighborList : public Compute
 #ifdef ENABLE_MPI
             if (m_comm)
                 {
-                Scalar rmax = m_r_cut_max + m_r_buff;
+                Scalar r_list_max = m_r_cut_max + m_r_buff;
                 // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-                rmax += m_d_max - Scalar(1.0);
-                m_comm->setGhostLayerWidth(rmax);
+//                 rmax += m_d_max - Scalar(1.0);
+                m_comm->setGhostLayerWidth(r_list_max);
                 m_comm->setRBuff(m_r_buff);
                 }
 #endif
@@ -414,12 +414,12 @@ class NeighborList : public Compute
    protected:
         Index2D m_typpair_idx;      //!< Indexer for full type pair storage
         GPUArray<Scalar> m_r_cut;   //!< The potential cutoffs stored by pair type
-        GPUArray<Scalar> m_r_list;  //!< The neighborlist cutoff radius stored by pair type
+        GPUArray<Scalar> m_r_listsq;  //!< The neighborlist cutoff radius squared stored by pair type
         Scalar m_r_cut_max;         //!< The maximum cutoff radius of any pair
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
-        bool m_filter_diameter;     //!< Set to true if particles are to be filtered by diameter (slj style)
+//         bool m_filter_diameter;     //!< Set to true if particles are to be filtered by diameter (slj style)
         storageMode m_storage_mode; //!< The storage mode
 
         Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list

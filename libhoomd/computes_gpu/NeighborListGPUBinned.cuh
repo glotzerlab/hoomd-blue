@@ -84,11 +84,11 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                      const Index2D& cli,
                                      const Index2D& cadji,
                                      const BoxDim& box,
-                                     const Scalar r_maxsq,
+                                     const Scalar *d_r_listsq,
+                                     const unsigned int ntypes,
                                      const unsigned int threads_per_particle,
                                      const unsigned int block_size,
                                      bool filter_body,
-                                     bool filter_diameter,
                                      const Scalar3& ghost_width,
                                      const unsigned int compute_capability);
 #endif

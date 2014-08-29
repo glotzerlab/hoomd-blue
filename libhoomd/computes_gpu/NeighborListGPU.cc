@@ -111,9 +111,9 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
         throw runtime_error("Error computing neighbor list");
         }
 
-    if (m_filter_body || m_filter_diameter)
+    if (m_filter_body)
         {
-        m_exec_conf->msg->error() << "NeighborListGPU does not currently support body or diameter exclusions." << endl;
+        m_exec_conf->msg->error() << "NeighborListGPU does not currently support body exclusions." << endl;
         m_exec_conf->msg->error() << "Please contact the developers and notify them that you need this functionality" << endl;
 
         throw runtime_error("Error computing neighbor list");
@@ -137,8 +137,8 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut_max + m_r_buff;
     // add d_max - 1.0, if diameter filtering is not already taking care of it
-    if (!m_filter_diameter)
-        rmax += m_d_max - Scalar(1.0);
+//     if (!m_filter_diameter)
+//         rmax += m_d_max - Scalar(1.0);
     Scalar rmaxsq = rmax*rmax;
 
     if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
@@ -189,8 +189,8 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
 
     // Cutoff distance for inclusion in neighbor list
     Scalar rmax = m_r_cut_max + m_r_buff;
-    if (!m_filter_diameter)
-        rmax += m_d_max - Scalar(1.0);
+//     if (!m_filter_diameter)
+//         rmax += m_d_max - Scalar(1.0);
 
     // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
     Scalar3 lambda = L_g / m_last_L;

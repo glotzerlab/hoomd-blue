@@ -129,7 +129,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut_max + m_r_buff;
-    ArrayHandle<Scalar> h_r_list(m_r_list, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::read);
 
     if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
         (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
@@ -167,7 +167,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         unsigned int my_type = __scalar_as_int(h_pos.data[i].w);       
         Scalar3 my_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int bodyi = h_body.data[i];
-        Scalar di = h_diameter.data[i];
+//         Scalar di = h_diameter.data[i];
 
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos,ghost_width);
@@ -222,15 +222,15 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 //                     sqshift = (delta + Scalar(2.0) * rmax) * delta;
 //                     }
 
-                Scalar my_r_list = h_r_list.data[m_typpair_idx(my_type,cur_neigh_type)];
+                Scalar my_r_listsq = h_r_listsq.data[m_typpair_idx(my_type,cur_neigh_type)];
                 // account for diameter filtering if it is on
-                if (m_filter_diameter)
-                	{
-                    my_r_list += (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);   
-                    }
+//                 if (m_filter_diameter)
+//                 	{
+//                     my_r_list += (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);   
+//                     }
                 
                 Scalar dr_sq = dot(dx,dx);
-                if (dr_sq <= (my_r_list*my_r_list) && !excluded)
+                if (dr_sq <= my_r_listsq && !excluded)
                     {
                     if (m_storage_mode == full || i < (int)cur_neigh)
                         {
