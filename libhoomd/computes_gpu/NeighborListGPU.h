@@ -89,6 +89,21 @@ class NeighborListGPU : public NeighborList
             m_checkn = 1;
             m_distcheck_scheduled = false;
             m_last_schedule_tstep = 0;
+            
+            // binning for building the head list
+            // will need autotuning / microoptimization
+            m_bin_size = 4;
+            m_n_bin_levels = (unsigned int)log(Scalar(m_pdata->getMaxN()))/log(Scalar(m_bin_size));
+            unsigned int totalBins = 0;
+            for (unsigned int i=1; i <= m_n_bin_levels; ++i)
+                {
+                    totalBins += m_pdata->getMaxN()/pow(m_bin_size,i);
+                }
+            GPUArray<unsigned int> bin_list(totalBins,exec_conf);
+            m_bin_list.swap(bin_list);
+            
+            GPUFlags<unsigned int> req_size_nlist(exec_conf);
+            m_req_size_nlist.swap(req_size_nlist);
 
             // create cuda event
             cudaEventCreate(&m_event,cudaEventDisableTiming);
@@ -146,7 +161,9 @@ class NeighborListGPU : public NeighborList
 
     protected:
         GPUArray<unsigned int> m_flags;   //!< Storage for device flags on the GPU
-
+        
+        GPUFlags<unsigned int> m_req_size_nlist;    //!< CUDA flag to hold the required size of the neighborlist
+        
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
 
@@ -162,6 +179,14 @@ class NeighborListGPU : public NeighborList
 
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
+        
+        //! Build the head list to allocated memory
+        virtual void buildHeadList();
+        
+        //! Binning for building head list
+        GPUArray<unsigned int> m_bin_list;  //!< Internal bin list for computing head list
+        unsigned int m_bin_size;            //!< Sets the size of bins (tunable)
+        unsigned int m_n_bin_levels;        //!< Calculated number of bin levels
 
     private:
         boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size

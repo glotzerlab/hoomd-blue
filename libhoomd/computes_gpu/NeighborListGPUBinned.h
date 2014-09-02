@@ -103,7 +103,7 @@ class NeighborListGPUBinned : public NeighborListGPU
             m_tuner->setPeriod(period/10);
             m_tuner->setEnabled(enable);
             }
-
+        
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
 
@@ -125,7 +125,7 @@ class NeighborListGPUBinned : public NeighborListGPU
 
         boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
         unsigned int m_last_tuned_timestep; //!< Last tuning timestep
-
+        
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
 

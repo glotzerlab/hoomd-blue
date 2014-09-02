@@ -147,7 +147,8 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
                                                     unsigned int *d_n_neigh,
                                                     Scalar4 *d_last_updated_pos,
                                                     unsigned int *d_conditions,
-                                                    const Index2D nli,
+                                                    const unsigned int *d_Nmax,
+                                                    const unsigned int *d_head_list,
                                                     const Scalar4 *d_pos,
                                                     const unsigned int *d_body,
                                                     const Scalar *d_diameter,
@@ -175,6 +176,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     
     // pointer for the r_listsq data
     Scalar *s_r_listsq = (Scalar *)(&s_data[0]);
+    unsigned int *s_Nmax = (unsigned int *)(&s_data[sizeof(unsigned int)*num_typ_parameters]);
 
     // load in the per type pair r_list
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -182,6 +184,10 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
         if (cur_offset + threadIdx.x < num_typ_parameters)
             {
             s_r_listsq[cur_offset + threadIdx.x] = d_r_listsq[cur_offset + threadIdx.x];
+            }
+        if (cur_offset + threadIdx.x < ntypes)
+            {
+            s_Nmax[cur_offset + threadIdx.x] = d_Nmax[cur_offset + threadIdx.x];
             }
         }
     __syncthreads();
@@ -205,7 +211,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     Scalar4 my_postype = d_pos[my_pidx];
     Scalar3 my_pos = make_scalar3(my_postype.x, my_postype.y, my_postype.z);
 
-    unsigned int my_type = __scalar_as_int(d_pos[my_pidx].w);
+    unsigned int my_type = __scalar_as_int(my_postype.w);
     unsigned int my_body = d_body[my_pidx];
 
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
@@ -228,7 +234,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     int my_cell = ci(ib,jb,kb);
 
     // pointer into shared memory for calculation (volatile is required, since we are doing warp-centric)
-    volatile unsigned char *sh = (unsigned char *)&s_data[sizeof(Scalar)*num_typ_parameters];
+    volatile unsigned char *sh =(unsigned char *)&s_data[sizeof(Scalar)*num_typ_parameters+sizeof(unsigned int)*ntypes];
 
     // index of current neighbor
     unsigned int cur_adj = 0;
@@ -320,8 +326,8 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
         int k = warp_scan<threads_per_particle>::Scan(threadIdx.x % threads_per_particle,
             has_neighbor, &sh[cta_offs], &n);
 
-        if (has_neighbor && nneigh + k < nli.getH())
-            d_nlist[nli(my_pidx, nneigh + k)] = neighbor;
+        if (has_neighbor && nneigh + k < s_Nmax[my_type])
+            d_nlist[d_head_list[my_pidx] + nneigh + k] = neighbor;
 
         // increment total neighbor count
         nneigh += n;
@@ -330,8 +336,8 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     if (threadIdx.x % threads_per_particle == 0)
         {
         // flag if we need to grow the neighbor list
-        if (nneigh >= nli.getH())
-            atomicMax(&d_conditions[0], nneigh);
+        if (nneigh >= s_Nmax[my_type])
+            atomicMax(&d_conditions[my_type], nneigh);
 
         d_n_neigh[my_pidx] = nneigh;
         d_last_updated_pos[my_pidx] = my_postype;
@@ -365,7 +371,8 @@ inline void launcher(unsigned int *d_nlist,
               unsigned int *d_n_neigh,
               Scalar4 *d_last_updated_pos,
               unsigned int *d_conditions,
-              const Index2D nli,
+              const unsigned int *d_Nmax,
+              const unsigned int *d_head_list,
               const Scalar4 *d_pos,
               const unsigned int *d_body,
               const Scalar *d_diameter,
@@ -386,9 +393,9 @@ inline void launcher(unsigned int *d_nlist,
               bool filter_body,
               unsigned int block_size)
     {
-    // shared memory = r_listsq + stuff needed for neighborlist (computed below)
+    // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
-    unsigned int shared_size = sizeof(Scalar)*typpair_idx.getNumElements();
+    unsigned int shared_size = sizeof(Scalar)*typpair_idx.getNumElements() + sizeof(unsigned int)*ntypes;
 
     if (tpp == cur_tpp && cur_tpp != 0)
         {
@@ -413,7 +420,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,
-                                                                             nli,
+                                                                             d_Nmax,
+                                                                             d_head_list,
                                                                              d_pos,
                                                                              d_body,
                                                                              d_diameter,
@@ -451,7 +459,8 @@ inline void launcher(unsigned int *d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,
-                                                                             nli,
+                                                                             d_Nmax,
+                                                                             d_head_list,
                                                                              d_pos,
                                                                              d_body,
                                                                              d_diameter,
@@ -475,7 +484,8 @@ inline void launcher(unsigned int *d_nlist,
                      d_n_neigh,
                      d_last_updated_pos,
                      d_conditions,
-                     nli,
+                     d_Nmax,
+                     d_head_list,
                      d_pos,
                      d_body,
                      d_diameter,
@@ -505,7 +515,8 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               unsigned int *d_n_neigh,
               Scalar4 *d_last_updated_pos,
               unsigned int *d_conditions,
-              const Index2D nli,
+              const unsigned int *d_Nmax,
+              const unsigned int *d_head_list,
               const Scalar4 *d_pos,
               const unsigned int *d_body,
               const Scalar *d_diameter,
@@ -531,7 +542,8 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      Scalar4 *d_last_updated_pos,
                                      unsigned int *d_conditions,
-                                     const Index2D& nli,
+                                     const unsigned int *d_Nmax,
+                                     const unsigned int *d_head_list,
                                      const Scalar4 *d_pos,
                                      const unsigned int *d_body,
                                      const Scalar *d_diameter,
@@ -556,7 +568,8 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                    d_n_neigh,
                                    d_last_updated_pos,
                                    d_conditions,
-                                   nli,
+                                   d_Nmax,
+                                   d_head_list,
                                    d_pos,
                                    d_body,
                                    d_diameter,

@@ -103,7 +103,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     m_last_checked_tstep = 0;
     m_last_check_result = false;
     m_every = 0;
-    m_Nmax = 0;
+//     m_Nmax = 0;
     m_exclusions_set = false;
 
     // initialize box length at last update
@@ -111,8 +111,8 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
 
     // allocate conditions flags
-    GPUFlags<unsigned int> conditions(exec_conf);
-    m_conditions.swap(conditions);
+//     GPUFlags<unsigned int> conditions(exec_conf);
+//     m_conditions.swap(conditions);
     
     // allocate r_cut pair data for user inputs
     GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
@@ -125,9 +125,18 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     // allocate m_n_neigh
     GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
     m_n_neigh.swap(n_neigh);
+    
+    // allocate internal arrays to store and compute the head list
+    GPUArray<unsigned int> head_list(m_pdata->getMaxN(), exec_conf);
+    m_head_list.swap(head_list);
+    GPUArray<unsigned int> Nmax(m_pdata->getNTypes(), exec_conf);
+    m_Nmax.swap(Nmax);
+    GPUArray<unsigned int> conditions(m_pdata->getNTypes(), exec_conf);
+    m_conditions.swap(conditions);
+    m_neigh_in_head = 0;
 
     // allocate neighbor list
-    allocateNlist();
+    allocate();
 
     // allocate m_last_pos
     GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), exec_conf);
@@ -171,8 +180,8 @@ void NeighborList::reallocate()
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
 
-    m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
-    m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
+//     m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
+//     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
 
     m_n_neigh.resize(m_pdata->getMaxN());
 
@@ -214,11 +223,14 @@ void NeighborList::compute(unsigned int timestep)
         return;
 
     if (m_prof) m_prof->push("Neighbor");
-
+    
 	// take care of some updates if things have changed since construction
     if (m_force_update)
         {
         updateRList();
+        
+        // build the head list since some sort of change (like a particle sort) happened
+        buildHeadList();
         
 		// update the exclusion data if this is a forced update        
         if (m_exclusions_set)
@@ -238,7 +250,7 @@ void NeighborList::compute(unsigned int timestep)
             // if we overflowed, need to reallocate memory and reset the conditions
             if (overflowed)
                 {
-                allocateNlist();
+                allocate();
                 resetConditions();
                 }
             } while (overflowed);
@@ -289,40 +301,8 @@ double NeighborList::benchmark(unsigned int num_iters)
     return double(total_time_ns) / 1e6 / double(num_iters);
     }
 
-/*! \param r_cut New cuttoff radius to set
-    \param r_buff New buffer radius to set
-    \note Changing the cuttoff radius does NOT immeadiately update the neighborlist.
-            The new cuttoff will take effect when compute is called for the next timestep.
-*/
 void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
     {
-    m_r_cut_max = r_cut;
-    m_r_buff = r_buff;
-
-    // check for two sensless errors the user could make
-    if (m_r_cut_max < 0.0)
-        {
-        m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
-        throw runtime_error("Error changing NeighborList parameters");
-        }
-
-    if (m_r_buff < 0.0)
-        {
-        m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
-        throw runtime_error("Error changing NeighborList parameters");
-        }
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        Scalar r_list_max = m_r_cut_max + m_r_buff;
-        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-//         rmax += m_d_max - Scalar(1.0);
-        m_comm->setGhostLayerWidth(r_list_max);
-        m_comm->setRBuff(m_r_buff);
-        }
-#endif
-    forceUpdate();
     }
 
 /*! \param r_cut New cuttoff radius to set
@@ -363,8 +343,6 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
     if (m_comm)
         {
         Scalar r_list_max = m_r_cut_max + m_r_buff;
-        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-//         rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
@@ -389,8 +367,6 @@ void NeighborList::setRBuff(Scalar r_buff)
     if (m_comm)
         {
         Scalar r_list_max = m_r_cut_max + m_r_buff;
-        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-//         rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
@@ -410,9 +386,6 @@ void NeighborList::updateRList()
 	for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
 		{
 		Scalar r_list = h_r_cut.data[i] + m_r_buff;
-		 // add d_max - 1.0, if diameter filtering is not already taking care of it
-// 		if (!m_filter_diameter)
-// 			r_list += m_d_max - Scalar(1.0);
 		h_r_listsq.data[i] = r_list*r_list;
 		}
 	}
@@ -579,11 +552,6 @@ void NeighborList::countExclusions()
         m_exec_conf->msg->notice(2) << "Particles with more than " << MAX_COUNT_EXCLUDED << " exclusions: "
              << excluded_count[MAX_COUNT_EXCLUDED+1] << endl;
         }
-
-//     if (m_filter_diameter)
-//         m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : yes" << endl;
-//     else
-//         m_exec_conf->msg->notice(2) << "Neighbors excluded by diameter (slj)    : no" << endl;
 
     if (m_filter_body)
         m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: yes" << endl;
@@ -910,8 +878,6 @@ bool NeighborList::distanceCheck(unsigned int timestep)
 
     // Cutoff distance for inclusion in neighbor list
     Scalar rmax = m_r_cut_max + m_r_buff;
-//     if (!m_filter_diameter)
-//         rmax += m_d_max - Scalar(1.0);
 
     // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
     Scalar3 lambda = L_g / m_last_L;
@@ -1148,121 +1114,8 @@ unsigned int NeighborList::getSmallestRebuild()
 */
 void NeighborList::buildNlist(unsigned int timestep)
     {
-    // sanity check
-    assert(m_pdata);
-
-    // start up the profile
-    if (m_prof) m_prof->push("Build list");
-
-    // access the particle data
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-
-    // sanity check
-    assert(h_pos.data);
-    assert(h_diameter.data);
-    assert(h_body.data);
-
-    // get a local copy of the simulation box too
-    const BoxDim& box = m_pdata->getBox();
-    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
-
-    // start by creating a temporary copy of r_cut sqaured
-    Scalar rmax = m_r_cut_max + m_r_buff;
-    // add d_max - 1.0, if diameter filtering is not already taking care of it
-//     if (!m_filter_diameter)
-//         rmax += m_d_max - Scalar(1.0);
-    Scalar rmaxsq = rmax*rmax;
-
-    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
-        {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
-        }
-
-    // access the nlist data
-    ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
-
-    unsigned int conditions = 0;
-
-    // start by clearing the entire list
-    memset(h_n_neigh.data, 0, sizeof(unsigned int)*m_pdata->getN());
-
-    // now we can loop over all particles in n^2 fashion and build the list
-    for (int i = 0; i < (int)m_pdata->getN(); i++)
-        {
-        Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
-//         Scalar di = h_diameter.data[i];
-        unsigned int bodyi = h_body.data[i];
-
-        // for each other particle with i < j, including ghost particles
-        for (unsigned int j = i + 1; j < m_pdata->getN() + m_pdata->getNGhosts(); j++)
-            {
-            // calculate dr
-            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-            Scalar3 dx = pj - pi;
-
-            dx = box.minImage(dx);
-
-            bool excluded = false;
-            if (m_filter_body && bodyi != NO_BODY)
-                excluded = (bodyi == h_body.data[j]);
-
-            Scalar sqshift = Scalar(0.0);
-//             if (m_filter_diameter)
-//                 {
-//                 // compute the shift in radius to accept neighbors based on their diameters
-//                 Scalar delta = (di + h_diameter.data[j]) * Scalar(0.5) - Scalar(1.0);
-//                 // r^2 < (r_max + delta)^2
-//                 // r^2 < r_maxsq + delta^2 + 2*r_max*delta
-//                 sqshift = (delta + Scalar(2.0) * rmax) * delta;
-//                 }
-
-            // now compare rsq to rmaxsq and add to the list if it meets the criteria
-            Scalar rsq = dot(dx, dx);
-            if (rsq <= (rmaxsq + sqshift) && !excluded)
-                {
-                if (m_storage_mode == full)
-                    {
-                    unsigned int posi = h_n_neigh.data[i];
-                    if (posi < m_Nmax)
-                        h_nlist.data[m_nlist_indexer(i, posi)] = j;
-                    else
-                        conditions = max(conditions, h_n_neigh.data[i]+1);
-
-                    h_n_neigh.data[i]++;
-
-                    unsigned int posj = h_n_neigh.data[j];
-                    if (posj < m_Nmax)
-                        h_nlist.data[m_nlist_indexer(j, posj)] = i;
-                    else
-                        conditions = max(conditions, h_n_neigh.data[j]+1);
-
-                    h_n_neigh.data[j]++;
-                    }
-                else
-                    {
-                    unsigned int pos = h_n_neigh.data[i];
-
-                    if (pos < m_Nmax)
-                        h_nlist.data[m_nlist_indexer(i, pos)] = j;
-                    else
-                        conditions = max(conditions, h_n_neigh.data[i]+1);
-
-                    h_n_neigh.data[i]++;
-                    }
-                }
-            }
-        }
-
-    // write out conditions
-    m_conditions.resetFlags(conditions);
-
-    if (m_prof) m_prof->pop();
+    m_exec_conf->msg->error() << "nlist: O(N^2) neighbor lists are no longer supported." << endl;
+    throw runtime_error("Error updating neighborlist bins");
     }
 
 /*! Translates the exclusions set in \c m_n_ex_tag and \c m_ex_list_tag to indices in \c m_n_ex_idx and \c m_ex_list_idx
@@ -1309,11 +1162,12 @@ void NeighborList::updateExListIdx()
 */
 void NeighborList::filterNlist()
     {
+    cout<<"cpu filter"<<endl;
     if (m_prof)
         m_prof->push("filter");
 
     // access data
-
+    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::readwrite);
@@ -1322,6 +1176,7 @@ void NeighborList::filterNlist()
     // for each particle's neighbor list
     for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
         {
+        unsigned int myHead = h_head_list.data[idx];
         unsigned int n_neigh = h_n_neigh.data[idx];
         unsigned int n_ex = h_n_ex_idx.data[idx];
         unsigned int new_n_neigh = 0;
@@ -1329,7 +1184,7 @@ void NeighborList::filterNlist()
         // loop over the list, regenerating it as we go
         for (unsigned int cur_neigh_idx = 0; cur_neigh_idx < n_neigh; cur_neigh_idx++)
             {
-            unsigned int cur_neigh = h_nlist.data[m_nlist_indexer(idx, cur_neigh_idx)];
+            unsigned int cur_neigh = h_nlist.data[myHead + cur_neigh_idx];
 
             // test if excluded
             bool excluded = false;
@@ -1346,7 +1201,7 @@ void NeighborList::filterNlist()
             // add it back to the list if it is not excluded
             if (!excluded)
                 {
-                h_nlist.data[m_nlist_indexer(idx, new_n_neigh)] = cur_neigh;
+                h_nlist.data[myHead + new_n_neigh] = cur_neigh;
                 new_n_neigh++;
                 }
             }
@@ -1359,38 +1214,64 @@ void NeighborList::filterNlist()
         m_prof->pop();
     }
 
-void NeighborList::allocateNlist()
+void NeighborList::allocate()
     {
+    cout<<"allocating memory"<<endl;
     // round up to the nearest multiple of 8
-    m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
+    ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::readwrite);
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+        {
+        h_Nmax.data[i] = (h_Nmax.data[i] > 8) ? (h_Nmax.data[i] + 7) & ~7 : 8;
+        }
 
-    m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating " << m_pdata->getMaxN() << " x " << m_Nmax+1 << endl;
-
-    // re-allocate, overwriting old neighbor list
-    GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
-    m_nlist.swap(nlist);
-
-    // update the indexer
-    m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
+    m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating neighbor list" << endl;
+    
+    // need to be careful about all of this reallocation if memory is already large... may need changing
+    
+    // allocate memory for the head list
+    cout<<"starting head list"<<endl;
+    GPUArray<unsigned int> head_list(m_pdata->getMaxN(), exec_conf);
+    m_head_list.swap(head_list);
     }
 
-unsigned int NeighborList::readConditions()
+//! Slow serial build for the head list
+void NeighborList::buildHeadList()
     {
-    return m_conditions.readFlags();
+    cout<<"cpu code"<<endl;
+    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
+    
+    unsigned int headAddress = 0;
+    for (unsigned int i=0; i < m_pdata->getN(); ++i)
+        {
+        h_head_list.data[i] = headAddress;
+        
+        // move the head address along
+        unsigned int myType = __scalar_as_int(h_pos.data[i].w);
+        headAddress += h_Nmax.data[myType];
+        }
+    m_neigh_in_head = headAddress;
+    
+    // re-allocate the neighbor list
+    // needs logical check
+    GPUArray<unsigned int> nlist(m_neigh_in_head, exec_conf);
+    m_nlist.swap(nlist);
     }
 
 bool NeighborList::checkConditions()
     {
     bool result = false;
 
-    unsigned int conditions;
-    conditions = readConditions();
-
-    // up m_Nmax to the overflow value, reallocate memory and set the overflow condition
-    if (conditions > m_Nmax)
+    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::readwrite);
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
-        m_Nmax = conditions;
-        result = true;
+        if (h_conditions.data[i] > h_Nmax.data[i])
+            {
+            h_Nmax.data[i] = h_conditions.data[i];
+            result = true;
+            }
         }
 
     return result;
@@ -1398,7 +1279,11 @@ bool NeighborList::checkConditions()
 
 void NeighborList::resetConditions()
     {
-    m_conditions.resetFlags(0);
+    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+        {
+        h_conditions.data[i] = 0;
+        }
     }
 
 void NeighborList::growExclusionList()
@@ -1432,8 +1317,6 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
         m_comm = comm;
 
         Scalar r_list_max = m_r_cut_max + m_r_buff;
-        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-//         rmax += m_d_max - Scalar(1.0);
         m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
@@ -1479,8 +1362,6 @@ void export_NeighborList()
                      .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
                      .def("setFilterBody", &NeighborList::setFilterBody)
                      .def("getFilterBody", &NeighborList::getFilterBody)
-//                      .def("setFilterDiameter", &NeighborList::setFilterDiameter)
-//                      .def("getFilterDiameter", &NeighborList::getFilterDiameter)
                      .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)

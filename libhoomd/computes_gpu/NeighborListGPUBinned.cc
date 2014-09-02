@@ -144,30 +144,33 @@ void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
     // need to update the cell list settings appropriately
     m_cl->setNominalWidth(m_r_cut_max + m_r_buff + m_d_max - Scalar(1.0));
     }
-    
-// can't have the user shutting off our types, so just use the regular one
-// void NeighborListGPUBinned::setFilterBody(bool filter_body)
-//     {
-//     NeighborListGPU::setFilterBody(filter_body);
-//  // need to update the cell list settings appropriately
-//     if (m_filter_body || m_filter_diameter)
-//         m_cl->setComputeTDB(true);
-//     else
-//         m_cl->setComputeTDB(false);
-//     }
-
-// void NeighborListGPUBinned::setFilterDiameter(bool filter_diameter)
-//     {
-//     NeighborListGPU::setFilterDiameter(filter_diameter);
-//	// need to update the cell list settings appropriately
-//     if (m_filter_body || m_filter_diameter)
-//         m_cl->setComputeTDB(true);
-//     else
-//         m_cl->setComputeTDB(false);
-//     }
 
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
+    
+//     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+//     for (unsigned int i=0; i < m_pdata->getN(); ++i)
+//         {
+//         if(i % 4 == 0)
+//             cout<<endl;
+//         cout<<"\t"<<h_head_list.data[i];
+//         }
+//     cout<<endl<<endl;
+    
+//     ArrayHandle<unsigned int> h_bin_list(m_bin_list, access_location::host, access_mode::read);
+//     unsigned int n_bins = ceil(((double)m_pdata->getN())/((double)m_bin_size));
+//     unsigned int offset = 0;
+//     for (unsigned int j=0; j < m_n_bin_levels; ++j)
+//         {
+//         for (unsigned int i=0; i < n_bins; ++i)
+//             {
+//             cout<<i<<"\t"<<h_bin_list.data[offset+i]<<endl;
+//             }
+//         cout<<endl;
+//         offset += n_bins;
+//         n_bins = ceil(((double)n_bins)/((double)m_bin_size));
+//         }
+    
     if (m_storage_mode != full)
         {
         m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;
@@ -193,6 +196,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> d_cell_tdb(m_cl->getTDBArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(), access_location::device, access_mode::read);
 
+    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
@@ -200,10 +206,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut_max + m_r_buff;
     ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
-    // add d_max - 1.0, if diameter filtering is not already taking care of it
-//     if (!m_filter_diameter)
-//         rmax += m_d_max - Scalar(1.0);
-//     Scalar rmaxsq = rmax*rmax;
 
     if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
         (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
@@ -228,8 +230,9 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         gpu_compute_nlist_binned_shared(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,
-                                 m_conditions.getDeviceFlags(),
-                                 m_nlist_indexer,
+                                 d_conditions.data,
+                                 d_Nmax.data,
+                                 d_head_list.data,
                                  d_pos.data,
                                  d_body.data,
                                  d_diameter.data,

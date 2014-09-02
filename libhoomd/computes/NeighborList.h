@@ -169,9 +169,9 @@ class NeighborList : public Compute
 
         //! \name Set parameters
         // @{
-
-        //! Change the cuttoff radius
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        
+        //! Change the cutoff radius by pair
+        virtual void setRCut(Scalar r_buff, Scalar r_cut);
         
         //! Change the cutoff radius by pair
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
@@ -242,6 +242,12 @@ class NeighborList : public Compute
         const GPUArray<unsigned int>& getNListArray()
             {
             return m_nlist;
+            }
+            
+        //! Get the head list
+        const GPUArray<unsigned int>& getHeadList()
+            {
+            return m_head_list;
             }
 
         //! Get the number of exclusions array
@@ -337,19 +343,6 @@ class NeighborList : public Compute
             return m_filter_body;
             }
 
-        //! Enable/disable diameter filtering
-//         virtual void setFilterDiameter(bool filter_diameter)
-//             {
-//             m_filter_diameter = filter_diameter;
-//             forceUpdate();
-//             }
-
-        //! Test if diameter filtering is set
-//         virtual bool getFilterDiameter()
-//             {
-//             return m_filter_diameter;
-//             }
-
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max)
             {
@@ -419,7 +412,6 @@ class NeighborList : public Compute
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
-//         bool m_filter_diameter;     //!< Set to true if particles are to be filtered by diameter (slj style)
         storageMode m_storage_mode; //!< The storage mode
 
         Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list
@@ -428,8 +420,11 @@ class NeighborList : public Compute
         GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions
         Scalar3 m_last_L;                    //!< Box lengths at last update
         Scalar3 m_last_L_local;              //!< Local Box lengths at last update
-        unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist
-        GPUFlags<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
+
+        GPUArray<unsigned int> m_head_list;     //!< Head list for particles in the neighborlist
+        unsigned int m_neigh_in_head;           //!< Total number of neighbors accounted in head list
+        GPUArray<unsigned int> m_Nmax;          //!< Holds the maximum number of neighbors for each particle
+        GPUArray<unsigned int> m_conditions;    //!< Holds the max number of computed particles for resizing
 
         GPUArray<unsigned int> m_ex_list_tag;  //!< List of excluded particles referenced by tag
         GPUArray<unsigned int> m_ex_list_idx;  //!< List of excluded particles referenced by index
@@ -466,6 +461,12 @@ class NeighborList : public Compute
 
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
+        
+        //! Allocate the nlist array
+        void allocate();
+        
+        //! Build the head list to allocated memory
+        virtual void buildHeadList();
 
         #ifdef ENABLE_MPI
         CommFlags getRequestedCommFlags(unsigned int timestep)
@@ -499,14 +500,8 @@ class NeighborList : public Compute
         //! Reallocate internal data structures
         void reallocate();
 
-        //! Allocate the nlist array
-        void allocateNlist();
-
         //! Check the status of the conditions
         bool checkConditions();
-
-        //! Read back the conditions
-        virtual unsigned int readConditions();
 
         //! Resets the condition status
         virtual void resetConditions();

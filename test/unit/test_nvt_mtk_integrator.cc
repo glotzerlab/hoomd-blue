@@ -140,7 +140,7 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
     Scalar r_cut = Scalar(3.0);
     Scalar r_buff = Scalar(0.8);
     boost::shared_ptr<NeighborList> nlist_1(new NeighborListBinned(sysdef_1, r_cut, r_buff));
-
+    nlist_1->setRCutPair(0,0,r_cut);
     nlist_1->setStorageMode(NeighborList::full);
     boost::shared_ptr<PotentialPairLJ> fc_1 = boost::shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef_1, nlist_1));
 
@@ -241,7 +241,9 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     boost::shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
 
     boost::shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
+    nlist1->setRCutPair(0,0,3.0);
     boost::shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
+    nlist2->setRCutPair(0,0,3.0);
 
     boost::shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
     fc1->setRcut(0, 0, Scalar(3.0));

@@ -144,11 +144,13 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> h_cell_xyzf(m_cl->getXYZFArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_cell_adj(m_cl->getCellAdjArray(), access_location::host, access_mode::read);
 
+    // access the neighbor list data
+    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
-
-    unsigned int conditions = 0;
-
+    
     // access indexers
     Index3D ci = m_cl->getCellIndexer();
     Index2D cli = m_cl->getCellListIndexer();
@@ -167,7 +169,9 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         unsigned int my_type = __scalar_as_int(h_pos.data[i].w);       
         Scalar3 my_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int bodyi = h_body.data[i];
-//         Scalar di = h_diameter.data[i];
+        
+        unsigned int myNmax = h_Nmax.data[my_type];
+        unsigned int myHead = h_head_list.data[i];
 
         // find the bin each particle belongs in
         Scalar3 f = box.makeFraction(my_pos,ghost_width);
@@ -212,33 +216,17 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 if (m_filter_body && bodyi != NO_BODY)
                     excluded = excluded | (bodyi == h_body.data[cur_neigh]);
 
-//                 Scalar sqshift = Scalar(0.0);
-//                 if (m_filter_diameter)
-//                     {
-//                     // compute the shift in radius to accept neighbors based on their diameters
-//                     Scalar delta = (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
-//                     // r^2 < (r_max + delta)^2
-//                     // r^2 < r_maxsq + delta^2 + 2*r_max*delta
-//                     sqshift = (delta + Scalar(2.0) * rmax) * delta;
-//                     }
-
                 Scalar my_r_listsq = h_r_listsq.data[m_typpair_idx(my_type,cur_neigh_type)];
-                // account for diameter filtering if it is on
-//                 if (m_filter_diameter)
-//                 	{
-//                     my_r_list += (di + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);   
-//                     }
-                
                 Scalar dr_sq = dot(dx,dx);
                 if (dr_sq <= my_r_listsq && !excluded)
                     {
                     if (m_storage_mode == full || i < (int)cur_neigh)
                         {
                         // local neighbor
-                        if (cur_n_neigh < m_nlist_indexer.getH())
-                            h_nlist.data[m_nlist_indexer(i, cur_n_neigh)] = cur_neigh;
+                        if (cur_n_neigh < myNmax)
+                            h_nlist.data[myHead + cur_n_neigh] = cur_neigh;
                         else
-                            conditions = max(conditions, cur_n_neigh+1);
+                            h_conditions.data[my_type] = max(h_conditions.data[my_type], cur_n_neigh+1);
 
                         cur_n_neigh++;
                         }
@@ -250,7 +238,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         }
 
     // write out conditions
-    m_conditions.resetFlags(conditions);
+//     m_conditions.resetFlags(conditions);
 
     if (m_prof)
         m_prof->pop(exec_conf);
