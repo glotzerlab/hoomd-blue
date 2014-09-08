@@ -73,7 +73,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
 
-//     m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
+    m_cl->setNominalWidth(2.0);
     m_cl->setRadius(1);
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
@@ -134,7 +134,7 @@ void NeighborListGPUBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Sc
     {
     NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
     
-    m_cl->setNominalWidth(m_r_cut_max + m_r_buff + m_d_max - Scalar(1.0));
+    m_cl->setNominalWidth(m_r_cut_max + m_r_buff);
     }
 
 void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
@@ -147,30 +147,6 @@ void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
 
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     {
-    
-//     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
-//     for (unsigned int i=0; i < m_pdata->getN(); ++i)
-//         {
-//         if(i % 4 == 0)
-//             cout<<endl;
-//         cout<<"\t"<<h_head_list.data[i];
-//         }
-//     cout<<endl<<endl;
-    
-//     ArrayHandle<unsigned int> h_bin_list(m_bin_list, access_location::host, access_mode::read);
-//     unsigned int n_bins = ceil(((double)m_pdata->getN())/((double)m_bin_size));
-//     unsigned int offset = 0;
-//     for (unsigned int j=0; j < m_n_bin_levels; ++j)
-//         {
-//         for (unsigned int i=0; i < n_bins; ++i)
-//             {
-//             cout<<i<<"\t"<<h_bin_list.data[offset+i]<<endl;
-//             }
-//         cout<<endl;
-//         offset += n_bins;
-//         n_bins = ceil(((double)n_bins)/((double)m_bin_size));
-//         }
-    
     if (m_storage_mode != full)
         {
         m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << endl;

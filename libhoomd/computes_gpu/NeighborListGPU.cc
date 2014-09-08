@@ -204,7 +204,6 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
 */
 void NeighborListGPU::filterNlist()
     {
-    cout<<"filter gpu"<<endl;
     if (m_prof)
         m_prof->push(exec_conf, "filter");
 
@@ -262,67 +261,67 @@ void NeighborListGPU::updateExListIdx()
         m_prof->pop(m_exec_conf);
     }
 
-//! Slow serial build for the head list
+//! GPU implementation of buildHeadList
 void NeighborListGPU::buildHeadList()
     {
-    cout<<"buildHeadList gpu"<<endl;
-    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
-    cout<<"position"<<endl;
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    cout<<"nmax"<<endl;
-    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
-    
-    // compute the number of bins needed for the number of particles
-    m_n_bin_levels = (unsigned int)log(Scalar(m_pdata->getMaxN()))/log(Scalar(m_bin_size));
-    unsigned int totalBins = 0;
-    unsigned int cur_bin_size = 1;
-    for (unsigned int i=1; i <= m_n_bin_levels; ++i)
+    if (m_prof) m_prof->push(exec_conf, "head-list");
+    // Must have at least one level to use binning, so check to make sure that:
+    // log(y/x) > 1 --> y/x > e -> y > x*e
+    // which with integer flooring implies the below condition
+    if (m_pdata->getMaxN() > (unsigned int)ceil(m_bin_size*2.718))
         {
-        cur_bin_size *= m_bin_size;
-        totalBins += (m_pdata->getMaxN() % cur_bin_size > 0) + m_pdata->getMaxN()/cur_bin_size;
+        ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
+    
+        // compute the number of bins needed for the number of particles
+        m_n_bin_levels = (unsigned int)ceil(log(Scalar(m_pdata->getMaxN()))/log(Scalar(m_bin_size)));
+        unsigned int totalBins = 0;
+        unsigned int cur_bin_size = 1;
+        for (unsigned int i=0; i < m_n_bin_levels; ++i)
+            {
+            cur_bin_size *= m_bin_size;
+            totalBins += (m_pdata->getMaxN() % cur_bin_size > 0) + m_pdata->getMaxN()/cur_bin_size;
+            }
+        // reallocate the bin array if necessary
+        if (totalBins > m_bin_list.getPitch())
+            {
+            GPUArray<unsigned int> bin_list(totalBins,exec_conf);
+            m_bin_list.swap(bin_list);
+            }
+        ArrayHandle<unsigned int> d_bin_list(m_bin_list, access_location::device, access_mode::overwrite);
+
+        // kernel driver call goes here that will:
+        // 1. Call a kernel with 1 thread per m_bin_size particles to set the first values into the head list
+        //    and then set the first entries in d_bin_list with the size of each m_bin_size particles
+        // 2. With a for loop, call a kernel that loops over the blocks and computes offsets
+        //    into d_bin_list at the next level
+        // 3. Call a kernel with 1 thread per particle that sets the offset per particle
+        m_req_size_nlist.resetFlags(0.0);
+    
+        gpu_nlist_build_head_list(d_head_list.data,
+                                  m_req_size_nlist.getDeviceFlags(),
+                                  d_bin_list.data,
+                                  d_Nmax.data,
+                                  d_pos.data,
+                                  m_pdata->getN(),
+                                  m_pdata->getNTypes(),
+                                  m_n_bin_levels,
+                                  m_bin_size,
+                                  32);
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        unsigned int req_size_nlist = m_req_size_nlist.readFlags();
+        if (req_size_nlist > m_nlist.getPitch())
+            {
+            GPUArray<unsigned int> nlist(req_size_nlist, exec_conf);
+            m_nlist.swap(nlist);
+            }
         }
-    cout<<m_n_bin_levels<<endl;
-    cout<<totalBins<<endl;
-    // reallocate the bin array if necessary
-    if (totalBins > m_bin_list.getPitch())
+    else // fall back on cpu loop for small particle numbers
         {
-        GPUArray<unsigned int> bin_list(totalBins,exec_conf);
-        m_bin_list.swap(bin_list);
+        NeighborList::buildHeadList();
         }
-    ArrayHandle<unsigned int> d_bin_list(m_bin_list, access_location::device, access_mode::overwrite);
-    
-    // kernel driver call goes here that will:
-    // 1. Call a kernel with 1 thread per m_bin_size particles to set the first values into the head list
-    //    and then set the first entries in d_bin_list with the size of each m_bin_size particles
-    // 2. With a for loop, call a kernel that loops over the blocks and computes offsets
-    //    into d_bin_list at the next level
-    // 3. Call a kernel with 1 thread per particle that sets the offset per particle
-    m_req_size_nlist.resetFlags(0.0);
-    
-    gpu_nlist_build_head_list(d_head_list.data,
-                              m_req_size_nlist.getDeviceFlags(),
-                              d_bin_list.data,
-                              d_Nmax.data,
-                              d_pos.data,
-                              m_pdata->getN(),
-                              m_pdata->getNTypes(),
-                              m_n_bin_levels,
-                              m_bin_size,
-                              32);
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-    cout<<"Built head list"<<endl;
-    
-    unsigned int req_size_nlist = m_req_size_nlist.readFlags();
-    cout<<req_size_nlist<<endl;
-    
-    if (req_size_nlist > m_neigh_in_head)
-        {
-        m_neigh_in_head = req_size_nlist;
-        // re-allocate the neighbor list
-        // needs logical check
-        GPUArray<unsigned int> nlist(m_neigh_in_head, exec_conf);
-        m_nlist.swap(nlist);
-        }
+    if (m_prof) m_prof->pop(exec_conf);
     }
 
 void export_NeighborListGPU()

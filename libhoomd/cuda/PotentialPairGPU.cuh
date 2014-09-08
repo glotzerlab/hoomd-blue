@@ -103,7 +103,7 @@ struct pair_args_t
               const BoxDim& _box,
               const unsigned int *_d_n_neigh,
               const unsigned int *_d_nlist,
-              const Index2D& _nli,
+              const unsigned int *_d_head_list,
               const Scalar *_d_rcutsq,
               const Scalar *_d_ronsq,
               const unsigned int _ntypes,
@@ -123,7 +123,7 @@ struct pair_args_t
                   box(_box),
                   d_n_neigh(_d_n_neigh),
                   d_nlist(_d_nlist),
-                  nli(_nli),
+                  d_head_list(_d_head_list),
                   d_rcutsq(_d_rcutsq),
                   d_ronsq(_d_ronsq),
                   ntypes(_ntypes),
@@ -146,7 +146,7 @@ struct pair_args_t
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
-    const Index2D& nli;             //!< Indexer for accessing d_nlist
+    const unsigned int *d_head_list;//!< Head list indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
     const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
     const unsigned int ntypes;      //!< Number of particle types in the simulation
@@ -214,7 +214,7 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                                                const BoxDim box,
                                                const unsigned int *d_n_neigh,
                                                const unsigned int *d_nlist,
-                                               const Index2D nli,
+                                               const unsigned int *d_head_list,
                                                const typename evaluator::param_type *d_params,
                                                const Scalar *d_rcutsq,
                                                const Scalar *d_ronsq,
@@ -288,27 +288,18 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     Scalar virialyz = Scalar(0.0);
     Scalar virialzz = Scalar(0.0);
 
+    unsigned int my_head = d_head_list[idx];
     unsigned int cur_j = 0;
     unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-        d_nlist[nli(idx, threadIdx.x%tpp)] : 0;
+        d_nlist[my_head + threadIdx.x%tpp] : 0;
     // loop over neighbors
-    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
-    // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
-    // inside the loop
-    #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = threadIdx.x%tpp; neigh_idx < nli.getH(); neigh_idx+=tpp)
-    #else
     for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
-    #endif
         {
-        #if (__CUDA_ARCH__ < 200)
-        if (neigh_idx < n_neigh)
-        #endif
             {
             // read the current neighbor index (MEM TRANSFER: 4 bytes)
             cur_j = next_j;
             if (neigh_idx+tpp < n_neigh)
-                next_j = d_nlist[nli(idx, neigh_idx+tpp)];
+                next_j = d_nlist[my_head + neigh_idx+tpp];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
             Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
@@ -542,7 +533,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                   <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
+                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
                   tpp);
                 break;
                 }
@@ -568,7 +559,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                   <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
+                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
                   tpp);
                 break;
                 }
@@ -594,7 +585,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                   <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
+                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
                   tpp);
                 break;
                 }
@@ -628,7 +619,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                   <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
+                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
                   tpp);
                 break;
                 }
@@ -654,7 +645,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                   <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
+                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
                   tpp);
                 break;
                 }
@@ -680,7 +671,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                   <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
                   pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
                   pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.nli, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
+                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
                   tpp);
                 break;
                 }

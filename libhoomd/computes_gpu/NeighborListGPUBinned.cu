@@ -213,7 +213,8 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
 
     unsigned int my_type = __scalar_as_int(my_postype.w);
     unsigned int my_body = d_body[my_pidx];
-
+    unsigned int my_head = d_head_list[my_pidx];
+    
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
 
     // find the bin each particle belongs in
@@ -326,8 +327,8 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
         int k = warp_scan<threads_per_particle>::Scan(threadIdx.x % threads_per_particle,
             has_neighbor, &sh[cta_offs], &n);
 
-        if (has_neighbor && nneigh + k < s_Nmax[my_type])
-            d_nlist[d_head_list[my_pidx] + nneigh + k] = neighbor;
+        if (has_neighbor && (nneigh + k) < s_Nmax[my_type])
+            d_nlist[my_head + nneigh + k] = neighbor;
 
         // increment total neighbor count
         nneigh += n;

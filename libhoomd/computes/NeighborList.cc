@@ -98,6 +98,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
         throw runtime_error("Error initializing NeighborList");
         }
 
+    // there are no half storage modes now
+    setStorageMode(full);
+
     // initialize values
     m_last_updated_tstep = 0;
     m_last_checked_tstep = 0;
@@ -236,7 +239,7 @@ void NeighborList::compute(unsigned int timestep)
         if (m_exclusions_set)
             updateExListIdx();
         }
-
+            
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
@@ -251,6 +254,7 @@ void NeighborList::compute(unsigned int timestep)
             if (overflowed)
                 {
                 allocate();
+                buildHeadList();
                 resetConditions();
                 }
             } while (overflowed);
@@ -261,7 +265,20 @@ void NeighborList::compute(unsigned int timestep)
         setLastUpdatedPos();
         m_has_been_updated_once = true;
         }
-
+//     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::host, access_mode::read);
+//     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::host, access_mode::read);
+//     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::host, access_mode::read);
+// 
+//     for (unsigned int i=0; i < m_pdata->getN(); ++i)
+//         {
+//         cout<<i<<"|"<<d_head_list.data[i]<<"|";
+//         for (unsigned int j=0; j < d_n_neigh.data[i]; ++j)
+//             {
+//             cout<<"\t"<<d_nlist.data[d_head_list.data[i] + j];
+//             }
+//         cout<<endl;
+//     }
+//     cout<<endl<<endl;
     if (m_prof) m_prof->pop();
     }
 
@@ -331,7 +348,7 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
     h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
     
     // update the maximum cutoff of all those set so far
-    Scalar r_cut_max(0.0);
+    Scalar r_cut_max = Scalar(0.0);
     for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
         {
         if (h_r_cut.data[i] > r_cut_max)
@@ -381,7 +398,7 @@ void NeighborList::updateRList()
 	ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
 	
 	// now we need to read and write on the r_list
-	ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::overwrite);
 	
 	for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
 		{
@@ -1162,7 +1179,6 @@ void NeighborList::updateExListIdx()
 */
 void NeighborList::filterNlist()
     {
-    cout<<"cpu filter"<<endl;
     if (m_prof)
         m_prof->push("filter");
 
@@ -1216,7 +1232,6 @@ void NeighborList::filterNlist()
 
 void NeighborList::allocate()
     {
-    cout<<"allocating memory"<<endl;
     // round up to the nearest multiple of 8
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::readwrite);
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
@@ -1229,15 +1244,15 @@ void NeighborList::allocate()
     // need to be careful about all of this reallocation if memory is already large... may need changing
     
     // allocate memory for the head list
-    cout<<"starting head list"<<endl;
     GPUArray<unsigned int> head_list(m_pdata->getMaxN(), exec_conf);
     m_head_list.swap(head_list);
     }
 
 //! Slow serial build for the head list
 void NeighborList::buildHeadList()
-    {
-    cout<<"cpu code"<<endl;
+    {   
+    if (m_prof) m_prof->push("head-list");
+    
     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
@@ -1246,17 +1261,20 @@ void NeighborList::buildHeadList()
     for (unsigned int i=0; i < m_pdata->getN(); ++i)
         {
         h_head_list.data[i] = headAddress;
-        
+
         // move the head address along
         unsigned int myType = __scalar_as_int(h_pos.data[i].w);
         headAddress += h_Nmax.data[myType];
         }
-    m_neigh_in_head = headAddress;
-    
+
     // re-allocate the neighbor list
     // needs logical check
-    GPUArray<unsigned int> nlist(m_neigh_in_head, exec_conf);
-    m_nlist.swap(nlist);
+    if (headAddress > m_nlist.getPitch())
+        {
+        GPUArray<unsigned int> nlist(headAddress, exec_conf);
+        m_nlist.swap(nlist);
+        }
+    if (m_prof) m_prof->pop();
     }
 
 bool NeighborList::checkConditions()

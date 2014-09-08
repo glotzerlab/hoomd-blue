@@ -532,7 +532,7 @@ cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
         old_n_bins = n_bins;
         n_bins = (old_n_bins % bin_size > 0) + old_n_bins/bin_size;
         n_blocks = n_bins/block_size + 1;
-        
+    
         if (i < n_bin_levels)
             {
             gpu_nlist_build_head_list_kernel_2<<<n_blocks, block_size>>>(d_bin_list,
@@ -551,7 +551,7 @@ cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
                                                                         d_req_size_nlist,
                                                                         bin_size);
             }
-        
+    
         read_bin_start = write_bin_start;
         write_bin_start += n_bins;
         }
