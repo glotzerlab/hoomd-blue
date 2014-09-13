@@ -666,9 +666,8 @@ template<class T> void GPUArray<T>::allocate()
     assert(h_data == NULL);
 
     // allocate host memory
-    // allocate on a page size boundary to allow MPI RMDA
     // at minimum, alignment needs to be 32 bytes for AVX
-    int retval = posix_memalign((void**)&h_data, getpagesize(), m_num_elements*sizeof(T));
+    int retval = posix_memalign((void**)&h_data, 32, m_num_elements*sizeof(T));
     if (retval != 0)
         {
         if (m_exec_conf)
@@ -1007,9 +1006,8 @@ template<class T> T* GPUArray<T>::resizeHostArray(unsigned int num_elements)
     T *h_tmp = NULL;
 
     // allocate host memory
-    // allocate on a page size boundary to allow MPI RMDA
     // at minimum, alignment needs to be 32 bytes for AVX
-    int retval = posix_memalign((void**)&h_tmp, getpagesize(), num_elements*sizeof(T));
+    int retval = posix_memalign((void**)&h_tmp, 32, num_elements*sizeof(T));
     if (retval != 0)
         {
         if (m_exec_conf)
@@ -1061,10 +1059,9 @@ template<class T> T* GPUArray<T>::resize2DHostArray(unsigned int pitch, unsigned
     T *h_tmp = NULL;
 
     // allocate host memory
-    // allocate on a page size boundary to allow MPI RMDA
     // at minimum, alignment needs to be 32 bytes for AVX
     unsigned int size = new_pitch*new_height*sizeof(T);
-    int retval = posix_memalign((void**)&h_tmp, getpagesize(), size);
+    int retval = posix_memalign((void**)&h_tmp, 32, size);
     if (retval != 0)
         {
         if (m_exec_conf)

@@ -80,7 +80,7 @@ class CachedAllocator
          *  \param cache_reltol Relative tolerance for cache hits
          */
         CachedAllocator(const ExecutionConfiguration *exec_conf,
-            unsigned int max_cached_bytes=100*1024*1024, float cache_reltol = 0.1f)
+            unsigned int max_cached_bytes=100u*1024u*1024u, float cache_reltol = 0.1f)
             : m_exec_conf(exec_conf),
               m_num_bytes_tot(0),
               m_max_cached_bytes(max_cached_bytes),

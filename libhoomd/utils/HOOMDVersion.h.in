@@ -53,7 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Set to the binary dir
 #define HOOMD_BINARY_DIR "${HOOMD_BINARY_DIR}"
 // Set the installation directory as a hint for locating libraries
-#define HOOMD_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}"
+#define HOOMD_INSTALL_PREFIX "${HOOMD_INSTALL_PREFIX}"
 // Current git refspec checked out
 #define HOOMD_GIT_REFSPEC "${HOOMD_GIT_REFSPEC}"
 // Current git hash
