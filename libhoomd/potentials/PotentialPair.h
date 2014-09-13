@@ -598,8 +598,8 @@ void PotentialPair< evaluator >::computeForcesAndEngergyOfParticlePair( const un
         qi = h_charge.data[i];
 
     // initialize current particle force, potential energy, and virial to 0
-    Scalar3 fi = make_scalar3(0, 0, 0);
-    Scalar pei = 0.0;
+//    Scalar3 fi = make_scalar3(0, 0, 0);
+//    Scalar pei = 0.0;
     unsigned int j = h_rtags.data[tag2];
     assert(j < m_pdata->getN() + m_pdata->getNGhosts());
 
