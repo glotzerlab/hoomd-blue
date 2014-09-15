@@ -250,6 +250,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
                          d_head_list.data,
                          d_rcutsq.data,
                          d_ronsq.data,
+                         this->m_nlist->getNListArray().getPitch(),
                          this->m_pdata->getNTypes(),
                          block_size,
                          this->m_shift_mode,

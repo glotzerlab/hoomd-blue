@@ -106,6 +106,7 @@ struct pair_args_t
               const unsigned int *_d_head_list,
               const Scalar *_d_rcutsq,
               const Scalar *_d_ronsq,
+              const unsigned int _size_neigh_list,
               const unsigned int _ntypes,
               const unsigned int _block_size,
               const unsigned int _shift_mode,
@@ -126,6 +127,7 @@ struct pair_args_t
                   d_head_list(_d_head_list),
                   d_rcutsq(_d_rcutsq),
                   d_ronsq(_d_ronsq),
+                  size_neigh_list(_size_neigh_list),
                   ntypes(_ntypes),
                   block_size(_block_size),
                   shift_mode(_shift_mode),
@@ -149,6 +151,7 @@ struct pair_args_t
     const unsigned int *d_head_list;//!< Head list indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
     const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
+    const unsigned int size_neigh_list; //!< Size of the neighbor list in memory for texture binding
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int shift_mode;  //!< The potential energy shift mode
@@ -166,6 +169,9 @@ scalar_tex_t pdata_diam_tex;
 
 //! Texture for reading particle charges
 scalar_tex_t pdata_charge_tex;
+
+//! Texture for reading neighbor list
+static texture<unsigned int> pdata_nlist_tex;
 
 //! Kernel for calculating pair forces (shared memory version)
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -478,6 +484,10 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
+    
+    pdata_nlist_tex.normalized = false;
+    pdata_nlist_tex.filterMode = cudaFilterModePoint;
+    cudaBindTexture(0, pdata_nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_neigh_list);
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
