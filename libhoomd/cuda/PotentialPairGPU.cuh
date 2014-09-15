@@ -170,9 +170,6 @@ scalar_tex_t pdata_diam_tex;
 //! Texture for reading particle charges
 scalar_tex_t pdata_charge_tex;
 
-//! Texture for reading head list
-// texture<unsigned int, 1, cudaReadModeElementType> pdata_head_list_tex;
-
 //! Texture for reading neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> pdata_nlist_tex;
 
@@ -297,11 +294,6 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     Scalar virialyz = Scalar(0.0);
     Scalar virialzz = Scalar(0.0);
 
-//     #if __CUDA_ARCH__ >= 350
-//     unsigned int my_head = __ldg(d_head_list + idx);
-//     #else
-//     unsigned int my_head = tex1Dfetch(pdata_head_list_tex, idx);
-//     #endif
     unsigned int my_head = d_head_list[idx];
     unsigned int cur_j = 0;
     
@@ -509,11 +501,6 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     pdata_charge_tex.normalized = false;
     pdata_charge_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
-    
-    // bind the head list texture
-//     pdata_head_list_tex.normalized = false;
-//     pdata_head_list_tex.filterMode = cudaFilterModePoint;
-//     cudaBindTexture(0, pdata_head_list_tex, pair_args.d_head_list, sizeof(unsigned int) * pair_args.n_max);
     
     // bind the neighborlist texture
     pdata_nlist_tex.normalized = false;
