@@ -1237,6 +1237,9 @@ void NeighborList::allocate()
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
         h_Nmax.data[i] = (h_Nmax.data[i] > 8) ? (h_Nmax.data[i] + 7) & ~7 : 8;
+        
+//      switching to multiples of 32 gives a 2% performance boost in LJ benchmarking, but why? omit for now
+//         h_Nmax.data[i] = (h_Nmax.data[i] > 32) ? (h_Nmax.data[i] + 31) & ~31 : 32;
         }
 
     m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating neighbor list" << endl;
