@@ -357,6 +357,8 @@ void NeighborListTree::traverseTree()
             Scalar r_cutsq_i = r_cut_i*r_cut_i;
             AABBTree *cur_aabb_tree = &h_aabb_trees.data[cur_pair_type];
             
+//             cout<<cur_aabb_tree->getNumNodes()<<endl;
+            
 //             unsigned int cur_image = 0;
             for (unsigned int cur_image = 0; cur_image < n_images; ++cur_image)
                 {
@@ -403,6 +405,11 @@ void NeighborListTree::traverseTree()
                                     }
                                 }
                             }
+                        }
+                    else
+                        {
+                        // skip ahead
+                        cur_node_idx += cur_aabb_tree->getNodeSkip(cur_node_idx);
                         }
                     } // end stackless search
                 } // end loop over images
