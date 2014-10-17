@@ -46,12 +46,12 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include <hoomd/HOOMDMath.h>
-#include <hoomd/VectorMath.h>
 #include <vector>
 #include <stack>
 #include <iostream>
 
+#include "HOOMDMath.h"
+#include "VectorMath.h"
 #include "AABB.h"
 
 #ifndef __AABB_TREE_H__

@@ -99,7 +99,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
         }
 
     // there are no half storage modes now
-    setStorageMode(full);
+//     setStorageMode(full);
+    // need to force full storage mode in the individual class, since you could still use half storage in the binned
+    // classes
 
     // initialize values
     m_last_updated_tstep = 0;
