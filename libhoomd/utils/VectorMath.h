@@ -115,6 +115,11 @@ struct vec3
         {
         }
 
+    //! Implicit cast from vec3<float> to the current Real
+    DEVICE vec3(const vec3<float>& a) : x(a.x), y(a.y), z(a.z)
+        {
+        }
+
     //! Default construct a 0 vector
     DEVICE vec3() : x(0), y(0), z(0)
         {
@@ -747,6 +752,11 @@ struct quat
 
     //! Implicit cast from quat<double> to the current Real
     DEVICE quat(const quat<double>& a) : s(a.s), v(a.v)
+        {
+        }
+
+    //! Implicit cast from quat<float> to the current Real
+    DEVICE quat(const quat<float>& a) : s(a.s), v(a.v)
         {
         }
 
