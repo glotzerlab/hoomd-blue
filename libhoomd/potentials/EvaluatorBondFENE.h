@@ -149,16 +149,20 @@ class EvaluatorBondFENE
                 pair_eng = (r6inv * (lj1*r6inv - lj2) + epsilon);
                 }
 
-            // Check if bond length restrictino is violated
-            if (rsq >= r_0*r_0) return false;
+            force_divr = WCAforcemag_divr*rmdoverr;
+            bond_eng = pair_eng;
 
-            force_divr = -K / (Scalar(1.0) - rsq /
-                         (r_0*r_0))*rmdoverr + WCAforcemag_divr*rmdoverr;
-            bond_eng = -Scalar(0.5) * K * (r_0 * r_0) *
-                           log(Scalar(1.0) - rsq/(r_0 * r_0));
+            // need to check that K is nonzero, to avoid division by zero
+            if (K != Scalar(0.0))
+                {
+                // Check if bond length restriction is violated
+                if (rsq >= r_0*r_0) return false;
 
-            // add WCA pair energy
-            bond_eng += pair_eng;
+                force_divr += -K / (Scalar(1.0) - rsq /
+                             (r_0*r_0))*rmdoverr;
+                bond_eng += -Scalar(0.5) * K * (r_0 * r_0) *
+                               log(Scalar(1.0) - rsq/(r_0 * r_0));
+                }
 
             return true;
             }
