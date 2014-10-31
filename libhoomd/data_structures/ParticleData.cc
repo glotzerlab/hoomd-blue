@@ -334,12 +334,19 @@ boost::signals2::connection ParticleData::connectMaxParticleNumberChange(const b
     return m_max_particle_num_signal.connect(func);
     }
 
-/*! \param func Function to be called when the number of ghost particles changes
+/*! \param func Function to be called when the global number of particles changes
     \return Connection to manage the signal
+
+    The global number of particles can be changed during the simulation, by calls
+    to addParticle() or removeParticle(). Classes that store information e.g.
+    for every global particle should subscribe to this signal.
+
+    Changes in global particle number must both be indicated by the particle sort
+    signal (notifyParticleSort(), e.g. to trigger communication), and by the this signal
  */
-boost::signals2::connection ParticleData::connectGhostParticleNumberChange(const boost::function<void ()> &func)
+boost::signals2::connection ParticleData::connectGlobalParticleNumberChange(const boost::function<void ()> &func)
     {
-    return m_ghost_particle_num_signal.connect(func);
+    return m_global_particle_num_signal.connect(func);
     }
 
 /*! This function must be called any time the ghost particles are updated.
@@ -559,22 +566,21 @@ void ParticleData::setNGlobal(unsigned int nglobal)
         }
     if (m_nglobal)
         {
-        if (nglobal > m_nglobal)
-            {
-            // resize array of global reverse lookup tags
-            m_rtag.resize(nglobal);
-            }
+        // resize array of global reverse lookup tags
+        m_rtag.resize(nglobal);
         }
     else
         {
         // allocate array
-        GPUArray< unsigned int> rtag(nglobal, m_exec_conf);
+        GPUVector< unsigned int> rtag(nglobal, m_exec_conf);
         m_rtag.swap(rtag);
         }
 
     // Set global particle number
     m_nglobal = nglobal;
 
+    // we have changed the global particle number, notify subscribers
+    m_global_particle_num_signal();
     }
 
 /*! \param new_nparticles New particle number
@@ -704,6 +710,13 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                                 << std::endl << std::endl;
         throw std::runtime_error("Error initializing particle data.");
         }
+
+    // clear set of active tags
+    m_tag_set.clear();
+
+    // clear reservoir of recycled tags
+    while (! m_recycled_tags.empty())
+        m_recycled_tags.pop();
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -1786,6 +1799,115 @@ void ParticleData::setOrientation(unsigned int tag, const Scalar4& orientation)
         h_orientation.data[idx] = orientation;
         }
     }
+
+/*!
+ * Initialize the particle data with a new particle of given type.
+ *
+ * While the design allows for adding particles on a per time step basis,
+ * this is slow and should not be performed too often. In particular, if the same
+ * particle is to be inserted multiple times at different positions, instead of
+ * adding and removing the particle it may be faster to use the setXXX() methods
+ * on the already inserted particle.
+ *
+ * In **MPI simulations**, particles are added to processor rank 0 by default,
+ * and its position has to be updated using setPosition(), which also ensures
+ * that it is moved to the correct rank.
+ *
+ * \param type Type of particle to add
+ * \returns the unique tag of the newly added particle
+ */
+unsigned int ParticleData::addParticle(unsigned int type)
+    {
+    // the global tag of the newly created particle
+    unsigned int tag;
+
+    // we are adding at the end of the local particle data,
+    // so remove ghosts
+    removeAllGhostParticles();
+
+    // first check if we can recycle a deleted tag
+    if (m_recycled_tags.size())
+        {
+        tag = m_recycled_tags.top();
+        m_recycled_tags.pop();
+        }
+    else
+        {
+        // Otherwise, generate a new tag
+        tag = getNGlobal();
+
+        assert(m_rtag.size() == getNGlobal());
+        }
+
+    // update global number of particles
+    // and reallocate rtags
+    setNGlobal(getNGlobal()+1);
+
+        {
+        // update reverse-lookup table
+        ArrayHandle<unsigned int> h_rtag(m_rtag, access_location::host, access_mode::readwrite);
+        assert(h_rtag.data[tag] = NOT_LOCAL);
+        if (m_exec_conf->getRank() == 0)
+            {
+            // we add the particle at the end
+            h_rtag.data[tag] = getN();
+            }
+        else
+            {
+            // not on this processor
+            h_rtag.data[tag] = NOT_LOCAL;
+            }
+        }
+
+    assert(tag <= m_recycled_tags.size() + getNGlobal());
+
+    if (m_exec_conf->getRank() == 0)
+        {
+        // resize particle data using amortized O(1) array resizing
+        resize(getN()+1);
+
+        // access particle data arrays
+        ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+        #ifdef ENABLE_MPI
+        ArrayHandle<unsigned int> h_comm_flag(m_comm_flags, access_location::host, access_mode::readwrite);
+        #endif
+
+        unsigned int idx = getN();
+
+        // initialize to some sensible default values
+        h_pos.data[idx] = make_scalar4(0,0,0,__int_as_scalar(type));
+        h_vel.data[idx] = make_scalar4(0,0,0,0);
+        h_accel.data[idx] = make_scalar3(0,0,0);
+        h_charge.data[idx] = 0.0;
+        h_diameter.data[idx] = 0.0;
+        h_image.data[idx] = make_int3(0,0,0);
+        h_body.data[idx] = NO_BODY;
+        h_orientation.data[idx] = make_scalar4(0,0,0,0);
+        h_tag.data[idx] = tag;
+        #ifdef ENABLE_MPI
+        h_comm_flag.data[idx] = 0;
+        #endif
+        }
+
+    // add to set of active tags
+    m_tag_set.insert(tag);
+
+    // we have added a particle, notify listeners
+    notifyParticleSort();
+
+    return tag;
+    }
+
+
 
 void export_BoxDim()
     {

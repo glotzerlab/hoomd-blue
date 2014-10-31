@@ -92,6 +92,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <bitset>
+#include <stack>
 
 using namespace std;
 
@@ -640,7 +641,10 @@ class ParticleData : boost::noncopyable
         //! Connects a function to be called every time the box size is changed
         boost::signals2::connection connectBoxChange(const boost::function<void ()> &func);
 
-        //! Connects a function to be called every time the maximum particle number changes
+        //! Connects a function to be called every time the global number of particles changes
+        boost::signals2::connection connectGlobalParticleNumberChange(const boost::function< void()> &func);
+
+        //! Connects a function to be called every time the local maximum particle number changes
         boost::signals2::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
 
         //! Connects a function to be called every time the ghost particles are updated
@@ -823,6 +827,7 @@ class ParticleData : boost::noncopyable
         //! Remove all ghost particles from system
         void removeAllGhostParticles()
             {
+            notifyGhostParticleNumberChange();
             m_nghosts = 0;
             }
 
@@ -886,6 +891,9 @@ class ParticleData : boost::noncopyable
 
 #endif // ENABLE_MPI
 
+        //! Add a particle to the simulation
+        unsigned int addParticle(unsigned int type);
+
         //! Translate the box origin
         /*! \param a vector to apply in the translation
         */
@@ -938,13 +946,15 @@ class ParticleData : boost::noncopyable
         GPUArray<Scalar> m_diameter;                //!< particle diameters
         GPUArray<int3> m_image;                     //!< particle images
         GPUArray<unsigned int> m_tag;               //!< particle tags
-        GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
+        GPUVector<unsigned int> m_rtag;             //!< reverse lookup tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
         GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
         #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
         #endif
 
+        std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
+        std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
 
         /* Alternate particle data arrays are provided for fast swapping in and out of particle data
            The size of these arrays is updated in sync with the main particle data arrays.
