@@ -1888,6 +1888,7 @@ void export_ParticleData()
     .def("setDomainDecomposition", &ParticleData::setDomainDecomposition)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
 #endif
+    .def("addType", &ParticleData::addType)
     ;
     }
 
@@ -2433,7 +2434,7 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
-unsigned int ParticleData::addParticleType(const std::string& type_name)
+unsigned int ParticleData::addType(const std::string& type_name)
     {
     m_type_mapping.push_back(type_name);
 

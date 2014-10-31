@@ -114,7 +114,11 @@ from hoomd_script import util
 # - The list of all particle types in the simulation can be accessed
 # \code
 # >>> print system.particles.types
-# ['A']
+# Particle types: ['A']
+# \endcode
+# - Particle types can be added between subsequent run() commands:
+# \code
+# >>> system.particles.types.add('newType')
 # \endcode
 # - Individual particles can be accessed at random.
 # \code
@@ -688,6 +692,96 @@ class system_data:
         raise AttributeError;
 
 ## \internal
+# \brief Access the list of types
+#
+# pdata_types_proxy provides access to the type names and the possibility to add types to the simulation
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# particle_data, documented by example.
+#
+class pdata_types_proxy:
+    ## \internal
+    # \brief particle_data iterator
+    class pdata_types_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def __next__(self):
+            if self.index == len(self.data):
+                raise StopIteration;
+
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+
+        # support python2
+        next = __next__;
+
+    ## \internal
+    # \brief create a pdata_types_proxy
+    #
+    # \param pdata ParticleData to connect
+    def __init__(self, pdata):
+        self.pdata = pdata;
+
+    ## \var pdata
+    # \internal
+    # \brief ParticleData to which this instance is connected
+
+    ## \internal
+    # \brief Get a the name of a type
+    # \param type_idx Type index
+    def __getitem__(self, type_idx):
+        ntypes = self.pdata.getNTypes();
+        if type_idx >= ntypes or type_idx < 0:
+            raise IndexError;
+        return self.pdata.getNameByType(i);
+
+    ## \internal
+    # \brief Set the name of a type
+    # \param type_idx Particle tag to set
+    # \param name New type name
+    def __setitem__(self, type_idx, name):
+        ntypes = self.pdata.getNTypes();
+        if type_idx >= ntypes or type_idx < 0:
+            raise IndexError;
+        self.pdata.setTypeName(type_idx, name);
+
+    ## \internal
+    # \brief Get the number of types
+    def __len__(self):
+        return self.pdata.getNTypes();
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        ntypes = self.pdata.getNTypes();
+        result = "Particle types: ["
+        for i in range(0,ntypes):
+            result += "'" + self.pdata.getNameByType(i) + "'"
+            if (i != ntypes-1):
+                result += ", "
+            else:
+                result += "]"
+
+        return result
+
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return pdata_types_proxy.pdata_types_iterator(self);
+
+    ## \internal
+    # \brief Add a new particle type
+    # \param name Name of type to add
+    # \returns Index of newly added type
+    def add(self, name):
+        typeid = self.pdata.addType(name);
+        return typeid
+
+
+## \internal
 # \brief Access particle data
 #
 # particle_data provides access to the per-particle data of all particles in the system.
@@ -721,10 +815,7 @@ class particle_data:
     def __init__(self, pdata):
         self.pdata = pdata;
 
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        self.types = [];
-        for i in range(0,ntypes):
-            self.types.append(globals.system_definition.getParticleData().getNameByType(i));
+        self.types = pdata_types_proxy(globals.system_definition.getParticleData())
 
     ## \var pdata
     # \internal

@@ -895,7 +895,7 @@ class ParticleData : boost::noncopyable
          * Adds the name to the list of types and
          * returns the id of the newly added type
          */
-        unsigned int addParticleType(const std::string& type_name);
+        unsigned int addType(const std::string& type_name);
 
         //! Translate the box origin
         /*! \param a vector to apply in the translation
