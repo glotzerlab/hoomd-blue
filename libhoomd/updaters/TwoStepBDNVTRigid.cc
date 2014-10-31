@@ -96,7 +96,7 @@ TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
     setIntegratorVariables(v);
 
     // allocate memory for the per-type gamma storage and initialize them to 1.0
-    GPUArray<Scalar> gamma(m_pdata->getNTypes(), m_pdata->getExecConf());
+    GPUVector<Scalar> gamma(m_pdata->getNTypes(), m_pdata->getExecConf());
     m_gamma.swap(gamma);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.getNumElements(); i++)
@@ -114,11 +114,11 @@ TwoStepBDNVTRigid::~TwoStepBDNVTRigid()
 
 void TwoStepBDNVTRigid::slotNumTypesChange()
     {
-    // allocate memory for the per-type gamma storage and initialize them to 1.0
-    GPUArray<Scalar> gamma(m_pdata->getNTypes(), m_pdata->getExecConf());
-    m_gamma.swap(gamma);
+    // re-allocate memory for the per-type gamma storage and initialize them to 1.0
+    unsigned int old_ntypes = m_gamma.size();
+    m_gamma.resize(m_pdata->getNTypes());
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
-    for (unsigned int i = 0; i < m_gamma.getNumElements(); i++)
+    for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
         h_gamma.data[i] = Scalar(1.0);
     }
 

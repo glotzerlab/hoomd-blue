@@ -95,6 +95,15 @@ class particle_data_access_tests (unittest.TestCase):
         self.assertAlmostEqual(3, t[2], 5)
         self.assertAlmostEqual(5, t[3], 5)
 
+        t = self.s.particles.types
+        self.assertEqual(len(t),1)
+        self.assertEqual(t[0], 'A')
+        t[0] = 'B'
+        self.assertEqual(t[0], 'B')
+        self.assertEqual(t.add('C'),1)
+        self.assertEqual(len(t),2)
+        self.assertEqual(t[1], 'C')
+
     def tearDown(self):
         del self.s
         init.reset();

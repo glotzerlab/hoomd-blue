@@ -122,7 +122,7 @@ class TwoStepBDNVT : public TwoStepNVE
         bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
         std::string m_log_name;           //!< Name of the reservior quantity that we log
 
-        GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
+        GPUVector<Scalar> m_gamma;         //!< List of per type gammas to use
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();

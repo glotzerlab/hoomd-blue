@@ -9,7 +9,7 @@ import os
 class integrate_bdnvt_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_random(N=100, phi_p=0.05);
         force.constant(fx=0.1, fy=0.1, fz=0.1)
 
         sorter.set_params(grid=8)
@@ -54,6 +54,17 @@ class integrate_bdnvt_tests (unittest.TestCase):
         mode = integrate.mode_standard(dt=0.005);
         nve = integrate.bdnvt(group=empty, T=1.2)
         run(1);
+
+    # test adding types
+    def test_add_type(self):
+        all = group.all();
+        bd = integrate.bdnvt(all, T=1.2);
+        bd.set_gamma('A', 0.5);
+        bd.set_gamma('B', 1.0);
+        run(100);
+
+        self.s.particles.types.add('B')
+        run(100);
 
     def tearDown(self):
         init.reset();

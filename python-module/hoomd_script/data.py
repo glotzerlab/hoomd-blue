@@ -736,7 +736,7 @@ class pdata_types_proxy:
         ntypes = self.pdata.getNTypes();
         if type_idx >= ntypes or type_idx < 0:
             raise IndexError;
-        return self.pdata.getNameByType(i);
+        return self.pdata.getNameByType(type_idx);
 
     ## \internal
     # \brief Set the name of a type
