@@ -993,7 +993,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
 
-    m_exec_conf->msg->notice(4) << "ParticleData: finished initializing from snapshot" << std::endl;
+    // notify listeners that number of types has changed
+    m_num_types_signal();
     }
 
 //! take a particle data snapshot
@@ -1176,8 +1177,6 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         }
 
     snapshot.type_mapping = m_type_mapping;
-
-    m_exec_conf->msg->notice(4) << "ParticleData: finished taking snapshot" << std::endl;
     }
 
 //! Add ghost particles at the end of the local particle data
