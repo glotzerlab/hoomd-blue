@@ -123,6 +123,13 @@ class TwoStepBDNVT : public TwoStepNVE
         std::string m_log_name;           //!< Name of the reservior quantity that we log
 
         GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
+
+        //! Method to be called when number of types changes
+        virtual void slotNumTypesChange();
+
+    private:
+        //! Connection to the signal notifying when number of particle types changes
+        boost::signals2::connection m_num_type_change_connection;
     };
 
 //! Exports the TwoStepBDNVT class to python

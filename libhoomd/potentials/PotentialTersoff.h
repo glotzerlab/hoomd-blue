@@ -54,6 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
 #include <fstream>
 
 #include "HOOMDMath.h"
@@ -142,6 +143,7 @@ class PotentialTersoff : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
@@ -153,6 +155,24 @@ class PotentialTersoff : public ForceCompute
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
+
+        //! Method to be called when number of types changes
+        virtual void slotNumTypesChange()
+            {
+            m_typpair_idx = Index2D(m_pdata->getNTypes());
+
+            // reallocate parameter arrays
+            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
+            m_rcutsq.swap(rcutsq);
+            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), exec_conf);
+            m_ronsq.swap(ronsq);
+            GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
+            m_params.swap(params);
+            }
+
+    private:
+        //! Connection to the signal notifying when number of particle types changes
+        boost::signals2::connection m_num_type_change_connection;
     };
 
 /*! \param sysdef System to compute forces on
@@ -180,12 +200,16 @@ PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefiniti
     // initialize name
     m_prof_name = std::string("Triplet ") + evaluator::getName();
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
+
+    // connect to the ParticleData to receive notifications when the maximum number of particles changes
+    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&PotentialTersoff<evaluator>::slotNumTypesChange, this));
     }
 
 template < class evaluator >
 PotentialTersoff< evaluator >::~PotentialTersoff()
     {
     this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << endl;
+    m_num_type_change_connection.disconnect();
     }
 
 /*! \param typ1 First type index in the pair

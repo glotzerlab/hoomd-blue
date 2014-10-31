@@ -97,6 +97,13 @@ class TwoStepBDNVTRigid : public TwoStepNVERigid
         bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
 
         GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
+
+        //! Method to be called when number of types changes
+        virtual void slotNumTypesChange();
+
+    private:
+        //! Connection to the signal notifying when number of particle types changes
+        boost::signals2::connection m_num_type_change_connection;
     };
 
 //! Exports the TwoStepBDNVTRigid class to python

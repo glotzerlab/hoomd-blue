@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
 using namespace boost::python;
 
 #include "QuaternionMath.h"
@@ -100,12 +101,27 @@ TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.getNumElements(); i++)
         h_gamma.data[i] = Scalar(1.0);
+
+    // connect to the ParticleData to receive notifications when the maximum number of particles changes
+    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&TwoStepBDNVTRigid::slotNumTypesChange, this));
     }
 
 TwoStepBDNVTRigid::~TwoStepBDNVTRigid()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepBDNVTRigid" << endl;
+    m_num_type_change_connection.disconnect();
     }
+
+void TwoStepBDNVTRigid::slotNumTypesChange()
+    {
+    // allocate memory for the per-type gamma storage and initialize them to 1.0
+    GPUArray<Scalar> gamma(m_pdata->getNTypes(), m_pdata->getExecConf());
+    m_gamma.swap(gamma);
+    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
+    for (unsigned int i = 0; i < m_gamma.getNumElements(); i++)
+        h_gamma.data[i] = Scalar(1.0);
+    }
+
 
 /*! \param typ Particle type to set gamma for
     \param gamma The gamma value to set
