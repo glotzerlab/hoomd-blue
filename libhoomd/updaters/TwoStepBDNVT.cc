@@ -127,7 +127,7 @@ void TwoStepBDNVT::slotNumTypesChange()
     // re-allocate memory for the per-type gamma storage and initialize them to 1.0
     unsigned int old_ntypes = m_gamma.size();
     m_gamma.resize(m_pdata->getNTypes());
-    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
         h_gamma.data[i] = Scalar(1.0);
     }
