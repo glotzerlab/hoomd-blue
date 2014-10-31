@@ -777,6 +777,12 @@ class pdata_types_proxy:
     # \param name Name of type to add
     # \returns Index of newly added type
     def add(self, name):
+        # check that type does not yet exist
+        ntypes = self.pdata.getNTypes();
+        for i in range(0,ntypes):
+            if self.pdata.getNameByType(i) == name:
+                raise RuntimeError('Type name already defined');
+
         typeid = self.pdata.addType(name);
         return typeid
 

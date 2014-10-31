@@ -101,6 +101,8 @@ class particle_data_access_tests (unittest.TestCase):
         t[0] = 'B'
         self.assertEqual(t[0], 'B')
         self.assertEqual(t.add('C'),1)
+        with self.assertRaises(RuntimeError):
+            t.add('C')
         self.assertEqual(len(t),2)
         self.assertEqual(t[1], 'C')
 
