@@ -862,7 +862,7 @@ class ParticleData : boost::noncopyable
          */
         void removeParticles(std::vector<pdata_element>& out, std::vector<unsigned int>& comm_flags);
 
-        //! Remove particles from local domain and add new particle data
+        //! Add new local particles
         /*! \param in List of particle data elements to fill the particle data with
          */
         void addParticles(const std::vector<pdata_element>& in);
@@ -891,8 +891,14 @@ class ParticleData : boost::noncopyable
 
 #endif // ENABLE_MPI
 
-        //! Add a particle to the simulation
+        //! Add a single particle to the simulation
         unsigned int addParticle(unsigned int type);
+
+        //! Remove a particle from the simulation
+        void removeParticle(unsigned int tag);
+
+        //! Return the nth active global tag
+        unsigned int getNthTag(unsigned int n) const;
 
         //! Translate the box origin
         /*! \param a vector to apply in the translation

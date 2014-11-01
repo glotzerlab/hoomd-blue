@@ -990,6 +990,12 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         m_type_mapping = snapshot.type_mapping;
         }
 
+    // update list of active tags
+    for (unsigned int tag = 0; tag < getNGlobal(); tag++)
+        {
+        m_tag_set.insert(tag);
+        }
+
     // notify listeners about resorting of local particles
     notifyParticleSort();
 
@@ -1020,6 +1026,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 >  h_orientation(m_orientation, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::read);
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -1106,7 +1113,6 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
         if (rank == root)
             {
-
             unsigned int n_ranks = m_exec_conf->getNRanks();
             assert(rtag_map_proc.size() == n_ranks);
 
@@ -1119,10 +1125,16 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                         it->first, std::pair<unsigned int, unsigned int>(irank, it->second)));
 
             // add particles to snapshot
+            assert(m_tag_set.size() == getNGlobal());
+            std::set<unsigned int>::const_iterator tag_set_it = m_tag_set.begin();
+
             std::map<unsigned int, std::pair<unsigned int, unsigned int> >::iterator rank_rtag_it;
-            for (unsigned int tag = 0; tag < getNGlobal(); tag++)
+            for (unsigned int snap_id = 0; snap_id < getNGlobal(); snap_id++)
                 {
+                unsigned int tag = *tag_set_it;
+                assert(tag < m_nglobal);
                 rank_rtag_it = rank_rtag_map.find(tag);
+
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
                     m_exec_conf->msg->error()
@@ -1136,46 +1148,57 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                 unsigned int rank = rank_idx.first;
                 unsigned int idx = rank_idx.second;
 
-                snapshot.pos[tag] = pos_proc[rank][idx];
-                snapshot.vel[tag] = vel_proc[rank][idx];
-                snapshot.accel[tag] = accel_proc[rank][idx];
-                snapshot.type[tag] = type_proc[rank][idx];
-                snapshot.mass[tag] = mass_proc[rank][idx];
-                snapshot.charge[tag] = charge_proc[rank][idx];
-                snapshot.diameter[tag] = diameter_proc[rank][idx];
-                snapshot.image[tag] = image_proc[rank][idx];
-                snapshot.body[tag] = body_proc[rank][idx];
-                snapshot.orientation[tag] = orientation_proc[rank][idx];
+                snapshot.pos[snap_id] = pos_proc[rank][idx];
+                snapshot.vel[snap_id] = vel_proc[rank][idx];
+                snapshot.accel[snap_id] = accel_proc[rank][idx];
+                snapshot.type[snap_id] = type_proc[rank][idx];
+                snapshot.mass[snap_id] = mass_proc[rank][idx];
+                snapshot.charge[snap_id] = charge_proc[rank][idx];
+                snapshot.diameter[snap_id] = diameter_proc[rank][idx];
+                snapshot.image[snap_id] = image_proc[rank][idx];
+                snapshot.body[snap_id] = body_proc[rank][idx];
+                snapshot.orientation[snap_id] = orientation_proc[rank][idx];
 
                 // make sure the position stored in the snapshot is within the boundaries
-                m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
+                m_global_box.wrap(snapshot.pos[snap_id], snapshot.image[snap_id]);
+
+                std::advance(tag_set_it, 1);
                 }
             }
         }
     else
 #endif
         {
-        for (unsigned int idx = 0; idx < m_nparticles; idx++)
+        assert(m_tag_set.size() == m_nparticles);
+        std::set<unsigned int>::const_iterator it = m_tag_set.begin();
+
+        // iterate through active tags
+        for (unsigned int snap_id = 0; snap_id < m_nparticles; snap_id++)
             {
-            unsigned int tag = h_tag.data[idx];
+            unsigned int tag = *it;
             assert(tag < m_nglobal);
-            snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
-            snapshot.vel[tag] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
-            snapshot.accel[tag] = h_accel.data[idx];
-            snapshot.type[tag] = __scalar_as_int(h_pos.data[idx].w);
-            snapshot.mass[tag] = h_vel.data[idx].w;
-            snapshot.charge[tag] = h_charge.data[idx];
-            snapshot.diameter[tag] = h_diameter.data[idx];
-            snapshot.image[tag] = h_image.data[idx];
-            snapshot.image[tag].x -= m_o_image.x;
-            snapshot.image[tag].y -= m_o_image.y;
-            snapshot.image[tag].z -= m_o_image.z;
-            snapshot.body[tag] = h_body.data[idx];
-            snapshot.orientation[tag] = h_orientation.data[idx];
-            snapshot.inertia_tensor[tag] = m_inertia_tensor[idx];
+            unsigned int idx = h_rtag.data[tag];
+            assert(idx < m_nparticles);
+
+            snapshot.pos[snap_id] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
+            snapshot.vel[snap_id] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+            snapshot.accel[snap_id] = h_accel.data[idx];
+            snapshot.type[snap_id] = __scalar_as_int(h_pos.data[idx].w);
+            snapshot.mass[snap_id] = h_vel.data[idx].w;
+            snapshot.charge[snap_id] = h_charge.data[idx];
+            snapshot.diameter[snap_id] = h_diameter.data[idx];
+            snapshot.image[snap_id] = h_image.data[idx];
+            snapshot.image[snap_id].x -= m_o_image.x;
+            snapshot.image[snap_id].y -= m_o_image.y;
+            snapshot.image[snap_id].z -= m_o_image.z;
+            snapshot.body[snap_id] = h_body.data[idx];
+            snapshot.orientation[snap_id] = h_orientation.data[idx];
+            snapshot.inertia_tensor[snap_id] = m_inertia_tensor[idx];
 
             // make sure the position stored in the snapshot is within the boundaries
-            m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
+            m_global_box.wrap(snapshot.pos[snap_id], snapshot.image[snap_id]);
+
+            std::advance(it, 1);
             }
         }
 
@@ -1861,6 +1884,9 @@ unsigned int ParticleData::addParticle(unsigned int type)
 
     assert(tag <= m_recycled_tags.size() + getNGlobal());
 
+    //  because we are adding particles, we have to invalidate the ghosts particles
+    removeAllGhostParticles();
+
     if (m_exec_conf->getRank() == 0)
         {
         // resize particle data using amortized O(1) array resizing
@@ -1907,7 +1933,127 @@ unsigned int ParticleData::addParticle(unsigned int type)
     return tag;
     }
 
+/*! \param tag Tag of particle to remove
+ */
+void ParticleData::removeParticle(unsigned int tag)
+    {
+    // sanity check
+    if (tag >= m_rtag.size())
+        {
+        m_exec_conf->msg->error() << "Trying to remove particle " << tag << " which does not exist!" << endl;
+        throw runtime_error("Error removing particle");
+        }
 
+    // Local particle index
+    unsigned int idx = m_rtag[tag];
+
+    bool is_local = idx < getN();
+    assert(is_local || idx == NOT_LOCAL);
+
+    bool is_available = is_local;
+
+    #ifdef ENABLE_MPI
+    if (getDomainDecomposition())
+        {
+        int res = is_local ? 1 : 0;
+
+        // check that group is local on some processors
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &res,
+                      1,
+                      MPI_INT,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+
+        assert((unsigned int) res <= group_size);
+        is_available = res;
+        }
+    #endif
+
+    if (! is_available)
+        {
+        m_exec_conf->msg->error() << "Trying to remove particle " << tag
+             << " which has been previously removed!" << endl;
+        throw runtime_error("Error removing particle");
+        }
+
+    // delete from map
+    m_rtag[tag] = NOT_LOCAL;
+
+    if (is_local)
+        {
+        unsigned int size = getN();
+
+        // If the particle is not the last element of the particle data, move the last element to
+        // to the position of the removed element
+        if (idx < (size-1))
+            {
+            // access particle data arrays
+            ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
+            ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+            #ifdef ENABLE_MPI
+            ArrayHandle<unsigned int> h_comm_flag(m_comm_flags, access_location::host, access_mode::readwrite);
+            #endif
+
+            h_pos.data[idx] = h_pos.data[size-1];
+            h_vel.data[idx] = h_vel.data[size-1];
+            h_accel.data[idx] = h_accel.data[size-1];
+            h_charge.data[idx] = h_charge.data[size-1];
+            h_diameter.data[idx] = h_diameter.data[size-1];
+            h_image.data[idx] = h_image.data[size-1];
+            h_body.data[idx] = h_body.data[size-1];
+            h_orientation.data[idx] = h_orientation.data[size-1];
+            h_tag.data[idx] = h_tag.data[size-1];
+            h_rtag.data[idx] = h_rtag.data[size-1];
+            #ifdef ENABLE_MPI
+            h_comm_flag.data[idx] = h_comm_flag.data[size-1];
+            #endif
+
+            unsigned int last_tag = h_tag.data[size-1];
+            m_rtag[last_tag] = idx;
+            }
+
+        // update particle number
+        resize(getN()-1);
+        }
+
+    // remove from set of active tags
+    m_tag_set.erase(tag);
+
+    // maintain a stack of deleted group tags for future recycling
+    m_recycled_tags.push(tag);
+
+    // update global particle number
+    setNGlobal(getNGlobal()-1);
+
+    // local particle number may have changed
+    notifyParticleSort();
+    }
+
+//! Return the nth active global tag
+/*! \param n Index of bond in global bond table
+ */
+unsigned int ParticleData::getNthTag(unsigned int n) const
+    {
+   if (n >= getNGlobal())
+        {
+        m_exec_conf->msg->error() << "Particle id " << n << "does not exist!" << std::endl;
+        throw std::runtime_error("Error fetching particle");
+        }
+
+    assert(m_tag_set.size() == getNGlobal());
+    std::set<unsigned int>::const_iterator it = m_tag_set.begin();
+    std::advance(it, n);
+    return *it;
+    }
 
 void export_BoxDim()
     {
