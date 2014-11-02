@@ -2146,6 +2146,8 @@ void export_ParticleData()
     .def("takeSnapshot", &ParticleData::takeSnapshot)
     .def("initializeFromSnapshot", &ParticleData::initializeFromSnapshot)
     .def("getMaximumTag", &ParticleData::getMaximumTag)
+    .def("addParticle", &ParticleData::addParticle)
+    .def("removeParticle", &ParticleData::removeParticle)
 #ifdef ENABLE_MPI
     .def("setDomainDecomposition", &ParticleData::setDomainDecomposition)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
