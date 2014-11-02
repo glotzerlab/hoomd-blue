@@ -244,8 +244,8 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         {
         // lookup the tag of each of the particles participating in the bond
         const typename BondData::members_t& bond = h_bonds.data[i];
-        assert(bond.tag[0] < m_pdata->getNGlobal());
-        assert(bond.tag[1] < m_pdata->getNGlobal());
+        assert(bond.tag[0] < m_pdata->getMaximumTag()+1);
+        assert(bond.tag[1] < m_pdata->getMaximumTag()+1);
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)

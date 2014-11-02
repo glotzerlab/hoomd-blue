@@ -211,7 +211,7 @@ def all():
         if len(globals.group_all) != expected_N:
             # update group_all
             tag_min = 0;
-            tag_max = globals.system_definition.getParticleData().getNGlobal()-1;
+            tag_max = globals.system_definition.getParticleData().getMaximumTag();
             selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
             globals.group_all.cpp_group.updateMemberTags(selector)
             globals.msg.notice(2, 'Group "' + name + '" updated containing ' + str(globals.group_all.cpp_group.getNumMembersGlobal()) + ' particles\n');
@@ -220,7 +220,7 @@ def all():
 
     # choose the tag range
     tag_min = 0;
-    tag_max = globals.system_definition.getParticleData().getNGlobal()-1;
+    tag_max = globals.system_definition.getParticleData().getMaximumTag();
 
     # create the group
     selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);

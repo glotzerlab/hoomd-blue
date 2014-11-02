@@ -258,9 +258,9 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         {
         // lookup the tag of each of the particles participating in the angle
         const AngleData::members_t& angle = m_CGCMMAngle_data->getMembersByIndex(i);
-        assert(angle.tag[0] < m_pdata->getNGlobal());
-        assert(angle.tag[1] < m_pdata->getNGlobal());
-        assert(angle.tag[1] < m_pdata->getNGlobal());
+        assert(angle.tag[0] <= m_pdata->getMaximumTag());
+        assert(angle.tag[1] <= m_pdata->getMaximumTag());
+        assert(angle.tag[1] <= m_pdata->getMaximumTag());
 
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints

@@ -1863,7 +1863,7 @@ unsigned int ParticleData::addParticle(unsigned int type)
     m_tag_set.insert(tag);
 
     // resize array of global reverse lookup tags
-    m_rtag.resize(getMaximumTag());
+    m_rtag.resize(getMaximumTag()+1);
 
     // update global number of particles
     setNGlobal(getNGlobal()+1);
@@ -2031,7 +2031,7 @@ void ParticleData::removeParticle(unsigned int tag)
     m_recycled_tags.push(tag);
 
     // update size of reverse-lookup array to reflect maximum particle tag
-    m_rtag.resize(getMaximumTag());
+    m_rtag.resize(getMaximumTag()+1);
 
     // update global particle number
     setNGlobal(getNGlobal()-1);
@@ -2145,6 +2145,7 @@ void export_ParticleData()
     .def("setInertiaTensor", &ParticleData::setInertiaTensor)
     .def("takeSnapshot", &ParticleData::takeSnapshot)
     .def("initializeFromSnapshot", &ParticleData::initializeFromSnapshot)
+    .def("getMaximumTag", &ParticleData::getMaximumTag)
 #ifdef ENABLE_MPI
     .def("setDomainDecomposition", &ParticleData::setDomainDecomposition)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)

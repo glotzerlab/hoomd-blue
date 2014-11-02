@@ -113,7 +113,7 @@ ParticleSelectorTag::ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sys
     if (m_tag_max < m_tag_min)
         m_exec_conf->msg->warning() << "group: max < min specified when selecting particle tags" << endl;
 
-    if (m_tag_max >= m_pdata->getMaximumTag())
+    if (m_tag_max > m_pdata->getMaximumTag())
         {
         m_exec_conf->msg->error() << "Cannot select particles with tags larger than the number of particles "
              << endl;
@@ -266,7 +266,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
       m_pdata(sysdef->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()),
       m_num_local_members(0),
-      m_particles_sorted(true)
+      m_particles_sorted(true),
+      m_selector(selector)
     {
     #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled())
@@ -277,13 +278,16 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
     #endif
 
     // update member tag arrays
-    updateMemberTags(selector);
+    updateMemberTags();
 
     // connect to the particle sort signal
     m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
 
     // connect reallocate() method to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
+
+    // connect updateMemberTags() method to maximum particle number change signal
+    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::updateMemberTags, this));
     }
 
 /*! \param sysdef System definition to build the group from
@@ -340,6 +344,9 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
 
     // connect reallocate() method to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
+
+    // connect updateMemberTags() method to maximum particle number change signal
+    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::updateMemberTags, this));
     }
 
 ParticleGroup::~ParticleGroup()
@@ -349,11 +356,15 @@ ParticleGroup::~ParticleGroup()
         {
         m_sort_connection.disconnect();
         m_max_particle_num_change_connection.disconnect();
+        m_global_particle_num_change_connection.disconnect();
         }
     }
 
-void ParticleGroup::updateMemberTags(boost::shared_ptr<ParticleSelector> selector)
+void ParticleGroup::updateMemberTags()
     {
+    if (! m_selector)
+        return;
+
     // assign all of the particles that belong to the group
     // for each particle in the (global) data
     vector<unsigned int> member_tags;
@@ -363,7 +374,7 @@ void ParticleGroup::updateMemberTags(boost::shared_ptr<ParticleSelector> selecto
     for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
         {
         unsigned int tag = h_tag.data[idx];
-        if (selector->isSelected(tag))
+        if (m_selector->isSelected(tag))
             member_tags.push_back(tag);
         }
 

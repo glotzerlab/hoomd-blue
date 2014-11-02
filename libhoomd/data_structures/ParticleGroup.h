@@ -218,7 +218,7 @@ class ParticleGroup
         ~ParticleGroup();
 
         //! Updates the members tags of a particle group according to a selection
-        void updateMemberTags(boost::shared_ptr<ParticleSelector> selector);
+        void updateMemberTags();
 
         // @}
         //! \name Accessor methods
@@ -337,11 +337,14 @@ class ParticleGroup
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
+        boost::signals2::connection m_global_particle_num_change_connection; //!< Connection to global particle number change signal
         GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the paritcle members
         mutable unsigned int m_num_local_members;       //!< Number of members on the local processor
         mutable bool m_particles_sorted;                //!< True if particle have been sorted since last rebuild
 
         GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
+        boost::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
+
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;                //!< moderngpu context
         #endif

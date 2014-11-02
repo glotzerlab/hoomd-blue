@@ -300,7 +300,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 
     // check for some silly errors a user could make
     for (unsigned int i = 0; i < group_size; ++i)
-        if (member_tags.tag[i] >= max_tag)
+        if (member_tags.tag[i] > max_tag)
             {
             std::ostringstream oss;
             oss << name << ".*: Particle tag out of bounds when attempting to add " << name << ": ";
@@ -852,6 +852,8 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
 template<unsigned int group_size, typename Group, const char *name>
 void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) const
     {
+    // FIXME: double-check if this works for non-contiguous bond tags (see ParticleData example)
+
     // allocate memory in snapshot
     snapshot.resize(getNGlobal());
 
