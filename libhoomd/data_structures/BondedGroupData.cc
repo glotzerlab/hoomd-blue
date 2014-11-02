@@ -296,9 +296,11 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
     unsigned int type = g.get_type();
     members_t member_tags = g.get_members();
 
+    unsigned int max_tag = m_pdata->getMaximumTag();
+
     // check for some silly errors a user could make
     for (unsigned int i = 0; i < group_size; ++i)
-        if (member_tags.tag[i] >= m_pdata->getNGlobal())
+        if (member_tags.tag[i] >= max_tag)
             {
             std::ostringstream oss;
             oss << name << ".*: Particle tag out of bounds when attempting to add " << name << ": ";

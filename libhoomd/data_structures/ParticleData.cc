@@ -192,6 +192,10 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
+    // allocate reverse-lookup tag list
+    GPUVector< unsigned int> rtag(snapshot.size, m_exec_conf);
+    m_rtag.swap(rtag);
+
     // initialize number of particles
     setNGlobal(snapshot.size);
 
@@ -558,23 +562,7 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
  */
 void ParticleData::setNGlobal(unsigned int nglobal)
     {
-    if (m_nparticles > nglobal)
-        {
-        m_exec_conf->msg->error() << "ParticleData is being asked to allocate memory for a global number"
-                                  << "   of particles smaller than the local number of particles." << std::endl;
-        throw runtime_error("Error initializing ParticleData");
-        }
-    if (m_nglobal)
-        {
-        // resize array of global reverse lookup tags
-        m_rtag.resize(nglobal);
-        }
-    else
-        {
-        // allocate array
-        GPUVector< unsigned int> rtag(nglobal, m_exec_conf);
-        m_rtag.swap(rtag);
-        }
+    assert(m_nparticles <= nglobal);
 
     // Set global particle number
     m_nglobal = nglobal;
@@ -857,6 +845,10 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         unsigned int nglobal = snapshot.size;
         bcast(nglobal, root, mpi_comm);
 
+        // allocate array for reverse-lookup tags
+        GPUVector< unsigned int> rtag(nglobal, m_exec_conf);
+        m_rtag.swap(rtag);
+
         setNGlobal(nglobal);
 
         // Local particle data
@@ -947,8 +939,13 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             throw std::runtime_error("Error initializing ParticleData");
             }
 
+        // allocate array for reverse lookup tags
+        GPUVector< unsigned int> rtag(snapshot.size, m_exec_conf);
+        m_rtag.swap(rtag);
+
         // Initialize number of particles
         setNGlobal(snapshot.size);
+
         m_nparticles = snapshot.size;
 
         // allocate particle data such that we can accomodate the particles
@@ -1862,8 +1859,13 @@ unsigned int ParticleData::addParticle(unsigned int type)
         assert(m_rtag.size() == getNGlobal());
         }
 
+    // add to set of active tags
+    m_tag_set.insert(tag);
+
+    // resize array of global reverse lookup tags
+    m_rtag.resize(getMaximumTag());
+
     // update global number of particles
-    // and reallocate rtags
     setNGlobal(getNGlobal()+1);
 
         {
@@ -1923,9 +1925,6 @@ unsigned int ParticleData::addParticle(unsigned int type)
         h_comm_flag.data[idx] = 0;
         #endif
         }
-
-    // add to set of active tags
-    m_tag_set.insert(tag);
 
     // we have added a particle, notify listeners
     notifyParticleSort();
@@ -2030,6 +2029,9 @@ void ParticleData::removeParticle(unsigned int tag)
 
     // maintain a stack of deleted group tags for future recycling
     m_recycled_tags.push(tag);
+
+    // update size of reverse-lookup array to reflect maximum particle tag
+    m_rtag.resize(getMaximumTag());
 
     // update global particle number
     setNGlobal(getNGlobal()-1);

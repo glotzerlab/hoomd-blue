@@ -80,6 +80,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     any parameters to specify the selection criteria. Then, a simple isSelected() test is provided that will acquire the
     needed data and will return true if that particle meets the criteria.
 
+    In parallel simulations, isSelected() should return false if the requested particle with tag 'tag' is not local.
+
     The base class isSelected() method will simply reject all particles. Derived classes will implement specific
     selection semantics.
 */
@@ -92,6 +94,7 @@ class ParticleSelector
 
         //! Test if a particle meets the selection criteria
         virtual bool isSelected(unsigned int tag) const;
+
     protected:
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience

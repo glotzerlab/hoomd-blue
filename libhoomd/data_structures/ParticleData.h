@@ -738,6 +738,13 @@ class ParticleData : boost::noncopyable
              return h_rtag.data[tag] < getN();
              }
 
+        //! Return the maximum particle tag in the simulation
+        unsigned int getMaximumTag() const
+            {
+            assert(!m_tag_set.empty());
+            return *m_tag_set.rbegin();
+            }
+
         //! Get the orientation of a particle with a given tag
         Scalar4 getOrientation(unsigned int tag) const;
 
