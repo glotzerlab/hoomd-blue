@@ -723,7 +723,7 @@ class ParticleData : boost::noncopyable
         //! Get the current index of a particle with a given global tag
         inline unsigned int getRTag(unsigned int tag) const
             {
-            assert(tag < m_nglobal);
+            assert(tag < m_rtag.size());
             ArrayHandle< unsigned int> h_rtag(m_rtag,access_location::host, access_mode::read);
             unsigned int idx = h_rtag.data[tag];
 #ifdef ENABLE_MPI
@@ -736,10 +736,17 @@ class ParticleData : boost::noncopyable
         //! Return true if particle is local (= owned by this processor)
         bool isParticleLocal(unsigned int tag) const
              {
-             assert(tag < m_nglobal);
+             assert(tag < m_rtag.size());
              ArrayHandle< unsigned int> h_rtag(m_rtag,access_location::host, access_mode::read);
              return h_rtag.data[tag] < getN();
              }
+
+        //! Return true if the tag is active
+        bool isTagActive(unsigned int tag) const
+            {
+            std::set<unsigned int>::const_iterator it = m_tag_set.find(tag);
+            return it != m_tag_set.cend();
+            }
 
         //! Return the maximum particle tag in the simulation
         unsigned int getMaximumTag() const

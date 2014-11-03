@@ -40,7 +40,7 @@ class init_create_snapshot (unittest.TestCase):
         init.reset()
         self.s = init.read_snapshot(snapshot)
 
-    # test to add and remove some bonds before taking the snapshot
+    # test that adding and removing bonds works with take/restore snapshot
     def test_add_remove_bonds(self):
         l = len(self.s.bonds)
         del(self.s.bonds[l-1])
@@ -55,12 +55,51 @@ class init_create_snapshot (unittest.TestCase):
         for (b,old_b) in zip(self.s.bonds,bonds):
             new_b = (b.a, b.b, b.type)
             self.assertEqual(new_b,old_b)
-        pass
+        self.s.bonds.add('polymer',0, 10)
+        l_new = len(self.s.bonds)
+        self.assertEqual(l_new,l-1)
+        snapshot = self.s.take_snapshot(bonds=True)
+        self.s.restore_snapshot(snapshot)
+        l_new = len(self.s.bonds)
+        self.assertEqual(l_new,l-1)
+        self.assertEqual(self.s.bonds[l_new-1].a,0)
+        self.assertEqual(self.s.bonds[l_new-1].b,10)
+        self.assertEqual(self.s.bonds[l_new-1].type,'polymer')
+
+    # test removing and adding particles before taking the snapshot
+    def test_add_remove_particle(self):
+        l = len(self.s.particles)
+        l_bonds = len(self.s.bonds)
+        tags = []
+        # remove the bonds that connect to the particle
+        for b in self.s.bonds:
+            if b.a == 2 or b.b == 2:
+                tags.append(b.tag)
+
+        for t in tags:
+            self.s.bonds.remove(t)
+        # we should have removed two bonds
+        self.assertEqual(len(self.s.bonds),l_bonds-2)
+
+        # remove particle
+        del(self.s.particles[2])
+        l_new = len(self.s.particles)
+        self.assertEqual(l_new,l-1)
+
+        # add particles
+        t1 = self.s.particles.add('A')
+        t2 = self.s.particles.add('B')
+        l_new = len(self.s.particles)
+        self.assertEqual(l_new, l+1)
+        self.assertEqual(self.s.particles.get(t1).type,'A')
+        self.assertEqual(self.s.particles.get(t2).type,'B')
+        snapshot = self.s.take_snapshot(all=True)
+        self.s.restore_snapshot(snapshot)
+        self.assertEqual(len(self.s.particles), l_new)
 
     def tearDown(self):
         del self.s
         init.reset();
-
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

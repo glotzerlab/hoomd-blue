@@ -276,6 +276,13 @@ class BondedGroupData : boost::noncopyable
         //! Return the nth active global tag
         unsigned int getNthTag(unsigned int n) const;
 
+        //! Return the maximum particle tag in the simulation
+        unsigned int getMaximumTag() const
+            {
+            assert(!m_tag_set.empty());
+            return *m_tag_set.rbegin();
+            }
+
         //! Return a bonded group by tag
         const Group getGroupByTag(unsigned int tag) const;
 

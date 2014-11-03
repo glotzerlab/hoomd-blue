@@ -486,6 +486,19 @@ const Group BondedGroupData<group_size, Group, name>::getGroupByTag(unsigned int
         members = m_groups[group_idx];
         }
 
+    // perform a final sanity check that the group is valid
+    for (unsigned int j = 0; j < group_size; ++j)
+        {
+        unsigned int ptag = members.tag[j];
+
+        if (! m_pdata->isTagActive(ptag))
+            {
+            m_exec_conf->msg->error() << name << ".*: member tag " << ptag << " of " << name
+                << " " << tag << " does not exist!" << endl;
+            throw runtime_error(std::string("Error getting ") + name);
+            }
+        }
+
     return Group(type,members);
     }
 
@@ -1109,6 +1122,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         .def("getNGlobal", &T::getNGlobal)
         .def("getNTypes", &T::getNTypes)
         .def("getNthTag", &T::getNthTag)
+        .def("getMaximumTag", &T::getMaximumTag)
         .def("getGroupByTag", &T::getGroupByTag)
         .def("getTypeByName", &T::getTypeByName)
         .def("setTypeName", &T::setTypeName)
