@@ -847,7 +847,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         bcast(m_type_mapping, root, mpi_comm);
 
         // broadcast global number of particles
-        unsigned int nglobal = snapshot.size;
+        nglobal = snapshot.size;
         bcast(nglobal, root, mpi_comm);
 
         // allocate array for reverse-lookup tags
