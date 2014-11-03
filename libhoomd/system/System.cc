@@ -447,24 +447,24 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
     resetStats();
 
-    // Prepare the run
-    if (!m_integrator)
-        m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
-    else
-        m_integrator->prepRun(m_cur_tstep);
-
-    #ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // make sure we start off with a migration substep, so that
-        // any old ghost particles are invalidated
-        m_comm->forceMigrate();
-        }
-    #endif
-
     // catch exceptions during simulation
     try
         {
+        // Prepare the run
+        if (!m_integrator)
+            m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
+        else
+            m_integrator->prepRun(m_cur_tstep);
+
+        #ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            // make sure we start off with a migration substep, so that
+            // any old ghost particles are invalidated
+            m_comm->forceMigrate();
+            }
+        #endif
+
         // handle time steps
         for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
             {
@@ -564,10 +564,14 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             // tear down other ranks in a controlled way, but only if we are the rank that displayed an error
             // so that eventual error messages are flushed correctly
             if (m_exec_conf->msg->hasLock())
+                {
                 MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
+                }
             else
                 // otherwise just wait
+                {
                 MPI_Barrier(m_exec_conf->getMPICommunicator());
+                }
             }
         else
         #endif

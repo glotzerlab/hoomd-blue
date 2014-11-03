@@ -2028,7 +2028,7 @@ void ParticleData::removeParticle(unsigned int tag)
             h_body.data[idx] = h_body.data[size-1];
             h_orientation.data[idx] = h_orientation.data[size-1];
             h_tag.data[idx] = h_tag.data[size-1];
-                
+
             #ifdef ENABLE_MPI
             if (m_decomposition)
                 {
@@ -2459,7 +2459,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
             {
             // reset rtag of this ptl
             unsigned int tag = h_tag.data[idx];
-            assert(tag < getNGlobal());
+            assert(tag <= getMaximumTag());
             h_rtag.data[tag] = idx;
             }
         }
@@ -2521,7 +2521,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
             {
             // reset rtag of this ptl
             unsigned int tag = h_tag.data[idx];
-            assert(tag < getNGlobal());
+            assert(tag <= getMaximumTag());
             h_rtag.data[tag] = idx;
             }
         }
