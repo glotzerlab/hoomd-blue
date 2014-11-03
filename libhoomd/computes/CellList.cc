@@ -621,7 +621,7 @@ bool CellList::checkConditions()
         {
         unsigned int n = conditions.y - 1;
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        m_exec_conf->msg->error() << "Particle " << h_tag.data[n] << " has NaN for its position." << endl;
+        m_exec_conf->msg->error() << "Particle with unique tag " << h_tag.data[n] << " has NaN for its position." << endl;
         throw runtime_error("Error computing cell list");
         }
 
@@ -632,8 +632,7 @@ bool CellList::checkConditions()
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-        m_exec_conf->msg->error() << (n >= m_pdata->getN() ? "Ghost" : "")
-                                  <<"Particle " << h_tag.data[n] << " is no longer in the simulation box."
+        m_exec_conf->msg->error() <<"Particle with unique tag " << h_tag.data[n] << " is no longer in the simulation box."
                                   << endl << endl;
 
         m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;

@@ -101,6 +101,19 @@ class ParticleSelector
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
+//! Select all particles
+class ParticleSelectorAll : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorAll(boost::shared_ptr<SystemDefinition> sysdef);
+        virtual ~ParticleSelectorAll() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    };
+
+
 //! Select particles based on their tag
 class ParticleSelectorTag : public ParticleSelector
     {

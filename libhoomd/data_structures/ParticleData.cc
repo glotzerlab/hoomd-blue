@@ -345,8 +345,10 @@ boost::signals2::connection ParticleData::connectMaxParticleNumberChange(const b
     to addParticle() or removeParticle(). Classes that store information e.g.
     for every global particle should subscribe to this signal.
 
-    Changes in global particle number must both be indicated by the particle sort
-    signal (notifyParticleSort(), e.g. to trigger communication), and by the this signal
+    Changes in global particle number imply a local change in particle number (on some processor),
+    and are indicated both by this signal, and notifyParticleSort().
+
+    The signal is to be triggered after all changes to the particle data are complete.
  */
 boost::signals2::connection ParticleData::connectGlobalParticleNumberChange(const boost::function<void ()> &func)
     {
@@ -1838,12 +1840,12 @@ void ParticleData::setOrientation(unsigned int tag, const Scalar4& orientation)
  */
 unsigned int ParticleData::addParticle(unsigned int type)
     {
-    // the global tag of the newly created particle
-    unsigned int tag;
-
     // we are adding at the end of the local particle data,
     // so remove ghosts
     removeAllGhostParticles();
+
+    // the global tag of the newly created particle
+    unsigned int tag;
 
     // first check if we can recycle a deleted tag
     if (m_recycled_tags.size())
@@ -1864,9 +1866,6 @@ unsigned int ParticleData::addParticle(unsigned int type)
 
     // resize array of global reverse lookup tags
     m_rtag.resize(getMaximumTag()+1);
-
-    // update global number of particles
-    setNGlobal(getNGlobal()+1);
 
         {
         // update reverse-lookup table
@@ -1892,7 +1891,9 @@ unsigned int ParticleData::addParticle(unsigned int type)
     if (m_exec_conf->getRank() == 0)
         {
         // resize particle data using amortized O(1) array resizing
-        resize(getN()+1);
+        // and update particle number
+        unsigned int old_nparticles = getN();
+        resize(old_nparticles+1);
 
         // access particle data arrays
         ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
@@ -1904,12 +1905,11 @@ unsigned int ParticleData::addParticle(unsigned int type)
         ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
         #ifdef ENABLE_MPI
         ArrayHandle<unsigned int> h_comm_flag(m_comm_flags, access_location::host, access_mode::readwrite);
         #endif
 
-        unsigned int idx = getN();
+        unsigned int idx = old_nparticles;
 
         // initialize to some sensible default values
         h_pos.data[idx] = make_scalar4(0,0,0,__int_as_scalar(type));
@@ -1922,9 +1922,15 @@ unsigned int ParticleData::addParticle(unsigned int type)
         h_orientation.data[idx] = make_scalar4(0,0,0,0);
         h_tag.data[idx] = tag;
         #ifdef ENABLE_MPI
-        h_comm_flag.data[idx] = 0;
+        if (m_decomposition)
+            {
+            h_comm_flag.data[idx] = 0;
+            }
         #endif
         }
+
+    // update global number of particles
+    setNGlobal(getNGlobal()+1);
 
     // we have added a particle, notify listeners
     notifyParticleSort();
@@ -1956,7 +1962,7 @@ void ParticleData::removeParticle(unsigned int tag)
         {
         int res = is_local ? 1 : 0;
 
-        // check that group is local on some processors
+        // check that particle is local on some processor
         MPI_Allreduce(MPI_IN_PLACE,
                       &res,
                       1,
@@ -1964,7 +1970,7 @@ void ParticleData::removeParticle(unsigned int tag)
                       MPI_SUM,
                       m_exec_conf->getMPICommunicator());
 
-        assert((unsigned int) res <= group_size);
+        assert((unsigned int) res <= 1);
         is_available = res;
         }
     #endif
@@ -2013,7 +2019,10 @@ void ParticleData::removeParticle(unsigned int tag)
             h_tag.data[idx] = h_tag.data[size-1];
             h_rtag.data[idx] = h_rtag.data[size-1];
             #ifdef ENABLE_MPI
-            h_comm_flag.data[idx] = h_comm_flag.data[size-1];
+            if (m_decomposition)
+                {
+                h_comm_flag.data[idx] = h_comm_flag.data[size-1];
+                }
             #endif
 
             unsigned int last_tag = h_tag.data[size-1];
@@ -2148,6 +2157,7 @@ void export_ParticleData()
     .def("getMaximumTag", &ParticleData::getMaximumTag)
     .def("addParticle", &ParticleData::addParticle)
     .def("removeParticle", &ParticleData::removeParticle)
+    .def("getNthTag", &ParticleData::getNthTag)
 #ifdef ENABLE_MPI
     .def("setDomainDecomposition", &ParticleData::setDomainDecomposition)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
