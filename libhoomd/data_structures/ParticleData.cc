@@ -1913,7 +1913,7 @@ unsigned int ParticleData::addParticle(unsigned int type)
 
         // initialize to some sensible default values
         h_pos.data[idx] = make_scalar4(0,0,0,__int_as_scalar(type));
-        h_vel.data[idx] = make_scalar4(0,0,0,0);
+        h_vel.data[idx] = make_scalar4(0,0,0,1.0);
         h_accel.data[idx] = make_scalar3(0,0,0);
         h_charge.data[idx] = 0.0;
         h_diameter.data[idx] = 0.0;
