@@ -160,6 +160,8 @@ void DCDDumpWriter::initFileIO()
 
     m_staging_buffer = new float[m_pdata->getNGlobal()];
     m_is_initialized = true;
+
+    m_nglobal = m_pdata->getNGlobal();
     }
 
 DCDDumpWriter::~DCDDumpWriter()
@@ -196,6 +198,13 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 
     if (! m_is_initialized)
         initFileIO();
+
+    if (m_nglobal != m_pdata->getNGlobal())
+        {
+        m_exec_conf->msg->error() << "analyze.dcd: Change in number of particles unsupported by DCD file format."
+            << std::endl;
+        throw std::runtime_error("Error writing DCD file");
+        }
 
     // the file object
     fstream file;
