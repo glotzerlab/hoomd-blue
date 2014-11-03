@@ -883,10 +883,14 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         // distribute number of particles
         scatter_v(N_proc, m_nparticles, root, mpi_comm);
 
-        // reset all reverse lookup tags to NOT_LOCAL flag
+
             {
+            // reset all reverse lookup tags to NOT_LOCAL flag
             ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::overwrite);
-            for (unsigned int tag = 0; tag < m_nglobal; tag++)
+                
+            // we have to reset all previous rtags, to remove 'leftover' ghosts
+            unsigned int max_tag = m_rtag.size();
+            for (unsigned int tag = 0; tag < max_tag; tag++)
                 h_rtag.data[tag] = NOT_LOCAL;
             }
             
