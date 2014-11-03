@@ -708,6 +708,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     while (! m_recycled_tags.empty())
         m_recycled_tags.pop();
 
+    // global number of particles
+    unsigned int nglobal;
+
 #ifdef ENABLE_MPI
     if (m_decomposition)
         {
@@ -851,8 +854,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         GPUVector< unsigned int> rtag(nglobal, m_exec_conf);
         m_rtag.swap(rtag);
 
-        setNGlobal(nglobal);
-
         // Local particle data
         std::vector<Scalar3> pos;
         std::vector<Scalar3> vel;
@@ -887,6 +888,12 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::overwrite);
             for (unsigned int tag = 0; tag < m_nglobal; tag++)
                 h_rtag.data[tag] = NOT_LOCAL;
+            }
+            
+        // update list of active tags
+        for (unsigned int tag = 0; tag < nglobal; tag++)
+            {
+            m_tag_set.insert(tag);
             }
 
         // we have to allocate even if the number of particles on a processor
@@ -925,11 +932,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             h_comm_flag.data[idx] = 0; // initialize with zero
             }
 
-        // reset ghost particle number
-        m_nghosts = 0;
-
-        // notify about change in ghost particle number
-        notifyGhostParticleNumberChange();
+        // remove all ghost particles
+        removeAllGhostParticles();
         }
     else
 #endif
@@ -945,11 +949,17 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         GPUVector< unsigned int> rtag(snapshot.size, m_exec_conf);
         m_rtag.swap(rtag);
 
-        // Initialize number of particles
-        setNGlobal(snapshot.size);
-
         m_nparticles = snapshot.size;
 
+        // global number of ptls == local number of ptls
+        nglobal = m_nparticles;
+            
+        // update list of active tags
+        for (unsigned int tag = 0; tag < nglobal; tag++)
+            {
+            m_tag_set.insert(tag);
+            }
+            
         // allocate particle data such that we can accomodate the particles
         allocate(snapshot.size);
 
@@ -988,12 +998,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         // initialize type mapping
         m_type_mapping = snapshot.type_mapping;
         }
-
-    // update list of active tags
-    for (unsigned int tag = 0; tag < getNGlobal(); tag++)
-        {
-        m_tag_set.insert(tag);
-        }
+        
+    // set global number of particles
+    setNGlobal(nglobal);
 
     // notify listeners about resorting of local particles
     notifyParticleSort();
