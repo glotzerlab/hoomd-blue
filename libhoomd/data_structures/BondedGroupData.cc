@@ -943,11 +943,27 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
         {
         assert(getN() == getNGlobal());
         std::map<unsigned int, unsigned int>::iterator rtag_it;
-        for (rtag_it = rtag_map.begin(); rtag_it != rtag_map.end(); ++rtag_it)
+        // index in snapshot
+        unsigned int snap_id = 0;
+
+        // loop through active tags
+        std::set<unsigned int>::iterator active_tag_it;
+        for (active_tag_it = m_tag_set.begin(); active_tag_it != m_tag_set.end(); ++active_tag_it)
             {
+            unsigned int group_tag = *active_tag_it;
+            rtag_it = rtag_map.find(group_tag);
+            if (rtag_it == rtag_map.end())
+                {
+                m_exec_conf->msg->error()
+                    << endl << "Could not find " << name << " " << group_tag << ". Possible internal error?"
+                    << endl << endl;
+                throw std::runtime_error("Error gathering "+std::string(name)+"s");
+                }
+
             unsigned int group_idx = rtag_it->second;
-            snapshot.groups[group_idx] = m_groups[group_idx];
-            snapshot.type_id[group_idx] = m_group_type[group_idx];
+            snapshot.groups[snap_id] = m_groups[group_idx];
+            snapshot.type_id[snap_id] = m_group_type[group_idx];
+            snap_id++;
             }
         }
 
