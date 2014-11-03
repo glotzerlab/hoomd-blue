@@ -852,8 +852,6 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
 template<unsigned int group_size, typename Group, const char *name>
 void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) const
     {
-    // FIXME: double-check if this works for non-contiguous bond tags (see ParticleData example)
-
     // allocate memory in snapshot
     snapshot.resize(getNGlobal());
 
@@ -911,8 +909,15 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
 
             // add groups to snapshot
             std::map<unsigned int, std::pair<unsigned int, unsigned int> >::iterator rank_rtag_it;
-            for (unsigned int group_tag = 0; group_tag < getNGlobal(); group_tag++)
+
+            // index in snapshot
+            unsigned int snap_id = 0;
+
+            // loop through active tags
+            std::set<unsigned int>::iterator active_tag_it;
+            for (active_tag_it = m_tag_set.begin(); active_tag_it != m_tag_set.end(); ++active_tag_it)
                 {
+                unsigned int group_tag = *active_tag_it;
                 rank_rtag_it = rank_rtag_map.find(group_tag);
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
@@ -927,8 +932,9 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
                 unsigned int rank = rank_idx.first;
                 unsigned int idx = rank_idx.second;
 
-                snapshot.type_id[group_tag] = types_proc[rank][idx];
-                snapshot.groups[group_tag] = members_proc[rank][idx];
+                snapshot.type_id[snap_id] = types_proc[rank][idx];
+                snapshot.groups[snap_id] = members_proc[rank][idx];
+                snap_id++;
                 }
             }
         }
