@@ -424,24 +424,16 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
     {
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
     unsigned int count = 0;
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    for (unsigned int tag = 0; tag <= m_pdata->getMaximumTag(); tag++)
         {
-        unsigned int num_excluded = h_n_ex_tag.data[i];
+        if (! m_pdata->isTagActive(tag))
+            {
+            continue;
+            }
+        unsigned int num_excluded = h_n_ex_tag.data[tag];
 
         if (num_excluded == size) count++;
         }
-
-    #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &count,
-                      1,
-                      MPI_INT,
-                      MPI_SUM,
-                      m_exec_conf->getMPICommunicator());
-        }
-    #endif
 
     return count;
     }

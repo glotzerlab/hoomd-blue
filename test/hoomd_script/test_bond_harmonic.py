@@ -99,7 +99,7 @@ class bond_harmonic_tests (unittest.TestCase):
         run(100)
 
         self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(2), (17*100+2*10)-3)
-        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10)+1)
+        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10)+2)
         del lj
         del harmonic
 
