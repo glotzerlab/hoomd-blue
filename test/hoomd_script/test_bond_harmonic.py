@@ -68,6 +68,41 @@ class bond_harmonic_tests (unittest.TestCase):
         self.s.bonds.add('polymer',t0,t1)
         run(100)
 
+    # test exclusions in neighbor list
+    def test_exclusions(self):
+        harmonic = bond.harmonic();
+        harmonic.bond_coeff.set('polymer', k=1.0, r0=1.0)
+        lj = pair.lj(r_cut=3.0)
+        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
+        lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0);
+        lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
+        run(100)
+
+        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(2), (17*100+2*10))
+        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10))
+
+        # delete bonds connected to a particle
+        tags = []
+        for b in self.s.bonds:
+            if b.a == 2 or b.b == 2:
+                tags.append(b.tag)
+
+        for t in tags:
+            self.s.bonds.remove(t)
+
+        # delete particle
+        self.s.particles.remove(2)
+
+        run(100)
+
+        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(2), (17*100+2*10)-3)
+        self.assertEqual(globals.neighbor_list.cpp_nlist.getNumExclusions(1), (2*100+2*10)+1)
+        del lj
+        del harmonic
+
     def tearDown(self):
         del self.s
         init.reset();

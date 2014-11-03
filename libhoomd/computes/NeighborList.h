@@ -432,6 +432,7 @@ class NeighborList : public Compute
 
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
+        boost::signals2::connection m_global_particle_num_change_connection; //!< Connection to global particle number change signal
         #ifdef ENABLE_MPI
         boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
         boost::signals2::connection m_comm_flags_request;         //!< Connection to request ghost particle fields
@@ -501,6 +502,12 @@ class NeighborList : public Compute
 
         //! Grow the exclusions list memory capacity by one row
         void growExclusionList();
+
+        //! Method to be called when the global particle number changes
+        void slotGlobalParticleNumberChange()
+            {
+            m_want_exclusions = true;
+            }
     };
 
 //! Exports NeighborList to python

@@ -153,6 +153,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
 
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&NeighborList::reallocate, this));
+    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&NeighborList::slotGlobalParticleNumberChange, this));
 
     // allocate m_update_periods tracking info
     m_update_periods.resize(100);
@@ -195,6 +196,7 @@ NeighborList::~NeighborList()
 
     m_sort_connection.disconnect();
     m_max_particle_num_change_connection.disconnect();
+    m_global_particle_num_change_connection.disconnect();
 #ifdef ENABLE_MPI
     if (m_migrate_request_connection.connected())
         m_migrate_request_connection.disconnect();
