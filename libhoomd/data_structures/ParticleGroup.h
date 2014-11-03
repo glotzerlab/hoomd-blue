@@ -222,7 +222,8 @@ class ParticleGroup
         ParticleGroup() : m_num_local_members(0) {};
 
         //! Constructs a particle group of all particles that meet the given selection
-        ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector);
+        ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector,
+            bool update_tags = true);
 
         //! Constructs a particle group given a list of tags
         ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags);
@@ -231,7 +232,7 @@ class ParticleGroup
         ~ParticleGroup();
 
         //! Updates the members tags of a particle group according to a selection
-        void updateMemberTags();
+        void updateMemberTags(bool force_update);
 
         // @}
         //! \name Accessor methods
@@ -358,6 +359,8 @@ class ParticleGroup
         GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
         boost::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
 
+        bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
+
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;                //!< moderngpu context
         #endif
@@ -372,6 +375,13 @@ class ParticleGroup
             {
             m_particles_sorted = true;
             }
+
+        //! Helper function to be called when particles are added/removed
+        void slotGlobalParticleNumChange()
+            {
+            updateMemberTags(false);
+            }
+
 
         //! Helper function to build the 1:1 hash for tag membership
         void buildTagHash();

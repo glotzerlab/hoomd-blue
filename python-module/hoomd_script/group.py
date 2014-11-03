@@ -86,6 +86,11 @@ from hoomd_script import init;
 # - group.intersection()
 # - group.union()
 #
+# \note Groups need to be consistent with the particle data. If a particle member is removed from the simulation,
+# it will be temporarily removed from the group as well, that is, even though the group reports that tag as a member,
+# it will act as if the particle was not existent. If a particle with the same tag is later added to the simulation,
+# it will become member of the group again.
+#
 # \b Examples:
 # \code
 # # create a group containing all particles in group A and those with
@@ -249,6 +254,9 @@ def all():
 # Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
 #
+# \note Membership in group.cuboid() is defined at time of group creation. Once created, the group
+# is not updated when particles are added or removed.
+#
 # \b Examples:
 # \code
 # slab = group.cuboid(name="slab", ymin=-3, ymax=3)
@@ -355,8 +363,8 @@ def rigid():
 
     # create the group
     name = 'rigid';
-    selector = hoomd.ParticleSelectorRigid(globals.system_definition, True);
-    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+    selector = hoomd.ParticleSelectorRigid(globals.system_definition);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector, update);
 
     # notify the user of the created group
     globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
@@ -369,6 +377,7 @@ def rigid():
 # \param tag_min First tag in the range to include (inclusive)
 # \param tag_max Last tag in the range to include (inclusive)
 # \param name User-assigned name for this group. If a name is not specified, a default one will be generated.
+# \param update If true, update list of group members when particles are added to or removed from the simulation
 #
 # The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
 # added to the group.
@@ -385,7 +394,7 @@ def rigid():
 # half1 = group.tags(name="first-half", tag_min=0, tag_max=999)
 # half2 = group.tags(name="second-half", tag_min=1000, tag_max=1999)
 # \endcode
-def tags(tag_min, tag_max=None, name=None):
+def tags(tag_min, tag_max=None, name=None, update=False):
     util.print_status_line();
 
     # check if initialization has occurred
@@ -406,7 +415,7 @@ def tags(tag_min, tag_max=None, name=None):
 
     # create the group
     selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
-    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector, update);
 
     # notify the user of the created group
     globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
@@ -456,6 +465,7 @@ def tag_list(name, tags):
 #
 # \param type Name of the particle type to add to the group
 # \param name User-assigned name for this group. If a name is not specified, a default one will be generated.
+# \param update If true, update list of group members when particles are added to or removed from the simulation
 #
 # Group membership is \b static and determined at the time the group is created. Changing a particle type at a later
 # time will not update the group.
@@ -471,7 +481,7 @@ def tag_list(name, tags):
 # groupA = group.type(name='a-particles', type='A')
 # groupB = group.type(name='b-particles', type='B')
 # \endcode
-def type(type, name=None):
+def type(type, name=None, update=False):
     util.print_status_line();
 
     # check if initialization has occurred
@@ -495,7 +505,7 @@ def type(type, name=None):
     else:
         type_id = globals.system_definition.getParticleData().getTypeByName(type);
         selector = hoomd.ParticleSelectorType(globals.system_definition, type_id, type_id);
-        cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+        cpp_group = hoomd.ParticleGroup(globals.system_definition, selector, update);
 
     # notify the user of the created group
     globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
@@ -512,6 +522,8 @@ def type(type, name=None):
 #
 # Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
+#
+# \npte This group currently does not support being updated when the number of particles changes.
 #
 # \b Examples:
 # \code
