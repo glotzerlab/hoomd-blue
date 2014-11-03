@@ -138,7 +138,7 @@ from hoomd_script import util
 # >>> p.tag
 # 4
 # \endcode
-# (note that p can be replaced with system.particles.[i] above and the results are the same)
+# (note that p can be replaced with system.particles[i] above and the results are the same)
 # - Particle properties can be set in the same way:
 # \code
 # >>> p.position = (1,2,3)
@@ -167,9 +167,23 @@ from hoomd_script import util
 # \code
 # >>> del system.particles[0]
 # >>> print(system.particles[0])
-# **Need to put output here**
+# tag         : 1
+# position    : (23.846603393554688, -27.558368682861328, -20.501256942749023)
+# image       : (0, 0, 0)
+# velocity    : (0.0, 0.0, 0.0)
+# acceleration: (0.0, 0.0, 0.0)
+# charge      : 0.0
+# mass        : 1.0
+# diameter    : 1.0
+# type        : A
+# typeid      : 0
+# body        : 4294967295
+# orientation : (1.0, 0.0, 0.0, 0.0)
+# net_force   : (0.0, 0.0, 0.0)
+# net_energy  : 0.0
+# net_torque  : (0.0, 0.0, 0.0)
 # \endcode
-# \note Regarding the previous note: see how the last particle added is now at index 0. No guarantee is made about how the
+# \note The particle with tag 1 is now at index 0. No guarantee is made about how the
 # order of particles by index will or will not change, so do not write any job scripts which assume a given ordering.
 #
 # To access particles in an index-independent manner, use their tags. For example, to remove all particles
