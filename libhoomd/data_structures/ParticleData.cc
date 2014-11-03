@@ -2017,7 +2017,7 @@ void ParticleData::removeParticle(unsigned int tag)
             h_body.data[idx] = h_body.data[size-1];
             h_orientation.data[idx] = h_orientation.data[size-1];
             h_tag.data[idx] = h_tag.data[size-1];
-            h_rtag.data[idx] = h_rtag.data[size-1];
+                
             #ifdef ENABLE_MPI
             if (m_decomposition)
                 {
@@ -2026,7 +2026,7 @@ void ParticleData::removeParticle(unsigned int tag)
             #endif
 
             unsigned int last_tag = h_tag.data[size-1];
-            m_rtag[last_tag] = idx;
+            h_rtag.data[last_tag] = idx;
             }
 
         // update particle number

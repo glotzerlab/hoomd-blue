@@ -115,6 +115,9 @@ using namespace std;
 /*! @}
 */
 
+//! Feature-define for HOOMD API
+#define HOOMD_SUPPORTS_ADD_REMOVE_PARTICLES
+
 // Forward declaration of Profiler
 class Profiler;
 
