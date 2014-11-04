@@ -1930,7 +1930,7 @@ unsigned int ParticleData::addParticle(unsigned int type)
         h_diameter.data[idx] = 0.0;
         h_image.data[idx] = make_int3(0,0,0);
         h_body.data[idx] = NO_BODY;
-        h_orientation.data[idx] = make_scalar4(0,0,0,0);
+        h_orientation.data[idx] = make_scalar4(1.0,0.0,0.0,0.0);
         h_tag.data[idx] = tag;
         #ifdef ENABLE_MPI
         if (m_decomposition)
