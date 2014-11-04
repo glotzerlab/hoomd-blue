@@ -856,6 +856,9 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     // connect to particle sort signal
     m_sort_connection = m_pdata->connectParticleSort(boost::bind(&Communicator::forceMigrate, this));
 
+    // connect to particle sort signal
+    m_ghost_particles_removed_connection = m_pdata->connectGhostParticlesRemoved(boost::bind(&Communicator::slotGhostParticlesRemoved, this));
+
     /*
      * Bonded group communication
      */
@@ -1104,18 +1107,7 @@ void Communicator::migrateParticles()
     if (m_prof)
         m_prof->push("comm_migrate");
 
-        {
-        // wipe out reverse-lookup tag -> idx for old ghost atoms
-        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
-        for (unsigned int i = 0; i < m_pdata->getNGhosts(); i++)
-            {
-            unsigned int idx = m_pdata->getN() + i;
-            h_rtag.data[h_tag.data[idx]] = NOT_LOCAL;
-            }
-        }
-
-    //  reset ghost particle number
+    // remove ghost particles from system
     m_pdata->removeAllGhostParticles();
 
     // get box dimensions
@@ -1610,9 +1602,6 @@ void Communicator::exchangeGhosts()
             }
         } // end dir loop
 
-    // we have updated ghost particles, so inform ParticleData about this
-    m_pdata->notifyGhostParticleNumberChange();
-
     m_last_flags = flags;
 
     if (m_prof)
@@ -1791,6 +1780,18 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 
         if (m_prof)
             m_prof->pop();
+    }
+
+void Communicator::removeGhostParticleTags()
+    {
+    // wipe out reverse-lookup tag -> idx for old ghost atoms
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
+    for (unsigned int i = 0; i < m_pdata->getNGhosts(); i++)
+        {
+        unsigned int idx = m_pdata->getN() + i;
+        h_rtag.data[h_tag.data[idx]] = NOT_LOCAL;
+        }
     }
 
 const BoxDim Communicator::getShiftedBox() const

@@ -650,8 +650,8 @@ class ParticleData : boost::noncopyable
         //! Connects a function to be called every time the local maximum particle number changes
         boost::signals2::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
 
-        //! Connects a function to be called every time the ghost particles are updated
-        boost::signals2::connection connectGhostParticleNumberChange(const boost::function< void()> &func);
+        //! Connects a function to be called every time the ghost particles are reinitialized
+        boost::signals2::connection connectGhostParticlesRemoved(const boost::function< void()> &func);
 
         #ifdef ENABLE_MPI
         //! Connects a function to be called every time a single particle migration is requested
@@ -659,8 +659,8 @@ class ParticleData : boost::noncopyable
             const boost::function<void (unsigned int, unsigned int, unsigned int)> &func);
         #endif
 
-        //! Notify listeners that the number of ghost particles has changed
-        void notifyGhostParticleNumberChange();
+        //! Notify listeners that ghost particles have been removed
+        void notifyGhostParticlesRemoved();
 
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name) const;
@@ -844,7 +844,7 @@ class ParticleData : boost::noncopyable
         //! Remove all ghost particles from system
         void removeAllGhostParticles()
             {
-            notifyGhostParticleNumberChange();
+            notifyGhostParticlesRemoved();
             m_nghosts = 0;
             }
 
@@ -949,7 +949,7 @@ class ParticleData : boost::noncopyable
         boost::signals2::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
         boost::signals2::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
         boost::signals2::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
-        boost::signals2::signal<void ()> m_ghost_particle_num_signal; //!< Signal that is triggered when ghost particles are added to or deleted
+        boost::signals2::signal<void ()> m_ghost_particles_removed_signal; //!< Signal that is triggered when ghost particles are removed
         boost::signals2::signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
 
         #ifdef ENABLE_MPI

@@ -355,11 +355,24 @@ boost::signals2::connection ParticleData::connectGlobalParticleNumberChange(cons
     return m_global_particle_num_signal.connect(func);
     }
 
-/*! This function must be called any time the ghost particles are updated.
+/*! \param func Function to be called when the ghost particles are remove
+    \return Connection to manage the signal
  */
-void ParticleData::notifyGhostParticleNumberChange()
+boost::signals2::connection ParticleData::connectGhostParticlesRemoved(const boost::function<void ()> &func)
     {
-    m_ghost_particle_num_signal();
+    return m_ghost_particles_removed_signal.connect(func);
+    }
+
+/*! This function is called any time the ghost particles are removed
+ *
+ * The rationale is that a subscriber (i.e. the Communicator) can perform clean-up for ghost particles
+ * it has created. The current ghost particle number is still available through
+ * getNGhosts() at the time the signal is triggered.
+ *
+ */
+void ParticleData::notifyGhostParticlesRemoved()
+    {
+    m_ghost_particles_removed_signal();
     }
 
 #ifdef ENABLE_MPI
@@ -887,13 +900,13 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             {
             // reset all reverse lookup tags to NOT_LOCAL flag
             ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::overwrite);
-                
+
             // we have to reset all previous rtags, to remove 'leftover' ghosts
             unsigned int max_tag = m_rtag.size();
             for (unsigned int tag = 0; tag < max_tag; tag++)
                 h_rtag.data[tag] = NOT_LOCAL;
             }
-            
+
         // update list of active tags
         for (unsigned int tag = 0; tag < nglobal; tag++)
             {
@@ -1142,7 +1155,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             for (unsigned int snap_id = 0; snap_id < getNGlobal(); snap_id++)
                 {
                 unsigned int tag = *tag_set_it;
-                assert(tag < m_nglobal);
+                assert(tag <= getMaximumTag());
                 rank_rtag_it = rank_rtag_map.find(tag);
 
                 if (rank_rtag_it == rank_rtag_map.end())
@@ -1851,8 +1864,7 @@ void ParticleData::setOrientation(unsigned int tag, const Scalar4& orientation)
  */
 unsigned int ParticleData::addParticle(unsigned int type)
     {
-    // we are adding at the end of the local particle data,
-    // so remove ghosts
+    // we are changing the local number of particles, so remove ghosts
     removeAllGhostParticles();
 
     // the global tag of the newly created particle
@@ -1895,9 +1907,6 @@ unsigned int ParticleData::addParticle(unsigned int type)
         }
 
     assert(tag <= m_recycled_tags.size() + getNGlobal());
-
-    //  because we are adding particles, we have to invalidate the ghosts particles
-    removeAllGhostParticles();
 
     if (m_exec_conf->getRank() == 0)
         {
@@ -1958,6 +1967,9 @@ void ParticleData::removeParticle(unsigned int tag)
         m_exec_conf->msg->error() << "Cannot have zero particles!" << endl;
         throw runtime_error("Error removing particle");
         }
+
+    // we are changing the local number of particles, so remove ghosts
+    removeAllGhostParticles();
 
     // sanity check
     if (tag >= m_rtag.size())

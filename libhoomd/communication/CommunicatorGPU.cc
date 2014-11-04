@@ -1165,21 +1165,7 @@ void CommunicatorGPU::migrateParticles()
     if (m_prof)
         m_prof->push(m_exec_conf,"comm_migrate");
 
-    if (m_last_flags[comm_flag::tag])
-        {
-        // Reset reverse lookup tags of old ghost atoms
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-
-        gpu_reset_rtags(m_pdata->getNGhosts(),
-                        d_tag.data + m_pdata->getN(),
-                        d_rtag.data);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        }
-
-    // reset ghost particle number
+    // remove ghost particles from system
     m_pdata->removeAllGhostParticles();
 
     // main communication loop
@@ -1444,6 +1430,23 @@ void CommunicatorGPU::migrateParticles()
         } // end communication stage
 
     if (m_prof) m_prof->pop(m_exec_conf);
+    }
+
+void CommunicatorGPU::removeGhostParticleTags()
+    {
+    if (m_last_flags[comm_flag::tag])
+        {
+        // Reset reverse lookup tags of old ghost atoms
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+
+        gpu_reset_rtags(m_pdata->getNGhosts(),
+                        d_tag.data + m_pdata->getN(),
+                        d_rtag.data);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
     }
 
 //! Build a ghost particle list, exchange ghost particle data with neighboring processors
@@ -2023,9 +2026,6 @@ void CommunicatorGPU::exchangeGhosts()
     m_last_flags = flags;
 
     if (m_prof) m_prof->pop(m_exec_conf);
-
-    // we have updated ghost particles, so notify subscribers about this
-    m_pdata->notifyGhostParticleNumberChange();
     }
 
 //! Perform ghosts update
