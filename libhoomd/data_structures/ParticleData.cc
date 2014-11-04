@@ -706,6 +706,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
     m_exec_conf->msg->notice(4) << "ParticleData: initializing from snapshot" << std::endl;
 
+    // remove all ghost particles
+    removeAllGhostParticles();
+
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
         {
@@ -948,9 +951,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
             h_comm_flag.data[idx] = 0; // initialize with zero
             }
-
-        // remove all ghost particles
-        removeAllGhostParticles();
         }
     else
 #endif
