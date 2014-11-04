@@ -1015,7 +1015,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         // initialize type mapping
         m_type_mapping = snapshot.type_mapping;
         }
-        
+
     // set global number of particles
     setNGlobal(nglobal);
 
