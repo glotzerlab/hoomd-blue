@@ -1186,7 +1186,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         for (unsigned int snap_id = 0; snap_id < m_nparticles; snap_id++)
             {
             unsigned int tag = *it;
-            assert(tag < m_nglobal);
+            assert(tag <= getMaximumTag());
             unsigned int idx = h_rtag.data[tag];
             assert(idx < m_nparticles);
 
@@ -1953,6 +1953,12 @@ unsigned int ParticleData::addParticle(unsigned int type)
  */
 void ParticleData::removeParticle(unsigned int tag)
     {
+    if (getNGlobal()==1)
+        {
+        m_exec_conf->msg->error() << "Cannot have zero particles!" << endl;
+        throw runtime_error("Error removing particle");
+        }
+
     // sanity check
     if (tag >= m_rtag.size())
         {
@@ -2353,7 +2359,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
             if (h_comm_flags.data[i])
                 {
                 unsigned int tag = h_tag.data[i];
-                assert(tag < getNGlobal());
+                assert(tag <= getMaximumTag());
                 h_rtag.data[tag] = NOT_LOCAL;
                 num_remove_ptls++;
                 }
