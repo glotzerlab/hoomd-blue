@@ -375,6 +375,16 @@ void ParticleData::notifyGhostParticlesRemoved()
     m_ghost_particles_removed_signal();
     }
 
+/*! \param func Function to be called when the number of types changes
+    \return Connection to manage the signal
+ */
+boost::signals2::connection ParticleData::connectNumTypesChange(const boost::function<void ()> &func)
+    {
+    return m_num_types_signal.connect(func);
+    }
+
+
+
 #ifdef ENABLE_MPI
 /*! \param func Function to be called when a single particle moves between domains
     \return Connection to manage the signal
@@ -1026,7 +1036,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
 
-    m_exec_conf->msg->notice(4) << "ParticleData: finished initializing from snapshot" << std::endl;
+    // notify listeners that number of types has changed
+    m_num_types_signal();
     }
 
 //! take a particle data snapshot
@@ -1226,8 +1237,6 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
         }
 
     snapshot.type_mapping = m_type_mapping;
-
-    m_exec_conf->msg->notice(4) << "ParticleData: finished taking snapshot" << std::endl;
     }
 
 //! Add ghost particles at the end of the local particle data
@@ -2188,6 +2197,7 @@ void export_ParticleData()
     .def("setDomainDecomposition", &ParticleData::setDomainDecomposition)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
 #endif
+    .def("addType", &ParticleData::addType)
     ;
     }
 
@@ -2732,6 +2742,17 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
 
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
+
+unsigned int ParticleData::addType(const std::string& type_name)
+    {
+    m_type_mapping.push_back(type_name);
+
+    // inform listeners about the number of types change
+    m_num_types_signal();
+
+    // return id of newly added type
+    return m_type_mapping.size() - 1;
+    }
 
 void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned int nz,
         const BoxDim& old_box, const BoxDim& new_box)

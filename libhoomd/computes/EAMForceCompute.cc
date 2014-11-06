@@ -90,12 +90,15 @@ EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, cha
     // initialize the number of types value
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
-    }
 
+    // connect to the ParticleData to receive notifications when the number of particle types changes
+    m_num_type_change_connection = m_pdata->connectNumTypesChange(bind(&EAMForceCompute::slotNumTypesChange, this));
+    }
 
 EAMForceCompute::~EAMForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying EAMForceCompute" << endl;
+    m_num_type_change_connection.disconnect();
     }
 
 /*

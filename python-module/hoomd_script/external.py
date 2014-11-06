@@ -196,6 +196,10 @@ class coeff:
         for i in range(0,ntypes):
             type = type_list[i];
 
+            if type not in self.values.keys() and len(required_coeffs):
+                globals.msg.error("Particle type " + type + " is missing required coefficients\n");
+                return False
+
             # verify that all required values are set by counting the matches
             count = 0;
             for coeff_name in self.values[type].keys():
@@ -206,7 +210,7 @@ class coeff:
                     count += 1;
 
             if count != len(required_coeffs):
-                globals.msg.error("Particle type", type, "is missing required coefficients\n");
+                globals.msg.error("Particle type " + type + " is missing required coefficients\n");
                 valid = False;
 
         return valid;

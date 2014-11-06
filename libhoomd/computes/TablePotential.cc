@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 using namespace boost::python;
 
@@ -106,11 +107,33 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     assert(!m_params.isNull());
 
     m_log_name = std::string("pair_table_energy") + log_suffix;
+
+    // connect to the ParticleData to receive notifications when the number of types changes
+    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&TablePotential::slotNumTypesChange, this));
     }
 
 TablePotential::~TablePotential()
     {
     m_exec_conf->msg->notice(5) << "Destroying TablePotential" << endl;
+
+    m_num_type_change_connection.disconnect();
+    }
+
+void TablePotential::slotNumTypesChange()
+    {
+    // initialize the number of types value
+    m_ntypes = m_pdata->getNTypes();
+    assert(m_ntypes > 0);
+
+    // allocate storage for the tables and parameters
+    Index2DUpperTriangular table_index(m_ntypes);
+    GPUArray<Scalar2> tables(m_table_width, table_index.getNumElements(), exec_conf);
+    m_tables.swap(tables);
+    GPUArray<Scalar4> params(table_index.getNumElements(), exec_conf);
+    m_params.swap(params);
+
+    assert(!m_tables.isNull());
+    assert(!m_params.isNull());
     }
 
 /*! \param typ1 First particle type index in the pair to set

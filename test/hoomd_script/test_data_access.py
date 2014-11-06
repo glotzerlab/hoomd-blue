@@ -143,6 +143,17 @@ class particle_data_access_tests (unittest.TestCase):
         else:
             del self.s.particles[101];
 
+        t = self.s.particles.types
+        self.assertEqual(len(t),1)
+        self.assertEqual(t[0], 'A')
+        t[0] = 'B'
+        self.assertEqual(t[0], 'B')
+        self.assertEqual(t.add('C'),1)
+        with self.assertRaises(RuntimeError):
+            t.add('C')
+        self.assertEqual(len(t),2)
+        self.assertEqual(t[1], 'C')
+
     def tearDown(self):
         del self.s
         init.reset();
