@@ -9,7 +9,7 @@ import os
 class pair_cgcmm_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_random(N=100, phi_p=0.05);
 
         sorter.set_params(grid=8)
 
@@ -35,6 +35,16 @@ class pair_cgcmm_tests (unittest.TestCase):
         cgcmm = pair.cgcmm(r_cut=2.5);
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+
+    # test adding types
+    def test_type_add(self):
+        cgcmm = pair.cgcmm(r_cut=3.0);
+        cgcmm.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
+        self.s.particles.types.add('B')
+        self.assertRaises(RuntimeError, cgcmm.update_coeffs);
+        cgcmm.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
+        cgcmm.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
+        cgcmm.update_coeffs();
 
     def tearDown(self):
         init.reset();

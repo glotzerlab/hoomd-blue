@@ -102,6 +102,15 @@ CGCMMForceComputeGPU::~CGCMMForceComputeGPU()
     {
     }
 
+void CGCMMForceComputeGPU::slotNumTypesChange()
+    {
+    CGCMMForceCompute::slotNumTypesChange();
+
+    // re-allocate the coeff data on the CPU
+    GPUArray<Scalar4> coeffs(m_pdata->getNTypes()*m_pdata->getNTypes(),exec_conf);
+    m_coeffs.swap(coeffs);
+    }
+
 /*! \param block_size Size of the block to run on the device
     Performance of the code may be dependant on the block size run
     on the GPU. \a block_size should be set to be a multiple of 32.
