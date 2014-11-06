@@ -133,10 +133,12 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
-    GPUArray<unsigned int> n_ex_tag(m_pdata->getMaximumTag()+1, exec_conf);
+
+    // note: this breaks O(N/P) memory scaling
+    GPUArray<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
 
-    GPUArray<unsigned int> ex_list_tag(m_pdata->getMaximumTag()+1, 1, exec_conf);
+    GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
 
     GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
@@ -176,10 +178,10 @@ void NeighborList::reallocate()
 
     m_n_neigh.resize(m_pdata->getMaxN());
 
-    if (m_n_ex_tag.getNumElements() != m_pdata->getMaximumTag()+1)
+    if (m_n_ex_tag.getNumElements() != m_pdata->getRTags().size())
         {
-        m_n_ex_tag.resize(m_pdata->getMaximumTag()+1);
-        m_ex_list_tag.resize(m_pdata->getMaximumTag()+1, m_ex_list_tag.getHeight());
+        m_n_ex_tag.resize(m_pdata->getRTags().size());
+        m_ex_list_tag.resize(m_pdata->getRTags().size(), m_ex_list_tag.getHeight());
         m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
 
         // clear all exclusions
@@ -354,8 +356,8 @@ Scalar NeighborList::estimateNNeigh()
 */
 void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     {
-    assert(tag1 < m_pdata->getMaximumTag()+1);
-    assert(tag2 < m_pdata->getMaximumTag()+1);
+    assert(tag1 <= m_pdata->getMaximumTag());
+    assert(tag2 <= m_pdata->getMaximumTag());
 
     m_exclusions_set = true;
 
@@ -412,7 +414,7 @@ void NeighborList::clearExclusions()
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
-    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getMaximumTag()+1);
+    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getRTags().size());
     memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_pdata->getN());
     m_exclusions_set = false;
 
@@ -424,7 +426,8 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
     {
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
     unsigned int count = 0;
-    for (unsigned int tag = 0; tag <= m_pdata->getMaximumTag(); tag++)
+    unsigned int ntags = m_pdata->getRTags().size();
+    for (unsigned int tag = 0; tag <= ntags; tag++)
         {
         if (! m_pdata->isTagActive(tag))
             {
@@ -452,7 +455,7 @@ void NeighborList::countExclusions()
     for (unsigned int c=0; c <= MAX_COUNT_EXCLUDED+1; ++c)
         excluded_count[c] = 0;
 
-    unsigned int max_tag = m_pdata->getMaximumTag()+1;
+    unsigned int max_tag = m_pdata->getRTags().size();
     for (unsigned int i = 0; i < max_tag; i++)
         {
         num_excluded = h_n_ex_tag.data[i];
@@ -628,7 +631,7 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
 void NeighborList::addOneThreeExclusionsFromTopology()
     {
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getMaximumTag()+1;
+    const unsigned int myNAtoms = m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
 
@@ -707,7 +710,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 void NeighborList::addOneFourExclusionsFromTopology()
     {
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getMaximumTag()+1;
+    const unsigned int myNAtoms = m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
 
@@ -1308,7 +1311,7 @@ void NeighborList::growExclusionList()
     {
     unsigned int new_height = m_ex_list_indexer.getH() + 1;
 
-    m_ex_list_tag.resize(m_pdata->getMaximumTag()+1, new_height);
+    m_ex_list_tag.resize(m_pdata->getRTags().size(), new_height);
     m_ex_list_idx.resize(m_pdata->getMaxN(), new_height);
 
     // update the indexers

@@ -529,7 +529,7 @@ class ParticleData : boost::noncopyable
         const GPUArray< unsigned int >& getTags() const { return m_tag; }
 
         //! Return reverse-lookup tags
-        const GPUArray< unsigned int >& getRTags() const { return m_rtag; }
+        const GPUVector< unsigned int >& getRTags() const { return m_rtag; }
 
         //! Return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
@@ -748,11 +748,15 @@ class ParticleData : boost::noncopyable
             return it != m_tag_set.cend();
             }
 
-        //! Return the maximum particle tag in the simulation
+        /*! Return the maximum particle tag in the simulation
+         * \note If there are zero particles in the simulation, returns UINT_MAX
+         */
         unsigned int getMaximumTag() const
             {
-            assert(!m_tag_set.empty());
-            return *m_tag_set.rbegin();
+            if (m_tag_set.empty())
+                return UINT_MAX;
+            else
+                return *m_tag_set.rbegin();
             }
 
         //! Get the orientation of a particle with a given tag

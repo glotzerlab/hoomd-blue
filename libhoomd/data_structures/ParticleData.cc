@@ -1962,9 +1962,9 @@ unsigned int ParticleData::addParticle(unsigned int type)
  */
 void ParticleData::removeParticle(unsigned int tag)
     {
-    if (getNGlobal()==1)
+    if (getNGlobal()==0)
         {
-        m_exec_conf->msg->error() << "Cannot have zero particles!" << endl;
+        m_exec_conf->msg->error() << "Trying to remove particle when there are zero particles!" << endl;
         throw runtime_error("Error removing particle");
         }
 
@@ -2067,9 +2067,6 @@ void ParticleData::removeParticle(unsigned int tag)
 
     // maintain a stack of deleted group tags for future recycling
     m_recycled_tags.push(tag);
-
-    // update size of reverse-lookup array to reflect maximum particle tag
-    m_rtag.resize(getMaximumTag()+1);
 
     // update global particle number
     setNGlobal(getNGlobal()-1);

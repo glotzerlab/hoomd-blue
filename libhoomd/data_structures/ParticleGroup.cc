@@ -132,7 +132,7 @@ ParticleSelectorTag::ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sys
     if (m_tag_max < m_tag_min)
         m_exec_conf->msg->warning() << "group: max < min specified when selecting particle tags" << endl;
 
-    if (m_tag_max > m_pdata->getMaximumTag())
+    if (!m_pdata->getNGlobal() || m_tag_max > m_pdata->getMaximumTag())
         {
         m_exec_conf->msg->error() << "Cannot select particles with tags larger than the number of particles "
              << endl;
@@ -343,7 +343,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
     GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
 
-    GPUArray<unsigned char> is_member_tag(m_pdata->getMaximumTag()+1, m_pdata->getExecConf());
+    GPUArray<unsigned char> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
 
     // build the reverse lookup table for tags
@@ -451,7 +451,7 @@ void ParticleGroup::updateMemberTags(bool force_update)
     GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
 
-    GPUArray<unsigned char> is_member_tag(m_pdata->getMaximumTag()+1, m_pdata->getExecConf());
+    GPUArray<unsigned char> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
 
     // build the reverse lookup table for tags
@@ -465,10 +465,10 @@ void ParticleGroup::reallocate()
     {
     m_is_member.resize(m_pdata->getMaxN());
 
-    if (m_is_member_tag.getNumElements() != m_pdata->getMaximumTag()+1)
+    if (m_is_member_tag.getNumElements() != m_pdata->getRTags().size())
         {
         // reallocate if necessary
-        GPUArray<unsigned char> is_member_tag(m_pdata->getMaximumTag()+1, m_exec_conf);
+        GPUArray<unsigned char> is_member_tag(m_pdata->getRTags().size(), m_exec_conf);
         m_is_member_tag.swap(is_member_tag);
 
         buildTagHash();
@@ -664,7 +664,7 @@ void ParticleGroup::buildTagHash()
     ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
 
     // reset member ship flags
-    memset(h_is_member_tag.data, 0, sizeof(unsigned char)*(m_pdata->getMaximumTag()+1));
+    memset(h_is_member_tag.data, 0, sizeof(unsigned char)*(m_pdata->getRTags().size()));
 
     unsigned int num_members = m_member_tags.getNumElements();
     for (unsigned int member = 0; member < num_members; member++)
