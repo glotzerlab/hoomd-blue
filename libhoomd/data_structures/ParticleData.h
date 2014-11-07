@@ -748,7 +748,7 @@ class ParticleData : boost::noncopyable
         bool isTagActive(unsigned int tag) const
             {
             std::set<unsigned int>::const_iterator it = m_tag_set.find(tag);
-            return it != m_tag_set.cend();
+            return it != m_tag_set.end();
             }
 
         /*! Return the maximum particle tag in the simulation
