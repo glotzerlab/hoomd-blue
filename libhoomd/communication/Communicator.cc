@@ -1093,16 +1093,8 @@ void Communicator::migrateParticles()
     {
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
-    // check if box is sufficiently large for communication
-    Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
-    const Index3D& di = m_decomposition->getDomainIndexer();
-    if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
-        (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
-        (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
-        {
-        m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
-        throw std::runtime_error("Error during communication");
-        }
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
 
     if (m_prof)
         m_prof->push("comm_migrate");
@@ -1225,6 +1217,9 @@ void Communicator::migrateParticles()
 //! Build ghost particle list, exchange ghost particle data
 void Communicator::exchangeGhosts()
     {
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
+
     if (m_prof)
         m_prof->push("comm_ghost_exch");
 
