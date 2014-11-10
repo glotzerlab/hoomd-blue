@@ -781,7 +781,8 @@ class pdata_types_proxy:
         ntypes = self.pdata.getNTypes();
         for i in range(0,ntypes):
             if self.pdata.getNameByType(i) == name:
-                raise RuntimeError('Type name already defined');
+                globals.msg.warning("Type '"+name+"' already defined.\n");
+                return i
 
         typeid = self.pdata.addType(name);
         return typeid
