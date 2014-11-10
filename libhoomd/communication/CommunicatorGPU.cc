@@ -1438,6 +1438,9 @@ void CommunicatorGPU::migrateParticles()
 //! Build a ghost particle list, exchange ghost particle data with neighboring processors
 void CommunicatorGPU::exchangeGhosts()
     {
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
+
     if (m_prof) m_prof->push(m_exec_conf, "comm_ghost_exch");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;

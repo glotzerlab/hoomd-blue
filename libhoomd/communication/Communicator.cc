@@ -1221,6 +1221,9 @@ void Communicator::migrateParticles()
 //! Build ghost particle list, exchange ghost particle data
 void Communicator::exchangeGhosts()
     {
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
+
     if (m_prof)
         m_prof->push("comm_ghost_exch");
 

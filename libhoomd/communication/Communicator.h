@@ -654,6 +654,20 @@ class Communicator
             m_impropers_changed = true;
             }
 
+        // check if box is sufficiently large for communication
+        void checkBoxSize()
+            {
+            Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
+            const Index3D& di = m_decomposition->getDomainIndexer();
+            if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
+                (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
+                (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
+                {
+                m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
+                throw std::runtime_error("Error during communication");
+                }
+            }
+
     private:
         std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent
         std::vector<pdata_element> m_recvbuf;  //!< Buffer for particles that are received
