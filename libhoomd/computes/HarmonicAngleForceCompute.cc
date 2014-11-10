@@ -195,7 +195,7 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
         const AngleData::members_t& angle = m_angle_data->getMembersByIndex(i);
         assert(angle.tag[0] < m_pdata->getNGlobal());
         assert(angle.tag[1] < m_pdata->getNGlobal());
-        assert(angle.tag[1] < m_pdata->getNGlobal());
+        assert(angle.tag[2] < m_pdata->getNGlobal());
 
         // transform a, b, and c into indices into the particle data arrays
         // MEM TRANSFER: 6 ints
