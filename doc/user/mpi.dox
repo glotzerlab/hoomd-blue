@@ -56,6 +56,7 @@ Table of contents:
  - \ref sec_mpi_best_practices
  - \ref sec_mpi_troubleshooting
  - \ref sec_mpi_features
+ - \ref sec_mpi_bluewaters
 <hr>
 
 
@@ -170,7 +171,7 @@ but even on such systems typical benchmarks still run faster with `ENABLE_MPI_CU
 HOOMD does support *GPUDirect RDMA* with network adapters that support it (i.e. Mellanox) and compatible GPUs (Kepler),
 through a cuda-aware MPI library (i.e. OpenMPI 1.7.5 or MVAPICH 2.0b GDR). On HOOMD's side, nothing is required beyond setting
 'ENABLE_MPI_CUDA' to **ON** before compilation. On the side of the MPI library, special flags may need to be set
-to enable *GPUDirect RDMA*, consult the documentation of your MPI library for that. 
+to enable *GPUDirect RDMA*, consult the documentation of your MPI library for that.
 
 \subsection sec_mpi_linear Slab decomposition
 
@@ -253,4 +254,72 @@ These features are not currently supported in MPI execution
 - wall.lj
 
 Unsupported features may be made available in later releases.
+
+\section sec_mpi_bluewaters Blue Waters (and other Cray XK7 systems)
+
+### Software prerequisites on Blue Waters
+
+Blue waters has all the needed prerequisite software installed. Set your `.modules` file to the following. Then logout
+and back in, or `source ~/.modules`.
+
+~~~
+module load cmake
+module load boost
+module load cudatoolkit
+module switch PrgEnv-cray PrgEnv-gnu
+~~~
+
+### Compiling on Cray
+
+Build like normal, but with a few extra options to cmake. Install into `/scratch` so that all the metadata accesses
+to python libraries don't overload the `/home` metadata servers on launch.
+
+~~~
+$ git clone https://bitbucket.org/glotzer/hoomd-blue.git
+$ cd hoomd-blue
+$ mkdir build
+$ cd build
+$ CC="cc -dynamic" CXX="CC -dynamic" cmake -D ENABLE_ZLIB=OFF -D CMAKE_INSTALL_PREFIX=/scratch/sciteam/$USER/hoomd ../
+$ make install -j12
+$ export PATH=$/scratch/sciteam/$USER/hoomd/bin:$PATH
+~~~
+
+### Launching jobs
+
+On XE6 nodes, use `-j 0` and submit 32 ranks per node. This provides the best performance for the HOOMD-blue standard
+benchmarks. You can try a benchmark of your own system with `-j 1` and 16 ranks per node and see which configuration
+performs best. The `-b` option is important as it launches the hoomd executable from its installed location. Without it,
+you would need to set `LD_LIBRARY_PATH` so that `hoomd.so` could be found.
+
+~~~
+#!/bin/bash
+
+#PBS -l nodes=8:ppn=32:xe
+#PBS -l walltime=00:10:00
+#PBS -N hoomd-cpu-job
+#PBS -j oe
+
+cd $PBS_O_WORKDIR
+
+aprun -b -B -j 0 /scratch/sciteam/$USER/hoomd/bin/hoomd job.py --mode=cpu
+~~~
+
+On XK7 nodes, launch just 1 rank per node and disable the CUDA multiprocess server. It only adds latency to
+communication. HOOMD-blue is optimized to make full use of the GPU and only runs slower if you launch more than one rank
+per node.
+
+~~~
+#!/bin/bash
+
+#PBS -l nodes=8:ppn=1:xk
+#PBS -l walltime=00:10:00
+#PBS -N hoomd-gpu-job
+#PBS -j oe
+
+cd $PBS_O_WORKDIR
+
+export CUDA_CRAY_MPS=0
+aprun -b -B /scratch/sciteam/$USER/hoomd/bin/hoomd job.py --mode=gpu
+~~~
+
 */
