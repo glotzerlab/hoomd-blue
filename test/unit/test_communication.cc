@@ -49,8 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_MPI
 
-#define CHECK_CLOSE(a,b,tol) ( fabs(a-b) < 0.01*tol*fabs(a))
-
 //! name the boost unit test module
 #define BOOST_TEST_MODULE CommunicationTests
 
@@ -475,6 +473,19 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
     }
 
+struct ghost_layer_width
+    {
+    ghost_layer_width(Scalar width)
+        {
+        w = width;
+        }
+    Scalar get()
+        {
+        return w;
+        }
+    Scalar w;
+    };
+
 //! Test ghost particle communication
 void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
     {
@@ -539,8 +550,9 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
     pdata->initializeFromSnapshot(snap);
 
     // width of ghost layer
-    Scalar ghost_layer_width = Scalar(0.05)*ref_box.getL().x;
-    comm->setGhostLayerWidth(ghost_layer_width);
+    ghost_layer_width g(Scalar(0.05)*ref_box.getL().x);
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
+
     // Check number of particles
     switch (exec_conf->getRank())
         {
@@ -1500,8 +1512,8 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, boost::s
     boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     // width of ghost layer
-    Scalar ghost_layer_width = Scalar(0.1);
-    comm->setGhostLayerWidth(ghost_layer_width);
+    ghost_layer_width g(0.1);
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -2171,8 +2183,8 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, boost::s
     comm->setFlags(flags);
 
     // width of ghost layer
-    Scalar ghost_layer_width = Scalar(0.1);
-    comm->setGhostLayerWidth(ghost_layer_width);
+    ghost_layer_width g(0.1);
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -2322,9 +2334,9 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     boost::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
 
     // width of ghost layer
-    Scalar ghost_layer_width = Scalar(0.2);
-    comm_1->setGhostLayerWidth(ghost_layer_width);
-    comm_2->setGhostLayerWidth(ghost_layer_width);
+    ghost_layer_width g(0.2);
+    comm_1->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
+    comm_2->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
 
     pdata_1->setDomainDecomposition(decomposition_1);
     pdata_2->setDomainDecomposition(decomposition_2);
@@ -2475,8 +2487,8 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
     pdata->initializeFromSnapshot(snap);
 
     // width of ghost layer
-    Scalar ghost_layer_width = Scalar(0.1);
-    comm->setGhostLayerWidth(ghost_layer_width);
+    ghost_layer_width g(0.1);
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g));
 
     // Check number of particles
     switch (exec_conf->getRank())
@@ -2634,6 +2646,97 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
         }
     }
 
+Scalar ghost_layer_width_request_1()
+    {
+    return 0.0123;
+    }
+
+Scalar ghost_layer_width_request_2()
+    {
+    return 0.0001;
+    }
+
+Scalar ghost_layer_width_request_3()
+    {
+    return 0.1;
+    }
+
+
+
+//! Test setting the ghost layer width
+void test_communicator_ghost_layer_width(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    // this test needs to be run on eight processors
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    BOOST_REQUIRE_EQUAL(size,8);
+
+    // just create some system
+    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,          // number of particles
+                                                             BoxDim(2.0), // box dimensions
+                                                             1,           // number of particle types
+                                                             0,           // number of bond types
+                                                             0,           // number of angle types
+                                                             0,           // number of dihedral types
+                                                             0,           // number of dihedral types
+                                                             exec_conf));
+
+
+    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+
+    // Set initial atom positions
+    // place one particle in the middle of every box (outside the ghost layer)
+    pdata->setPosition(0, make_scalar3(-0.5,-0.5,-0.5),false);
+    pdata->setPosition(1, make_scalar3( 0.5,-0.5,-0.5),false);
+    pdata->setPosition(2, make_scalar3(-0.5, 0.5,-0.5),false);
+    pdata->setPosition(3, make_scalar3( 0.5, 0.5,-0.5),false);
+    pdata->setPosition(4, make_scalar3(-0.5,-0.5, 0.5),false);
+    pdata->setPosition(5, make_scalar3( 0.5,-0.5, 0.5),false);
+    pdata->setPosition(6, make_scalar3(-0.5, 0.5, 0.5),false);
+    pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5),false);
+
+    // distribute particle data on processors
+    SnapshotParticleData snap(9);
+    pdata->takeSnapshot(snap);
+
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+
+    pdata->setDomainDecomposition(decomposition);
+
+    pdata->initializeFromSnapshot(snap);
+
+    // set ghost exchange flags for position
+    CommFlags flags(0);
+    flags[comm_flag::position] = 1;
+    comm->setFlags(flags);
+
+    // reset numbers of ghosts
+    comm->migrateParticles();
+
+    // exchange ghosts
+    comm->exchangeGhosts();
+
+    BOOST_CHECK_SMALL(comm->getGhostLayerWidth(), tol_small);
+
+    // width of ghost layer
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_1));
+    pdata->removeAllGhostParticles();
+    comm->exchangeGhosts();
+    BOOST_CHECK_CLOSE(comm->getGhostLayerWidth(), 0.0123, tol);
+
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_2));
+    pdata->removeAllGhostParticles();
+    comm->exchangeGhosts();
+    BOOST_CHECK_CLOSE(comm->getGhostLayerWidth(), 0.0123, tol);
+
+    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_3));
+    pdata->removeAllGhostParticles();
+    comm->exchangeGhosts();
+    BOOST_CHECK_CLOSE(comm->getGhostLayerWidth(), 0.1, tol);
+    }
+
 //! Communicator creator for unit tests
 boost::shared_ptr<Communicator> base_class_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
                                                          boost::shared_ptr<DomainDecomposition> decomposition)
@@ -2698,6 +2801,12 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
     test_communicator_ghost_fields(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
+BOOST_AUTO_TEST_CASE( communicator_ghost_layer_width_test )
+    {
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_communicator_ghost_layer_width(communicator_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+
 #ifdef ENABLE_CUDA
 
 //! Tests particle distribution on GPU
@@ -2745,6 +2854,12 @@ BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test_GPU )
     {
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_ghost_fields(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+
+BOOST_AUTO_TEST_CASE( communicator_ghost_layer_width_test_GPU )
+    {
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
+    test_communicator_ghost_layer_width(communicator_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 BOOST_AUTO_TEST_CASE (communicator_compare_test )

@@ -824,7 +824,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_plan_copybuf(m_exec_conf),
             m_tag_copybuf(m_exec_conf),
             m_r_ghost(Scalar(0.0)),
-            m_r_buff(Scalar(0.0)),
             m_plan(m_exec_conf),
             m_last_flags(0),
             m_comm_pending(false),
@@ -1090,17 +1089,6 @@ void Communicator::migrateParticles()
     {
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
-    // check if box is sufficiently large for communication
-    Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
-    const Index3D& di = m_decomposition->getDomainIndexer();
-    if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
-        (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
-        (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
-        {
-        m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
-        throw std::runtime_error("Error during communication");
-        }
-
     if (m_prof)
         m_prof->push("comm_migrate");
 
@@ -1263,6 +1251,9 @@ void Communicator::exchangeGhosts()
     /*
      * Mark non-bonded atoms for sending
      */
+
+    // update the ghost layer width
+    m_r_ghost = m_ghost_layer_width_requests();
 
     // the ghost layer must be at_least m_r_ghost wide along every lattice direction
     Scalar3 ghost_fraction = m_r_ghost/box.getNearestPlaneDistance();
