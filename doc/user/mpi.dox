@@ -318,7 +318,7 @@ per node.
 
 cd $PBS_O_WORKDIR
 
-export CUDA_CRAY_MPS=0
+export CRAY_CUDA_MPS=0
 aprun -b -B /scratch/sciteam/$USER/hoomd/bin/hoomd job.py --mode=gpu
 ~~~
 
