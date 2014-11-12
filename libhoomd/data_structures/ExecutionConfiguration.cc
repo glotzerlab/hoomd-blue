@@ -320,8 +320,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
     if (min_cpu)
         {
         if (CUDART_VERSION < 2020)
-            msg->warning() << "--minimize-cpu-usage will have no effect because this hoomd was built " << endl;
-            msg->warning() << "against a version of CUDA prior to 2.2" << endl;
+            msg->notice(2) << "--minimize-cpu-usage will have no effect because this hoomd was built " << endl;
+            msg->notice(2) << "against a version of CUDA prior to 2.2" << endl;
 
         flags |= cudaDeviceBlockingSync;
         }
@@ -405,7 +405,7 @@ void ExecutionConfiguration::printGPUStats()
     // if the gpu is compute 1.1 or older, it is unsupported. Issue a warning to the user.
     if (dev_prop.major <= 1 && dev_prop.minor <= 1)
         {
-        msg->warning() << "HOOMD-blue is not supported on compute 1.1 and older GPUs" << endl;
+        msg->notice(2) << "HOOMD-blue is not supported on compute 1.1 and older GPUs" << endl;
         }
     }
 
@@ -445,7 +445,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     // first handle the situation where no driver is installed (or it is a CUDA 2.1 or earlier driver)
     if (driverVersion == 0)
         {
-        msg->warning() << "NVIDIA driver not installed or is too old, ignoring any GPUs in the system." << endl;
+        msg->notice(2) << "NVIDIA driver not installed or is too old, ignoring any GPUs in the system." << endl;
         return;
         }
 
@@ -457,9 +457,9 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         int cudart_major = CUDART_VERSION / 1000;
         int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
 
-        msg->warning() << "The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
+        msg->notice(2) << "The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
              << driver_minor << ", but HOOMD was built against CUDA " << cudart_major << "." << cudart_minor << endl;
-        msg->warning() << "Ignoring any GPUs in the system." << endl;
+        msg->notice(2) << "Ignoring any GPUs in the system." << endl;
         return;
         }
 
