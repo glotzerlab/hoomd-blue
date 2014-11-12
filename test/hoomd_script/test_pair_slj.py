@@ -57,15 +57,17 @@ class pair_slj_tests (unittest.TestCase):
 
     # test set params
     def test_dmax(self):
-        self.s.particles[0].diameter = 1.5
-        self.s.particles[1].diameter = 0.5
-        self.s.particles[2].diameter = 3.0
-        self.s.particles[3].diameter = 0.7
-        self.s.particles[4].diameter = 0.2
-        self.s.particles[5].diameter = 4.0
-        self.s.particles[6].diameter = 0.1
+        import random
+        random.seed(123)
+        rmax = -10.0
+        for p in self.s.particles:
+            r = random.uniform(-1,1)
+            if r > rmax:
+                rmax = r
+            p.diameter = r
+
         lj = pair.slj(r_cut=3.0);
-        self.assertEqual(globals.neighbor_list.cpp_nlist.getMaximumDiameter(), 4.0,5)
+        self.assertAlmostEqual(globals.neighbor_list.cpp_nlist.getMaximumDiameter(), rmax,5)
 
     def tearDown(self):
         del self.s
