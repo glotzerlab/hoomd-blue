@@ -78,6 +78,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicAngleForceCompute.h"
 #include "TableAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
+#include "OPLSDihedralForceCompute.h"
 #include "TableDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
 #include "CGCMMAngleForceCompute.h"
@@ -488,6 +489,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HarmonicAngleForceCompute();
     export_TableAngleForceCompute();
     export_HarmonicDihedralForceCompute();
+    export_OPLSDihedralForceCompute();
     export_TableDihedralForceCompute();
     export_HarmonicImproperForceCompute();
     export_CGCMMAngleForceCompute();
