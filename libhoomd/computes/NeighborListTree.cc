@@ -98,17 +98,8 @@ NeighborListTree::NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
         m_image_list.swap(image_list);
         }
     
-    // allocate AABB memory
-    // should replace with a GPUArray, but leave as is for now
+    // allocate AABB Tree memory
     allocateTree(m_max_n_local);
-//     m_aabbs = (AABB*) malloc(sizeof(AABB)*m_max_n_local);
-    
-    // allocate the particle map into the tree
-//     GPUArray<unsigned int> map_p_global_tree(m_max_n_local, exec_conf);
-//     m_map_p_global_tree.swap(map_p_global_tree);
-//     
-//     GPUArray<unsigned int> map_p_tree_global(m_max_n_local, exec_conf);
-//     m_map_p_tree_global.swap(map_p_tree_global);
 
     m_box_changed = true; // by default, assume the box has "changed" at first, so that we always do this action once
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListTree::slotBoxChanged, this));
@@ -118,11 +109,6 @@ NeighborListTree::~NeighborListTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListTree" << endl;
     m_boxchange_connection.disconnect();
-    // free the memory we allocated
-//     if (m_aabbs)
-//         {
-//         free(m_aabbs);
-//         }
     }
 
 void NeighborListTree::buildNlist(unsigned int timestep)
@@ -147,13 +133,9 @@ void NeighborListTree::allocateTree(unsigned int n_local)
         
         GPUArray<AABB> aabbs(m_max_n_local, exec_conf);
         m_aabbs.swap(aabbs);
-//         m_aabbs = (AABB*) realloc(m_aabbs, sizeof(AABB)*m_max_n_local);
         
         GPUArray<unsigned int> map_p_global_tree(m_max_n_local, exec_conf);
         m_map_p_global_tree.swap(map_p_global_tree);
-        
-        GPUArray<unsigned int> map_p_tree_global(m_max_n_local, exec_conf);
-        m_map_p_tree_global.swap(map_p_tree_global);
         }
     }
 
@@ -166,7 +148,6 @@ void NeighborListTree::getNumPerType()
     ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_type_head(m_type_head, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_map_p_global_tree(m_map_p_global_tree, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_map_p_tree_global(m_map_p_tree_global, access_location::host, access_mode::overwrite);
 
     // clear out counters
     unsigned int n_types = m_pdata->getNTypes();
@@ -191,14 +172,6 @@ void NeighborListTree::getNumPerType()
         {
         h_type_head.data[i] = local_head;
         local_head += h_num_per_type.data[i];
-        }
-    
-    // map the tree ids back to global particle tags
-    for (unsigned int i=0; i < n_local; ++i)
-        {
-        unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
-        unsigned int my_tree_id = h_map_p_global_tree.data[i];
-        h_map_p_tree_global.data[h_type_head.data[my_type] + my_tree_id] = i;
         }
         
     if (this->m_prof) this->m_prof->pop();
@@ -233,7 +206,7 @@ void NeighborListTree::buildTree()
         vec3<Scalar> my_pos(h_postype.data[i]);
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
         unsigned int my_aabb_idx = h_type_head.data[my_type] + h_map_p_global_tree.data[i];
-        h_aabbs.data[my_aabb_idx] = AABB(my_pos,my_pos);
+        h_aabbs.data[my_aabb_idx] = AABB(my_pos,i);
         }
     
     unsigned int n_types = m_pdata->getNTypes();
@@ -255,7 +228,6 @@ void NeighborListTree::traverseTree()
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
-//     ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::read);
 
     // validate simulation box
     const BoxDim& box = m_pdata->getBox();
@@ -317,17 +289,11 @@ void NeighborListTree::traverseTree()
                 }
         m_box_changed = false;
         }
-//     for (unsigned int i=0; i < n_images; ++i)
-//         {
-//         cout<<h_image_list.data[i].x<<"\t"<<h_image_list.data[i].y<<"\t"<<h_image_list.data[i].z<<endl;
-//         }
-//     cout<<endl;
     
     // tree data
     ArrayHandle<AABBTree> h_aabb_trees(m_aabb_trees, access_location::host, access_mode::read);
     ArrayHandle<AABB> h_aabbs(m_aabbs, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_type_head(m_type_head, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_map_p_tree_global(m_map_p_tree_global, access_location::host, access_mode::read);
     
     // neighborlist data
     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
@@ -349,17 +315,13 @@ void NeighborListTree::traverseTree()
         unsigned int nlist_head_i = h_head_list.data[i];
         
         unsigned int n_neigh_i = 0;
-//         cout<<"Particle "<<i<<endl;
         for (unsigned int cur_pair_type=0; cur_pair_type < m_pdata->getNTypes(); ++cur_pair_type)
             {
             // Check primary box
             Scalar r_cut_i = h_r_cut.data[m_typpair_idx(type_i,cur_pair_type)]+m_r_buff;
             Scalar r_cutsq_i = r_cut_i*r_cut_i;
             AABBTree *cur_aabb_tree = &h_aabb_trees.data[cur_pair_type];
-            
-//             cout<<cur_aabb_tree->getNumNodes()<<endl;
-            
-//             unsigned int cur_image = 0;
+
             for (unsigned int cur_image = 0; cur_image < n_images; ++cur_image)
                 {
                 vec3<Scalar> pos_i_image = pos_i + h_image_list.data[cur_image];
@@ -374,33 +336,36 @@ void NeighborListTree::traverseTree()
                             {
                             for (unsigned int cur_p = 0; cur_p < cur_aabb_tree->getNodeNumParticles(cur_node_idx); ++cur_p)
                                 {
-                                // read in its position and orientation
-                                unsigned int j = cur_aabb_tree->getNodeParticle(cur_node_idx, cur_p);
-                                unsigned int global_tag_j = h_map_p_tree_global.data[h_type_head.data[cur_pair_type] + j];
-                                Scalar4 postype_j = h_postype.data[global_tag_j];
+                                // neighbor j
+                                unsigned int j = cur_aabb_tree->getNodeParticleTag(cur_node_idx, cur_p);
                                 
                                 // skip self-interaction always
-                                if (i == global_tag_j)
+                                if (i == j)
                                     continue;
-                                bool excluded = (i == global_tag_j);
+                                bool excluded = (i == j);
 
                                 if (m_filter_body && body_i != NO_BODY)
-                                    excluded = excluded | (body_i == h_body.data[global_tag_j]);
+                                    excluded = excluded | (body_i == h_body.data[j]);
                                     
-                                // compute distance and wrap back into box
-                                Scalar3 drij = make_scalar3(postype_j.x,postype_j.y,postype_j.z) - vec_to_scalar3(pos_i_image);
-                                Scalar dr_sq = dot(drij,drij);
-//                                 cout<<global_tag_j<<":\t"<<sqrt(dr_sq)<<"\t"<<h_image_list.data[cur_image].x<<"\t"<<h_image_list.data[cur_image].y<<"\t"<<h_image_list.data[cur_image].z<<"\t"<<endl;
-                                if (dr_sq <= r_cutsq_i && !excluded)
+                                if (!excluded)
                                     {
-                                    if (m_storage_mode == full || i < global_tag_j)
-                                        {
-                                        if (n_neigh_i < Nmax_i)
-                                            h_nlist.data[nlist_head_i + n_neigh_i] = global_tag_j;
-                                        else
-                                            h_conditions.data[type_i] = max(h_conditions.data[type_i], n_neigh_i+1);
+                                    // compute distance and wrap back into box
+                                    Scalar4 postype_j = h_postype.data[j];
+                                    Scalar3 drij = make_scalar3(postype_j.x,postype_j.y,postype_j.z)
+                                                   - vec_to_scalar3(pos_i_image);
+                                    Scalar dr_sq = dot(drij,drij);
 
-                                        ++n_neigh_i;
+                                    if (dr_sq <= r_cutsq_i)
+                                        {
+                                        if (m_storage_mode == full || i < j)
+                                            {
+                                            if (n_neigh_i < Nmax_i)
+                                                h_nlist.data[nlist_head_i + n_neigh_i] = j;
+                                            else
+                                                h_conditions.data[type_i] = max(h_conditions.data[type_i], n_neigh_i+1);
+
+                                            ++n_neigh_i;
+                                            }
                                         }
                                     }
                                 }
@@ -416,18 +381,6 @@ void NeighborListTree::traverseTree()
             } // end loop over pair types
             h_n_neigh.data[i] = n_neigh_i;
         } // end loop over particles
-    
-//         {
-//         cout<<endl;
-//         for (unsigned int i=0; i < m_pdata->getN(); ++i)
-//             {
-//             cout<<i<<":";
-//             for (unsigned int j=0; j < h_n_neigh.data[i]; ++j)
-//                 cout<<"\t"<<h_nlist.data[h_head_list.data[i] + j];
-//             cout<<endl;
-//             }
-//         cout<<endl;
-//         }
     
     if (this->m_prof) this->m_prof->pop();
     }

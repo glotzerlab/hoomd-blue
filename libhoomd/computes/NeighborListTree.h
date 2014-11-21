@@ -93,7 +93,6 @@ class NeighborListTree : public NeighborList
         GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
         GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type
         GPUArray<unsigned int>  m_map_p_global_tree;    //!< maps global ids to tag in tree
-        GPUArray<unsigned int>  m_map_p_tree_global;    //!< maps tree ids to global ids
 
         GPUArray< vec3<Scalar> >       m_image_list;           //!< list of translation vectors
 

@@ -100,8 +100,10 @@ struct AABB
 
     #endif
 
+    unsigned int tag;  //!< Optional tag id, useful for particle ids
+
     //! Default construct a 0 AABB
-    DEVICE AABB()
+    DEVICE AABB() : tag(0)
         {
         #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
         double in = 0.0f;
@@ -121,7 +123,7 @@ struct AABB
     /*! \param _lower Lower left corner of the AABB
         \param _upper Upper right corner of the AABB
     */
-    DEVICE AABB(const vec3<Scalar>& _lower, const vec3<Scalar>& _upper)
+    DEVICE AABB(const vec3<Scalar>& _lower, const vec3<Scalar>& _upper) : tag(0)
         {
         #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
         lower_v = sse_load_vec3_double(_lower);
@@ -142,7 +144,7 @@ struct AABB
     /*! \param _position Position of the sphere
         \param radius Radius of the sphere
     */
-    DEVICE AABB(const vec3<Scalar>& _position, Scalar radius)
+    DEVICE AABB(const vec3<Scalar>& _position, Scalar radius) : tag(0)
         {
         vec3<Scalar> new_lower, new_upper;
         new_lower.x = _position.x - radius;
@@ -165,6 +167,41 @@ struct AABB
         upper = new_upper;
 
         #endif
+        }
+        
+    //! Construct an AABB from a point with a particle tag
+    /*! \param _position Position of the point
+        \param _tag Global particle tag id
+    */
+    DEVICE AABB(const vec3<Scalar>& _position, unsigned int _tag) : tag(_tag)
+        {
+        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
+        lower_v = sse_load_vec3_double(_position);
+        upper_v = sse_load_vec3_double(_position);
+
+        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(NVCC)
+        lower_v = sse_load_vec3_float(_position);
+        upper_v = sse_load_vec3_float(_position);
+
+        #else
+        lower = _position;
+        upper = _position;
+
+        #endif
+        }
+    
+    //! Set the AABB tag identifier
+    /*! \param p_tag Global particle tag id
+    */
+    DEVICE void setTag(unsigned int _tag)
+        {
+        tag = _tag;
+        }
+        
+    //! Get the AABB tag identifier
+    DEVICE unsigned int getTag() const
+        {
+        return tag;
         }
 
     //! Get the AABB's position

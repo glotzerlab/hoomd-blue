@@ -54,8 +54,9 @@ struct AABBNode
     unsigned int parent; //!< Index of the parent node
     unsigned int skip;   //!< Number of array indices to skip to get to the next node in an in order traversal
 
-    unsigned int particles[NODE_CAPACITY];  //!< Indices of the particles contained in the node
-    unsigned int num_particles;             //!< Number of particles contained in the node
+    unsigned int particles[NODE_CAPACITY];      //!< Indices of the particles contained in the node
+    unsigned int particle_tags[NODE_CAPACITY];  //!< Corresponding particle tags for particles in node
+    unsigned int num_particles;                 //!< Number of particles contained in the node
     } __attribute__((aligned(32)));
 
 //! AABB Tree
@@ -163,6 +164,15 @@ class AABBTree
         inline unsigned int getNodeParticle(unsigned int node, unsigned int j) const
             {
             return (m_nodes[node].particles[j]);
+            }
+            
+        //! Get the associate tag for each particle
+        /*! \param node Index of the node (not the particle) to query
+         *  \param j Local index in particle array for node
+         */
+        inline unsigned int getNodeParticleTag(unsigned int node, unsigned int j) const
+            {
+            return (m_nodes[node].particle_tags[j]);
             }
     private:
         AABBNode *m_nodes;                  //!< The nodes of the tree
@@ -359,6 +369,7 @@ inline unsigned int AABBTree::buildNode(AABB *aabbs,
             {
             // assign the particle indices into the leaf node
             m_nodes[new_node].particles[i] = idx[start+i];
+            m_nodes[new_node].particle_tags[i] = aabbs[start+i].getTag();
 
             // assign the reverse mapping from particle indices to leaf node indices
             m_mapping[idx[start+i]] = new_node;
