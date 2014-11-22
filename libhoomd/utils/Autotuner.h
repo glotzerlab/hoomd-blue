@@ -70,6 +70,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     internal state machine and makes sweeps over all valid parameter values. Performance is measured just for the single
     kernel in question with cudaEvent timers. A number of sweeps are combined with a median to determine the fastest
     parameter. Additional timing sweeps are performed at a defined period in order to update to changing conditions.
+    The sampling mode can also be changed to average or maximum. The latter is helpful when the distribution of kernel
+    runtimes is bimodal, e.g. because it depends on input of variable size.
 
     The begin() and end() methods must be called before and after the kernel launch to be tuned. The value of the tuned
     parameter should be set to the return value of getParam(). begin() and end() drive the state machine to choose
@@ -190,13 +192,21 @@ class Autotuner
             m_sync = sync;
             }
 
-        //! Set average flag
-        /*! \param avg If true, use average instead of median of samples to compute kernel time
+        //!< Enumeration of different sampling modes
+        enum mode_Enum {
+            mode_median = 0, //!< Median
+            mode_avg,        //!< Average
+            mode_max         //!< Maximum
+            };
+
+        //! Set sampling mode
+        /*! \param avg If true, use average maximum instead of median of samples to compute kernel time
          */
-        void setAverage(bool avg)
+        void setMode(mode_Enum mode)
             {
-            m_avg = avg;
+            m_mode = mode;
             }
+
 
     protected:
         unsigned int computeOptimalParameter();
@@ -234,7 +244,7 @@ class Autotuner
         #endif
 
         bool m_sync;              //!< If true, synchronize results via MPI
-        bool m_avg;               //!< If true, use sample average instead of median
+        bool m_mode;              //!< The sampling mode
     };
 
 //! Export the Autotuner class to python

@@ -79,7 +79,7 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
                      boost::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name), m_parameters(parameters),
       m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0),
-      m_exec_conf(exec_conf), m_avg(false)
+      m_exec_conf(exec_conf), m_mode(mode_median)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << nsamples << " " << period << " " << name << endl;
 
@@ -133,7 +133,7 @@ Autotuner::Autotuner(unsigned int start,
                      boost::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name),
       m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0), m_current_param(0),
-      m_exec_conf(exec_conf), m_avg(false)
+      m_exec_conf(exec_conf), m_mode(mode_median)
     {
     m_exec_conf->msg->notice(5) << "Constructing Autotuner " << " " << start << " " << end << " " << step << " "
                                 << nsamples << " " << period << " " << name << endl;
@@ -330,13 +330,25 @@ unsigned int Autotuner::computeOptimalParameter()
         #endif
         if (is_root)
             {
-            if (m_avg)
+            if (m_mode == mode_avg)
                 {
                 // compute average
                 float sum = 0.0f;
                 for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
                     sum += *it;
                 m_sample_median[i] = sum/v.size();
+                }
+            else if (m_mode == mode_max)
+                {
+                // compute maximum
+                m_sample_median[i] = -FLT_MIN;
+                for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
+                    {
+                    if (*it > m_sample_median[i])
+                        {
+                        m_sample_median[i] = *it;
+                        }
+                    }
                 }
             else
                 {
