@@ -420,7 +420,7 @@ inline unsigned int AABBTree::buildNode(AABB *aabbs,
             {
             // assign the particle indices into the leaf node
             m_nodes[new_node].particles[i] = idx[start+i];
-            m_nodes[new_node].particle_tags[i] = aabbs[start+i].getTag();
+            m_nodes[new_node].particle_tags[i] = aabbs[start+i].tag;
 
             // assign the reverse mapping from particle indices to leaf node indices
             m_mapping[idx[start+i]] = new_node;

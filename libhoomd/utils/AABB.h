@@ -240,20 +240,6 @@ struct AABB
 
         #endif
         }
-    
-    //! Set the AABB tag identifier
-    /*! \param p_tag Global particle tag id
-    */
-    DEVICE void setTag(unsigned int _tag)
-        {
-        tag = _tag;
-        }
-        
-    //! Get the AABB tag identifier
-    DEVICE unsigned int getTag() const
-        {
-        return tag;
-        }
 
     //! Get the AABB's position
     DEVICE vec3<Scalar> getPosition() const
