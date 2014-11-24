@@ -244,7 +244,7 @@ class Autotuner
         #endif
 
         bool m_sync;              //!< If true, synchronize results via MPI
-        bool m_mode;              //!< The sampling mode
+        mode_Enum m_mode;         //!< The sampling mode
     };
 
 //! Export the Autotuner class to python
