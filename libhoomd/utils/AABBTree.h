@@ -176,6 +176,14 @@ class AABBTree
             {
             return (m_nodes[node].left == INVALID_NODE);
             }
+            
+        //! Get the AABBNode
+        /*! \param node Index of the node (not the particle) to query
+         */
+        inline const AABBNode& getNode(unsigned int node) const
+            {
+            return m_nodes[node];
+            }
 
         //! Get the AABB of a given node
         /*! \param node Index of the node (not the particle) to query

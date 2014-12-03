@@ -49,68 +49,55 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: mphoward
 
-#include "NeighborList.h"
-#include "AABBTree.h"
+#include "NeighborListGPU.h"
+#include "NeighborListTree.h"
+#include "AABBTreeGPU.h"
+#include "Autotuner.h"
 
-using namespace hpmc::detail;
-
-/*! \file NeighborListTree.h
-    \brief Declares the NeighborListTree class
+/*! \file NeighborListGPUTree.h
+    \brief Declares the NeighborListGPUTree class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifndef __NEIGHBORLISTTREE_H__
-#define __NEIGHBORLISTTREE_H__
-
-//! Efficient neighbor list build on the CPU
-/*! Implements the O(N) neighbor list build on the CPU using a cell list.
-
-    \ingroup computes
-*/
-class NeighborListTree : public NeighborList
+#ifndef __NEIGHBORLISTGPUTREE_H__
+#define __NEIGHBORLISTGPUTREE_H__
+class NeighborListGPUTree : public NeighborListGPU
     {
     public:
         //! Constructs the compute
-        NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
-                           Scalar r_cut,
-                           Scalar r_buff);
+        NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
+                              Scalar r_cut,
+                              Scalar r_buff);
 
         //! Destructor
-        virtual ~NeighborListTree();
-        
-        //! Notification of a box size change
-        void slotBoxChanged()
+        virtual ~NeighborListGPUTree();
+    
+    
+        //! Set the autotuner period
+        void setTuningParam(unsigned int param)
             {
-            m_box_changed = true;
+            m_param = param;
             }
-            
+
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            NeighborListGPU::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period/10);
+            m_tuner->setEnabled(enable);
+            }
     protected:
-        GPUArray<AABBTree>      m_aabb_trees;           //!< Array of AABB trees
-        GPUArray<AABB>          m_aabbs;                //!< Array of AABBs
-        GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
-        GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type
-        GPUArray<unsigned int>  m_map_p_global_tree;    //!< maps global ids to tag in tree
-
-        GPUArray< vec3<Scalar> >       m_image_list;           //!< list of translation vectors
-
-        //! Builds the neighbor list
-        void buildNlist(unsigned int timestep);
-        void buildTree();
-        void traverseTree();
-        void getNumPerType();
-        
-        void allocateTree(unsigned int n_local);
-        
-        bool m_box_changed;
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
-        
-        unsigned int m_max_n_local; //!< Maximum number of particles locally
+        unsigned int m_param;               //!< Kernel tuning parameter
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
+        unsigned int m_last_tuned_timestep; //!< Last tuning timestep
     };
 
-//! Exports NeighborListTree to python
-void export_NeighborListTree();
-
-#endif // __NEIGHBORLISTTREE_H__
+//! Exports NeighborListGPUBinned to python
+void export_NeighborListGPUTree();
+#endif //__NEIGHBORLISTGPUTREE_H__
