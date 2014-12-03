@@ -9,7 +9,7 @@ import os
 class pair_table_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_random(N=100, phi_p=0.05);
 
         sorter.set_params(grid=8)
 
@@ -41,6 +41,16 @@ class pair_table_tests (unittest.TestCase):
         table.pair_coeff.set('A', 'A', rmax = 2.5)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+
+    # test adding types
+    def test_type_add(self):
+        table = pair.table(width=1000);
+        table.pair_coeff.set('A', 'A', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
+        self.s.particles.types.add('B')
+        self.assertRaises(RuntimeError, table.update_coeffs);
+        table.pair_coeff.set('A', 'B', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
+        table.pair_coeff.set('B', 'B', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
+        table.update_coeffs();
 
     def tearDown(self):
         init.reset();

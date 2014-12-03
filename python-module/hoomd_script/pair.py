@@ -494,13 +494,16 @@ class nlist:
         # create the C++ mirror class
         ## HERE WE NEED TO REMOVE r_cut FROM THE C++ CONSTRUCTOR, SINCE THIS DOES NOT MAKE SENSE ANYMORE ## 
         if not globals.exec_conf.isCUDAEnabled():
-            cl_c = hoomd.CellList(globals.system_definition);
-            globals.system.addCompute(cl_c, "auto_cl")
-            self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
+            #cl_c = hoomd.CellList(globals.system_definition);
+            #globals.system.addCompute(cl_c, "auto_cl")
+            #self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
+            self.cpp_nlist = hoomd.NeighborListTree(globals.system_definition, r_cut, default_r_buff)
         else:
-            cl_g = hoomd.CellListGPU(globals.system_definition);
-            globals.system.addCompute(cl_g, "auto_cl")
-            self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
+            #cl_g = hoomd.CellListGPU(globals.system_definition);
+            #globals.system.addCompute(cl_g, "auto_cl")
+            #self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
+            # cpu built neighbor list for now
+            self.cpp_nlist = hoomd.NeighborListTree(globals.system_definition, r_cut, default_r_buff)
 
         self.cpp_nlist.setEvery(1, True);
         self.is_exclusion_overridden = False;

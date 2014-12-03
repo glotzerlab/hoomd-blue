@@ -47,66 +47,70 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: ndtrung
+// Maintainer: mphoward
 
-/*! \file TwoStepBDNVTRigid.h
-    \brief Declares an updater that implements BD NVT dynamics for rigid bodies
+#include "NeighborList.h"
+#include "AABBTree.h"
+
+using namespace hpmc::detail;
+
+/*! \file NeighborListTree.h
+    \brief Declares the NeighborListTree class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "TwoStepNVERigid.h"
-#include "Variant.h"
-#include "saruprng.h"
+#ifndef __NEIGHBORLISTTREE_H__
+#define __NEIGHBORLISTTREE_H__
 
-#ifndef __TWO_STEP_BD_NVT_RIGID_H__
-#define __TWO_STEP_BD_NVT_RIGID_H__
+//! Efficient neighbor list build on the CPU
+/*! Implements the O(N) neighbor list build on the CPU using a cell list.
 
-
-/*! \file TwoStepBDNVTRigid.h
- \brief Declares the TwoStepBDNVTRigid class
- */
-
-//! Integrates part of the system forward in two steps in the NVE ensemble with Langevin thermostat
-/*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
-
- \ingroup updaters
+    \ingroup computes
 */
-class TwoStepBDNVTRigid : public TwoStepNVERigid
+class NeighborListTree : public NeighborList
     {
     public:
-        //! Constructor
-        TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
-                          boost::shared_ptr<ParticleGroup> group,
-                          boost::shared_ptr<Variant> T,
-                          unsigned int seed,
-                          bool gamma_diam);
-        virtual ~TwoStepBDNVTRigid();
+        //! Constructs the compute
+        NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
+                           Scalar r_cut,
+                           Scalar r_buff);
 
-        //! Sets gamma for a given particle type
-        void setGamma(unsigned int typ, Scalar gamma);
-
-        //! Performs the second step
-        virtual void integrateStepTwo(unsigned int timestep);
-
+        //! Destructor
+        virtual ~NeighborListTree();
+        
+        //! Notification of a box size change
+        void slotBoxChanged()
+            {
+            m_box_changed = true;
+            }
+            
     protected:
-        boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
-        unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
-        bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
+        GPUArray<AABBTree>      m_aabb_trees;           //!< Array of AABB trees
+        GPUArray<AABB>          m_aabbs;                //!< Array of AABBs
+        GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
+        GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type
+        GPUArray<unsigned int>  m_map_p_global_tree;    //!< maps global ids to tag in tree
 
-        GPUVector<Scalar> m_gamma;         //!< List of per type gammas to use
+        GPUArray< vec3<Scalar> >       m_image_list;           //!< list of translation vectors
 
-        //! Method to be called when number of types changes
-        virtual void slotNumTypesChange();
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
+        //! Builds the neighbor list
+        void buildNlist(unsigned int timestep);
+        void buildTree();
+        void traverseTree();
+        void getNumPerType();
+        
+        void allocateTree(unsigned int n_local);
+        
+        bool m_box_changed;
+        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
+        
+        unsigned int m_max_n_local; //!< Maximum number of particles locally
     };
 
-//! Exports the TwoStepBDNVTRigid class to python
-void export_TwoStepBDNVTRigid();
+//! Exports NeighborListTree to python
+void export_NeighborListTree();
 
-#endif
+#endif // __NEIGHBORLISTTREE_H__

@@ -62,6 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborList.h"
 #include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #ifdef ENABLE_CUDA
@@ -108,6 +109,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         }
 
     // change to full mode to check that
+    nlist_2->setStorageMode(NeighborList::full);
     nlist_2->setRCutPair(0,0,5.5);
     nlist_2->setRBuff(0.5);
     nlist_2->compute(2);
@@ -255,6 +257,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         }
         
     boost::shared_ptr<NeighborList> nlist_3(new NL(sysdef_3, 3.0, 0.25));
+    nlist_3->setStorageMode(NeighborList::full);
     nlist_3->setRCutPair(0,0,1.0);
     nlist_3->setRCutPair(1,1,3.0);
     nlist_3->setRCutPair(0,1,2.0);
@@ -735,6 +738,33 @@ BOOST_AUTO_TEST_CASE( NeighborListBinned_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+
+//! basic test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListTree_basic )
+    {
+    neighborlist_basic_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! exclusion test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListTree_exclusion )
+    {
+    neighborlist_exclusion_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! large exclusion test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListTree_large_ex )
+    {
+    neighborlist_large_ex_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! body filter test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListTree_body_filter)
+    {
+    neighborlist_body_filter_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! particle asymmetry test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListTree_particle_asymm)
+    {
+    neighborlist_particle_asymm_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+
 //! comparison test case for binned class
 // BOOST_AUTO_TEST_CASE( NeighborListBinned_comparison )
 //     {

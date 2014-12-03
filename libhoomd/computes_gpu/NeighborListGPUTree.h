@@ -47,66 +47,57 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: ndtrung
+// Maintainer: mphoward
 
-/*! \file TwoStepBDNVTRigid.h
-    \brief Declares an updater that implements BD NVT dynamics for rigid bodies
+#include "NeighborListGPU.h"
+#include "NeighborListTree.h"
+#include "AABBTreeGPU.h"
+#include "Autotuner.h"
+
+/*! \file NeighborListGPUTree.h
+    \brief Declares the NeighborListGPUTree class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "TwoStepNVERigid.h"
-#include "Variant.h"
-#include "saruprng.h"
-
-#ifndef __TWO_STEP_BD_NVT_RIGID_H__
-#define __TWO_STEP_BD_NVT_RIGID_H__
-
-
-/*! \file TwoStepBDNVTRigid.h
- \brief Declares the TwoStepBDNVTRigid class
- */
-
-//! Integrates part of the system forward in two steps in the NVE ensemble with Langevin thermostat
-/*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
-
- \ingroup updaters
-*/
-class TwoStepBDNVTRigid : public TwoStepNVERigid
+#ifndef __NEIGHBORLISTGPUTREE_H__
+#define __NEIGHBORLISTGPUTREE_H__
+class NeighborListGPUTree : public NeighborListGPU
     {
     public:
-        //! Constructor
-        TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
-                          boost::shared_ptr<ParticleGroup> group,
-                          boost::shared_ptr<Variant> T,
-                          unsigned int seed,
-                          bool gamma_diam);
-        virtual ~TwoStepBDNVTRigid();
+        //! Constructs the compute
+        NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
+                              Scalar r_cut,
+                              Scalar r_buff);
 
-        //! Sets gamma for a given particle type
-        void setGamma(unsigned int typ, Scalar gamma);
+        //! Destructor
+        virtual ~NeighborListGPUTree();
+    
+    
+        //! Set the autotuner period
+        void setTuningParam(unsigned int param)
+            {
+            m_param = param;
+            }
 
-        //! Performs the second step
-        virtual void integrateStepTwo(unsigned int timestep);
-
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            NeighborListGPU::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period/10);
+            m_tuner->setEnabled(enable);
+            }
     protected:
-        boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
-        unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
-        bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
-
-        GPUVector<Scalar> m_gamma;         //!< List of per type gammas to use
-
-        //! Method to be called when number of types changes
-        virtual void slotNumTypesChange();
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
+        unsigned int m_param;               //!< Kernel tuning parameter
+        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
+        unsigned int m_last_tuned_timestep; //!< Last tuning timestep
     };
 
-//! Exports the TwoStepBDNVTRigid class to python
-void export_TwoStepBDNVTRigid();
-
-#endif
+//! Exports NeighborListGPUBinned to python
+void export_NeighborListGPUTree();
+#endif //__NEIGHBORLISTGPUTREE_H__

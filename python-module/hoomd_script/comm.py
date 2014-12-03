@@ -87,7 +87,7 @@ def get_rank():
         else:
             if globals.options.nrank is not None:
                 # recompute local rank
-                return int(hoomd.EecutionConfiguration.getRankGlobal() % globals.options.nrank)
+                return int(hoomd.ExecutionConfiguration.getRankGlobal() % globals.options.nrank)
             else:
                 return hoomd.ExecutionConfiguration.getRankGlobal()
     else:

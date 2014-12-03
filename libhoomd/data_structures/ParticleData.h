@@ -652,6 +652,9 @@ class ParticleData : boost::noncopyable
             const boost::function<void (unsigned int, unsigned int, unsigned int)> &func);
         #endif
 
+        //! Connects a funtion to be called every time the number of types changes
+        boost::signals2::connection connectNumTypesChange(const boost::function< void()> &func);
+
         //! Notify listeners that the number of ghost particles has changed
         void notifyGhostParticleNumberChange();
 
@@ -886,6 +889,14 @@ class ParticleData : boost::noncopyable
 
 #endif // ENABLE_MPI
 
+        //! Add particle types
+        /*! \param Name of type to add
+         *
+         * Adds the name to the list of types and
+         * returns the id of the newly added type
+         */
+        unsigned int addType(const std::string& type_name);
+
         //! Translate the box origin
         /*! \param a vector to apply in the translation
         */
@@ -920,6 +931,7 @@ class ParticleData : boost::noncopyable
         boost::signals2::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
         boost::signals2::signal<void ()> m_ghost_particle_num_signal; //!< Signal that is triggered when ghost particles are added to or deleted
         boost::signals2::signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
+        boost::signals2::signal<void ()> m_num_types_signal;  //!< Signal that is triggered when the number of types changes
 
         #ifdef ENABLE_MPI
         boost::signals2::signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
