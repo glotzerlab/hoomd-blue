@@ -86,10 +86,10 @@ Messenger::Messenger()
 #ifdef ENABLE_MPI
     // initial value
     m_mpi_comm = MPI_COMM_WORLD;
-    initializeSharedMem();
-    m_shared_filename = "";
     m_error_flag = NULL;
     m_has_lock = false;
+    initializeSharedMem();
+    m_shared_filename = "";
 #endif
 
     // preliminarily initialize rank and partiton

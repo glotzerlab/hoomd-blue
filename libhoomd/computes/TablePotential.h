@@ -137,6 +137,13 @@ class TablePotential : public ForceCompute
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
+
+        //! Method to be called when number of types changes
+        virtual void slotNumTypesChange();
+
+    private:
+        //! Connection to the signal notifying when number of particle types changes
+        boost::signals2::connection m_num_type_change_connection;
     };
 
 //! Exports the TablePotential class to python

@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
 using namespace boost::python;
 
 #include "CGCMMForceCompute.h"
@@ -107,12 +108,45 @@ CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
     memset((void*)m_lj6,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
     memset((void*)m_lj4,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
 
+    // connect to the ParticleData to receive notifications when the number of types changes
+    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&CGCMMForceCompute::slotNumTypesChange, this));
+    }
+
+void CGCMMForceCompute::slotNumTypesChange()
+    {
+    // initialize the number of types value
+    m_ntypes = m_pdata->getNTypes();
+    assert(m_ntypes > 0);
+
+
+    // re-allocate storage for lj12, lj9, lj6, and lj4 parameters
+    delete[] m_lj12;
+    delete[] m_lj9;
+    delete[] m_lj6;
+    delete[] m_lj4;
+
+    m_lj12 = new Scalar[m_ntypes*m_ntypes];
+    m_lj9 = new Scalar[m_ntypes*m_ntypes];
+    m_lj6 = new Scalar[m_ntypes*m_ntypes];
+    m_lj4 = new Scalar[m_ntypes*m_ntypes];
+
+    assert(m_lj12);
+    assert(m_lj9);
+    assert(m_lj6);
+    assert(m_lj4);
+
+    memset((void*)m_lj12, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
+    memset((void*)m_lj9,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
+    memset((void*)m_lj6,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
+    memset((void*)m_lj4,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
     }
 
 
 CGCMMForceCompute::~CGCMMForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying CGCMMForceCompute" << endl;
+
+    m_num_type_change_connection.disconnect();
 
     // deallocate our memory
     delete[] m_lj12;

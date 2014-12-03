@@ -131,6 +131,18 @@ class EAMForceCompute : public ForceCompute
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
+
+        //! Method to be called when number of types changes
+        virtual void slotNumTypesChange()
+            {
+            m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
+            throw std::runtime_error("Unsupported feature");
+            }
+
+    private:
+        //! Connection to the signal notifying when number of particle types changes
+        boost::signals2::connection m_num_type_change_connection;
+
     };
 
 //! Exports the EAMForceCompute class to python

@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
 #include "ForceCompute.h"
 
 /*! \file PotentialExternal.h
@@ -74,6 +75,7 @@ class PotentialExternal: public ForceCompute
         //! Constructs the compute
         PotentialExternal<evaluator>(boost::shared_ptr<SystemDefinition> sysdef,
                                      const std::string& log_suffix="");
+        virtual ~PotentialExternal<evaluator>();
 
         //! type of external potential parameters
         typedef typename evaluator::param_type param_type;
@@ -94,7 +96,19 @@ class PotentialExternal: public ForceCompute
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
-    };
+
+        //! Method to be called when number of types changes
+        virtual void slotNumTypesChange()
+            {
+            // reallocate parameter array
+            GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
+            m_params.swap(params);
+            }
+
+    private:
+        //! Connection to the signal notifying when number of particle types changes
+        boost::signals2::connection m_num_type_change_connection;
+   };
 
 /*! Constructor
     \param sysdef system definition
@@ -109,6 +123,17 @@ PotentialExternal<evaluator>::PotentialExternal(boost::shared_ptr<SystemDefiniti
 
     GPUArray<param_type> params(m_pdata->getNTypes(), exec_conf);
     m_params.swap(params);
+
+    // connect to the ParticleData to receive notifications when the maximum number of particles changes
+    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&PotentialExternal<evaluator>::slotNumTypesChange, this));
+    }
+
+/*! Destructor
+*/
+template<class evaluator>
+PotentialExternal<evaluator>::~PotentialExternal()
+    {
+    m_num_type_change_connection.disconnect();
     }
 
 /*! PotentialExternal provides
