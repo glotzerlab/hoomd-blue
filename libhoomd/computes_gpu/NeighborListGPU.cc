@@ -117,7 +117,6 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
         m_distcheck_scheduled = false;
         return;
         }
-
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(exec_conf, "dist-check");
 
@@ -131,7 +130,6 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
 
     // Cutoff distance for inclusion in neighbor list
     Scalar rmax = m_r_cut_max + m_r_buff;
-
     // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
     Scalar3 lambda = L_g / m_last_L;
     Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;

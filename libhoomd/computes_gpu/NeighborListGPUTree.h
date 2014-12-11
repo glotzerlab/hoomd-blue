@@ -50,9 +50,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: mphoward
 
 #include "NeighborListGPU.h"
-#include "NeighborListTree.h"
+#include "AABBTree.h"
 #include "AABBTreeGPU.h"
 #include "Autotuner.h"
+
+using namespace hpmc::detail;
 
 /*! \file NeighborListGPUTree.h
     \brief Declares the NeighborListGPUTree class
@@ -92,10 +94,40 @@ class NeighborListGPUTree : public NeighborListGPU
             m_tuner->setPeriod(period/10);
             m_tuner->setEnabled(enable);
             }
+            
+        //! Notification of a box size change
+        void slotBoxChanged()
+            {
+            m_box_changed = true;
+            }
+            
     protected:
         unsigned int m_param;               //!< Kernel tuning parameter
         boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
         unsigned int m_last_tuned_timestep; //!< Last tuning timestep
+        
+        GPUArray<AABBTree>   m_aabb_trees;              //!< Array of AABB trees
+        GPUArray<AABBTreeGPU> m_aabb_trees_gpu;         //!< Array of trees for the GPU
+        GPUArray<AABBNodeGPU> m_aabb_nodes;             //!< Copies the dynamically allocated AABBNode over to device
+        GPUArray<AABB>          m_aabbs;                //!< Array of AABBs
+        GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
+        GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type
+        GPUArray<unsigned int>  m_map_p_global_tree;    //!< maps global ids to tag in tree
+
+        GPUArray<Scalar3>       m_image_list;           //!< list of translation vectors
+
+        //! Builds the neighbor list
+        virtual void buildNlist(unsigned int timestep);
+        void buildTree();
+        void traverseTree();
+        void getNumPerType();
+        
+        void allocateTree(unsigned int n_local);
+        
+        bool m_box_changed;
+        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
+        
+        unsigned int m_max_n_local; //!< Maximum number of particles locally
     };
 
 //! Exports NeighborListGPUBinned to python

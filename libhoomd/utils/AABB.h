@@ -405,5 +405,4 @@ DEVICE inline AABB merge(const AABB& a, const AABB& b)
 }; // end namespace hpmc
 
 #undef DEVICE
-
 #endif //__AABB_H__

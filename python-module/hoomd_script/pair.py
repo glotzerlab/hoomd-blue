@@ -499,11 +499,11 @@ class nlist:
             #self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
             self.cpp_nlist = hoomd.NeighborListTree(globals.system_definition, r_cut, default_r_buff)
         else:
-            #cl_g = hoomd.CellListGPU(globals.system_definition);
-            #globals.system.addCompute(cl_g, "auto_cl")
-            #self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
+#             cl_g = hoomd.CellListGPU(globals.system_definition);
+#             globals.system.addCompute(cl_g, "auto_cl")
+#             self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
             # cpu built neighbor list for now
-            self.cpp_nlist = hoomd.NeighborListTree(globals.system_definition, r_cut, default_r_buff)
+            self.cpp_nlist = hoomd.NeighborListGPUTree(globals.system_definition, r_cut, default_r_buff)
 
         self.cpp_nlist.setEvery(1, True);
         self.is_exclusion_overridden = False;

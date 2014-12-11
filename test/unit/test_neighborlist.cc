@@ -68,7 +68,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
+#include "NeighborListGPUTree.h"
 #endif
+
+#include "AABB.h"
+#include "AABBTree.h"
+#include "AABBTreeGPU.h"
 
 using namespace std;
 using namespace boost;
@@ -824,7 +829,32 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-
+    
+//! basic test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_basic )
+    {
+    neighborlist_basic_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! exclusion test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_exclusion )
+    {
+    neighborlist_exclusion_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! large exclusion test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_large_ex )
+    {
+    neighborlist_large_ex_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! body filter test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_body_filter)
+    {
+    neighborlist_body_filter_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! particle asymmetry test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm)
+    {
+    neighborlist_particle_asymm_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
 #endif
 
 #ifdef WIN32

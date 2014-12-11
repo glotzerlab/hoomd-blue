@@ -152,6 +152,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepBDNVTRigidGPU.h"
 #include "NeighborListGPU.h"
 #include "NeighborListGPUBinned.h"
+#include "NeighborListGPUTree.h"
 #include "CGCMMForceComputeGPU.h"
 //#include "ConstExternalFieldDipoleForceComputeGPU.h"
 #include "BondTablePotentialGPU.h"
@@ -525,6 +526,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CellListGPU();
     export_NeighborListGPU();
     export_NeighborListGPUBinned();
+    export_NeighborListGPUTree();
     export_CGCMMForceComputeGPU();
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");

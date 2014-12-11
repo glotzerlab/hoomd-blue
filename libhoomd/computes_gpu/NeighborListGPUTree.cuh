@@ -49,68 +49,43 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: mphoward
 
-#include "NeighborList.h"
-#include "AABBTree.h"
+#ifndef __NEIGHBORLISTGPUTREE_CUH__
+#define __NEIGHBORLISTGPUTREE_CUH__
+
+/*! \file NeighborListGPUTree.cuh
+    \brief Declares GPU kernel code for neighbor list tree traversal on the GPU
+*/
+
+#include <cuda_runtime.h>
+
+#include "HOOMDMath.h"
+#include "ParticleData.cuh"
+#include "Index1D.h"
+#include "AABBTreeGPU.h"
 
 using namespace hpmc::detail;
 
-/*! \file NeighborListTree.h
-    \brief Declares the NeighborListTree class
-*/
+//! Kernel driver to traverse tree and build neighbor list on the device
+cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
+                                     unsigned int *d_n_neigh,
+                                     Scalar4 *d_last_updated_pos,
+                                     unsigned int *d_conditions,
+                                     const unsigned int *d_Nmax,
+                                     const unsigned int *d_head_list,
+                                     const Scalar4 *d_pos,
+                                     const unsigned int *d_body,
+                                     const Scalar *d_diameter,
+                                     const unsigned int N,
+                                     const AABBTreeGPU *d_aabb_trees,
+                                     const AABBNodeGPU *d_aabb_nodes,
+                                     const unsigned int nnodes,
+                                     const Scalar3 *d_image_list,
+                                     const unsigned int nimages,
+                                     const Scalar *d_r_cut,
+                                     const Scalar r_buff,
+                                     const unsigned int ntypes,
+                                     bool filter_body,
+                                     const unsigned int compute_capability,
+                                     const unsigned int block_size);
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
-
-#ifndef __NEIGHBORLISTTREE_H__
-#define __NEIGHBORLISTTREE_H__
-
-//! Efficient neighbor list build on the CPU
-/*! Implements the O(N) neighbor list build on the CPU using a cell list.
-
-    \ingroup computes
-*/
-class NeighborListTree : public NeighborList
-    {
-    public:
-        //! Constructs the compute
-        NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
-                           Scalar r_cut,
-                           Scalar r_buff);
-
-        //! Destructor
-        virtual ~NeighborListTree();
-        
-        //! Notification of a box size change
-        void slotBoxChanged()
-            {
-            m_box_changed = true;
-            }
-            
-    protected:
-        GPUArray<AABBTree>      m_aabb_trees;           //!< Array of AABB trees
-        GPUArray<AABB>          m_aabbs;                //!< Array of AABBs
-        GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
-        GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type
-        GPUArray<unsigned int>  m_map_p_global_tree;    //!< maps global ids to tag in tree
-
-        GPUArray< vec3<Scalar> >       m_image_list;           //!< list of translation vectors
-
-        //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
-        void buildTree();
-        void traverseTree();
-        void getNumPerType();
-        
-        void allocateTree(unsigned int n_local);
-        
-        bool m_box_changed;
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
-        
-        unsigned int m_max_n_local; //!< Maximum number of particles locally
-    };
-
-//! Exports NeighborListTree to python
-void export_NeighborListTree();
-
-#endif // __NEIGHBORLISTTREE_H__
+#endif //__NEIGHBORLISTGPUTREE_CUH__
