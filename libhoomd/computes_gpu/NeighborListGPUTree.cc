@@ -81,6 +81,10 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
     GPUArray<AABBTreeGPU> aabb_trees_gpu(m_pdata->getNTypes(), m_exec_conf); // copied data structure for the GPU
     m_aabb_trees_gpu.swap(aabb_trees_gpu);
     
+    // leaf particles is of size N, since all particles are in a leaf
+    GPUArray<unsigned int> aabb_leaf_particles(m_pdata->getN(), m_exec_conf);
+    m_aabb_leaf_particles.swap(aabb_leaf_particles);
+    
     // allocate storage for number of particles per type (including ghosts)
     GPUArray<unsigned int> num_per_type(m_pdata->getNTypes(), m_exec_conf);
     m_num_per_type.swap(num_per_type);
@@ -287,6 +291,7 @@ void NeighborListGPUTree::traverseTree()
         }
     ArrayHandle<Scalar3> d_image_list(m_image_list, access_location::device, access_mode::read);
     
+    if (m_prof) m_prof->push(m_exec_conf,"copy");
     // acquire particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_last_updated_pos(m_last_pos, access_location::device, access_mode::overwrite);
@@ -300,9 +305,9 @@ void NeighborListGPUTree::traverseTree()
         unsigned int n_tree_nodes = 0;
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
-            h_aabb_trees.data[i] = h_aabb_trees_cpu.data[i];
-            h_aabb_trees.data[i].setNodeHead(n_tree_nodes);
-            n_tree_nodes += h_aabb_trees.data[i].getNumNodes();
+            h_aabb_trees.data[i].num_nodes = h_aabb_trees_cpu.data[i].getNumNodes();
+            h_aabb_trees.data[i].node_head = n_tree_nodes;
+            n_tree_nodes += h_aabb_trees.data[i].num_nodes;
             }
 
         // reallocate if necessary
@@ -314,18 +319,30 @@ void NeighborListGPUTree::traverseTree()
         
         // copy the nodes into a separate gpu array
         ArrayHandle<AABBNodeGPU> h_aabb_nodes(m_aabb_nodes, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_aabb_leaf_particles(m_aabb_leaf_particles, access_location::host, access_mode::overwrite);
+        int leaf_head_idx = 0;
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
-            AABBTree *tree = &h_aabb_trees_cpu.data[i];
-            unsigned int head = h_aabb_trees.data[i].getNodeHead();
+            const AABBTree *tree = &h_aabb_trees_cpu.data[i];
+            unsigned int head = h_aabb_trees.data[i].node_head;
             for (unsigned int j=0; j < tree->getNumNodes(); ++j)
                 {
-                h_aabb_nodes.data[head + j] = tree->getNode(j);
+                const unsigned int leaf_idx = (tree->isNodeLeaf(j)) ? leaf_head_idx : 0;
+                h_aabb_nodes.data[head + j] = AABBNodeGPU(tree->getNodeAABB(j), tree->getNodeSkip(j), tree->getNodeNumParticles(j), leaf_idx);
+                if (tree->isNodeLeaf(j))
+                    {
+                    for (unsigned int cur_particle=0; cur_particle < tree->getNodeNumParticles(j); ++cur_particle)
+                        {
+                        h_aabb_leaf_particles.data[leaf_head_idx + cur_particle] = tree->getNodeParticleTag(j, cur_particle);
+                        }
+                    leaf_head_idx += tree->getNodeNumParticles(j);
+                    }
                 }
             }
         }
     ArrayHandle<AABBTreeGPU> d_aabb_trees(m_aabb_trees_gpu, access_location::device, access_mode::read);
     ArrayHandle<AABBNodeGPU> d_aabb_nodes(m_aabb_nodes, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_aabb_leaf_particles(m_aabb_leaf_particles, access_location::device, access_mode::read);
     
     // neighborlist data
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
@@ -335,6 +352,7 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_map_p_global_tree(m_map_p_global_tree, access_location::device, access_mode::read);
+    if (m_prof) m_prof->pop(m_exec_conf);
     
     m_tuner->begin();
     gpu_nlist_traverse_tree(d_nlist.data,
@@ -349,7 +367,7 @@ void NeighborListGPUTree::traverseTree()
                                      m_pdata->getN(),
                                      d_aabb_trees.data,
                                      d_aabb_nodes.data,
-                                     m_aabb_nodes.getPitch(),
+                                     d_aabb_leaf_particles.data,
                                      d_image_list.data,
                                      n_images,
                                      d_r_cut.data,

@@ -109,6 +109,7 @@ class NeighborListGPUTree : public NeighborListGPU
         GPUArray<AABBTree>   m_aabb_trees;              //!< Array of AABB trees
         GPUArray<AABBTreeGPU> m_aabb_trees_gpu;         //!< Array of trees for the GPU
         GPUArray<AABBNodeGPU> m_aabb_nodes;             //!< Copies the dynamically allocated AABBNode over to device
+        GPUArray<unsigned int> m_aabb_leaf_particles;   //!< Holds the particle tags as a flat array from the trees
         GPUArray<AABB>          m_aabbs;                //!< Array of AABBs
         GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
         GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type

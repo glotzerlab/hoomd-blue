@@ -74,6 +74,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                                      const unsigned int N,
                                      const AABBTreeGPU *d_aabb_trees,
                                      const AABBNodeGPU *d_aabb_nodes,
+                                     const unsigned int *d_aabb_leaf_particles,
                                      const Scalar3 *d_image_list,
                                      const unsigned int nimages,
                                      const Scalar *d_r_cut,
@@ -116,7 +117,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     if (idx >= N)
         return;  
     
-    const unsigned int my_pidx = idx;
+    const unsigned int my_pidx = idx;//d_aabb_leaf_particles[idx];
     
     // read in the current position and orientation
     const Scalar4 postype_i = texFetchScalar4(d_pos, pdata_pos_tex, my_pidx);//d_pos[my_pidx];
@@ -134,7 +135,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         // Check primary box
         Scalar r_cut_i = s_r_list[typpair_idx(type_i,cur_pair_type)];
         Scalar r_cutsq_i = r_cut_i*r_cut_i;
-        const AABBTreeGPU *cur_aabb_tree = &d_aabb_trees[cur_pair_type];
+        AABBTreeGPU cur_aabb_tree = d_aabb_trees[cur_pair_type];
 
         for (unsigned int cur_image = 0; cur_image < nimages; ++cur_image)
             {
@@ -143,39 +144,47 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
             AABBGPU aabb(pos_i_image, r_cut_i);
 
             // stackless search
-            for (unsigned int cur_node_idx = 0; cur_node_idx < cur_aabb_tree->getNumNodes(); ++cur_node_idx)
+            for (unsigned int cur_node_idx = 0; cur_node_idx < cur_aabb_tree.num_nodes; ++cur_node_idx)
                 {
-                const AABBNodeGPU *cur_node = &d_aabb_nodes[cur_aabb_tree->getNodeHead() + cur_node_idx];
+                const AABBNodeGPU *cur_node = &d_aabb_nodes[cur_aabb_tree.node_head + cur_node_idx];
+                Scalar4 lower_np = cur_node->lower_np;
+                Scalar4 upper_skip = cur_node->upper_skip;
                 
-                if (overlap(cur_node->aabb, aabb))
-                    {                        
-                    if (cur_node->left == INVALID_NODE)
+                bool overlap = !(   aabb.upper.x < lower_np.x
+                                 || aabb.lower.x > upper_skip.x
+                                 || aabb.upper.y < lower_np.y
+                                 || aabb.lower.y > upper_skip.y
+                                 || aabb.upper.z < lower_np.z
+                                 || aabb.lower.z > upper_skip.z
+                                );
+                
+                if (overlap)
+                    {      
+                    unsigned int leaf_num_particles = __scalar_as_int(lower_np.w);                  
+                    for (unsigned int cur_p = 0; cur_p < leaf_num_particles; ++cur_p)
                         {
-                        for (unsigned int cur_p = 0; cur_p < cur_node->num_particles; ++cur_p)
+                        // neighbor j
+                        unsigned int j = d_aabb_leaf_particles[cur_node->leaf_head_idx + cur_p];
+
+                        bool excluded = (my_pidx == j);
+
+                        if (filter_body && body_i != 0xffffffff)
+                            excluded = excluded | (body_i == d_body[j]);
+                            
+                        if (!excluded)
                             {
-                            // neighbor j
-                            unsigned int j = cur_node->particle_tags[cur_p];
+                            // compute distance and wrap back into box
+                            Scalar4 postype_j = texFetchScalar4(d_pos, pdata_pos_tex, j);//d_pos[j];
+                            Scalar3 drij = make_scalar3(postype_j.x,postype_j.y,postype_j.z) - pos_i_image;
+                            Scalar dr_sq = dot(drij,drij);
 
-                            bool excluded = (my_pidx == j);
-
-                            if (filter_body && body_i != 0xffffffff)
-                                excluded = excluded | (body_i == d_body[j]);
-                                
-                            if (!excluded)
+                            if (dr_sq <= r_cutsq_i)
                                 {
-                                // compute distance and wrap back into box
-                                Scalar4 postype_j = texFetchScalar4(d_pos, pdata_pos_tex, j);//d_pos[j];
-                                Scalar3 drij = make_scalar3(postype_j.x,postype_j.y,postype_j.z) - pos_i_image;
-                                Scalar dr_sq = dot(drij,drij);
-
-                                if (dr_sq <= r_cutsq_i)
+                                if (n_neigh_i < s_Nmax[type_i])
                                     {
-                                    if (n_neigh_i < s_Nmax[type_i])
-                                        {
-                                        d_nlist[nlist_head_i + n_neigh_i] = j;
-                                        }
-                                    ++n_neigh_i;
+                                    d_nlist[nlist_head_i + n_neigh_i] = j;
                                     }
+                                ++n_neigh_i;
                                 }
                             }
                         }
@@ -183,9 +192,10 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                 else
                     {
                     // skip ahead
-                    cur_node_idx += cur_node->skip;
+                    cur_node_idx += __scalar_as_int(upper_skip.w);
                     }
                 } // end stackless search
+                
             } // end loop over images
             
         } // end loop over pair types
@@ -210,7 +220,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                      const unsigned int N,
                                      const AABBTreeGPU *d_aabb_trees,
                                      const AABBNodeGPU *d_aabb_nodes,
-                                     const unsigned int nnodes,
+                                     const unsigned int *d_aabb_leaf_particles,
                                      const Scalar3 *d_image_list,
                                      const unsigned int nimages,
                                      const Scalar *d_r_cut,
@@ -260,6 +270,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                  N,
                                                                                  d_aabb_trees,
                                                                                  d_aabb_nodes,
+                                                                                 d_aabb_leaf_particles,
                                                                                  d_image_list,
                                                                                  nimages,
                                                                                  d_r_cut,
@@ -290,6 +301,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                  N,
                                                                                  d_aabb_trees,
                                                                                  d_aabb_nodes,
+                                                                                 d_aabb_leaf_particles,
                                                                                  d_image_list,
                                                                                  nimages,
                                                                                  d_r_cut,
