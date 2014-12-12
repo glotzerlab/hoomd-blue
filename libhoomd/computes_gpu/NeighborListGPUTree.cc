@@ -81,13 +81,14 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
     GPUArray<AABBTreeGPU> aabb_trees_gpu(m_pdata->getNTypes(), m_exec_conf); // copied data structure for the GPU
     m_aabb_trees_gpu.swap(aabb_trees_gpu);
     
-    // leaf particles is of size N, since all particles are in a leaf
+    // leaf particles is of size N, since all particles are in a leaf    
     GPUArray<unsigned int> aabb_leaf_particles(m_pdata->getN(), m_exec_conf);
     m_aabb_leaf_particles.swap(aabb_leaf_particles);
     GPUArray<Scalar4> leaf_xyzf(m_pdata->getN(), m_exec_conf);
     m_leaf_xyzf.swap(leaf_xyzf);
     GPUArray<Scalar2> leaf_db(m_pdata->getN(), m_exec_conf);
     m_leaf_db.swap(leaf_db);
+    
     
     // allocate storage for number of particles per type (including ghosts)
     GPUArray<unsigned int> num_per_type(m_pdata->getNTypes(), m_exec_conf);

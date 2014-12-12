@@ -204,8 +204,8 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
             
         } // end loop over pair types
         
-    d_last_updated_pos[my_pidx] = d_pos[my_pidx];
     d_n_neigh[my_pidx] = n_neigh_i;
+    d_last_updated_pos[my_pidx] = d_pos[my_pidx];
     
     // update the number of neighbors for this type if allocated memory is exceeded
     if (n_neigh_i >= s_Nmax[type_i])
