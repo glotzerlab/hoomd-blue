@@ -84,6 +84,10 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
     // leaf particles is of size N, since all particles are in a leaf
     GPUArray<unsigned int> aabb_leaf_particles(m_pdata->getN(), m_exec_conf);
     m_aabb_leaf_particles.swap(aabb_leaf_particles);
+    GPUArray<Scalar4> leaf_xyzf(m_pdata->getN(), m_exec_conf);
+    m_leaf_xyzf.swap(leaf_xyzf);
+    GPUArray<Scalar2> leaf_db(m_pdata->getN(), m_exec_conf);
+    m_leaf_db.swap(leaf_db);
     
     // allocate storage for number of particles per type (including ghosts)
     GPUArray<unsigned int> num_per_type(m_pdata->getNTypes(), m_exec_conf);
@@ -292,12 +296,6 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<Scalar3> d_image_list(m_image_list, access_location::device, access_mode::read);
     
     if (m_prof) m_prof->push(m_exec_conf,"copy");
-    // acquire particle data
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_last_updated_pos(m_last_pos, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-    
     // copy tree data from cpu to gpu
         {
         ArrayHandle<AABBTree> h_aabb_trees_cpu(m_aabb_trees, access_location::host, access_mode::read);
@@ -320,6 +318,11 @@ void NeighborListGPUTree::traverseTree()
         // copy the nodes into a separate gpu array
         ArrayHandle<AABBNodeGPU> h_aabb_nodes(m_aabb_nodes, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_aabb_leaf_particles(m_aabb_leaf_particles, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_leaf_xyzf(m_leaf_xyzf, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar2> h_leaf_db(m_leaf_db, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
         int leaf_head_idx = 0;
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
@@ -333,7 +336,12 @@ void NeighborListGPUTree::traverseTree()
                     {
                     for (unsigned int cur_particle=0; cur_particle < tree->getNodeNumParticles(j); ++cur_particle)
                         {
-                        h_aabb_leaf_particles.data[leaf_head_idx + cur_particle] = tree->getNodeParticleTag(j, cur_particle);
+                        unsigned int my_pidx = tree->getNodeParticleTag(j, cur_particle);
+                        Scalar4 my_postype = h_pos.data[my_pidx];
+                        
+                        h_aabb_leaf_particles.data[leaf_head_idx + cur_particle] = my_pidx;
+                        h_leaf_xyzf.data[leaf_head_idx + cur_particle] = make_scalar4(my_postype.x, my_postype.y, my_postype.z, __int_as_scalar(my_pidx));
+                        h_leaf_db.data[leaf_head_idx + cur_particle] = make_scalar2(h_diameter.data[my_pidx], __int_as_scalar(h_body.data[my_pidx]));
                         }
                     leaf_head_idx += tree->getNodeNumParticles(j);
                     }
@@ -343,6 +351,15 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<AABBTreeGPU> d_aabb_trees(m_aabb_trees_gpu, access_location::device, access_mode::read);
     ArrayHandle<AABBNodeGPU> d_aabb_nodes(m_aabb_nodes, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_aabb_leaf_particles(m_aabb_leaf_particles, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_leaf_xyzf(m_leaf_xyzf, access_location::device, access_mode::read);
+    ArrayHandle<Scalar2> d_leaf_db(m_leaf_db, access_location::device, access_mode::read);
+    
+    // acquire particle data
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_last_updated_pos(m_last_pos, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
+    
     
     // neighborlist data
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
@@ -368,6 +385,8 @@ void NeighborListGPUTree::traverseTree()
                                      d_aabb_trees.data,
                                      d_aabb_nodes.data,
                                      d_aabb_leaf_particles.data,
+                                     d_leaf_xyzf.data,
+                                     d_leaf_db.data,
                                      d_image_list.data,
                                      n_images,
                                      d_r_cut.data,

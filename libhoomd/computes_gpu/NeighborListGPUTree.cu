@@ -54,9 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
-
-//! Texture for reading aabb nodes from tree
-// texture<AABBNodeGPU, 1, cudaReadModeElementType> aabb_node_tex;
+scalar4_tex_t leaf_xyzf_tex;
 
 /*! \file NeighborListGPUTree.cu
     \brief Defines GPU kernel code for neighbor list tree traversal on the GPU
@@ -75,6 +73,8 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                                      const AABBTreeGPU *d_aabb_trees,
                                      const AABBNodeGPU *d_aabb_nodes,
                                      const unsigned int *d_aabb_leaf_particles,
+                                     const Scalar4 *d_leaf_xyzf,
+                                     const Scalar2 *d_leaf_db,
                                      const Scalar3 *d_image_list,
                                      const unsigned int nimages,
                                      const Scalar *d_r_cut,
@@ -117,10 +117,9 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     if (idx >= N)
         return;  
     
-    const unsigned int my_pidx = idx;//d_aabb_leaf_particles[idx];
-    
     // read in the current position and orientation
-    const Scalar4 postype_i = texFetchScalar4(d_pos, pdata_pos_tex, my_pidx);//d_pos[my_pidx];
+    const unsigned int my_pidx = d_aabb_leaf_particles[idx];
+    const Scalar4 postype_i = texFetchScalar4(d_pos, pdata_pos_tex, my_pidx);
     const Scalar3 pos_i = make_scalar3(postype_i.x, postype_i.y, postype_i.z);
     const unsigned int type_i = __scalar_as_int(postype_i.w);
     const unsigned int body_i = d_body[my_pidx];
@@ -164,18 +163,22 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                     for (unsigned int cur_p = 0; cur_p < leaf_num_particles; ++cur_p)
                         {
                         // neighbor j
-                        unsigned int j = d_aabb_leaf_particles[cur_node->leaf_head_idx + cur_p];
+                        Scalar4 cur_xyzf = texFetchScalar4(d_leaf_xyzf, leaf_xyzf_tex, cur_node->leaf_head_idx + cur_p);
+                        Scalar3 pos_j = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
+                        unsigned int j = __scalar_as_int(cur_xyzf.w);
+                        
+                        Scalar2 cur_db = d_leaf_db[cur_node->leaf_head_idx + cur_p];
+                        unsigned int body_j = __scalar_as_int(cur_db.y);
 
                         bool excluded = (my_pidx == j);
 
                         if (filter_body && body_i != 0xffffffff)
-                            excluded = excluded | (body_i == d_body[j]);
+                            excluded = excluded | (body_i == body_j);
                             
                         if (!excluded)
                             {
                             // compute distance and wrap back into box
-                            Scalar4 postype_j = texFetchScalar4(d_pos, pdata_pos_tex, j);//d_pos[j];
-                            Scalar3 drij = make_scalar3(postype_j.x,postype_j.y,postype_j.z) - pos_i_image;
+                            Scalar3 drij = pos_j - pos_i_image;
                             Scalar dr_sq = dot(drij,drij);
 
                             if (dr_sq <= r_cutsq_i)
@@ -201,7 +204,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         } // end loop over pair types
         
     d_n_neigh[my_pidx] = n_neigh_i;
-    d_last_updated_pos[my_pidx] = postype_i;
+    d_last_updated_pos[my_pidx] = d_pos[my_pidx];//postype_i;
     
     // update the number of neighbors for this type if allocated memory is exceeded
     if (n_neigh_i >= s_Nmax[type_i])
@@ -221,6 +224,8 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                      const AABBTreeGPU *d_aabb_trees,
                                      const AABBNodeGPU *d_aabb_nodes,
                                      const unsigned int *d_aabb_leaf_particles,
+                                     const Scalar4 *d_leaf_xyzf,
+                                     const Scalar2 *d_leaf_db,
                                      const Scalar3 *d_image_list,
                                      const unsigned int nimages,
                                      const Scalar *d_r_cut,
@@ -237,14 +242,14 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
     // bind the neighborlist texture
     if (compute_capability < 35)
         {
-            // bind the position texture
+        // bind the position texture
         pdata_pos_tex.normalized = false;
         pdata_pos_tex.filterMode = cudaFilterModePoint;
         cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
         
-//         aabb_node_tex.normalized = false;
-//         aabb_node_tex.filterMode = cudaFilterModePoint;
-//         cudaBindTexture(0, aabb_node_tex, d_aabb_nodes, sizeof(AABBNodeGPU) * nnodes);
+        leaf_xyzf_tex.normalized = false;
+        leaf_xyzf_tex.filterMode = cudaFilterModePoint;
+        cudaBindTexture(0, leaf_xyzf_tex, d_leaf_xyzf, sizeof(Scalar4)*N);
         }
     
     if (!filter_body)
@@ -271,6 +276,8 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                  d_aabb_trees,
                                                                                  d_aabb_nodes,
                                                                                  d_aabb_leaf_particles,
+                                                                                 d_leaf_xyzf,
+                                                                                 d_leaf_db,
                                                                                  d_image_list,
                                                                                  nimages,
                                                                                  d_r_cut,
@@ -302,6 +309,8 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                  d_aabb_trees,
                                                                                  d_aabb_nodes,
                                                                                  d_aabb_leaf_particles,
+                                                                                 d_leaf_xyzf,
+                                                                                 d_leaf_db,
                                                                                  d_image_list,
                                                                                  nimages,
                                                                                  d_r_cut,
