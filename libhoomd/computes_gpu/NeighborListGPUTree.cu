@@ -96,12 +96,14 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     unsigned int *s_Nmax = (unsigned int *)(&s_data[sizeof(Scalar)*num_typ_parameters]);
 
     // load in the per type pair r_list
-    for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
+    unsigned int max_offset = max(num_typ_parameters, nimages);
+    for (unsigned int cur_offset = 0; cur_offset < max_offset; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < num_typ_parameters)
             {
             s_r_list[cur_offset + threadIdx.x] = d_r_cut[cur_offset + threadIdx.x]+r_buff;
             }
+            
         if (cur_offset + threadIdx.x < ntypes)
             {
             s_Nmax[cur_offset + threadIdx.x] = d_Nmax[cur_offset + threadIdx.x];
@@ -135,13 +137,13 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         Scalar r_cut_i = s_r_list[typpair_idx(type_i,cur_pair_type)];
         Scalar r_cutsq_i = r_cut_i*r_cut_i;
         AABBTreeGPU cur_aabb_tree = d_aabb_trees[cur_pair_type];
-
+        
         for (unsigned int cur_image = 0; cur_image < nimages; ++cur_image)
             {
             // can we put the image list in shared memory? 27 x 3 x 4 = 648 B (yes! optimize later)
             Scalar3 pos_i_image = pos_i + d_image_list[cur_image];
             AABBGPU aabb(pos_i_image, r_cut_i);
-
+            
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < cur_aabb_tree.num_nodes; ++cur_node_idx)
                 {
@@ -179,9 +181,9 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                             {
                             // compute distance and wrap back into box
                             Scalar3 drij = pos_j - pos_i_image;
-                            Scalar dr_sq = dot(drij,drij);
+                            Scalar dr2 = dot(drij,drij);
 
-                            if (dr_sq <= r_cutsq_i)
+                            if (dr2 <= r_cutsq_i)
                                 {
                                 if (n_neigh_i < s_Nmax[type_i])
                                     {
@@ -197,14 +199,13 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                     // skip ahead
                     cur_node_idx += __scalar_as_int(upper_skip.w);
                     }
-                } // end stackless search
-                
+                } // end stackless search  
             } // end loop over images
             
         } // end loop over pair types
         
+    d_last_updated_pos[my_pidx] = d_pos[my_pidx];
     d_n_neigh[my_pidx] = n_neigh_i;
-    d_last_updated_pos[my_pidx] = d_pos[my_pidx];//postype_i;
     
     // update the number of neighbors for this type if allocated memory is exceeded
     if (n_neigh_i >= s_Nmax[type_i])
