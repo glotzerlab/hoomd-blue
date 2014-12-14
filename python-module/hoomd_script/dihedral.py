@@ -534,7 +534,7 @@ class table(force._force):
 
 ## OPLS %dihedral force
 #
-# The command dihedral.opls specifies an opls-style %dihedral potential energy between every defined
+# The command dihedral.opls specifies an OPLS-style %dihedral potential energy between every defined
 # quadruplet of particles in the simulation.
 # \f[ V(r) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) + \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right)
 # + \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) + \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right) \f]
