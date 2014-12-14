@@ -66,10 +66,6 @@ using namespace boost::python;
 
 using namespace std;
 
-// SMALL a relatively small number
-#define SMALL     0.001
-#define SMALLER   0.00001
-
 /*! \file OPLSDihedralForceCompute.cc
     \brief Contains code for the OPLSDihedralForceCompute class
 */
@@ -187,11 +183,10 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
     unsigned int i1,i2,i3,i4,n,dihedral_type;
     Scalar3 vb1,vb2,vb3,vb2m;
     Scalar4 f1,f2,f3,f4;
-    Scalar sb1,sb2,sb3,rb1,rb3,c0,b1mag2,b1mag,b2mag2;
-    Scalar b2mag,b3mag2,b3mag,ctmp,r12c1,c1mag,r12c2,e_dihedral;
-    Scalar c2mag,sc1,sc2,s1,s12,c,p,pd,a,a11,a22;
-    Scalar a33,a12,a13,a23,sx2,sy2,sz2;
-    Scalar s2,cx,cy,cz,cmag,dx,phi,si,siinv,sin2;
+    Scalar ax,ay,az,bx,by,bz,rasq,rbsq,rgsq,rg,rginv,ra2inv,rb2inv,rabinv;
+    Scalar df,df1,ddf1,fg,hg,fga,hgb,gaa,gbb;
+    Scalar dtfx,dtfy,dtfz,dtgx,dtgy,dtgz,dthx,dthy,dthz;
+    Scalar c,s,p,sx2,sy2,sz2,cos_term,e_dihedral;
     Scalar k1,k2,k3,k4;
     Scalar dihedral_virial[6];
     
@@ -257,71 +252,31 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
         vb2m.z = -vb2.z;
         vb2m = box.minImage(vb2m);
 
-        // c0 calculation
+        // c,s calculation
 
-        sb1 = 1.0 / (vb1.x*vb1.x + vb1.y*vb1.y + vb1.z*vb1.z);
-        sb2 = 1.0 / (vb2.x*vb2.x + vb2.y*vb2.y + vb2.z*vb2.z);
-        sb3 = 1.0 / (vb3.x*vb3.x + vb3.y*vb3.y + vb3.z*vb3.z);
+        ax = vb1.y*vb2m.z - vb1.z*vb2m.y;
+        ay = vb1.z*vb2m.x - vb1.x*vb2m.z;
+        az = vb1.x*vb2m.y - vb1.y*vb2m.x;
+        bx = vb3.y*vb2m.z - vb3.z*vb2m.y;
+        by = vb3.z*vb2m.x - vb3.x*vb2m.z;
+        bz = vb3.x*vb2m.y - vb3.y*vb2m.x;
 
-        rb1 = sqrt(sb1);
-        rb3 = sqrt(sb3);
+        rasq = ax*ax + ay*ay + az*az;
+        rbsq = bx*bx + by*by + bz*bz;
+        rgsq = vb2m.x*vb2m.x + vb2m.y*vb2m.y + vb2m.z*vb2m.z;
+        rg = sqrt(rgsq);
 
-        c0 = (vb1.x*vb3.x + vb1.y*vb3.y + vb1.z*vb3.z) * rb1*rb3;
+        rginv = ra2inv = rb2inv = 0.0;
+        if (rg > 0) rginv = 1.0/rg;
+        if (rasq > 0) ra2inv = 1.0/rasq;
+        if (rbsq > 0) rb2inv = 1.0/rbsq;
+        rabinv = sqrt(ra2inv*rb2inv);
 
-        // 1st and 2nd angle
-
-        b1mag2 = vb1.x*vb1.x + vb1.y*vb1.y + vb1.z*vb1.z;
-        b1mag = sqrt(b1mag2);
-        b2mag2 = vb2.x*vb2.x + vb2.y*vb2.y + vb2.z*vb2.z;
-        b2mag = sqrt(b2mag2);
-        b3mag2 = vb3.x*vb3.x + vb3.y*vb3.y + vb3.z*vb3.z;
-        b3mag = sqrt(b3mag2);
-
-        ctmp = vb1.x*vb2.x + vb1.y*vb2.y + vb1.z*vb2.z;
-        r12c1 = 1.0 / (b1mag*b2mag);
-        c1mag = ctmp * r12c1;
-
-        ctmp = vb2m.x*vb3.x + vb2m.y*vb3.y + vb2m.z*vb3.z;
-        r12c2 = 1.0 / (b2mag*b3mag);
-        c2mag = ctmp * r12c2;
-
-        // cos and sin of 2 angles and final c
-
-        sin2 = 1.0 - c1mag*c1mag;
-        if (sin2 < 0.0) sin2 = 0.0;
-        sc1 = sqrt(sin2);
-        if (sc1 < SMALL) sc1 = SMALL;
-        sc1 = 1.0/sc1;
-
-        sin2 = 1.0 - c2mag*c2mag;
-        if (sin2 < 0.0) sin2 = 0.0;
-        sc2 = sqrt(sin2);
-        if (sc2 < SMALL) sc2 = SMALL;
-        sc2 = 1.0/sc2;
-
-        s1 = sc1 * sc1;
-        s2 = sc2 * sc2;
-        s12 = sc1 * sc2;
-        c = (c0 + c1mag*c2mag) * s12;
-
-        cx = vb1.y*vb2.z - vb1.z*vb2.y;
-        cy = vb1.z*vb2.x - vb1.x*vb2.z;
-        cz = vb1.x*vb2.y - vb1.y*vb2.x;
-        cmag = sqrt(cx*cx + cy*cy + cz*cz);
-        dx = (cx*vb3.x + cy*vb3.y + cz*vb3.z)/cmag/b3mag;
+        c = (ax*bx + ay*by + az*bz)*rabinv;
+        s = rg*rabinv*(ax*vb3.x + ay*vb3.y + az*vb3.z);
 
         if (c > 1.0) c = 1.0;
         if (c < -1.0) c = -1.0;
-
-        // force & energy
-        // p = sum (i=1,4) k_i * (1 + (-1)**(i+1)*cos(i*phi) )
-        // pd = dp/dc
-
-        phi = acos(c);
-        if (dx < 0.0) phi *= -1.0;
-        si = sin(phi);
-        if (fabs(si) < SMALLER) si = SMALLER;
-        siinv = 1.0/si;
         
         // get values for k1/2 through k4/2
         // ----- The 1/2 factor is already stored in the parameters --------
@@ -331,45 +286,83 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
         k3 = h_params.data[dihedral_type].z;
         k4 = h_params.data[dihedral_type].w;
 
-        // the potential energy of the dihedral
-        p = k1*(1.0 + c) + k2*(1.0 - cos(2.0*phi)) + k3*(1.0 + cos(3.0*phi)) + k4*(1.0 - cos(4.0*phi));
-        pd = k1 - 2.0*k2*sin(2.0*phi)*siinv + 3.0*k3*sin(3.0*phi)*siinv - 4.0*k4*sin(4.0*phi)*siinv;
+        // calculate the potential p = sum (i=1,4) k_i * (1 + (-1)**(i+1)*cos(i*phi) )
+        // and df = dp/dc
+        
+        // cos(phi) term
+        ddf1 = c;
+        df1 = s;
+        cos_term = ddf1;
+        
+        p = k1 * (1.0 + cos_term);
+        df = k1*df1;
+        
+        // cos(2*phi) term
+        ddf1 = cos_term*c - df1*s;
+        df1 = cos_term*s + df1*c;
+        cos_term = ddf1;
+        
+        p += k2 * (1.0 - cos_term);
+        df += -2.0*k2*df1;
+        
+        // cos(3*phi) term
+        ddf1 = cos_term*c - df1*s;
+        df1 = cos_term*s + df1*c;
+        cos_term = ddf1;
+        
+        p += k3 * (1.0 + cos_term);
+        df += 3.0*k3*df1;
+        
+        // cos(4*phi) term
+        ddf1 = cos_term*c - df1*s;
+        df1 = cos_term*s + df1*c;
+        cos_term = ddf1;
 
-        // Compute 1/4 of energy and assign to each of 4 atoms in the dihedral
+        p += k4 * (1.0 - cos_term);
+        df += -4.0*k4*df1;
+
+        // Compute 1/4 of energy to assign to each of 4 atoms in the dihedral
         e_dihedral = 0.25*p;
 
-        a = pd;
-        c = c * a;
-        s12 = s12 * a;
-        a11 = c*sb1*s1;
-        a22 = -sb2 * (2.0*c0*s12 - c*(s1+s2));
-        a33 = c*sb3*s2;
-        a12 = -r12c1 * (c1mag*c*s1 + c2mag*s12);
-        a13 = -rb1*rb3*s12;
-        a23 = r12c2 * (c2mag*c*s2 + c1mag*s12);
+        fg = vb1.x*vb2m.x + vb1.y*vb2m.y + vb1.z*vb2m.z;
+        hg = vb3.x*vb2m.x + vb3.y*vb2m.y + vb3.z*vb2m.z;
+        fga = fg*ra2inv*rginv;
+        hgb = hg*rb2inv*rginv;
+        gaa = -ra2inv*rg;
+        gbb = rb2inv*rg;
 
-        sx2  = a12*vb1.x + a22*vb2.x + a23*vb3.x;
-        sy2  = a12*vb1.y + a22*vb2.y + a23*vb3.y;
-        sz2  = a12*vb1.z + a22*vb2.z + a23*vb3.z;
+        dtfx = gaa*ax;
+        dtfy = gaa*ay;
+        dtfz = gaa*az;
+        dtgx = fga*ax - hgb*bx;
+        dtgy = fga*ay - hgb*by;
+        dtgz = fga*az - hgb*bz;
+        dthx = gbb*bx;
+        dthy = gbb*by;
+        dthz = gbb*bz;
 
-        f1.x = a11*vb1.x + a12*vb2.x + a13*vb3.x;
-        f1.y = a11*vb1.y + a12*vb2.y + a13*vb3.y;
-        f1.z = a11*vb1.z + a12*vb2.z + a13*vb3.z;
+        sx2 = df*dtgx;
+        sy2 = df*dtgy;
+        sz2 = df*dtgz;
+
+        f1.x = df*dtfx;
+        f1.y = df*dtfy;
+        f1.z = df*dtfz;
         f1.w = e_dihedral;
 
-        f2.x = -sx2 - f1.x;
-        f2.y = -sy2 - f1.y;
-        f2.z = -sz2 - f1.z;
+        f2.x = sx2 - f1.x;
+        f2.y = sy2 - f1.y;
+        f2.z = sz2 - f1.z;
         f2.w = e_dihedral;
 
-        f4.x = a13*vb1.x + a23*vb2.x + a33*vb3.x;
-        f4.y = a13*vb1.y + a23*vb2.y + a33*vb3.y;
-        f4.z = a13*vb1.z + a23*vb2.z + a33*vb3.z;
+        f4.x = df*dthx;
+        f4.y = df*dthy;
+        f4.z = df*dthz;
         f4.w = e_dihedral;
 
-        f3.x = sx2 - f4.x;
-        f3.y = sy2 - f4.y;
-        f3.z = sz2 - f4.z;
+        f3.x = -sx2 - f4.x;
+        f3.y = -sy2 - f4.y;
+        f3.z = -sz2 - f4.z;
         f3.w = e_dihedral;
         
         // Apply force to each of the 4 atoms
@@ -422,6 +415,3 @@ void export_OPLSDihedralForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-
-#undef SMALL
-#undef SMALLER

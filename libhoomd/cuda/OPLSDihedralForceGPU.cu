@@ -58,10 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-// SMALL a relatively small number
-#define SMALL     0.001
-#define SMALLER   0.00001
-
 /*! \file OPLSDihedralForceGPU.cu
     \brief Defines GPU kernel code for calculating OPLS dihedral forces. Used by OPLSDihedralForceComputeGPU.
 */
@@ -182,71 +178,33 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
         Scalar3 vb2m = -vb2;
         vb2m = box.minImage(vb2m);
 
-        // c0 calculation
+        // c,s calculation
+        
+        Scalar ax, ay, az, bx, by, bz;
+        ax = vb1.y*vb2m.z - vb1.z*vb2m.y;
+        ay = vb1.z*vb2m.x - vb1.x*vb2m.z;
+        az = vb1.x*vb2m.y - vb1.y*vb2m.x;
+        bx = vb3.y*vb2m.z - vb3.z*vb2m.y;
+        by = vb3.z*vb2m.x - vb3.x*vb2m.z;
+        bz = vb3.x*vb2m.y - vb3.y*vb2m.x;
 
-        Scalar sb1 = 1.0 / (vb1.x*vb1.x + vb1.y*vb1.y + vb1.z*vb1.z);
-        Scalar sb2 = 1.0 / (vb2.x*vb2.x + vb2.y*vb2.y + vb2.z*vb2.z);
-        Scalar sb3 = 1.0 / (vb3.x*vb3.x + vb3.y*vb3.y + vb3.z*vb3.z);
+        Scalar rasq = ax*ax + ay*ay + az*az;
+        Scalar rbsq = bx*bx + by*by + bz*bz;
+        Scalar rgsq = vb2m.x*vb2m.x + vb2m.y*vb2m.y + vb2m.z*vb2m.z;
+        Scalar rg = fast::sqrt(rgsq);
 
-        Scalar rb1 = fast::sqrt(sb1);
-        Scalar rb3 = fast::sqrt(sb3);
+        Scalar rginv, ra2inv, rb2inv;
+        rginv = ra2inv = rb2inv = 0.0;
+        if (rg > 0) rginv = 1.0/rg;
+        if (rasq > 0) ra2inv = 1.0/rasq;
+        if (rbsq > 0) rb2inv = 1.0/rbsq;
+        Scalar rabinv = fast::sqrt(ra2inv*rb2inv);
 
-        Scalar c0 = (vb1.x*vb3.x + vb1.y*vb3.y + vb1.z*vb3.z) * rb1*rb3;
-
-        // 1st and 2nd angle
-
-        Scalar b1mag2 = vb1.x*vb1.x + vb1.y*vb1.y + vb1.z*vb1.z;
-        Scalar b1mag = fast::sqrt(b1mag2);
-        Scalar b2mag2 = vb2.x*vb2.x + vb2.y*vb2.y + vb2.z*vb2.z;
-        Scalar b2mag = fast::sqrt(b2mag2);
-        Scalar b3mag2 = vb3.x*vb3.x + vb3.y*vb3.y + vb3.z*vb3.z;
-        Scalar b3mag = fast::sqrt(b3mag2);
-
-        Scalar ctmp = vb1.x*vb2.x + vb1.y*vb2.y + vb1.z*vb2.z;
-        Scalar r12c1 = 1.0 / (b1mag*b2mag);
-        Scalar c1mag = ctmp * r12c1;
-
-        ctmp = vb2m.x*vb3.x + vb2m.y*vb3.y + vb2m.z*vb3.z;
-        Scalar r12c2 = 1.0 / (b2mag*b3mag);
-        Scalar c2mag = ctmp * r12c2;
-
-        // cos and sin of 2 angles and final c
-
-        Scalar sin2 = 1.0 - c1mag*c1mag;
-        if (sin2 < 0.0) sin2 = 0.0;
-        Scalar sc1 = fast::sqrt(sin2);
-        if (sc1 < SMALL) sc1 = SMALL;
-        sc1 = 1.0/sc1;
-
-        sin2 = 1.0 - c2mag*c2mag;
-        if (sin2 < 0.0) sin2 = 0.0;
-        Scalar sc2 = fast::sqrt(sin2);
-        if (sc2 < SMALL) sc2 = SMALL;
-        sc2 = 1.0/sc2;
-
-        Scalar s1 = sc1 * sc1;
-        Scalar s2 = sc2 * sc2;
-        Scalar s12 = sc1 * sc2;
-        Scalar c = (c0 + c1mag*c2mag) * s12;
-
-        Scalar cx = vb1.y*vb2.z - vb1.z*vb2.y;
-        Scalar cy = vb1.z*vb2.x - vb1.x*vb2.z;
-        Scalar cz = vb1.x*vb2.y - vb1.y*vb2.x;
-        Scalar cmag = fast::sqrt(cx*cx + cy*cy + cz*cz);
-        Scalar dx = (cx*vb3.x + cy*vb3.y + cz*vb3.z)/cmag/b3mag;
+        Scalar c = (ax*bx + ay*by + az*bz)*rabinv;
+        Scalar s = rg*rabinv*(ax*vb3.x + ay*vb3.y + az*vb3.z);
 
         if (c > 1.0) c = 1.0;
         if (c < -1.0) c = -1.0;
-
-        // force & energy
-        // p = sum (i=1,4) k_i * (1 + (-1)**(i+1)*cos(i*phi) )
-        // pd = dp/dc
-
-        Scalar phi = acos(c);
-        if (dx < 0.0) phi *= -1.0;
-        Scalar si = sin(phi);
-        if (fabs(si) < SMALLER) si = SMALLER;
-        Scalar siinv = 1.0/si;
         
         // get values for k1/2 through k4/2 (MEM TRANSFER: 16 bytes)
         // ----- The 1/2 factor is already stored in the parameters --------
@@ -256,33 +214,81 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
         Scalar k3 = params.z;
         Scalar k4 = params.w;
         
+        // calculate the potential p = sum (i=1,4) k_i * (1 + (-1)**(i+1)*cos(i*phi) )
+        // and df = dp/dc
+        
+        // cos(phi) term
+        Scalar ddf1 = c;
+        Scalar df1 = s;
+        Scalar cos_term = ddf1;
+        
+        Scalar p = k1 * (1.0 + cos_term);
+        Scalar df = k1*df1;
+        
+        // cos(2*phi) term
+        ddf1 = cos_term*c - df1*s;
+        df1 = cos_term*s + df1*c;
+        cos_term = ddf1;
+        
+        p += k2 * (1.0 - cos_term);
+        df += -2.0*k2*df1;
+        
+        // cos(3*phi) term
+        ddf1 = cos_term*c - df1*s;
+        df1 = cos_term*s + df1*c;
+        cos_term = ddf1;
+        
+        p += k3 * (1.0 + cos_term);
+        df += 3.0*k3*df1;
+        
+        // cos(4*phi) term
+        ddf1 = cos_term*c - df1*s;
+        df1 = cos_term*s + df1*c;
+        cos_term = ddf1;
 
-        // the potential energy of the dihedral
-        Scalar p = k1*(1.0 + c) + k2*(1.0 - cos(2.0*phi)) + k3*(1.0 + cos(3.0*phi)) + k4*(1.0 - cos(4.0*phi));
-        Scalar pd = k1 - 2.0*k2*sin(2.0*phi)*siinv + 3.0*k3*sin(3.0*phi)*siinv - 4.0*k4*sin(4.0*phi)*siinv;
+        p += k4 * (1.0 - cos_term);
+        df += -4.0*k4*df1;
 
-        // compute 1/4 of energy for each atom
-        Scalar dihedral_eng = 0.25*p;
+        // Compute 1/4 of energy to assign to each of 4 atoms in the dihedral
+        Scalar e_dihedral = 0.25*p;
 
+        Scalar fg = vb1.x*vb2m.x + vb1.y*vb2m.y + vb1.z*vb2m.z;
+        Scalar hg = vb3.x*vb2m.x + vb3.y*vb2m.y + vb3.z*vb2m.z;
+        Scalar fga = fg*ra2inv*rginv;
+        Scalar hgb = hg*rb2inv*rginv;
+        Scalar gaa = -ra2inv*rg;
+        Scalar gbb = rb2inv*rg;
 
-        // compute forces
+        Scalar dtfx = gaa*ax;
+        Scalar dtfy = gaa*ay;
+        Scalar dtfz = gaa*az;
+        Scalar dtgx = fga*ax - hgb*bx;
+        Scalar dtgy = fga*ay - hgb*by;
+        Scalar dtgz = fga*az - hgb*bz;
+        Scalar dthx = gbb*bx;
+        Scalar dthy = gbb*by;
+        Scalar dthz = gbb*bz;
 
-        Scalar a = pd;
-        c = c * a;
-        s12 = s12 * a;
-        Scalar a11 = c*sb1*s1;
-        Scalar a22 = -sb2 * (2.0*c0*s12 - c*(s1+s2));
-        Scalar a33 = c*sb3*s2;
-        Scalar a12 = -r12c1 * (c1mag*c*s1 + c2mag*s12);
-        Scalar a13 = -rb1*rb3*s12;
-        Scalar a23 = r12c2 * (c2mag*c*s2 + c1mag*s12);
+        Scalar sx2 = df*dtgx;
+        Scalar sy2 = df*dtgy;
+        Scalar sz2 = df*dtgz;
 
-        Scalar3 ss2 = a12*vb1 + a22*vb2 + a23*vb3;
+        Scalar3 f1, f2, f3, f4;
+        f1.x = df*dtfx;
+        f1.y = df*dtfy;
+        f1.z = df*dtfz;
 
-        Scalar3 f1 = a11*vb1 + a12*vb2 + a13*vb3;
-        Scalar3 f2 = -ss2 - f1;
-        Scalar3 f4 = a13*vb1 + a23*vb2 + a33*vb3;
-        Scalar3 f3 = ss2 - f4;
+        f2.x = sx2 - f1.x;
+        f2.y = sy2 - f1.y;
+        f2.z = sz2 - f1.z;
+
+        f4.x = df*dthx;
+        f4.y = df*dthy;
+        f4.z = df*dthz;
+
+        f3.x = -sx2 - f4.x;
+        f3.y = -sy2 - f4.y;
+        f3.z = -sz2 - f4.z;
         
         // Compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // upper triangular version of virial tensor
@@ -319,8 +325,8 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
             force_idx.y += f4.y;
             force_idx.z += f4.z;
             }
-
-        force_idx.w += dihedral_eng;
+        force_idx.w += e_dihedral;
+        
         for (int k = 0; k < 6; k++)
             virial_idx[k] += dihedral_virial[k];
         }
@@ -396,6 +402,3 @@ cudaError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
 
     return cudaSuccess;
     }
-
-#undef SMALL
-#undef SMALLER
