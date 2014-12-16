@@ -1445,8 +1445,11 @@ void CommunicatorGPU::exchangeGhosts()
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
 
-    // update ghost layer width
-    m_r_ghost = m_ghost_layer_width_requests();
+    if (m_ghost_layer_width_requests.num_slots())
+        {
+        // update the ghost layer width only if subscribers are avaiable
+        m_r_ghost = m_ghost_layer_width_requests();
+        }
 
     // the ghost layer must be at_least m_r_ghost wide along every lattice direction
     Scalar3 ghost_fraction = m_r_ghost/m_pdata->getBox().getNearestPlaneDistance();
