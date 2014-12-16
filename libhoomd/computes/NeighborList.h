@@ -361,6 +361,11 @@ class NeighborList : public Compute
             return rmax;
             }
 
+        Scalar getMaximumDiameter()
+            {
+            return m_d_max;
+            }
+
         // @}
 
         //! Computes the NeighborList if it needs updating

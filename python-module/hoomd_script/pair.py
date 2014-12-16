@@ -1069,7 +1069,7 @@ class slj(pair):
         # update the neighbor list
         if d_max is None :
             sysdef = globals.system_definition;
-            d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
+            d_max = sysdef.getParticleData().getMaxDiameter()
             globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         neighbor_list = _update_global_nlist(r_cut);
