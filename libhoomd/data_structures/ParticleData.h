@@ -500,6 +500,12 @@ class ParticleData : boost::noncopyable
             Scalar maxdiam = 0;
             ArrayHandle< Scalar > h_diameter(getDiameters(), access_location::host, access_mode::read);
             for (unsigned int i = 0; i < m_nparticles; i++) if (h_diameter.data[i] > maxdiam) maxdiam = h_diameter.data[i];
+            #ifdef ENABLE_MPI
+            if (m_decomposition)
+                {
+                MPI_Allreduce(MPI_IN_PLACE,&maxdiam, 1, MPI_HOOMD_SCALAR, MPI_MAX, m_exec_conf->getMPICommunicator());
+                }
+            #endif
             return maxdiam;
             }
 
