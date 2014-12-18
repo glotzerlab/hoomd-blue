@@ -126,7 +126,6 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     const unsigned int type_i = __scalar_as_int(postype_i.w);
     const unsigned int body_i = d_body[my_pidx];
     
-//     const unsigned int Nmax_i = s_Nmax[type_i];
     const unsigned int nlist_head_i = d_head_list[my_pidx];
     
     unsigned int n_neigh_i = 0;
@@ -140,7 +139,6 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         
         for (unsigned int cur_image = 0; cur_image < nimages; ++cur_image)
             {
-            // can we put the image list in shared memory? 27 x 3 x 4 = 648 B (yes! optimize later)
             Scalar3 pos_i_image = pos_i + d_image_list[cur_image];
             AABBGPU aabb(pos_i_image, r_cut_i);
             
