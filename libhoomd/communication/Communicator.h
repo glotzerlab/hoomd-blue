@@ -369,6 +369,15 @@ class Communicator
         //! Get the ghost communication flags
         CommFlags getFlags() { return m_flags; }
 
+        //! Set width of ghost layer
+        /*! \param ghost_width The width of the ghost layer
+         */
+        void setGhostLayerWidth(Scalar ghost_width)
+            {
+            assert(ghost_width > 0);
+            m_r_ghost = ghost_width;
+            }
+
         //! Get the current ghost layer width
         Scalar getGhostLayerWidth() const
             {
