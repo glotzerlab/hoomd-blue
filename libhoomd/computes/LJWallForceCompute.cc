@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
 using namespace boost::python;
 
 #include "LJWallForceCompute.h"
@@ -96,6 +97,29 @@ LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysde
     memset((void*)m_lj1, 0,sizeof(Scalar)*ntypes);
     memset((void*)m_lj2, 0,sizeof(Scalar)*ntypes);
 
+    // connect to the ParticleData to receive notifications when the number of types changes
+    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&LJWallForceCompute::slotNumTypesChange, this));
+    }
+
+void LJWallForceCompute::slotNumTypesChange()
+    {
+    // initialize the number of types value
+    unsigned int ntypes = m_pdata->getNTypes();
+    assert(ntypes > 0);
+
+    // re-allocate data for lj1 and lj2
+    delete[] m_lj1;
+    delete[] m_lj2;
+
+    m_lj1 = new Scalar[ntypes];
+    m_lj2 = new Scalar[ntypes];
+
+    assert(m_lj1);
+    assert(m_lj2);
+
+    //initialize parameters to 0
+    memset((void*)m_lj1, 0,sizeof(Scalar)*ntypes);
+    memset((void*)m_lj2, 0,sizeof(Scalar)*ntypes);
     }
 
 /*! Frees used memory
@@ -103,6 +127,8 @@ LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysde
 LJWallForceCompute::~LJWallForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying LJWallForceCompute" << endl;
+
+    m_num_type_change_connection.disconnect();
 
     delete[] m_lj1;
     delete[] m_lj2;

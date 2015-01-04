@@ -9,7 +9,7 @@ import os
 class external_periodic_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_random(N=100, phi_p=0.05);
 
         sorter.set_params(grid=8)
 
@@ -30,6 +30,16 @@ class external_periodic_tests (unittest.TestCase):
 
         periodic.disable();
         periodic.enable();
+
+    # test adding types
+    def test_type_add(self):
+        periodic = external.periodic();
+        periodic.force_coeff.set('A',A=1.0, i=3, w=0.02, p=3);
+        self.s.particles.types.add('B')
+        self.assertRaises(RuntimeError, periodic.update_coeffs);
+        periodic.force_coeff.set('A',A=1.0, i=3, w=0.02, p=3);
+        periodic.force_coeff.set('B',A=1.0, i=3, w=0.02, p=3);
+        periodic.update_coeffs();
 
     def tearDown(self):
         init.reset();

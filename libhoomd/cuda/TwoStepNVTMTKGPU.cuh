@@ -47,66 +47,37 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Maintainer: ndtrung
+// Maintainer: jglaser
 
-/*! \file TwoStepBDNVTRigid.h
-    \brief Declares an updater that implements BD NVT dynamics for rigid bodies
+/*! \file TwoStepNVTGPU.cuh
+    \brief Declares GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
 */
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
-#endif
+#include "ParticleData.cuh"
+#include "HOOMDMath.h"
 
-#include "TwoStepNVERigid.h"
-#include "Variant.h"
-#include "saruprng.h"
+#ifndef __TWO_STEP_NVT_MTK_GPU_CUH__
+#define __TWO_STEP_NVT_MTK_GPU_CUH__
 
-#ifndef __TWO_STEP_BD_NVT_RIGID_H__
-#define __TWO_STEP_BD_NVT_RIGID_H__
+//! Kernel driver for the first part of the NVT update called by TwoStepNVTGPU
+cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
+                             int3 *d_image,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             const BoxDim& box,
+                             unsigned int block_size,
+                             Scalar exp_fac,
+                             Scalar deltaT);
 
+//! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
+cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
+                             Scalar3 *d_accel,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             Scalar4 *d_net_force,
+                             unsigned int block_size,
+                             Scalar deltaT);
 
-/*! \file TwoStepBDNVTRigid.h
- \brief Declares the TwoStepBDNVTRigid class
- */
-
-//! Integrates part of the system forward in two steps in the NVE ensemble with Langevin thermostat
-/*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
-
- \ingroup updaters
-*/
-class TwoStepBDNVTRigid : public TwoStepNVERigid
-    {
-    public:
-        //! Constructor
-        TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
-                          boost::shared_ptr<ParticleGroup> group,
-                          boost::shared_ptr<Variant> T,
-                          unsigned int seed,
-                          bool gamma_diam);
-        virtual ~TwoStepBDNVTRigid();
-
-        //! Sets gamma for a given particle type
-        void setGamma(unsigned int typ, Scalar gamma);
-
-        //! Performs the second step
-        virtual void integrateStepTwo(unsigned int timestep);
-
-    protected:
-        boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
-        unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
-        bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
-
-        GPUVector<Scalar> m_gamma;         //!< List of per type gammas to use
-
-        //! Method to be called when number of types changes
-        virtual void slotNumTypesChange();
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-    };
-
-//! Exports the TwoStepBDNVTRigid class to python
-void export_TwoStepBDNVTRigid();
-
-#endif
+#endif //__TWO_STEP_NVT_MTK_GPU_CUH__

@@ -396,7 +396,7 @@ boost::shared_ptr<TwoStepNVE> base_class_nve_creator(boost::shared_ptr<SystemDef
 
 #ifdef ENABLE_CUDA
 //! TwoStepNVEGPU factory for the unit tests
-boost::shared_ptr<TwoStepNVE> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group)
+boost::shared_ptr<TwoStepNVE> gpu_nve_creator(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group)
     {
     return boost::shared_ptr<TwoStepNVE>(new TwoStepNVEGPU(sysdef, group));
     }

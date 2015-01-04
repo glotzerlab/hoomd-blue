@@ -49,59 +49,71 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include "TwoStepNVE.h"
+#include "IntegrationMethodTwoStep.h"
 #include "Variant.h"
-#include "saruprng.h"
+#include "ComputeThermo.h"
 
-#ifndef __TWO_STEP_BDNVT_H__
-#define __TWO_STEP_BDNVT_H__
+#ifndef __TWO_STEP_NVT_MTK_H__
+#define __TWO_STEP_NVT_MTK_H__
 
-/*! \file TwoStepBDNVT.h
-    \brief Declares the TwoStepBDNVT class
+/*! \file TwoStepNVTMTK.h
+    \brief Declares the TwoStepNVTMTK class
 */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
 
-//! Integrates part of the system forward in two steps in the NVT ensemble (via brownian dynamics)
-/*! Implements velocity-verlet NVE integration with additional brownian dynamics forces through the
-    IntegrationMethodTwoStep interface
+//! Integrates part of the system forward in two steps in the NVT ensemble
+/*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep interface
 
-    Brownian dyanmics modifies standard NVE integration with two additional forces, a random force and a drag force.
-    To implement this as simply as possible, we will leveraging the existing TwoStepNVE clas and derive from it. The
-    additions needed are a random number generator and some storage for gamma and temperature settings. The NVE
-    integration is modified by overrideing integrateStepTwo() to add in the needed bd forces.
+    Integrator variables mapping:
+     - [0] -> xi
+     - [1] -> eta
+
+    The instantaneous temperature of the system is computed with the provided ComputeThermo. Correct dynamics require
+    that the thermo computes the temperature of the assigned group and with D*N-D degrees of freedom. TwoStepNVTMTK does
+    not check for these conditions.
+
+    For the update equations of motion, see Refs. \cite{Martyna1994,Martyna1996}
 
     \ingroup updaters
 */
-class TwoStepBDNVT : public TwoStepNVE
+class TwoStepNVTMTK : public IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
-                     boost::shared_ptr<ParticleGroup> group,
-                     boost::shared_ptr<Variant> T,
-                     unsigned int seed,
-                     bool gamma_diam,
-                     const std::string& suffix = std::string(""));
-        virtual ~TwoStepBDNVT();
+        TwoStepNVTMTK(boost::shared_ptr<SystemDefinition> sysdef,
+                   boost::shared_ptr<ParticleGroup> group,
+                   boost::shared_ptr<ComputeThermo> thermo,
+                   Scalar tau,
+                   boost::shared_ptr<Variant> T,
+                   const std::string& suffix = std::string(""));
+        virtual ~TwoStepNVTMTK();
 
-        //! Set a new temperature
-        /*! \param T new temperature to set */
-        void setT(boost::shared_ptr<Variant> T)
+        //! Update the temperature
+        /*! \param T New temperature to set
+        */
+        virtual void setT(boost::shared_ptr<Variant> T)
             {
             m_T = T;
             }
 
-        //! Sets gamma for a given particle type
-        void setGamma(unsigned int typ, Scalar gamma);
-
-        //! Turn on or off Tally
-        /*! \param tally if true, tallies energy exchange from bd thermal reservoir */
-        void setTally(bool tally)
+        //! Update the tau value
+        /*! \param tau New time constant to set
+        */
+        virtual void setTau(Scalar tau)
             {
-            m_tally= tally;
+            m_tau = tau;
+            }
+
+        //! Set the value of xi (for unit tests)
+        void setXi(Scalar new_xi)
+            {
+            IntegratorVariables v = getIntegratorVariables();
+            Scalar& xi = v.variable[0];
+            xi = new_xi;
+            setIntegratorVariables(v);
             }
 
         //! Returns a list of log quantities this integrator calculates
@@ -110,29 +122,30 @@ class TwoStepBDNVT : public TwoStepNVE
         //! Returns logged values
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
 
     protected:
-        boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
-        unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
-        bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
-        Scalar m_reservoir_energy;         //!< The energy of the reservoir the bd couples the system to.
-        Scalar m_extra_energy_overdeltaT;             //!< An energy packet that isn't added until the next time step
-        bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
-        std::string m_log_name;           //!< Name of the reservior quantity that we log
+        boost::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
 
-        GPUVector<Scalar> m_gamma;         //!< List of per type gammas to use
+        Scalar m_tau;                   //!< tau value for Nose-Hoover
+        boost::shared_ptr<Variant> m_T; //!< Temperature set point
+        std::string m_log_name;         //!< Name of the reservior quantity that we log
 
-        //! Method to be called when number of types changes
-        virtual void slotNumTypesChange();
+        Scalar m_exp_thermo_fac;        //!< Thermostat rescaling factor
+        Scalar m_curr_T;                //!< Current temperature
 
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
+        // advance the thermostat
+        /*!\param timestep The time step
+         * \param broadcast True if we should broadcast the integrator variables via MPI
+         */
+        void advanceThermostat(unsigned int timestep, bool broadcast=true);
     };
 
-//! Exports the TwoStepBDNVT class to python
-void export_TwoStepBDNVT();
+//! Exports the TwoStepNVTMTK class to python
+void export_TwoStepNVTMTK();
 
-#endif // #ifndef __TWO_STEP_BDNVT_H__
+#endif // #ifndef __TWO_STEP_NVT_MTK_H__

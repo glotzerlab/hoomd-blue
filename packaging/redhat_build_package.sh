@@ -14,7 +14,7 @@
 # Use the -f flag to prevent the script from performing an automatic update
 # of itself and the Makefile.
 #
-BRANCH=master
+BRANCH=maint
 PATH=/bin:/usr/bin:$PATH
 # $0 can't be relied upon to identify the name of this script...
 ME=redhat_build_package.sh

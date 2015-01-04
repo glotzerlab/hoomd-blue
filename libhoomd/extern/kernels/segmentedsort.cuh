@@ -101,7 +101,7 @@ MGPU_LAUNCH_BOUNDS void KernelSegBlocksortFlags(InputIt1 keys_global,
 	const int NV = NT * VT;
 	struct Shared {
 		union {
-			KeyType keys[NV];
+			KeyType keys[NV + VT];
 			ValType values[NV];
 		};
 		union {
@@ -128,8 +128,8 @@ MGPU_LAUNCH_BOUNDS void KernelSegBlocksortFlags(InputIt1 keys_global,
 	__syncthreads();
 
 	// Each thread extracts its own head flags from the array in shared memory.
-	flags = DeviceExtractThreadHeadFlags(shared.flags, VT * tid, VT);
-
+	flags = DeviceExtractHeadFlags(shared.flags, VT * tid, VT);
+	
 	DeviceSegBlocksort<NT, VT, Stable, HasValues>(keys_global, values_global,
 		count2, shared.keys, shared.values, shared.ranges, flags, tid, block,
 		keysDest_global, valsDest_global, ranges_global, comp);
@@ -230,23 +230,30 @@ MGPU_DEVICE void DeviceSegSortCreateJob(SegSortSupport support,
 	bool mergeOp = false;
 	bool copyOp = false;
 	int gid = nv * block;
+	int count2 = min(nv, count - gid);
+
 	int4 mergeRange;
 	if(active) {
-		int4 range = FindMergesortInterval(frame, 2<< pass, block, nv, count, 
+		mergeRange = FindMergesortInterval(frame, 2<< pass, block, nv, count, 
 			p0, p1);
-		int a0 = range.x;
-		int a1 = range.y;
-		int b0 = range.z;
-		int b1 = range.w;
-		if(a0 == a1) {
-			a0 = b0;
-			a1 = b1;
-			b0 = b1;
-		}
 
-		mergeRange = make_int4(a0, a1, b0, block);
-		mergeOp = (b1 != b0) || (a0 != gid);
+		// Merge if the source interval does not exactly cover the destination
+		// interval. Otherwise copy or skip.
+		int2 interval = (gid < frame.y) ? 
+			make_int2(mergeRange.x, mergeRange.y) : // A coverage
+			make_int2(mergeRange.z, mergeRange.w);	// B coverage.
+
+		mergeOp = (gid != interval.x) || (interval.y - interval.x != count2); 
 		copyOp = !mergeOp && (!pass || !support.copyStatus_global[block]);
+
+	//	if(mergeOp)
+	//		printf("%4d: %8d (%8d, %8d, %8d) (%8d, %8d: %4d) (%8d, %8d: %4d)\n", block,
+	//			gid, frame.x, frame.y, frame.y + frame.z, mergeRange.x, mergeRange.y, mergeRange.y - mergeRange.x,
+	//			mergeRange.z, mergeRange.w, mergeRange.w - mergeRange.z);
+
+		// Use the 4th component to store the tile index. The actual b1
+		// term is inferred from the tile size and array length. 
+		mergeRange.w = block;
 	}
 
 	int mergeTotal, copyTotal;
@@ -328,6 +335,7 @@ __global__ void KernelSegSortPartitionBase(const KeyType* keys_global,
 
 			p0 = SegmentedMergePath(keys_global, a0, aCount, b0, bCount, 
 				leftEnd, rightStart, diag, comp);
+	
 		} else
 			// Unsegmented merge path search.
 			p0 = MergePath<MgpuBoundsLower>(keys_global + a0, aCount,
@@ -376,14 +384,17 @@ __global__ void KernelSegSortPartitionDerived(const KeyType* keys_global,
 			int2 rightRange = support.ranges2_global[
 				min(numSources - 1, 1 | rangeIndex)];
 
+			int leftEnd = leftRange.y;
+			int rightStart = max(b0, rightRange.x);
 			p0 = SegmentedMergePath(keys_global, a0, aCount, b0, bCount, 
-				leftRange.y, rightRange.x, diag, comp);
+				leftEnd, rightStart, diag, comp);
 
 			if(0 == diag) 
 				support.ranges2_global[numSources + (rangeIndex>> 1)] =
 					make_int2(
 						min(leftRange.x, rightRange.x),
 						max(leftRange.y, rightRange.y));
+	
 		} else
 			// Unsegmented merge path search.
 			p0 = MergePath<MgpuBoundsLower>(keys_global + a0, aCount,
@@ -531,7 +542,7 @@ KeyType* keysSource_global, ValType* valsSource_global,
 			numBlocks2 = MGPU_DIV_UP(numBlocks2, 2);
 		}
 		if(verbose) info.Pass(support, pass);
-		
+				
 		KernelSegSortMerge<Tuning, Segments, HasValues>
 			<<<numCTAs, launch.x, 0, context.Stream()>>>(keysSource_global,
 			valsSource_global, support, count, pass, keysDest_global, 
@@ -554,9 +565,11 @@ MGPU_HOST void SegSortKeysFromFlags(T* data_global, int count,
 	bool verbose) {
 
 	const bool Stable = true;
-	const int NT = 128;
-	const int VT = 11;
-	typedef LaunchBoxVT<NT, VT> Tuning;
+	typedef LaunchBoxVT<
+		128, 11, 0,
+		128, 11, 0,
+		128, (sizeof(T) > 4) ? 7 : 11, 0
+	> Tuning;
 	int2 launch = Tuning::GetLaunchParams(context);
 	const int NV = launch.x * launch.y;
 	
@@ -592,19 +605,21 @@ MGPU_HOST void SegSortKeysFromFlags(T* data_global, int count,
 
 template<typename KeyType, typename ValType, typename Comp>
 MGPU_HOST void SegSortPairsFromFlags(KeyType* keys_global,
-	ValType* values_global, const uint* flags_global, int count,
+	ValType* values_global, int count, const uint* flags_global,
 	CudaContext& context, Comp comp, bool verbose) {
 
 	const bool Stable = true;
-	const int NT = 128;
-	const int VT = 11;
-	typedef LaunchBoxVT<NT, VT> Tuning;
+	typedef LaunchBoxVT<
+		128, 11, 0,
+		128, 7, 0,
+		128, 7, 0
+	> Tuning;
 	int2 launch = Tuning::GetLaunchParams(context); 
 	const int NV = launch.x * launch.y;
 	
 	int numBlocks = MGPU_DIV_UP(count, NV);
 	int numPasses = FindLog2(numBlocks, true);
-		
+
 	SegSortSupport support;
 	MGPU_MEM(byte) mem = AllocSegSortBuffers(count, NV, support, true, context);
 
@@ -618,10 +633,13 @@ MGPU_HOST void SegSortPairsFromFlags(KeyType* keys_global,
 
 	KernelSegBlocksortFlags<Tuning, Stable, true>
 		<<<numBlocks, launch.x, 0, context.Stream()>>>(keysSource, valsSource,
-		flags_global, count, (1 & numPasses) ? keysDest : keysSource,
+		count, flags_global, (1 & numPasses) ? keysDest : keysSource,
 		(1 & numPasses) ? valsDest : valsSource, support.ranges_global, 
 		comp);
 	MGPU_SYNC_CHECK("KernelSegBlocksortFlags");
+
+	std::vector<int> rangesHost(numBlocks);
+	copyDtoH(&rangesHost[0], support.ranges_global, numBlocks);
 
 	if(1 & numPasses) {
 		std::swap(keysSource, keysDest);
@@ -631,13 +649,13 @@ MGPU_HOST void SegSortPairsFromFlags(KeyType* keys_global,
 	SegSortPasses<Tuning, true, true>(support, keysSource, valsSource, count, 
 		numBlocks, numPasses, keysDest, valsDest, comp, context, verbose);
 }
-template<bool Stable, typename KeyType, typename ValType, typename Comp>
+template<typename KeyType, typename ValType>
 MGPU_HOST void SegSortPairsFromFlags(KeyType* keys_global, 
-	ValType* values_global, const uint* flags_global, int count,
+	ValType* values_global, int count, const uint* flags_global, 
 	CudaContext& context, bool verbose) {
 
-	SegSortPairsFromFlags<Stable>(keys_global, values_global, flags_global,
-		count, context, mgpu::less<KeyType>(), verbose);
+	SegSortPairsFromFlags(keys_global, values_global, count, flags_global,
+		context, mgpu::less<KeyType>(), verbose);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

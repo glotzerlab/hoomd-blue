@@ -9,11 +9,11 @@ import os
 class integrate_bdnvt_rigid_tests (unittest.TestCase):
     def setUp(self):
         print
-        sysdef = init.create_random(N=100, phi_p=0.05);
-        for p in sysdef.particles:
+        self.s = init.create_random(N=100, phi_p=0.05);
+        for p in self.s.particles:
             p.body = p.tag % 10
 
-        sysdef.sysdef.getRigidData().initializeData()
+        self.s.sysdef.getRigidData().initializeData()
         force.constant(fx=0.1, fy=0.1, fz=0.1)
 
     # tests basic creation of the integrater
@@ -41,6 +41,17 @@ class integrate_bdnvt_rigid_tests (unittest.TestCase):
         bd = integrate.bdnvt_rigid(all, T=1.2);
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
+
+    # test adding types
+    def test_add_type(self):
+        all = group.all();
+        bd = integrate.bdnvt_rigid(all, T=1.2);
+        bd.set_gamma('A', 0.5);
+        bd.set_gamma('B', 1.0);
+        run(100);
+
+        sysdef=self.s.particles.types.add('B')
+        run(100);
 
     def tearDown(self):
         init.reset();

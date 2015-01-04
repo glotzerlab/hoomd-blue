@@ -105,8 +105,8 @@ cudaError_t gpu_npt_mtk_temperature(Scalar *d_temperature,
 cudaError_t gpu_npt_mtk_thermostat(Scalar4 *d_vel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar xi,
-                             Scalar deltaT);
+                             Scalar exp_v_fac_thermo,
+                             unsigned int block_size);
 
 //! Kernel driver for rescaling of angular momenta (part of second step)
 cudaError_t gpu_npt_rescale_angular_momentum(Scalar4 *d_angmom,

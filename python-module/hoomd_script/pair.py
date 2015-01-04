@@ -941,7 +941,7 @@ class gauss(pair):
     #
     # \b Example:
     # \code
-    # gauss = pair.lj(r_cut=3.0)
+    # gauss = pair.gauss(r_cut=3.0)
     # gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
     # gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
     # \endcode
@@ -1069,7 +1069,7 @@ class slj(pair):
         # update the neighbor list
         if d_max is None :
             sysdef = globals.system_definition;
-            d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
+            d_max = sysdef.getParticleData().getMaxDiameter()
             globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
         neighbor_list = _update_global_nlist(r_cut);

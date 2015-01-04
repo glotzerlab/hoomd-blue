@@ -8,8 +8,7 @@ import os
 # pair.slj
 class pair_slj_tests (unittest.TestCase):
     def setUp(self):
-        print
-        init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_random(N=100, phi_p=0.05);
 
         sorter.set_params(grid=8)
 
@@ -56,7 +55,22 @@ class pair_slj_tests (unittest.TestCase):
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
 
+    # test set params
+    def test_dmax(self):
+        import random
+        random.seed(123)
+        rmax = -10.0
+        for p in self.s.particles:
+            r = random.uniform(-1,1)
+            if r > rmax:
+                rmax = r
+            p.diameter = r
+
+        lj = pair.slj(r_cut=3.0);
+        self.assertAlmostEqual(globals.neighbor_list.cpp_nlist.getMaximumDiameter(), rmax,5)
+
     def tearDown(self):
+        del self.s
         init.reset();
 
 

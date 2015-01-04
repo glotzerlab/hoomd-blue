@@ -146,7 +146,7 @@ class Autotuner
                 // if not complete, issue a warning
                 if (!isComplete())
                     {
-                    m_exec_conf->msg->warning() << "Disabling Autotuner " << m_name << " before initial scan completed!" << std::endl;
+                    m_exec_conf->msg->notice(2) << "Disabling Autotuner " << m_name << " before initial scan completed!" << std::endl;
                     }
                 else
                     {
