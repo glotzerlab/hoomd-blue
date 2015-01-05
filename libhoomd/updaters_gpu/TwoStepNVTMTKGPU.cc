@@ -101,22 +101,6 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_one", this->m_exec_conf));
     m_tuner_two.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two", this->m_exec_conf));
-
-    m_tuner_rescale.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two_rescale", this->m_exec_conf));
-
-    // generate power-of-two block sizes
-    valid_params.clear();
-    for (unsigned int block_size = 32; block_size <= 1024; block_size *= 2)
-        {
-        valid_params.push_back(block_size);
-        }
-    m_tuner_reduce.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_two_reduce", this->m_exec_conf));
-
-    GPUVector< Scalar > scratch(exec_conf);
-    m_scratch.swap(scratch);
-
-    GPUArray< Scalar> temperature(1, exec_conf, true);
-    m_temperature.swap(temperature);
     }
 
 /*! \param timestep Current time step
@@ -131,15 +115,6 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVT MTK step 1");
-
-    // compute the current thermodynamic properties
-    m_thermo->compute(timestep);
-
-    // compute temperature for the next half time step
-    m_curr_T = m_thermo->getTemperature();
-
-    // advance thermostat
-    advanceThermostat(timestep, false);
 
     // access all the needed data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -166,6 +141,9 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
+
+    // advance thermostat
+    advanceThermostat(timestep);
 
     // done profiling
     if (m_prof)
@@ -199,73 +177,13 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
                      group_size,
                      d_net_force.data,
                      m_tuner_two->getParam(),
-                     m_deltaT);
+                     m_deltaT,
+                     m_exp_thermo_fac);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_two->end();
-
-
-        {
-        // get block size from autotuner
-        unsigned int block_size = m_tuner_reduce->getParam();
-        unsigned int num_blocks = m_group->getNumMembers() / block_size + 1;
-
-        // resize scratch if necessary
-        m_scratch.resize(num_blocks);
-
-        // recalulate temperature
-        ArrayHandle<Scalar> d_temperature(m_temperature, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
-
-        // update number of blocks to current group size
-        m_tuner_reduce->begin();
-        gpu_npt_mtk_temperature(d_temperature.data,
-                                d_vel.data,
-                                d_scratch.data,
-                                num_blocks,
-                                block_size,
-                                d_index_array.data,
-                                group_size,
-                                m_thermo->getNDOF());
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-
-        m_tuner_reduce->end();
-        }
-
-    // read back intermediate temperature from GPU
-        {
-        ArrayHandle<Scalar> h_temperature(m_temperature, access_location::host, access_mode::read);
-        m_curr_T= *h_temperature.data;
-        }
-
-    #ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        MPI_Allreduce(MPI_IN_PLACE, &m_curr_T, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator() );
-        }
-    #endif
-
-
-    // get temperature and advance thermostat
-    advanceThermostat(timestep+1,true);
-
-    m_tuner_rescale->begin();
-    unsigned int block_size = m_tuner_rescale->getParam();
-
-    // rescale velocities
-    gpu_npt_mtk_thermostat(d_vel.data,
-                           d_index_array.data,
-                           group_size,
-                           m_exp_thermo_fac,
-                           block_size);
-
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
-    m_tuner_rescale->end();
 
     // done profiling
     if (m_prof)

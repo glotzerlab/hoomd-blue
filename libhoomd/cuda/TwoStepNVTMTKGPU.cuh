@@ -78,6 +78,7 @@ cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
                              unsigned int group_size,
                              Scalar4 *d_net_force,
                              unsigned int block_size,
-                             Scalar deltaT);
+                             Scalar deltaT,
+                             Scalar exp_v_fac_thermo);
 
 #endif //__TWO_STEP_NVT_MTK_GPU_CUH__

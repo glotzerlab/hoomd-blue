@@ -102,8 +102,12 @@ void gpu_nvt_mtk_step_one_kernel(Scalar4 *d_pos,
         Scalar3 vel = make_scalar3(velmass.x, velmass.y, velmass.z);
         Scalar3 accel = d_accel[idx];
 
-        // perform update computation
-        vel = vel*exp_fac + Scalar(1.0/2.0) * accel * deltaT;
+        // velocity update
+        vel = vel + Scalar(1.0/2.0) * accel * deltaT;
+
+        // velocity rescale
+        vel *= exp_fac;
+
         pos += vel * deltaT;
 
         // read in the image flags
@@ -182,7 +186,8 @@ void gpu_nvt_mtk_step_two_kernel(Scalar4 *d_vel,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              Scalar4 *d_net_force,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             Scalar exp_v_fac_thermo)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -200,6 +205,11 @@ void gpu_nvt_mtk_step_two_kernel(Scalar4 *d_vel,
 
         Scalar mass = vel.w;
         accel = accel/mass;
+
+        // rescale
+        v *= exp_v_fac_thermo;
+
+        // update
         v += Scalar(1.0/2.0) * deltaT * accel;
 
         // write out data
@@ -217,6 +227,7 @@ void gpu_nvt_mtk_step_two_kernel(Scalar4 *d_vel,
     \param d_net_force Net force on each particle
     \param block_size Size of the block to execute on the device
     \param deltaT Amount of real time to step forward in one time step
+    \param exp_v_fac_thermo Exponential velocity scaling factor
 */
 cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
@@ -224,7 +235,8 @@ cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
                              unsigned int group_size,
                              Scalar4 *d_net_force,
                              unsigned int block_size,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             Scalar exp_v_fac_thermo)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -241,7 +253,7 @@ cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
     dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
-    gpu_nvt_mtk_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_group_members, group_size, d_net_force, deltaT);
+    gpu_nvt_mtk_step_two_kernel<<< grid, threads >>>(d_vel, d_accel, d_group_members, group_size, d_net_force, deltaT, exp_v_fac_thermo);
 
     return cudaSuccess;
     }

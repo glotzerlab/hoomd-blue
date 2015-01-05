@@ -141,7 +141,17 @@ Scalar TwoStepNVT::getLogValue(const std::string& quantity, unsigned int timeste
         IntegratorVariables v = getIntegratorVariables();
         Scalar& xi = v.variable[0];
         Scalar& eta = v.variable[1];
-        return g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
+        Scalar thermostat_energy = g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
+
+        if (m_aniso)
+            {
+            Scalar& xi_rot = v.variable[2];
+            Scalar& eta_rot = v.variable[3];
+            thermostat_energy += (Scalar)m_thermo->getRotationalNDOF()*m_T->getValue(timestep)
+                                   *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
+            }
+
+        return thermostat_energy;
         }
     else
         return Scalar(0);

@@ -154,19 +154,22 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     fc_1->setParams(0,0,make_scalar2(lj1,lj2));
 
-    Scalar deltaT = Scalar(0.005);
-    Scalar Q = Scalar(2.0);
-    Scalar T_ref = Scalar(1.5/3.0);
-    Scalar tau = sqrt(Q / (Scalar(3.0) * T_ref));
+    Scalar deltaT = Scalar(0.003);
+    Scalar T_ref = Scalar(0.5);
+    Scalar tau = Scalar(0.5);
     boost::shared_ptr<IntegratorTwoStep> nvt_1(new IntegratorTwoStep(sysdef_1, deltaT));
     boost::shared_ptr<ComputeThermo> thermo_1 = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
 
-    boost::shared_ptr<TwoStepNVTMTK> two_step_nvt_1 = nvt_creator(sysdef_1, group_all_1, thermo_1, tau, T_ref);
+    // ComputeThermo for integrator
+    boost::shared_ptr<ComputeThermo> thermo_nvt = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
+
+    boost::shared_ptr<TwoStepNVTMTK> two_step_nvt_1 = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
 ;
     nvt_1->addIntegrationMethod(two_step_nvt_1);
     nvt_1->addForceCompute(fc_1);
 
     unsigned int ndof = nvt_1->getNDOF(group_all_1);
+    thermo_nvt->setNDOF(ndof);
     thermo_1->setNDOF(ndof);
 
     nvt_1->prepRun(0);
@@ -187,17 +190,19 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
             std::cout << i << std::endl;
         }
 
+    // 0.1 % tolerance for temperature
     Scalar T_tol = .1;
-    Scalar H_tol = .5;
+    // 1.0 % tolerance for conserved quantity
+    Scalar H_tol = 1.0;
 
     // conserved quantity
-    thermo_1->compute(i);
+    thermo_1->compute(i+1);
     Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
     H_ini += nvt_1->getLogValue("nvt_mtk_reservoir_energy", 0);
 
-    std::cout << "Measuring temperature and conserved quantity for another 10,000 time steps..." << std::endl;
+    std::cout << "Measuring temperature and conserved quantity for another 25,000 time steps..." << std::endl;
     Scalar avg_T(0.0);
-    int n_measure_steps = 10000;
+    int n_measure_steps = 25000;
     for (i=10000; i< 10000+n_measure_steps; i++)
         {
         // get conserved quantity
@@ -260,13 +265,13 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     fc1->setParams(0,0,make_scalar2(lj1,lj2));
     fc2->setParams(0,0,make_scalar2(lj1,lj2));
 
-    boost::shared_ptr<IntegratorTwoStep> nvt1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));
+    boost::shared_ptr<IntegratorTwoStep> nvt1(new IntegratorTwoStep(sysdef1, Scalar(0.002)));
     boost::shared_ptr<ComputeThermo> thermo1(new ComputeThermo(sysdef1, group_all1));
     thermo1->setNDOF(3*N-3);
     boost::shared_ptr<TwoStepNVTMTK> two_step_nvt1 = nvt_creator1(sysdef1, group_all1, thermo1, Scalar(0.5), Scalar(1.2));
     nvt1->addIntegrationMethod(two_step_nvt1);
 
-    boost::shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
+    boost::shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.002)));
     boost::shared_ptr<ComputeThermo> thermo2(new ComputeThermo(sysdef2, group_all2));
     thermo2->setNDOF(3*N-3);
     boost::shared_ptr<TwoStepNVTMTK> two_step_nvt2 = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
