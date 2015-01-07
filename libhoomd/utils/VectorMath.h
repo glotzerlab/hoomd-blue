@@ -435,6 +435,16 @@ struct vec2
         {
         }
 
+    //! Implicit cast from vec2<double> to the current Real
+    DEVICE vec2(const vec2<double>& a) : x(a.x), y(a.y)
+        {
+        }
+
+    //! Implicit cast from vec2<float> to the current Real
+    DEVICE vec2(const vec2<float>& a) : x(a.x), y(a.y)
+        {
+        }
+
     Real x; //!< x-component of the vector
     Real y; //!< y-component of the vector
     };
