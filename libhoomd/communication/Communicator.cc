@@ -902,7 +902,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         m_tuner_precompute.reset(new Autotuner(valid_params, nsteps, 100000, "comm_precompute", this->m_exec_conf));
 
         // average execution times instead of median
-        m_tuner_precompute->setAverage(true);
+        m_tuner_precompute->setMode(Autotuner::mode_avg);
 
         // we require syncing for aligned execution streams
         m_tuner_precompute->setSync(true);
