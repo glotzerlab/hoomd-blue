@@ -140,7 +140,7 @@ Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, unsigned int time
         IntegratorVariables v = getIntegratorVariables();
         Scalar& xi = v.variable[0];
         Scalar& eta = v.variable[1];
-        Scalar thermostat_energy = g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
+        Scalar thermostat_energy = (Scalar) g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
 
         if (m_aniso)
             {

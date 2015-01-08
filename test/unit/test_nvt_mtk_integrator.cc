@@ -62,6 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegratorTwoStep.h"
 
 #include "AllPairPotentials.h"
+#include "AllAnisoPairPotentials.h"
 #include "NeighborListBinned.h"
 #include "Initializers.h"
 #include "RandomGenerator.h"
@@ -138,7 +139,7 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
     boost::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
     Scalar r_cut = Scalar(3.0);
-    Scalar r_buff = Scalar(0.8);
+    Scalar r_buff = Scalar(0.4);
     boost::shared_ptr<NeighborList> nlist_1(new NeighborListBinned(sysdef_1, r_cut, r_buff));
 
     nlist_1->setStorageMode(NeighborList::full);
@@ -154,8 +155,8 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     fc_1->setParams(0,0,make_scalar2(lj1,lj2));
 
-    Scalar deltaT = Scalar(0.003);
-    Scalar T_ref = Scalar(0.5);
+    Scalar deltaT = Scalar(0.004);
+    Scalar T_ref = Scalar(1.0);
     Scalar tau = Scalar(0.5);
     boost::shared_ptr<IntegratorTwoStep> nvt_1(new IntegratorTwoStep(sysdef_1, deltaT));
     boost::shared_ptr<ComputeThermo> thermo_1 = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
@@ -223,6 +224,126 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
     avg_T /= n_measure_steps;
     MY_BOOST_CHECK_CLOSE(T_ref, avg_T, T_tol);
     }
+
+void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exec_conf, twostepnvt_creator nvt_creator)
+{
+    // initialize random particle system
+    Scalar phi_p = 0.2;
+    unsigned int N = 150;
+    Scalar L = pow(M_PI/6.0/phi_p*Scalar(N),1.0/3.0);
+    BoxDim box_g(L);
+    RandomGenerator rand_init(exec_conf, box_g, 12345, 3);
+    std::vector<string> types;
+    types.push_back("A");
+    std::vector<unsigned int> bonds;
+    std::vector<string> bond_types;
+    rand_init.addGenerator((int)N, boost::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
+    rand_init.setSeparationRadius("A", .5);
+
+    rand_init.generate();
+
+    boost::shared_ptr<SnapshotSystemData> snap;
+    snap = rand_init.getSnapshot();
+
+    boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
+    boost::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    boost::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
+
+    Scalar r_cut = Scalar(3.0);
+    Scalar r_buff = Scalar(0.4);
+    boost::shared_ptr<NeighborList> nlist_1(new NeighborListBinned(sysdef_1, r_cut, r_buff));
+
+    nlist_1->setStorageMode(NeighborList::full);
+    boost::shared_ptr<AnisoPotentialPairGB> fc_1 = boost::shared_ptr<AnisoPotentialPairGB>(new AnisoPotentialPairGB(sysdef_1, nlist_1));
+
+    fc_1->setRcut(0, 0, r_cut);
+
+    // setup some values for alpha and sigma
+    Scalar epsilon = Scalar(1.0);
+    Scalar lperp = Scalar(0.45);
+    Scalar lpar = Scalar(0.5);
+    fc_1->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+
+    Scalar deltaT = Scalar(0.0025);
+    Scalar T_ref = Scalar(1.0);
+    Scalar tau = Scalar(0.5);
+    boost::shared_ptr<IntegratorTwoStep> nvt_1(new IntegratorTwoStep(sysdef_1, deltaT));
+    boost::shared_ptr<ComputeThermo> thermo_1 = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
+
+    // ComputeThermo for integrator
+    boost::shared_ptr<ComputeThermo> thermo_nvt = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
+
+    boost::shared_ptr<TwoStepNVTMTK> two_step_nvt_1 = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
+;
+    nvt_1->addIntegrationMethod(two_step_nvt_1);
+    nvt_1->addForceCompute(fc_1);
+
+    unsigned int ndof = nvt_1->getNDOF(group_all_1);
+    thermo_nvt->setNDOF(ndof);
+    thermo_1->setNDOF(ndof);
+    unsigned int ndof_rot = nvt_1->getRotationalNDOF(group_all_1);
+    thermo_nvt->setRotationalNDOF(ndof_rot);
+    thermo_1->setRotationalNDOF(ndof_rot);
+
+    nvt_1->prepRun(0);
+
+    PDataFlags flags;
+    flags[pdata_flag::potential_energy] = 1;
+    flags[pdata_flag::rotational_ke] = 1;
+    pdata_1->setFlags(flags);
+
+    // equilibrate
+    std::cout << "Testing anisotropic mode" << std::endl;
+    unsigned int n_equil_steps = 100000;
+    std::cout << "Equilibrating for " << n_equil_steps << " time steps..." << std::endl;
+    int i =0;
+
+    for (i=0; i< n_equil_steps; i++)
+        {
+        nvt_1->update(i);
+        if (i % 1000 == 0)
+            std::cout << i << std::endl;
+        }
+
+    // 0.1 % tolerance for temperature
+    Scalar T_tol = .1;
+    // 2  % tolerance for conserved quantity
+    Scalar H_tol = 2;
+
+    // conserved quantity
+    thermo_1->compute(i+1);
+    Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
+    H_ini += nvt_1->getLogValue("nvt_mtk_reservoir_energy", 0);
+
+    int n_measure_steps = 25000;
+    std::cout << "Measuring temperature and conserved quantity for another " << n_measure_steps << " time steps..." << std::endl;
+    Scalar avg_T(0.0);
+    Scalar avg_T_rot(0.0);
+    for (i=n_equil_steps; i< n_equil_steps+n_measure_steps; i++)
+        {
+        // get conserved quantity
+        nvt_1->update(i);
+
+        if (i % 1000 == 0)
+            std::cout << i << std::endl;
+
+        thermo_1->compute(i+1);
+
+        avg_T += thermo_1->getTemperature();
+        avg_T_rot += Scalar(2.0)*thermo_1->getRotationalKineticEnergy()/thermo_1->getRotationalNDOF();
+
+        Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
+        H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", i+1);
+        MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
+        }
+
+    avg_T /= n_measure_steps;
+    avg_T_rot /= n_measure_steps;
+    MY_BOOST_CHECK_CLOSE(T_ref, avg_T, T_tol);
+    MY_BOOST_CHECK_CLOSE(T_ref, avg_T_rot, T_tol);
+    }
+
 
 //! Compares the output from one NVTUpdater to another
 void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -325,13 +446,23 @@ BOOST_AUTO_TEST_CASE( TwoStepNVTMTK_basic_test )
     {
     test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
     }
-
+//! Performs a basic equilibration test of TwoStepNVTMTK
+BOOST_AUTO_TEST_CASE( TwoStepNVTMTK_basic_aniso_test )
+    {
+    test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
+    }
 
 #ifdef ENABLE_CUDA
 //! Performs a basic equilibration test of TwoStepNVTMTKGPU
 BOOST_AUTO_TEST_CASE( TwoStepNVTMTKGPU_basic_test )
     {
     test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nvt_creator, _1, _2, _3, _4, _5));
+    }
+
+//! Performs a basic equilibration test of TwoStepNVTMTKGPU
+BOOST_AUTO_TEST_CASE( TwoStepNVTMTKGPU_basic_aniso_test )
+    {
+    test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nvt_creator, _1, _2, _3, _4, _5));
     }
 
 //! boost test case for comparing the GPU and CPU NVTUpdaters

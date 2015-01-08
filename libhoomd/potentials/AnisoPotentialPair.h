@@ -58,6 +58,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 
+#include "NeighborList.h"
+
 /*! \file AnisoPotentialPair.h
     \brief Defines the template class for anisotropic pair potentials
     \details The heart of the code that computes anisotropic pair potentials is in this file.

@@ -310,7 +310,7 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(boost::shared_ptr<ParticleGrou
         res += (*method)->getRotationalNDOF(group);
         }
 
-    return res;
+    return res - m_sysdef->getNDimensions();
     }
 
 /*! Compute accelerations if needed for the first step.

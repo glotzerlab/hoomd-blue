@@ -146,7 +146,8 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
                                  d_net_torque.data,
                                  d_index_array.data,
                                  group_size,
-                                 m_deltaT);
+                                 m_deltaT,
+                                 1.0);
 
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -210,7 +211,8 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
                                  d_net_torque.data,
                                  d_index_array.data,
                                  group_size,
-                                 m_deltaT);
+                                 m_deltaT,
+                                 1.0);
 
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

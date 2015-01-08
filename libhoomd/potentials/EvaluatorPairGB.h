@@ -140,7 +140,7 @@ class EvaluatorPairGB
             \return True if they are evaluated or false if they are not because we are beyond the cutoff.
         */
         DEVICE  bool
-		evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j) 
+        evaluate(Scalar3& force, Scalar& pair_eng, bool energy_shift, Scalar3& torque_i, Scalar3& torque_j)
             {
             Scalar rsq = dot(dr,dr);
             Scalar r = fast::sqrt(rsq);

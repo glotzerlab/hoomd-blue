@@ -92,7 +92,8 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar deltaT);
+                             Scalar deltaT,
+                             Scalar scale);
 
 //! Kernel driver for the second part of the angular NVE update (NO_SQUISH) by TwoStepNVEPU
 cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
@@ -101,6 +102,7 @@ cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar deltaT);
+                             Scalar deltaT,
+                             Scalar scale);
 
 #endif //__TWO_STEP_NVE_GPU_CUH__

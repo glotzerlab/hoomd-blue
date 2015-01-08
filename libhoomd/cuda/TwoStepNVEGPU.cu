@@ -214,7 +214,8 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4 *d_orientation,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             Scalar scale)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -243,6 +244,8 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4 *d_orientation,
 
         // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
         p += deltaT*q*t;
+
+        p = p*scale;
 
         quat<Scalar> p1, p2, p3; // permutated quaternions
         quat<Scalar> q1, q2, q3;
@@ -332,7 +335,8 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             Scalar scale)
     {
     // setup the grid to run the kernel
     int block_size = 256;
@@ -340,7 +344,7 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_nve_angular_step_one_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT);
+    gpu_nve_angular_step_one_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT, scale);
 
     return cudaSuccess;
     }
@@ -488,7 +492,8 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             Scalar scale)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -515,6 +520,9 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
         if (y_zero) t.y = Scalar(0.0);
         if (z_zero) t.z = Scalar(0.0);
 
+        // rescale
+        p = p*scale;
+
         // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
         p += deltaT*q*t;
 
@@ -536,7 +544,8 @@ cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
                              const Scalar4 *d_net_torque,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             Scalar scale)
     {
     // setup the grid to run the kernel
     int block_size = 256;
@@ -544,7 +553,7 @@ cudaError_t gpu_nve_angular_step_two(const Scalar4 *d_orientation,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_nve_angular_step_two_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT);
+    gpu_nve_angular_step_two_kernel<<< grid, threads >>>(d_orientation, d_angmom, d_inertia, d_net_torque, d_group_members, group_size, deltaT, scale);
 
     return cudaSuccess;
     }

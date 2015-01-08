@@ -61,6 +61,7 @@ using namespace boost;
 
 #include "TwoStepNVTMTKGPU.h"
 #include "TwoStepNVTMTKGPU.cuh"
+#include "TwoStepNVEGPU.cuh"
 #include "TwoStepNPTMTKGPU.cuh"
 
 #ifdef ENABLE_MPI
@@ -142,6 +143,31 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
 
+    if (m_aniso)
+        {
+        // angular degrees of freedom, step one
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+
+        IntegratorVariables v = getIntegratorVariables();
+        Scalar xi_rot = v.variable[2];
+        Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
+
+        gpu_nve_angular_step_one(d_orientation.data,
+                             d_angmom.data,
+                             d_inertia.data,
+                             d_net_torque.data,
+                             d_index_array.data,
+                             group_size,
+                             m_deltaT,
+                             exp_fac);
+
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
     // advance thermostat
     advanceThermostat(timestep);
 
@@ -184,6 +210,31 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
         CHECK_CUDA_ERROR();
 
     m_tuner_two->end();
+
+    if (m_aniso)
+        {
+        // second part of angular update
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+
+        IntegratorVariables v = getIntegratorVariables();
+        Scalar xi_rot = v.variable[2];
+        Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
+
+        gpu_nve_angular_step_two(d_orientation.data,
+                                 d_angmom.data,
+                                 d_inertia.data,
+                                 d_net_torque.data,
+                                 d_index_array.data,
+                                 group_size,
+                                 m_deltaT,
+                                 exp_fac);
+
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
 
     // done profiling
     if (m_prof)
