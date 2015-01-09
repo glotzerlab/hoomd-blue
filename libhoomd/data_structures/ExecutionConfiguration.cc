@@ -468,8 +468,10 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     cudaError_t error = cudaGetDeviceCount(&dev_count);
     if (error != cudaSuccess)
         {
-        msg->error() << "Error calling cudaGetDeviceCount()" << endl;
-        throw runtime_error("Error initializing execution configuration");
+        msg->notice(2) << "Error calling cudaGetDeviceCount(). No NVIDIA driver is present, or this user"
+        msg->notice(2) << "does not have readwrite permissions on /dev/nvidia*" << endl;
+        msg->notice(2) << "Ignoring any GPUs in the system." << endl;
+        return;
         }
 
     // initialize variables
