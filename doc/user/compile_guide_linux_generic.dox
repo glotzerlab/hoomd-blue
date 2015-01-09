@@ -122,7 +122,8 @@ and build python
 ~~~~
 $ cd Python-3.3.0
 $ ./configure --enable-shared --prefix=$HOME/local
-$ make -j 12 install
+$ make -j12
+$ make install
 ~~~~
 This installs python into the `local/` subdirectory of your home directory.
 The `-j` option tells make to use the CPU cores available in your system for the build process.
