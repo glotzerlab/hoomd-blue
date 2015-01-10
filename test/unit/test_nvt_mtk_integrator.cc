@@ -154,6 +154,9 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     fc_1->setParams(0,0,make_scalar2(lj1,lj2));
+    // If we want accurate calculation of potential energy, we need to apply the
+    // energy shift
+    fc_1->setShiftMode(PotentialPairLJ::shift);
 
     Scalar deltaT = Scalar(0.004);
     Scalar T_ref = Scalar(1.0);
@@ -193,8 +196,8 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
     // 0.1 % tolerance for temperature
     Scalar T_tol = .1;
-    // 1.0 % tolerance for conserved quantity
-    Scalar H_tol = 1.0;
+    // 0.02 % tolerance for conserved quantity
+    Scalar H_tol = 0.02;
 
     // conserved quantity
     thermo_1->compute(i+1);
@@ -264,6 +267,9 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
     Scalar lperp = Scalar(0.45);
     Scalar lpar = Scalar(0.5);
     fc_1->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+    // If we want accurate calculation of potential energy, we need to apply the
+    // energy shift
+    fc_1->setShiftMode(AnisoPotentialPairGB::shift);
 
     Scalar deltaT = Scalar(0.0025);
     Scalar T_ref = Scalar(1.0);
@@ -295,7 +301,7 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
 
     // equilibrate
     std::cout << "Testing anisotropic mode" << std::endl;
-    unsigned int n_equil_steps = 100000;
+    unsigned int n_equil_steps = 150000;
     std::cout << "Equilibrating for " << n_equil_steps << " time steps..." << std::endl;
     int i =0;
 
@@ -308,8 +314,8 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
 
     // 0.1 % tolerance for temperature
     Scalar T_tol = .1;
-    // 2  % tolerance for conserved quantity
-    Scalar H_tol = 2;
+    // 0.2  % tolerance for conserved quantity
+    Scalar H_tol = 0.2;
 
     // conserved quantity
     thermo_1->compute(i+1);

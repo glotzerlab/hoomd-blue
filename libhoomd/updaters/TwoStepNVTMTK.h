@@ -148,7 +148,7 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
 
         Scalar m_exp_thermo_fac;        //!< Thermostat rescaling factor
 
-        // advance the thermostat
+        //! advance the thermostat
         /*!\param timestep The time step
          * \param broadcast True if we should broadcast the integrator variables via MPI
          */
