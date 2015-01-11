@@ -202,7 +202,8 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // conserved quantity
     thermo_1->compute(i+1);
     Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
-    H_ini += nvt_1->getLogValue("nvt_mtk_reservoir_energy", 0);
+    bool flag = false;
+    H_ini += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
 
     std::cout << "Measuring temperature and conserved quantity for another 25,000 time steps..." << std::endl;
     Scalar avg_T(0.0);
@@ -220,7 +221,7 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
         avg_T += thermo_1->getTemperature();
 
         Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
-        H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", i+1);
+        H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
         MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
         }
 
@@ -299,6 +300,7 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
     flags[pdata_flag::rotational_ke] = 1;
     pdata_1->setFlags(flags);
 
+    bool flag = false;
     // equilibrate
     std::cout << "Testing anisotropic mode" << std::endl;
     unsigned int n_equil_steps = 150000;
@@ -320,7 +322,7 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
     // conserved quantity
     thermo_1->compute(i+1);
     Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
-    H_ini += nvt_1->getLogValue("nvt_mtk_reservoir_energy", 0);
+    H_ini += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
 
     int n_measure_steps = 25000;
     std::cout << "Measuring temperature and conserved quantity for another " << n_measure_steps << " time steps..." << std::endl;
@@ -340,7 +342,7 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
         avg_T_rot += Scalar(2.0)*thermo_1->getRotationalKineticEnergy()/thermo_1->getRotationalNDOF();
 
         Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy() + thermo_1->getRotationalKineticEnergy();
-        H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", i+1);
+        H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
         MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
         }
 

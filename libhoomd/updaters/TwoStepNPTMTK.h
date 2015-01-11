@@ -109,6 +109,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
                    boost::shared_ptr<ParticleGroup> group,
                    boost::shared_ptr<ComputeThermo> thermo_group,
+                   boost::shared_ptr<ComputeThermo> thermo_group_t,
                    Scalar tau,
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
@@ -187,14 +188,15 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
     protected:
-        boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group
+        boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
+        boost::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
         unsigned int m_ndof;            //!< Number of degrees of freedom from ComputeThermo
+        unsigned int m_baro_ndof;       //!< Number of barostat degrees of freedom
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauP;                  //!< tauP value for the barostat
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         boost::shared_ptr<Variant> m_P; //!< Pressure set point
-        Scalar m_curr_group_T;          //!< Current group temperature
         Scalar m_V;                     //!< Current volume
 
         couplingMode m_couple;          //!< Coupling of diagonal elements
@@ -202,7 +204,6 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         bool m_nph;                     //!< True if integrating without thermostat
         Scalar m_mat_exp_v[6];          //!< Matrix exponential for velocity update (upper triangular)
         Scalar m_mat_exp_r[6];          //!< Matrix exponential for position update (upper triangular)
-        Scalar m_mat_exp_v_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
         Scalar m_mat_exp_r_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
 
         bool m_rescale_all;             //!< If true, rescale all particles in the system irrespective of group
@@ -210,8 +211,13 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
 
         //! Helper function to advance the barostat parameters
-        void advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Scalar &nuyy, Scalar &nuyz, Scalar &nuzz,
-                             PressureTensor& P, unsigned int timestep);
+        void advanceBarostat(unsigned int timestep,bool step_two);
+
+        //! advance the thermostat
+        /*!\param timestep The time step
+         * \param broadcast True if we should broadcast the integrator variables via MPI
+         */
+        void advanceThermostat(unsigned int timestep);
 
         //! Helper function to update the propagator elements
         void updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);

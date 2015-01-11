@@ -69,7 +69,6 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              unsigned int group_size,
                              Scalar exp_thermo_fac,
                              Scalar *mat_exp_v,
-                             Scalar *mat_exp_v_int,
                              Scalar *mat_exp_r,
                              Scalar *mat_exp_r_int,
                              Scalar deltaT,
@@ -88,33 +87,10 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                              unsigned int group_size,
                              Scalar4 *d_net_force,
                              Scalar *mat_exp_v,
-                             Scalar *mat_exp_v_int,
-                             Scalar deltaT);
+                             Scalar deltaT,
+                             Scalar exp_thermo_fac);
 
-//! Kernel driver for reduction of temperature (part of second step)
-cudaError_t gpu_npt_mtk_temperature(Scalar *d_temperature,
-                                    Scalar4 *d_vel,
-                                    Scalar *d_scratch,
-                                    unsigned int num_blocks,
-                                    unsigned int block_size,
-                                    unsigned int *d_group_members,
-                                    unsigned int group_size,
-                                    unsigned int ndof);
-
-//! Kernel driver for rescaling of velocities (part of second step)
-cudaError_t gpu_npt_mtk_thermostat(Scalar4 *d_vel,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             Scalar exp_v_fac_thermo,
-                             unsigned int block_size);
-
-//! Kernel driver for rescaling of angular momenta (part of second step)
-cudaError_t gpu_npt_rescale_angular_momentum(Scalar4 *d_angmom,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             Scalar exp_fac);
-
-//! Rescale all velocities
+//! Rescale all positions
 void gpu_npt_mtk_rescale(unsigned int N,
                        Scalar4 *d_postype,
                        Scalar mat_exp_r_xx,

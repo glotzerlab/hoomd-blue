@@ -62,9 +62,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NPT integration on the GPU using the Martyna-Tobias-Klein update equations. Used by TwoStepNPTMTKGPU.
 */
 
-//! Shared memory used in reducing the sum of the squared velocities
-extern __shared__ Scalar npt_mtk_sdata[];
-
 //! Kernel to propagate the positions and velocities, first half of NPT update
 __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
                              Scalar4 *d_vel,
@@ -78,12 +75,6 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
                              Scalar mat_exp_v_yy,
                              Scalar mat_exp_v_yz,
                              Scalar mat_exp_v_zz,
-                             Scalar mat_exp_v_int_xx,
-                             Scalar mat_exp_v_int_xy,
-                             Scalar mat_exp_v_int_xz,
-                             Scalar mat_exp_v_int_yy,
-                             Scalar mat_exp_v_int_yz,
-                             Scalar mat_exp_v_int_zz,
                              Scalar mat_exp_r_xx,
                              Scalar mat_exp_r_xy,
                              Scalar mat_exp_r_xz,
@@ -116,8 +107,8 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
         Scalar3 accel = d_accel[idx];;
         Scalar3 r = make_scalar3(pos.x, pos.y, pos.z);
 
-        // apply thermostat update of velocity
-        v *= exp_thermo_fac;
+        // advance velocity
+        v += deltaT/Scalar(2.0) * accel;
 
         // propagate velocity by half a time step and position by the full time step
         // by multiplying with upper triangular matrix
@@ -125,9 +116,8 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
         v.y = mat_exp_v_yy * v.y + mat_exp_v_yz * v.z;
         v.z = mat_exp_v_zz * v.z;
 
-        v.x += mat_exp_v_int_xx * accel.x + mat_exp_v_int_xy * accel.y + mat_exp_v_int_xz * accel.z;
-        v.y += mat_exp_v_int_yy * accel.y + mat_exp_v_int_yz * accel.z;
-        v.z += mat_exp_v_int_zz * accel.z;
+        // apply thermostat update of velocity
+        v *= exp_thermo_fac;
 
         if (!rescale_all)
             {
@@ -154,7 +144,6 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4 *d_pos,
     \param group_size Number of members in the group
     \param exp_thermo_fac Update factor for thermostat
     \param mat_exp_v Matrix exponential for velocity update
-    \param mat_exp_v_int Integrated matrix exp for velocity update
     \param mat_exp_r Matrix exponential for position update
     \param mat_exp_r_int Integrated matrix exp for position update
     \param deltaT Time to advance (for one full step)
@@ -170,7 +159,6 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                              unsigned int group_size,
                              Scalar exp_thermo_fac,
                              Scalar *mat_exp_v,
-                             Scalar *mat_exp_v_int,
                              Scalar *mat_exp_r,
                              Scalar *mat_exp_r_int,
                              Scalar deltaT,
@@ -194,12 +182,6 @@ cudaError_t gpu_npt_mtk_step_one(Scalar4 *d_pos,
                                                  mat_exp_v[3],
                                                  mat_exp_v[4],
                                                  mat_exp_v[5],
-                                                 mat_exp_v_int[0],
-                                                 mat_exp_v_int[1],
-                                                 mat_exp_v_int[2],
-                                                 mat_exp_v_int[3],
-                                                 mat_exp_v_int[4],
-                                                 mat_exp_v_int[5],
                                                  mat_exp_r[0],
                                                  mat_exp_r[1],
                                                  mat_exp_r[2],
@@ -288,13 +270,8 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
                              Scalar mat_exp_v_yy,
                              Scalar mat_exp_v_yz,
                              Scalar mat_exp_v_zz,
-                             Scalar mat_exp_v_int_xx,
-                             Scalar mat_exp_v_int_xy,
-                             Scalar mat_exp_v_int_xz,
-                             Scalar mat_exp_v_int_yy,
-                             Scalar mat_exp_v_int_yz,
-                             Scalar mat_exp_v_int_zz,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             Scalar exp_thermo_fac)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -314,14 +291,16 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
 
         Scalar3 v = make_scalar3(vel.x, vel.y, vel.z);
 
+        // apply thermostat rescaling
+        v = v*exp_thermo_fac;
+
         // propagate velocity by half a time step by multiplying with an upper triangular matrix
         v.x = mat_exp_v_xx * v.x + mat_exp_v_xy * v.y + mat_exp_v_xz * v.z;
         v.y = mat_exp_v_yy * v.y + mat_exp_v_yz * v.z;
         v.z = mat_exp_v_zz * v.z;
 
-        v.x += mat_exp_v_int_xx * accel.x + mat_exp_v_int_xy * accel.y + mat_exp_v_int_xz * accel.z;
-        v.y += mat_exp_v_int_yy * accel.y + mat_exp_v_int_yz * accel.z;
-        v.z += mat_exp_v_int_zz * accel.z;
+        // advance velocity
+        v += deltaT/Scalar(2.0) * accel;
 
         // write out velocity
         d_vel[idx] = make_scalar4(v.x, v.y, v.z, vel.w);
@@ -336,7 +315,6 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4 *d_vel,
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param mat_exp_v Matrix exponential for velocity update
-    \param mat_exp_v_int Integrated matrix exp for velocity update
     \param d_net_force Net force on each particle
 
     \param deltaT Time to move forward in one whole step
@@ -349,8 +327,8 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                              unsigned int group_size,
                              Scalar4 *d_net_force,
                              Scalar* mat_exp_v,
-                             Scalar* mat_exp_v_int,
-                             Scalar deltaT)
+                             Scalar deltaT,
+                             Scalar exp_thermo_fac)
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;
@@ -369,247 +347,8 @@ cudaError_t gpu_npt_mtk_step_two(Scalar4 *d_vel,
                                                      mat_exp_v[3],
                                                      mat_exp_v[4],
                                                      mat_exp_v[5],
-                                                     mat_exp_v_int[0],
-                                                     mat_exp_v_int[1],
-                                                     mat_exp_v_int[2],
-                                                     mat_exp_v_int[3],
-                                                     mat_exp_v_int[4],
-                                                     mat_exp_v_int[5],
-                                                     deltaT);
-
-    return cudaSuccess;
-    }
-
-//! GPU kernel to perform partial reduction of temperature
-__global__ void gpu_npt_mtk_temperature_partial(unsigned int *d_group_members,
-                                                unsigned int group_size,
-                                                Scalar *d_scratch,
-                                                Scalar4 *d_velocity)
-    {
-    // determine which particle this thread works on
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    Scalar mv2_element; // element of scratch space read in
-    if (group_idx < group_size)
-        {
-        unsigned int idx = d_group_members[group_idx];
-
-        Scalar4 vel = d_velocity[idx];
-        Scalar mass = vel.w;
-
-        mv2_element =  mass * (vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
-        }
-    else
-        {
-        // non-participating thread: contribute 0 to the sum
-        mv2_element = Scalar(0.0);
-        }
-
-    npt_mtk_sdata[threadIdx.x] = mv2_element;
-    __syncthreads();
-
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            npt_mtk_sdata[threadIdx.x] += npt_mtk_sdata[threadIdx.x + offs];
-
-        offs >>= 1;
-        __syncthreads();
-        }
-
-    // write out partial sum
-    if (threadIdx.x == 0)
-        d_scratch[blockIdx.x] = npt_mtk_sdata[0];
-
-     }
-
-//! GPU kernel to perform final reduction of temperature
-__global__ void gpu_npt_mtk_temperature_final_sum(Scalar *d_scratch,
-                                                  Scalar *d_temperature,
-                                                  unsigned int ndof,
-                                                  unsigned int num_partial_sums)
-    {
-    Scalar final_sum(0.0);
-
-    for (int start = 0; start < num_partial_sums; start += blockDim.x)
-        {
-        __syncthreads();
-        if (start + threadIdx.x < num_partial_sums)
-            {
-            npt_mtk_sdata[threadIdx.x] = d_scratch[start + threadIdx.x];
-            }
-        else
-            npt_mtk_sdata[threadIdx.x] = Scalar(0.0);
-
-        __syncthreads();
-
-        // reduce the sum in parallel
-        int offs = blockDim.x >> 1;
-        while (offs > 0)
-            {
-            if (threadIdx.x < offs)
-                npt_mtk_sdata[threadIdx.x] += npt_mtk_sdata[threadIdx.x + offs];
-
-            offs >>=1;
-            __syncthreads();
-            }
-
-        if (threadIdx.x == 0)
-            final_sum += npt_mtk_sdata[0];
-        }
-
-    if (threadIdx.x == 0)
-        *d_temperature = final_sum/Scalar(ndof);
-    }
-
-/*!\param d_temperature Device variable to store the temperature value (output)
-   \param d_vel Array of particle velocities and masses
-   \param d_scratch Temporary scratch space for reduction
-   \param num_blocks Number of CUDA blocks used in reduction
-   \param block_size Size of blocks used in reduction
-   \param d_group_members Members of group for which the reduction is performed
-   \param group_size Size of group
-   \param ndof Number of degrees of freedom of group
-
-   This function performs the reduction of the temperature on the GPU. It is just
-   a driver function that calls the appropriate GPU kernels.
-   */
-cudaError_t gpu_npt_mtk_temperature(Scalar *d_temperature,
-                                    Scalar4 *d_vel,
-                                    Scalar *d_scratch,
-                                    unsigned int num_blocks,
-                                    unsigned int block_size,
-                                    unsigned int *d_group_members,
-                                    unsigned int group_size,
-                                    unsigned int ndof)
-    {
-    assert(d_temperature);
-    assert(d_vel);
-    assert(d_scratch);
-
-    dim3 grid(num_blocks,1,1);
-    dim3 threads(block_size,1,1);
-
-    unsigned int shared_bytes = sizeof(Scalar)*block_size;
-
-    // reduce squared velocity norm times mass, first pass
-    gpu_npt_mtk_temperature_partial<<<grid, threads, shared_bytes>>>(
-                                                d_group_members,
-                                                group_size,
-                                                d_scratch,
-                                                d_vel);
-
-
-    unsigned int final_block_size = 512;
-    grid = dim3(1,1,1);
-    threads = dim3(final_block_size, 1, 1);
-    shared_bytes = sizeof(Scalar)*final_block_size;
-
-    // reduction, second pass
-    gpu_npt_mtk_temperature_final_sum<<<grid, threads, shared_bytes>>>(
-                                                d_scratch,
-                                                d_temperature,
-                                                ndof,
-                                                num_blocks);
-
-    return cudaSuccess;
-    }
-
-/*! \param d_vel array of particle velocities and masses
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
-    \param group_size Number of members in the group
-    \param exp_v_fac_thermo scaling factor (per direction) for velocity update generated by thermostat
-
-    GPU kernel to thermostat velocities
-*/
-__global__ void gpu_npt_mtk_thermostat_kernel(Scalar4 *d_vel,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             Scalar exp_v_fac_thermo)
-    {
-    // determine which particle this thread works on
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (group_idx < group_size)
-        {
-        unsigned int idx = d_group_members[group_idx];
-
-        // fetch particle velocity and acceleration
-        Scalar4 vel = d_vel[idx];
-        Scalar3 v = make_scalar3(vel.x, vel.y, vel.z);
-
-        // rescale
-        v *= exp_v_fac_thermo;
-
-        // write out the results
-        d_vel[idx] = make_scalar4(v.x,v.y,v.z,vel.w);
-        }
-    }
-
-/*! \param d_vel array of particle velocities
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
-    \param group_size Number of members in the group
-    \param exp_v_fac_thermo Rescaling factor
-    \param block_size Kernel block size
-
-    This is just a kernel driver for gpu_npt_step_kernel(). See it for more details.
-*/
-cudaError_t gpu_npt_mtk_thermostat(Scalar4 *d_vel,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             Scalar exp_v_fac_thermo,
-                             unsigned int block_size)
-    {
-    // setup the grid to run the kernel
-    dim3 grid( (group_size / block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-
-    // run the kernel
-    gpu_npt_mtk_thermostat_kernel<<< grid, threads >>>(d_vel,
-                                                     d_group_members,
-                                                     group_size,
-                                                     exp_v_fac_thermo);
-
-    return cudaSuccess;
-    }
-
-__global__ void gpu_npt_rescale_angular_momentum_kernel(
-                             Scalar4 *d_angmom,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             Scalar exp_fac)
-    {
-    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (group_idx < group_size)
-        {
-        unsigned int idx = d_group_members[group_idx];
-
-        quat<Scalar> p(d_angmom[idx]);
-        p = p*exp_fac;
-        d_angmom[idx] = quat_to_scalar4(p);
-        }
-    }
-
-/*! \param d_angmom array of particle conjugate quaternions
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
-    \param group_size Number of members in the group
-    \param exp_fac Scaling factor
-*/
-cudaError_t gpu_npt_rescale_angular_momentum(Scalar4 *d_angmom,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             Scalar exp_fac)
-    {
-    // setup the grid to run the kernel
-    int block_size = 256;
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-
-    // run the kernel
-    gpu_npt_rescale_angular_momentum_kernel<<< grid, threads >>>(d_angmom, d_group_members, group_size, exp_fac);
+                                                     deltaT,
+                                                     exp_thermo_fac);
 
     return cudaSuccess;
     }

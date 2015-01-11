@@ -597,9 +597,18 @@ class npt(_integration_method):
         T = variant._setup_variant_input(T);
         P = variant._setup_variant_input(P);
 
-        # create the compute thermo
-        thermo_group = compute._get_unique_thermo(group=group);
-        thermo_all = compute._get_unique_thermo(group=globals.group_all);
+        # create the compute thermo for half time steps
+        if group is globals.group_all:
+            group_copy = copy.copy(group);
+            group_copy.name = "__npt_all";
+            util._disable_status_lines = True;
+            thermo_group = compute.thermo(group_copy);
+            util._disable_status_lines = False;
+        else:
+            thermo_group = compute._get_unique_thermo(group=group);
+
+        # create the compute thermo for full time step
+        thermo_group_t = compute._get_unique_thermo(group=group);
 
         # need to know if we are running 2D simulations
         twod = (globals.system_definition.getNDimensions() == 2);
@@ -654,9 +663,9 @@ class npt(_integration_method):
             flags |= hoomd.TwoStepNPTMTK.baroFlags.baro_yz
 
         if not globals.exec_conf.isCUDAEnabled():
-            self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+            self.cpp_method = hoomd.TwoStepNPTMTK(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
         else:
-            self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
+            self.cpp_method = hoomd.TwoStepNPTMTKGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_group_t.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant, cpp_couple, flags, nph);
 
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
