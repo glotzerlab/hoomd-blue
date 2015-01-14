@@ -203,7 +203,7 @@ void AnisoPotentialPair< aniso_evaluator >::setParams(unsigned int typ1, unsigne
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
         }
-    
+
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
@@ -224,7 +224,7 @@ void AnisoPotentialPair< aniso_evaluator >::setRcut(unsigned int typ1, unsigned 
                   << typ1 << "," << typ2 << std::endl << std::endl;
         throw std::runtime_error("Error setting parameters in AnisoPotentialPair");
         }
-    
+
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
     h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
     h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
@@ -254,7 +254,7 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getLogValue(const std::string& qua
         }
     else
         {
-        m_exec_conf->msg->error() << "ai_pair." << aniso_evaluator::getName() << ": " << quantity << " is not a valid log quantity for AnisoPotentialPair" 
+        m_exec_conf->msg->error() << "ai_pair." << aniso_evaluator::getName() << ": " << quantity << " is not a valid log quantity for AnisoPotentialPair"
                   << std::endl << endl;
         throw std::runtime_error("Error getting log value");
         }
@@ -270,14 +270,14 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
-    
+
     // start the profile for this compute
     if (m_prof) m_prof->push(m_prof_name);
-    
+
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
-    
+
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
@@ -291,7 +291,7 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     //force arrays
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar>  h_virial(m_virial,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
 
     const BoxDim& box = m_pdata->getBox();
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
@@ -301,7 +301,10 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
     // need to start from a zero force, energy and virial
     memset(&h_force.data[0] , 0, sizeof(Scalar4)*m_pdata->getN());
     memset(&h_torque.data[0] , 0, sizeof(Scalar4)*m_pdata->getN());
-    memset(&h_virial.data[0] , 0, 6*sizeof(Scalar)*m_pdata->getN());
+    memset(&h_virial.data[0] , 0, sizeof(Scalar)*m_virial.getNumElements());
+
+    PDataFlags flags = this->m_pdata->getFlags();
+    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -406,12 +409,15 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
                 tzi += torque_i.z;
                 pei += pair_eng * Scalar(0.5);
 
-                virialxxi += dx.x*force2.x;
-                virialxyi += dx.x*force2.y;
-                virialxzi += dx.x*force2.z;
-                virialyyi += dx.y*force2.y;
-                virialyzi += dx.y*force2.z;
-                virialzzi += dx.z*force2.z;
+                if (compute_virial)
+                    {
+                    virialxxi += dx.x*force2.x;
+                    virialxyi += dx.y*force2.x;
+                    virialxzi += dx.z*force2.x;
+                    virialyyi += dx.y*force2.y;
+                    virialyzi += dx.z*force2.y;
+                    virialzzi += dx.z*force2.z;
+                    }
 
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
                 if (third_law)
@@ -423,12 +429,15 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
                     h_torque.data[j].y += torque_j.y;
                     h_torque.data[j].z += torque_j.z;
                     h_force.data[j].w += pair_eng * Scalar(0.5);
-                    h_virial.data[0+6*j] += dx.x*force2.x;
-                    h_virial.data[1+6*j] += dx.x*force2.y;
-                    h_virial.data[2+6*j] += dx.x*force2.z;
-                    h_virial.data[3+6*j] += dx.y*force2.y;
-                    h_virial.data[4+6*j] += dx.y*force2.z;
-                    h_virial.data[5+6*j] += dx.z*force2.z;
+                    if (compute_virial)
+                        {
+                        h_virial.data[0*m_virial_pitch+j] += dx.x*force2.x;
+                        h_virial.data[1*m_virial_pitch+j] += dx.y*force2.x;
+                        h_virial.data[2*m_virial_pitch+j] += dx.z*force2.x;
+                        h_virial.data[3*m_virial_pitch+j] += dx.y*force2.y;
+                        h_virial.data[4*m_virial_pitch+j] += dx.z*force2.y;
+                        h_virial.data[5*m_virial_pitch+j] += dx.z*force2.z;
+                        }
                     }
                 }
             }
@@ -441,12 +450,15 @@ void AnisoPotentialPair< aniso_evaluator >::computeForces(unsigned int timestep)
         h_torque.data[i].y += tyi;
         h_torque.data[i].z += tzi;
         h_force.data[i].w += pei;
-        h_virial.data[0+6*i] += virialxxi;
-        h_virial.data[1+6*i] += virialxyi;
-        h_virial.data[2+6*i] += virialxzi;
-        h_virial.data[3+6*i] += virialyyi;
-        h_virial.data[4+6*i] += virialyzi;
-        h_virial.data[5+6*i] += virialzzi;
+        if (compute_virial)
+            {
+            h_virial.data[0*m_virial_pitch+i] += virialxxi;
+            h_virial.data[1*m_virial_pitch+i] += virialxyi;
+            h_virial.data[2*m_virial_pitch+i] += virialxzi;
+            h_virial.data[3*m_virial_pitch+i] += virialyyi;
+            h_virial.data[4*m_virial_pitch+i] += virialyzi;
+            h_virial.data[5*m_virial_pitch+i] += virialzzi;
+            }
         }
     }
 
@@ -461,7 +473,7 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
     {
     CommFlags flags = CommFlags(0);
 
-    // we need orientations for anisotropic ptls!
+    // we need orientations for anisotropic ptls
     flags[comm_flag::orientation] = 1;
 
     if (aniso_evaluator::needsCharge())

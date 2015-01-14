@@ -173,7 +173,7 @@ scalar_tex_t aniso_pdata_diam_tex;
 scalar_tex_t aniso_pdata_charge_tex;
 
 //! Kernel for calculating pair forces
-/*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
+/*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
     forces for each pair is handled via the template class \a evaluator.
 
     \param d_force Device memory to write computed forces
@@ -193,18 +193,18 @@ scalar_tex_t aniso_pdata_charge_tex;
     \param d_rcutsq rcut squared, stored per type pair
     \param ntypes Number of types in the simulation
     \param tpp Number of threads per particle
-    
+
     \a d_params and \a d_rcutsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
     amount of shared memory must be allocatd for this kernel launch. The amount is
     (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
-    
+
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
                        (See PotentialPair for a discussion on what that entails)
     \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
-    
+
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
@@ -378,11 +378,11 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                 {
                 Scalar3 jforce2 = Scalar(0.5)*jforce;
                 virialxx +=  dx.x * jforce2.x;
-                virialxy +=  dx.y * jforce2.y;
-                virialxz +=  dx.z * jforce2.z;
-                virialyy +=  dx.x * jforce2.y;
-                virialyz +=  dx.x * jforce2.z;
-                virialzz +=  dx.y * jforce2.z;
+                virialxy +=  dx.y * jforce2.x;
+                virialxz +=  dx.z * jforce2.x;
+                virialyy +=  dx.y * jforce2.y;
+                virialyz +=  dx.z * jforce2.y;
+                virialzz +=  dx.z * jforce2.z;
                 }
 
 
@@ -587,13 +587,13 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                                   pair_args.d_pos,
                                                   pair_args.d_diameter,
                                                   pair_args.d_charge,
-                                                  pair_args.d_orientation, 
-                                                  pair_args.box, 
-                                                  pair_args.d_n_neigh, 
-                                                  pair_args.d_nlist, 
-                                                  pair_args.nli, 
-                                                  d_params, 
-                                                  pair_args.d_rcutsq, 
+                                                  pair_args.d_orientation,
+                                                  pair_args.box,
+                                                  pair_args.d_n_neigh,
+                                                  pair_args.d_nlist,
+                                                  pair_args.nli,
+                                                  d_params,
+                                                  pair_args.d_rcutsq,
                                                   pair_args.ntypes,
                                                   tpp);
                 break;
