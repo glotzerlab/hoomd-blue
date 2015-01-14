@@ -49,11 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
-
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -61,7 +56,6 @@ using namespace boost::python;
 #include "TwoStepNPTMTKGPU.cuh"
 
 #include "TwoStepNVEGPU.cuh"
-#include "TwoStepNVTGPU.cuh"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -136,10 +130,9 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
 
     // update degrees of freedom for MTK term
     m_ndof = m_thermo_group->getNDOF();
-    if (m_aniso) m_ndof += m_thermo_group->getRotationalNDOF();
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
-    advanceBarostat(timestep, false);
+    advanceBarostat(timestep);
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar nuxx = v.variable[2];  // Barostat tensor, xx component
@@ -264,8 +257,11 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
         ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
         ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
-        #if 0
-        gpu_nvt_angular_step_one(d_orientation.data,
+        // precompute loop invariant quantity
+        Scalar xi_rot = v.variable[8];
+        Scalar exp_thermo_fac_rot = exp(-(xi_rot+mtk)*m_deltaT/Scalar(2.0));
+
+        gpu_nve_angular_step_one(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
                                  d_net_torque.data,
@@ -273,7 +269,6 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
                                  group_size,
                                  m_deltaT,
                                  exp_thermo_fac_rot);
-        #endif
 
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -290,7 +285,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
         {
         // broadcast integrator variables from rank 0 to other processors
         v = getIntegratorVariables();
-        MPI_Bcast(&v.variable.front(), 12, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+        MPI_Bcast(&v.variable.front(), 10, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         setIntegratorVariables(v);
         }
     #endif
@@ -320,6 +315,9 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     Scalar nuyy = v.variable[5];  // Barostat tensor, yy component
     Scalar nuzz = v.variable[7];  // Barostat tensor, zz component
 
+    // Martyna-Tobias-Klein correction
+    Scalar mtk = (nuxx+nuyy+nuzz)/(Scalar)m_ndof;
+
     {
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::overwrite);
@@ -329,7 +327,6 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
 
     // precompute loop invariant quantity
     Scalar xi_trans = v.variable[1];
-    Scalar mtk = (nuxx+nuyy+nuzz)/(Scalar)m_ndof;
     Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*(xi_trans+mtk)*m_deltaT);
 
     // perform second half step of NPT integration (update velocities and accelerations)
@@ -356,6 +353,10 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
         ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
+        // precompute loop invariant quantity
+        Scalar xi_rot = v.variable[8];
+        Scalar exp_thermo_fac_rot = exp(-(xi_rot+mtk)*m_deltaT/Scalar(2.0));
+
         gpu_nve_angular_step_two(d_orientation.data,
                                  d_angmom.data,
                                  d_inertia.data,
@@ -363,14 +364,14 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
                                  d_index_array.data,
                                  group_size,
                                  m_deltaT,
-                                 1.0);
+                                 exp_thermo_fac_rot);
 
         if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
-    advanceBarostat(timestep+1,true);
+    advanceBarostat(timestep+1);
 
     // done profiling
     if (m_prof)

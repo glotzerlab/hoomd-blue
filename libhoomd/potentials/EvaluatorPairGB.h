@@ -104,8 +104,8 @@ class EvaluatorPairGB
             : dr(_dr),rcutsq(_rcutsq),qi(_qi),qj(_qj),
               epsilon(_params.x), lperp(_params.y), lpar(_params.z)
             {
-            }  
-        
+            }
+
         //! uses diameter
         DEVICE static bool needsDiameter()
             {

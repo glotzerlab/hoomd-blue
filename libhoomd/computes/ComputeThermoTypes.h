@@ -74,12 +74,6 @@ struct thermo_index
         pressure_yz,         //!< Index for the yz component of the pressure tensor in the GPUArray
         pressure_zz,         //!< Index for the zz component of the pressure tensor in the GPUArray
         rotational_ke,       //!< Rotational kinetic energy
-        virial_rot_xx,       //!< xx component of angular kinetic virial
-        virial_rot_xy,       //!< xy component of angular kinetic virial
-        virial_rot_xz,       //!< xz component of angular kinetic virial
-        virial_rot_yy,       //!< yy component of angular kinetic virial
-        virial_rot_yz,       //!< yz component of angular kinetic virial
-        virial_rot_zz,       //!< zz component of angular kinetic virial
         num_quantities       // final element to count number of quantities
         };
 

@@ -176,7 +176,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             if (m_aniso)
                 {
                 flags[pdata_flag::rotational_ke] = 1;
-                flags[pdata_flag::rotational_virial] = 1;
+//                flags[pdata_flag::rotational_virial] = 1;
                 }
             return flags;
             }
@@ -191,7 +191,6 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
         boost::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
         unsigned int m_ndof;            //!< Number of degrees of freedom from ComputeThermo
-        unsigned int m_baro_ndof;       //!< Number of barostat degrees of freedom
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauP;                  //!< tauP value for the barostat
@@ -211,7 +210,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
 
         //! Helper function to advance the barostat parameters
-        void advanceBarostat(unsigned int timestep,bool step_two);
+        void advanceBarostat(unsigned int timestep);
 
         //! advance the thermostat
         /*!\param timestep The time step
