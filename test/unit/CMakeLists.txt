@@ -93,6 +93,7 @@ set(TEST_LIST
     test_table_dihedral_force
     test_table_angle_force
     test_gridshift_correct
+    test_gayberne_force
     )
 
     # put the longest tests last
