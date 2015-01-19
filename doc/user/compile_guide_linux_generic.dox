@@ -283,7 +283,7 @@ Now that all of the prerequisite software is installed, you are ready to compile
 There are two ways to get the source code for HOOMD-blue.  You can [download it](http://codeblue.umich.edu/hoomd-blue/download.html)
 or you can clone the git repository:
 ~~~~
-$ git clone https://codeblue.umich.edu/git/hoomd-blue
+$ git clone https://bitbucket.org/glotzer/hoomd-blue
 ~~~~
 By default, the *master* branch will be checked out. This branch includes new features added since the last release.
 Use `git checkout name` to switch to a different branch or tag.
