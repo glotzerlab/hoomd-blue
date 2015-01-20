@@ -154,11 +154,6 @@ class NeighborListGPU : public NeighborList
             }
         #endif
 
-        //! Schedule the distance check kernel
-        /*! \param timestep Current time step
-         */
-        void scheduleDistanceCheck(unsigned int timestep);
-
     protected:
         GPUArray<unsigned int> m_flags;   //!< Storage for device flags on the GPU
         
@@ -188,9 +183,10 @@ class NeighborListGPU : public NeighborList
         unsigned int m_bin_size;            //!< Sets the size of bins (tunable)
         unsigned int m_n_bin_levels;        //!< Calculated number of bin levels
 
-    private:
-        boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
-
+        //! Schedule the distance check kernel
+        /*! \param timestep Current time step
+         */
+        virtual void scheduleDistanceCheck(unsigned int timestep);
         unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update
         bool m_distcheck_scheduled;         //!< True if a distance check kernel has been queued
         unsigned int m_last_schedule_tstep; //!< Time step of last kernel schedule
@@ -199,6 +195,10 @@ class NeighborListGPU : public NeighborList
         #ifdef ENABLE_MPI
         boost::signals2::connection m_callback_connection; //!< Connection to Communicator
         #endif
+
+    private:
+        boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
+
     };
 
 //! Exports NeighborListGPU to python

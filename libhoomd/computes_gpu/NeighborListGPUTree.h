@@ -100,7 +100,7 @@ class NeighborListGPUTree : public NeighborListGPU
             {
             m_box_changed = true;
             }
-            
+        
     protected:
         unsigned int m_param;               //!< Kernel tuning parameter
         boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
@@ -109,6 +109,8 @@ class NeighborListGPUTree : public NeighborListGPU
         GPUArray<AABBTree>   m_aabb_trees;              //!< Array of AABB trees
         GPUArray<AABBTreeGPU> m_aabb_trees_gpu;         //!< Array of trees for the GPU
         GPUArray<AABBNodeGPU> m_aabb_nodes;             //!< Copies the dynamically allocated AABBNode over to device
+        GPUArray<Scalar4> m_aabb_node_bounds;           //!< hold the upper and lower bounds as flat array of scalar4
+        GPUArray<unsigned int> m_aabb_node_head_idx;    //!< head index for the current node in leaf data
         GPUArray<unsigned int> m_aabb_leaf_particles;   //!< Holds the particle tags as a flat array from the trees
         GPUArray<Scalar4> m_leaf_xyzf;
         GPUArray<Scalar2> m_leaf_db;
@@ -131,6 +133,8 @@ class NeighborListGPUTree : public NeighborListGPU
         boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
         
         unsigned int m_max_n_local; //!< Maximum number of particles locally
+        
+        virtual void scheduleDistanceCheck(unsigned int timestep);
     };
 
 //! Exports NeighborListGPUBinned to python

@@ -56,6 +56,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
+// needed for temporary scheduleDistanceCheck kernel
+#include "NeighborListGPU.cuh"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
@@ -314,11 +317,26 @@ void NeighborListGPUTree::traverseTree()
             {
             GPUArray<AABBNodeGPU> aabb_nodes(n_tree_nodes, m_exec_conf);
             m_aabb_nodes.swap(aabb_nodes);
+            
+            
+            // alternative data struct to the AABBNodeGPU as flat array that can be texture cached
+            GPUArray<Scalar4> aabb_node_bounds(2*n_tree_nodes, m_exec_conf);
+            m_aabb_node_bounds.swap(aabb_node_bounds);
+            
+            // stick this index in separate array since it's rarely accessed and improves mem alignment
+            GPUArray<unsigned int> aabb_node_head_idx(n_tree_nodes, m_exec_conf);
+            m_aabb_node_head_idx.swap(aabb_node_head_idx);
             }            
         
         // copy the nodes into a separate gpu array
         ArrayHandle<AABBNodeGPU> h_aabb_nodes(m_aabb_nodes, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_aabb_leaf_particles(m_aabb_leaf_particles, access_location::host, access_mode::overwrite);
+        
+        // trying out this data struct instead
+        ArrayHandle<Scalar4> h_aabb_node_bounds(m_aabb_node_bounds, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_aabb_node_head_idx(m_aabb_node_head_idx, access_location::host, access_mode::overwrite);
+        
+        
         ArrayHandle<Scalar4> h_leaf_xyzf(m_leaf_xyzf, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar2> h_leaf_db(m_leaf_db, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -333,6 +351,12 @@ void NeighborListGPUTree::traverseTree()
                 {
                 const unsigned int leaf_idx = (tree->isNodeLeaf(j)) ? leaf_head_idx : 0;
                 h_aabb_nodes.data[head + j] = AABBNodeGPU(tree->getNodeAABB(j), tree->getNodeSkip(j), tree->getNodeNumParticles(j), leaf_idx);
+                
+                // temporary copy into alt struct
+                h_aabb_node_bounds.data[2*(head + j)] = h_aabb_nodes.data[head + j].upper_skip;
+                h_aabb_node_bounds.data[2*(head + j) + 1] = h_aabb_nodes.data[head + j].lower_np;
+                h_aabb_node_head_idx.data[head + j] = leaf_idx;
+                
                 if (tree->isNodeLeaf(j))
                     {
                     for (unsigned int cur_particle=0; cur_particle < tree->getNodeNumParticles(j); ++cur_particle)
@@ -349,8 +373,14 @@ void NeighborListGPUTree::traverseTree()
                 }
             }
         }
+        
     ArrayHandle<AABBTreeGPU> d_aabb_trees(m_aabb_trees_gpu, access_location::device, access_mode::read);
     ArrayHandle<AABBNodeGPU> d_aabb_nodes(m_aabb_nodes, access_location::device, access_mode::read);
+    
+    // acquire handle to alt struct
+    ArrayHandle<Scalar4> d_aabb_node_bounds(m_aabb_node_bounds, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_aabb_node_head_idx(m_aabb_node_head_idx, access_location::device, access_mode::read);
+    
     ArrayHandle<unsigned int> d_aabb_leaf_particles(m_aabb_leaf_particles, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_leaf_xyzf(m_leaf_xyzf, access_location::device, access_mode::read);
     ArrayHandle<Scalar2> d_leaf_db(m_leaf_db, access_location::device, access_mode::read);
@@ -384,7 +414,9 @@ void NeighborListGPUTree::traverseTree()
                                      d_diameter.data,
                                      m_pdata->getN(),
                                      d_aabb_trees.data,
-                                     d_aabb_nodes.data,
+                                     d_aabb_node_bounds.data,
+                                     d_aabb_node_head_idx.data,
+                                     m_aabb_node_head_idx.getPitch(),
                                      d_aabb_leaf_particles.data,
                                      d_leaf_xyzf.data,
                                      d_leaf_db.data,
@@ -401,6 +433,58 @@ void NeighborListGPUTree::traverseTree()
     m_tuner->end();
         
     if (m_prof) m_prof->pop(m_exec_conf);
+    }
+    
+void NeighborListGPUTree::scheduleDistanceCheck(unsigned int timestep)
+    {
+    // prevent against unnecessary calls
+    if (! shouldCheckDistance(timestep))
+        {
+        m_distcheck_scheduled = false;
+        return;
+        }
+    // scan through the particle data arrays and calculate distances
+    if (m_prof) m_prof->push(exec_conf, "dist-check");
+
+    // access data
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    BoxDim box = m_pdata->getBox();
+    ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::read);
+
+    // get current global nearest plane distance
+    Scalar3 L_g = m_pdata->getGlobalBox().getNearestPlaneDistance();
+
+    // Cutoff distance for inclusion in neighbor list
+    Scalar rmax = m_r_cut_max + m_r_buff;
+    // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
+    Scalar3 lambda = L_g / m_last_L;
+    Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
+    lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
+
+    // maximum displacement for each particle (after subtraction of homogeneous dilations)
+    Scalar delta_max = (rmax*lambda_min - m_r_cut_max)/Scalar(2.0);
+    Scalar maxshiftsq = delta_max > 0  ? delta_max*delta_max : 0;
+
+    ArrayHandle<unsigned int> h_flags(m_flags, access_location::device, access_mode::readwrite);
+//     gpu_nlist_needs_update_check_new(h_flags.data,
+//                                      d_last_pos.data,
+//                                      d_pos.data,
+//                                      m_pdata->getN(),
+//                                      box,
+//                                      maxshiftsq,
+//                                      lambda,
+//                                      ++m_checkn);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    m_distcheck_scheduled = true;
+    m_last_schedule_tstep = timestep;
+
+    // record synchronization point
+    cudaEventRecord(m_event);
+
+    if (m_prof) m_prof->pop(exec_conf);
     }
         
 void export_NeighborListGPUTree()

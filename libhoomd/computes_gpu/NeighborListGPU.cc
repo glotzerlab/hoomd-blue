@@ -174,7 +174,8 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     // wait for kernel to complete
     cudaEventSynchronize(m_event);
 
-    bool result = (*h_flags.data == m_checkn);
+//     bool result = (*h_flags.data == m_checkn);
+    bool result = true;
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
