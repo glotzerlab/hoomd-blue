@@ -94,8 +94,28 @@ void output_version_info(bool verbose)
     cout << " SSE";
     #endif
 
+    #ifdef __SSE2__
+    cout << " SSE2";
+    #endif
+
+    #ifdef __SSE3__
+    cout << " SSE3";
+    #endif
+
+    #ifdef __SSE4_1__
+    cout << " SSE4_1";
+    #endif
+
+    #ifdef __SSE4_2__
+    cout << " SSE4_2";
+    #endif
+
     #ifdef __AVX__
     cout << " AVX";
+    #endif
+
+    #ifdef __AVX2__
+    cout << " AVX2";
     #endif
 
     cout << endl;
