@@ -484,6 +484,7 @@ class RigidData
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data with which this RigidData is associated
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         boost::signals2::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+        boost::signals2::connection m_global_particle_num_connection; //!< Connection to global particle number change signal
 
         //! \name static data members (set on initialization)
         //@{
@@ -551,6 +552,9 @@ class RigidData
         //! Performs steps needed to compute the rigid body virial correction at the end of the step on the GPU
         void computeVirialCorrectionEndGPU(Scalar deltaT);
 #endif
+
+        //! Called when the global number of particles changes
+        void slotGlobalParticleNumberChange();
     };
 
 //! Export the SnapshotRigidData class to python

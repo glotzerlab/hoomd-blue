@@ -856,6 +856,9 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     // connect to particle sort signal
     m_sort_connection = m_pdata->connectParticleSort(boost::bind(&Communicator::forceMigrate, this));
 
+    // connect to particle sort signal
+    m_ghost_particles_removed_connection = m_pdata->connectGhostParticlesRemoved(boost::bind(&Communicator::slotGhostParticlesRemoved, this));
+
     /*
      * Bonded group communication
      */
@@ -1090,32 +1093,13 @@ void Communicator::migrateParticles()
     {
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
-    // check if box is sufficiently large for communication
-    Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
-    const Index3D& di = m_decomposition->getDomainIndexer();
-    if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
-        (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
-        (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
-        {
-        m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
-        throw std::runtime_error("Error during communication");
-        }
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
 
     if (m_prof)
         m_prof->push("comm_migrate");
 
-        {
-        // wipe out reverse-lookup tag -> idx for old ghost atoms
-        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
-        for (unsigned int i = 0; i < m_pdata->getNGhosts(); i++)
-            {
-            unsigned int idx = m_pdata->getN() + i;
-            h_rtag.data[h_tag.data[idx]] = NOT_LOCAL;
-            }
-        }
-
-    //  reset ghost particle number
+    // remove ghost particles from system
     m_pdata->removeAllGhostParticles();
 
     // get box dimensions
@@ -1233,6 +1217,9 @@ void Communicator::migrateParticles()
 //! Build ghost particle list, exchange ghost particle data
 void Communicator::exchangeGhosts()
     {
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
+
     if (m_prof)
         m_prof->push("comm_ghost_exch");
 
@@ -1603,15 +1590,12 @@ void Communicator::exchangeGhosts()
 
             for (unsigned int idx = start_idx; idx < start_idx + m_num_recv_ghosts[dir]; idx++)
                 {
-                assert(h_tag.data[idx] <= m_pdata->getNGlobal());
+                assert(h_tag.data[idx] <= m_pdata->getMaximumTag());
                 assert(h_rtag.data[h_tag.data[idx]] == NOT_LOCAL);
                 h_rtag.data[h_tag.data[idx]] = idx;
                 }
             }
         } // end dir loop
-
-    // we have updated ghost particles, so inform ParticleData about this
-    m_pdata->notifyGhostParticleNumberChange();
 
     m_last_flags = flags;
 
@@ -1791,6 +1775,18 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 
         if (m_prof)
             m_prof->pop();
+    }
+
+void Communicator::removeGhostParticleTags()
+    {
+    // wipe out reverse-lookup tag -> idx for old ghost atoms
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
+    for (unsigned int i = 0; i < m_pdata->getNGhosts(); i++)
+        {
+        unsigned int idx = m_pdata->getN() + i;
+        h_rtag.data[h_tag.data[idx]] = NOT_LOCAL;
+        }
     }
 
 const BoxDim Communicator::getShiftedBox() const

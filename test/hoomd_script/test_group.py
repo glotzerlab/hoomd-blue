@@ -9,31 +9,30 @@ import gc
 # group - test grouping commands
 class pair_group_tests (unittest.TestCase):
     def setUp(self):
-        print("setUp");
         print
-        sysdef = init.create_empty(N=11, box=data.boxdim(L=5), particle_types=['A', 'B']);
-        sysdef.particles[0].position = (0,0,0);
-        sysdef.particles[0].type = 'A';
-        sysdef.particles[1].position = (1,1,1);
-        sysdef.particles[1].type = 'B';
-        sysdef.particles[2].position = (1,1,1);
-        sysdef.particles[2].type = 'B';
-        sysdef.particles[3].position = (-1,-1,-1);
-        sysdef.particles[3].type = 'A';
-        sysdef.particles[4].position = (-1,-1,-1);
-        sysdef.particles[4].type = 'A';
-        sysdef.particles[5].position = (2,0,0);
-        sysdef.particles[5].type = 'B';
-        sysdef.particles[6].position = (0,2,0);
-        sysdef.particles[6].type = 'A';
-        sysdef.particles[7].position = (0,0,2);
-        sysdef.particles[7].type = 'A';
-        sysdef.particles[8].position = (-2,0,0);
-        sysdef.particles[8].type = 'B';
-        sysdef.particles[9].position = (0,-2,0);
-        sysdef.particles[9].type = 'B';
-        sysdef.particles[10].position = (0,0,-2);
-        sysdef.particles[10].type = 'B';
+        self.s = init.create_empty(N=11, box=data.boxdim(L=5), particle_types=['A', 'B']);
+        self.s.particles[0].position = (0,0,0);
+        self.s.particles[0].type = 'A';
+        self.s.particles[1].position = (1,1,1);
+        self.s.particles[1].type = 'B';
+        self.s.particles[2].position = (1,1,1);
+        self.s.particles[2].type = 'B';
+        self.s.particles[3].position = (-1,-1,-1);
+        self.s.particles[3].type = 'A';
+        self.s.particles[4].position = (-1,-1,-1);
+        self.s.particles[4].type = 'A';
+        self.s.particles[5].position = (2,0,0);
+        self.s.particles[5].type = 'B';
+        self.s.particles[6].position = (0,2,0);
+        self.s.particles[6].type = 'A';
+        self.s.particles[7].position = (0,0,2);
+        self.s.particles[7].type = 'A';
+        self.s.particles[8].position = (-2,0,0);
+        self.s.particles[8].type = 'B';
+        self.s.particles[9].position = (0,-2,0);
+        self.s.particles[9].type = 'B';
+        self.s.particles[10].position = (0,0,-2);
+        self.s.particles[10].type = 'B';
 
         sorter.set_params(grid=8)
 
@@ -41,6 +40,11 @@ class pair_group_tests (unittest.TestCase):
         all = group.all()
         tags = [(x.tag) for x in all]
         self.assertEqual(tags, list(range(11)))
+
+        # add a particle
+        self.s.particles.add('A')
+        tags = [(x.tag) for x in all]
+        self.assertEqual(tags, list(range(12)))
 
     def test_tags(self):
         one = group.tags(5)
@@ -51,14 +55,47 @@ class pair_group_tests (unittest.TestCase):
         tags = [(x.tag) for x in part]
         self.assertEqual(tags, list(range(5,9)))
 
+        part_update = group.tags(tag_min=5, tag_max=8,update=True)
+        tags = [(x.tag) for x in part_update]
+        self.assertEqual(tags, list(range(5,9)))
+
+        # remove a particle
+        del self.s.particles[7]
+        tags = [(x.tag) for x in part]
+        self.assertEqual(tags, list(range(5,9)))
+        tags = [(x.tag) for x in part_update]
+        self.assertEqual(tags, [5,6,8])
+
     def test_type(self):
         A = group.type(type='A')
+        A_update = group.type(type='A',update=True)
         tags = [(x.tag) for x in A]
+        self.assertEqual(tags, [0, 3, 4, 6, 7])
+        tags = [(x.tag) for x in A_update]
         self.assertEqual(tags, [0, 3, 4, 6, 7])
 
         B = group.type(type='B')
+        B_update = group.type(type='B',update=True)
         tags = [(x.tag) for x in B]
         self.assertEqual(tags, [1, 2, 5, 8, 9, 10])
+
+        # remove a particle
+        del self.s.particles[7]
+
+        # add a particle
+        t = self.s.particles.add('B')
+        self.assertEqual(t,7)
+
+        tags = [(x.tag) for x in A]
+        self.assertEqual(tags, [0, 3, 4, 6, 7])
+        tags = [(x.tag) for x in A_update]
+        self.assertEqual(tags, [0, 3, 4, 6])
+
+        tags = [(x.tag) for x in B]
+        self.assertEqual(tags, [1, 2, 5, 8, 9, 10])
+        tags = [(x.tag) for x in B_update]
+        self.assertEqual(tags, [1, 2, 5, 7, 8, 9, 10])
+
 
     def test_cuboid_xmin(self):
         g = group.cuboid(name='test', xmin=None)
@@ -149,6 +186,7 @@ class pair_group_tests (unittest.TestCase):
         self.assertEqual(tags, [0, 3, 4, 6, 7])
 
     def tearDown(self):
+        del self.s
         init.reset();
 
 

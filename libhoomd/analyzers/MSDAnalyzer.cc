@@ -140,6 +140,8 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
         m_initial_y[tag] = unwrapped.y;
         m_initial_z[tag] = unwrapped.z;
         }
+
+    m_nglobal = m_pdata->getNGlobal();
     }
 
 MSDAnalyzer::~MSDAnalyzer()
@@ -157,6 +159,12 @@ void MSDAnalyzer::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Analyze MSD");
+
+    if (m_nglobal != m_pdata->getNGlobal())
+        {
+        m_exec_conf->msg->error() << "analyze.msd: Change in number of particles unsupported." << std::endl;
+        throw std::runtime_error("Error computing MSD");
+        }
 
     // take particle data snapshot
     SnapshotParticleData snapshot(m_pdata->getNGlobal());

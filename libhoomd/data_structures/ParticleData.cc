@@ -192,6 +192,10 @@ ParticleData::ParticleData(const SnapshotParticleData& snapshot,
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
+    // allocate reverse-lookup tag list
+    GPUVector< unsigned int> rtag(snapshot.size, m_exec_conf);
+    m_rtag.swap(rtag);
+
     // initialize number of particles
     setNGlobal(snapshot.size);
 
@@ -334,12 +338,41 @@ boost::signals2::connection ParticleData::connectMaxParticleNumberChange(const b
     return m_max_particle_num_signal.connect(func);
     }
 
-/*! \param func Function to be called when the number of ghost particles changes
+/*! \param func Function to be called when the global number of particles changes
+    \return Connection to manage the signal
+
+    The global number of particles can be changed during the simulation, by calls
+    to addParticle() or removeParticle(). Classes that store information e.g.
+    for every global particle should subscribe to this signal.
+
+    Changes in global particle number imply a local change in particle number (on some processor),
+    and are indicated both by this signal, and notifyParticleSort().
+
+    The signal is to be triggered after all changes to the particle data are complete.
+ */
+boost::signals2::connection ParticleData::connectGlobalParticleNumberChange(const boost::function<void ()> &func)
+    {
+    return m_global_particle_num_signal.connect(func);
+    }
+
+/*! \param func Function to be called when the ghost particles are remove
     \return Connection to manage the signal
  */
-boost::signals2::connection ParticleData::connectGhostParticleNumberChange(const boost::function<void ()> &func)
+boost::signals2::connection ParticleData::connectGhostParticlesRemoved(const boost::function<void ()> &func)
     {
-    return m_ghost_particle_num_signal.connect(func);
+    return m_ghost_particles_removed_signal.connect(func);
+    }
+
+/*! This function is called any time the ghost particles are removed
+ *
+ * The rationale is that a subscriber (i.e. the Communicator) can perform clean-up for ghost particles
+ * it has created. The current ghost particle number is still available through
+ * getNGhosts() at the time the signal is triggered.
+ *
+ */
+void ParticleData::notifyGhostParticlesRemoved()
+    {
+    m_ghost_particles_removed_signal();
     }
 
 /*! \param func Function to be called when the number of types changes
@@ -351,12 +384,6 @@ boost::signals2::connection ParticleData::connectNumTypesChange(const boost::fun
     }
 
 
-/*! This function must be called any time the ghost particles are updated.
- */
-void ParticleData::notifyGhostParticleNumberChange()
-    {
-    m_ghost_particle_num_signal();
-    }
 
 #ifdef ENABLE_MPI
 /*! \param func Function to be called when a single particle moves between domains
@@ -560,30 +587,13 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
  */
 void ParticleData::setNGlobal(unsigned int nglobal)
     {
-    if (m_nparticles > nglobal)
-        {
-        m_exec_conf->msg->error() << "ParticleData is being asked to allocate memory for a global number"
-                                  << "   of particles smaller than the local number of particles." << std::endl;
-        throw runtime_error("Error initializing ParticleData");
-        }
-    if (m_nglobal)
-        {
-        if (nglobal > m_nglobal)
-            {
-            // resize array of global reverse lookup tags
-            m_rtag.resize(nglobal);
-            }
-        }
-    else
-        {
-        // allocate array
-        GPUArray< unsigned int> rtag(nglobal, m_exec_conf);
-        m_rtag.swap(rtag);
-        }
+    assert(m_nparticles <= nglobal);
 
     // Set global particle number
     m_nglobal = nglobal;
 
+    // we have changed the global particle number, notify subscribers
+    m_global_particle_num_signal();
     }
 
 /*! \param new_nparticles New particle number
@@ -706,6 +716,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
     {
     m_exec_conf->msg->notice(4) << "ParticleData: initializing from snapshot" << std::endl;
 
+    // remove all ghost particles
+    removeAllGhostParticles();
+
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
         {
@@ -713,6 +726,16 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                                 << std::endl << std::endl;
         throw std::runtime_error("Error initializing particle data.");
         }
+
+    // clear set of active tags
+    m_tag_set.clear();
+
+    // clear reservoir of recycled tags
+    while (! m_recycled_tags.empty())
+        m_recycled_tags.pop();
+
+    // global number of particles
+    unsigned int nglobal;
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -850,10 +873,12 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         bcast(m_type_mapping, root, mpi_comm);
 
         // broadcast global number of particles
-        unsigned int nglobal = snapshot.size;
+        nglobal = snapshot.size;
         bcast(nglobal, root, mpi_comm);
 
-        setNGlobal(nglobal);
+        // allocate array for reverse-lookup tags
+        GPUVector< unsigned int> rtag(nglobal, m_exec_conf);
+        m_rtag.swap(rtag);
 
         // Local particle data
         std::vector<Scalar3> pos;
@@ -884,11 +909,21 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         // distribute number of particles
         scatter_v(N_proc, m_nparticles, root, mpi_comm);
 
-        // reset all reverse lookup tags to NOT_LOCAL flag
+
             {
+            // reset all reverse lookup tags to NOT_LOCAL flag
             ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::overwrite);
-            for (unsigned int tag = 0; tag < m_nglobal; tag++)
+
+            // we have to reset all previous rtags, to remove 'leftover' ghosts
+            unsigned int max_tag = m_rtag.size();
+            for (unsigned int tag = 0; tag < max_tag; tag++)
                 h_rtag.data[tag] = NOT_LOCAL;
+            }
+
+        // update list of active tags
+        for (unsigned int tag = 0; tag < nglobal; tag++)
+            {
+            m_tag_set.insert(tag);
             }
 
         // we have to allocate even if the number of particles on a processor
@@ -926,12 +961,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
             h_comm_flag.data[idx] = 0; // initialize with zero
             }
-
-        // reset ghost particle number
-        m_nghosts = 0;
-
-        // notify about change in ghost particle number
-        notifyGhostParticleNumberChange();
         }
     else
 #endif
@@ -943,10 +972,21 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             throw std::runtime_error("Error initializing ParticleData");
             }
 
-        // Initialize number of particles
-        setNGlobal(snapshot.size);
+        // allocate array for reverse lookup tags
+        GPUVector< unsigned int> rtag(snapshot.size, m_exec_conf);
+        m_rtag.swap(rtag);
+
         m_nparticles = snapshot.size;
 
+        // global number of ptls == local number of ptls
+        nglobal = m_nparticles;
+            
+        // update list of active tags
+        for (unsigned int tag = 0; tag < nglobal; tag++)
+            {
+            m_tag_set.insert(tag);
+            }
+            
         // allocate particle data such that we can accomodate the particles
         allocate(snapshot.size);
 
@@ -986,6 +1026,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
         m_type_mapping = snapshot.type_mapping;
         }
 
+    // set global number of particles
+    setNGlobal(nglobal);
+
     // notify listeners about resorting of local particles
     notifyParticleSort();
 
@@ -1017,6 +1060,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
     ArrayHandle< unsigned int > h_body(m_body, access_location::host, access_mode::read);
     ArrayHandle< Scalar4 >  h_orientation(m_orientation, access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_tag(m_tag, access_location::host, access_mode::read);
+    ArrayHandle< unsigned int > h_rtag(m_rtag, access_location::host, access_mode::read);
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -1103,7 +1147,6 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
 
         if (rank == root)
             {
-
             unsigned int n_ranks = m_exec_conf->getNRanks();
             assert(rtag_map_proc.size() == n_ranks);
 
@@ -1116,10 +1159,16 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                         it->first, std::pair<unsigned int, unsigned int>(irank, it->second)));
 
             // add particles to snapshot
+            assert(m_tag_set.size() == getNGlobal());
+            std::set<unsigned int>::const_iterator tag_set_it = m_tag_set.begin();
+
             std::map<unsigned int, std::pair<unsigned int, unsigned int> >::iterator rank_rtag_it;
-            for (unsigned int tag = 0; tag < getNGlobal(); tag++)
+            for (unsigned int snap_id = 0; snap_id < getNGlobal(); snap_id++)
                 {
+                unsigned int tag = *tag_set_it;
+                assert(tag <= getMaximumTag());
                 rank_rtag_it = rank_rtag_map.find(tag);
+
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
                     m_exec_conf->msg->error()
@@ -1133,46 +1182,57 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                 unsigned int rank = rank_idx.first;
                 unsigned int idx = rank_idx.second;
 
-                snapshot.pos[tag] = pos_proc[rank][idx];
-                snapshot.vel[tag] = vel_proc[rank][idx];
-                snapshot.accel[tag] = accel_proc[rank][idx];
-                snapshot.type[tag] = type_proc[rank][idx];
-                snapshot.mass[tag] = mass_proc[rank][idx];
-                snapshot.charge[tag] = charge_proc[rank][idx];
-                snapshot.diameter[tag] = diameter_proc[rank][idx];
-                snapshot.image[tag] = image_proc[rank][idx];
-                snapshot.body[tag] = body_proc[rank][idx];
-                snapshot.orientation[tag] = orientation_proc[rank][idx];
+                snapshot.pos[snap_id] = pos_proc[rank][idx];
+                snapshot.vel[snap_id] = vel_proc[rank][idx];
+                snapshot.accel[snap_id] = accel_proc[rank][idx];
+                snapshot.type[snap_id] = type_proc[rank][idx];
+                snapshot.mass[snap_id] = mass_proc[rank][idx];
+                snapshot.charge[snap_id] = charge_proc[rank][idx];
+                snapshot.diameter[snap_id] = diameter_proc[rank][idx];
+                snapshot.image[snap_id] = image_proc[rank][idx];
+                snapshot.body[snap_id] = body_proc[rank][idx];
+                snapshot.orientation[snap_id] = orientation_proc[rank][idx];
 
                 // make sure the position stored in the snapshot is within the boundaries
-                m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
+                m_global_box.wrap(snapshot.pos[snap_id], snapshot.image[snap_id]);
+
+                std::advance(tag_set_it, 1);
                 }
             }
         }
     else
 #endif
         {
-        for (unsigned int idx = 0; idx < m_nparticles; idx++)
+        assert(m_tag_set.size() == m_nparticles);
+        std::set<unsigned int>::const_iterator it = m_tag_set.begin();
+
+        // iterate through active tags
+        for (unsigned int snap_id = 0; snap_id < m_nparticles; snap_id++)
             {
-            unsigned int tag = h_tag.data[idx];
-            assert(tag < m_nglobal);
-            snapshot.pos[tag] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
-            snapshot.vel[tag] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
-            snapshot.accel[tag] = h_accel.data[idx];
-            snapshot.type[tag] = __scalar_as_int(h_pos.data[idx].w);
-            snapshot.mass[tag] = h_vel.data[idx].w;
-            snapshot.charge[tag] = h_charge.data[idx];
-            snapshot.diameter[tag] = h_diameter.data[idx];
-            snapshot.image[tag] = h_image.data[idx];
-            snapshot.image[tag].x -= m_o_image.x;
-            snapshot.image[tag].y -= m_o_image.y;
-            snapshot.image[tag].z -= m_o_image.z;
-            snapshot.body[tag] = h_body.data[idx];
-            snapshot.orientation[tag] = h_orientation.data[idx];
-            snapshot.inertia_tensor[tag] = m_inertia_tensor[idx];
+            unsigned int tag = *it;
+            assert(tag <= getMaximumTag());
+            unsigned int idx = h_rtag.data[tag];
+            assert(idx < m_nparticles);
+
+            snapshot.pos[snap_id] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
+            snapshot.vel[snap_id] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
+            snapshot.accel[snap_id] = h_accel.data[idx];
+            snapshot.type[snap_id] = __scalar_as_int(h_pos.data[idx].w);
+            snapshot.mass[snap_id] = h_vel.data[idx].w;
+            snapshot.charge[snap_id] = h_charge.data[idx];
+            snapshot.diameter[snap_id] = h_diameter.data[idx];
+            snapshot.image[snap_id] = h_image.data[idx];
+            snapshot.image[snap_id].x -= m_o_image.x;
+            snapshot.image[snap_id].y -= m_o_image.y;
+            snapshot.image[snap_id].z -= m_o_image.z;
+            snapshot.body[snap_id] = h_body.data[idx];
+            snapshot.orientation[snap_id] = h_orientation.data[idx];
+            snapshot.inertia_tensor[snap_id] = m_inertia_tensor[idx];
 
             // make sure the position stored in the snapshot is within the boundaries
-            m_global_box.wrap(snapshot.pos[tag], snapshot.image[tag]);
+            m_global_box.wrap(snapshot.pos[snap_id], snapshot.image[snap_id]);
+
+            std::advance(it, 1);
             }
         }
 
@@ -1795,6 +1855,252 @@ void ParticleData::setOrientation(unsigned int tag, const Scalar4& orientation)
         }
     }
 
+/*!
+ * Initialize the particle data with a new particle of given type.
+ *
+ * While the design allows for adding particles on a per time step basis,
+ * this is slow and should not be performed too often. In particular, if the same
+ * particle is to be inserted multiple times at different positions, instead of
+ * adding and removing the particle it may be faster to use the setXXX() methods
+ * on the already inserted particle.
+ *
+ * In **MPI simulations**, particles are added to processor rank 0 by default,
+ * and its position has to be updated using setPosition(), which also ensures
+ * that it is moved to the correct rank.
+ *
+ * \param type Type of particle to add
+ * \returns the unique tag of the newly added particle
+ */
+unsigned int ParticleData::addParticle(unsigned int type)
+    {
+    // we are changing the local number of particles, so remove ghosts
+    removeAllGhostParticles();
+
+    // the global tag of the newly created particle
+    unsigned int tag;
+
+    // first check if we can recycle a deleted tag
+    if (m_recycled_tags.size())
+        {
+        tag = m_recycled_tags.top();
+        m_recycled_tags.pop();
+        }
+    else
+        {
+        // Otherwise, generate a new tag
+        tag = getNGlobal();
+
+        assert(m_rtag.size() == getNGlobal());
+        }
+
+    // add to set of active tags
+    m_tag_set.insert(tag);
+
+    // resize array of global reverse lookup tags
+    m_rtag.resize(getMaximumTag()+1);
+
+        {
+        // update reverse-lookup table
+        ArrayHandle<unsigned int> h_rtag(m_rtag, access_location::host, access_mode::readwrite);
+        assert(h_rtag.data[tag] = NOT_LOCAL);
+        if (m_exec_conf->getRank() == 0)
+            {
+            // we add the particle at the end
+            h_rtag.data[tag] = getN();
+            }
+        else
+            {
+            // not on this processor
+            h_rtag.data[tag] = NOT_LOCAL;
+            }
+        }
+
+    assert(tag <= m_recycled_tags.size() + getNGlobal());
+
+    if (m_exec_conf->getRank() == 0)
+        {
+        // resize particle data using amortized O(1) array resizing
+        // and update particle number
+        unsigned int old_nparticles = getN();
+        resize(old_nparticles+1);
+
+        // access particle data arrays
+        ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
+        #ifdef ENABLE_MPI
+        ArrayHandle<unsigned int> h_comm_flag(m_comm_flags, access_location::host, access_mode::readwrite);
+        #endif
+
+        unsigned int idx = old_nparticles;
+
+        // initialize to some sensible default values
+        h_pos.data[idx] = make_scalar4(0,0,0,__int_as_scalar(type));
+        h_vel.data[idx] = make_scalar4(0,0,0,1.0);
+        h_accel.data[idx] = make_scalar3(0,0,0);
+        h_charge.data[idx] = 0.0;
+        h_diameter.data[idx] = 0.0;
+        h_image.data[idx] = make_int3(0,0,0);
+        h_body.data[idx] = NO_BODY;
+        h_orientation.data[idx] = make_scalar4(1.0,0.0,0.0,0.0);
+        h_tag.data[idx] = tag;
+        #ifdef ENABLE_MPI
+        if (m_decomposition)
+            {
+            h_comm_flag.data[idx] = 0;
+            }
+        #endif
+        }
+
+    // update global number of particles
+    setNGlobal(getNGlobal()+1);
+
+    // we have added a particle, notify listeners
+    notifyParticleSort();
+
+    return tag;
+    }
+
+/*! \param tag Tag of particle to remove
+ */
+void ParticleData::removeParticle(unsigned int tag)
+    {
+    if (getNGlobal()==0)
+        {
+        m_exec_conf->msg->error() << "Trying to remove particle when there are zero particles!" << endl;
+        throw runtime_error("Error removing particle");
+        }
+
+    // we are changing the local number of particles, so remove ghosts
+    removeAllGhostParticles();
+
+    // sanity check
+    if (tag >= m_rtag.size())
+        {
+        m_exec_conf->msg->error() << "Trying to remove particle " << tag << " which does not exist!" << endl;
+        throw runtime_error("Error removing particle");
+        }
+
+    // Local particle index
+    unsigned int idx = m_rtag[tag];
+
+    bool is_local = idx < getN();
+    assert(is_local || idx == NOT_LOCAL);
+
+    bool is_available = is_local;
+
+    #ifdef ENABLE_MPI
+    if (getDomainDecomposition())
+        {
+        int res = is_local ? 1 : 0;
+
+        // check that particle is local on some processor
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &res,
+                      1,
+                      MPI_INT,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+
+        assert((unsigned int) res <= 1);
+        is_available = res;
+        }
+    #endif
+
+    if (! is_available)
+        {
+        m_exec_conf->msg->error() << "Trying to remove particle " << tag
+             << " which has been previously removed!" << endl;
+        throw runtime_error("Error removing particle");
+        }
+
+    // delete from map
+    m_rtag[tag] = NOT_LOCAL;
+
+    if (is_local)
+        {
+        unsigned int size = getN();
+
+        // If the particle is not the last element of the particle data, move the last element to
+        // to the position of the removed element
+        if (idx < (size-1))
+            {
+            // access particle data arrays
+            ArrayHandle<Scalar4> h_pos(getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_vel(getVelocities(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar3> h_accel(getAccelerations(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
+            ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
+            #ifdef ENABLE_MPI
+            ArrayHandle<unsigned int> h_comm_flag(m_comm_flags, access_location::host, access_mode::readwrite);
+            #endif
+
+            h_pos.data[idx] = h_pos.data[size-1];
+            h_vel.data[idx] = h_vel.data[size-1];
+            h_accel.data[idx] = h_accel.data[size-1];
+            h_charge.data[idx] = h_charge.data[size-1];
+            h_diameter.data[idx] = h_diameter.data[size-1];
+            h_image.data[idx] = h_image.data[size-1];
+            h_body.data[idx] = h_body.data[size-1];
+            h_orientation.data[idx] = h_orientation.data[size-1];
+            h_tag.data[idx] = h_tag.data[size-1];
+
+            #ifdef ENABLE_MPI
+            if (m_decomposition)
+                {
+                h_comm_flag.data[idx] = h_comm_flag.data[size-1];
+                }
+            #endif
+
+            unsigned int last_tag = h_tag.data[size-1];
+            h_rtag.data[last_tag] = idx;
+            }
+
+        // update particle number
+        resize(getN()-1);
+        }
+
+    // remove from set of active tags
+    m_tag_set.erase(tag);
+
+    // maintain a stack of deleted group tags for future recycling
+    m_recycled_tags.push(tag);
+
+    // update global particle number
+    setNGlobal(getNGlobal()-1);
+
+    // local particle number may have changed
+    notifyParticleSort();
+    }
+
+//! Return the nth active global tag
+/*! \param n Index of bond in global bond table
+ */
+unsigned int ParticleData::getNthTag(unsigned int n) const
+    {
+   if (n >= getNGlobal())
+        {
+        m_exec_conf->msg->error() << "Particle id " << n << "does not exist!" << std::endl;
+        throw std::runtime_error("Error fetching particle");
+        }
+
+    assert(m_tag_set.size() == getNGlobal());
+    std::set<unsigned int>::const_iterator it = m_tag_set.begin();
+    std::advance(it, n);
+    return *it;
+    }
+
 void export_BoxDim()
     {
     void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
@@ -1883,6 +2189,10 @@ void export_ParticleData()
     .def("setInertiaTensor", &ParticleData::setInertiaTensor)
     .def("takeSnapshot", &ParticleData::takeSnapshot)
     .def("initializeFromSnapshot", &ParticleData::initializeFromSnapshot)
+    .def("getMaximumTag", &ParticleData::getMaximumTag)
+    .def("addParticle", &ParticleData::addParticle)
+    .def("removeParticle", &ParticleData::removeParticle)
+    .def("getNthTag", &ParticleData::getNthTag)
 #ifdef ENABLE_MPI
     .def("setDomainDecomposition", &ParticleData::setDomainDecomposition)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
@@ -2068,7 +2378,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
             if (h_comm_flags.data[i])
                 {
                 unsigned int tag = h_tag.data[i];
-                assert(tag < getNGlobal());
+                assert(tag <= getMaximumTag());
                 h_rtag.data[tag] = NOT_LOCAL;
                 num_remove_ptls++;
                 }
@@ -2174,7 +2484,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
             {
             // reset rtag of this ptl
             unsigned int tag = h_tag.data[idx];
-            assert(tag < getNGlobal());
+            assert(tag <= getMaximumTag());
             h_rtag.data[tag] = idx;
             }
         }
@@ -2236,7 +2546,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
             {
             // reset rtag of this ptl
             unsigned int tag = h_tag.data[idx];
-            assert(tag < getNGlobal());
+            assert(tag <= getMaximumTag());
             h_rtag.data[tag] = idx;
             }
         }

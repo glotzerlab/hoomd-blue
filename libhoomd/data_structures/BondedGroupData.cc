@@ -296,9 +296,11 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
     unsigned int type = g.get_type();
     members_t member_tags = g.get_members();
 
+    unsigned int max_tag = m_pdata->getMaximumTag();
+
     // check for some silly errors a user could make
     for (unsigned int i = 0; i < group_size; ++i)
-        if (member_tags.tag[i] >= m_pdata->getNGlobal())
+        if (member_tags.tag[i] > max_tag)
             {
             std::ostringstream oss;
             oss << name << ".*: Particle tag out of bounds when attempting to add " << name << ": ";
@@ -482,6 +484,19 @@ const Group BondedGroupData<group_size, Group, name>::getGroupByTag(unsigned int
 
         type = m_group_type[group_idx];
         members = m_groups[group_idx];
+        }
+
+    // perform a final sanity check that the group is valid
+    for (unsigned int j = 0; j < group_size; ++j)
+        {
+        unsigned int ptag = members.tag[j];
+
+        if (! m_pdata->isTagActive(ptag))
+            {
+            m_exec_conf->msg->error() << name << ".*: member tag " << ptag << " of " << name
+                << " " << tag << " does not exist!" << endl;
+            throw runtime_error(std::string("Error getting ") + name);
+            }
         }
 
     return Group(type,members);
@@ -907,8 +922,15 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
 
             // add groups to snapshot
             std::map<unsigned int, std::pair<unsigned int, unsigned int> >::iterator rank_rtag_it;
-            for (unsigned int group_tag = 0; group_tag < getNGlobal(); group_tag++)
+
+            // index in snapshot
+            unsigned int snap_id = 0;
+
+            // loop through active tags
+            std::set<unsigned int>::iterator active_tag_it;
+            for (active_tag_it = m_tag_set.begin(); active_tag_it != m_tag_set.end(); ++active_tag_it)
                 {
+                unsigned int group_tag = *active_tag_it;
                 rank_rtag_it = rank_rtag_map.find(group_tag);
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
@@ -923,8 +945,9 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
                 unsigned int rank = rank_idx.first;
                 unsigned int idx = rank_idx.second;
 
-                snapshot.type_id[group_tag] = types_proc[rank][idx];
-                snapshot.groups[group_tag] = members_proc[rank][idx];
+                snapshot.type_id[snap_id] = types_proc[rank][idx];
+                snapshot.groups[snap_id] = members_proc[rank][idx];
+                snap_id++;
                 }
             }
         }
@@ -933,11 +956,27 @@ void BondedGroupData<group_size, Group, name>::takeSnapshot(Snapshot& snapshot) 
         {
         assert(getN() == getNGlobal());
         std::map<unsigned int, unsigned int>::iterator rtag_it;
-        for (rtag_it = rtag_map.begin(); rtag_it != rtag_map.end(); ++rtag_it)
+        // index in snapshot
+        unsigned int snap_id = 0;
+
+        // loop through active tags
+        std::set<unsigned int>::iterator active_tag_it;
+        for (active_tag_it = m_tag_set.begin(); active_tag_it != m_tag_set.end(); ++active_tag_it)
             {
+            unsigned int group_tag = *active_tag_it;
+            rtag_it = rtag_map.find(group_tag);
+            if (rtag_it == rtag_map.end())
+                {
+                m_exec_conf->msg->error()
+                    << endl << "Could not find " << name << " " << group_tag << ". Possible internal error?"
+                    << endl << endl;
+                throw std::runtime_error("Error gathering "+std::string(name)+"s");
+                }
+
             unsigned int group_idx = rtag_it->second;
-            snapshot.groups[group_idx] = m_groups[group_idx];
-            snapshot.type_id[group_idx] = m_group_type[group_idx];
+            snapshot.groups[snap_id] = m_groups[group_idx];
+            snapshot.type_id[snap_id] = m_group_type[group_idx];
+            snap_id++;
             }
         }
 
@@ -1083,6 +1122,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         .def("getNGlobal", &T::getNGlobal)
         .def("getNTypes", &T::getNTypes)
         .def("getNthTag", &T::getNthTag)
+        .def("getMaximumTag", &T::getMaximumTag)
         .def("getGroupByTag", &T::getGroupByTag)
         .def("getTypeByName", &T::getTypeByName)
         .def("setTypeName", &T::setTypeName)

@@ -170,6 +170,11 @@ class BondedGroupData : boost::noncopyable
         #endif
 
         //! Handy structure for passing around and initializing the group data
+        /*!
+         * Bonds in a snapshot are stored with reference to (non-contiguous) particle tags.
+         * This implies that if bonds are re-initialized after particle tags have changed,
+         * they first need to be updated to point to the correct particle tags.
+         */
         struct Snapshot
             {
             //! Default constructor
@@ -270,6 +275,13 @@ class BondedGroupData : boost::noncopyable
 
         //! Return the nth active global tag
         unsigned int getNthTag(unsigned int n) const;
+
+        //! Return the maximum particle tag in the simulation
+        unsigned int getMaximumTag() const
+            {
+            assert(!m_tag_set.empty());
+            return *m_tag_set.rbegin();
+            }
 
         //! Return a bonded group by tag
         const Group getGroupByTag(unsigned int tag) const;

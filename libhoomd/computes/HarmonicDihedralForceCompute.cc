@@ -200,10 +200,10 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         {
         // lookup the tag of each of the particles participating in the dihedral
         const ImproperData::members_t& dihedral = m_dihedral_data->getMembersByIndex(i);
-        assert(dihedral.tag[0] < m_pdata->getNGlobal());
-        assert(dihedral.tag[1] < m_pdata->getNGlobal());
-        assert(dihedral.tag[2] < m_pdata->getNGlobal());
-        assert(dihedral.tag[3] < m_pdata->getNGlobal());
+        assert(dihedral.tag[0] <= m_pdata->getMaximumTag());
+        assert(dihedral.tag[1] <= m_pdata->getMaximumTag());
+        assert(dihedral.tag[2] <= m_pdata->getMaximumTag());
+        assert(dihedral.tag[3] <= m_pdata->getMaximumTag());
 
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints

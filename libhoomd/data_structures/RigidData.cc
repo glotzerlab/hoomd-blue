@@ -92,11 +92,15 @@ RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
 
     // save the execution configuration
     m_exec_conf = m_pdata->getExecConf();
+
+    // connect to global particle number change signal
+    m_sort_connection = m_pdata->connectGlobalParticleNumberChange(bind(&RigidData::slotGlobalParticleNumberChange, this));
     }
 
 RigidData::~RigidData()
     {
     m_sort_connection.disconnect();
+    m_global_particle_num_connection.disconnect();
     }
 
 
@@ -1245,6 +1249,14 @@ void RigidData::takeSnapshot(SnapshotRigidData& snapshot) const
         snapshot.vel[i] = make_scalar3(h_vel.data[i].x,h_vel.data[i].y,h_vel.data[i].z);
         snapshot.angmom[i] = make_scalar3(h_angmom.data[i].x,h_angmom.data[i].y,h_angmom.data[i].z);
         snapshot.body_image[i] = h_body_image.data[i];
+        }
+    }
+
+void RigidData::slotGlobalParticleNumberChange()
+    {
+    if (m_particle_offset.getNumElements() != 0 && m_pdata->getNGlobal() != m_particle_offset.getNumElements())
+        {
+        throw std::runtime_error("Changing particle number with rigid bodies is unsupported.");
         }
     }
 
