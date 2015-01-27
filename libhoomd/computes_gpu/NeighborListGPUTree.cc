@@ -231,151 +231,156 @@ void NeighborListGPUTree::buildTree()
     
     }
 
+void NeighborListGPUTree::updateImageVectors()
+    {
+    if (m_box_changed)
+        {
+        // validate simulation box
+        const BoxDim& box = m_pdata->getBox();
+        Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
+    
+        // start by creating a temporary copy of r_cut squared
+        Scalar rmax = m_r_cut_max + m_r_buff;
+        if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
+            (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
+            (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
+            {
+            m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
+            throw runtime_error("Error updating neighborlist bins");
+            }
+        
+        // boxes must be periodic
+        if(!box.getPeriodic().x || !box.getPeriodic().y || (this->m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z))
+            {
+            m_exec_conf->msg->error() << "nlist: Tree builds are currently only supported in fully periodic geometries"<<endl;
+            throw runtime_error("Error traversing neighborlist AABB tree");
+            }
+        
+        ArrayHandle<Scalar3> h_image_list(m_image_list, access_location::host, access_mode::readwrite);
+        Scalar3 latt_a = box.getLatticeVector(0);
+        Scalar3 latt_b = box.getLatticeVector(1);
+        Scalar3 latt_c = box.getLatticeVector(2);
+
+        // iterate on all possible combinations of lattice vectors
+        unsigned int latt_idx = 1;
+        h_image_list.data[0] = make_scalar3(0.0, 0.0, 0.0);
+        for (int i=-1; i <= 1; ++i)
+            {
+            for (int j=-1; j <=1 ; ++j)
+                {
+                if(this->m_sysdef->getNDimensions() == 3) // 3D periodic needs another loop
+                    {
+                    for (int k=-1; k <= 1; ++k)
+                        {
+                        if (!(i == 0 && j == 0 && k == 0))
+                            {
+                            h_image_list.data[latt_idx] = Scalar(i)*latt_a + Scalar(j)*latt_b + Scalar(k)*latt_c;
+                            ++latt_idx;
+                            }
+                        }
+                    }
+                else // 2D periodic
+                    {
+                    if (!(i == 0 && j == 0))
+                        {
+                        h_image_list.data[latt_idx] = Scalar(i)*latt_a + Scalar(j)*latt_b;
+                        ++latt_idx;
+                        }
+                    }
+                }
+            }
+        m_box_changed = false;
+        }
+    }
+    
+void NeighborListGPUTree::copyCPUtoGPU()
+    {
+    ArrayHandle<AABBTree> h_aabb_trees_cpu(m_aabb_trees, access_location::host, access_mode::read);
+    ArrayHandle<AABBTreeGPU> h_aabb_trees(m_aabb_trees_gpu, access_location::host, access_mode::overwrite);
+    unsigned int n_tree_nodes = 0;
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+        {
+        h_aabb_trees.data[i].num_nodes = h_aabb_trees_cpu.data[i].getNumNodes();
+        h_aabb_trees.data[i].node_head = n_tree_nodes;
+        n_tree_nodes += h_aabb_trees.data[i].num_nodes;
+        }
+
+    // reallocate if necessary
+    if (n_tree_nodes > m_aabb_node_head_idx.getPitch())
+        {
+        // alternative data struct to the AABBNodeGPU as flat array that can be texture cached
+        GPUArray<Scalar4> aabb_node_bounds(2*n_tree_nodes, m_exec_conf);
+        m_aabb_node_bounds.swap(aabb_node_bounds);
+        
+        // stick this index in separate array since it's rarely accessed and improves mem alignment
+        GPUArray<unsigned int> aabb_node_head_idx(n_tree_nodes, m_exec_conf);
+        m_aabb_node_head_idx.swap(aabb_node_head_idx);
+        }            
+    
+    // copy the nodes into a separate gpu array
+    ArrayHandle<unsigned int> h_aabb_leaf_particles(m_aabb_leaf_particles,
+                                                    access_location::host,
+                                                    access_mode::overwrite);
+    
+    // trying out this data struct instead
+    ArrayHandle<Scalar4> h_aabb_node_bounds(m_aabb_node_bounds, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_aabb_node_head_idx(m_aabb_node_head_idx, access_location::host, access_mode::overwrite);
+    
+    
+    ArrayHandle<Scalar4> h_leaf_xyzf(m_leaf_xyzf, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar2> h_leaf_db(m_leaf_db, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    int leaf_head_idx = 0;
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+        {
+        const AABBTree *tree = &h_aabb_trees_cpu.data[i];
+        unsigned int head = h_aabb_trees.data[i].node_head;
+        for (unsigned int j=0; j < tree->getNumNodes(); ++j)
+            {
+            const unsigned int leaf_idx = (tree->isNodeLeaf(j)) ? leaf_head_idx : 0;
+            AABBNodeGPU node(tree->getNodeAABB(j), tree->getNodeSkip(j), tree->getNodeNumParticles(j), leaf_idx);
+            
+            // temporary copy into alt struct
+            h_aabb_node_bounds.data[2*(head + j)] = node.upper_skip;
+            h_aabb_node_bounds.data[2*(head + j) + 1] = node.lower_np;
+            h_aabb_node_head_idx.data[head + j] = leaf_idx;
+            
+            if (tree->isNodeLeaf(j))
+                {
+                for (unsigned int cur_particle=0; cur_particle < tree->getNodeNumParticles(j); ++cur_particle)
+                    {
+                    unsigned int my_pidx = tree->getNodeParticleTag(j, cur_particle);
+                    Scalar4 my_postype = h_pos.data[my_pidx];
+                    
+                    h_aabb_leaf_particles.data[leaf_head_idx + cur_particle] = my_pidx;
+                    h_leaf_xyzf.data[leaf_head_idx + cur_particle] = make_scalar4(my_postype.x, my_postype.y, my_postype.z, __int_as_scalar(my_pidx));
+                    h_leaf_db.data[leaf_head_idx + cur_particle] = make_scalar2(h_diameter.data[my_pidx], __int_as_scalar(h_body.data[my_pidx]));
+                    }
+                leaf_head_idx += tree->getNodeNumParticles(j);
+                }
+            }
+        }
+    }
+
 void NeighborListGPUTree::traverseTree()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Traverse");
 
-    // validate simulation box
-    const BoxDim& box = m_pdata->getBox();
-    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
-    
-    // start by creating a temporary copy of r_cut squared
-    Scalar rmax = m_r_cut_max + m_r_buff;
-    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
-        {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
-        }
-        
-    // boxes must be periodic
-    if(!box.getPeriodic().x || !box.getPeriodic().y || (this->m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z))
-        {
-        m_exec_conf->msg->error() << "nlist: Tree builds are currently only supported in fully periodic geometries"<<endl;
-        throw runtime_error("Error traversing neighborlist AABB tree");
-        }
-
     // need to construct a list of box vectors to translate, which is triggered to update on a box resize
-    const unsigned int n_images = m_image_list.getPitch(); // 27 (3D) or 9 (2D)
+    if (m_box_changed)
         {
-        ArrayHandle<Scalar3> h_image_list(m_image_list, access_location::host, access_mode::readwrite);
-        if (m_box_changed)
-            {
-                Scalar3 latt_a = box.getLatticeVector(0);
-                Scalar3 latt_b = box.getLatticeVector(1);
-                Scalar3 latt_c = box.getLatticeVector(2);
-        
-                // iterate on all possible combinations of lattice vectors
-                unsigned int latt_idx = 1;
-                h_image_list.data[0] = make_scalar3(0.0, 0.0, 0.0);
-                for (int i=-1; i <= 1; ++i)
-                    {
-                    for (int j=-1; j <=1 ; ++j)
-                        {
-                        if(this->m_sysdef->getNDimensions() == 3) // 3D periodic needs another loop
-                            {
-                            for (int k=-1; k <= 1; ++k)
-                                {
-                                if (!(i == 0 && j == 0 && k == 0))
-                                    {
-                                    h_image_list.data[latt_idx] = Scalar(i)*latt_a + Scalar(j)*latt_b + Scalar(k)*latt_c;
-                                    ++latt_idx;
-                                    }
-                                }
-                            }
-                        else // 2D periodic
-                            {
-                            if (!(i == 0 && j == 0))
-                                {
-                                h_image_list.data[latt_idx] = Scalar(i)*latt_a + Scalar(j)*latt_b;
-                                ++latt_idx;
-                                }
-                            }
-                        }
-                    }
-            m_box_changed = false;
-            }
+        updateImageVectors();
         }
     ArrayHandle<Scalar3> d_image_list(m_image_list, access_location::device, access_mode::read);
     
+    // perform the copy from the cpu to the gpu format
+    // time the data transfer to the GPU as well
     if (m_prof) m_prof->push(m_exec_conf,"copy");
-    // copy tree data from cpu to gpu
-        {
-        ArrayHandle<AABBTree> h_aabb_trees_cpu(m_aabb_trees, access_location::host, access_mode::read);
-        ArrayHandle<AABBTreeGPU> h_aabb_trees(m_aabb_trees_gpu, access_location::host, access_mode::overwrite);
-        unsigned int n_tree_nodes = 0;
-        for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
-            {
-            h_aabb_trees.data[i].num_nodes = h_aabb_trees_cpu.data[i].getNumNodes();
-            h_aabb_trees.data[i].node_head = n_tree_nodes;
-            n_tree_nodes += h_aabb_trees.data[i].num_nodes;
-            }
-
-        // reallocate if necessary
-        if (n_tree_nodes > m_aabb_nodes.getPitch())
-            {
-            GPUArray<AABBNodeGPU> aabb_nodes(n_tree_nodes, m_exec_conf);
-            m_aabb_nodes.swap(aabb_nodes);
-            
-            
-            // alternative data struct to the AABBNodeGPU as flat array that can be texture cached
-            GPUArray<Scalar4> aabb_node_bounds(2*n_tree_nodes, m_exec_conf);
-            m_aabb_node_bounds.swap(aabb_node_bounds);
-            
-            // stick this index in separate array since it's rarely accessed and improves mem alignment
-            GPUArray<unsigned int> aabb_node_head_idx(n_tree_nodes, m_exec_conf);
-            m_aabb_node_head_idx.swap(aabb_node_head_idx);
-            }            
-        
-        // copy the nodes into a separate gpu array
-        ArrayHandle<AABBNodeGPU> h_aabb_nodes(m_aabb_nodes, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_aabb_leaf_particles(m_aabb_leaf_particles, access_location::host, access_mode::overwrite);
-        
-        // trying out this data struct instead
-        ArrayHandle<Scalar4> h_aabb_node_bounds(m_aabb_node_bounds, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_aabb_node_head_idx(m_aabb_node_head_idx, access_location::host, access_mode::overwrite);
-        
-        
-        ArrayHandle<Scalar4> h_leaf_xyzf(m_leaf_xyzf, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar2> h_leaf_db(m_leaf_db, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-        int leaf_head_idx = 0;
-        for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
-            {
-            const AABBTree *tree = &h_aabb_trees_cpu.data[i];
-            unsigned int head = h_aabb_trees.data[i].node_head;
-            for (unsigned int j=0; j < tree->getNumNodes(); ++j)
-                {
-                const unsigned int leaf_idx = (tree->isNodeLeaf(j)) ? leaf_head_idx : 0;
-                h_aabb_nodes.data[head + j] = AABBNodeGPU(tree->getNodeAABB(j), tree->getNodeSkip(j), tree->getNodeNumParticles(j), leaf_idx);
-                
-                // temporary copy into alt struct
-                h_aabb_node_bounds.data[2*(head + j)] = h_aabb_nodes.data[head + j].upper_skip;
-                h_aabb_node_bounds.data[2*(head + j) + 1] = h_aabb_nodes.data[head + j].lower_np;
-                h_aabb_node_head_idx.data[head + j] = leaf_idx;
-                
-                if (tree->isNodeLeaf(j))
-                    {
-                    for (unsigned int cur_particle=0; cur_particle < tree->getNodeNumParticles(j); ++cur_particle)
-                        {
-                        unsigned int my_pidx = tree->getNodeParticleTag(j, cur_particle);
-                        Scalar4 my_postype = h_pos.data[my_pidx];
-                        
-                        h_aabb_leaf_particles.data[leaf_head_idx + cur_particle] = my_pidx;
-                        h_leaf_xyzf.data[leaf_head_idx + cur_particle] = make_scalar4(my_postype.x, my_postype.y, my_postype.z, __int_as_scalar(my_pidx));
-                        h_leaf_db.data[leaf_head_idx + cur_particle] = make_scalar2(h_diameter.data[my_pidx], __int_as_scalar(h_body.data[my_pidx]));
-                        }
-                    leaf_head_idx += tree->getNodeNumParticles(j);
-                    }
-                }
-            }
-        }
+    copyCPUtoGPU();
         
     ArrayHandle<AABBTreeGPU> d_aabb_trees(m_aabb_trees_gpu, access_location::device, access_mode::read);
-    ArrayHandle<AABBNodeGPU> d_aabb_nodes(m_aabb_nodes, access_location::device, access_mode::read);
     
     // acquire handle to alt struct
     ArrayHandle<Scalar4> d_aabb_node_bounds(m_aabb_node_bounds, access_location::device, access_mode::read);
@@ -421,7 +426,7 @@ void NeighborListGPUTree::traverseTree()
                                      d_leaf_xyzf.data,
                                      d_leaf_db.data,
                                      d_image_list.data,
-                                     n_images,
+                                     m_image_list.getPitch(),
                                      d_r_cut.data,
                                      m_r_buff,
                                      m_pdata->getNTypes(),
