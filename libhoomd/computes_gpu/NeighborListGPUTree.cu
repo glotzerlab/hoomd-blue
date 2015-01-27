@@ -102,7 +102,6 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     // pointer for the r_listsq data
     Scalar *s_r_list = (Scalar *)(&s_data[0]);
     unsigned int *s_Nmax = (unsigned int *)(&s_data[sizeof(Scalar)*num_typ_parameters]);
-    
 
     // load in the per type pair r_list
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -148,20 +147,31 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         for (unsigned int cur_image = 0; cur_image < nimages; ++cur_image)
             {
             const Scalar3 pos_i_image = pos_i + d_image_list[cur_image];
-            const AABBGPU aabb(pos_i_image, r_cut_i);
+            const Scalar3 aabb_upper = make_scalar3(pos_i_image.x + r_cut_i,
+                                                    pos_i_image.y + r_cut_i,
+                                                    pos_i_image.z + r_cut_i);
+            const Scalar3 aabb_lower = make_scalar3(pos_i_image.x - r_cut_i,
+                                                    pos_i_image.y - r_cut_i,
+                                                    pos_i_image.z - r_cut_i);
             
             // stackless search
             for (unsigned int cur_node_idx = 0; cur_node_idx < cur_aabb_tree.num_nodes; ++cur_node_idx)
                 {
                 const Scalar4 upper_skip = texFetchScalar4(d_aabb_node_bounds, aabb_node_bounds_tex, 2*(cur_aabb_tree.node_head + cur_node_idx));
                 const Scalar4 lower_np = texFetchScalar4(d_aabb_node_bounds, aabb_node_bounds_tex, 2*(cur_aabb_tree.node_head + cur_node_idx)+1);
-                
-                if (!(aabb.upper.x < lower_np.x
-                      || aabb.lower.x > upper_skip.x
-                      || aabb.upper.y < lower_np.y
-                      || aabb.lower.y > upper_skip.y
-                      || aabb.upper.z < lower_np.z
-                      || aabb.lower.z > upper_skip.z))
+
+//                 if (!((pos_i_image.x + r_cut_i) < lower_np.x
+//                       || (pos_i_image.x - r_cut_i) > upper_skip.x
+//                       || (pos_i_image.y + r_cut_i) < lower_np.y
+//                       || (pos_i_image.y - r_cut_i) > upper_skip.y
+//                       || (pos_i_image.z + r_cut_i) < lower_np.z
+//                       || (pos_i_image.z - r_cut_i) > upper_skip.z))
+                if (!(aabb_upper.x < lower_np.x
+                      || aabb_lower.x > upper_skip.x
+                      || aabb_upper.y < lower_np.y
+                      || aabb_lower.y > upper_skip.y
+                      || aabb_upper.z < lower_np.z
+                      || aabb_lower.z > upper_skip.z))                
                     {      
                     for (unsigned int cur_p = 0; cur_p < __scalar_as_int(lower_np.w); ++cur_p)
                         {
@@ -278,7 +288,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
             }
 
         int run_block_size = min(block_size,max_block_size);
-        gpu_nlist_traverse_tree_kernel<0><<<N/run_block_size + 1, block_size, shared_size>>>(d_nlist,
+        gpu_nlist_traverse_tree_kernel<0><<<N/run_block_size + 1, run_block_size, shared_size>>>(d_nlist,
                                                                                  d_n_neigh,
                                                                                  d_last_updated_pos,
                                                                                  d_conditions,
@@ -312,7 +322,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
             }
 
         int run_block_size = min(block_size,max_block_size);
-        gpu_nlist_traverse_tree_kernel<1><<<N/run_block_size + 1, block_size, shared_size>>>(d_nlist,
+        gpu_nlist_traverse_tree_kernel<1><<<N/run_block_size + 1, run_block_size, shared_size>>>(d_nlist,
                                                                                  d_n_neigh,
                                                                                  d_last_updated_pos,
                                                                                  d_conditions,
