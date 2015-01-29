@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __INITIALIZERS_H__
 
 //! Forward declaration of SnapshotSystemData
-class SnapshotSystemData;
+struct SnapshotSystemData;
 
 //! Inits a ParticleData with a simple cubic array of particles
 /*! A number of particles along each axis are specified along with a spacing

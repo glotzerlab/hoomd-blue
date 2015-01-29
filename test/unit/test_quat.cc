@@ -93,6 +93,50 @@ BOOST_AUTO_TEST_CASE( construction )
     MY_BOOST_CHECK_CLOSE(d.v.x, q1.v.x, tol);
     MY_BOOST_CHECK_CLOSE(d.v.y, q1.v.y, tol);
     MY_BOOST_CHECK_CLOSE(d.v.z, q1.v.z, tol);
+
+    quat<float> e(123, vec3<float>(86, -103, 12));
+    MY_BOOST_CHECK_CLOSE(quat<float>(e).s, 123, tol);
+    MY_BOOST_CHECK_CLOSE(quat<float>(e).v.x, 86, tol);
+    MY_BOOST_CHECK_CLOSE(quat<float>(e).v.y, -103, tol);
+    MY_BOOST_CHECK_CLOSE(quat<float>(e).v.z, 12, tol);
+    MY_BOOST_CHECK_CLOSE(quat<double>(e).s, 123, tol);
+    MY_BOOST_CHECK_CLOSE(quat<double>(e).v.x, 86, tol);
+    MY_BOOST_CHECK_CLOSE(quat<double>(e).v.y, -103, tol);
+    MY_BOOST_CHECK_CLOSE(quat<double>(e).v.z, 12, tol);
+
+    quat<double> f(123, vec3<double>(86, -103, 12));
+    MY_BOOST_CHECK_CLOSE(quat<float>(f).s, 123, tol);
+    MY_BOOST_CHECK_CLOSE(quat<float>(f).v.x, 86, tol);
+    MY_BOOST_CHECK_CLOSE(quat<float>(f).v.y, -103, tol);
+    MY_BOOST_CHECK_CLOSE(quat<float>(f).v.z, 12, tol);
+    MY_BOOST_CHECK_CLOSE(quat<double>(f).s, 123, tol);
+    MY_BOOST_CHECK_CLOSE(quat<double>(f).v.x, 86, tol);
+    MY_BOOST_CHECK_CLOSE(quat<double>(f).v.y, -103, tol);
+    MY_BOOST_CHECK_CLOSE(quat<double>(f).v.z, 12, tol);
+
+    // Test assignment
+    quat<float> g;
+    quat<double> h;
+    g = quat<float>(123, vec3<float>(86, -103, 12));
+    MY_BOOST_CHECK_CLOSE(g.s, 123, tol);
+    MY_BOOST_CHECK_CLOSE(g.v.x, 86, tol);
+    MY_BOOST_CHECK_CLOSE(g.v.y, -103, tol);
+    MY_BOOST_CHECK_CLOSE(g.v.z, 12, tol);
+    g = quat<double>(123, vec3<double>(86, -103, 12));
+    MY_BOOST_CHECK_CLOSE(g.s, 123, tol);
+    MY_BOOST_CHECK_CLOSE(g.v.x, 86, tol);
+    MY_BOOST_CHECK_CLOSE(g.v.y, -103, tol);
+    MY_BOOST_CHECK_CLOSE(g.v.z, 12, tol);
+    h = quat<float>(123, vec3<float>(86, -103, 12));
+    MY_BOOST_CHECK_CLOSE(h.s, 123, tol);
+    MY_BOOST_CHECK_CLOSE(h.v.x, 86, tol);
+    MY_BOOST_CHECK_CLOSE(h.v.y, -103, tol);
+    MY_BOOST_CHECK_CLOSE(h.v.z, 12, tol);
+    h = quat<double>(123, vec3<double>(86, -103, 12));
+    MY_BOOST_CHECK_CLOSE(h.s, 123, tol);
+    MY_BOOST_CHECK_CLOSE(h.v.x, 86, tol);
+    MY_BOOST_CHECK_CLOSE(h.v.y, -103, tol);
+    MY_BOOST_CHECK_CLOSE(h.v.z, 12, tol);
     }
 
 BOOST_AUTO_TEST_CASE( arithmetic )

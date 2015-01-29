@@ -80,6 +80,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     any parameters to specify the selection criteria. Then, a simple isSelected() test is provided that will acquire the
     needed data and will return true if that particle meets the criteria.
 
+    In parallel simulations, isSelected() should return false if the requested particle with tag 'tag' is not local.
+
     The base class isSelected() method will simply reject all particles. Derived classes will implement specific
     selection semantics.
 */
@@ -92,11 +94,25 @@ class ParticleSelector
 
         //! Test if a particle meets the selection criteria
         virtual bool isSelected(unsigned int tag) const;
+
     protected:
         boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
         boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
+
+//! Select all particles
+class ParticleSelectorAll : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorAll(boost::shared_ptr<SystemDefinition> sysdef);
+        virtual ~ParticleSelectorAll() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    };
+
 
 //! Select particles based on their tag
 class ParticleSelectorTag : public ParticleSelector
@@ -206,7 +222,8 @@ class ParticleGroup
         ParticleGroup() : m_num_local_members(0) {};
 
         //! Constructs a particle group of all particles that meet the given selection
-        ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector);
+        ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector,
+            bool update_tags = true);
 
         //! Constructs a particle group given a list of tags
         ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags);
@@ -215,7 +232,7 @@ class ParticleGroup
         ~ParticleGroup();
 
         //! Updates the members tags of a particle group according to a selection
-        void updateMemberTags(boost::shared_ptr<ParticleSelector> selector);
+        void updateMemberTags(bool force_update);
 
         // @}
         //! \name Accessor methods
@@ -334,11 +351,16 @@ class ParticleGroup
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
+        boost::signals2::connection m_global_particle_num_change_connection; //!< Connection to global particle number change signal
         GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the paritcle members
         mutable unsigned int m_num_local_members;       //!< Number of members on the local processor
         mutable bool m_particles_sorted;                //!< True if particle have been sorted since last rebuild
 
         GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
+        boost::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
+
+        bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
+
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;                //!< moderngpu context
         #endif
@@ -353,6 +375,13 @@ class ParticleGroup
             {
             m_particles_sorted = true;
             }
+
+        //! Helper function to be called when particles are added/removed
+        void slotGlobalParticleNumChange()
+            {
+            updateMemberTags(false);
+            }
+
 
         //! Helper function to build the 1:1 hash for tag membership
         void buildTagHash();

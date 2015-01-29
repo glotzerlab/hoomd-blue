@@ -80,6 +80,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class CachedAllocator;
 #endif
 
+// values used in measuring hoomd launch timing
+extern unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
+extern bool hoomd_launch_timing;
+
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
     ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU

@@ -201,6 +201,7 @@ using namespace boost::python;
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
 using namespace std;
 
 /*! \file hoomd_module.cc
@@ -375,6 +376,11 @@ void cuda_profile_stop()
     #endif
     }
 
+// values used in measuring hoomd launch timing
+unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
+bool hoomd_launch_timing=false;
+
+
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
@@ -388,8 +394,29 @@ void initialize_mpi()
     putenv(env_enable_mpi_cuda);
     #endif
 
+    // benchmark hoomd launch times
+    if (getenv("HOOMD_LAUNCH_TIME"))
+        {
+        // get the time that mpirun was called
+        hoomd_launch_time = atoi(getenv("HOOMD_LAUNCH_TIME"));
+
+        // compute the number of seconds to get here
+        timeval t;
+        gettimeofday(&t, NULL);
+        hoomd_start_time = t.tv_sec - hoomd_launch_time;
+        hoomd_launch_timing = true;
+        }
+
     // initalize MPI
     MPI_Init(0, (char ***) NULL);
+
+    if (hoomd_launch_timing)
+        {
+        // compute the number of seconds to get past mpi_init
+        timeval t;
+        gettimeofday(&t, NULL);
+        hoomd_mpi_init_time = t.tv_sec - hoomd_launch_time;
+        }
     }
 
 //! Finalize MPI environment

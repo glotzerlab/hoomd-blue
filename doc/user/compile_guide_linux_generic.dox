@@ -122,7 +122,8 @@ and build python
 ~~~~
 $ cd Python-3.3.0
 $ ./configure --enable-shared --prefix=$HOME/local
-$ make -j 12 install
+$ make -j12
+$ make install
 ~~~~
 This installs python into the `local/` subdirectory of your home directory.
 The `-j` option tells make to use the CPU cores available in your system for the build process.
@@ -282,13 +283,14 @@ Now that all of the prerequisite software is installed, you are ready to compile
 There are two ways to get the source code for HOOMD-blue.  You can [download it](http://codeblue.umich.edu/hoomd-blue/download.html)
 or you can clone the git repository:
 ~~~~
-$ git clone https://codeblue.umich.edu/git/hoomd-blue
+$ git clone https://bitbucket.org/glotzer/hoomd-blue
 ~~~~
 By default, the *master* branch will be checked out. This branch includes new features added since the last release.
 Use `git checkout name` to switch to a different branch or tag.
 
 Valid names:
 - *maint* - includes bugfixes since the last release
+- *v1.0.2* - Release version 1.0.1
 - *v1.0.1* - Release version 1.0.1
 - *v1.0.0* - Release version 1.0.0
 - *etc...*
@@ -297,7 +299,7 @@ You can verify that a tagged release is exactly as it appeared to the developers
 have GPG installed.
 ~~~~
 $ git cat-file blob 175bf6edfc8ac23c067df1d9bd7b5dd41982be3c | gpg --import
-$ git tag -v v1.0.1
+$ git tag -v v1.0.2
 ~~~~
 
 **Compile and install HOOMD-blue with makefiles:*

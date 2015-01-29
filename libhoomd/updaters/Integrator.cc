@@ -174,6 +174,7 @@ unsigned int Integrator::getNDOFRemoved()
         - box lengths lx, ly, lz
         - tilt factors xy, xz, yz
         - momentum
+        - particle number N
 
     See Logger for more information on what this is about.
 */
@@ -188,6 +189,7 @@ std::vector< std::string > Integrator::getProvidedLogQuantities()
     result.push_back("xz");
     result.push_back("yz");
     result.push_back("momentum");
+    result.push_back("N");
     return result;
     }
 
@@ -253,7 +255,13 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
         return yz;
         }
     else if (quantity == "momentum")
+        {
         return computeTotalMomentum(timestep);
+        }
+    else if (quantity == "N")
+        {
+        return (Scalar) m_pdata->getNGlobal();
+        }
     else
         {
         m_exec_conf->msg->error() << "integrate.*: " << quantity << " is not a valid log quantity for Integrator" << endl;

@@ -392,15 +392,16 @@ class nlist:
     ## \internal
     # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
     def update_exclusions_defaults(self):
-        if not self.is_exclusion_overridden:
-            util._disable_status_lines = True;
-            self.reset_exclusions(exclusions=['body', 'bond']);
-            util._disable_status_lines = False;
         if self.cpp_nlist.wantExclusions() and self.exclusions is not None:
             util._disable_status_lines = True;
             # update exclusions using stored values
             self.reset_exclusions(exclusions=self.exclusions)
             util._disable_status_lines = False;
+        elif not self.is_exclusion_overridden:
+            util._disable_status_lines = True;
+            self.reset_exclusions(exclusions=['body', 'bond']);
+            util._disable_status_lines = False;
+
 
     ## Change neighbor list parameters
     #

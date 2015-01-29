@@ -139,6 +139,7 @@ class DCDDumpWriter : public Analyzer
 
         bool m_overwrite;                   //!< True if file should be overwritten
         bool m_is_initialized;              //!< True if file IO has been initialized
+        unsigned int m_nglobal;             //!< Initial number of particles
 
         float *m_staging_buffer;            //!< Buffer for staging particle positions in tag order
 

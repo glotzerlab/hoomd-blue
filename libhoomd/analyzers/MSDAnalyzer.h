@@ -123,6 +123,8 @@ class MSDAnalyzer : public Analyzer
         std::vector<Scalar> m_initial_y;    //!< initial value of the y-component listed by tag
         std::vector<Scalar> m_initial_z;    //!< initial value of the z-component listed by tag
 
+        unsigned int m_nglobal; //!< Initial number of particles
+
         //! struct for storing the particle group and name assocated with a column in the output
         struct column
             {

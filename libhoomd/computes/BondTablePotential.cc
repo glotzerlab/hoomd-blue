@@ -235,8 +235,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[bond.tag[0]];
         unsigned int idx_b = h_rtag.data[bond.tag[1]];
-        assert(idx_a < m_pdata->getNGlobal());
-        assert(idx_b < m_pdata->getNGlobal());
+        assert(idx_a <= m_pdata->getMaximumTag());
+        assert(idx_b <= m_pdata->getMaximumTag());
 
         // throw an error if this bond is incomplete
         if (idx_a == NOT_LOCAL || idx_b == NOT_LOCAL)

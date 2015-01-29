@@ -92,6 +92,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <bitset>
+#include <stack>
 
 using namespace std;
 
@@ -113,6 +114,9 @@ using namespace std;
 
 /*! @}
 */
+
+//! Feature-define for HOOMD API
+#define HOOMD_SUPPORTS_ADD_REMOVE_PARTICLES
 
 // Forward declaration of Profiler
 class Profiler;
@@ -501,7 +505,7 @@ class ParticleData : boost::noncopyable
         const GPUArray< unsigned int >& getTags() const { return m_tag; }
 
         //! Return reverse-lookup tags
-        const GPUArray< unsigned int >& getRTags() const { return m_rtag; }
+        const GPUVector< unsigned int >& getRTags() const { return m_rtag; }
 
         //! Return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
@@ -628,11 +632,14 @@ class ParticleData : boost::noncopyable
         //! Connects a function to be called every time the box size is changed
         boost::signals2::connection connectBoxChange(const boost::function<void ()> &func);
 
-        //! Connects a function to be called every time the maximum particle number changes
+        //! Connects a function to be called every time the global number of particles changes
+        boost::signals2::connection connectGlobalParticleNumberChange(const boost::function< void()> &func);
+
+        //! Connects a function to be called every time the local maximum particle number changes
         boost::signals2::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
 
-        //! Connects a function to be called every time the ghost particles are updated
-        boost::signals2::connection connectGhostParticleNumberChange(const boost::function< void()> &func);
+        //! Connects a function to be called every time the ghost particles are reinitialized
+        boost::signals2::connection connectGhostParticlesRemoved(const boost::function< void()> &func);
 
         #ifdef ENABLE_MPI
         //! Connects a function to be called every time a single particle migration is requested
@@ -640,11 +647,11 @@ class ParticleData : boost::noncopyable
             const boost::function<void (unsigned int, unsigned int, unsigned int)> &func);
         #endif
 
+        //! Notify listeners that ghost particles have been removed
+        void notifyGhostParticlesRemoved();
+
         //! Connects a funtion to be called every time the number of types changes
         boost::signals2::connection connectNumTypesChange(const boost::function< void()> &func);
-
-        //! Notify listeners that the number of ghost particles has changed
-        void notifyGhostParticleNumberChange();
 
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name) const;
@@ -713,7 +720,7 @@ class ParticleData : boost::noncopyable
         //! Get the current index of a particle with a given global tag
         inline unsigned int getRTag(unsigned int tag) const
             {
-            assert(tag < m_nglobal);
+            assert(tag < m_rtag.size());
             ArrayHandle< unsigned int> h_rtag(m_rtag,access_location::host, access_mode::read);
             unsigned int idx = h_rtag.data[tag];
 #ifdef ENABLE_MPI
@@ -726,10 +733,28 @@ class ParticleData : boost::noncopyable
         //! Return true if particle is local (= owned by this processor)
         bool isParticleLocal(unsigned int tag) const
              {
-             assert(tag < m_nglobal);
+             assert(tag < m_rtag.size());
              ArrayHandle< unsigned int> h_rtag(m_rtag,access_location::host, access_mode::read);
              return h_rtag.data[tag] < getN();
              }
+
+        //! Return true if the tag is active
+        bool isTagActive(unsigned int tag) const
+            {
+            std::set<unsigned int>::const_iterator it = m_tag_set.find(tag);
+            return it != m_tag_set.end();
+            }
+
+        /*! Return the maximum particle tag in the simulation
+         * \note If there are zero particles in the simulation, returns UINT_MAX
+         */
+        unsigned int getMaximumTag() const
+            {
+            if (m_tag_set.empty())
+                return UINT_MAX;
+            else
+                return *m_tag_set.rbegin();
+            }
 
         //! Get the orientation of a particle with a given tag
         Scalar4 getOrientation(unsigned int tag) const;
@@ -820,6 +845,7 @@ class ParticleData : boost::noncopyable
         //! Remove all ghost particles from system
         void removeAllGhostParticles()
             {
+            notifyGhostParticlesRemoved();
             m_nghosts = 0;
             }
 
@@ -854,7 +880,7 @@ class ParticleData : boost::noncopyable
          */
         void removeParticles(std::vector<pdata_element>& out, std::vector<unsigned int>& comm_flags);
 
-        //! Remove particles from local domain and add new particle data
+        //! Add new local particles
         /*! \param in List of particle data elements to fill the particle data with
          */
         void addParticles(const std::vector<pdata_element>& in);
@@ -882,6 +908,15 @@ class ParticleData : boost::noncopyable
         #endif // ENABLE_CUDA
 
 #endif // ENABLE_MPI
+
+        //! Add a single particle to the simulation
+        unsigned int addParticle(unsigned int type);
+
+        //! Remove a particle from the simulation
+        void removeParticle(unsigned int tag);
+
+        //! Return the nth active global tag
+        unsigned int getNthTag(unsigned int n) const;
 
         //! Add particle types
         /*! \param Name of type to add
@@ -923,7 +958,7 @@ class ParticleData : boost::noncopyable
         boost::signals2::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
         boost::signals2::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
         boost::signals2::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
-        boost::signals2::signal<void ()> m_ghost_particle_num_signal; //!< Signal that is triggered when ghost particles are added to or deleted
+        boost::signals2::signal<void ()> m_ghost_particles_removed_signal; //!< Signal that is triggered when ghost particles are removed
         boost::signals2::signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
         boost::signals2::signal<void ()> m_num_types_signal;  //!< Signal that is triggered when the number of types changes
 
@@ -944,7 +979,7 @@ class ParticleData : boost::noncopyable
         GPUArray<Scalar> m_diameter;                //!< particle diameters
         GPUArray<int3> m_image;                     //!< particle images
         GPUArray<unsigned int> m_tag;               //!< particle tags
-        GPUArray<unsigned int> m_rtag;              //!< reverse lookup tags
+        GPUVector<unsigned int> m_rtag;             //!< reverse lookup tags
         GPUArray<unsigned int> m_body;              //!< rigid body ids
         GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
         GPUArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
@@ -953,6 +988,8 @@ class ParticleData : boost::noncopyable
         GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
         #endif
 
+        std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
+        std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
 
         /* Alternate particle data arrays are provided for fast swapping in and out of particle data
            The size of these arrays is updated in sync with the main particle data arrays.
