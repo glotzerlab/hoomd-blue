@@ -177,6 +177,8 @@ void SFCPackUpdater::applySortOrder()
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
 
@@ -214,6 +216,18 @@ void SFCPackUpdater::applySortOrder()
         scal_tmp[i] = h_diameter.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_diameter.data[i] = scal_tmp[i];
+
+    // sort angular momentum
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        scal4_tmp[i] = h_angmom.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_angmom.data[i] = scal4_tmp[i];
+
+    // sort angular momentum
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        scal3_tmp[i] = h_inertia.data[m_sort_order[i]];
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        h_inertia.data[i] = scal3_tmp[i];
 
     // in case anyone access it from frame to frame, sort the net virial
         {
