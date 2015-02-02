@@ -1622,7 +1622,10 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     if (ptl_local)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
+        ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::readwrite);
+
         h_pos.data[idx].x = tmp_pos.x; h_pos.data[idx].y = tmp_pos.y; h_pos.data[idx].z = tmp_pos.z;
+        h_image.data[idx] = img;
         }
 
     #ifdef ENABLE_MPI
