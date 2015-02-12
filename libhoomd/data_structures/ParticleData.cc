@@ -1223,18 +1223,18 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                 unsigned int rank = rank_idx.first;
                 unsigned int idx = rank_idx.second;
 
-                snapshot.pos[tag] = pos_proc[rank][idx];
-                snapshot.vel[tag] = vel_proc[rank][idx];
-                snapshot.accel[tag] = accel_proc[rank][idx];
-                snapshot.type[tag] = type_proc[rank][idx];
-                snapshot.mass[tag] = mass_proc[rank][idx];
-                snapshot.charge[tag] = charge_proc[rank][idx];
-                snapshot.diameter[tag] = diameter_proc[rank][idx];
-                snapshot.image[tag] = image_proc[rank][idx];
-                snapshot.body[tag] = body_proc[rank][idx];
-                snapshot.orientation[tag] = orientation_proc[rank][idx];
-                snapshot.angmom[tag] = angmom_proc[rank][idx];
-                snapshot.inertia[tag] = inertia_proc[rank][idx];
+                snapshot.pos[snap_id] = pos_proc[rank][idx];
+                snapshot.vel[snap_id] = vel_proc[rank][idx];
+                snapshot.accel[snap_id] = accel_proc[rank][idx];
+                snapshot.type[snap_id] = type_proc[rank][idx];
+                snapshot.mass[snap_id] = mass_proc[rank][idx];
+                snapshot.charge[snap_id] = charge_proc[rank][idx];
+                snapshot.diameter[snap_id] = diameter_proc[rank][idx];
+                snapshot.image[snap_id] = image_proc[rank][idx];
+                snapshot.body[snap_id] = body_proc[rank][idx];
+                snapshot.orientation[snap_id] = orientation_proc[rank][idx];
+                snapshot.angmom[snap_id] = angmom_proc[rank][idx];
+                snapshot.inertia[snap_id] = inertia_proc[rank][idx];
 
                 // make sure the position stored in the snapshot is within the boundaries
                 m_global_box.wrap(snapshot.pos[snap_id], snapshot.image[snap_id]);
