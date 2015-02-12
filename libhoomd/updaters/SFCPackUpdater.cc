@@ -271,8 +271,6 @@ void SFCPackUpdater::applySortOrder()
             h_orientation.data[i] = scal4_tmp[i];
         }
         {
-        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
-
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             scal4_tmp[i] = h_angmom.data[m_sort_order[i]];
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
