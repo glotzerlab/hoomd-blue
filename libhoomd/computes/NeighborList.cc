@@ -87,7 +87,7 @@ using namespace std;
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_filter_diameter(false),
       m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0),
-      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false), m_want_exclusions(false)
+      m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -111,7 +111,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_every = 0;
     m_Nmax = 0;
     m_exclusions_set = false;
-
+    m_need_reallocate_exlist = false;
 
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
@@ -135,7 +135,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
 
     // note: this breaks O(N/P) memory scaling
-    GPUArray<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
+    GPUVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
 
     GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, exec_conf);
@@ -177,19 +177,6 @@ void NeighborList::reallocate()
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
 
     m_n_neigh.resize(m_pdata->getMaxN());
-
-    if (m_n_ex_tag.getNumElements() != m_pdata->getRTags().size())
-        {
-        m_n_ex_tag.resize(m_pdata->getRTags().size());
-        m_ex_list_tag.resize(m_pdata->getRTags().size(), m_ex_list_tag.getHeight());
-        m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
-
-        // clear all exclusions
-        clearExclusions();
-
-        // they need to be added again
-        m_want_exclusions = true;
-        }
     }
 
 NeighborList::~NeighborList()
@@ -359,6 +346,8 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
 
+    assert(! m_need_reallocate_exlist);
+
     m_exclusions_set = true;
 
     // don't add an exclusion twice
@@ -401,9 +390,6 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         h_n_ex_tag.data[tag2]++;
         }
 
-    // Exclusions have been added, so assume the exclusion list is now current
-    m_want_exclusions = false;
-
     forceUpdate();
     }
 
@@ -411,11 +397,24 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 */
 void NeighborList::clearExclusions()
     {
+    // reallocate list of exclusions per tag if necessary
+    if (m_need_reallocate_exlist && m_n_ex_tag.size() != m_pdata->getRTags().size())
+        {
+        m_n_ex_tag.resize(m_pdata->getRTags().size());
+
+        // slave the width of the exclusion list to the capacity of the number of exclusions array
+        // in order to amortize reallocation costs
+        m_ex_list_tag.resize(m_n_ex_tag.getNumElements(), m_ex_list_tag.getHeight());
+        m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
+        }
+
+    m_need_reallocate_exlist = false;
+
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
-    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getRTags().size());
-    memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_pdata->getN());
+    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_n_ex_tag.getNumElements());
+    memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_n_ex_idx.getNumElements());
     m_exclusions_set = false;
 
     forceUpdate();
@@ -448,6 +447,8 @@ void NeighborList::countExclusions()
     unsigned int MAX_COUNT_EXCLUDED = 16;
     unsigned int excluded_count[MAX_COUNT_EXCLUDED+2];
     unsigned int num_excluded, max_num_excluded;
+
+    assert(! m_need_reallocate_exlist);
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
 
@@ -605,6 +606,8 @@ void NeighborList::addExclusionsFromDihedrals()
 */
 bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
+    assert(! m_need_reallocate_exlist);
+
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
 
@@ -1175,8 +1178,11 @@ void NeighborList::buildNlist(unsigned int timestep)
 */
 void NeighborList::updateExListIdx()
     {
+    assert(! m_need_reallocate_exlist);
+
     if (m_prof)
         m_prof->push("update-ex");
+
     // access data
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
