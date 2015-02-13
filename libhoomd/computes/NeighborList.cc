@@ -398,17 +398,21 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 void NeighborList::clearExclusions()
     {
     // reallocate list of exclusions per tag if necessary
-    if (m_need_reallocate_exlist && m_n_ex_tag.size() != m_pdata->getRTags().size())
+    if (m_need_reallocate_exlist)
         {
         m_n_ex_tag.resize(m_pdata->getRTags().size());
 
         // slave the width of the exclusion list to the capacity of the number of exclusions array
         // in order to amortize reallocation costs
-        m_ex_list_tag.resize(m_n_ex_tag.getNumElements(), m_ex_list_tag.getHeight());
-        m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
+        if (m_ex_list_tag.getPitch() != m_n_ex_tag.getNumElements())
+            {
+            m_ex_list_tag.resize(m_n_ex_tag.getNumElements(), m_ex_list_tag.getHeight());
+            m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
+            }
+
+        m_need_reallocate_exlist = false;
         }
 
-    m_need_reallocate_exlist = false;
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);

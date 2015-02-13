@@ -435,7 +435,7 @@ class NeighborList : public Compute
         Index2D m_ex_list_indexer;             //!< Indexer for accessing the exclusion list
         Index2D m_ex_list_indexer_tag;         //!< Indexer for accessing the by-tag exclusion list
         bool m_exclusions_set;                 //!< True if any exclusions have been set
-        bool m_need_reallocate_exlist;   //!< True if we want updated exclusions
+        bool m_need_reallocate_exlist;         //!< True if global exclusion list needs to be reallocated
 
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
