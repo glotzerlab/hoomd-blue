@@ -54,7 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Autotuner.h"
 
 /*! \file OPLSDihedralForceComputeGPU.h
-    \brief Declares the TableDihedralForceComputeGPU class
+    \brief Declares the OPLSDihedralForceComputeGPU class
 */
 
 #ifdef NVCC
@@ -65,9 +65,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __OPLSDIHEDRALFORCECOMPUTEGPU_H__
 
 //! Computes OPLS-style dihedral potentials on the GPU
-/*! Calculates exactly the same thing as OPLSDihedralForceCompute, but on the GPU
+/*! Calculates the OPLS type dihedral force on the GPU
 
-    The GPU kernel for calculating this can be found in OPLSDihedralForceComputeGPU.cu/
+    The GPU kernel for calculating this can be found in OPLSDihedralForceComputeGPU.cu
     \ingroup computes
 */
 class OPLSDihedralForceComputeGPU : public OPLSDihedralForceCompute

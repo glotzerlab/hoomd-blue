@@ -521,16 +521,6 @@ class table(force._force):
           self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
           util._disable_status_lines = True;
 
-## \package hoomd_script.dihedral
-# \brief Commands that specify %dihedral forces
-#
-# Dihedrals add forces between specified quadruplets of particles and are typically used to
-# model rotation about chemical bonds. Dihedrals between particles are set when an input XML file is read
-# (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
-#
-# By themselves, dihedrals that have been specified in an input file do nothing. Only when you
-# specify a dihedral force (e.g., dihedral.harmonic or dihedral.opls) are forces actually calculated 
-# between the listed particles.
 
 ## OPLS %dihedral force
 #
@@ -538,7 +528,7 @@ class table(force._force):
 # quadruplet of particles in the simulation.
 # \f[ V(r) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) + \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right)
 # + \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) + \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right) \f]
-# where \f$ \phi \f$ is angle between two sides of the dihedral and \f$ k_n \f$ are the %force coefficients
+# where \f$ \phi \f$ is the angle between two sides of the dihedral and \f$ k_n \f$ are the %force coefficients
 # in the Fourier series (in energy units).
 #
 # \f$ k_1 \f$, \f$ k_2 \f$, \f$ k_3 \f$, and \f$ k_4 \f$ must be set for each type of %dihedral in the simulation using
@@ -551,7 +541,7 @@ class opls(force._force):
     #
     # \b Example:
     # \code
-    # oplsDi = dihedral.opls()
+    # opls_di = dihedral.opls()
     # \endcode
     def __init__(self):
         util.print_status_line();
@@ -581,15 +571,15 @@ class opls(force._force):
     # \param k2 Force coefficient \f$ k_2 \f$ (in energy units)
     # \param k3 Force coefficient \f$ k_3 \f$ (in energy units)
     # \param k4 Force coefficient \f$ k_4 \f$ (in energy units)
-        #
+    #
     # Using set_coeff() requires that the specified %dihedral %force has been saved in a variable. i.e.
     # \code
-    # oplsDi = dihedral.opls()
+    # opls_di = dihedral.opls()
     # \endcode
     #
     # \b Example:
     # \code
-    # oplsDi.set_coeff('dihedral1', k1=30.0, k2=15.5, k3=2.2, k4=23.8)
+    # opls_di.set_coeff('dihedral1', k1=30.0, k2=15.5, k3=2.2, k4=23.8)
     # \endcode
     #
     # The coefficients for every %dihedral type in the simulation must be set
