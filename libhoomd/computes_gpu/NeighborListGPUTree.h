@@ -66,6 +66,7 @@ using namespace hpmc::detail;
 
 #ifndef __NEIGHBORLISTGPUTREE_H__
 #define __NEIGHBORLISTGPUTREE_H__
+
 class NeighborListGPUTree : public NeighborListGPU
     {
     public:
@@ -134,6 +135,21 @@ class NeighborListGPUTree : public NeighborListGPU
         unsigned int m_max_n_local; //!< Maximum number of particles locally
         
         virtual void scheduleDistanceCheck(unsigned int timestep);
+        
+        // tree building on gpu
+        GPUArray<unsigned int> m_morton_codes;  //!< 30 bit morton codes for particles to sort on z-order curve
+        GPUArray<unsigned int> m_leaf_particles; //!< holds the ids of the leaf particles to create a sorting map
+        GPUArray<unsigned int> m_leaf_offset;   //!< total offset in particle index for leaf nodes by type
+        GPUArray<Scalar4> m_leaf_aabbs;         //!< aabbs for merged leaf nodes
+        GPUArray<uint4> m_tree_hierarchy;       //!< parent and child node information
+        void buildTreeGPU();
+        void calcMortonCodes();
+        void sortMortonCodes();
+        void updateLeafAABBCount();
+        void mergeLeafParticles();
+        void genTreeHierarchy();
+        
+        unsigned int m_n_leaf;
         
     private:
         void updateImageVectors();

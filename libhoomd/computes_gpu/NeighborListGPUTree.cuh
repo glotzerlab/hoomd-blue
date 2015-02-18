@@ -91,5 +91,31 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                      bool filter_body,
                                      const unsigned int compute_capability,
                                      const unsigned int block_size);
+                                     
+//! Kernel driver to generate morton codes for particles and reorder by type
+cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
+                                   unsigned int *d_particle_ids,
+                                   const Scalar4 *d_pos,
+                                   const unsigned int *d_map_p_global_tree,
+                                   const unsigned int N,
+                                   const unsigned int *d_type_head,
+                                   const unsigned int ntypes,
+                                   const BoxDim& box,
+                                   const Scalar3 ghost_width,
+                                   const unsigned int block_size);
+
+//! Wrapper to Thrust sort for morton codes
+cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
+                                  unsigned int *d_leaf_particles,
+                                  const unsigned int *h_num_per_type,
+                                  const unsigned int ntypes);
+
+//! Kernel driver to generate the AABB tree hierarchy from morton codes
+cudaError_t gpu_nlist_gen_hierarchy(uint4 *d_tree_hierarchy,
+                                    const unsigned int *d_morton_codes,
+                                    const unsigned int *d_type_head,
+                                    const unsigned int N,
+                                    const unsigned int ntypes,
+                                    const unsigned int block_size);
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__

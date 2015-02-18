@@ -52,6 +52,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPU.cuh"
 #include "TextureTools.h"
 
+#include <thrust/device_ptr.h>
+#include <thrust/sort.h>
+
+#define MORTON_CODE_N_BINS 1024     // number of bins (2^k) to use to generate 3k bit morton codes
+#define PARTICLES_PER_LEAF 4        // max number of particles in a leaf node, must be power of two
+
+/*! \file NeighborListGPUTree.cu
+    \brief Defines GPU kernel code for neighbor list tree traversal on the GPU
+*/
+
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading leaf data
@@ -63,9 +73,372 @@ texture<unsigned int, 1, cudaReadModeElementType> aabb_node_head_idx_tex;
 //! Texture for the head list
 texture<unsigned int, 1, cudaReadModeElementType> head_list_tex;
 
-/*! \file NeighborListGPUTree.cu
-    \brief Defines GPU kernel code for neighbor list tree traversal on the GPU
-*/
+// Expands a 10-bit integer into 30 bits
+// by inserting 2 zeros after each bit.
+// http://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
+__device__ inline unsigned int expandBits(unsigned int v)
+{
+    v = (v * 0x00010001u) & 0xFF0000FFu;
+    v = (v * 0x00000101u) & 0x0F00F00Fu;
+    v = (v * 0x00000011u) & 0xC30C30C3u;
+    v = (v * 0x00000005u) & 0x49249249u;
+    return v;
+}
+
+//! slow implementation of delta from karras paper
+/*!
+ * computes the longest common prefix
+ */
+__device__ inline int delta(const unsigned int *d_morton_codes, unsigned int i, unsigned int j, int min_idx, int max_idx)
+    {
+    if (j > max_idx || j < min_idx)
+        {
+        return -1;
+        }
+    
+    unsigned int first_code = d_morton_codes[i];
+    unsigned int last_code = d_morton_codes[j];
+    
+    // if codes match, then use index as tie breaker
+    if (first_code == last_code)
+        {
+        return __clz(i ^ j);
+        }
+    else
+        {
+        return __clz(first_code ^ last_code);
+        }
+    }
+
+//! slow implementation of determineRange, needs refining
+/*!
+ * This is a literal implementation of the Karras pseudocode, with no optimizations or refinement
+ */
+__device__ inline uint2 determineRange(const unsigned int *d_morton_codes,
+                                       const int min_idx,
+                                       const int max_idx,
+                                       const int idx)
+    {
+    int forward_prefix = delta(d_morton_codes, idx, idx+1, min_idx, max_idx);
+    int backward_prefix = delta(d_morton_codes, idx, idx-1, min_idx, max_idx);
+        
+    // depends on sign
+    int d = ((forward_prefix - backward_prefix) > 0) ? 1 : -1;
+    int min_prefix = delta(d_morton_codes, idx, idx-d, min_idx, max_idx);
+    
+    int lmax = 2;
+    while( delta(d_morton_codes, idx, idx + d*lmax, min_idx, max_idx) > min_prefix)
+        {
+        lmax = lmax << 1;
+        }
+    
+    unsigned int len = 0;
+    unsigned int step = lmax;
+    do 
+        {
+        step = step >> 1;
+        unsigned int new_len = len + step;
+        if (delta(d_morton_codes, idx, idx + d*new_len, min_idx, max_idx) > min_prefix)
+            len = new_len;
+        }
+    while (step > 1);
+   
+    uint2 range;
+    if (d > 0)
+        {
+        range.x = idx;
+        range.y = idx + len;
+        }
+    else
+        {
+        range.x = idx - len;
+        range.y = idx;
+        }
+    return range;
+    }
+
+__device__ inline unsigned int findSplit(const unsigned int *d_morton_codes,
+                                         const unsigned int first,
+                                         const unsigned int last)
+    {
+    unsigned int first_code = d_morton_codes[first];
+    unsigned int last_code = d_morton_codes[last];
+    
+    // if codes match, then just split evenly
+    if (first_code == last_code)
+        return (first + last) >> 1;
+    
+    // get the length of the common prefix
+    int common_prefix = __clz(first_code ^ last_code);
+    
+    // assume split starts at first, and begin binary search
+    unsigned int split = first;
+    unsigned int step = last - first;
+    do
+        {
+        // exponential decrease (is factor of 2 best?)
+        step = (step + 1) >> 1;
+        unsigned int new_split = split + step;
+        
+        // if proposed split lies within range
+        if (new_split < last)
+            {
+            unsigned int split_code = d_morton_codes[new_split];
+            int split_prefix = __clz(first_code ^ split_code);
+            
+            // if new split shares a longer number of bits, accept it
+            if (split_prefix > common_prefix)
+                {
+                split = new_split;
+                }
+            }
+        }
+    while (step > 1);
+    
+    return split;
+    }
+
+__global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
+                                              unsigned int *d_leaf_particles,
+                                              const Scalar4 *d_pos,
+                                              const unsigned int *d_map_p_global_tree,
+                                              const unsigned int N,
+                                              const unsigned int *d_type_head,
+                                              const unsigned int ntypes,
+                                              const BoxDim box,
+                                              const Scalar3 ghost_width)
+    {
+    // shared memory cache of type head
+    extern __shared__ unsigned char s_data[];
+    unsigned int *s_type_head = (unsigned int *)(&s_data[0]);
+
+    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < ntypes)
+            {
+            s_type_head[cur_offset + threadIdx.x] = d_type_head[cur_offset + threadIdx.x];
+            }
+        }
+    __syncthreads();
+    
+    // compute the particle index this thread operates on
+    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    // quit now if this thread is processing past the end of the particle list
+    if (idx >= N)
+        return;
+    
+    // acquire particle data
+    Scalar4 postype = d_pos[idx];
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+    unsigned int type = __scalar_as_int(postype.w);
+        
+    uchar3 periodic = box.getPeriodic();
+    Scalar3 f = box.makeFraction(pos,ghost_width);
+
+    // check if the particle is inside the unit cell + ghost layer in all dimensions
+    if ((f.x < Scalar(0.0) || f.x >= Scalar(1.00001)) ||
+        (f.y < Scalar(0.0) || f.y >= Scalar(1.00001)) ||
+        (f.z < Scalar(0.0) || f.z >= Scalar(1.00001)) )
+        {
+        // if a ghost particle is out of bounds, silently ignore it
+//         if (idx < N)
+//             (*d_conditions).z = idx+1;
+        return;
+        }
+
+    // find the bin each particle belongs in
+    unsigned int ib = (unsigned int)(f.x * MORTON_CODE_N_BINS);
+    unsigned int jb = (unsigned int)(f.y * MORTON_CODE_N_BINS);
+    unsigned int kb = (unsigned int)(f.z * MORTON_CODE_N_BINS);
+
+    // need to handle the case where the particle is exactly at the box hi
+    if (ib == MORTON_CODE_N_BINS && periodic.x)
+        ib = 0;
+    if (jb == MORTON_CODE_N_BINS && periodic.y)
+        jb = 0;
+    if (kb == MORTON_CODE_N_BINS && periodic.z)
+        kb = 0;
+    
+    // inline call to some bit swizzling arithmetic
+    unsigned int ii = expandBits(ib);
+    unsigned int jj = expandBits(jb);
+    unsigned int kk = expandBits(kb);
+    unsigned int morton_code = ii * 4 + jj * 2 + kk;
+    
+    // sort morton code by type as we compute it
+    unsigned int leaf_idx = s_type_head[type] + d_map_p_global_tree[idx];
+    d_morton_codes[leaf_idx] = morton_code;
+    d_leaf_particles[leaf_idx] = idx;
+    }
+    
+__global__ void gpu_nlist_gen_hierarchy_kernel(uint4 *d_tree_hierarchy,
+                                               const unsigned int *d_morton_codes,
+                                               const unsigned int *d_type_head,
+                                               const unsigned int N,
+                                               const unsigned int ntypes)
+    {
+    // shared memory cache of type head
+    extern __shared__ unsigned char s_data[];
+    unsigned int *s_type_head = (unsigned int *)(&s_data[0]);
+
+    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < ntypes)
+            {
+            s_type_head[cur_offset + threadIdx.x] = d_type_head[cur_offset + threadIdx.x];
+            }
+        }
+    __syncthreads();
+    
+    // compute the internal node index this thread operates on
+    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    // quit now if this thread is processing past the end of the particle list
+    if (idx >= (N-ntypes))
+        return;
+       
+    // get my lower bound
+    // this is probably pretty slow
+    int min_idx = 0;
+    int max_idx = N-1;
+    bool found_idx = 0;
+    for (unsigned int next_type=1; next_type < ntypes && !found_idx; ++next_type)
+        {
+        // there are N[i] - 1 internal nodes for each type
+        // so as we go up by type idx, we subtract one more from
+        // particle position
+        if (idx < (s_type_head[next_type]-next_type))
+            {
+            min_idx = s_type_head[next_type-1] - (next_type - 1); // min_idx is cur type
+            if (next_type < (ntypes-1))
+                {
+                max_idx = s_type_head[next_type] - next_type - 1;
+                }
+            else
+                {
+                max_idx = N - next_type - 1;
+                }
+            found_idx = 1;
+            }
+        }
+    
+    
+    uint2 range = determineRange(d_morton_codes, min_idx, max_idx, idx);
+    unsigned int first = range.x;
+    unsigned int last = range.y;
+    unsigned int split = findSplit(d_morton_codes, first, last);
+    
+    uint4 node_info;
+    node_info.x = split;
+    if (split == first)
+        {
+        node_info.y = 1;
+        }
+    else
+        {
+        node_info.y = 0;
+        }
+    
+    if ((split + 1) == last)
+        {
+        node_info.z = 1;
+        }
+    else
+        {
+        node_info.z = 0;
+        }
+    
+    d_tree_hierarchy[idx] = node_info;
+    }
+    
+cudaError_t gpu_nlist_gen_hierarchy(uint4 *d_tree_hierarchy,
+                                    const unsigned int *d_morton_codes,
+                                    const unsigned int *d_type_head,
+                                    const unsigned int N,
+                                    const unsigned int ntypes,
+                                    const unsigned int block_size)
+    {
+    unsigned int shared_size = sizeof(unsigned int)*ntypes;
+    
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_gen_hierarchy_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    int run_block_size = min(block_size,max_block_size);
+    
+    gpu_nlist_gen_hierarchy_kernel<<<(N-ntypes)/run_block_size + 1, run_block_size, shared_size>>>(d_tree_hierarchy,
+                                                                                           d_morton_codes,
+                                                                                           d_type_head,
+                                                                                           N,
+                                                                                           ntypes);
+    return cudaSuccess;
+    }
+
+cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
+                                   unsigned int *d_leaf_particles,
+                                   const Scalar4 *d_pos,
+                                   const unsigned int *d_map_p_global_tree,
+                                   const unsigned int N,
+                                   const unsigned int *d_type_head,
+                                   const unsigned int ntypes,
+                                   const BoxDim& box,
+                                   const Scalar3 ghost_width,
+                                   const unsigned int block_size)
+    {
+    unsigned int shared_size = sizeof(unsigned int)*ntypes;
+    
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_morton_codes_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    int run_block_size = min(block_size,max_block_size);
+    
+    gpu_nlist_morton_codes_kernel<<<N/run_block_size + 1, run_block_size, shared_size>>>(d_morton_codes,
+                                                                                         d_leaf_particles,
+                                                                                         d_pos,
+                                                                                         d_map_p_global_tree,
+                                                                                         N,
+                                                                                         d_type_head,
+                                                                                         ntypes,
+                                                                                         box,
+                                                                                         ghost_width);
+    return cudaSuccess;
+    }
+    
+cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
+                                  unsigned int *d_leaf_particles,
+                                  const unsigned int *h_num_per_type,
+                                  const unsigned int ntypes)
+    {
+    
+    // thrust requires to wrap the pod in a thrust object
+    thrust::device_ptr<unsigned int> t_morton_codes = thrust::device_pointer_cast(d_morton_codes);
+    thrust::device_ptr<unsigned int> t_leaf_particles = thrust::device_pointer_cast(d_leaf_particles);
+    
+    // loop on types and do a sort by key
+    for (unsigned int cur_type=0; cur_type < ntypes; ++cur_type)
+        {
+        thrust::sort_by_key(t_morton_codes,
+                            t_morton_codes + h_num_per_type[cur_type],
+                            t_leaf_particles);
+                            
+        // advance pointers to sort the next type
+        t_morton_codes += h_num_per_type[cur_type];
+        t_leaf_particles += h_num_per_type[cur_type];
+        }
+    
+    return cudaSuccess;
+    }
+
 template<unsigned char flags>
 __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
@@ -347,3 +720,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         }  
     return cudaSuccess;
     }
+
+// clean up constants
+#undef MORTON_CODE_N_BINS
+#undef PARTICLES_PER_LEAF
