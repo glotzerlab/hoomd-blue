@@ -63,6 +63,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include "AABBTreeGPU.h"
 
+#define PARTICLES_PER_LEAF 16        // max number of particles in a leaf node, must be power of two
+
 using namespace hpmc::detail;
 
 //! Kernel driver to traverse tree and build neighbor list on the device
@@ -109,13 +111,39 @@ cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
                                   unsigned int *d_leaf_particles,
                                   const unsigned int *h_num_per_type,
                                   const unsigned int ntypes);
+                                  
+//! Kernel driver to merge the bottom layers of particles into leaf nodes
+cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
+                                      unsigned int *d_morton_codes_red,
+                                      const unsigned int *d_morton_codes,
+                                      const Scalar4 *d_pos,
+                                      const unsigned int *d_num_per_type,
+                                      const unsigned int ntypes,
+                                      const unsigned int *d_leaf_particles,
+                                      const unsigned int *d_leaf_offset,
+                                      const unsigned int *d_type_head,
+                                      const unsigned int N,
+                                      const unsigned int nleafs,
+                                      const unsigned int block_size);
 
 //! Kernel driver to generate the AABB tree hierarchy from morton codes
-cudaError_t gpu_nlist_gen_hierarchy(uint4 *d_tree_hierarchy,
+cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_leaf_parents,
+                                    unsigned int *d_node_parents,
+                                    unsigned int *d_node_children,
                                     const unsigned int *d_morton_codes,
                                     const unsigned int *d_type_head,
                                     const unsigned int N,
                                     const unsigned int ntypes,
+                                    const unsigned int nleafs,
                                     const unsigned int block_size);
+                                    
+cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
+                                   Scalar4 *d_tree_aabbs,
+                                   const unsigned int *d_leaf_parents,
+                                   const unsigned int *d_node_parents,
+                                   const unsigned int *d_node_children,
+                                   const unsigned int ntypes,
+                                   const unsigned int nleafs,
+                                   const unsigned int block_size);
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__

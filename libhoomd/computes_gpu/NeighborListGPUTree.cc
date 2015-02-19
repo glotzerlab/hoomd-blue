@@ -104,9 +104,6 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
     GPUArray<unsigned int> leaf_offset(m_pdata->getNTypes(), m_exec_conf);
     m_leaf_offset.swap(leaf_offset);
     
-    GPUArray<uint4> tree_hierarchy(m_pdata->getN() - m_pdata->getNTypes(), m_exec_conf);
-    m_tree_hierarchy.swap(tree_hierarchy);
-    
     // allocate storage for number of particles per type (including ghosts)
     GPUArray<unsigned int> num_per_type(m_pdata->getNTypes(), m_exec_conf);
     m_num_per_type.swap(num_per_type);
@@ -141,9 +138,7 @@ NeighborListGPUTree::~NeighborListGPUTree()
 
 void NeighborListGPUTree::buildNlist(unsigned int timestep)
     {
-    cout<<timestep<<endl;
     if (this->m_prof) this->m_prof->push("AABB Tree");
-    // cout<<timestep<<endl;
     // build the trees 
     buildTree();
     buildTreeGPU();
@@ -250,10 +245,16 @@ void NeighborListGPUTree::buildTreeGPU()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Build (GPU)");
     
+    if (m_pdata->getN() < (PARTICLES_PER_LEAF + 1))
+        {
+        m_exec_conf->msg->error() << "nlist: To use a binary tree, you need at least " << (PARTICLES_PER_LEAF + 1) 
+                                  << " particles"<<endl;
+        throw runtime_error("Error building AABB tree on gpu");
+        }
     
     // step one: morton code calculation
     calcMortonCodes();
-        
+    
 //         {
 //         ArrayHandle<unsigned int> h_morton_codes(m_morton_codes, access_location::host, access_mode::read);
 //         ArrayHandle<unsigned int> h_leaf_particles(m_leaf_particles, access_location::host, access_mode::read);
@@ -265,27 +266,63 @@ void NeighborListGPUTree::buildTreeGPU()
 //             }
 //         cout<<endl;
 //         }
-    
-    
+
+
     // step two: particle sorting
     sortMortonCodes();
 
+    // step three: merge leaf particles into aabbs
     updateLeafAABBCount();
-        
+    mergeLeafParticles();
+//         {
+//         ArrayHandle<Scalar4> h_tree_aabbs(m_tree_aabbs, access_location::host, access_mode::read);
+//         for (unsigned int cur_leaf=0; cur_leaf < m_n_leaf; ++cur_leaf)
+//             {
+//             cout<<h_tree_aabbs.data[2*cur_leaf+1].x<<"\t"<<h_tree_aabbs.data[2*cur_leaf].x<<"\t"<<h_tree_aabbs.data[2*cur_leaf+1].w<<endl;
+//             }
+//         cout<<endl;
+//         }
+    
     // step four: hierarchy generation
     genTreeHierarchy();
-        {
-        ArrayHandle<uint4> h_tree_hierarchy(m_tree_hierarchy, access_location::host, access_mode::read);
-        for (unsigned int cur_node = 0; cur_node < m_tree_hierarchy.getPitch(); ++cur_node)
-            {
-            cout<<h_tree_hierarchy.data[cur_node].x
-                <<"\t"<<h_tree_hierarchy.data[cur_node].y
-                <<"\t"<<h_tree_hierarchy.data[cur_node].z
-                <<"\t"<<h_tree_hierarchy.data[cur_node].w<<endl;
-            }
-        cout<<endl;
-        }
-    
+//         {
+//         ArrayHandle<unsigned int> h_tree_hierarchy(m_tree_hierarchy, access_location::host, access_mode::read);
+//         for (unsigned int cur_leaf = 0; cur_leaf < m_n_leaf; ++cur_leaf)
+//             {
+//             cout<<cur_leaf<<" : " << h_tree_hierarchy.data[m_n_leaf - m_pdata->getNTypes() + cur_leaf] << endl;
+//             }
+//         for (unsigned int cur_node = 0; cur_node < m_n_leaf - m_pdata->getNTypes(); ++cur_node)
+//             {
+//             cout<<cur_node<<" : ";
+// 
+//             unsigned int children = h_tree_hierarchy.data[cur_node];
+//             bool left_leaf = (children & 1);
+//             bool right_leaf = (children & 2);
+//             unsigned int split = children >> 2;
+//             cout<<cur_node<<"->"<<split<<"\t"
+//                 <<cur_node<<"->"<<(split + 1)<<"\t";
+//             
+//             unsigned int parent = h_tree_hierarchy.data[2*m_n_leaf - m_pdata->getNTypes() + cur_node];
+// 
+//             cout<<parent<<endl;
+//             }
+//         cout<<endl;
+//         }
+        
+    //step five: bubble up the aabbs
+    bubbleAABBs();
+//         {
+//         ArrayHandle<Scalar4> h_tree_aabbs(m_tree_aabbs, access_location::host, access_mode::read);
+//         for (unsigned int cur_node = 0; cur_node < m_n_leaf - m_pdata->getNTypes(); ++cur_node)
+//             {
+//             Scalar4 cur_upper = h_tree_aabbs.data[2*(m_n_leaf + cur_node)];
+//             Scalar4 cur_lower = h_tree_aabbs.data[2*(m_n_leaf + cur_node) + 1];
+//             
+//             cout<<cur_node<<"\t"<<cur_lower.x<<"\t"<<cur_upper.x<<endl;
+//             }
+//             
+//         }
+            
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
@@ -346,44 +383,100 @@ void NeighborListGPUTree::updateLeafAABBCount()
     for (unsigned int cur_type=0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
         h_leaf_offset.data[cur_type] = total_leaf_offset;
-        unsigned int remainder = h_num_per_type.data[cur_type] % 4;
+        unsigned int remainder = h_num_per_type.data[cur_type] % PARTICLES_PER_LEAF;
         
-        unsigned int n_leaf_i = (h_num_per_type.data[cur_type] + 4 - 1)/4;
+        unsigned int n_leaf_i = (h_num_per_type.data[cur_type] + PARTICLES_PER_LEAF - 1)/PARTICLES_PER_LEAF;
         
         if (remainder > 0)
             {
-            total_leaf_offset += 4 - remainder;
+            total_leaf_offset += PARTICLES_PER_LEAF - remainder;
             }
         n_leaf += n_leaf_i;
         }
         
     m_n_leaf = n_leaf;
     
-    if (m_n_leaf > m_leaf_aabbs.getPitch())
+    if (2*(2*m_n_leaf-m_pdata->getNTypes()) > m_tree_aabbs.getPitch())
         {
-        GPUArray<Scalar4> leaf_aabbs(m_n_leaf, m_exec_conf);
-        m_leaf_aabbs.swap(leaf_aabbs);
+        GPUArray<Scalar4> tree_aabbs(2*(2*m_n_leaf-m_pdata->getNTypes()), m_exec_conf);
+        m_tree_aabbs.swap(tree_aabbs);
+        
+        GPUArray<unsigned int> morton_codes_red(m_n_leaf, m_exec_conf);
+        m_morton_codes_red.swap(morton_codes_red);
+        
+        GPUArray<unsigned int> tree_hierarchy(2*(2*m_n_leaf - m_pdata->getNTypes()), m_exec_conf);
+        m_tree_hierarchy.swap(tree_hierarchy);
+        
+        GPUArray<unsigned int> node_locks(m_n_leaf - m_pdata->getNTypes(), m_exec_conf);
+        m_node_locks.swap(node_locks);
         }
     }
     
     
 void NeighborListGPUTree::mergeLeafParticles()
     {
+    if (m_prof) m_prof->push(m_exec_conf,"Leaf merge");
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_type_head(m_type_head, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_leaf_particles(m_leaf_particles, access_location::device, access_mode::read);
+    
+    ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_leaf_offset(m_leaf_offset, access_location::device, access_mode::read);
+    
+    ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::read);
+    
+    ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::overwrite);
+    
+    gpu_nlist_merge_particles(d_tree_aabbs.data,
+                              d_morton_codes_red.data,
+                              d_morton_codes.data,
+                              d_pos.data,
+                              d_num_per_type.data,
+                              m_pdata->getNTypes(),
+                              d_leaf_particles.data,
+                              d_leaf_offset.data,
+                              d_type_head.data,
+                              m_pdata->getN(),
+                              m_n_leaf,
+                              128);
+    
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
     
 void NeighborListGPUTree::genTreeHierarchy()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Hierarchy");
-    ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_type_head(m_type_head, access_location::device, access_mode::read);
-    ArrayHandle<uint4> d_tree_hierarchy(m_tree_hierarchy, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tree_hierarchy(m_tree_hierarchy, access_location::device, access_mode::overwrite);
     
-    gpu_nlist_gen_hierarchy(d_tree_hierarchy.data,
-                            d_morton_codes.data,
-                            d_type_head.data,
+    gpu_nlist_gen_hierarchy(d_tree_hierarchy.data + m_n_leaf - m_pdata->getNTypes(),
+                            d_tree_hierarchy.data + 2*m_n_leaf - m_pdata->getNTypes(),
+                            d_tree_hierarchy.data,
+                            d_morton_codes_red.data,
+                            d_num_per_type.data,
                             m_pdata->getN(),
                             m_pdata->getNTypes(),
+                            m_n_leaf,
                             128);
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+    
+void NeighborListGPUTree::bubbleAABBs()
+    {
+    if (m_prof) m_prof->push(m_exec_conf,"Bubble");
+    ArrayHandle<unsigned int> d_node_locks(m_node_locks, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_tree_hierarchy(m_tree_hierarchy, access_location::device, access_mode::read);
+    gpu_nlist_bubble_aabbs(d_node_locks.data,
+                           d_tree_aabbs.data,
+                           d_tree_hierarchy.data + m_n_leaf - m_pdata->getNTypes(),
+                           d_tree_hierarchy.data + 2*m_n_leaf - m_pdata->getNTypes(),
+                           d_tree_hierarchy.data,
+                           m_pdata->getNTypes(),
+                           m_n_leaf,
+                           128);
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 

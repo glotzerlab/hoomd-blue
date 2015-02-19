@@ -137,17 +137,20 @@ class NeighborListGPUTree : public NeighborListGPU
         virtual void scheduleDistanceCheck(unsigned int timestep);
         
         // tree building on gpu
-        GPUArray<unsigned int> m_morton_codes;  //!< 30 bit morton codes for particles to sort on z-order curve
-        GPUArray<unsigned int> m_leaf_particles; //!< holds the ids of the leaf particles to create a sorting map
-        GPUArray<unsigned int> m_leaf_offset;   //!< total offset in particle index for leaf nodes by type
-        GPUArray<Scalar4> m_leaf_aabbs;         //!< aabbs for merged leaf nodes
-        GPUArray<uint4> m_tree_hierarchy;       //!< parent and child node information
+        GPUArray<unsigned int> m_morton_codes;      //!< 30 bit morton codes for particles to sort on z-order curve
+        GPUArray<unsigned int> m_morton_codes_red;  //!< Reduced capacity morton code array
+        GPUArray<unsigned int> m_leaf_particles;    //!< holds the ids of the leaf particles to create a sorting map
+        GPUArray<unsigned int> m_leaf_offset;       //!< total offset in particle index for leaf nodes by type
+        GPUArray<Scalar4> m_tree_aabbs;             //!< aabbs for merged leaf nodes and internal nodes
+        GPUArray<unsigned int> m_tree_hierarchy;    //!< child and parent node information for internal nodes
+        GPUArray<unsigned int> m_node_locks;        //!< node locks for if node has been visited or not
         void buildTreeGPU();
         void calcMortonCodes();
         void sortMortonCodes();
         void updateLeafAABBCount();
         void mergeLeafParticles();
         void genTreeHierarchy();
+        void bubbleAABBs();
         
         unsigned int m_n_leaf;
         
