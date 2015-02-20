@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include "AABBTreeGPU.h"
 
-#define PARTICLES_PER_LEAF 16        // max number of particles in a leaf node, must be power of two
+#define PARTICLES_PER_LEAF 1        // max number of particles in a leaf node, must be power of two
 
 using namespace hpmc::detail;
 
@@ -129,7 +129,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
 //! Kernel driver to generate the AABB tree hierarchy from morton codes
 cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_leaf_parents,
                                     unsigned int *d_node_parents,
-                                    unsigned int *d_node_children,
+                                    uint2 *d_node_children,
                                     const unsigned int *d_morton_codes,
                                     const unsigned int *d_type_head,
                                     const unsigned int N,
@@ -141,7 +141,7 @@ cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    Scalar4 *d_tree_aabbs,
                                    const unsigned int *d_leaf_parents,
                                    const unsigned int *d_node_parents,
-                                   const unsigned int *d_node_children,
+                                   const uint2 *d_node_children,
                                    const unsigned int ntypes,
                                    const unsigned int nleafs,
                                    const unsigned int block_size);

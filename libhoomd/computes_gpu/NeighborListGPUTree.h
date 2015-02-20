@@ -144,6 +144,8 @@ class NeighborListGPUTree : public NeighborListGPU
         GPUArray<Scalar4> m_tree_aabbs;             //!< aabbs for merged leaf nodes and internal nodes
         GPUArray<unsigned int> m_tree_hierarchy;    //!< child and parent node information for internal nodes
         GPUArray<unsigned int> m_node_locks;        //!< node locks for if node has been visited or not
+        GPUArray<uint2> m_node_children;            //!< children of the internal nodes
+        GPUArray<uint2> m_tree_parent_sib;          //!< parents and siblings of all nodes
         void buildTreeGPU();
         void calcMortonCodes();
         void sortMortonCodes();

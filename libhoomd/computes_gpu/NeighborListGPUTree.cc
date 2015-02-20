@@ -255,17 +255,17 @@ void NeighborListGPUTree::buildTreeGPU()
     // step one: morton code calculation
     calcMortonCodes();
     
-//         {
-//         ArrayHandle<unsigned int> h_morton_codes(m_morton_codes, access_location::host, access_mode::read);
-//         ArrayHandle<unsigned int> h_leaf_particles(m_leaf_particles, access_location::host, access_mode::read);
-//         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-//         for (unsigned int i=0; i < m_pdata->getN(); ++i)
-//             {
-//             cout<<h_leaf_particles.data[i]<<"\t"<<h_morton_codes.data[i]<<"\t"
-//                 <<__scalar_as_int(h_pos.data[h_leaf_particles.data[i]].w)<<endl;
-//             }
-//         cout<<endl;
-//         }
+        {
+        ArrayHandle<unsigned int> h_morton_codes(m_morton_codes, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_leaf_particles(m_leaf_particles, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        for (unsigned int i=0; i < m_pdata->getN(); ++i)
+            {
+            cout<<h_leaf_particles.data[i]<<"\t"<<h_morton_codes.data[i]<<"\t"
+                <<__scalar_as_int(h_pos.data[h_leaf_particles.data[i]].w)<<endl;
+            }
+        cout<<endl;
+        }
 
 
     // step two: particle sorting
@@ -274,54 +274,67 @@ void NeighborListGPUTree::buildTreeGPU()
     // step three: merge leaf particles into aabbs
     updateLeafAABBCount();
     mergeLeafParticles();
-//         {
-//         ArrayHandle<Scalar4> h_tree_aabbs(m_tree_aabbs, access_location::host, access_mode::read);
-//         for (unsigned int cur_leaf=0; cur_leaf < m_n_leaf; ++cur_leaf)
-//             {
-//             cout<<h_tree_aabbs.data[2*cur_leaf+1].x<<"\t"<<h_tree_aabbs.data[2*cur_leaf].x<<"\t"<<h_tree_aabbs.data[2*cur_leaf+1].w<<endl;
-//             }
-//         cout<<endl;
-//         }
+        {
+        ArrayHandle<Scalar4> h_tree_aabbs(m_tree_aabbs, access_location::host, access_mode::read);
+        for (unsigned int cur_leaf=0; cur_leaf < m_n_leaf; ++cur_leaf)
+            {
+            cout<<h_tree_aabbs.data[2*cur_leaf+1].x<<"\t"<<h_tree_aabbs.data[2*cur_leaf].x<<"\t"<<h_tree_aabbs.data[2*cur_leaf+1].w<<endl;
+            }
+        cout<<endl;
+        }
     
     // step four: hierarchy generation
     genTreeHierarchy();
-//         {
-//         ArrayHandle<unsigned int> h_tree_hierarchy(m_tree_hierarchy, access_location::host, access_mode::read);
-//         for (unsigned int cur_leaf = 0; cur_leaf < m_n_leaf; ++cur_leaf)
+        {
+        ArrayHandle<unsigned int> h_tree_hierarchy(m_tree_hierarchy, access_location::host, access_mode::read);
+        ArrayHandle<uint2> h_node_children(m_node_children, access_location::host, access_mode::read);
+//         for (unsigned int i=0; i < m_n_leaf - m_pdata->getNTypes(); ++i)
 //             {
-//             cout<<cur_leaf<<" : " << h_tree_hierarchy.data[m_n_leaf - m_pdata->getNTypes() + cur_leaf] << endl;
+//             cout<<i<<"\t"<<h_tree_hierarchy.data[i]<<endl;
 //             }
-//         for (unsigned int cur_node = 0; cur_node < m_n_leaf - m_pdata->getNTypes(); ++cur_node)
-//             {
-//             cout<<cur_node<<" : ";
-// 
+        for (unsigned int cur_leaf = 0; cur_leaf < m_n_leaf; ++cur_leaf)
+            {
+            cout<<cur_leaf<<" : " << h_tree_hierarchy.data[m_n_leaf - m_pdata->getNTypes() + cur_leaf] << endl;
+            }
+        for (unsigned int cur_node = 0; cur_node < m_n_leaf - m_pdata->getNTypes(); ++cur_node)
+            {
+            cout<<cur_node<<" : ";
+
+            uint2 children = h_node_children.data[cur_node];
+            string left_tag = (children.x & 1) ? "L" : "N";
+            string right_tag = (children.y & 1) ? "L" : "N";
+            
 //             unsigned int children = h_tree_hierarchy.data[cur_node];
 //             bool left_leaf = (children & 1);
 //             bool right_leaf = (children & 2);
 //             unsigned int split = children >> 2;
-//             cout<<cur_node<<"->"<<split<<"\t"
-//                 <<cur_node<<"->"<<(split + 1)<<"\t";
-//             
-//             unsigned int parent = h_tree_hierarchy.data[2*m_n_leaf - m_pdata->getNTypes() + cur_node];
-// 
-//             cout<<parent<<endl;
-//             }
-//         cout<<endl;
-//         }
+            cout<<"N"<<cur_node<<"->"<<left_tag<<(children.x >> 1)<<"\t"
+                <<"N"<<cur_node<<"->"<<right_tag<<(children.y >> 1)<<"\t";
+            
+            unsigned int parent = h_tree_hierarchy.data[2*m_n_leaf - m_pdata->getNTypes() + cur_node];
+
+            cout<<parent<<endl;
+            }
+        cout<<endl;
+        }
         
-    //step five: bubble up the aabbs
+    // step five: bubble up the aabbs
     bubbleAABBs();
-//         {
-//         ArrayHandle<Scalar4> h_tree_aabbs(m_tree_aabbs, access_location::host, access_mode::read);
-//         for (unsigned int cur_node = 0; cur_node < m_n_leaf - m_pdata->getNTypes(); ++cur_node)
-//             {
-//             Scalar4 cur_upper = h_tree_aabbs.data[2*(m_n_leaf + cur_node)];
-//             Scalar4 cur_lower = h_tree_aabbs.data[2*(m_n_leaf + cur_node) + 1];
-//             
-//             cout<<cur_node<<"\t"<<cur_lower.x<<"\t"<<cur_upper.x<<endl;
-//             }
-//             
-//         }
+        {
+        ArrayHandle<Scalar4> h_tree_aabbs(m_tree_aabbs, access_location::host, access_mode::read);
+        for (unsigned int cur_node = 0; cur_node < m_n_leaf - m_pdata->getNTypes(); ++cur_node)
+            {
+            Scalar4 cur_upper = h_tree_aabbs.data[2*(m_n_leaf + cur_node)];
+            Scalar4 cur_lower = h_tree_aabbs.data[2*(m_n_leaf + cur_node) + 1];
+            
+            cout<<cur_node<<"\t"<<cur_lower.x<<"\t"<<cur_upper.x<<endl;
+            }
+            
+        }
+        
+    // step six: rearrange the tree in memory on CPU to abide by stackless left-first convention in CPU code
+    // it is important to time this (with copy), because it could really slow things down,
+    // or it might not cost much at all.
             
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -407,6 +420,12 @@ void NeighborListGPUTree::updateLeafAABBCount()
         GPUArray<unsigned int> tree_hierarchy(2*(2*m_n_leaf - m_pdata->getNTypes()), m_exec_conf);
         m_tree_hierarchy.swap(tree_hierarchy);
         
+        GPUArray<uint2> node_children(m_n_leaf - m_pdata->getNTypes(), m_exec_conf);
+        m_node_children.swap(node_children);
+        
+        GPUArray<uint2> tree_parent_sib(2*m_n_leaf - m_pdata->getNTypes(), m_exec_conf);
+        m_tree_parent_sib.swap(tree_parent_sib);
+        
         GPUArray<unsigned int> node_locks(m_n_leaf - m_pdata->getNTypes(), m_exec_conf);
         m_node_locks.swap(node_locks);
         }
@@ -450,10 +469,11 @@ void NeighborListGPUTree::genTreeHierarchy()
     ArrayHandle<unsigned int> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_tree_hierarchy(m_tree_hierarchy, access_location::device, access_mode::overwrite);
+    ArrayHandle<uint2> d_node_children(m_node_children, access_location::device, access_mode::overwrite);
     
     gpu_nlist_gen_hierarchy(d_tree_hierarchy.data + m_n_leaf - m_pdata->getNTypes(),
                             d_tree_hierarchy.data + 2*m_n_leaf - m_pdata->getNTypes(),
-                            d_tree_hierarchy.data,
+                            d_node_children.data,
                             d_morton_codes_red.data,
                             d_num_per_type.data,
                             m_pdata->getN(),
@@ -469,11 +489,13 @@ void NeighborListGPUTree::bubbleAABBs()
     ArrayHandle<unsigned int> d_node_locks(m_node_locks, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_tree_hierarchy(m_tree_hierarchy, access_location::device, access_mode::read);
+    ArrayHandle<uint2> d_node_children(m_node_children, access_location::device, access_mode::read);
+    
     gpu_nlist_bubble_aabbs(d_node_locks.data,
                            d_tree_aabbs.data,
                            d_tree_hierarchy.data + m_n_leaf - m_pdata->getNTypes(),
                            d_tree_hierarchy.data + 2*m_n_leaf - m_pdata->getNTypes(),
-                           d_tree_hierarchy.data,
+                           d_node_children.data,
                            m_pdata->getNTypes(),
                            m_n_leaf,
                            128);
