@@ -512,6 +512,8 @@ class NeighborList : public Compute
         void slotGlobalParticleNumberChange()
             {
             m_want_exclusions = true;
+
+            reallocate();
             }
     };
 
