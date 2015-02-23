@@ -363,8 +363,8 @@ def rigid():
 
     # create the group
     name = 'rigid';
-    selector = hoomd.ParticleSelectorRigid(globals.system_definition);
-    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector, update);
+    selector = hoomd.ParticleSelectorRigid(globals.system_definition,True);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
     globals.msg.notice(2, 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembersGlobal()) + ' particles\n');
