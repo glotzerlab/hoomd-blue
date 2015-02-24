@@ -205,6 +205,9 @@ void NeighborListGPUTree::allocateTree(unsigned int n_local)
         
         GPUArray<unsigned int> map_p_global_tree(m_max_n_local, m_exec_conf);
         m_map_p_global_tree.swap(map_p_global_tree);
+        
+        GPUArray<unsigned int> map_tree_global(m_max_n_local, m_exec_conf);
+        m_map_tree_global.swap(map_tree_global);
         }
     }
 
@@ -217,6 +220,7 @@ void NeighborListGPUTree::getNumPerType()
     ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_type_head(m_type_head, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_map_p_global_tree(m_map_p_global_tree, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_map_tree_global(m_map_tree_global, access_location::host, access_mode::overwrite);
 
     // clear out counters
     unsigned int n_types = m_pdata->getNTypes();
@@ -241,6 +245,15 @@ void NeighborListGPUTree::getNumPerType()
         {
         h_type_head.data[i] = local_head;
         local_head += h_num_per_type.data[i];
+        }
+        
+    // set the reverse mapping
+    // given a tree node, find the global particle
+    for (unsigned int i=0; i < n_local; ++i)
+        {
+        unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
+        unsigned int tree_id = h_type_head.data[my_type] + h_map_p_global_tree.data[i];
+        h_map_tree_global.data[tree_id] = i;
         }
         
     if (m_prof) m_prof->pop(m_exec_conf);
@@ -380,13 +393,15 @@ void NeighborListGPUTree::buildTreeGPU()
 void NeighborListGPUTree::calcMortonCodes()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Morton codes");
+    
+    if (m_prof) m_prof->push(m_exec_conf,"copy");
     // particle data and where to write it
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_type_head(m_type_head, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_map_p_global_tree(m_map_p_global_tree, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::read);
 
     ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_leaf_particles(m_leaf_particles, access_location::device, access_mode::overwrite);
+    if (m_prof) m_prof->pop(m_exec_conf);
     
     const BoxDim& box = m_pdata->getBox();
 
@@ -402,10 +417,8 @@ void NeighborListGPUTree::calcMortonCodes()
     gpu_nlist_morton_codes(d_morton_codes.data,
                            d_leaf_particles.data,
                            d_pos.data,
-                           d_map_p_global_tree.data,
+                           d_map_tree_global.data,
                            m_pdata->getN(),
-                           d_type_head.data,
-                           m_pdata->getNTypes(),
                            box,
                            ghost_width,
                            128);
@@ -416,10 +429,11 @@ void NeighborListGPUTree::calcMortonCodes()
 void NeighborListGPUTree::sortMortonCodes()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Sort");
+    
     ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_leaf_particles(m_leaf_particles, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
-
+    
     gpu_nlist_morton_sort(d_morton_codes.data, d_leaf_particles.data, h_num_per_type.data, m_pdata->getNTypes());    
 
     if (m_prof) m_prof->pop(m_exec_conf);

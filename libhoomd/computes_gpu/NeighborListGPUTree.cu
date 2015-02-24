@@ -202,26 +202,11 @@ __device__ inline unsigned int findSplit(const unsigned int *d_morton_codes,
 __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
                                               unsigned int *d_leaf_particles,
                                               const Scalar4 *d_pos,
-                                              const unsigned int *d_map_p_global_tree,
+                                              const unsigned int *d_map_tree_global,
                                               const unsigned int N,
-                                              const unsigned int *d_type_head,
-                                              const unsigned int ntypes,
                                               const BoxDim box,
                                               const Scalar3 ghost_width)
     {
-    // shared memory cache of type head
-    extern __shared__ unsigned char s_data[];
-    unsigned int *s_type_head = (unsigned int *)(&s_data[0]);
-
-    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
-        {
-        if (cur_offset + threadIdx.x < ntypes)
-            {
-            s_type_head[cur_offset + threadIdx.x] = d_type_head[cur_offset + threadIdx.x];
-            }
-        }
-    __syncthreads();
-    
     // compute the particle index this thread operates on
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -230,9 +215,9 @@ __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
         return;
     
     // acquire particle data
-    Scalar4 postype = d_pos[idx];
+    Scalar4 postype = d_pos[ d_map_tree_global[idx] ];
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-    unsigned int type = __scalar_as_int(postype.w);
+    const unsigned int type = __scalar_as_int(postype.w);
         
     uchar3 periodic = box.getPeriodic();
     Scalar3 f = box.makeFraction(pos,ghost_width);
@@ -268,24 +253,19 @@ __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
     unsigned int morton_code = ii * 4 + jj * 2 + kk;
     
     // sort morton code by type as we compute it
-    unsigned int leaf_idx = s_type_head[type] + d_map_p_global_tree[idx];
-    d_morton_codes[leaf_idx] = morton_code;
-    d_leaf_particles[leaf_idx] = idx;
+    d_morton_codes[idx] = morton_code;
+    d_leaf_particles[idx] = idx;
     }
 
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
                                    unsigned int *d_leaf_particles,
                                    const Scalar4 *d_pos,
-                                   const unsigned int *d_map_p_global_tree,
+                                   const unsigned int *d_map_tree_global,
                                    const unsigned int N,
-                                   const unsigned int *d_type_head,
-                                   const unsigned int ntypes,
                                    const BoxDim& box,
                                    const Scalar3 ghost_width,
                                    const unsigned int block_size)
     {
-    unsigned int shared_size = sizeof(unsigned int)*ntypes;
-    
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
@@ -296,15 +276,13 @@ cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
 
     int run_block_size = min(block_size,max_block_size);
     
-    gpu_nlist_morton_codes_kernel<<<N/run_block_size + 1, run_block_size, shared_size>>>(d_morton_codes,
-                                                                                         d_leaf_particles,
-                                                                                         d_pos,
-                                                                                         d_map_p_global_tree,
-                                                                                         N,
-                                                                                         d_type_head,
-                                                                                         ntypes,
-                                                                                         box,
-                                                                                         ghost_width);
+    gpu_nlist_morton_codes_kernel<<<N/run_block_size + 1, run_block_size>>>(d_morton_codes,
+                                                                            d_leaf_particles,
+                                                                            d_pos,
+                                                                            d_map_tree_global,
+                                                                            N,
+                                                                            box,
+                                                                            ghost_width);
     return cudaSuccess;
     }
     

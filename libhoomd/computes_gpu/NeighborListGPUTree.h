@@ -137,6 +137,7 @@ class NeighborListGPUTree : public NeighborListGPU
         virtual void scheduleDistanceCheck(unsigned int timestep);
         
         // tree building on gpu
+        GPUArray<unsigned int> m_map_tree_global;   //!< map a leaf order id to a global particle
         GPUArray<unsigned int> m_morton_codes;      //!< 30 bit morton codes for particles to sort on z-order curve
         GPUArray<unsigned int> m_morton_codes_red;  //!< Reduced capacity morton code array
         GPUArray<unsigned int> m_leaf_particles;    //!< holds the ids of the leaf particles to create a sorting map
