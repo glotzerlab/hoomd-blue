@@ -660,3 +660,48 @@ class pdb(analyze._analyzer):
         self.check_initialization();
 
         self.cpp_analyzer.writeFile(filename);
+
+## Writes simulation metadata into a file
+#
+# When called, this function will query all registered computes, updaters etc. and ask
+# them to provide metadata. E.g. a pair potential will return information about parameters,
+# the Logger will output the filename it is logging to, etc.
+#
+# Custom metadata can be provided as a dictionary.
+#
+# The output is aggregated into a database record (JSON) and written to a file, together with
+# a timestamp.
+#
+def write_metadata(filename,obj=None,overwrite=False):
+    util.print_status_line();
+
+    from hoomd_script import init
+    if not init.is_initialized():
+        globals.msg.error("Need to initialize system first.\n")
+        raise RuntimeError("Error writing out metadata.")
+
+    import json
+
+    data = []
+    if obj is None:
+        obj = {}
+    else:
+        if not isinstance(obj,dict):
+            globals.msg.warning("Metadata needs to be of type dictionary. Ignoring.\n")
+
+    if not overwrite:
+        try:
+            with open(filename) as f:
+                data = json.load(f)
+                globals.msg.notice(2,"Appending to file {1}." % filename)
+        except Exception:
+            pass
+
+    import time
+    import datetime
+    ts = time.time()
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    obj.update({'timestamp': st})
+    data.append(obj)
+    with open(filename, 'w') as f:
+        json.dump(data, f,indent=4)
