@@ -1608,8 +1608,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     {
     //shift using gridtshift origin
     Scalar3 tmp_pos = pos + m_origin;
-    int3 img = make_int3(0,0,0);
-    m_global_box.wrap(tmp_pos, img);
+
     unsigned int idx = getRTag(tag);
     bool ptl_local = (idx < getN());
 
@@ -1619,10 +1618,30 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
     if (m_decomposition) owner_rank = getOwnerRank(tag);
     #endif
 
+    // load current particle image
+    int3 img;
+    if (ptl_local)
+        {
+        ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::read);
+        img = h_image.data[idx];
+        }
+    else
+        {
+        // if we don't own the particle, we are not going to use image flags
+        img = make_int3(0,0,0);
+        }
+
+    // wrap into box and update image
+    m_global_box.wrap(tmp_pos, img);
+
+    // store position and image
     if (ptl_local)
         {
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::readwrite);
+        ArrayHandle< int3 > h_image(m_image, access_location::host, access_mode::readwrite);
+
         h_pos.data[idx].x = tmp_pos.x; h_pos.data[idx].y = tmp_pos.y; h_pos.data[idx].z = tmp_pos.z;
+        h_image.data[idx] = img;
         }
 
     #ifdef ENABLE_MPI
