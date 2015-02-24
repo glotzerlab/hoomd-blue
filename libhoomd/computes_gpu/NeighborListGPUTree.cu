@@ -1123,7 +1123,7 @@ __global__ void gpu_nlist_traverse_tree2_kernel(unsigned int *d_nlist,
                         {
                         // leaf node
                         // all leaves must have at least 1 particle, so we can use this to decide
-                        /*for (unsigned int cur_p = 0; cur_p < n_part; ++cur_p)
+                        for (unsigned int cur_p = 0; cur_p < n_part; ++cur_p)
                             { 
                             // neighbor j
                             const Scalar4 cur_xyzf = texFetchScalar4(d_leaf_xyzf, leaf_xyzf_tex, PARTICLES_PER_LEAF*cur_node_idx - d_leaf_offset[cur_pair_type] + cur_p);
@@ -1152,9 +1152,9 @@ __global__ void gpu_nlist_traverse_tree2_kernel(unsigned int *d_nlist,
                                     ++n_neigh_i;
                                     }
                                 }
-                            }*/
-                        d_nlist[nlist_head_i + n_neigh_i] = cur_node_idx;
-                        ++n_neigh_i;
+                            }
+//                         d_nlist[nlist_head_i + n_neigh_i] = cur_node_idx;
+//                         ++n_neigh_i;
                         
                         cur_node_idx = __scalar_as_int(upper_skip.w);
                         }

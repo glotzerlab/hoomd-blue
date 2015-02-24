@@ -916,16 +916,16 @@ void NeighborListGPUTree::traverseTree2()
     m_tuner->end();
     
     
-    if (m_prof) m_prof->push(m_exec_conf,"loop");
-    gpu_nlist_dummy_loop_hits(d_nlist.data,
-                              d_n_neigh.data,
-                              d_leaf_xyzf.data,
-                              d_leaf_tdb.data,
-                              d_leaf_offset.data,
-                              m_pdata->getN(),
-                              m_exec_conf->getComputeCapability()/10,
-                              128);
-    if (m_prof) m_prof->pop(m_exec_conf);
+//     if (m_prof) m_prof->push(m_exec_conf,"loop");
+//     gpu_nlist_dummy_loop_hits(d_nlist.data,
+//                               d_n_neigh.data,
+//                               d_leaf_xyzf.data,
+//                               d_leaf_tdb.data,
+//                               d_leaf_offset.data,
+//                               m_pdata->getN(),
+//                               m_exec_conf->getComputeCapability()/10,
+//                               128);
+//     if (m_prof) m_prof->pop(m_exec_conf);
             
     if (m_prof) m_prof->pop(m_exec_conf);
     }
