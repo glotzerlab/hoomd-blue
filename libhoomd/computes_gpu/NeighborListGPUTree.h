@@ -142,9 +142,8 @@ class NeighborListGPUTree : public NeighborListGPU
         GPUArray<unsigned int> m_leaf_particles;    //!< holds the ids of the leaf particles to create a sorting map
         GPUArray<unsigned int> m_leaf_offset;       //!< total offset in particle index for leaf nodes by type
         GPUArray<Scalar4> m_tree_aabbs;             //!< aabbs for merged leaf nodes and internal nodes
-        GPUArray<unsigned int> m_tree_hierarchy;    //!< child and parent node information for internal nodes
         GPUArray<unsigned int> m_node_locks;        //!< node locks for if node has been visited or not
-        GPUArray<uint2> m_node_children;            //!< children of the internal nodes
+        GPUArray<unsigned int> m_node_left_child;   //!< left children of the internal nodes
         GPUArray<uint2> m_tree_parent_sib;          //!< parents and siblings of all nodes
         void buildTreeGPU();
         void calcMortonCodes();
@@ -155,20 +154,13 @@ class NeighborListGPUTree : public NeighborListGPU
         void bubbleAABBs();
         void moveLeafParticles();
         
-        // all of these are alt variables to allow the two trees to coexist temporarily
-        // for comparison purposes. all of this will be removed in production code.
-        void convertGPUTree();
-        GPUArray<uint2> m_tree_convert_map;
-        GPUArray<AABBTreeGPU> m_aabb_trees_gpu_alt;
-        GPUArray<Scalar4> m_aabb_node_bounds_alt;
-        GPUArray<unsigned int> m_aabb_node_head_idx_alt;
-        
         void traverseTree2();
         GPUArray<unsigned int> m_tree_roots;
         GPUArray<Scalar4> m_leaf_xyzf_alt;
         GPUArray<Scalar4> m_leaf_tdb_alt;
         
-        unsigned int m_n_leaf;
+        unsigned int m_n_leaf;                      //!< total number of leaves in tree
+        unsigned int m_n_node;                      //!< total number of nodes (including leaves) in tree
         
     private:
         void updateImageVectors();

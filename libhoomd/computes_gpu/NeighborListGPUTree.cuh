@@ -94,33 +94,6 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                      const unsigned int compute_capability,
                                      const unsigned int block_size);
                                      
-cudaError_t gpu_nlist_traverse_tree2(unsigned int *d_nlist,
-                                     unsigned int *d_n_neigh,
-                                     Scalar4 *d_last_updated_pos,
-                                     unsigned int *d_conditions,
-                                     const unsigned int *d_Nmax,
-                                     const unsigned int *d_head_list,
-                                     const unsigned int N,
-                                     // tree data
-                                     const unsigned int *d_leaf_particles,
-                                     const unsigned int *d_leaf_offset,
-                                     const unsigned int *d_tree_roots,
-                                     const uint2 *d_node_children,
-                                     const Scalar4 *d_tree_aabbs,
-                                     const unsigned int nleafs,
-                                     const Scalar4 *d_leaf_xyzf,
-                                     const Scalar4 *d_leaf_tdb,
-                                     // images
-                                     const Scalar3 *d_image_list,
-                                     const unsigned int nimages,
-                                     // neighbor list cutoffs
-                                     const Scalar *d_r_cut,
-                                     const Scalar r_buff,
-                                     const unsigned int ntypes,
-                                     bool filter_body,
-                                     const unsigned int compute_capability,
-                                     const unsigned int block_size);
-                                     
 //! Kernel driver to generate morton codes for particles and reorder by type
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
                                    unsigned int *d_particle_ids,
@@ -154,9 +127,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
                                       const unsigned int block_size);
 
 //! Kernel driver to generate the AABB tree hierarchy from morton codes
-cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_leaf_parents,
-                                    unsigned int *d_node_parents,
-                                    uint2 *d_node_children,
+cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_node_left_child,
                                     uint2 *d_tree_parent_sib,
                                     const unsigned int *d_morton_codes,
                                     const unsigned int *d_type_head,
@@ -167,7 +138,6 @@ cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_leaf_parents,
                                     
 cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    Scalar4 *d_tree_aabbs,
-                                   const uint2 *d_node_children,
                                    const uint2 *d_tree_parent_sib,
                                    const unsigned int ntypes,
                                    const unsigned int nleafs,
@@ -181,14 +151,32 @@ cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
                                      const unsigned int *d_leaf_particles,
                                      const unsigned int N,
                                      const unsigned int block_size);
-                                     
-cudaError_t gpu_nlist_dummy_loop_hits(const unsigned int *d_nlist,
-                                      const unsigned int *d_n_neigh,
-                                      const Scalar4 *d_leaf_xyzf,
-                                      const Scalar4 *d_leaf_tdb,
-                                      const unsigned int *d_leaf_offset,
-                                      const unsigned int N,
-                                      const unsigned int compute_capability,
-                                      const unsigned int block_size);
+
+cudaError_t gpu_nlist_traverse_tree2(unsigned int *d_nlist,
+                                     unsigned int *d_n_neigh,
+                                     Scalar4 *d_last_updated_pos,
+                                     unsigned int *d_conditions,
+                                     const unsigned int *d_Nmax,
+                                     const unsigned int *d_head_list,
+                                     const unsigned int N,
+                                     // tree data
+                                     const unsigned int *d_leaf_particles,
+                                     const unsigned int *d_leaf_offset,
+                                     const unsigned int *d_tree_roots,
+                                     const unsigned int *d_node_left_child,
+                                     const Scalar4 *d_tree_aabbs,
+                                     const unsigned int nleafs,
+                                     const Scalar4 *d_leaf_xyzf,
+                                     const Scalar4 *d_leaf_tdb,
+                                     // images
+                                     const Scalar3 *d_image_list,
+                                     const unsigned int nimages,
+                                     // neighbor list cutoffs
+                                     const Scalar *d_r_cut,
+                                     const Scalar r_buff,
+                                     const unsigned int ntypes,
+                                     bool filter_body,
+                                     const unsigned int compute_capability,
+                                     const unsigned int block_size);
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__

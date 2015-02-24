@@ -77,7 +77,7 @@ using namespace boost;
 NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_max_n_local(0), m_n_leaf(0)
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_max_n_local(0), m_n_leaf(0), m_n_node(0)
     {
     // allocate AABB trees to match the number of types, and initialize
     GPUArray<AABBTree> aabb_trees(m_pdata->getNTypes(), m_exec_conf);
@@ -107,8 +107,6 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
     m_leaf_offset.swap(leaf_offset);
     
     // temporary mapping variables
-    GPUArray<AABBTreeGPU> aabb_trees_gpu_alt(m_pdata->getNTypes(), m_exec_conf);
-    m_aabb_trees_gpu_alt.swap(aabb_trees_gpu_alt);
     GPUArray<Scalar4> leaf_xyzf_alt(m_pdata->getN(), m_exec_conf);
     m_leaf_xyzf_alt.swap(leaf_xyzf_alt);
     GPUArray<Scalar4> leaf_tdb_alt(m_pdata->getN(), m_exec_conf);
@@ -248,6 +246,7 @@ void NeighborListGPUTree::getNumPerType()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
+//! build tree on cpu
 void NeighborListGPUTree::buildTree()
     {
     m_exec_conf->msg->notice(4) << "Building AABB tree: " << m_pdata->getN() << " ptls "
@@ -287,7 +286,8 @@ void NeighborListGPUTree::buildTree()
         }
     if (m_prof) m_prof->pop(m_exec_conf);
     }
-    
+
+//! build tree on gpu    
 void NeighborListGPUTree::buildTreeGPU()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Build (GPU)");
@@ -372,16 +372,11 @@ void NeighborListGPUTree::buildTreeGPU()
 //             }
 //             
 //         }
-        
-    // don't do this!
-    // step six: rearrange the tree in memory on CPU to abide by stackless left-first convention in CPU code
-    // it is important to time this (with copy), because it could really slow things down,
-    // or it might not cost much at all.
-//     convertGPUTree()
             
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
+//! calculate the morton codes for each particle
 void NeighborListGPUTree::calcMortonCodes()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Morton codes");
@@ -416,7 +411,8 @@ void NeighborListGPUTree::calcMortonCodes()
                            128);
     if (m_prof) m_prof->pop(m_exec_conf);
     }
-    
+
+//! sort the morton codes within a type using thrust libraries    
 void NeighborListGPUTree::sortMortonCodes()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Sort");
@@ -428,13 +424,16 @@ void NeighborListGPUTree::sortMortonCodes()
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
-    
+
+//! update the leaf offsets, and reallocate tree memory
 void NeighborListGPUTree::updateLeafAABBCount()
     {
     unsigned int n_leaf = 0;
     ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_leaf_offset(m_leaf_offset, access_location::host, access_mode::overwrite);
     
+    // first compute the particle offset corresponding to each atom type
+    // subtract this offset from leaf_idx * PARTICLES_PER_LEAF to get the starting particle id
     unsigned int total_leaf_offset = 0;
     for (unsigned int cur_type=0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
@@ -449,54 +448,58 @@ void NeighborListGPUTree::updateLeafAABBCount()
             }
         n_leaf += n_leaf_i;
         }
-        
+       
+    // compute the total number of leaves and nodes 
     m_n_leaf = n_leaf;
+    // a binary radix tree has N_leaf - N_types internal nodes
+    m_n_node = 2*m_n_leaf - m_pdata->getNTypes();
     
-    if (2*(2*m_n_leaf-m_pdata->getNTypes()) > m_tree_aabbs.getPitch())
+    // set the position of the root nodes for each particle by type
+    ArrayHandle<unsigned int> h_tree_roots(m_tree_roots, access_location::host, access_mode::overwrite);
+    unsigned int root_head = m_n_leaf;
+    for (unsigned int cur_type=0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
-        GPUArray<Scalar4> tree_aabbs(2*(2*m_n_leaf-m_pdata->getNTypes()), m_exec_conf);
+        h_tree_roots.data[cur_type] = root_head;
+        root_head += (h_num_per_type.data[cur_type] + PARTICLES_PER_LEAF - 1)/PARTICLES_PER_LEAF - 1;
+        }
+    
+    // reallocate arrays if necessary
+    if (2*m_n_node > m_tree_aabbs.getPitch())
+        {
+        GPUArray<Scalar4> tree_aabbs(2*m_n_node, m_exec_conf);
         m_tree_aabbs.swap(tree_aabbs);
         
         GPUArray<unsigned int> morton_codes_red(m_n_leaf, m_exec_conf);
         m_morton_codes_red.swap(morton_codes_red);
         
-        GPUArray<unsigned int> tree_hierarchy(2*(2*m_n_leaf - m_pdata->getNTypes()), m_exec_conf);
-        m_tree_hierarchy.swap(tree_hierarchy);
+        GPUArray<unsigned int> node_left_child(m_n_leaf - m_pdata->getNTypes(), m_exec_conf);
+        m_node_left_child.swap(node_left_child);
         
-        GPUArray<uint2> node_children(m_n_leaf - m_pdata->getNTypes(), m_exec_conf);
-        m_node_children.swap(node_children);
-        
-        GPUArray<uint2> tree_parent_sib(2*m_n_leaf - m_pdata->getNTypes(), m_exec_conf);
+        GPUArray<uint2> tree_parent_sib(m_n_node, m_exec_conf);
         m_tree_parent_sib.swap(tree_parent_sib);
         
         GPUArray<unsigned int> node_locks(m_n_leaf - m_pdata->getNTypes(), m_exec_conf);
         m_node_locks.swap(node_locks);
-        
-        GPUArray<uint2> tree_convert_map(2*m_n_leaf - m_pdata->getNTypes(), m_exec_conf);
-        m_tree_convert_map.swap(tree_convert_map);
-        
-        
-        GPUArray<Scalar4> aabb_node_bounds_alt(m_tree_aabbs.getPitch(), m_exec_conf);
-        m_aabb_node_bounds_alt.swap(aabb_node_bounds_alt);
-        GPUArray<unsigned int> aabb_node_head_idx_alt(m_tree_aabbs.getPitch(), m_exec_conf);
-        m_aabb_node_head_idx_alt.swap(aabb_node_head_idx_alt);
         }
     }
     
-    
+//! merge leaf particles by ID into AABBs    
 void NeighborListGPUTree::mergeLeafParticles()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Leaf merge");
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_type_head(m_type_head, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_leaf_particles(m_leaf_particles, access_location::device, access_mode::read);
     
-    ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::overwrite);
+    // particle position data
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_type_head(m_type_head, access_location::device, access_mode::read);
+    
+    // leaf particle data
+    ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_leaf_particles(m_leaf_particles, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_leaf_offset(m_leaf_offset, access_location::device, access_mode::read);
     
-    ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::read);
-    
-    ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::read);
+    // tree aabbs and reduced morton codes to overwrite
+    ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::overwrite);
     
     gpu_nlist_merge_particles(d_tree_aabbs.data,
@@ -514,19 +517,23 @@ void NeighborListGPUTree::mergeLeafParticles()
     
     if (m_prof) m_prof->pop(m_exec_conf);
     }
-    
+
+//! generate the parent/child/sibling relationships using the morton codes    
+/*!
+ * This function should always be called alongside bubbleAABBs to generate a complete hierarchy.
+ * genTreeHierarchy saves only the left children of the nodes for downward traversal because bubbleAABBs
+ * saves the right child as a rope.
+ */
 void NeighborListGPUTree::genTreeHierarchy()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Hierarchy");
-    ArrayHandle<unsigned int> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_tree_hierarchy(m_tree_hierarchy, access_location::device, access_mode::overwrite);
-    ArrayHandle<uint2> d_node_children(m_node_children, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_node_left_child(m_node_left_child, access_location::device, access_mode::overwrite);
     ArrayHandle<uint2> d_tree_parent_sib(m_tree_parent_sib, access_location::device, access_mode::overwrite);
     
-    gpu_nlist_gen_hierarchy(d_tree_hierarchy.data + m_n_leaf - m_pdata->getNTypes(),
-                            d_tree_hierarchy.data + 2*m_n_leaf - m_pdata->getNTypes(),
-                            d_node_children.data,
+    ArrayHandle<unsigned int> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::read);
+    
+    gpu_nlist_gen_hierarchy(d_node_left_child.data,
                             d_tree_parent_sib.data,
                             d_morton_codes_red.data,
                             d_num_per_type.data,
@@ -536,19 +543,18 @@ void NeighborListGPUTree::genTreeHierarchy()
                             128);
     if (m_prof) m_prof->pop(m_exec_conf);
     }
-    
+
+//! walk up the tree from the leaves, and assign stackless ropes for traversal, and conservative AABBs    
 void NeighborListGPUTree::bubbleAABBs()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Bubble");
     ArrayHandle<unsigned int> d_node_locks(m_node_locks, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_tree_hierarchy(m_tree_hierarchy, access_location::device, access_mode::read);
-    ArrayHandle<uint2> d_node_children(m_node_children, access_location::device, access_mode::read);
+    
     ArrayHandle<uint2> d_tree_parent_sib(m_tree_parent_sib, access_location::device, access_mode::read);
     
     gpu_nlist_bubble_aabbs(d_node_locks.data,
                            d_tree_aabbs.data,
-                           d_node_children.data,
                            d_tree_parent_sib.data,
                            m_pdata->getNTypes(),
                            m_n_leaf,
@@ -556,15 +562,18 @@ void NeighborListGPUTree::bubbleAABBs()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
+//! rearrange the leaf positions in memory to make xyzf and tdb for faster traversal
 void NeighborListGPUTree::moveLeafParticles()
     {    
+    if (m_prof) m_prof->push(m_exec_conf,"xyzf");
+    ArrayHandle<Scalar4> d_leaf_xyzf_alt(m_leaf_xyzf_alt, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_leaf_tdb_alt(m_leaf_tdb_alt, access_location::device, access_mode::overwrite); 
+    
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_leaf_particles(m_leaf_particles, access_location::device, access_mode::read);
-    
-    ArrayHandle<Scalar4> d_leaf_xyzf_alt(m_leaf_xyzf_alt, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_leaf_tdb_alt(m_leaf_tdb_alt, access_location::device, access_mode::overwrite);   
+      
     gpu_nlist_move_particles(d_leaf_xyzf_alt.data,
                              d_leaf_tdb_alt.data,
                              d_pos.data,
@@ -573,131 +582,6 @@ void NeighborListGPUTree::moveLeafParticles()
                              d_leaf_particles.data,
                              m_pdata->getN(),
                              128);
-    }
-    
-void NeighborListGPUTree::convertGPUTree()
-    {
-    if (m_prof) m_prof->push(m_exec_conf,"Convert");
-    
-    ArrayHandle<uint2> h_node_children(m_node_children, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
-    ArrayHandle<uint2> h_tree_convert_map(m_tree_convert_map, access_location::host, access_mode::overwrite);
-    
-    vector<unsigned int> visited(2*m_n_leaf - m_pdata->getNTypes(), 0);
-    
-    // for each type
-    for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
-        {
-        unsigned int root_node = m_n_leaf + ((cur_type > 0) ? (h_num_per_type.data[cur_type-1] - cur_type) : 0);
-        
-        // initialize the search stack
-        stack<unsigned int> tree_stack;
-        tree_stack.push(root_node);
-        
-        // process while there are still unexplored nodes
-        unsigned int node_idx = 0;
-        while (!tree_stack.empty())
-            {
-            unsigned int cur_node = tree_stack.top();
-            ++visited[cur_node];
-            
-            uint2 children = h_node_children.data[cur_node - m_n_leaf];
-            
-            if (visited[cur_node] == 1) // first visit
-                {
-            
-                h_tree_convert_map.data[cur_node].x = node_idx;
-            
-                // only leaf nodes do not have any children
-                if (children.y > m_n_leaf) // should be >=, and might break if there's only a root node with no child
-                    {
-                    tree_stack.push(children.y);
-                    }
-                
-                if (children.x > m_n_leaf) // internal nodes must be pushed onto the stack for processing
-                    {
-                    tree_stack.push(children.x);
-                    }
-                 else // leaf nodes must be mapped
-                    {
-                    uint2 left_map;
-                    ++node_idx;
-                    left_map.x = node_idx;
-                    left_map.y = 0;
-
-                    h_tree_convert_map.data[children.x] = left_map;
-                    }
-            
-                if (children.y < m_n_leaf)
-                    {
-                    uint2 right_map;
-                    ++node_idx;
-                    right_map.x = node_idx;
-                    right_map.y = 0;
-                
-                    h_tree_convert_map.data[children.y] = right_map;
-                    }
-                ++node_idx;
-                }
-            else if (visited[cur_node] == 2) // second visit, who cares
-                {
-                }
-            else // third visit, process the skip from children and pop off the stack
-                {
-                unsigned int left_skip = h_tree_convert_map.data[children.x].y;
-                unsigned int right_skip = h_tree_convert_map.data[children.y].y;
-                h_tree_convert_map.data[cur_node].y = left_skip + right_skip + 2;
-                tree_stack.pop();
-                }
-            }
-        }
-    
-    ArrayHandle<Scalar4> h_tree_aabbs(m_tree_aabbs, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_aabb_node_bounds_alt(m_aabb_node_bounds_alt, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_aabb_node_head_idx_alt(m_aabb_node_head_idx_alt, access_location::host, access_mode::overwrite);
-    // first, remap all of the aabb nodes    
-    unsigned int leaf_head = 0;
-    for (unsigned int cur_node=0; cur_node < m_tree_convert_map.getPitch(); ++cur_node)
-        {
-        unsigned int map_idx = h_tree_convert_map.data[cur_node].x;
-//         h_aabb_node_bounds_alt.data[2*map_idx] = h_tree_aabbs.data[2*cur_node];
-//         h_aabb_node_bounds_alt.data[2*map_idx + 1] = h_tree_aabbs.data[2*cur_node + 1];
-    
-        // set the skip in the upper
-        Scalar4 upper = h_tree_aabbs.data[2*cur_node];
-        h_aabb_node_bounds_alt.data[2*map_idx] = make_scalar4(upper.x,
-                                                              upper.y,
-                                                              upper.z,
-                                                              __int_as_scalar(h_tree_convert_map.data[cur_node].y + 1));
-                                                              
-        Scalar4 lower = h_tree_aabbs.data[2*cur_node + 1];
-        h_aabb_node_bounds_alt.data[2*map_idx + 1] = make_scalar4(lower.x,
-                                                                  lower.y,
-                                                                  lower.z,
-                                                                  __int_as_scalar(lower.w));
-        
-        unsigned int n_part = h_aabb_node_bounds_alt.data[2*map_idx + 1].w;
-        h_aabb_node_head_idx_alt.data[map_idx] = (n_part) ? leaf_head : 0;
-        leaf_head += n_part;
-        }
-    
-    for(unsigned int i=0; i < (2*m_n_leaf - m_pdata->getNTypes()); ++i)
-        {
-        cout<<h_aabb_node_bounds_alt.data[2*i].x<<"\t"<<__scalar_as_int(h_aabb_node_bounds_alt.data[2*i].w)<<"\t"
-            <<h_aabb_node_bounds_alt.data[2*i+1].x<<"\t"<<__scalar_as_int(h_aabb_node_bounds_alt.data[2*i+1].w)<<endl;
-        }
-        
-   ArrayHandle<AABBTreeGPU> h_aabb_trees_gpu_alt(m_aabb_trees_gpu_alt, access_location::host, access_mode::overwrite);
-    unsigned int total_nodes = 0;
-    for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
-        {
-        unsigned int cur_nleafs = (h_num_per_type.data[cur_type] + PARTICLES_PER_LEAF - 1)/PARTICLES_PER_LEAF;
-        h_aabb_trees_gpu_alt.data[cur_type].num_nodes = 2*cur_nleafs - 1;
-        h_aabb_trees_gpu_alt.data[cur_type].node_head = total_nodes;
-        
-        total_nodes += 2*cur_nleafs - 1;
-        }                                                
-        
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
@@ -834,10 +718,37 @@ void NeighborListGPUTree::copyCPUtoGPU()
         }
     }
 
+//! traverse the tree built on the GPU using two kernels
 void NeighborListGPUTree::traverseTree2()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Traverse 2");
 
+    // move the leaf particles into leaf_xyzf and leaf_tdb for fast traversal
+    moveLeafParticles();
+
+    // neighborlist data
+    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_last_updated_pos(m_last_pos, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
+
+    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
+    
+    // tree data    
+    ArrayHandle<unsigned int> d_leaf_particles(m_leaf_particles, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_leaf_offset(m_leaf_offset, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tree_roots(m_tree_roots, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_node_left_child(m_node_left_child, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::read);
+    
+    // tree particle data
+    ArrayHandle<Scalar4> d_leaf_xyzf(m_leaf_xyzf_alt, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_leaf_tdb(m_leaf_tdb_alt, access_location::device, access_mode::read);
+    
+    // acquire image vectors for periodic boundaries
+    // in an mpi system, this should return a smaller number of vectors
+    // corresponding to directions with ghost images
     // need to construct a list of box vectors to translate, which is triggered to update on a box resize
     if (m_box_changed)
         {
@@ -845,47 +756,8 @@ void NeighborListGPUTree::traverseTree2()
         }
     ArrayHandle<Scalar3> d_image_list(m_image_list, access_location::device, access_mode::read);
     
-    
-    // move the leaf particles into leaf_xyzf and leaf_tdb for fast traversal
-    moveLeafParticles();
-    
-        {
-        ArrayHandle<unsigned int> h_tree_roots(m_tree_roots, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
-        unsigned int root_head = m_n_leaf;
-        for (unsigned int cur_type=0; cur_type < m_pdata->getNTypes(); ++cur_type)
-            {
-            h_tree_roots.data[cur_type] = root_head;
-            root_head += (h_num_per_type.data[cur_type] + PARTICLES_PER_LEAF - 1)/PARTICLES_PER_LEAF - 1;
-            }
-        }
-    
-    
-    // perform the copy from the cpu to the gpu format
-    // time the data transfer to the GPU as well
-    if (m_prof) m_prof->push(m_exec_conf,"copy");
-    // acquire handle to alt struct
-    ArrayHandle<unsigned int> d_leaf_particles(m_leaf_particles, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_leaf_offset(m_leaf_offset, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_tree_roots(m_tree_roots, access_location::device, access_mode::read);
-    ArrayHandle<uint2> d_node_children(m_node_children, access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::read);
-    
-    
-    ArrayHandle<Scalar4> d_leaf_xyzf(m_leaf_xyzf_alt, access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_leaf_tdb(m_leaf_tdb_alt, access_location::device, access_mode::read);
-    
-    // acquire particle data
-    ArrayHandle<Scalar4> d_last_updated_pos(m_last_pos, access_location::device, access_mode::overwrite);
-    
-    // neighborlist data
+    // pairwise cutoffs
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
-    if (m_prof) m_prof->pop(m_exec_conf);
     
     m_tuner->begin();
     gpu_nlist_traverse_tree2(d_nlist.data,
@@ -898,7 +770,7 @@ void NeighborListGPUTree::traverseTree2()
                                      d_leaf_particles.data,
                                      d_leaf_offset.data,
                                      d_tree_roots.data,
-                                     d_node_children.data,
+                                     d_node_left_child.data,
                                      d_tree_aabbs.data,
                                      m_n_leaf,
                                      d_leaf_xyzf.data,
