@@ -153,6 +153,20 @@ class NeighborListGPUTree : public NeighborListGPU
         void mergeLeafParticles();
         void genTreeHierarchy();
         void bubbleAABBs();
+        void moveLeafParticles();
+        
+        // all of these are alt variables to allow the two trees to coexist temporarily
+        // for comparison purposes. all of this will be removed in production code.
+        void convertGPUTree();
+        GPUArray<uint2> m_tree_convert_map;
+        GPUArray<AABBTreeGPU> m_aabb_trees_gpu_alt;
+        GPUArray<Scalar4> m_aabb_node_bounds_alt;
+        GPUArray<unsigned int> m_aabb_node_head_idx_alt;
+        
+        void traverseTree2();
+        GPUArray<unsigned int> m_tree_roots;
+        GPUArray<Scalar4> m_leaf_xyzf_alt;
+        GPUArray<Scalar4> m_leaf_tdb_alt;
         
         unsigned int m_n_leaf;
         

@@ -267,20 +267,6 @@ void NeighborList::compute(unsigned int timestep)
         setLastUpdatedPos();
         m_has_been_updated_once = true;
         }
-//     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::host, access_mode::read);
-//     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::host, access_mode::read);
-//     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::host, access_mode::read);
-// 
-//     for (unsigned int i=0; i < m_pdata->getN(); ++i)
-//         {
-//         cout<<i<<"|"<<d_head_list.data[i]<<"|";
-//         for (unsigned int j=0; j < d_n_neigh.data[i]; ++j)
-//             {
-//             cout<<"\t"<<d_nlist.data[d_head_list.data[i] + j];
-//             }
-//         cout<<endl;
-//     }
-//     cout<<endl<<endl;
     if (m_prof) m_prof->pop();
     }
 
