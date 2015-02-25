@@ -726,6 +726,11 @@ def write_metadata(filename,obj=None,overwrite=False):
     from hoomd_script.data import system_data
     obj['system'] = system_data(globals.system_definition).get_metadata()
 
+    # Query integrator
+    if globals.integrator is not None:
+        data = globals.integrator.get_metadata()
+        obj['integrate'] = data
+
     # Query forces
     force_data = OrderedDict()
     for force in globals.forces:

@@ -245,6 +245,10 @@ class _force:
     def get_metadata(self):
         if self.enabled:
             data = self.get_force_metadata()
+
+            if self.name is not "":
+                data['name'] = self.name
+
             return data
         else:
             return None

@@ -102,6 +102,8 @@ from hoomd_script import variant;
 from hoomd_script import init;
 from hoomd_script import comm;
 
+from collections import OrderedDict
+
 ## \internal
 # \brief Base class for integrators
 #
@@ -206,6 +208,21 @@ class _integrator:
             ndof = self.cpp_integrator.getNDOF(t.group.cpp_group);
             t.cpp_compute.setNDOF(ndof);
 
+    ## \internal
+    # \brief Get metadata about this integrator
+    #
+    # The base class implemntations queries all methods
+    def get_metadata(self):
+        data = OrderedDict()
+        if self.supports_methods:
+             for m in globals.integration_methods:
+                method_data = m.get_metadata()
+                if method_data is not None:
+                    module_name = m.__module__
+                    class_name = m.__class__.__name__
+                    data[module_name+"."+class_name] = m.get_metadata()
+        return data
+
 ## \internal
 # \brief Base class for integration methods
 #
@@ -297,6 +314,23 @@ class _integration_method:
         self.enabled = True;
         globals.integration_methods.append(self);
 
+    ## \internal
+    # \brief Get metadata about this integration method
+    #
+    def get_metadata(self):
+        data = OrderedDict()
+        if self.enabled:
+            return self.get_integration_method_data()
+        else:
+            return None
+
+    ## \internal
+    # \brief Get metadata about this integration method
+    #
+    # The base class implementations does nothing
+    def get_integration_method_data(self):
+        return None
+
 ## Enables a variety of standard integration methods
 #
 # integrate.mode_standard performs a standard time step integration technique to move the system forward. At each time
@@ -335,6 +369,9 @@ class mode_standard(_integrator):
         # initialize base class
         _integrator.__init__(self);
 
+        # Store time step
+        self.dt = dt
+
         # initialize the reflected c++ class
         self.cpp_integrator = hoomd.IntegratorTwoStep(globals.system_definition, dt);
         self.supports_methods = True;
@@ -360,7 +397,21 @@ class mode_standard(_integrator):
 
         # change the parameters
         if dt is not None:
+            self.dt = dt
             self.cpp_integrator.setDeltaT(dt);
+
+    ## \internal
+    # \brief Return information about this integrator
+    def get_metadata(self):
+        data = OrderedDict()
+
+        # store time step
+        data['dt'] = self.dt
+
+        # append information about methods
+        data.update(_integrator.get_metadata(self))
+
+        return data
 
 ## NVT Integration via the Nos&eacute;-Hoover thermostat
 #
@@ -427,6 +478,11 @@ class nvt(_integration_method):
         else:
             thermo = compute._get_unique_thermo(group=group);
 
+        # store metadata
+        self.group = group
+        self.T = str(T)
+        self.tau = tau
+
         # setup suffix
         suffix = '_' + group.name;
 
@@ -469,8 +525,21 @@ class nvt(_integration_method):
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
+            self.T = T
+
         if tau is not None:
             self.cpp_method.setTau(tau);
+            self.tau = tau
+
+    ## \internal
+    # \brief Return information about this this integration method
+    #
+    def get_integration_method_data(self):
+        data = OrderedDict()
+        data['group'] = self.group.name
+        data['T'] = self.T
+        data['tau'] = self.tau
+        return data
 
 ## NPT Integration via MTK barostat-thermostat with triclinic unit cell
 #

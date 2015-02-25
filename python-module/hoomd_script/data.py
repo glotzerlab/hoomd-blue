@@ -771,7 +771,7 @@ class system_data:
         data = OrderedDict()
         data['box'] = self.box.get_metadata()
         data['particles'] = self.particles.get_metadata()
-        data['rho'] = len(self.particles)/self.box.get_volume()
+        data['density'] = len(self.particles)/self.box.get_volume()
 
         # Only include additional data structures if they are initialized
         if len(self.bonds):

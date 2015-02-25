@@ -94,9 +94,16 @@ class _constant(_variant):
         # initialize the base class
         _variant.__init__(self);
 
+        self.val = val
+
         # create the c++ mirror class
         self.cpp_variant = hoomd.VariantConst(val);
         self.cpp_variant.setOffset(globals.system.getCurrentTimeStep());
+
+    ## \internal
+    # \brief return metadata
+    def __str__(self):
+        return str(self.val)
 
 ## Linearly interpolated variant
 #
@@ -177,6 +184,14 @@ class linear_interp(_variant):
                 raise RuntimeError('Error creating variant');
 
             self.cpp_variant.setPoint(int(t), v);
+
+        # store metadata
+        self.points = points
+
+    ## \internal
+    # \brief return metadata
+    def __str__(self):
+        return str(self.points)
 
 
 ## \internal
