@@ -53,6 +53,8 @@ import hoomd
 from hoomd_script import globals
 from hoomd_script import util
 
+from collections import OrderedDict
+
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
 #
@@ -538,6 +540,21 @@ class boxdim:
     def __str__(self):
         return 'Box: Lx=' + str(self.Lx) + ' Ly=' + str(self.Ly) + ' Lz=' + str(self.Lz) + ' xy=' + str(self.xy) + \
                     ' xz='+ str(self.xz) + ' yz=' + str(self.yz);
+
+    ## \internal
+    # \brief Get a dictionary representation of the box dimensions
+    def get_metadata(self):
+        data = OrderedDict()
+        data['d'] = self.dimensions
+        data['Lx'] = self.Lx
+        data['Ly'] = self.Ly
+        data['Lz'] = self.Lz
+        data['xy'] = self.xy
+        data['xz'] = self.xz
+        data['yz'] = self.yz
+        data['V'] = self.get_volume()
+        return data
+
 ##
 # \brief Access system data
 #
@@ -748,6 +765,31 @@ class system_data:
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
 
+    ## \internal
+    # \brief Collect metadata of the simulation
+    def get_metadata(self):
+        data = OrderedDict()
+        data['box'] = self.box.get_metadata()
+        data['particles'] = self.particles.get_metadata()
+        data['rho'] = len(self.particles)/self.box.get_volume()
+
+        # Only include additional data structures if they are initialized
+        if len(self.bonds):
+            data['bonds'] = self.bonds.get_metadata()
+
+        if len(self.angles):
+            data['angles'] = self.angles.get_metadata()
+
+        if len(self.dihedrals):
+            data['dihedrals'] = self.dihedrals.get_metadata()
+
+        if len(self.impropers):
+            data['impropers'] = self.impropers.get_metadata()
+
+        if len(self.bodies):
+            data['bodies'] = self.bodies.get_metadata()
+
+        return data
 ## \internal
 # \brief Access the list of types
 #
@@ -947,6 +989,14 @@ class particle_data:
     # \brief Return an iterator
     def __iter__(self):
         return particle_data.particle_data_iterator(self);
+
+    ## \internal
+    # \brief Return metadata for this particle_data instance
+    def get_metadata(self):
+        data = OrderedDict()
+        data['N'] = len(self)
+        data['ntypes'] = self.pdata.getNTypes()
+        return data
 
 ## Access a single particle via a proxy
 #
@@ -1333,13 +1383,21 @@ class bond_data:
     ## \internal
     # \brief Get an informal string representing the object
     def __str__(self):
-        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNGlobal(), self.bdata.getNBondTypes());
+        result = "Bond Data for %d bonds of %d typeid(s)" % (self.bdata.getNGlobal(), self.bdata.getNTypes());
         return result
 
     ## \internal
     # \brief Return an interator
     def __iter__(self):
         return bond_data.bond_data_iterator(self);
+
+    ## \internal
+    # \brief Return metadata for this bond_data instance
+    def get_metadata(self):
+        data = OrderedDict()
+        data['N'] = len(self)
+        data['ntypes'] = self.bdata.getNTypes()
+        return data
 
 ## Access a single bond via a proxy
 #
@@ -1518,6 +1576,14 @@ class angle_data:
     # \brief Return an interator
     def __iter__(self):
         return angle_data.angle_data_iterator(self);
+
+    ## \internal
+    # \brief Return metadata for this angle_data instance
+    def get_metadata(self):
+        data = OrderedDict()
+        data['N'] = len(self)
+        data['ntypes'] = self.adata.getNTypes()
+        return data
 
 ## Access a single angle via a proxy
 #
@@ -1706,6 +1772,14 @@ class dihedral_data:
     def __iter__(self):
         return dihedral_data.dihedral_data_iterator(self);
 
+    ## \internal
+    # \brief Return metadata for this dihedral_data instance
+    def get_metadata(self):
+        data = OrderedDict()
+        data['N'] = len(self)
+        data['ntypes'] = self.ddata.getNTypes()
+        return data
+
 ## Access a single dihedral via a proxy
 #
 # dihedral_data_proxy provides access to all of the properties of a single dihedral in the system.
@@ -1866,6 +1940,14 @@ class body_data:
     # \brief Return an interator
     def __iter__(self):
         return body_data.body_data_iterator(self);
+
+    ## \internal
+    # \brief Return metadata for this body_data instance
+    def get_metadata(self):
+        data = OrderedDict()
+        data['nbodies'] = len(self)
+        return data
+
 
 ## Access a single body via a proxy
 #

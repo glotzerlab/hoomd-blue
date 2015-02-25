@@ -56,6 +56,8 @@ from hoomd_script import util;
 from hoomd_script import data;
 from hoomd_script import init;
 
+from collections import OrderedDict
+
 ## \package hoomd_script.force
 # \brief Other types of forces
 #
@@ -236,6 +238,25 @@ class _force:
     #
     def __forces(self):
         return data.force_data(self);
+
+    ## \internal
+    # \brief Return metadata about this force
+    #
+    def get_metadata(self):
+        if self.enabled:
+            data = self.get_force_metadata()
+            return data
+        else:
+            return None
+
+    ## \internal
+    # \brief Aquire force-specific metadata
+    #
+    # The base class implementation does nothing, this method is overridden in
+    # all forces that actually provide metadata
+    #
+    def get_force_metadata(self):
+        return None
 
     forces = property(__forces);
 

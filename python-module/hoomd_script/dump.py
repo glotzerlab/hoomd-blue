@@ -63,6 +63,8 @@ import sys;
 from hoomd_script import util;
 from hoomd_script import group as hs_group;
 
+from collections import OrderedDict
+
 ## Writes simulation snapshots in the HOOMD XML format
 #
 # Every \a period time steps, a new file will be created. The state of the
@@ -121,6 +123,10 @@ class xml(analyze._analyzer):
             util._disable_status_lines = False;
         else:
             self.enabled = False;
+
+        # store metadata
+        self.filename = filename
+        self.period = period
 
     ## Change xml write parameters
     #
@@ -264,6 +270,14 @@ class xml(analyze._analyzer):
             time_step = globals.system.getCurrentTimeStep()
 
         self.cpp_analyzer.writeFile(filename, time_step);
+
+    ## \internal
+    # \brief Get metadata for this analyzer
+    def get_metadata(self):
+        data = OrderedDict()
+        data['filename'] = self.filename
+        data['period'] = self.period
+        return data
 
 ## Writes simulation snapshots in a binary format
 #
@@ -682,26 +696,59 @@ def write_metadata(filename,obj=None,overwrite=False):
 
     import json
 
-    data = []
+    metadata = []
     if obj is None:
-        obj = {}
+        obj = OrderedDict()
     else:
         if not isinstance(obj,dict):
             globals.msg.warning("Metadata needs to be of type dictionary. Ignoring.\n")
+            obj = OrderedDict()
+        else:
+            obj = OrderedDict(obj)
 
     if not overwrite:
         try:
             with open(filename) as f:
-                data = json.load(f)
+                metadata = json.load(f)
                 globals.msg.notice(2,"Appending to file {1}." % filename)
         except Exception:
             pass
 
+    # Generate time stamp
     import time
     import datetime
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-    obj.update({'timestamp': st})
-    data.append(obj)
+    obj['timestamp'] = st
+    obj['timestep'] = globals.system.getCurrentTimeStep()
+
+    # Query system metadata
+    from hoomd_script.data import system_data
+    obj['system'] = system_data(globals.system_definition).get_metadata()
+
+    # Query forces
+    force_data = OrderedDict()
+    for force in globals.forces:
+        data = force.get_metadata()
+        if data is not None:
+            module_name = force.__module__
+            class_name = force.__class__.__name__
+            force_data[module_name+"."+class_name] = data
+    if len(force_data.keys()):
+        obj['force'] = force_data
+
+    # Query analyzers
+    analyzer_data = OrderedDict()
+    for analyzer in globals.analyzers:
+        data = analyzer.get_metadata()
+        if data is not None:
+            module_name = analyzer.__module__
+            class_name = analyzer.__class__.__name__
+            analyzer_data[module_name+"."+class_name] = data
+    if len(analyzer_data.keys()):
+        obj['analyze'] = analyzer_data
+
+
+    metadata.append(obj)
     with open(filename, 'w') as f:
-        json.dump(data, f,indent=4)
+        json.dump(metadata, f,indent=4)

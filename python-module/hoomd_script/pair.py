@@ -88,6 +88,8 @@ from hoomd_script import variant;
 import math;
 import sys;
 
+from collections import OrderedDict
+
 ## Defines %pair coefficients
 #
 # All %pair forces use coeff to specify the coefficients between different
@@ -796,6 +798,28 @@ class pair(force._force):
                 max_rcut = max(max_rcut, r_cut);
 
         return max_rcut;
+
+    ## \internal
+    # Get metadata about this pair force
+    #
+    def get_force_metadata(self):
+        data = OrderedDict()
+
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        self.update_coeffs()
+
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
+                data['r_cut'] =  self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
+
+                for coeff in self.required_coeffs:
+                    data[coeff] =  self.pair_coeff.get(type_list[i], type_list[j], coeff)
+
+        return data
 
 ## Lennard-Jones %pair %force
 #

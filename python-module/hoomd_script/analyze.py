@@ -141,6 +141,9 @@ class _analyzer:
         self.analyzer_name = "analyzer%d" % (id);
         self.enabled = True;
 
+        # Store a reference in global simulation variables
+        globals.analyzers.append(self)
+
     ## \internal
     # \brief Helper function to setup analyzer period
     #
@@ -270,6 +273,13 @@ class _analyzer:
             globals.msg.warning("A period cannot be changed to a variable one");
         else:
             globals.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
+
+    ## \internal
+    # Query metadata for this analyzer
+    #
+    # The base class implementation does nothing
+    def get_metadata(self):
+        return None
 
 # set default counter
 _analyzer.cur_id = 0;
