@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include "AABBTreeGPU.h"
 
-#define PARTICLES_PER_LEAF 16        // max number of particles in a leaf node, must be power of two
+#define PARTICLES_PER_LEAF 4        // max number of particles in a leaf node, must be power of two
 
 using namespace hpmc::detail;
 
@@ -142,7 +142,7 @@ cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    const unsigned int block_size);
 
 cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
-                                     Scalar4 *d_leaf_db,
+                                     Scalar2 *d_leaf_db,
                                      const Scalar4 *d_pos,
                                      const Scalar *d_diameter,
                                      const unsigned int *d_body,
@@ -165,7 +165,11 @@ cudaError_t gpu_nlist_traverse_tree2(unsigned int *d_nlist,
                                      const Scalar4 *d_tree_aabbs,
                                      const unsigned int nleafs,
                                      const Scalar4 *d_leaf_xyzf,
-                                     const Scalar4 *d_leaf_tdb,
+                                     const Scalar2 *d_leaf_db,
+                                     // particle data
+                                     const Scalar4 *d_pos,
+                                     const unsigned int *d_body,
+                                     const Scalar *d_diam,
                                      // images
                                      const Scalar3 *d_image_list,
                                      const unsigned int nimages,
@@ -176,5 +180,21 @@ cudaError_t gpu_nlist_traverse_tree2(unsigned int *d_nlist,
                                      bool filter_body,
                                      const unsigned int compute_capability,
                                      const unsigned int block_size);
+                                     
+cudaError_t gpu_nlist_map_particles_gen_mask(unsigned int *d_type_mask,
+                                             const Scalar4 *d_pos,
+                                             const unsigned int N,
+                                             const unsigned int type,
+                                             const unsigned int block_size);
+                                                                                  
+cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
+                                    unsigned int *d_num_per_type,
+                                    unsigned int *d_type_head,
+                                    unsigned int *d_cumulative_pids,
+                                    const unsigned int *d_type_mask,
+                                    const unsigned int N,
+                                    const unsigned int type,
+                                    const unsigned int ntypes,
+                                    const unsigned int block_size);
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__

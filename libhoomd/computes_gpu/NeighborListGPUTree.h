@@ -155,10 +155,14 @@ class NeighborListGPUTree : public NeighborListGPU
         void bubbleAABBs();
         void moveLeafParticles();
         
+        void getNumPerTypeGPU();
+        GPUArray<unsigned int> m_type_mask;         //!< mask array to use for type counting particle mapping
+        GPUArray<unsigned int> m_cumulative_pids;   //!< accumulated particle ids output from scan
+        
         void traverseTree2();
         GPUArray<unsigned int> m_tree_roots;
         GPUArray<Scalar4> m_leaf_xyzf_alt;
-        GPUArray<Scalar4> m_leaf_tdb_alt;
+        GPUArray<Scalar2> m_leaf_db_alt;
         
         unsigned int m_n_leaf;                      //!< total number of leaves in tree
         unsigned int m_n_node;                      //!< total number of nodes (including leaves) in tree
