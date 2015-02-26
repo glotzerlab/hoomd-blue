@@ -456,10 +456,10 @@ void NeighborListGPUTree::calcMortonCodes()
     const BoxDim& box = m_pdata->getBox();
 
     const Scalar ghost_layer_width = m_r_cut_max + m_r_buff + m_d_max - Scalar(1.0);
-    Scalar3 ghost_width = make_scalar3(ghost_layer_width,
-                                       ghost_layer_width,
-                                       0.0);
-    if (this->m_sysdef->getNDimensions() == 3)
+    Scalar3 ghost_width = make_scalar3(0.0, 0.0, 0.0);
+    if (!box.getPeriodic().x) ghost_width.x = ghost_layer_width;
+    if (!box.getPeriodic().y) ghost_width.y = ghost_layer_width;
+    if (this->m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
         {
         ghost_width.z = ghost_layer_width;
         }
