@@ -63,36 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include "AABBTreeGPU.h"
 
-#define PARTICLES_PER_LEAF 4        // max number of particles in a leaf node, must be power of two
-
 using namespace hpmc::detail;
-
-//! Kernel driver to traverse tree and build neighbor list on the device
-cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
-                                     unsigned int *d_n_neigh,
-                                     Scalar4 *d_last_updated_pos,
-                                     unsigned int *d_conditions,
-                                     const unsigned int *d_Nmax,
-                                     const unsigned int *d_head_list,
-                                     const Scalar4 *d_pos,
-                                     const unsigned int *d_body,
-                                     const Scalar *d_diameter,
-                                     const unsigned int N,
-                                     const AABBTreeGPU *d_aabb_trees,
-                                     const Scalar4 *d_aabb_node_bounds,
-                                     const unsigned int *d_aabb_node_head_idx,
-                                     const unsigned int n_nodes,
-                                     const unsigned int *d_aabb_leaf_particles,
-                                     const Scalar4 *d_leaf_xyzf,
-                                     const Scalar2 *d_leaf_tdb,
-                                     const Scalar3 *d_image_list,
-                                     const unsigned int nimages,
-                                     const Scalar *d_r_cut,
-                                     const Scalar r_buff,
-                                     const unsigned int ntypes,
-                                     bool filter_body,
-                                     const unsigned int compute_capability,
-                                     const unsigned int block_size);
                                      
 //! Kernel driver to generate morton codes for particles and reorder by type
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
@@ -150,36 +121,36 @@ cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
                                      const unsigned int N,
                                      const unsigned int block_size);
 
-cudaError_t gpu_nlist_traverse_tree2(unsigned int *d_nlist,
-                                     unsigned int *d_n_neigh,
-                                     Scalar4 *d_last_updated_pos,
-                                     unsigned int *d_conditions,
-                                     const unsigned int *d_Nmax,
-                                     const unsigned int *d_head_list,
-                                     const unsigned int N,
-                                     // tree data
-                                     const unsigned int *d_leaf_particles,
-                                     const unsigned int *d_leaf_offset,
-                                     const unsigned int *d_tree_roots,
-                                     const unsigned int *d_node_left_child,
-                                     const Scalar4 *d_tree_aabbs,
-                                     const unsigned int nleafs,
-                                     const Scalar4 *d_leaf_xyzf,
-                                     const Scalar2 *d_leaf_db,
-                                     // particle data
-                                     const Scalar4 *d_pos,
-                                     const unsigned int *d_body,
-                                     const Scalar *d_diam,
-                                     // images
-                                     const Scalar3 *d_image_list,
-                                     const unsigned int nimages,
-                                     // neighbor list cutoffs
-                                     const Scalar *d_r_cut,
-                                     const Scalar r_buff,
-                                     const unsigned int ntypes,
-                                     bool filter_body,
-                                     const unsigned int compute_capability,
-                                     const unsigned int block_size);
+cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
+                                    unsigned int *d_n_neigh,
+                                    Scalar4 *d_last_updated_pos,
+                                    unsigned int *d_conditions,
+                                    const unsigned int *d_Nmax,
+                                    const unsigned int *d_head_list,
+                                    const unsigned int N,
+                                    // tree data
+                                    const unsigned int *d_leaf_particles,
+                                    const unsigned int *d_leaf_offset,
+                                    const unsigned int *d_tree_roots,
+                                    const unsigned int *d_node_left_child,
+                                    const Scalar4 *d_tree_aabbs,
+                                    const unsigned int nleafs,
+                                    const Scalar4 *d_leaf_xyzf,
+                                    const Scalar2 *d_leaf_db,
+                                    // particle data
+                                    const Scalar4 *d_pos,
+                                    const unsigned int *d_body,
+                                    const Scalar *d_diam,
+                                    // images
+                                    const Scalar3 *d_image_list,
+                                    const unsigned int nimages,
+                                    // neighbor list cutoffs
+                                    const Scalar *d_r_cut,
+                                    const Scalar r_buff,
+                                    const unsigned int ntypes,
+                                    bool filter_body,
+                                    const unsigned int compute_capability,
+                                    const unsigned int block_size);
                                      
 cudaError_t gpu_nlist_map_particles_gen_mask(unsigned int *d_type_mask,
                                              const Scalar4 *d_pos,
@@ -190,6 +161,8 @@ cudaError_t gpu_nlist_map_particles_gen_mask(unsigned int *d_type_mask,
 cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
                                     unsigned int *d_num_per_type,
                                     unsigned int *d_type_head,
+                                    unsigned int *d_leaf_offset,
+                                    unsigned int *d_tree_roots,
                                     unsigned int *d_cumulative_pids,
                                     const unsigned int *d_type_mask,
                                     const unsigned int N,

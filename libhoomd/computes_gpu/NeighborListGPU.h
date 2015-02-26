@@ -186,7 +186,7 @@ class NeighborListGPU : public NeighborList
         //! Schedule the distance check kernel
         /*! \param timestep Current time step
          */
-        virtual void scheduleDistanceCheck(unsigned int timestep);
+        void scheduleDistanceCheck(unsigned int timestep);
         unsigned int m_checkn;              //!< Internal counter to assign when checking if the nlist needs an update
         bool m_distcheck_scheduled;         //!< True if a distance check kernel has been queued
         unsigned int m_last_schedule_tstep; //!< Time step of last kernel schedule
