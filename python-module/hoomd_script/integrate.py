@@ -208,21 +208,6 @@ class _integrator:
             ndof = self.cpp_integrator.getNDOF(t.group.cpp_group);
             t.cpp_compute.setNDOF(ndof);
 
-    ## \internal
-    # \brief Get metadata about this integrator
-    #
-    # The base class implemntations queries all methods
-    def get_metadata(self):
-        data = OrderedDict()
-        if self.supports_methods:
-             for m in globals.integration_methods:
-                method_data = m.get_metadata()
-                if method_data is not None:
-                    module_name = m.__module__
-                    class_name = m.__class__.__name__
-                    data[module_name+"."+class_name] = m.get_metadata()
-        return data
-
 ## \internal
 # \brief Base class for integration methods
 #
@@ -314,23 +299,6 @@ class _integration_method:
         self.enabled = True;
         globals.integration_methods.append(self);
 
-    ## \internal
-    # \brief Get metadata about this integration method
-    #
-    def get_metadata(self):
-        data = OrderedDict()
-        if self.enabled:
-            return self.get_integration_method_data()
-        else:
-            return None
-
-    ## \internal
-    # \brief Get metadata about this integration method
-    #
-    # The base class implementations does nothing
-    def get_integration_method_data(self):
-        return None
-
 ## Enables a variety of standard integration methods
 #
 # integrate.mode_standard performs a standard time step integration technique to move the system forward. At each time
@@ -402,15 +370,9 @@ class mode_standard(_integrator):
 
     ## \internal
     # \brief Return information about this integrator
-    def get_metadata(self):
-        data = OrderedDict()
-
-        # store time step
-        data['dt'] = self.dt
-
-        # append information about methods
-        data.update(_integrator.get_metadata(self))
-
+    @property
+    def metadata(self):
+        data = {'dt': self.dt}
         return data
 
 ## NVT Integration via the Nos&eacute;-Hoover thermostat
@@ -480,7 +442,7 @@ class nvt(_integration_method):
 
         # store metadata
         self.group = group
-        self.T = str(T)
+        self.T = T
         self.tau = tau
 
         # setup suffix
@@ -532,9 +494,9 @@ class nvt(_integration_method):
             self.tau = tau
 
     ## \internal
-    # \brief Return information about this this integration method
+    # \brief Return information about this integration method
     #
-    def get_integration_method_data(self):
+    def __dict__(self):
         data = OrderedDict()
         data['group'] = self.group.name
         data['T'] = self.T
@@ -729,6 +691,23 @@ class npt(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group  = group
+        self.T = T
+        self.tau = tau
+        self.P = P
+        self.tauP = tauP
+        self.couple = couple
+        self.rescale_all = rescale_all
+        self.all = all
+        self.x = x
+        self.y = y
+        self.z = z
+        self.xy = xy
+        self.xz = xz
+        self.yz = yz
+        self.nph = nph
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tau New coupling constant (if set) (in time units)
@@ -755,18 +734,53 @@ class npt(_integration_method):
         if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
+            self.T = T
             self.cpp_method.setT(T.cpp_variant);
         if tau is not None:
             self.cpp_method.setTau(tau);
+            self.tau = tau
         if P is not None:
             # setup the variant inputs
             P = variant._setup_variant_input(P);
             self.cpp_method.setP(P.cpp_variant);
+            self.P = P
         if tauP is not None:
             self.cpp_method.setTauP(tauP);
+            self.tauP = tauP
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
+            self.rescale_all = rescale_all
 
+    ## \internal
+    # \brief Return information about this integration method
+    #
+    def __dict__(self):
+        data = OrderedDict()
+        data['group'] = self.group.name
+        if not self.nph:
+            data['T'] = self.T
+            data['tau'] = self.tau
+        data['P'] = self.P
+        data['tauP'] = self.tauP
+
+        lengths = ''
+        if self.x or self.all:
+            lengths += 'x '
+        if self.y or self.all:
+            lengths += 'y '
+        if self.z or self.all:
+            lengths += 'z '
+        if self.xy or self.all:
+            lengths += 'xy '
+        if self.xz or self.all:
+            lengths += 'xz '
+        if self.yz or self.all:
+            lengths += 'yz '
+        data['lengths'] = lengths.rstrip()
+        if self.rescale_all is not None:
+            data['rescale_all'] = self.rescale_all
+
+        return data
 
 ## NPH Integration via MTK barostat-thermostat with triclinic unit cell
 #
@@ -870,6 +884,10 @@ class nve(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group = group
+        self.limit = limit
+
     ## Changes parameters of an existing integrator
     # \param limit (if set) New limit value to set. Removes the limit if limit is False
     # \param zero_force (if set) New value for the zero force option
@@ -895,10 +913,23 @@ class nve(_integration_method):
                 self.cpp_method.removeLimit();
             else:
                 self.cpp_method.setLimit(limit);
+            self.limit = limit
 
         if zero_force is not None:
             self.cpp_method.setZeroForce(zero_force);
 
+    ## \internal
+    # \brief Return information about this integration method
+    #
+    @property
+    def metadata(self):
+        data = OrderedDict()
+        data['group'] = self.group.name
+        if self.limit is not None:
+            data['limit'] = self.limit
+        return data
+
+#
 ## NVT integration via Brownian dynamics
 #
 # integrate.bdnvt performs constant volume, fixed average temperature simulation based on a
@@ -983,6 +1014,12 @@ class bdnvt(_integration_method):
 
         self.cpp_method.validateGroup()
 
+        # store metadata
+        self.group = group
+        self.T = T
+        self.seed = seed
+        self.limit = limit
+
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set) (in energy units)
     # \param tally (optional) If true, the energy exchange between the bd thermal reservoir and the particles is
@@ -1009,6 +1046,7 @@ class bdnvt(_integration_method):
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
+            self.T = T
 
         if tally is not None:
             self.cpp_method.setTally(tally);
@@ -1047,6 +1085,18 @@ class bdnvt(_integration_method):
         for i in range(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
+
+    ## \internal
+    # \brief Return information about this integration method
+    #
+    @property
+    def metadata(self):
+        data = OrderedDict()
+        data['group'] = self.group.name
+        data['T'] = str(self.T)
+        if self.limit is not None:
+            data['limit'] = self.limit
+        return data
 
 
 ## NVE Integration for rigid bodies

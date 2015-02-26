@@ -273,7 +273,8 @@ class xml(analyze._analyzer):
 
     ## \internal
     # \brief Get metadata for this analyzer
-    def get_metadata(self):
+    @property
+    def metadata(self):
         data = OrderedDict()
         data['filename'] = self.filename
         data['period'] = self.period
@@ -722,38 +723,20 @@ def write_metadata(filename,obj=None,overwrite=False):
     obj['timestamp'] = st
     obj['timestep'] = globals.system.getCurrentTimeStep()
 
-    # Query system metadata
     from hoomd_script.data import system_data
-    obj['system'] = system_data(globals.system_definition).get_metadata()
+    global_objs = [system_data(globals.system_definition)];
+    global_objs += globals.forces;
+    global_objs += [globals.integrator];
+    global_objs += globals.integration_methods;
+    global_objs += globals.forces
+    global_objs += globals.analyzers;
 
-    # Query integrator
-    if globals.integrator is not None:
-        data = globals.integrator.get_metadata()
-        obj['integrate'] = data
-
-    # Query forces
-    force_data = OrderedDict()
-    for force in globals.forces:
-        data = force.get_metadata()
-        if data is not None:
-            module_name = force.__module__
-            class_name = force.__class__.__name__
-            force_data[module_name+"."+class_name] = data
-    if len(force_data.keys()):
-        obj['force'] = force_data
-
-    # Query analyzers
-    analyzer_data = OrderedDict()
-    for analyzer in globals.analyzers:
-        data = analyzer.get_metadata()
-        if data is not None:
-            module_name = analyzer.__module__
-            class_name = analyzer.__class__.__name__
-            analyzer_data[module_name+"."+class_name] = data
-    if len(analyzer_data.keys()):
-        obj['analyze'] = analyzer_data
-
+    # add list of objects to JSON
+    for o in global_objs:
+        obj[o.__module__+'.'+o.__class__.__name__] = o
 
     metadata.append(obj)
     with open(filename, 'w') as f:
-        json.dump(metadata, f,indent=4)
+
+        from json import JSONEncoder
+        json.dump(metadata, f,indent=4,default=lambda obj: obj.metadata if hasattr(obj,'metadata') else None )

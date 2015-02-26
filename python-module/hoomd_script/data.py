@@ -543,7 +543,8 @@ class boxdim:
 
     ## \internal
     # \brief Get a dictionary representation of the box dimensions
-    def get_metadata(self):
+    @property
+    def metadata(self):
         data = OrderedDict()
         data['d'] = self.dimensions
         data['Lx'] = self.Lx
@@ -767,29 +768,31 @@ class system_data:
 
     ## \internal
     # \brief Collect metadata of the simulation
-    def get_metadata(self):
+    @property
+    def metadata(self):
         data = OrderedDict()
-        data['box'] = self.box.get_metadata()
-        data['particles'] = self.particles.get_metadata()
+        data['box'] = self.box
+        data['particles'] = self.particles
         data['density'] = len(self.particles)/self.box.get_volume()
 
         # Only include additional data structures if they are initialized
         if len(self.bonds):
-            data['bonds'] = self.bonds.get_metadata()
+            data['bonds'] = self.bonds
 
         if len(self.angles):
-            data['angles'] = self.angles.get_metadata()
+            data['angles'] = self.angles
 
         if len(self.dihedrals):
-            data['dihedrals'] = self.dihedrals.get_metadata()
+            data['dihedrals'] = self.dihedrals
 
         if len(self.impropers):
-            data['impropers'] = self.impropers.get_metadata()
+            data['impropers'] = self.impropers
 
         if len(self.bodies):
-            data['bodies'] = self.bodies.get_metadata()
+            data['bodies'] = self.bodies
 
         return data
+
 ## \internal
 # \brief Access the list of types
 #
@@ -992,7 +995,8 @@ class particle_data:
 
     ## \internal
     # \brief Return metadata for this particle_data instance
-    def get_metadata(self):
+    @property
+    def metadata(self):
         data = OrderedDict()
         data['N'] = len(self)
         data['ntypes'] = self.pdata.getNTypes()
@@ -1393,7 +1397,8 @@ class bond_data:
 
     ## \internal
     # \brief Return metadata for this bond_data instance
-    def get_metadata(self):
+    @property
+    def metadata(self):
         data = OrderedDict()
         data['N'] = len(self)
         data['ntypes'] = self.bdata.getNTypes()
@@ -1579,7 +1584,8 @@ class angle_data:
 
     ## \internal
     # \brief Return metadata for this angle_data instance
-    def get_metadata(self):
+    @property
+    def metadata(self):
         data = OrderedDict()
         data['N'] = len(self)
         data['ntypes'] = self.adata.getNTypes()
@@ -1774,7 +1780,8 @@ class dihedral_data:
 
     ## \internal
     # \brief Return metadata for this dihedral_data instance
-    def get_metadata(self):
+    @property
+    def metadata(self):
         data = OrderedDict()
         data['N'] = len(self)
         data['ntypes'] = self.ddata.getNTypes()
@@ -1943,7 +1950,8 @@ class body_data:
 
     ## \internal
     # \brief Return metadata for this body_data instance
-    def get_metadata(self):
+    @property
+    def metadata(self):
         data = OrderedDict()
         data['nbodies'] = len(self)
         return data

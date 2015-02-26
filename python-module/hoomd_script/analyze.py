@@ -274,13 +274,6 @@ class _analyzer:
         else:
             globals.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
-    ## \internal
-    # Query metadata for this analyzer
-    #
-    # The base class implementation does nothing
-    def get_metadata(self):
-        return None
-
 # set default counter
 _analyzer.cur_id = 0;
 

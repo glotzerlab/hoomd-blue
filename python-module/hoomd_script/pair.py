@@ -134,6 +134,21 @@ class coeff:
         self.values = {};
         self.default_coeff = {}
 
+    ## \internal
+    # \brief Return a compact representation of the pair coefficients
+    @property
+    def metadata(self):
+        # return list for easy serialization
+        l = []
+        for (a,b) in self.values:
+            item = OrderedDict()
+            item['typei'] = a
+            item['typej'] = b
+            for coeff in self.values[(a,b)]:
+                item[coeff] = self.values[(a,b)][coeff]
+            l.append(item)
+        return l
+
     ## \var values
     # \internal
     # \brief Contains the matrix of set values in a dictionary
@@ -307,7 +322,6 @@ class coeff:
             raise RuntimeError("Error setting pair coeff");
 
         return self.values[cur_pair][coeff_name];
-
 
 ## Interface for controlling neighbor list parameters
 #
@@ -800,26 +814,14 @@ class pair(force._force):
         return max_rcut;
 
     ## \internal
-    # Get metadata about this pair force
-    #
-    def get_force_metadata(self):
-        data = OrderedDict()
-
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-
+    # \brief Return metadata for this pair potential
+    @property
+    def metadata(self):
+        # make sure all coefficients are set
         self.update_coeffs()
 
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                data['r_cut'] =  self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
+        return {'pair_coeff': self.pair_coeff}
 
-                for coeff in self.required_coeffs:
-                    data[coeff] =  self.pair_coeff.get(type_list[i], type_list[j], coeff)
-
-        return data
 
 ## Lennard-Jones %pair %force
 #
