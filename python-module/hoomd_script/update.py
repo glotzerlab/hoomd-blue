@@ -56,6 +56,7 @@ from hoomd_script import util;
 from hoomd_script import variant;
 import sys;
 from hoomd_script import init;
+from hoomd_script import meta;
 
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way
@@ -71,7 +72,7 @@ from hoomd_script import init;
 # writers. 1) The instance of the c++ updater itself is tracked and added to the
 # System 2) methods are provided for disabling the updater and changing the
 # period which the system calls it
-class _updater:
+class _updater(meta._metadata):
     ## \internal
     # \brief Constructs the updater
     #
@@ -91,6 +92,9 @@ class _updater:
 
         self.updater_name = "updater%d" % (id);
         self.enabled = True;
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \internal
     #
@@ -227,6 +231,18 @@ class _updater:
         else:
             globals.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
 
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
+        data['enabled'] = self.enabled
+        data['log'] = self.log
+        if self.name is not "":
+            data['name'] = self.name
+
+        return data
+
+#
 # **************************************************************************
 
 ## Sorts particles in memory to improve cache coherency
@@ -343,6 +359,11 @@ class rescale_temp(_updater):
         self.cpp_updater = hoomd.TempRescaleUpdater(globals.system_definition, thermo.cpp_compute, T.cpp_variant);
         self.setupUpdater(period);
 
+        # store metadta
+        self.T = T
+        self.period = period
+        self.metata_fields = ['T','period']
+
     ## Change rescale_temp parameters
     #
     # \param T New temperature set point (in energy units)
@@ -363,6 +384,7 @@ class rescale_temp(_updater):
         if T is not None:
             T = variant._setup_variant_input(T);
             self.cpp_updater.setT(T.cpp_variant);
+            self.T = T
 
 ## Zeroes system momentum
 #
@@ -395,6 +417,10 @@ class zero_momentum(_updater):
         # create the c++ mirror class
         self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.system_definition);
         self.setupUpdater(period);
+
+        # store metadata
+        self.period = period
+        self.metadata_fields = ['period']
 
 ## Enforces 2D simulation
 #
@@ -485,6 +511,8 @@ class box_resize(_updater):
         # initialize base class
         _updater.__init__(self);
 
+        self.metadata_fields = ['period']
+
         if L is not None:
             Lx = L;
             Ly = L;
@@ -499,6 +527,7 @@ class box_resize(_updater):
         # setup arguments
         if Lx is None:
             Lx = box.getL().x;
+            self.metdata_fields
         if Ly is None:
             Ly = box.getL().y;
         if Lz is None:
@@ -518,6 +547,15 @@ class box_resize(_updater):
         xy = variant._setup_variant_input(xy);
         xz = variant._setup_variant_input(xz);
         yz = variant._setup_variant_input(yz);
+
+        # store metadata
+        self.Lx = Lx
+        self.Ly = Ly
+        self.Lz = Lz
+        self.xy = xy
+        self.xz = xz
+        self.yz = yz
+        self.metdata_fields = ['Lx','Ly','Lz','xy','xz','yz']
 
         # create the c++ mirror class
         self.cpp_updater = hoomd.BoxResizeUpdater(globals.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant,

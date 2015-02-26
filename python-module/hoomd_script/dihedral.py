@@ -55,6 +55,7 @@ import hoomd;
 from hoomd_script import util;
 from hoomd_script import tune;
 from hoomd_script import init;
+from hoomd_script import meta;
 
 import math;
 import sys;
@@ -220,6 +221,11 @@ class coeff:
             raise RuntimeError("Error setting dihedral coeff");
 
         return self.values[type][coeff_name];
+
+    ## \internal
+    # \brief Return metadata
+    def get_metadata(self):
+        return self.values
 
 ## \package hoomd_script.dihedral
 # \brief Commands that specify %dihedral forces
@@ -520,3 +526,16 @@ class table(force._force):
           util._disable_status_lines = True;
           self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
           util._disable_status_lines = True;
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['dihedral_coeff'] = self.dihedral_coeff
+        return data
+
+

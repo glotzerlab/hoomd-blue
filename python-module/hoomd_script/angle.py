@@ -55,6 +55,7 @@ import hoomd;
 from hoomd_script import util;
 from hoomd_script import tune;
 from hoomd_script import init;
+from hoomd_script import meta;
 
 import math;
 import sys;
@@ -222,6 +223,10 @@ class coeff:
 
         return self.values[type][coeff_name];
 
+    ## \internal
+    # \brief Return metadata
+    def get_metadata(self):
+        return self.values
 
 ## \package hoomd_script.angle
 # \brief Commands that specify %angle forces
@@ -681,3 +686,16 @@ class table(force._force):
           util._disable_status_lines = True;
           self.angle_coeff.set(anglename, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
           util._disable_status_lines = True;
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['angle_coeff'] = self.angle_coeff
+        return data
+
+

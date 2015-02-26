@@ -63,6 +63,7 @@ from hoomd_script import util;
 from hoomd_script import init;
 from hoomd_script import data;
 from hoomd_script import tune;
+from hoomd_script import meta;
 
 import sys;
 
@@ -227,6 +228,12 @@ class coeff:
 
         return self.values[type][coeff_name];
 
+    ## \internal
+    # \brief Return metadata
+    def get_metadata(self):
+        return self.values
+
+
 ## \internal
 # \brief Base class for external forces
 #
@@ -280,6 +287,18 @@ class _external_force(force._force):
 
             param = self.process_coeff(coeff_dict);
             self.cpp_force.setParams(i, param);
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['force_coeff'] = self.force_coeff
+        return data
+
 
 ## One-dimension periodic potential
 #
