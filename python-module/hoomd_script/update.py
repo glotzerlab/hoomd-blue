@@ -93,6 +93,9 @@ class _updater(meta._metadata):
         self.updater_name = "updater%d" % (id);
         self.enabled = True;
 
+        # Store a reference in global simulation variables
+        globals.updaters.append(self)
+
         # base class constructor
         meta._metadata.__init__(self)
 
@@ -236,9 +239,6 @@ class _updater(meta._metadata):
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
-        data['log'] = self.log
-        if self.name is not "":
-            data['name'] = self.name
 
         return data
 

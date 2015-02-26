@@ -125,10 +125,12 @@ def write_metadata(filename,obj=None,overwrite=False):
     from hoomd_script.data import system_data
     global_objs = [system_data(globals.system_definition)];
     global_objs += globals.forces;
+    global_objs += globals.constraint_forces;
     global_objs += [globals.integrator];
     global_objs += globals.integration_methods;
     global_objs += globals.forces
     global_objs += globals.analyzers;
+    global_objs += globals.updaters;
 
     # add list of objects to JSON
     for o in global_objs:

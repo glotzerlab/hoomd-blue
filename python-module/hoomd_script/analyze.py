@@ -495,6 +495,11 @@ class log(_analyzer):
         # add the logger to the list of loggers
         globals.loggers.append(self);
 
+        # store metadata
+        self.metadata_fields = ['filename','period']
+        self.filename = filename
+        self.period = period
+
     ## Change the parameters of the log
     #
     # \param quantities New list of quantities to log (if specified)
