@@ -102,8 +102,8 @@ class _constant(_variant):
 
     ## \internal
     # \brief return metadata
-    def __str__(self):
-        return str(self.val)
+    def get_metadata(self):
+        return self.val
 
 ## Linearly interpolated variant
 #
@@ -190,9 +190,8 @@ class linear_interp(_variant):
 
     ## \internal
     # \brief return metadata
-    def __str__(self):
-        return str(self.points)
-
+    def get_metadata(self):
+        return self.points
 
 ## \internal
 # \brief Internal helper function to aid in setting up variants

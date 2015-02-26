@@ -54,6 +54,7 @@ from hoomd_script import globals;
 import sys;
 from hoomd_script import util;
 from hoomd_script import init;
+from hoomd_script import meta;
 
 ## \package hoomd_script.analyze
 # \brief Commands that %analyze the system and provide some output
@@ -120,7 +121,7 @@ from hoomd_script import init;
 # writers. 1) The instance of the c++ analyzer itself is tracked and added to the
 # System 2) methods are provided for disabling the analyzer and changing the
 # period which the system calls it
-class _analyzer:
+class _analyzer(meta._metadata):
     ## \internal
     # \brief Constructs the analyzer
     #
@@ -143,6 +144,9 @@ class _analyzer:
 
         # Store a reference in global simulation variables
         globals.analyzers.append(self)
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \internal
     # \brief Helper function to setup analyzer period
@@ -273,6 +277,13 @@ class _analyzer:
             globals.msg.warning("A period cannot be changed to a variable one");
         else:
             globals.msg.warning("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function");
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
+        data['enabled'] = self.enabled
+        return data
 
 # set default counter
 _analyzer.cur_id = 0;

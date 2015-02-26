@@ -127,6 +127,7 @@ class xml(analyze._analyzer):
         # store metadata
         self.filename = filename
         self.period = period
+        self.metadata_fields = ['filename','period']
 
     ## Change xml write parameters
     #
@@ -270,15 +271,6 @@ class xml(analyze._analyzer):
             time_step = globals.system.getCurrentTimeStep()
 
         self.cpp_analyzer.writeFile(filename, time_step);
-
-    ## \internal
-    # \brief Get metadata for this analyzer
-    @property
-    def metadata(self):
-        data = OrderedDict()
-        data['filename'] = self.filename
-        data['period'] = self.period
-        return data
 
 ## Writes simulation snapshots in a binary format
 #
@@ -467,6 +459,11 @@ class mol2(analyze._analyzer):
         else:
             self.enabled = False;
 
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.metadata_fields = ['filename','period']
+
     ## Write a file at the current time step
     #
     # \param filename File name to write to
@@ -488,7 +485,6 @@ class mol2(analyze._analyzer):
         self.check_initialization();
 
         self.cpp_analyzer.writeFile(filename);
-
 
 ## Writes simulation snapshots in the DCD format
 #
@@ -560,6 +556,12 @@ class dcd(analyze._analyzer):
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
         self.cpp_analyzer.setAngleZ(angle_z);
         self.setupAnalyzer(period);
+
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.group = group
+        self.metadata_fields = ['filename','period','group']
 
     def enable(self):
         util.print_status_line();
@@ -676,67 +678,3 @@ class pdb(analyze._analyzer):
 
         self.cpp_analyzer.writeFile(filename);
 
-## Writes simulation metadata into a file
-#
-# When called, this function will query all registered computes, updaters etc. and ask
-# them to provide metadata. E.g. a pair potential will return information about parameters,
-# the Logger will output the filename it is logging to, etc.
-#
-# Custom metadata can be provided as a dictionary.
-#
-# The output is aggregated into a database record (JSON) and written to a file, together with
-# a timestamp.
-#
-def write_metadata(filename,obj=None,overwrite=False):
-    util.print_status_line();
-
-    from hoomd_script import init
-    if not init.is_initialized():
-        globals.msg.error("Need to initialize system first.\n")
-        raise RuntimeError("Error writing out metadata.")
-
-    import json
-
-    metadata = []
-    if obj is None:
-        obj = OrderedDict()
-    else:
-        if not isinstance(obj,dict):
-            globals.msg.warning("Metadata needs to be of type dictionary. Ignoring.\n")
-            obj = OrderedDict()
-        else:
-            obj = OrderedDict(obj)
-
-    if not overwrite:
-        try:
-            with open(filename) as f:
-                metadata = json.load(f)
-                globals.msg.notice(2,"Appending to file {1}." % filename)
-        except Exception:
-            pass
-
-    # Generate time stamp
-    import time
-    import datetime
-    ts = time.time()
-    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-    obj['timestamp'] = st
-    obj['timestep'] = globals.system.getCurrentTimeStep()
-
-    from hoomd_script.data import system_data
-    global_objs = [system_data(globals.system_definition)];
-    global_objs += globals.forces;
-    global_objs += [globals.integrator];
-    global_objs += globals.integration_methods;
-    global_objs += globals.forces
-    global_objs += globals.analyzers;
-
-    # add list of objects to JSON
-    for o in global_objs:
-        obj[o.__module__+'.'+o.__class__.__name__] = o
-
-    metadata.append(obj)
-    with open(filename, 'w') as f:
-
-        from json import JSONEncoder
-        json.dump(metadata, f,indent=4,default=lambda obj: obj.metadata if hasattr(obj,'metadata') else None )

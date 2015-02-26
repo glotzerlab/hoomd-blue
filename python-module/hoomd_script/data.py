@@ -52,8 +52,7 @@
 import hoomd
 from hoomd_script import globals
 from hoomd_script import util
-
-from collections import OrderedDict
+from hoomd_script import meta
 
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
@@ -435,7 +434,7 @@ from collections import OrderedDict
 # * Cubic box with given length: `data.boxdim(L=10)`
 # * Fully define all box parameters: `data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.5, yz=0.1)`
 #
-class boxdim:
+class boxdim(meta._metadata):
     ## Initialize a boxdim object
     #
     # \param Lx box extent in the x direction (distance units)
@@ -468,6 +467,9 @@ class boxdim:
 
         if volume is not None:
             self.set_volume(volume);
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## Scale box dimensions
     #
@@ -543,9 +545,8 @@ class boxdim:
 
     ## \internal
     # \brief Get a dictionary representation of the box dimensions
-    @property
-    def metadata(self):
-        data = OrderedDict()
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
         data['d'] = self.dimensions
         data['Lx'] = self.Lx
         data['Ly'] = self.Ly
@@ -563,7 +564,7 @@ class boxdim:
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # system_data, documented by example.
 #
-class system_data:
+class system_data(meta._metadata):
     ## \internal
     # \brief create a system_data
     #
@@ -576,6 +577,9 @@ class system_data:
         self.dihedrals = dihedral_data(sysdef.getDihedralData());
         self.impropers = dihedral_data(sysdef.getImproperData());
         self.bodies = body_data(sysdef.getRigidData());
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## Take a snapshot of the current system data
     #
@@ -756,21 +760,9 @@ class system_data:
         self.__dict__[name] = value;
 
     ## \internal
-    # \brief Translate attribute accesses into the low level API function calls
-    def __getattr__(self, name):
-        if name == "box":
-            b = self.sysdef.getParticleData().getGlobalBox();
-            L = b.getL();
-            return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ());
-
-        # if we get here, we haven't found any names that match, post an error
-        raise AttributeError;
-
-    ## \internal
-    # \brief Collect metadata of the simulation
-    @property
-    def metadata(self):
-        data = OrderedDict()
+    # \brief Get particle metadata
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
         data['box'] = self.box
         data['particles'] = self.particles
         data['density'] = len(self.particles)/self.box.get_volume()
@@ -792,6 +784,14 @@ class system_data:
             data['bodies'] = self.bodies
 
         return data
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):
+        if name == "box":
+            b = self.sysdef.getParticleData().getGlobalBox();
+            L = b.getL();
+            return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ());
 
 ## \internal
 # \brief Access the list of types
@@ -897,7 +897,7 @@ class pdata_types_proxy:
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # particle_data, documented by example.
 #
-class particle_data:
+class particle_data(meta._metadata):
     ## \internal
     # \brief particle_data iterator
     class particle_data_iterator:
@@ -925,6 +925,9 @@ class particle_data:
         self.pdata = pdata;
 
         self.types = pdata_types_proxy(globals.system_definition.getParticleData())
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \var pdata
     # \internal
@@ -995,9 +998,8 @@ class particle_data:
 
     ## \internal
     # \brief Return metadata for this particle_data instance
-    @property
-    def metadata(self):
-        data = OrderedDict()
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
         data['ntypes'] = self.pdata.getNTypes()
         return data
@@ -1299,7 +1301,7 @@ class force_data_proxy:
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # bond_data, documented by example.
 #
-class bond_data:
+class bond_data(meta._metadata):
     ## \internal
     # \brief bond_data iterator
     class bond_data_iterator:
@@ -1325,6 +1327,9 @@ class bond_data:
     # \param bdata BondData to connect
     def __init__(self, bdata):
         self.bdata = bdata;
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new bond
@@ -1397,9 +1402,8 @@ class bond_data:
 
     ## \internal
     # \brief Return metadata for this bond_data instance
-    @property
-    def metadata(self):
-        data = OrderedDict()
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
         data['ntypes'] = self.bdata.getNTypes()
         return data
@@ -1483,7 +1487,7 @@ class bond_data_proxy:
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # angle_data, documented by example.
 #
-class angle_data:
+class angle_data(meta._metadata):
     ## \internal
     # \brief angle_data iterator
     class angle_data_iterator:
@@ -1509,6 +1513,9 @@ class angle_data:
     # \param bdata AngleData to connect
     def __init__(self, adata):
         self.adata = adata;
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new angle
@@ -1584,9 +1591,8 @@ class angle_data:
 
     ## \internal
     # \brief Return metadata for this angle_data instance
-    @property
-    def metadata(self):
-        data = OrderedDict()
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
         data['ntypes'] = self.adata.getNTypes()
         return data
@@ -1678,7 +1684,7 @@ class angle_data_proxy:
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # dihedral_data, documented by example.
 #
-class dihedral_data:
+class dihedral_data(meta._metadata):
     ## \internal
     # \brief dihedral_data iterator
     class dihedral_data_iterator:
@@ -1704,6 +1710,9 @@ class dihedral_data:
     # \param bdata DihedralData to connect
     def __init__(self, ddata):
         self.ddata = ddata;
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \internal
     # \brief Add a new dihedral
@@ -1780,9 +1789,8 @@ class dihedral_data:
 
     ## \internal
     # \brief Return metadata for this dihedral_data instance
-    @property
-    def metadata(self):
-        data = OrderedDict()
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
         data['ntypes'] = self.ddata.getNTypes()
         return data
@@ -1950,9 +1958,8 @@ class body_data:
 
     ## \internal
     # \brief Return metadata for this body_data instance
-    @property
-    def metadata(self):
-        data = OrderedDict()
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
         data['nbodies'] = len(self)
         return data
 

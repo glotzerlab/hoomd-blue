@@ -130,3 +130,4 @@ def clear():
     thermos = [];
     group_all = None;
     sorter = None;
+

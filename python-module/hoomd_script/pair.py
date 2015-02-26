@@ -136,8 +136,7 @@ class coeff:
 
     ## \internal
     # \brief Return a compact representation of the pair coefficients
-    @property
-    def metadata(self):
+    def get_metadata(self):
         # return list for easy serialization
         l = []
         for (a,b) in self.values:
@@ -815,13 +814,14 @@ class pair(force._force):
 
     ## \internal
     # \brief Return metadata for this pair potential
-    @property
-    def metadata(self):
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
         # make sure all coefficients are set
         self.update_coeffs()
 
-        return {'pair_coeff': self.pair_coeff}
-
+        data['pair_coeff'] = self.pair_coeff
+        return data
 
 ## Lennard-Jones %pair %force
 #

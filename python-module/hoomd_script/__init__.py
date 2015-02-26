@@ -90,6 +90,7 @@ from hoomd_script import hoomd;
 from hoomd_script import compute;
 from hoomd_script import charge;
 from hoomd_script import comm;
+from hoomd_script import meta;
 
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API
