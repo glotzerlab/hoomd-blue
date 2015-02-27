@@ -362,7 +362,7 @@ class rescale_temp(_updater):
         # store metadta
         self.T = T
         self.period = period
-        self.metata_fields = ['T','period']
+        self.metadata_fields = ['T','period']
 
     ## Change rescale_temp parameters
     #
