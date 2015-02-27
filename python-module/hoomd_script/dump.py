@@ -63,8 +63,6 @@ import sys;
 from hoomd_script import util;
 from hoomd_script import group as hs_group;
 
-from collections import OrderedDict
-
 ## Writes simulation snapshots in the HOOMD XML format
 #
 # Every \a period time steps, a new file will be created. The state of the
