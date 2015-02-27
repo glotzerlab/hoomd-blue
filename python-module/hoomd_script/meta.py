@@ -146,6 +146,5 @@ def write_metadata(filename,obj=None,overwrite=False):
 
     metadata.append(obj)
     with open(filename, 'w') as f:
-
-        from json import JSONEncoder
+        # dump to JSON
         json.dump(metadata, f,indent=4,default=lambda obj: obj.get_metadata() if hasattr(obj,'get_metadata') and callable(getattr(obj, 'get_metadata')) else None )
