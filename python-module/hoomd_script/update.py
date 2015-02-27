@@ -527,7 +527,6 @@ class box_resize(_updater):
         # setup arguments
         if Lx is None:
             Lx = box.getL().x;
-            self.metdata_fields
         if Ly is None:
             Ly = box.getL().y;
         if Lz is None:
@@ -555,7 +554,7 @@ class box_resize(_updater):
         self.xy = xy
         self.xz = xz
         self.yz = yz
-        self.metdata_fields = ['Lx','Ly','Lz','xy','xz','yz']
+        self.metadata_fields = ['Lx','Ly','Lz','xy','xz','yz']
 
         # create the c++ mirror class
         self.cpp_updater = hoomd.BoxResizeUpdater(globals.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant,
