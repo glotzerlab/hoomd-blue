@@ -1739,6 +1739,12 @@ class mode_minimize_rigid_fire(_integrator):
             self.Etol = Etol
             self.metadata_fields.append(Etol)
 
+    ## Asks if Energy Minimizer has converged
+    #
+    def has_converged(self):
+        self.check_initialization();
+        return self.cpp_integrator.hasConverged()
+
 ## Applies the Berendsen thermostat.
 #
 # integrate.berendsen rescales the velocities of all particles on each time step. The rescaling is performed so that
