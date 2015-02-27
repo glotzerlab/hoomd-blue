@@ -82,9 +82,10 @@ class _metadata:
 
 # Writes simulation metadata into a file
 #
-# When called, this function will query all registered computes, updaters etc. and ask
-# them to provide metadata. E.g. a pair potential will return information about parameters,
-# the Logger will output the filename it is logging to, etc.
+# When called, this function will query all registered forces, updaters etc.
+# and ask them to provide metadata. E.g. a pair potential will return
+# information about parameters, the Logger will output the filename it is
+# logging to, etc.
 #
 # Custom metadata can be provided as a dictionary.
 #
@@ -94,6 +95,8 @@ class _metadata:
 # \param filename The name of the file to write JSON metadata to (optional)
 # \param obj Additional metadata, has to be a dictionary
 # \param overwrite If true, overwrite output file if it already exists
+#
+# \returns metadata as a dictionary
 def dump_metadata(filename=None,obj=None,overwrite=False):
     util.print_status_line();
 
