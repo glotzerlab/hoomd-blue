@@ -88,13 +88,13 @@ class _metadata:
 #
 # Custom metadata can be provided as a dictionary.
 #
-# The output is aggregated into a database record (JSON) and written to a file, together with
-# a timestamp.
+# The output is aggregated into a dictionary and written to a
+# JSON file, together with a timestamp.
 #
-# \param filename The name of the file to write JSON metadata to
+# \param filename The name of the file to write JSON metadata to (optional)
 # \param obj Additional metadata, has to be a dictionary
 # \param overwrite If true, overwrite output file if it already exists
-def write_metadata(filename,obj=None,overwrite=False):
+def dump_metadata(filename=None,obj=None,overwrite=False):
     util.print_status_line();
 
     from hoomd_script import init
@@ -114,7 +114,7 @@ def write_metadata(filename,obj=None,overwrite=False):
         else:
             obj = OrderedDict(obj)
 
-    if not overwrite:
+    if not overwrite and filename is not None:
         try:
             with open(filename) as f:
                 metadata = json.load(f)
@@ -145,6 +145,16 @@ def write_metadata(filename,obj=None,overwrite=False):
         obj[o.__module__+'.'+o.__class__.__name__] = o
 
     metadata.append(obj)
-    with open(filename, 'w') as f:
-        # dump to JSON
-        json.dump(metadata, f,indent=4,default=lambda obj: obj.get_metadata() if hasattr(obj,'get_metadata') and callable(getattr(obj, 'get_metadata')) else None )
+
+    # handler for unknown objects
+    default_handler = lambda obj: obj.get_metadata() if hasattr(obj,'get_metadata') and callable(getattr(obj, 'get_metadata')) else None
+
+    if filename is not None:
+        with open(filename, 'w') as f:
+            # dump to JSON
+            json.dump(metadata, f,indent=4,default=default_handler)
+
+    # serialize into string
+    meta_str = json.dumps(metadata,default=default_handler)
+
+    return json.loads(meta_str)
