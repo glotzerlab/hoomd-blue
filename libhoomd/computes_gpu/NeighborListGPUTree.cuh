@@ -67,7 +67,6 @@ using namespace hpmc::detail;
                                      
 //! Kernel driver to generate morton codes for particles and reorder by type
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
-                                   unsigned int *d_particle_ids,
                                    const Scalar4 *d_pos,
                                    const unsigned int *d_map_tree_global,
                                    const unsigned int N,
@@ -77,7 +76,7 @@ cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
 
 //! Wrapper to Thrust sort for morton codes
 cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
-                                  unsigned int *d_leaf_particles,
+                                  unsigned int *d_map_tree_global,
                                   const unsigned int *h_num_per_type,
                                   const unsigned int ntypes);
                                   
@@ -88,7 +87,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
                                       const Scalar4 *d_pos,
                                       const unsigned int *d_num_per_type,
                                       const unsigned int ntypes,
-                                      const unsigned int *d_leaf_particles,
+                                      const unsigned int *d_map_tree_global,
                                       const unsigned int *d_leaf_offset,
                                       const unsigned int *d_type_head,
                                       const unsigned int N,
@@ -117,7 +116,7 @@ cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
                                      const Scalar4 *d_pos,
                                      const Scalar *d_diameter,
                                      const unsigned int *d_body,
-                                     const unsigned int *d_leaf_particles,
+                                     const unsigned int *d_map_tree_global,
                                      const unsigned int N,
                                      const unsigned int block_size);
 
@@ -129,7 +128,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const unsigned int *d_head_list,
                                     const unsigned int N,
                                     // tree data
-                                    const unsigned int *d_leaf_particles,
+                                    const unsigned int *d_map_tree_global,
                                     const unsigned int *d_leaf_offset,
                                     const unsigned int *d_tree_roots,
                                     const unsigned int *d_node_left_child,

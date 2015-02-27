@@ -206,7 +206,6 @@ __device__ inline unsigned int findSplit(const unsigned int *d_morton_codes,
 // we should be able to speed this up significantly using a reverse mapping (tree -> global)
 // and coalescing the writes rather than reads
 __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
-                                              unsigned int *d_leaf_particles,
                                               const Scalar4 *d_pos,
                                               const unsigned int *d_map_tree_global,
                                               const unsigned int N,
@@ -260,11 +259,9 @@ __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
     
     // sort morton code by type as we compute it
     d_morton_codes[idx] = morton_code;
-    d_leaf_particles[idx] = idx;
     }
 
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
-                                   unsigned int *d_leaf_particles,
                                    const Scalar4 *d_pos,
                                    const unsigned int *d_map_tree_global,
                                    const unsigned int N,
@@ -283,7 +280,6 @@ cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
     int run_block_size = min(block_size,max_block_size);
     
     gpu_nlist_morton_codes_kernel<<<N/run_block_size + 1, run_block_size>>>(d_morton_codes,
-                                                                            d_leaf_particles,
                                                                             d_pos,
                                                                             d_map_tree_global,
                                                                             N,
@@ -293,25 +289,25 @@ cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
     }
     
 cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
-                                  unsigned int *d_leaf_particles,
+                                  unsigned int *d_map_tree_global,
                                   const unsigned int *h_num_per_type,
                                   const unsigned int ntypes)
     {
     
     // thrust requires to wrap the pod in a thrust object
     thrust::device_ptr<unsigned int> t_morton_codes = thrust::device_pointer_cast(d_morton_codes);
-    thrust::device_ptr<unsigned int> t_leaf_particles = thrust::device_pointer_cast(d_leaf_particles);
+    thrust::device_ptr<unsigned int> t_map_tree_global = thrust::device_pointer_cast(d_map_tree_global);
     
     // loop on types and do a sort by key
     for (unsigned int cur_type=0; cur_type < ntypes; ++cur_type)
         {
         thrust::sort_by_key(t_morton_codes,
                             t_morton_codes + h_num_per_type[cur_type],
-                            t_leaf_particles);
+                            t_map_tree_global);
                             
         // advance pointers to sort the next type
         t_morton_codes += h_num_per_type[cur_type];
-        t_leaf_particles += h_num_per_type[cur_type];
+        t_map_tree_global += h_num_per_type[cur_type];
         }
     
     return cudaSuccess;
@@ -323,7 +319,7 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
                                                  const Scalar4 *d_pos,
                                                  const unsigned int *d_num_per_type,
                                                  const unsigned int ntypes,
-                                                 const unsigned int *d_leaf_particles,
+                                                 const unsigned int *d_map_tree_global,
                                                  const unsigned int *d_leaf_offset,
                                                  const unsigned int *d_type_head,
                                                  const unsigned int N,
@@ -359,7 +355,7 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
     
     
     // upper also holds the skip value, but we have no idea what this is right now
-    Scalar4 upper = d_pos[ d_leaf_particles[start_idx] ];
+    Scalar4 upper = d_pos[ d_map_tree_global[start_idx] ];
     upper.w = 0.0f;
     
     // lower holds the particle number, we have one already
@@ -368,7 +364,7 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
     
     for (unsigned int cur_p=start_idx+1; cur_p < end_idx; ++cur_p)
         {
-        Scalar4 cur_pos = d_pos[ d_leaf_particles[cur_p] ];
+        Scalar4 cur_pos = d_pos[ d_map_tree_global[cur_p] ];
         
         // merge the boxes together
         if (cur_pos.x < lower.x) lower.x = cur_pos.x;
@@ -395,7 +391,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
                                       const Scalar4 *d_pos,
                                       const unsigned int *d_num_per_type,
                                       const unsigned int ntypes,
-                                      const unsigned int *d_leaf_particles,
+                                      const unsigned int *d_map_tree_global,
                                       const unsigned int *d_leaf_offset,
                                       const unsigned int *d_type_head,
                                       const unsigned int N,
@@ -418,7 +414,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
                                                                                 d_pos,
                                                                                 d_num_per_type,
                                                                                 ntypes,
-                                                                                d_leaf_particles,
+                                                                                d_map_tree_global,
                                                                                 d_leaf_offset,
                                                                                 d_type_head,
                                                                                 N,
@@ -640,7 +636,7 @@ __global__ void gpu_nlist_move_particles_kernel(Scalar4 *d_leaf_xyzf,
                                                 const Scalar4 *d_pos,
                                                 const Scalar *d_diameter,
                                                 const unsigned int *d_body,
-                                                const unsigned int *d_leaf_particles,
+                                                const unsigned int *d_map_tree_global,
                                                 const unsigned int N)
     {
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -648,7 +644,7 @@ __global__ void gpu_nlist_move_particles_kernel(Scalar4 *d_leaf_xyzf,
     if (idx >= N)
         return;
         
-    unsigned int p_idx = d_leaf_particles[idx];
+    unsigned int p_idx = d_map_tree_global[idx];
     Scalar4 pos_i = d_pos[p_idx];
     d_leaf_xyzf[idx] = make_scalar4(pos_i.x, pos_i.y, pos_i.z, __int_as_scalar(p_idx));
     
@@ -661,7 +657,7 @@ cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
                                      const Scalar4 *d_pos,
                                      const Scalar *d_diameter,
                                      const unsigned int *d_body,
-                                     const unsigned int *d_leaf_particles,
+                                     const unsigned int *d_map_tree_global,
                                      const unsigned int N,
                                      const unsigned int block_size)
     {
@@ -680,7 +676,7 @@ cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
                                                                               d_pos,
                                                                               d_diameter,
                                                                               d_body,
-                                                                              d_leaf_particles,
+                                                                              d_map_tree_global,
                                                                               N);
     return cudaSuccess;
     }
@@ -695,7 +691,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                                                const unsigned int *d_head_list,
                                                const unsigned int N,
                                                // tree data
-                                               const unsigned int *d_leaf_particles,
+                                               const unsigned int *d_map_tree_global,
                                                const unsigned int *d_leaf_offset,
                                                const unsigned int *d_tree_roots,
                                                const unsigned int *d_node_left_child,
@@ -755,7 +751,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         return;  
     
     // read in the current position and orientation
-    unsigned int my_pidx = d_leaf_particles[idx];
+    unsigned int my_pidx = d_map_tree_global[idx];
     if (my_pidx >= N)
         return;
         
@@ -876,7 +872,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const unsigned int *d_head_list,
                                     const unsigned int N,
                                     // tree data
-                                    const unsigned int *d_leaf_particles,
+                                    const unsigned int *d_map_tree_global,
                                     const unsigned int *d_leaf_offset,
                                     const unsigned int *d_tree_roots,
                                     const unsigned int *d_node_left_child,
@@ -949,7 +945,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                                  d_Nmax,
                                                                                                  d_head_list,
                                                                                                  N,
-                                                                                                 d_leaf_particles,
+                                                                                                 d_map_tree_global,
                                                                                                  d_leaf_offset,
                                                                                                  d_tree_roots,
                                                                                                  d_node_left_child,
@@ -985,7 +981,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                                  d_Nmax,
                                                                                                  d_head_list,
                                                                                                  N,
-                                                                                                 d_leaf_particles,
+                                                                                                 d_map_tree_global,
                                                                                                  d_leaf_offset,
                                                                                                  d_tree_roots,
                                                                                                  d_node_left_child,
@@ -1067,12 +1063,7 @@ __global__ void gpu_nlist_map_particles_kernel(unsigned int *d_map_tree_global,
     bool is_type_i = (d_type_mask[idx] == 1);
     if (is_type_i)
         {
-        unsigned int new_idx = d_cumulative_pids[idx];
-        if (type > 0)
-            {
-            new_idx += d_type_head[type - 1];
-            }
-            
+        unsigned int new_idx = d_cumulative_pids[idx] + d_type_head[type];
         d_map_tree_global[new_idx] = idx;
         }
         
@@ -1086,32 +1077,25 @@ __global__ void gpu_nlist_map_particles_kernel(unsigned int *d_map_tree_global,
         // number of leafs comes from number of particles
         const unsigned int num_leaf_i = (num_type_i + PARTICLES_PER_LEAF - 1) / PARTICLES_PER_LEAF;
         
-        // all tree roots are always shifted by the number of leafs
+        // increment all subsequent type heads by the current number of particles
         for (unsigned int type_it = 0; type_it < ntypes; ++type_it)
             {
-            if (type)
-                {
-                d_tree_roots[type_it] += num_leaf_i;
-                }
-            else
-                { // first time through, we set the number so we don't blow up
-                d_tree_roots[type_it] = num_leaf_i;
-                }
-            }
-        
-        // increment all subsequent type heads by the current number of particles
-        for (unsigned int type_it = type+1; type_it < ntypes; ++type_it)
-            {
-            // forward add the number of particles for the type head
-            d_type_head[type_it] += num_type_i;
+            d_tree_roots[type_it] += num_leaf_i;
             
-            // forward add the number of internal nodes
-            d_tree_roots[type_it] += num_leaf_i - 1;
-            
-            unsigned int remainder = num_type_i % PARTICLES_PER_LEAF;
-            if (remainder > 0)
+            // forward incrementing
+            if (type_it >= (type + 1))
                 {
-                d_leaf_offset[type_it] += (PARTICLES_PER_LEAF - remainder);
+                // forward add the number of particles for the type head
+                d_type_head[type_it] += num_type_i;
+            
+                // forward add the number of internal nodes
+                d_tree_roots[type_it] += num_leaf_i - 1;
+            
+                unsigned int remainder = num_type_i % PARTICLES_PER_LEAF;
+                if (remainder > 0)
+                    {
+                    d_leaf_offset[type_it] += (PARTICLES_PER_LEAF - remainder);
+                    }
                 }
             }
         }
@@ -1134,6 +1118,15 @@ cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
     
     // count up all particles masked for this type with partial sum scan
     thrust::exclusive_scan(t_type_mask, t_type_mask + N, t_cumulative_pids);
+    
+    // for the first type, you need to clear out the partial sums
+    if (type == 0)
+        {
+        cudaMemset(d_num_per_type, 0, sizeof(unsigned int)*ntypes);
+        cudaMemset(d_type_head, 0, sizeof(unsigned int)*ntypes);
+        cudaMemset(d_leaf_offset, 0, sizeof(unsigned int)*ntypes);
+        cudaMemset(d_tree_roots, 0, sizeof(unsigned int)*ntypes);
+        }
     
     // apply the scan
     static unsigned int max_block_size = UINT_MAX;
