@@ -52,10 +52,14 @@
 ## \package hoomd_script.meta
 # \brief Commands to write out simulation metadata
 #
+# Metadata is stored in form of key-value pairs in a JSON file and used
+# to summarize the per-run simulation parameters so that they can be easily
+# taken up by other scripts and stored in a database.
 
 import hoomd;
 from hoomd_script import globals;
 from hoomd_script import util;
+
 from collections import OrderedDict
 
 ## \internal
@@ -75,6 +79,7 @@ class _metadata:
             data[m] = getattr(self, m)
 
         return data
+
 # Writes simulation metadata into a file
 #
 # When called, this function will query all registered computes, updaters etc. and ask
@@ -86,6 +91,9 @@ class _metadata:
 # The output is aggregated into a database record (JSON) and written to a file, together with
 # a timestamp.
 #
+# \param filename The name of the file to write JSON metadata to
+# \param obj Additional metadata, has to be a dictionary
+# \param overwrite If true, overwrite output file if it already exists
 def write_metadata(filename,obj=None,overwrite=False):
     util.print_status_line();
 
