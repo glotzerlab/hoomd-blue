@@ -793,6 +793,9 @@ class system_data(meta._metadata):
             L = b.getL();
             return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ());
 
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
+
 ## \internal
 # \brief Access the list of types
 #
