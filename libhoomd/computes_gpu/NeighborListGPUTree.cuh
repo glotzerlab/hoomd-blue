@@ -134,6 +134,8 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const unsigned int *d_node_left_child,
                                     const Scalar4 *d_tree_aabbs,
                                     const unsigned int nleafs,
+                                    const unsigned int ninternal,
+                                    const unsigned int nnodes,
                                     const Scalar4 *d_leaf_xyzf,
                                     const Scalar2 *d_leaf_db,
                                     // particle data

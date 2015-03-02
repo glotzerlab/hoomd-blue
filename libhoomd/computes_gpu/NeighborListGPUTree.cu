@@ -464,7 +464,23 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(unsigned int *d_node_left_child,
             break;
             }
         }
+        
+    // this is a one leaf tree, so process it in a special way
+    // it has no children, since it is a leaf
+    // it is its own parent and sibling, like a root node
+    // no other nodes will process it as a child, so we have to set this directly
+    if (origin == end)
+        {
+        uint2 parent_sib;
+        parent_sib.x = idx;
+        parent_sib.y = idx << 1;
+        d_tree_parent_sib[idx] = parent_sib;
+        return;
+        }
     
+    
+    // internal nodes have all of the fun
+        
     // enact the magical split determining
     uint2 range = determineRange(d_morton_codes, origin, end, node_idx);
     unsigned int first = range.x;
@@ -583,7 +599,9 @@ __global__ void gpu_nlist_bubble_aabbs_kernel(unsigned int *d_node_locks,
             }
                 
         // then, we do an atomicAdd on the lock to see if we need to process the parent AABBs
-        lock_key = atomicAdd(d_node_locks + cur_parent - nleafs, 1);
+        // check to make sure the parent is bigger than nleafs, or else the node lock always fails
+        // to terminate the thread
+        lock_key = (cur_parent >= nleafs) ? atomicAdd(d_node_locks + cur_parent - nleafs, 1) : 0;
     
         // process the node
         if (lock_key == 1)
@@ -682,7 +700,7 @@ cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
     }
 
 
-template<unsigned char flags>
+template<unsigned char flags, bool has_internal>
 __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                                                unsigned int *d_n_neigh,
                                                Scalar4 *d_last_updated_pos,
@@ -843,7 +861,10 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                     else
                         {
                         // internal node, take left child
-                        cur_node_idx = texFetchUint(d_node_left_child, node_left_child_tex, cur_node_idx - nleafs);
+                        if (has_internal)
+                            {
+                            cur_node_idx = texFetchUint(d_node_left_child, node_left_child_tex, cur_node_idx - nleafs);
+                            }
                         }
                     }
                 else
@@ -878,6 +899,8 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const unsigned int *d_node_left_child,
                                     const Scalar4 *d_tree_aabbs,
                                     const unsigned int nleafs,
+                                    const unsigned int ninternal,
+                                    const unsigned int nnodes,
                                     const Scalar4 *d_leaf_xyzf,
                                     const Scalar2 *d_leaf_db,
                                     // particle data
@@ -916,29 +939,104 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         
         aabb_node_bounds_tex.normalized = false;
         aabb_node_bounds_tex.filterMode = cudaFilterModePoint;
-        cudaBindTexture(0, aabb_node_bounds_tex, d_tree_aabbs, sizeof(Scalar4)*2*(2*nleafs - ntypes));
+        cudaBindTexture(0, aabb_node_bounds_tex, d_tree_aabbs, sizeof(Scalar4)*2*nnodes);
         
         head_list_tex.normalized = false;
         head_list_tex.filterMode = cudaFilterModePoint;
         cudaBindTexture(0, head_list_tex, d_head_list, sizeof(unsigned int)*N);
         
-        node_left_child_tex.normalized = false;
-        node_left_child_tex.filterMode = cudaFilterModePoint;
-        cudaBindTexture(0, node_left_child_tex, d_node_left_child, sizeof(unsigned int)*(nleafs-ntypes));
+        if (ninternal > 0)
+            {
+            node_left_child_tex.normalized = false;
+            node_left_child_tex.filterMode = cudaFilterModePoint;
+            cudaBindTexture(0, node_left_child_tex, d_node_left_child, sizeof(unsigned int)*ninternal);
+            }
         }
     
-    if (!filter_body)
+    if (!filter_body && (ninternal == 0))
         {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<0>);
+            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<0,0>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
         int run_block_size = min(block_size,max_block_size);
-        gpu_nlist_traverse_tree_kernel<0><<<N/run_block_size + 1, run_block_size, shared_size>>>(d_nlist,
+        gpu_nlist_traverse_tree_kernel<0,0><<<N/run_block_size + 1, run_block_size, shared_size>>>(d_nlist,
+                                                                                                 d_n_neigh,
+                                                                                                 d_last_updated_pos,
+                                                                                                 d_conditions,
+                                                                                                 d_Nmax,
+                                                                                                 d_head_list,
+                                                                                                 N,
+                                                                                                 d_map_tree_global,
+                                                                                                 d_leaf_offset,
+                                                                                                 d_tree_roots,
+                                                                                                 d_node_left_child,
+                                                                                                 d_tree_aabbs,
+                                                                                                 nleafs,
+                                                                                                 d_leaf_xyzf,
+                                                                                                 d_leaf_db,
+                                                                                                 d_pos,
+                                                                                                 d_body,
+                                                                                                 d_diam,
+                                                                                                 d_image_list,
+                                                                                                 nimages,
+                                                                                                 d_r_cut,
+                                                                                                 r_buff,
+                                                                                                 ntypes,
+                                                                                                 filter_body);
+        }
+    else if (!filter_body)
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<0,1>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        int run_block_size = min(block_size,max_block_size);
+        gpu_nlist_traverse_tree_kernel<0,1><<<N/run_block_size + 1, run_block_size, shared_size>>>(d_nlist,
+                                                                                                 d_n_neigh,
+                                                                                                 d_last_updated_pos,
+                                                                                                 d_conditions,
+                                                                                                 d_Nmax,
+                                                                                                 d_head_list,
+                                                                                                 N,
+                                                                                                 d_map_tree_global,
+                                                                                                 d_leaf_offset,
+                                                                                                 d_tree_roots,
+                                                                                                 d_node_left_child,
+                                                                                                 d_tree_aabbs,
+                                                                                                 nleafs,
+                                                                                                 d_leaf_xyzf,
+                                                                                                 d_leaf_db,
+                                                                                                 d_pos,
+                                                                                                 d_body,
+                                                                                                 d_diam,
+                                                                                                 d_image_list,
+                                                                                                 nimages,
+                                                                                                 d_r_cut,
+                                                                                                 r_buff,
+                                                                                                 ntypes,
+                                                                                                 filter_body);
+        }
+    else if (filter_body && (ninternal == 0))
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<1,0>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        int run_block_size = min(block_size,max_block_size);
+        gpu_nlist_traverse_tree_kernel<1,0><<<N/run_block_size + 1, run_block_size, shared_size>>>(d_nlist,
                                                                                                  d_n_neigh,
                                                                                                  d_last_updated_pos,
                                                                                                  d_conditions,
@@ -969,12 +1067,12 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<1>);
+            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<1,1>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
         int run_block_size = min(block_size,max_block_size);
-        gpu_nlist_traverse_tree_kernel<1><<<N/run_block_size + 1, run_block_size, shared_size>>>(d_nlist,
+        gpu_nlist_traverse_tree_kernel<1,1><<<N/run_block_size + 1, run_block_size, shared_size>>>(d_nlist,
                                                                                                  d_n_neigh,
                                                                                                  d_last_updated_pos,
                                                                                                  d_conditions,
@@ -1098,6 +1196,25 @@ __global__ void gpu_nlist_map_particles_kernel(unsigned int *d_map_tree_global,
                     }
                 }
             }
+        
+        // the last time through, clean up the tree roots
+        // this might seem slow to repeat this work, but it really isn't that expensive to loop through the types
+        //
+        // any type that has only one leaf needs to have its root overridden to just be the leaf
+//         if (type == (ntypes-1))
+//             {
+//             unsigned int leaf_head = 0;
+//             for (unsigned int type_it = 0; type_it < ntypes; ++type_it)
+//                 {
+//                 unsigned int num_type_i = d_num_per_type[type_it];
+//                 unsigned int num_leaf_i = (num_type_i + PARTICLES_PER_LEAF - 1) / PARTICLES_PER_LEAF;
+//                 if (num_leaf_i == 1)
+//                     {
+//                     d_tree_roots[type_it] = leaf_head;
+//                     }
+//                 leaf_head += num_leaf_i;
+//                 }
+//             }
         }
     }
     

@@ -174,12 +174,25 @@ void NeighborListGPUTree::setupTree()
     mapParticlesByType();
         
     // the number of leafs is the first tree root
-    ArrayHandle<unsigned int> h_tree_roots(m_tree_roots, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tree_roots(m_tree_roots, access_location::host, access_mode::readwrite);
     m_n_leaf = h_tree_roots.data[0];
     // each tree has Nleaf,i - 1 internal nodes
     m_n_internal = m_n_leaf - m_pdata->getNTypes();
     // a binary radix tree has N_leaf - N_types internal nodes
     m_n_node = m_n_leaf + m_n_internal;
+    
+    // clean up the tree roots
+    ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
+    unsigned int leaf_head = 0;
+    for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+        {
+        const unsigned int n_leaf_i = (h_num_per_type.data[cur_type] + 4 - 1)/4;
+        if (n_leaf_i == 1)
+            {
+            h_tree_roots.data[cur_type] = leaf_head;
+            }
+        leaf_head += n_leaf_i;
+        }
     
     // allocate memory that depends on tree size
     if (m_n_node > m_tree_parent_sib.getPitch())
@@ -619,6 +632,8 @@ void NeighborListGPUTree::traverseTree()
                             d_node_left_child.data,
                             d_tree_aabbs.data,
                             m_n_leaf,
+                            m_n_internal,
+                            m_n_node,
                             d_leaf_xyzf.data,
                             d_leaf_db.data,
                             d_pos.data,
