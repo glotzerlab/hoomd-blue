@@ -90,18 +90,7 @@ class NeighborListGPU : public NeighborList
             m_distcheck_scheduled = false;
             m_last_schedule_tstep = 0;
             
-            // binning for building the head list
-            // will need autotuning / microoptimization
-            m_bin_size = 4;
-            m_n_bin_levels = (unsigned int)log(Scalar(m_pdata->getMaxN()))/log(Scalar(m_bin_size));
-            unsigned int totalBins = 0;
-            for (unsigned int i=1; i <= m_n_bin_levels; ++i)
-                {
-                    totalBins += m_pdata->getMaxN()/pow(m_bin_size,i);
-                }
-            GPUArray<unsigned int> bin_list(totalBins,exec_conf);
-            m_bin_list.swap(bin_list);
-            
+            // flag to say how big to resize
             GPUFlags<unsigned int> req_size_nlist(exec_conf);
             m_req_size_nlist.swap(req_size_nlist);
 
@@ -109,6 +98,7 @@ class NeighborListGPU : public NeighborList
             cudaEventCreate(&m_event,cudaEventDisableTiming);
 
             m_tuner_filter.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_filter", this->m_exec_conf));
+            m_tuner_head_list.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_head_list", this->m_exec_conf));
             }
 
         //! Destructor
@@ -131,6 +121,9 @@ class NeighborListGPU : public NeighborList
             NeighborList::setAutotunerParams(enable, period);
             m_tuner_filter->setPeriod(period/10);
             m_tuner_filter->setEnabled(enable);
+            
+            m_tuner_head_list->setPeriod(period/10);
+            m_tuner_head_list->setEnabled(enable);
             }
 
         //! Benchmark the filter kernel
@@ -177,11 +170,6 @@ class NeighborListGPU : public NeighborList
         
         //! Build the head list to allocated memory
         virtual void buildHeadList();
-        
-        //! Binning for building head list
-        GPUArray<unsigned int> m_bin_list;  //!< Internal bin list for computing head list
-        unsigned int m_bin_size;            //!< Sets the size of bins (tunable)
-        unsigned int m_n_bin_levels;        //!< Calculated number of bin levels
 
         //! Schedule the distance check kernel
         /*! \param timestep Current time step
@@ -198,6 +186,7 @@ class NeighborListGPU : public NeighborList
 
     private:
         boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
+        boost::scoped_ptr<Autotuner> m_tuner_head_list; //!< Autotuner for the head list block size
 
     };
 

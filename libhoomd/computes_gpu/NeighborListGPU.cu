@@ -58,6 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPU.cuh"
 #include <stdio.h>
 
+#include <thrust/device_ptr.h>
+#include <thrust/scan.h>
+
 /*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
     \param d_last_pos Particle positions at the time the nlist was last updated
     \param d_pos Current particle positions
@@ -326,244 +329,91 @@ cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
     }
 
 //! GPU kernel to do a preliminary sizing on particles
-__global__ void gpu_nlist_build_head_list_kernel_1(unsigned int *d_head_list,
-                                                   unsigned int *d_bin_list,
-                                                   const unsigned int *d_Nmax,
-                                                   const Scalar4 *d_pos,
-                                                   const unsigned int n_bins,
-                                                   const unsigned int N,
-                                                   const unsigned int n_types,
-                                                   const unsigned int bin_size)
+__global__ void gpu_nlist_init_head_list_kernel(unsigned int *d_head_list,
+                                                unsigned int *d_req_size_nlist,
+                                                const unsigned int *d_Nmax,
+                                                const Scalar4 *d_pos,
+                                                const unsigned int N,
+                                                const unsigned int ntypes)
     {
-    // compute the bin index this thread operates on
-    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    
-    // quit now if this thread is processing past the end of the particle list
-    if (idx >= n_bins)
-        return;
-    
     // cache the d_Nmax into shared memory for fast reads
     extern __shared__ unsigned char sh[];
     unsigned int *s_Nmax = (unsigned int *)(&sh[0]);
-    for (unsigned int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
+    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
         {
-        if (cur_offset + threadIdx.x < n_types)
+        if (cur_offset + threadIdx.x < ntypes)
             {
             s_Nmax[cur_offset + threadIdx.x] = d_Nmax[cur_offset + threadIdx.x];
             }
         }
     __syncthreads();
     
-    // loop over the small bin, and set the head address within based on size
-    const unsigned int particle_head_address = idx*bin_size;
-    unsigned int local_head_address = 0;
-    unsigned int my_pidx, my_type;
-    for (unsigned int i=0; i < bin_size; ++i)
-        {
-        // get type of current particle
-        my_pidx = particle_head_address+i;
-        if (my_pidx < N) // don't overrun the particle index
-            {
-            my_type = __scalar_as_int(d_pos[my_pidx].w);
-        
-            // set the local head for this particle
-            d_head_list[my_pidx] = local_head_address;
-        
-            // update the local head based on particle size
-            local_head_address += s_Nmax[my_type];
-            }
-        else
-            {
-            break;
-            }
-        }
-        
-    // stash the total size of the block into bin_list (first level)
-        d_bin_list[idx] = local_head_address;
-    }
-
-//! GPU kernel called iteratively to accumulate offsets
-__global__ void gpu_nlist_build_head_list_kernel_2(unsigned int *d_bin_list,
-                                                   const unsigned int old_n_bins,
-                                                   const unsigned int n_bins,
-                                                   const unsigned int read_bin_start,
-                                                   const unsigned int write_bin_start,
-                                                   const unsigned int bin_size
-                                                   )
-    {
+    
     // compute the bin index this thread operates on
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    // quit now if this thread is processing past the end of the current bin list
-    if (idx >= n_bins)
-        return;
     
-    unsigned int sum_of_bin = 0;
-    unsigned int cur_size = 0;
-    unsigned int read_idx = idx*bin_size;
-    for (unsigned int i=0; i < bin_size; ++i)
-        {
-        if (read_idx < old_n_bins)
-            {
-            cur_size = d_bin_list[read_bin_start + read_idx];   
-            d_bin_list[read_bin_start + read_idx] = sum_of_bin;
-            sum_of_bin += cur_size;
-            ++read_idx;
-            }
-        else
-            {
-            break;
-            }
-        }
-        
-    d_bin_list[write_bin_start + idx] = sum_of_bin;
-    }
-
-//! GPU kernel called iteratively to accumulate offsets
-__global__ void gpu_nlist_build_head_list_kernel_2b(unsigned int *d_bin_list,
-                                                   const unsigned int old_n_bins,
-                                                   const unsigned int n_bins,
-                                                   const unsigned int read_bin_start,
-                                                   unsigned int *d_req_size_nlist,
-                                                   const unsigned int bin_size
-                                                   )
-    {
-    // compute the bin index this thread operates on
-    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    // quit now if this thread is processing past the end of the current bin list
-    if (idx >= n_bins)
-        return;
-    
-    unsigned int sum_of_bin = 0;
-    unsigned int cur_size = 0;
-    unsigned int read_idx = idx*bin_size;
-    for (unsigned int i=0; i < bin_size; ++i)
-        {
-        if (read_idx < old_n_bins)
-            {
-            cur_size = d_bin_list[read_bin_start + read_idx];   
-            d_bin_list[read_bin_start + read_idx] = sum_of_bin;
-            sum_of_bin += cur_size;
-            ++read_idx;
-            }
-        else
-            {
-            break;
-            }
-        }
-    *d_req_size_nlist = sum_of_bin;
-    }
-    
-//! GPU kernel called iteratively to accumulate offsets
-__global__ void gpu_nlist_build_head_list_kernel_3(unsigned int *d_head_list,
-                                                   unsigned int *d_bin_list,
-                                                   const unsigned int n_bins_start,
-                                                   const unsigned int n_bin_levels,
-                                                   const unsigned int bin_size,
-                                                   const unsigned int N
-                                                   )
-    {
-    // compute the particle index this thread operates on
-    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
     // quit now if this thread is processing past the end of the particle list
     if (idx >= N)
         return;
+
+    const Scalar4 postype_i = d_pos[idx];
+    const unsigned int type_i = __scalar_as_int(postype_i.w);
+    const unsigned int Nmax_i = d_Nmax[type_i];
     
-    unsigned int offset = 0;
-    unsigned int my_big_bin = 0;
-    unsigned int my_big_bin_head = 0;
-    unsigned int bin_offset = n_bins_start;
-    unsigned int cur_bin_size = 1;
-    for (unsigned int i=0; i < n_bin_levels; ++i)
+    d_head_list[idx] = Nmax_i;
+    
+    // last thread sets the number of particles in the memory req as well
+    if (idx == (N-1))
         {
-        cur_bin_size *= bin_size;
-        my_big_bin = idx / cur_bin_size;
-        offset += d_bin_list[my_big_bin_head + my_big_bin];        
-        
-        // slide the head along for the next iteration
-        my_big_bin_head += bin_offset;
-        bin_offset = (bin_offset % bin_size > 0) + bin_offset/bin_size;
+        *d_req_size_nlist = Nmax_i;
         }
-    
-    d_head_list[idx] += offset;
+    }
+
+__global__ void gpu_nlist_get_nlist_mem_kernel(unsigned int *d_req_size_nlist,
+                                               const unsigned int *d_head_list,
+                                               const unsigned int N)
+    {
+    *d_req_size_nlist += d_head_list[N-1];
     }
 
 cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
                                       unsigned int *d_req_size_nlist,
-                                      unsigned int *d_bin_list,
                                       const unsigned int *d_Nmax,
                                       const Scalar4 *d_pos,
                                       const unsigned int N,
-                                      const unsigned int n_types,
-                                      const unsigned int n_bin_levels,
-                                      const unsigned int bin_size,
+                                      const unsigned int ntypes,
                                       const unsigned int block_size)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-//        cudaFuncAttributes attr;
-//        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_filter_kernel);
-//        max_block_size = attr.maxThreadsPerBlock;
+       cudaFuncAttributes attr;
+       cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_init_head_list_kernel);
+       max_block_size = attr.maxThreadsPerBlock;
         }
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    unsigned int shared_bytes = n_types*sizeof(unsigned int);
+    unsigned int shared_bytes = ntypes*sizeof(unsigned int);
     
-    // always just call an extra block just in case
-    unsigned int n_bins = (N % bin_size > 0) + N/bin_size;
-    int n_blocks = n_bins/run_block_size + 1;
+    // initialize each particle with its number of neighbors
+    gpu_nlist_init_head_list_kernel<<<N/run_block_size + 1, run_block_size, shared_bytes>>>(d_head_list,
+                                                                                            d_req_size_nlist,
+                                                                                            d_Nmax,
+                                                                                            d_pos,
+                                                                                            N,
+                                                                                            ntypes);
     
-    gpu_nlist_build_head_list_kernel_1<<<n_blocks, block_size, shared_bytes>>>(d_head_list,
-                                                                               d_bin_list,
-                                                                               d_Nmax,
-                                                                               d_pos,
-                                                                               n_bins,
-                                                                               N,
-                                                                               n_types,
-                                                                               bin_size);
-    unsigned int old_n_bins = n_bins;
-    unsigned int read_bin_start = 0;
-    unsigned int write_bin_start = n_bins;
-    for (unsigned int i=0; i < n_bin_levels + 1; ++i)
-        {        
-        old_n_bins = n_bins;
-        n_bins = (old_n_bins % bin_size > 0) + old_n_bins/bin_size;
-        n_blocks = n_bins/block_size + 1;
+    // thrust exclusive scan does a prefix sum to compute the "head" list of each, starting from 0
+    thrust::device_ptr<unsigned int> t_head_list = thrust::device_pointer_cast(d_head_list);
+    thrust::exclusive_scan(t_head_list, t_head_list + N, t_head_list);
     
-        if (i < n_bin_levels)
-            {
-            gpu_nlist_build_head_list_kernel_2<<<n_blocks, block_size>>>(d_bin_list,
-                                                                        old_n_bins,
-                                                                        n_bins,
-                                                                        read_bin_start,
-                                                                        write_bin_start,
-                                                                        bin_size);
-            }
-        else
-            {
-            gpu_nlist_build_head_list_kernel_2b<<<n_blocks, block_size>>>(d_bin_list,
-                                                                        old_n_bins,
-                                                                        n_bins,
-                                                                        read_bin_start,
-                                                                        d_req_size_nlist,
-                                                                        bin_size);
-            }
+    // compute the total number on the GPU from the last element (it would be nice if the thrust code could do this)
+    // it would be better to write our own scan algorithm to avoid the extra kernel overhead,
+    // but this is better than a data copy of the whole head list, and faster to code up
+    gpu_nlist_get_nlist_mem_kernel<<<1,1>>>(d_req_size_nlist,
+                                            d_head_list,
+                                            N);
     
-        read_bin_start = write_bin_start;
-        write_bin_start += n_bins;
-        }
-    
-    n_blocks = N/run_block_size + 1;   
-    n_bins = (N % bin_size > 0) + N/bin_size;
-    gpu_nlist_build_head_list_kernel_3<<<n_blocks, block_size>>>(d_head_list,
-                                                                 d_bin_list,
-                                                                 n_bins,
-                                                                 n_bin_levels,
-                                                                 bin_size,
-                                                                 N);
     return cudaSuccess;
     }
     

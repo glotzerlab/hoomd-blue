@@ -85,13 +85,10 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
 //! Kernel driver to build head list on gpu
 cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
                                       unsigned int *d_req_size_nlist,
-                                      unsigned int *d_bin_list,
                                       const unsigned int *d_Nmax,
                                       const Scalar4 *d_pos,
                                       const unsigned int N,
                                       const unsigned int n_types,
-                                      const unsigned int n_bin_levels,
-                                      const unsigned int bin_size,
                                       const unsigned int block_size);
 
 

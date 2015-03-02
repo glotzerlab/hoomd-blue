@@ -267,7 +267,7 @@ void NeighborListGPU::buildHeadList()
     // Must have at least one level to use binning, so check to make sure that:
     // log(y/x) > 1 --> y/x > e -> y > x*e
     // which with integer flooring implies the below condition
-    if (m_pdata->getMaxN() > (unsigned int)ceil(m_bin_size*2.718))
+    /*if (m_pdata->getMaxN() > (unsigned int)ceil(m_bin_size*2.718))
         {
         ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -319,7 +319,36 @@ void NeighborListGPU::buildHeadList()
     else // fall back on cpu loop for small particle numbers
         {
         NeighborList::buildHeadList();
+        }*/
+        
+    ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);    
+    
+    m_req_size_nlist.resetFlags(0.0);
+    
+    m_tuner_head_list->begin();
+    gpu_nlist_build_head_list(d_head_list.data,
+                              m_req_size_nlist.getDeviceFlags(),
+                              d_Nmax.data,
+                              d_pos.data,
+                              m_pdata->getN(),
+                              m_pdata->getNTypes(),
+                              32);
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    m_tuner_head_list->end();
+        
+    // reallocate if needed
+    // needs amortized resizing though...
+    unsigned int req_size_nlist = m_req_size_nlist.readFlags();
+    if (req_size_nlist > m_nlist.getPitch())
+        {
+        GPUArray<unsigned int> nlist(req_size_nlist, exec_conf);
+        m_nlist.swap(nlist);
         }
+    
+    
     if (m_prof) m_prof->pop(exec_conf);
     }
 

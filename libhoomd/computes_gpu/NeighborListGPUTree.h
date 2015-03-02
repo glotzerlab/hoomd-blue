@@ -86,28 +86,28 @@ class NeighborListGPUTree : public NeighborListGPU
             {
             NeighborListGPU::setAutotunerParams(enable, period);
             
-            m_tuner_morton->setPeriod(period);
+            m_tuner_morton->setPeriod(period/10);
             m_tuner_morton->setEnabled(enable);
             
-            m_tuner_merge->setPeriod(period);
+            m_tuner_merge->setPeriod(period/10);
             m_tuner_merge->setEnabled(enable);
             
-            m_tuner_hierarchy->setPeriod(period);
+            m_tuner_hierarchy->setPeriod(period/10);
             m_tuner_hierarchy->setEnabled(enable);
             
-            m_tuner_bubble->setPeriod(period);
+            m_tuner_bubble->setPeriod(period/10);
             m_tuner_bubble->setEnabled(enable);
             
-            m_tuner_move->setPeriod(period);
+            m_tuner_move->setPeriod(period/10);
             m_tuner_move->setEnabled(enable);
             
-            m_tuner_mask->setPeriod(period);
+            m_tuner_mask->setPeriod(period/10);
             m_tuner_mask->setEnabled(enable);
             
-            m_tuner_map->setPeriod(period);
+            m_tuner_map->setPeriod(period/10);
             m_tuner_map->setEnabled(enable);
             
-            m_tuner_traverse->setPeriod(period);
+            m_tuner_traverse->setPeriod(period/10);
             m_tuner_traverse->setEnabled(enable);
             }
             
