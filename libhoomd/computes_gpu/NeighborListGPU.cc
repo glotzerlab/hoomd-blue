@@ -266,7 +266,7 @@ void NeighborListGPU::buildHeadList()
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);    
     
-    m_req_size_nlist.resetFlags(0.0);
+    m_req_size_nlist.resetFlags(0);
     
     m_tuner_head_list->begin();
     gpu_nlist_build_head_list(d_head_list.data,
@@ -275,7 +275,7 @@ void NeighborListGPU::buildHeadList()
                               d_pos.data,
                               m_pdata->getN(),
                               m_pdata->getNTypes(),
-                              32);
+                              m_tuner_head_list->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_head_list->end();

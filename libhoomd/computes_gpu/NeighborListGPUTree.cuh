@@ -67,6 +67,7 @@ using namespace hpmc::detail;
                                      
 //! Kernel driver to generate morton codes for particles and reorder by type
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
+                                   int *d_morton_conditions,
                                    const Scalar4 *d_pos,
                                    const unsigned int *d_map_tree_global,
                                    const unsigned int N,
@@ -83,6 +84,7 @@ cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
 //! Kernel driver to merge the bottom layers of particles into leaf nodes
 cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
                                       unsigned int *d_morton_codes_red,
+                                      uint2 *d_tree_parent_sib,
                                       const unsigned int *d_morton_codes,
                                       const Scalar4 *d_pos,
                                       const unsigned int *d_num_per_type,
@@ -99,7 +101,6 @@ cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_node_left_child,
                                     uint2 *d_tree_parent_sib,
                                     const unsigned int *d_morton_codes,
                                     const unsigned int *d_type_head,
-                                    const unsigned int N,
                                     const unsigned int ntypes,
                                     const unsigned int nleafs,
                                     const unsigned int block_size);
@@ -127,6 +128,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const unsigned int *d_Nmax,
                                     const unsigned int *d_head_list,
                                     const unsigned int N,
+                                    const unsigned int nghosts,
                                     // tree data
                                     const unsigned int *d_map_tree_global,
                                     const unsigned int *d_leaf_offset,

@@ -116,6 +116,16 @@ class NeighborListGPUTree : public NeighborListGPU
             {
             m_box_changed = true;
             }
+            
+        void slotMaxNumChanged()
+            {
+            m_max_num_changed = true;
+            }
+            
+        void slotRemapParticles()
+            {
+            m_remap_particles = true;
+            }
         
     protected:
         boost::scoped_ptr<Autotuner> m_tuner_morton;
@@ -126,11 +136,7 @@ class NeighborListGPUTree : public NeighborListGPU
         boost::scoped_ptr<Autotuner> m_tuner_mask;
         boost::scoped_ptr<Autotuner> m_tuner_map;
         boost::scoped_ptr<Autotuner> m_tuner_traverse;
-        
-        GPUArray<Scalar4> m_leaf_xyzf;
-        GPUArray<Scalar2> m_leaf_db;
-        GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
-        GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type
+
 
         GPUArray<Scalar3>       m_image_list;           //!< list of translation vectors
         unsigned int            m_n_images;             //!< number of translation vectors
@@ -138,18 +144,29 @@ class NeighborListGPUTree : public NeighborListGPU
         bool m_type_changed;
         
         bool m_box_changed;
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
+        boost::signals2::connection m_boxchange_connection;     //!< Connection to the ParticleData box size change signal
+        
+        bool m_max_num_changed;
+        boost::signals2::connection m_max_numchange_conn;       //!< Connection to max particle number change signal
+        
+        bool m_remap_particles;
+        boost::signals2::connection m_sort_conn;    //!< Local connection to the ParticleData sort signal
         
         // tree building on gpu
+        GPUArray<Scalar4> m_leaf_xyzf;
+        GPUArray<Scalar2> m_leaf_db;
         GPUArray<unsigned int> m_map_tree_global;   //!< map a leaf order id to a global particle
         GPUArray<unsigned int> m_morton_codes;      //!< 30 bit morton codes for particles to sort on z-order curve
-        GPUArray<unsigned int> m_morton_codes_red;  //!< Reduced capacity morton code array
+
         GPUArray<unsigned int> m_leaf_offset;       //!< total offset in particle index for leaf nodes by type
+        GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
+        GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type
         
-        GPUArray<Scalar4> m_tree_aabbs;             //!< aabbs for merged leaf nodes and internal nodes
-        GPUArray<unsigned int> m_node_locks;        //!< node locks for if node has been visited or not
-        GPUArray<unsigned int> m_node_left_child;   //!< left children of the internal nodes
-        GPUArray<uint2> m_tree_parent_sib;          //!< parents and siblings of all nodes
+        GPUVector<unsigned int> m_morton_codes_red;  //!< Reduced capacity morton code array        
+        GPUVector<Scalar4> m_tree_aabbs;             //!< aabbs for merged leaf nodes and internal nodes
+        GPUVector<unsigned int> m_node_locks;        //!< node locks for if node has been visited or not
+        GPUVector<unsigned int> m_node_left_child;   //!< left children of the internal nodes
+        GPUVector<uint2> m_tree_parent_sib;          //!< parents and siblings of all nodes
         
         GPUArray<unsigned int> m_type_mask;         //!< mask array to use for type counting particle mapping
         GPUArray<unsigned int> m_cumulative_pids;   //!< accumulated particle ids output from scan
@@ -160,12 +177,16 @@ class NeighborListGPUTree : public NeighborListGPU
         unsigned int m_n_internal;                  //!< number of internal nodes in tree
         unsigned int m_n_node;                      //!< leaves + internal nodes
         
+        GPUFlags<int> m_morton_conditions; //!< condition flag to catch out of bounds particles
+        
         
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
         
     private:
         void updateImageVectors();
+        
+        void allocateTree();
         
         void setupTree();
         void mapParticlesByType();
