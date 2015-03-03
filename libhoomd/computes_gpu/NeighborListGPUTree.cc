@@ -105,11 +105,11 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
 
     // build the tree
 //     cout<<"build"<<endl;
-//     buildTree();
+    buildTree();
     
     // walk with the new scheme
 //     cout<<"traverse"<<endl;
-//     traverseTree();
+    traverseTree();
 //     if(!m_exec_conf->getRank())
 //         {
 //         ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::read);
@@ -453,14 +453,18 @@ void NeighborListGPUTree::calcMortonCodes()
     const int morton_conditions = m_morton_conditions.readFlags();
     if (morton_conditions > 0)
         {
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        Scalar4 post_i = h_pos.data[morton_conditions];
         // ghost particle
         if (morton_conditions > (int)m_pdata->getN())
             {            
-            m_exec_conf->msg->error() << "nlist: Ghost particle " << morton_conditions << " out of bounds."<< endl;
+            m_exec_conf->msg->error() << "nlist: Ghost particle " << morton_conditions << " out of bounds "
+                                      << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z << ")" <<endl;
             }
         else // regular particle
             {
-            m_exec_conf->msg->error() << "nlist: Particle " << morton_conditions << " is out of bounds."<< endl;
+            m_exec_conf->msg->error() << "nlist: Particle " << morton_conditions << " is out of bounds "
+                                      << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z << ")" <<endl;
             }
         throw runtime_error("Error updating neighborlist");
         }

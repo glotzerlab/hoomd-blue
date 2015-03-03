@@ -116,18 +116,19 @@ __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
     Scalar3 f = box.makeFraction(pos,ghost_width);
 
     // check if the particle is inside the unit cell + ghost layer in all dimensions
-    if ((f.x < Scalar(0.0) || f.x >= Scalar(1.00001)) ||
-        (f.y < Scalar(0.0) || f.y >= Scalar(1.00001)) ||
-        (f.z < Scalar(0.0) || f.z >= Scalar(1.00001)) )
+    // this tolerance is small enough that when we multiply by the morton code bin size, we are still in range
+    if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
+        (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
+        (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)) )
         {
         *d_morton_conditions = pidx;
         return;
         }
 
     // find the bin each particle belongs in
-    unsigned int ib = (unsigned int)(f.x * MORTON_CODE_N_BINS);
-    unsigned int jb = (unsigned int)(f.y * MORTON_CODE_N_BINS);
-    unsigned int kb = (unsigned int)(f.z * MORTON_CODE_N_BINS);
+    unsigned int ib = f.x * MORTON_CODE_N_BINS;
+    unsigned int jb = f.y * MORTON_CODE_N_BINS;
+    unsigned int kb = f.z * MORTON_CODE_N_BINS;
 
     // need to handle the case where the particle is exactly at the box hi
     if (ib == MORTON_CODE_N_BINS && periodic.x)
