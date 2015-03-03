@@ -79,26 +79,49 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const Scalar4 *d_pos,
                                                         const unsigned int N,
                                                         const BoxDim box,
-                                                        const Scalar maxshiftsq,
+                                                        const Scalar *d_rcut_max,
+                                                        const Scalar r_buff,
+                                                        const unsigned int ntypes,
+                                                        const Scalar lambda_min,
                                                         const Scalar3 lambda,
                                                         const unsigned int checkn)
     {
+    // cache delta max into shared memory
+    // shared data for per type pair parameters
+    extern __shared__ unsigned char s_data[];
+    
+    // pointer for the r_listsq data
+    Scalar *s_maxshiftsq = (Scalar *)(&s_data[0]);
+
+    // load in the per type pair r_list
+    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < ntypes)
+            {
+            const Scalar rcut_max_i = d_rcut_max[cur_offset + threadIdx.x];
+            const Scalar rmax = rcut_max_i + r_buff;
+            const Scalar delta_max = (rmax*lambda_min - rcut_max_i)/Scalar(2.0);
+            s_maxshiftsq[cur_offset + threadIdx.x] = (delta_max > 0) ? delta_max*delta_max : 0.0f;
+            }
+        }
+    __syncthreads();
+    
+    
     // each thread will compare vs it's old position to see if the list needs updating
-    // if that is true, write a 1 to nlist_needs_updating
-    // it is possible that writes will collide, but at least one will succeed and that is all that matters
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N)
         {
         Scalar4 cur_postype = d_pos[idx];
         Scalar3 cur_pos = make_scalar3(cur_postype.x, cur_postype.y, cur_postype.z);
+        const unsigned int cur_type = __scalar_as_int(cur_postype.w);
         Scalar4 last_postype = d_last_pos[idx];
         Scalar3 last_pos = make_scalar3(last_postype.x, last_postype.y, last_postype.z);
 
         Scalar3 dx = cur_pos - lambda*last_pos;
         dx = box.minImage(dx);
 
-        if (dot(dx, dx) >= maxshiftsq)
+        if (dot(dx, dx) >= s_maxshiftsq[cur_type])
             atomicMax(d_result, checkn);
         }
     }
@@ -108,20 +131,28 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const Scalar4 *d_pos,
                                              const unsigned int N,
                                              const BoxDim& box,
-                                             const Scalar maxshiftsq,
+                                             const Scalar *d_rcut_max,
+                                             const Scalar r_buff,
+                                             const unsigned int ntypes,
+                                             const Scalar lambda_min,
                                              const Scalar3 lambda,
                                              const unsigned int checkn)
     {
+    const unsigned int shared_bytes = sizeof(Scalar) * ntypes;
+    
     unsigned int block_size = 128;
     int n_blocks = N/block_size+1;
-    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size>>>(d_result,
-                                                                                d_last_pos,
-                                                                                d_pos,
-                                                                                N,
-                                                                                box,
-                                                                                maxshiftsq,
-                                                                                lambda,
-                                                                                checkn);
+    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size, shared_bytes>>>(d_result,
+                                                                                    d_last_pos,
+                                                                                    d_pos,
+                                                                                    N,
+                                                                                    box,
+                                                                                    d_rcut_max,
+                                                                                    r_buff,
+                                                                                    ntypes,
+                                                                                    lambda_min,
+                                                                                    lambda,
+                                                                                    checkn);
 
     return cudaSuccess;
     }

@@ -123,6 +123,10 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
     m_r_cut.swap(r_cut);
     
+    // holds the maximum rcut on a per type basis
+    GPUArray<Scalar> rcut_max(m_pdata->getNTypes(), m_exec_conf);
+    m_rcut_max.swap(rcut_max);
+    
     // allocate the full-blown r_listsq array, which we will pass to kernels
     GPUArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), exec_conf);
     m_r_listsq.swap(r_listsq);
@@ -334,15 +338,29 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::readwrite);
     h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
     h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
-    
+
     // update the maximum cutoff of all those set so far
-    Scalar r_cut_max = Scalar(0.0);
-    for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
+    // we loop in case there's a weird situation where you set once, and then reduce the cutoff
+    // this should probably be moved to a separate function that only gets called once when an
+    // update is needed, before each nlist build
+    ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::readwrite);    
+    Scalar r_cut_max = 0.0f;
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
-        if (h_r_cut.data[i] > r_cut_max)
-            r_cut_max = h_r_cut.data[i];
+        // get the maximum cutoff for this type
+        Scalar r_cut_max_i = 0.0f;
+        for (unsigned int j=0; j < m_pdata->getNTypes(); ++j)
+            {
+            if (h_r_cut.data[m_typpair_idx(i,j)] > r_cut_max_i)
+                r_cut_max_i = h_r_cut.data[m_typpair_idx(i,j)];
+            }
+        h_rcut_max.data[i] = r_cut_max_i;
+        if (r_cut_max_i > r_cut_max)
+            r_cut_max = r_cut_max_i;
         }
     m_r_cut_max = r_cut_max;
+        
+
         
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -876,25 +894,27 @@ bool NeighborList::distanceCheck(unsigned int timestep)
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
 
-    ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
-
     // get current nearest plane distances
     Scalar3 L_g = m_pdata->getGlobalBox().getNearestPlaneDistance();
-
-    // Cutoff distance for inclusion in neighbor list
-    Scalar rmax = m_r_cut_max + m_r_buff;
 
     // Find direction of maximum box length contraction (smallest eigenvalue of deformation tensor)
     Scalar3 lambda = L_g / m_last_L;
     Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
     lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
-
-    // maximum displacement for each particle (after subtraction of homogeneous dilations)
-    Scalar delta_max = (rmax*lambda_min - m_r_cut_max)/Scalar(2.0);
-    Scalar maxsq = delta_max > 0  ? delta_max*delta_max : 0;
-
+    
+    ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::read);
+    
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
+        const unsigned int type_i = __scalar_as_int(h_pos.data[i].w);
+        
+        // max cutoff distance for inclusion in neighborlist if type i
+        const Scalar rmax = h_rcut_max.data[type_i] + m_r_buff;
+        // max displacement for each particle (after subtraction of homogeneous dilations)
+        const Scalar delta_max = (rmax*lambda_min - h_rcut_max.data[type_i])/Scalar(2.0);
+        Scalar maxsq = (delta_max > 0) ? delta_max*delta_max : 0;
+        
         Scalar3 dx = make_scalar3(h_pos.data[i].x - lambda.x*h_last_pos.data[i].x,
                                   h_pos.data[i].y - lambda.y*h_last_pos.data[i].y,
                                   h_pos.data[i].z - lambda.z*h_last_pos.data[i].z);

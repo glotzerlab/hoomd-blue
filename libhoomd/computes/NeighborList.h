@@ -412,7 +412,8 @@ class NeighborList : public Compute
    protected:
         Index2D m_typpair_idx;      //!< Indexer for full type pair storage
         GPUArray<Scalar> m_r_cut;   //!< The potential cutoffs stored by pair type
-        GPUArray<Scalar> m_r_listsq;  //!< The neighborlist cutoff radius squared stored by pair type
+        GPUArray<Scalar> m_r_listsq;//!< The neighborlist cutoff radius squared stored by pair type
+        GPUArray<Scalar> m_rcut_max;//!< The maximum value of rcut per particle type
         Scalar m_r_cut_max;         //!< The maximum cutoff radius of any pair
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)

@@ -68,7 +68,10 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const Scalar4 *d_pos,
                                              const unsigned int N,
                                              const BoxDim& box,
-                                             const Scalar maxshiftsq,
+                                             const Scalar *d_rcut_max,
+                                             const Scalar r_buff,
+                                             const unsigned int ntypes,
+                                             const Scalar lambda_min,
                                              const Scalar3 lambda,
                                              const unsigned int checkn);
 
