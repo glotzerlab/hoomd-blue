@@ -135,6 +135,10 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
     m_n_neigh.swap(n_neigh);
     
+    // default allocation of 8 neighbors per particle for the neighborlist
+    GPUArray<unsigned int> nlist(8*m_pdata->getMaxN(), exec_conf);
+    m_nlist.swap(nlist);
+    
     // allocate internal arrays to store and compute the head list
     GPUArray<unsigned int> head_list(m_pdata->getMaxN(), exec_conf);
     m_head_list.swap(head_list);
@@ -260,7 +264,9 @@ void NeighborList::compute(unsigned int timestep)
             if (overflowed)
                 {
                 allocate();
+
                 buildHeadList();
+                
                 resetConditions();
                 }
             } while (overflowed);

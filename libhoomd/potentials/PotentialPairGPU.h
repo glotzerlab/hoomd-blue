@@ -190,7 +190,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     // start by updating the neighborlist
     if (!m_precompute)
         this->m_nlist->compute(timestep);
-
+    
     // if we have already computed and the neighbor list remains current do not recompute
     if (!m_precompute && m_has_been_precomputed && !this->m_nlist->hasBeenUpdated(timestep)) return;
 

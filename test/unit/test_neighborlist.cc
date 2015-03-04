@@ -98,6 +98,7 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 3.25;
     
     h_pos.data[0].w = 0.0; h_pos.data[1].w = 0.0;
+    pdata_2->notifyParticleSort();
     }
 
     // test construction of the neighborlist
@@ -149,6 +150,8 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(19.6); h_pos.data[3].z = 0.0; h_pos.data[3].w = 0.0;
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = Scalar(-29.6); h_pos.data[4].w = 0.0;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  Scalar(29.6); h_pos.data[5].w = 0.0;
+    
+    pdata_6->notifyParticleSort();
     }
 
     boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
@@ -160,26 +163,26 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         ArrayHandle<unsigned int> h_n_neigh(nlist_6->getNNeighArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
-//         Index2D nli = nlist_6->getNListIndexer();
 
-//         BOOST_REQUIRE(nli.getW() >= 6);
+        // check for right number of nbrs
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 0], 1);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 0], 0);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 0], 3);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[3], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 0], 2);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[4], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 0], 5);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[5], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[5] + 0], 4);
+        
+        // populate the neighbor list as a collection for fast compare
+        vector<unsigned int> nbrs(6, 0);
+        for (unsigned int i=0; i < 6; ++i)
+            {
+            nbrs[i] = h_nlist.data[h_head_list.data[i]];
+            }
+        
+        // the answer we expect
+        unsigned int check_nbrs[] = {1, 0, 3, 2, 5, 4};
+        
+        BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
         }
 
     // swap the order of the particles around to look for subtle directional bugs
@@ -192,6 +195,8 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[2].x = 0; h_pos.data[2].y = Scalar(19.6); h_pos.data[2].z = 0.0;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z = Scalar(-29.6);
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z =  Scalar(29.6);
+    
+    pdata_6->notifyParticleSort();
     }
 
     // verify the neighbor list
@@ -201,24 +206,25 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
         
-//         BOOST_REQUIRE(nli.getW() >= 6);
+        // check for right number of nbrs
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 0], 1);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 0], 0);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[2], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2] + 0], 3);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[3], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[3] + 0], 2);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[4], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[4] + 0], 5);
-
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[5], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[5] + 0], 4);
+        
+        // populate the neighbor list as a collection for fast compare
+        vector<unsigned int> nbrs(6, 0);
+        for (unsigned int i=0; i < 6; ++i)
+            {
+            nbrs[i] = h_nlist.data[h_head_list.data[i]];
+            }
+        
+        // the answer we expect
+        unsigned int check_nbrs[] = {1, 0, 3, 2, 5, 4};
+        
+        BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 6);
         }
 
     // one last test, we should check that more than one neighbor can be generated
@@ -231,6 +237,8 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
     h_pos.data[3].x = 0; h_pos.data[3].y = Scalar(19.6); h_pos.data[3].z = 0.0;
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  0;
+    
+    pdata_6->notifyParticleSort();
     }
 
     nlist_6->compute(20);
@@ -239,13 +247,23 @@ void neighborlist_basic_tests(boost::shared_ptr<ExecutionConfiguration> exec_con
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
 
-//         BOOST_REQUIRE(nli.getW() >= 6);
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 3);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 0], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 1], 4);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 2], 5);
+        
+        vector<unsigned int> nbrs(3,0);
+        for (unsigned int i=0; i < 3; ++i)
+            {
+            nbrs[i] = h_nlist.data[h_head_list.data[0] + i];
+            }
+            
+        // sort the neighbors because it doesn't matter what order they are stored in, just that they all are there
+        sort(nbrs.begin(), nbrs.end());
+        
+        // the answer we expect
+        unsigned int check_nbrs[] = {1, 4, 5};
+        BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 3);
         }
     }
+    
 //! Test neighborlist functionality with particles with different numbers of neighbors
 template <class NL>
 void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
@@ -259,6 +277,8 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         h_pos.data[0].x = 0.0; h_pos.data[0].y = 0.0; h_pos.data[0].z = 0.0; h_pos.data[0].w = __int_as_scalar(1);
         h_pos.data[1].x = Scalar(1.2); h_pos.data[1].y = 0.0; h_pos.data[1].z = 0.0; h_pos.data[1].w = __int_as_scalar(0);
         h_pos.data[2].x = Scalar(3.5); h_pos.data[2].y = 0.0; h_pos.data[2].z = 0.0; h_pos.data[2].w = __int_as_scalar(1);
+        
+        pdata_3->notifyParticleSort();
         }
         
     boost::shared_ptr<NeighborList> nlist_3(new NL(sysdef_3, 3.0, 0.25));
@@ -291,8 +311,12 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         ArrayHandle<unsigned int> h_head_list(nlist_3->getHeadList(), access_location::host, access_mode::read);
             
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[0], 2);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 0], 1);
-        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0] + 1], 2);
+        vector<unsigned int> nbrs(2, 0);
+        nbrs[0] = h_nlist.data[h_head_list.data[0] + 0];
+        nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
+        sort(nbrs.begin(), nbrs.end());
+        unsigned int check_nbrs[] = {1,2};
+        BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
 
         BOOST_REQUIRE_EQUAL_UINT(h_n_neigh.data[1], 1);
         BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1] + 0], 0);
@@ -341,6 +365,8 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         h_pos.data[15].x = 0.0; h_pos.data[15].y = 0.0; h_pos.data[15].z = Scalar(-0.9); h_pos.data[15].w = __int_as_scalar(0);
         h_pos.data[16].x = Scalar(-10.0); h_pos.data[16].y = 0.0; h_pos.data[16].z = 0.0; h_pos.data[16].w = __int_as_scalar(1);
         h_pos.data[17].x = 0.0; h_pos.data[17].y = Scalar(10.0); h_pos.data[17].z = 0.0; h_pos.data[17].w = __int_as_scalar(1);
+        
+        pdata_18->notifyParticleSort();
         }
         
     boost::shared_ptr<NeighborList> nlist_18(new NL(sysdef_18, 3.0, 0.05));
@@ -387,6 +413,8 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
         h_pos.data[3].x = 0.0;
         h_pos.data[16].x = 0.0;
         h_pos.data[17].y = 0.0;
+        
+        pdata_18->notifyParticleSort();
         }
     
     nlist_18->compute(20);  
@@ -419,6 +447,7 @@ void neighborlist_particle_asymm_tests(boost::shared_ptr<ExecutionConfiguration>
             {
             h_pos.data[i].x = 0.0; h_pos.data[i].y = 0.0; h_pos.data[i].z = 0.0;
             }
+        pdata_18->notifyParticleSort();
         }
     
     nlist_18->compute(40);  
@@ -456,6 +485,8 @@ void neighborlist_exclusion_tests(boost::shared_ptr<ExecutionConfiguration> exec
     h_pos.data[3].x = 0; h_pos.data[3].y = 0; h_pos.data[3].z = 0.0; h_pos.data[3].w = 0.0;
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0; h_pos.data[4].w = 0.0;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z =  0; h_pos.data[5].w = 0.0;
+    
+    pdata_6->notifyParticleSort();
     }
 
     boost::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
@@ -528,6 +559,8 @@ void neighborlist_body_filter_tests(boost::shared_ptr<ExecutionConfiguration> ex
     h_pos.data[3].x = 0; h_pos.data[3].y = 0; h_pos.data[3].z = 0; h_pos.data[3].w = 0.0; h_body.data[3] = 0;
     h_pos.data[4].x = 0; h_pos.data[4].y = 0; h_pos.data[4].z = 0; h_pos.data[4].w = 0.0; h_body.data[4] = 1;
     h_pos.data[5].x = 0; h_pos.data[5].y = 0; h_pos.data[5].z = 0; h_pos.data[5].w = 0.0; h_body.data[5] = NO_BODY;
+    
+    pdata_6->notifyParticleSort();
     }
 
     // this test uses rigid bodies, initialize them

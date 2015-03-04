@@ -116,7 +116,7 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
 //         ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::read);
 //         ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
 //         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-// 
+//         
 //         for (unsigned int i=0; i < m_pdata->getN(); ++i)
 //             {
 //             ostringstream str;

@@ -160,7 +160,7 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     }
 
 bool NeighborListGPU::distanceCheck(unsigned int timestep)
-    {
+    {   
     // check if we have scheduled a kernel for the current time step
     if (! m_distcheck_scheduled || m_last_schedule_tstep != timestep)
         scheduleDistanceCheck(timestep);
@@ -261,7 +261,12 @@ void NeighborListGPU::updateExListIdx()
 //! GPU implementation of buildHeadList
 void NeighborListGPU::buildHeadList()
     {
+    // don't do anything if there are no particles owned by this rank
+    if (!m_pdata->getN())
+        return;
+        
     if (m_prof) m_prof->push(exec_conf, "head-list");
+            
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_Nmax(m_Nmax, access_location::device, access_mode::read);    

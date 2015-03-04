@@ -414,7 +414,7 @@ cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
                                       const unsigned int N,
                                       const unsigned int ntypes,
                                       const unsigned int block_size)
-    {
+    {   
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
