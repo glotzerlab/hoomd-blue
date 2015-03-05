@@ -68,92 +68,81 @@ using namespace boost::python;
 NeighborListTree::NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborList(sysdef, r_cut, r_buff), m_max_n_local(0)
+    : NeighborList(sysdef, r_cut, r_buff), m_type_changed(true), m_box_changed(true), m_max_num_changed(true),
+      m_remap_particles(true), m_n_images(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListTree" << endl;
 
-    // allocate AABB trees to match the number of types, and initialize
-    GPUArray<AABBTree> aabb_trees(m_pdata->getNTypes(), exec_conf);
-    m_aabb_trees.swap(aabb_trees);
-    {
-        ArrayHandle<AABBTree> h_aabb_trees(m_aabb_trees, access_location::host, access_mode::overwrite);
-        for (unsigned int i=0; i < m_aabb_trees.getPitch(); ++i)
-            h_aabb_trees.data[i] = AABBTree();
-    }
-    
-    // allocate storage for number of particles per type (including ghosts)
-    GPUArray<unsigned int> num_per_type(m_pdata->getNTypes(), exec_conf);
-    m_num_per_type.swap(num_per_type);
-    GPUArray<unsigned int> type_head(m_pdata->getNTypes(), exec_conf);
-    m_type_head.swap(type_head);
-    
-    if (this->m_sysdef->getNDimensions() == 3) // 3D periodic = 27 vectors
-        {
-        GPUArray< vec3<Scalar> > image_list(27, exec_conf);
-        m_image_list.swap(image_list);
-        }
-    else // 2D periodic = 9 translation vectors
-        {
-        GPUArray< vec3<Scalar> > image_list(9, exec_conf);
-        m_image_list.swap(image_list);
-        }
-    
-    // allocate AABB Tree memory
-    allocateTree(m_max_n_local);
-
-    m_box_changed = true; // by default, assume the box has "changed" at first, so that we always do this action once
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListTree::slotBoxChanged, this));
+    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&NeighborListTree::slotMaxNumChanged, this));
+    m_sort_conn = m_pdata->connectParticleSort(bind(&NeighborListTree::slotRemapParticles, this));
     }
 
 NeighborListTree::~NeighborListTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListTree" << endl;
     m_boxchange_connection.disconnect();
+    m_max_numchange_conn.disconnect();
+    m_sort_conn.disconnect();
     }
 
 void NeighborListTree::buildNlist(unsigned int timestep)
-    {
-    if (this->m_prof) this->m_prof->push("AABB Tree");
+    {   
+    // allocate the memory as needed and sort particles
+    setupTree();
     
     // build the trees 
     buildTree();
     
     // now walk the trees
     traverseTree();
-    
-    if (this->m_prof) this->m_prof->pop();
     }
 
 //! manage the malloc of the AABB list
-void NeighborListTree::allocateTree(unsigned int n_local)
+void NeighborListTree::setupTree()
     {
-    if (n_local > m_max_n_local)
+    if (m_max_num_changed)
         {
-        m_max_n_local = n_local;
+        m_aabbs.resize(m_pdata->getMaxN());
+        m_map_p_global_tree.resize(m_pdata->getMaxN());
         
-        GPUArray<AABB> aabbs(m_max_n_local, exec_conf);
-        m_aabbs.swap(aabbs);
+        m_max_num_changed = false;
+        }
+    
+    if (m_type_changed)
+        {
+        m_aabb_trees.resize(m_pdata->getNTypes());
+        m_num_per_type.resize(m_pdata->getNTypes(), 0);
+        m_type_head.resize(m_pdata->getNTypes(), 0);
         
-        GPUArray<unsigned int> map_p_global_tree(m_max_n_local, exec_conf);
-        m_map_p_global_tree.swap(map_p_global_tree);
+        slotRemapParticles();
+        
+        m_type_changed = false;
+        }
+    
+    if (m_remap_particles)
+        {
+        mapParticlesByType();
+        m_remap_particles = false;
+        }
+    
+    if (m_box_changed)
+        {
+        updateImageVectors();
+        m_box_changed = false;
         }
     }
 
 //! get the number of particles by type (including ghost particles)
-void NeighborListTree::getNumPerType()
+void NeighborListTree::mapParticlesByType()
     {
     if (this->m_prof) this->m_prof->push("Histogram");
     
-    // zero the arrays
-    ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_type_head(m_type_head, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_map_p_global_tree(m_map_p_global_tree, access_location::host, access_mode::overwrite);
-
     // clear out counters
     unsigned int n_types = m_pdata->getNTypes();
     for (unsigned int i=0; i < n_types; ++i)
         {
-        h_num_per_type.data[i] = 0;
+        m_num_per_type[i] = 0;
         }
     
     // histogram the particles
@@ -162,57 +151,104 @@ void NeighborListTree::getNumPerType()
     for (unsigned int i=0; i < n_local; ++i)
         {
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
-        h_map_p_global_tree.data[i] = h_num_per_type.data[my_type]; // global id i is particle num_per_type after head of my_type
-        ++h_num_per_type.data[my_type];
+        m_map_p_global_tree[i] = m_num_per_type[my_type]; // global id i is particle num_per_type after head of my_type
+        ++m_num_per_type[my_type];
         }
     
     // set the head for each type in m_aabbs
     unsigned int local_head = 0;
     for (unsigned int i=0; i < n_types; ++i)
         {
-        h_type_head.data[i] = local_head;
-        local_head += h_num_per_type.data[i];
+        m_type_head[i] = local_head;
+        local_head += m_num_per_type[i];
         }
         
     if (this->m_prof) this->m_prof->pop();
+    }
+
+//! compute the image vectors for translating periodically around tree
+void NeighborListTree::updateImageVectors()
+    {
+    const BoxDim& box = m_pdata->getBox();
+    uchar3 periodic = box.getPeriodic();
+
+    // check that rcut fits in the box
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
+    Scalar rmax = m_r_cut_max + m_r_buff;
+    if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
+        {
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
+        throw runtime_error("Error updating neighborlist bins");
+        }
+
+    // now compute the image vectors
+    // each dimension increases by one power of 3
+    unsigned int n_dim_periodic = (periodic.x + periodic.y + periodic.z);
+    m_n_images = 1;
+    for (unsigned int dim = 0; dim < n_dim_periodic; ++dim)
+        {
+        m_n_images *= 3;
+        }
+    
+    // reallocate memory if necessary
+    if (m_n_images > m_image_list.size())
+        {
+        m_image_list.resize(m_n_images);
+        }
+    
+    vec3<Scalar> latt_a = vec3<Scalar>(box.getLatticeVector(0));
+    vec3<Scalar> latt_b = vec3<Scalar>(box.getLatticeVector(1));
+    vec3<Scalar> latt_c = vec3<Scalar>(box.getLatticeVector(2));
+    
+    // there is always at least 1 image, which we put as our first thing to look at
+    m_image_list[0] = vec3<Scalar>(0.0, 0.0, 0.0);
+    
+    // iterate over all other combinations of images, skipping those that are 
+    unsigned int n_images = 1;
+    for (int i=-1; i <= 1 && n_images < m_n_images; ++i)
+        {
+        for (int j=-1; j <= 1 && n_images < m_n_images; ++j)
+            {
+            for (int k=-1; k <= 1 && n_images < m_n_images; ++k)
+                {
+                if (!(i == 0 && j == 0 && k == 0))
+                    {
+                    // skip any periodic images if we don't have periodicity
+                    if (i != 0 && !periodic.x) continue;
+                    if (j != 0 && !periodic.y) continue;
+                    if (k != 0 && !periodic.z) continue;
+                    
+                    m_image_list[n_images] = Scalar(i) * latt_a + Scalar(j) * latt_b + Scalar(k) * latt_c;
+                    ++n_images;
+                    }
+                }
+            }
+        }
     }
 
 void NeighborListTree::buildTree()
     {
     m_exec_conf->msg->notice(4) << "Building AABB tree: " << m_pdata->getN() << " ptls "
                                 << m_pdata->getNGhosts() << " ghosts" << endl;
-    
-    // reallocate the data structures if needed
-    unsigned int n_local = m_pdata->getN()+m_pdata->getNGhosts();
-    allocateTree(n_local);
-    
-    // histogram the particle types
-    getNumPerType();
-    
+                                
     // do the build
     if (this->m_prof) this->m_prof->push("Build");
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-
-    ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_type_head(m_type_head, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_map_p_global_tree(m_map_p_global_tree, access_location::host, access_mode::read);
     
-    ArrayHandle<AABB> h_aabbs(m_aabbs, access_location::host, access_mode::overwrite);
-    ArrayHandle<AABBTree> h_aabb_trees(m_aabb_trees, access_location::host, access_mode::readwrite);
-    
-    for (unsigned int i=0; i < n_local; ++i)
+    for (unsigned int i=0; i < m_pdata->getN()+m_pdata->getNGhosts(); ++i)
         {
         // make a point particle AABB
         vec3<Scalar> my_pos(h_postype.data[i]);
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
-        unsigned int my_aabb_idx = h_type_head.data[my_type] + h_map_p_global_tree.data[i];
-        h_aabbs.data[my_aabb_idx] = AABB(my_pos,i);
+        unsigned int my_aabb_idx = m_type_head[my_type] + m_map_p_global_tree[i];
+        m_aabbs[my_aabb_idx] = AABB(my_pos,i);
         }
     
-    unsigned int n_types = m_pdata->getNTypes();
-    for (unsigned int i=0; i < n_types; ++i) 
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i) 
         {
-        h_aabb_trees.data[i].buildTree(h_aabbs.data + h_type_head.data[i], h_num_per_type.data[i]);
+        m_aabb_trees[i].buildTree(&m_aabbs[0] + m_type_head[i], m_num_per_type[i]);
         }
     if (this->m_prof) this->m_prof->pop();
     
@@ -228,72 +264,6 @@ void NeighborListTree::traverseTree()
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
-
-    // validate simulation box
-    const BoxDim& box = m_pdata->getBox();
-    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
-    
-    // start by creating a temporary copy of r_cut squared
-    Scalar rmax = m_r_cut_max + m_r_buff;
-    if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
-        (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
-        {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
-        }
-        
-    // boxes must be periodic
-    if(!box.getPeriodic().x || !box.getPeriodic().y || (this->m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z))
-        {
-        m_exec_conf->msg->error() << "nlist: Tree builds are currently only supported in fully periodic geometries"<<endl;
-        throw runtime_error("Error traversing neighborlist AABB tree");
-        }
-
-    // need to construct a list of box vectors to translate, which is triggered to update on a box resize
-    const unsigned int n_images = m_image_list.getPitch(); // 27 (3D) or 9 (2D)
-    ArrayHandle< vec3<Scalar> > h_image_list(m_image_list, access_location::host, access_mode::readwrite);
-    if (m_box_changed)
-        {
-            vec3<Scalar> latt_a = vec3<Scalar>(box.getLatticeVector(0));
-            vec3<Scalar> latt_b = vec3<Scalar>(box.getLatticeVector(1));
-            vec3<Scalar> latt_c = vec3<Scalar>(box.getLatticeVector(2));
-        
-            // iterate on all possible combinations of lattice vectors
-            unsigned int latt_idx = 1;
-            h_image_list.data[0] = vec3<Scalar>(0.0, 0.0, 0.0);
-            for (int i=-1; i <= 1; ++i)
-                {
-                for (int j=-1; j <=1 ; ++j)
-                    {
-                    if(this->m_sysdef->getNDimensions() == 3) // 3D periodic needs another loop
-                        {
-                        for (int k=-1; k <= 1; ++k)
-                            {
-                            if (!(i == 0 && j == 0 && k == 0))
-                                {
-                                h_image_list.data[latt_idx] = Scalar(i)*latt_a + Scalar(j)*latt_b + Scalar(k)*latt_c;
-                                ++latt_idx;
-                                }
-                            }
-                        }
-                    else // 2D periodic
-                        {
-                        if (!(i == 0 && j == 0))
-                            {
-                            h_image_list.data[latt_idx] = Scalar(i)*latt_a + Scalar(j)*latt_b;
-                            ++latt_idx;
-                            }
-                        }
-                    }
-                }
-        m_box_changed = false;
-        }
-    
-    // tree data
-    ArrayHandle<AABBTree> h_aabb_trees(m_aabb_trees, access_location::host, access_mode::read);
-    ArrayHandle<AABB> h_aabbs(m_aabbs, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_type_head(m_type_head, access_location::host, access_mode::read);
     
     // neighborlist data
     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
@@ -320,11 +290,11 @@ void NeighborListTree::traverseTree()
             // Check primary box
             Scalar r_cut_i = h_r_cut.data[m_typpair_idx(type_i,cur_pair_type)]+m_r_buff;
             Scalar r_cutsq_i = r_cut_i*r_cut_i;
-            AABBTree *cur_aabb_tree = &h_aabb_trees.data[cur_pair_type];
+            AABBTree *cur_aabb_tree = &m_aabb_trees[cur_pair_type];
 
-            for (unsigned int cur_image = 0; cur_image < n_images; ++cur_image)
+            for (unsigned int cur_image = 0; cur_image < m_n_images; ++cur_image)
                 {
-                vec3<Scalar> pos_i_image = pos_i + h_image_list.data[cur_image];
+                vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
                 AABB aabb = AABB(pos_i_image, r_cut_i);
 
                 // stackless search
@@ -349,7 +319,7 @@ void NeighborListTree::traverseTree()
                                     
                                 if (!excluded)
                                     {
-                                    // compute distance and wrap back into box
+                                    // compute distance
                                     Scalar4 postype_j = h_postype.data[j];
                                     Scalar3 drij = make_scalar3(postype_j.x,postype_j.y,postype_j.z)
                                                    - vec_to_scalar3(pos_i_image);

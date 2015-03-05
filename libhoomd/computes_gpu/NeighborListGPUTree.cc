@@ -73,7 +73,7 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
                                        Scalar r_cut,
                                        Scalar r_buff)
     : NeighborListGPU(sysdef, r_cut, r_buff), m_n_images(0), m_type_changed(true), m_box_changed(true),
-      m_max_num_changed(false), m_remap_particles(true), m_n_leaf(0), m_n_node(0)
+      m_max_num_changed(false), m_remap_particles(true), m_n_leaf(0), m_n_internal(0), m_n_node(0)
     {
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListGPUTree::slotBoxChanged, this));
     m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&NeighborListGPUTree::slotMaxNumChanged, this));
@@ -104,33 +104,10 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
     setupTree();
 
     // build the tree
-//     cout<<"build"<<endl;
     buildTree();
     
-    // walk with the new scheme
-//     cout<<"traverse"<<endl;
-    traverseTree();
-//     if(!m_exec_conf->getRank())
-//         {
-//         ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::read);
-//         ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::read);
-//         ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
-//         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-//         
-//         for (unsigned int i=0; i < m_pdata->getN(); ++i)
-//             {
-//             ostringstream str;
-//             str<<i<<"\t"<<h_pos.data[i].x;
-//             for (unsigned int j=0; j < h_n_neigh.data[i]; ++j)
-//                 {
-//                 str<<"\t"<<h_pos.data[h_nlist.data[h_head_list.data[i] + j]].x;
-//                 }
-//             str<<endl;
-//             cout<< str.str();
-//             }
-//         cout<<endl<<endl;
-//         } 
-//     cout<<"do the rest"<<endl;   
+    // walk with the tree
+    traverseTree();  
     }
 
 void NeighborListGPUTree::allocateTree()
@@ -188,7 +165,6 @@ void NeighborListGPUTree::allocateTree()
     GPUVector<unsigned int> node_locks(m_exec_conf);
     m_node_locks.swap(node_locks);
     
-    
     // conditions
     GPUFlags<int> morton_conditions(m_exec_conf);
     m_morton_conditions.swap(morton_conditions);
@@ -220,7 +196,7 @@ void NeighborListGPUTree::setupTree()
         m_type_head.resize(m_pdata->getNTypes());
         
         // force a remap because the number of types has changed
-        m_remap_particles = true;
+        slotRemapParticles();
         
         // all done with the type reallocation
         m_type_changed = false;
@@ -341,74 +317,18 @@ void NeighborListGPUTree::buildTree()
     
     // step one: morton code calculation
     calcMortonCodes();
-//     if (!m_exec_conf->getRank())
-//         {
-//         cout<<"-----"<<endl;
-//         cout<<m_pdata->getN()<<endl;
-//         cout<<"-----"<<endl;
-//         ArrayHandle<unsigned int> h_map_tree_global(m_map_tree_global, access_location::host, access_mode::read);
-//         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-//         for (unsigned int i=0; i < m_pdata->getN() + m_pdata->getNGhosts(); ++i)
-//             {
-//             unsigned int pid = h_map_tree_global.data[i];
-//             cout<<i<<"\t"<<pid<<"\t"<<h_pos.data[pid].x<<"\t"<<__scalar_as_int(h_pos.data[pid].w)<<endl;
-//             }
-//         }
         
     // step two: particle sorting
     sortMortonCodes();
-//     if (!m_exec_conf->getRank())
-//         {
-//         ArrayHandle<unsigned int> h_map_tree_global(m_map_tree_global, access_location::host, access_mode::read);
-//         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-//         for (unsigned int i=0; i < m_pdata->getN() + m_pdata->getNGhosts(); ++i)
-//             {
-//             unsigned int pid = h_map_tree_global.data[i];
-//             cout<<i<<"\t"<<pid<<"\t"<<h_pos.data[pid].x<<"\t"<<__scalar_as_int(h_pos.data[pid].w)<<endl;
-//             }
-//         } 
 
     // step three: merge leaf particles into aabbs by morton code
-    mergeLeafParticles();
-//         {
-//         ArrayHandle<Scalar4> h_tree_aabbs(m_tree_aabbs, access_location::host, access_mode::read);
-//         for (unsigned int i=0; i < m_n_leaf; ++i)
-//             {
-//             cout<<i<<"\t"<<h_tree_aabbs.data[2*i+1].x<<"\t"<<h_tree_aabbs.data[2*i].x<<"\t"<<__scalar_as_int(h_tree_aabbs.data[2*i].w)<<"\t"<<__scalar_as_int(h_tree_aabbs.data[2*i+1].w)<<endl;
-//             }
-//         }    
+    mergeLeafParticles();   
 
     // step four: hierarchy generation from morton codes
     genTreeHierarchy();
-//     if(!m_exec_conf->getRank())
-//         {
-//         ArrayHandle<uint2> h_tree_parent_sib(m_tree_parent_sib, access_location::host, access_mode::read);
-//         for (unsigned int i=0; i < m_n_node; ++i)
-//             {
-//             cout<<i<<"\t"<<h_tree_parent_sib.data[i].x<<"\t"<<(h_tree_parent_sib.data[i].y >> 1)<<endl;
-//             }
-//         cout<<endl;
-//         }
                 
     // step five: bubble up the aabbs
     bubbleAABBs();
-//     if (!m_exec_conf->getRank())
-//         {
-//         ArrayHandle<Scalar4> h_tree_aabbs(m_tree_aabbs, access_location::host, access_mode::read);
-//         for (unsigned int i=0; i < m_n_node; ++i)
-//             {
-//             cout<<i<<"\t"<<h_tree_aabbs.data[2*i+1].x<<"\t"<<h_tree_aabbs.data[2*i].x<<"\t"<<__scalar_as_int(h_tree_aabbs.data[2*i].w)<<"\t"<<__scalar_as_int(h_tree_aabbs.data[2*i+1].w)<<endl;
-//             }
-//         cout<<endl;
-//         }
-//     if(!m_exec_conf->getRank())
-//         {
-//         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-//         for (unsigned int i=0; i < m_pdata->getN() + m_pdata->getNGhosts(); ++i)
-//             {
-//             cout<<i<<"\t"<<h_pos.data[i].x<<endl;
-//             }
-//         }
             
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -542,8 +462,7 @@ void NeighborListGPUTree::genTreeHierarchy()
     
     // don't bother to process if there are no internal nodes
     if (!m_n_internal)
-        return;
-        
+        return;    
         
     ArrayHandle<unsigned int> d_node_left_child(m_node_left_child, access_location::device, access_mode::overwrite);
     ArrayHandle<uint2> d_tree_parent_sib(m_tree_parent_sib, access_location::device, access_mode::overwrite);
@@ -619,10 +538,21 @@ void NeighborListGPUTree::moveLeafParticles()
 //! compute the image vectors for translating periodically around tree
 void NeighborListGPUTree::updateImageVectors()
     {
-    // validate simulation box
     const BoxDim& box = m_pdata->getBox();
     uchar3 periodic = box.getPeriodic();
 
+    // check that rcut fits in the box
+    Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
+    Scalar rmax = m_r_cut_max + m_r_buff;
+    if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
+        (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
+        (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
+        {
+        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
+        throw runtime_error("Error updating neighborlist bins");
+        }
+
+    // now compute the image vectors
     // each dimension increases by one power of 3
     unsigned int n_dim_periodic = (periodic.x + periodic.y + periodic.z);
     m_n_images = 1;

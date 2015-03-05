@@ -71,10 +71,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPUTree.h"
 #endif
 
-#include "AABB.h"
-#include "AABBTree.h"
-#include "AABBTreeGPU.h"
-
 using namespace std;
 using namespace boost;
 

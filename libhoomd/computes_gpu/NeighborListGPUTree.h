@@ -50,11 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: mphoward
 
 #include "NeighborListGPU.h"
-#include "AABBTree.h"
-#include "AABBTreeGPU.h"
 #include "Autotuner.h"
-
-using namespace hpmc::detail;
 
 /*! \file NeighborListGPUTree.h
     \brief Declares the NeighborListGPUTree class

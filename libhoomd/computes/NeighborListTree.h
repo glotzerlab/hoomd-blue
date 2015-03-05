@@ -86,28 +86,56 @@ class NeighborListTree : public NeighborList
             {
             m_box_changed = true;
             }
+        
+        //! Notification of a max number of particle change    
+        void slotMaxNumChanged()
+            {
+            m_max_num_changed = true;
+            }
+            
+        //! Notification of a particle sort
+        void slotRemapParticles()
+            {
+            m_remap_particles = true;
+            }
             
     protected:
-        GPUArray<AABBTree>      m_aabb_trees;           //!< Array of AABB trees
-        GPUArray<AABB>          m_aabbs;                //!< Array of AABBs
-        GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
-        GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type
-        GPUArray<unsigned int>  m_map_p_global_tree;    //!< maps global ids to tag in tree
-
-        GPUArray< vec3<Scalar> >       m_image_list;           //!< list of translation vectors
-
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
+        
+        bool m_type_changed;                                //!< flag if the number of types has changed
+        
+        bool m_box_changed;                                 //!< flag if box size has changed
+        boost::signals2::connection m_boxchange_connection; //!< Connection to the ParticleData box size change signal
+        
+        bool m_max_num_changed;                             //!< flag if the particle arrays need to be resized
+        boost::signals2::connection m_max_numchange_conn;   //!< Connection to max particle number change signal
+        
+        bool m_remap_particles;                     //!< flag if the particles need to remapped (triggered by sort)
+        boost::signals2::connection m_sort_conn;    //!< Local connection to the ParticleData sort signal
+        
+    private:
+        // we use stl vectors here because these tree data structures should *never* be
+        // accessed on the GPU, they were optimized for the CPU with SIMD support
+        vector<AABBTree>      m_aabb_trees;           //!< Flat array of AABB trees of all types
+        vector<AABB>          m_aabbs;                //!< Flat array of AABBs of all types
+        vector<unsigned int>  m_num_per_type;         //!< Total number of particles per type
+        vector<unsigned int>  m_type_head;            //!< Index of first particle of each type, after sorting
+        vector<unsigned int>  m_map_p_global_tree;    //!< Maps the particle id to its tag in tree for sorting
+
+        vector< vec3<Scalar> > m_image_list;    //!< list of translation vectors
+        unsigned int m_n_images;                //!< the number of image vectors to check
+        
+        //! driver for tree configuration
+        void setupTree();
+        //! maps particles by local id to their id within their type trees
+        void mapParticlesByType();
+        //! computes the image vectors to query for 
+        void updateImageVectors();
+        //! driver to build AABB trees
         void buildTree();
+        //! traverses AABB trees to compute neighbors
         void traverseTree();
-        void getNumPerType();
-        
-        void allocateTree(unsigned int n_local);
-        
-        bool m_box_changed;
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
-        
-        unsigned int m_max_n_local; //!< Maximum number of particles locally
     };
 
 //! Exports NeighborListTree to python

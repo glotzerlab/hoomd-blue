@@ -49,7 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: mphoward
 #include "NeighborListGPUTree.cuh"
-#include "NeighborListGPU.cuh"
 #include "TextureTools.h"
 
 #include <thrust/device_ptr.h>
@@ -71,8 +70,6 @@ scalar4_tex_t leaf_xyzf_tex;
 scalar2_tex_t leaf_db_tex;
 //! Texture for reading node upper and lower bounds
 scalar4_tex_t aabb_node_bounds_tex;
-//! Texture for reading node leaf head index
-texture<unsigned int, 1, cudaReadModeElementType> aabb_node_head_idx_tex;
 //! Texture for the head list
 texture<unsigned int, 1, cudaReadModeElementType> head_list_tex;
 //! Texture for the left children

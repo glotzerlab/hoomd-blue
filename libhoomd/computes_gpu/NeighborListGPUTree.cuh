@@ -61,9 +61,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
 #include "Index1D.h"
-#include "AABBTreeGPU.h"
-
-using namespace hpmc::detail;
                                      
 //! Kernel driver to generate morton codes for particles and reorder by type
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
