@@ -86,7 +86,7 @@ using namespace std;
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
     : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_r_cut_max(_r_cut), m_r_buff(r_buff), m_d_max(1.0),
-      m_filter_body(false), m_storage_mode(half), m_updates(0), m_forced_updates(0),
+      m_filter_body(false), m_diameter_shift(false), m_storage_mode(half), m_updates(0), m_forced_updates(0),
       m_dangerous_updates(0), m_force_update(true), m_dist_check(true), m_has_been_updated_once(false),
       m_want_exclusions(false)
     {
@@ -98,26 +98,16 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
         throw runtime_error("Error initializing NeighborList");
         }
 
-    // there are no half storage modes now
-//     setStorageMode(full);
-    // need to force full storage mode in the individual class, since you could still use half storage in the binned
-    // classes
-
     // initialize values
     m_last_updated_tstep = 0;
     m_last_checked_tstep = 0;
     m_last_check_result = false;
     m_every = 0;
-//     m_Nmax = 0;
     m_exclusions_set = false;
 
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
     m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
-
-    // allocate conditions flags
-//     GPUFlags<unsigned int> conditions(exec_conf);
-//     m_conditions.swap(conditions);
     
     // allocate r_cut pair data for user inputs
     GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
@@ -192,9 +182,6 @@ void NeighborList::reallocate()
     unsigned int ex_list_height = m_ex_list_indexer.getH();
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
-
-//     m_nlist.resize(m_pdata->getMaxN(), m_Nmax+1);
-//     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
 
     m_n_neigh.resize(m_pdata->getMaxN());
 
@@ -372,6 +359,11 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
     if (m_comm)
         {
         Scalar r_list_max = m_r_cut_max + m_r_buff;
+        
+        // diameter shifting requires to communicate a larger rlist
+        if (m_diameter_shift)
+            r_list_max += m_d_max - Scalar(1.0);
+            
         m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
@@ -396,6 +388,10 @@ void NeighborList::setRBuff(Scalar r_buff)
     if (m_comm)
         {
         Scalar r_list_max = m_r_cut_max + m_r_buff;
+        // diameter shifting requires to communicate a larger rlist
+        if (m_diameter_shift)
+            r_list_max += m_d_max - Scalar(1.0);
+            
         m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
@@ -438,6 +434,9 @@ Scalar NeighborList::estimateNNeigh()
     // calculate the average number of neighbors by multiplying by the volume
     // within the cutoff
     Scalar r_max = m_r_cut_max + m_r_buff;
+    // diameter shifting requires to communicate a larger rlist
+    if (m_diameter_shift)
+        r_max += m_d_max - Scalar(1.0);
     Scalar vol_cut = Scalar(4.0/3.0 * M_PI) * r_max * r_max * r_max;
     return n_dens * vol_cut;
     }
@@ -581,6 +580,11 @@ void NeighborList::countExclusions()
         m_exec_conf->msg->notice(2) << "Particles with more than " << MAX_COUNT_EXCLUDED << " exclusions: "
              << excluded_count[MAX_COUNT_EXCLUDED+1] << endl;
         }
+
+    if (m_diameter_shift)
+         m_exec_conf->msg->notice(2) << "Neighbors included by diameter    : yes" << endl;
+     else
+         m_exec_conf->msg->notice(2) << "Neighbors included by diameter    : no" << endl;
 
     if (m_filter_body)
         m_exec_conf->msg->notice(2) << "Neighbors excluded when in the same body: yes" << endl;
@@ -915,8 +919,11 @@ bool NeighborList::distanceCheck(unsigned int timestep)
         {
         const unsigned int type_i = __scalar_as_int(h_pos.data[i].w);
         
-        // max cutoff distance for inclusion in neighborlist if type i
-        const Scalar rmax = h_rcut_max.data[type_i] + m_r_buff;
+        // max cutoff distance for inclusion in neighborlist of type i
+        Scalar rmax = h_rcut_max.data[type_i] + m_r_buff;
+        if (m_diameter_shift)
+            rmax += m_d_max - Scalar(1.0);
+            
         // max displacement for each particle (after subtraction of homogeneous dilations)
         const Scalar delta_max = (rmax*lambda_min - h_rcut_max.data[type_i])/Scalar(2.0);
         Scalar maxsq = (delta_max > 0) ? delta_max*delta_max : 0;
@@ -1352,6 +1359,10 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
         m_comm = comm;
 
         Scalar r_list_max = m_r_cut_max + m_r_buff;
+        // diameter shifting requires to communicate a larger rlist
+        if (m_diameter_shift)
+            r_list_max += m_d_max - Scalar(1.0);
+            
         m_comm->setGhostLayerWidth(r_list_max);
         m_comm->setRBuff(m_r_buff);
         }
@@ -1397,6 +1408,8 @@ void export_NeighborList()
                      .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
                      .def("setFilterBody", &NeighborList::setFilterBody)
                      .def("getFilterBody", &NeighborList::getFilterBody)
+                     .def("setDiameterShift", &NeighborList::setDiameterShift)
+                     .def("getDiameterShift", &NeighborList::getDiameterShift)
                      .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
                      .def("getMaximumDiameter", &NeighborList::getMaximumDiameter)
                      .def("forceUpdate", &NeighborList::forceUpdate)

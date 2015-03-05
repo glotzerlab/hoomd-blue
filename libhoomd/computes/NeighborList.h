@@ -342,6 +342,31 @@ class NeighborList : public Compute
             {
             return m_filter_body;
             }
+        
+        //! Enable/disable diameter shifting
+        virtual void setDiameterShift(bool diameter_shift)
+            {
+            m_diameter_shift = diameter_shift;
+            
+#ifdef ENABLE_MPI
+            if (m_comm)
+                {
+                // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
+                Scalar r_max = m_r_cut_max + m_r_buff;
+                if (m_diameter_shift);
+                    r_max += m_d_max - Scalar(1.0);
+                m_comm->setGhostLayerWidth(r_max);
+                m_comm->setRBuff(m_r_buff);
+                }
+#endif
+            forceUpdate();
+            }
+            
+        //! Test if diameter shifting is set
+        virtual bool getDiameterShift()
+            {
+            return m_diameter_shift;
+            }
 
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max)
@@ -351,10 +376,11 @@ class NeighborList : public Compute
 #ifdef ENABLE_MPI
             if (m_comm)
                 {
-                Scalar r_list_max = m_r_cut_max + m_r_buff;
                 // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-//                 rmax += m_d_max - Scalar(1.0);
-                m_comm->setGhostLayerWidth(r_list_max);
+                Scalar r_max = m_r_cut_max + m_r_buff;
+                if (m_diameter_shift);
+                    r_max += m_d_max - Scalar(1.0);
+                m_comm->setGhostLayerWidth(r_max);
                 m_comm->setRBuff(m_r_buff);
                 }
 #endif
@@ -418,6 +444,7 @@ class NeighborList : public Compute
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered
+        bool m_diameter_shift;      //!< Set to true if the neighborlist rcut(i,j) should be diameter shifted
         storageMode m_storage_mode; //!< The storage mode
 
         Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list

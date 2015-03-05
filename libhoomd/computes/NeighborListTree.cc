@@ -175,6 +175,9 @@ void NeighborListTree::updateImageVectors()
     // check that rcut fits in the box
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
     Scalar rmax = m_r_cut_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+        
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
@@ -276,26 +279,35 @@ void NeighborListTree::traverseTree()
     for (unsigned int i=0; i < m_pdata->getN(); ++i)
         {
         // read in the current position and orientation
-        Scalar4 postype_i = h_postype.data[i];
-        vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-        unsigned int type_i = __scalar_as_int(postype_i.w);
-        unsigned int body_i = h_body.data[i];
+        const Scalar4 postype_i = h_postype.data[i];
+        const vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+        const unsigned int type_i = __scalar_as_int(postype_i.w);
+        const unsigned int body_i = h_body.data[i];
+        const Scalar diam_i = h_diameter.data[i];
         
-        unsigned int Nmax_i = h_Nmax.data[type_i];
-        unsigned int nlist_head_i = h_head_list.data[i];
+        const unsigned int Nmax_i = h_Nmax.data[type_i];
+        const unsigned int nlist_head_i = h_head_list.data[i];
         
         unsigned int n_neigh_i = 0;
         for (unsigned int cur_pair_type=0; cur_pair_type < m_pdata->getNTypes(); ++cur_pair_type)
             {
             // Check primary box
             Scalar r_cut_i = h_r_cut.data[m_typpair_idx(type_i,cur_pair_type)]+m_r_buff;
+            
+            // we save the r_cutsq before diameter shifting, as we will shift later, and reuse the r_cut_i now
             Scalar r_cutsq_i = r_cut_i*r_cut_i;
+            
+            // the rlist to use for the AABB search has to be at least as big as the biggest diameter
+            Scalar r_list_i = r_cut_i;
+            if (m_diameter_shift)
+                r_list_i += m_d_max - Scalar(1.0);
+                
             AABBTree *cur_aabb_tree = &m_aabb_trees[cur_pair_type];
 
             for (unsigned int cur_image = 0; cur_image < m_n_images; ++cur_image)
                 {
                 vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
-                AABB aabb = AABB(pos_i_image, r_cut_i);
+                AABB aabb = AABB(pos_i_image, r_list_i);
 
                 // stackless search
                 for (unsigned int cur_node_idx = 0; cur_node_idx < cur_aabb_tree->getNumNodes(); ++cur_node_idx)
@@ -319,13 +331,24 @@ void NeighborListTree::traverseTree()
                                     
                                 if (!excluded)
                                     {
+                                    // now we can trim down the actual particles based on diameter
+                                    // compute the shift for the cutoff if not excluded
+                                    Scalar sqshift = Scalar(0.0);
+                                    if (m_diameter_shift)
+                                        {
+                                        const Scalar delta = (diam_i + h_diameter.data[j]) * Scalar(0.5) - Scalar(1.0);
+                                        // r^2 < (r_list + delta)^2
+                                        // r^2 < r_listsq + delta^2 + 2*r_list*delta
+                                        sqshift = (delta + Scalar(2.0) * r_cut_i) * delta;
+                                        }
+                                    
                                     // compute distance
                                     Scalar4 postype_j = h_postype.data[j];
                                     Scalar3 drij = make_scalar3(postype_j.x,postype_j.y,postype_j.z)
                                                    - vec_to_scalar3(pos_i_image);
                                     Scalar dr_sq = dot(drij,drij);
 
-                                    if (dr_sq <= r_cutsq_i)
+                                    if (dr_sq <= (r_cutsq_i + sqshift))
                                         {
                                         if (m_storage_mode == full || i < j)
                                             {
