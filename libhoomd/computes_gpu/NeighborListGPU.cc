@@ -133,6 +133,10 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
     lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
 
+    Scalar rcut_shift = m_r_buff;
+    if (m_diameter_shift)
+        rcut_shift += m_d_max - Scalar(1.0);
+
     ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_rcut_max(m_rcut_max, access_location::device, access_mode::read);
     gpu_nlist_needs_update_check_new(d_flags.data,
@@ -141,7 +145,7 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
                                      m_pdata->getN(),
                                      box,
                                      d_rcut_max.data,
-                                     m_r_buff,
+                                     rcut_shift,
                                      m_pdata->getNTypes(),
                                      lambda_min,
                                      lambda,

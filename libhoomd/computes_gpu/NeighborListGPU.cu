@@ -66,13 +66,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param d_pos Current particle positions
     \param N Number of particles
     \param box Box dimensions
-    \param maxshiftsq The maximum drsq a particle can have before an update is needed
+    \param d_rcut_max The maximum rcut(i,j) that any particle i participates in
+    \param rcut_shift The amount to add to rcut_max to get the buffer width
+    \param ntypes The number of particle types
+    \param lambda_min Minimum contraction of deformation tensor
     \param lambda Diagonal deformation tensor (for orthorhombic boundaries)
     \param checkn
 
     gpu_nlist_needs_update_check_new_kernel() executes one thread per particle. Every particle's current position is
-    compared to its last position. If the particle has moved a distance more than sqrt(\a maxshiftsq), then *d_result
-    is set to \a ncheck.
+    compared to its last position. If the particle has moved a distance more than the buffer width, then *d_result
+    is set to \a checkn.
 */
 __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const Scalar4 *d_last_pos,
@@ -80,7 +83,7 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const unsigned int N,
                                                         const BoxDim box,
                                                         const Scalar *d_rcut_max,
-                                                        const Scalar r_buff,
+                                                        const Scalar rcut_shift,
                                                         const unsigned int ntypes,
                                                         const Scalar lambda_min,
                                                         const Scalar3 lambda,
@@ -99,7 +102,7 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
         if (cur_offset + threadIdx.x < ntypes)
             {
             const Scalar rcut_max_i = d_rcut_max[cur_offset + threadIdx.x];
-            const Scalar rmax = rcut_max_i + r_buff;
+            const Scalar rmax = rcut_max_i + rcut_shift;
             const Scalar delta_max = (rmax*lambda_min - rcut_max_i)/Scalar(2.0);
             s_maxshiftsq[cur_offset + threadIdx.x] = (delta_max > 0) ? delta_max*delta_max : 0.0f;
             }
@@ -132,7 +135,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const unsigned int N,
                                              const BoxDim& box,
                                              const Scalar *d_rcut_max,
-                                             const Scalar r_buff,
+                                             const Scalar rcut_shift,
                                              const unsigned int ntypes,
                                              const Scalar lambda_min,
                                              const Scalar3 lambda,
@@ -148,7 +151,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                                                                     N,
                                                                                     box,
                                                                                     d_rcut_max,
-                                                                                    r_buff,
+                                                                                    rcut_shift,
                                                                                     ntypes,
                                                                                     lambda_min,
                                                                                     lambda,

@@ -73,7 +73,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
 
-    m_cl->setNominalWidth(2.0);
+//     m_cl->setNominalWidth(2.0);
     m_cl->setRadius(1);
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
@@ -126,15 +126,17 @@ NeighborListGPUBinned::~NeighborListGPUBinned()
 void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborListGPU::setRCut(r_cut, r_buff);
-
-    m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     }
     
 void NeighborListGPUBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
     {
     NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
     
-    m_cl->setNominalWidth(m_r_cut_max + m_r_buff);
+    Scalar rmax = m_r_cut_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+        
+    m_cl->setNominalWidth(rmax);
     }
 
 void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
@@ -142,7 +144,11 @@ void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
     NeighborListGPU::setMaximumDiameter(d_max);
 
     // need to update the cell list settings appropriately
-    m_cl->setNominalWidth(m_r_cut_max + m_r_buff + m_d_max - Scalar(1.0));
+    Scalar rmax = m_r_cut_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+        
+    m_cl->setNominalWidth(rmax);
     }
 
 void NeighborListGPUBinned::buildNlist(unsigned int timestep)
@@ -181,6 +187,10 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     // start by creating a temporary copy of r_cut sqaured
     Scalar rmax = m_r_cut_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+    
+    ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
 
     if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
@@ -221,11 +231,13 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_cl->getCellListIndexer(),
                                  m_cl->getCellAdjIndexer(),
                                  box,
-                                 d_r_listsq.data,
+                                 d_r_cut.data,
+                                 m_r_buff,
                                  m_pdata->getNTypes(),
                                  threads_per_particle,
                                  block_size,
                                  m_filter_body,
+                                 m_diameter_shift,
                                  m_cl->getGhostWidth(),
                                  m_exec_conf->getComputeCapability()/10);
         if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();

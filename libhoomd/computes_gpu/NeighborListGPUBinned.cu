@@ -161,11 +161,13 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
                                                     const Index2D cli,
                                                     const Index2D cadji,
                                                     const BoxDim box,
-                                                    const Scalar *d_r_listsq,
+                                                    const Scalar *d_r_cut,
+                                                    const Scalar r_buff,
                                                     const unsigned int ntypes,
                                                     const Scalar3 ghost_width)
     {
     bool filter_body = flags & 1;
+    bool diameter_shift = flags & 2;
 
     // cache the r_listsq parameters into shared memory
     Index2D typpair_idx(ntypes);
@@ -175,7 +177,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
     extern __shared__ unsigned char s_data[];
     
     // pointer for the r_listsq data
-    Scalar *s_r_listsq = (Scalar *)(&s_data[0]);
+    Scalar *s_r_list = (Scalar *)(&s_data[0]);
     unsigned int *s_Nmax = (unsigned int *)(&s_data[sizeof(unsigned int)*num_typ_parameters]);
 
     // load in the per type pair r_list
@@ -183,7 +185,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
         {
         if (cur_offset + threadIdx.x < num_typ_parameters)
             {
-            s_r_listsq[cur_offset + threadIdx.x] = d_r_listsq[cur_offset + threadIdx.x];
+            s_r_list[cur_offset + threadIdx.x] = d_r_cut[cur_offset + threadIdx.x] + r_buff;
             }
         if (cur_offset + threadIdx.x < ntypes)
             {
@@ -213,6 +215,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
 
     unsigned int my_type = __scalar_as_int(my_postype.w);
     unsigned int my_body = d_body[my_pidx];
+    Scalar my_diam = d_diameter[my_pidx];
     unsigned int my_head = d_head_list[my_pidx];
     
     Scalar3 f = box.makeFraction(my_pos, ghost_width);
@@ -291,6 +294,7 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
             cur_offset += threads_per_particle;
 
             unsigned int neigh_type = __scalar_as_int(cur_tdb.x);
+            Scalar neigh_diam = cur_tdb.y;
             unsigned int neigh_body = __scalar_as_int(cur_tdb.z);
 
             Scalar3 neigh_pos = make_scalar3(cur_xyzf.x,
@@ -312,8 +316,18 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
             if (filter_body && my_body != 0xffffffff)
                 excluded = excluded | (my_body == neigh_body);
 
+            Scalar r_list = s_r_list[typpair_idx(my_type,neigh_type)];
+            Scalar sqshift = Scalar(0.0);
+            if (diameter_shift)
+                {
+                const Scalar delta = (my_diam + neigh_diam) * Scalar(0.5) - Scalar(1.0);
+                // r^2 < (r_list + delta)^2
+                // r^2 < r_listsq + delta^2 + 2*r_list*delta
+                sqshift = (delta + Scalar(2.0) * r_list) * delta;
+                }
+
             // store result in shared memory
-            if (drsq <= s_r_listsq[typpair_idx(my_type,neigh_type)] && !excluded)
+            if (drsq <= (r_list*r_list + sqshift) && !excluded)
                 {
                 neighbor = cur_neigh;
                 has_neighbor = 1;
@@ -386,12 +400,14 @@ inline void launcher(unsigned int *d_nlist,
               const Index2D cli,
               const Index2D cadji,
               const BoxDim box,
-              const Scalar *d_r_listsq,
+              const Scalar *d_r_cut,
+              const Scalar r_buff,
               const unsigned int ntypes,
               const Scalar3 ghost_width,
               const unsigned int compute_capability,
               unsigned int tpp,
               bool filter_body,
+              bool diameter_shift,
               unsigned int block_size)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
@@ -400,7 +416,7 @@ inline void launcher(unsigned int *d_nlist,
 
     if (tpp == cur_tpp && cur_tpp != 0)
         {
-        if (!filter_body)
+        if (!diameter_shift && !filter_body)
             {
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
@@ -435,11 +451,12 @@ inline void launcher(unsigned int *d_nlist,
                                                                              cli,
                                                                              cadji,
                                                                              box,
-                                                                             d_r_listsq,
+                                                                             d_r_cut,
+                                                                             r_buff,
                                                                              ntypes,
                                                                              ghost_width);
             }
-        else
+        else if (!diameter_shift && filter_body)
             {
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
@@ -474,7 +491,88 @@ inline void launcher(unsigned int *d_nlist,
                                                                              cli,
                                                                              cadji,
                                                                              box,
-                                                                             d_r_listsq,
+                                                                             d_r_cut,
+                                                                             r_buff,
+                                                                             ntypes,
+                                                                             ghost_width);
+            }
+        else if (diameter_shift && !filter_body)
+            {
+            static unsigned int max_block_size = UINT_MAX;
+            if (max_block_size == UINT_MAX)
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
+            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+
+            block_size = block_size < max_block_size ? block_size : max_block_size;
+            dim3 grid(N / (block_size/tpp) + 1);
+            if (compute_capability < 30 && grid.x > 65535)
+                {
+                grid.y = grid.x/65535 + 1;
+                grid.x = 65535;
+                }
+
+            if (compute_capability < 30) shared_size += warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+
+            gpu_compute_nlist_binned_shared_kernel<2,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                             d_n_neigh,
+                                                                             d_last_updated_pos,
+                                                                             d_conditions,
+                                                                             d_Nmax,
+                                                                             d_head_list,
+                                                                             d_pos,
+                                                                             d_body,
+                                                                             d_diameter,
+                                                                             N,
+                                                                             d_cell_size,
+                                                                             d_cell_xyzf,
+                                                                             d_cell_tdb,
+                                                                             d_cell_adj,
+                                                                             ci,
+                                                                             cli,
+                                                                             cadji,
+                                                                             box,
+                                                                             d_r_cut,
+                                                                             r_buff,
+                                                                             ntypes,
+                                                                             ghost_width);
+            }
+        else if (diameter_shift && filter_body)
+            {
+            static unsigned int max_block_size = UINT_MAX;
+            if (max_block_size == UINT_MAX)
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
+            if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
+
+            block_size = block_size < max_block_size ? block_size : max_block_size;
+            dim3 grid(N / (block_size/tpp) + 1);
+            if (compute_capability < 30 && grid.x > 65535)
+                {
+                grid.y = grid.x/65535 + 1;
+                grid.x = 65535;
+                }
+
+            if (compute_capability < 30) shared_size += warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
+
+            gpu_compute_nlist_binned_shared_kernel<3,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+                                                                             d_n_neigh,
+                                                                             d_last_updated_pos,
+                                                                             d_conditions,
+                                                                             d_Nmax,
+                                                                             d_head_list,
+                                                                             d_pos,
+                                                                             d_body,
+                                                                             d_diameter,
+                                                                             N,
+                                                                             d_cell_size,
+                                                                             d_cell_xyzf,
+                                                                             d_cell_tdb,
+                                                                             d_cell_adj,
+                                                                             ci,
+                                                                             cli,
+                                                                             cadji,
+                                                                             box,
+                                                                             d_r_cut,
+                                                                             r_buff,
                                                                              ntypes,
                                                                              ghost_width);
             }
@@ -499,12 +597,14 @@ inline void launcher(unsigned int *d_nlist,
                      cli,
                      cadji,
                      box,
-                     d_r_listsq,
+                     d_r_cut,
+                     r_buff,
                      ntypes,
                      ghost_width,
                      compute_capability,
                      tpp,
                      filter_body,
+                     diameter_shift,
                      block_size
                      );
         }
@@ -530,12 +630,14 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               const Index2D cli,
               const Index2D cadji,
               const BoxDim box,
-              const Scalar *d_r_listsq,
+              const Scalar *d_r_cut,
+              const Scalar r_buff,
               const unsigned int ntypes,
               const Scalar3 ghost_width,
               const unsigned int compute_capability,
               unsigned int tpp,
               bool filter_body,
+              bool diameter_shift,
               unsigned int block_size)
     { }
 
@@ -557,11 +659,13 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                      const Index2D& cli,
                                      const Index2D& cadji,
                                      const BoxDim& box,
-                                     const Scalar *d_r_listsq,
+                                     const Scalar *d_r_cut,
+                                     const Scalar r_buff,
                                      const unsigned int ntypes,
                                      const unsigned int threads_per_particle,
                                      const unsigned int block_size,
                                      bool filter_body,
+                                     bool diameter_shift,
                                      const Scalar3& ghost_width,
                                      const unsigned int compute_capability)
     {
@@ -583,12 +687,14 @@ cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
                                    cli,
                                    cadji,
                                    box,
-                                   d_r_listsq,
+                                   d_r_cut,
+                                   r_buff,
                                    ntypes,
                                    ghost_width,
                                    compute_capability,
                                    threads_per_particle,
                                    filter_body,
+                                   diameter_shift,
                                    block_size
                                    );
 
