@@ -544,6 +544,9 @@ void NeighborListGPUTree::updateImageVectors()
     // check that rcut fits in the box
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
     Scalar rmax = m_r_cut_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+        
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
@@ -629,8 +632,6 @@ void NeighborListGPUTree::traverseTree()
     
     // particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diam(m_pdata->getDiameters(), access_location::device, access_mode::read);
     
     // images
     ArrayHandle<Scalar3> d_image_list(m_image_list, access_location::device, access_mode::read);
@@ -658,14 +659,14 @@ void NeighborListGPUTree::traverseTree()
                             d_leaf_xyzf.data,
                             d_leaf_db.data,
                             d_pos.data,
-                            d_body.data,
-                            d_diam.data,
                             d_image_list.data,
                             m_image_list.getPitch(),
                             d_r_cut.data,
                             m_r_buff,
+                            m_d_max,
                             m_pdata->getNTypes(),
                             m_filter_body,
+                            m_diameter_shift,
                             m_exec_conf->getComputeCapability()/10,
                             m_tuner_traverse->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
