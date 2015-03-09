@@ -387,7 +387,7 @@ class rcut:
 
     ## \internal
     # \brief Attempts to update a single r_cut
-    # \details Similar to set_pair_r_cut, but updates to the larger r_cut value
+    # \details Similar to set_pair, but updates to the larger r_cut value
     # \param self Python required self variable
     # \param a Atom type A
     # \param b Atom type B
@@ -407,26 +407,21 @@ class rcut:
             
     ## \internal
     # \brief Gets the value of a single %pair coefficient
-    # \detail
     # \param self Python required self variable
     # \param a First name in the type pair
     # \param b Second name in the type pair
     def get_pair(self, a, b):
         cur_pair = self.ensure_pair(a,b);
         return self.values[cur_pair];
-        
-    def copy(self,rcut_obj):
-        for pair,rc in rcut_obj.getValues().iteritems():
-            (a,b) = pair;
-            self.set_pair(a,b,rc);
     
+    ## \internal
+    # \brief Merges two rcut objects by maximum cutoff
+    # \param self Python required self variable
+    # \param rcut_obj The other rcut to merge in
     def merge(self,rcut_obj):
-        for pair,rc in rcut_obj.getValues().iteritems():
+        for pair,rc in rcut_obj.values.iteritems():
             (a,b) = pair;
             self.merge_pair(a,b,rc);
-    
-    def getValues(self):
-        return self.values;
         
     ## \internal
     # \brief Sanity check on rcut values
@@ -453,8 +448,6 @@ class rcut:
                 b = type_list[j];
                     
                 # ensure the pair
-                # here, we don't care if the r_cut hasn't been set, since we default to r_cut = 0 to
-                # mean no interaction is set, and should probably do this in the pair python as well
                 cur_pair = self.ensure_pair(a,b);
                 
                 if self.values[cur_pair] < 0.0:
@@ -502,7 +495,6 @@ class nlist:
 #             cl_g = hoomd.CellListGPU(globals.system_definition);
 #             globals.system.addCompute(cl_g, "auto_cl")
 #             self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
-            # cpu built neighbor list for now
             self.cpp_nlist = hoomd.NeighborListGPUTree(globals.system_definition, r_cut, default_r_buff)
 
         self.cpp_nlist.setEvery(1, True);
