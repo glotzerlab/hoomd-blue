@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
+#include <cfloat>
 
 #include <boost/python.hpp>
 using namespace boost::python;
