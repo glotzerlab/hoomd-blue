@@ -57,8 +57,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#include "ClockSource.h"
 #include "ExecutionConfiguration.h"
+#include "ClockSource.h"
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>

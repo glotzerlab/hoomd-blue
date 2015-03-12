@@ -57,17 +57,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "Analyzer.h"
+#include "ClockSource.h"
+#include "Compute.h"
+#include "Updater.h"
+
 #include <string>
 #include <vector>
 #include <map>
 #include <fstream>
 
 #include <boost/shared_ptr.hpp>
-
-#include "ClockSource.h"
-#include "Analyzer.h"
-#include "Compute.h"
-#include "Updater.h"
 
 #ifndef __LOGGER_H__
 #define __LOGGER_H__

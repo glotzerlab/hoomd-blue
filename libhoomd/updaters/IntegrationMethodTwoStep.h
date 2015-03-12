@@ -49,11 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-
 #include "SystemDefinition.h"
 #include "ParticleGroup.h"
 #include "Profiler.h"
+
+#include <boost/shared_ptr.hpp>
 
 #ifndef __INTEGRATION_METHOD_TWO_STEP_H__
 #define __INTEGRATION_METHOD_TWO_STEP_H__

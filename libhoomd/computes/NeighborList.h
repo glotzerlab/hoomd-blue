@@ -49,14 +49,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
-#include <vector>
-
 #include "Compute.h"
 #include "GPUArray.h"
 #include "GPUFlags.h"
 #include "Index1D.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
+#include <vector>
 
 /*! \file NeighborList.h
     \brief Declares the NeighborList class

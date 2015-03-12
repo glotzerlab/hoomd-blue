@@ -49,10 +49,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: akohlmey
 
-#include <boost/shared_ptr.hpp>
-
 #include "ForceCompute.h"
 #include "NeighborList.h"
+
+#include <boost/shared_ptr.hpp>
 
 /*! \file CGCMMForceCompute.h
     \brief Declares the CGCMMForceCompute class

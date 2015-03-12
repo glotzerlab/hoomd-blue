@@ -57,10 +57,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include "Integrator.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "Integrator.h"
 
 #include <boost/bind.hpp>
 using namespace boost;

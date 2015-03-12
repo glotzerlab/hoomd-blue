@@ -58,6 +58,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "HOOMDDumpWriter.h"
+#include "BondedGroupData.h"
+#include "WallData.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -66,10 +70,6 @@ using namespace boost::python;
 #include <stdexcept>
 #include <iomanip>
 #include <boost/shared_ptr.hpp>
-
-#include "HOOMDDumpWriter.h"
-#include "BondedGroupData.h"
-#include "WallData.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"

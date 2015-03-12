@@ -47,18 +47,18 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "Autotuner.h"
+
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
 
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "Autotuner.h"
-
-#ifdef ENABLE_MPI
-#include "HOOMDMPI.h"
-#endif
 
 using namespace std;
 

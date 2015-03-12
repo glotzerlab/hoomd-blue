@@ -58,11 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include <boost/python.hpp>
-#include <boost/shared_array.hpp>
-using namespace boost::python;
-using namespace boost;
-
 #include "IMDInterface.h"
 #include "SignalHandler.h"
 
@@ -70,6 +65,11 @@ using namespace boost;
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+#include <boost/shared_array.hpp>
+using namespace boost::python;
+using namespace boost;
 
 #include "vmdsock.h"
 #include "imd.h"

@@ -58,6 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include "SFCPackUpdater.h"
+#include "Communicator.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 using namespace boost;
@@ -67,9 +70,6 @@ using namespace boost;
 #include <algorithm>
 #include <fstream>
 #include <iostream>
-
-#include "SFCPackUpdater.h"
-#include "Communicator.h"
 
 using namespace std;
 

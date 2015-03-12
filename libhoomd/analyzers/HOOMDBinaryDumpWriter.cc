@@ -58,6 +58,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "HOOMDBinaryDumpWriter.h"
+#include "BondedGroupData.h"
+#include "WallData.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -72,10 +76,6 @@ using namespace boost::python;
 #ifdef ENABLE_ZLIB
 #include <boost/iostreams/filter/gzip.hpp>
 #endif
-
-#include "HOOMDBinaryDumpWriter.h"
-#include "BondedGroupData.h"
-#include "WallData.h"
 
 using namespace std;
 using namespace boost;

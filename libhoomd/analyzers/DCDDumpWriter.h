@@ -52,11 +52,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __DCDDUMPWRITER_H__
 #define __DCDDUMPWRITER_H__
 
+#include "Analyzer.h"
+#include "ParticleGroup.h"
+
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <fstream>
-#include "Analyzer.h"
-#include "ParticleGroup.h"
 
 /*! \file DCDDumpWriter.h
     \brief Declares the DCDDumpWriter class

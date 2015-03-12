@@ -57,11 +57,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "SystemDefinition.h"
+
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/dynamic_bitset.hpp>
-
-#include "SystemDefinition.h"
 
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__

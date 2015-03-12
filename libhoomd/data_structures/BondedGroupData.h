@@ -63,10 +63,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Sentinel value to indicate group is not present on this processor
 const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 
-#include "GPUVector.h"
 #include "ExecutionConfiguration.h"
+#include "GPUVector.h"
 #include "Profiler.h"
 #include "Index1D.h"
+
+#ifdef ENABLE_CUDA
+#include "CachedAllocator.h"
+#include "BondedGroupData.cuh"
+#endif
 
 #include <boost/signals2.hpp>
 #include <boost/shared_ptr.hpp>
@@ -78,11 +83,6 @@ using namespace boost::python;
 #include <string>
 #include <sstream>
 #include <set>
-
-#ifdef ENABLE_CUDA
-#include "CachedAllocator.h"
-#include "BondedGroupData.cuh"
-#endif
 
 //! Forward declarations
 class ParticleData;

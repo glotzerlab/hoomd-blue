@@ -59,6 +59,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ForceCompute.h"
+
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include <iostream>
 using namespace std;
 
@@ -68,10 +73,6 @@ using namespace boost::python;
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 using namespace boost;
-
-#ifdef ENABLE_MPI
-#include "Communicator.h"
-#endif
 
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated

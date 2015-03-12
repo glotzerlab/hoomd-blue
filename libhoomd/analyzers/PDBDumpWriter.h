@@ -57,11 +57,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "Analyzer.h"
+
 #include <string>
 
 #include <boost/shared_ptr.hpp>
-
-#include "Analyzer.h"
 
 #ifndef __PDB_DUMP_WRITER_H__
 #define __PDB_DUMP_WRITER_H__

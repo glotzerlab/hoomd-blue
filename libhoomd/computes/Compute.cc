@@ -54,14 +54,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "Compute.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
 #include <iostream>
 #include <stdexcept>
 using namespace std;
-
-#include "Compute.h"
 
 /*! \file Compute.cc
     \brief Contains code for the Compute class

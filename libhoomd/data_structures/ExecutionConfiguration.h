@@ -51,6 +51,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __EXECUTION_CONFIGURATION__
 #define __EXECUTION_CONFIGURATION__
 
+#ifdef ENABLE_MPI
+#include <mpi.h>
+#endif
+
 #include <vector>
 #include <string>
 #include <boost/shared_ptr.hpp>
@@ -61,9 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
-#ifdef ENABLE_MPI
-#include <mpi.h>
-#endif
 
 #include "Messenger.h"
 

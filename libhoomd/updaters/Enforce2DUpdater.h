@@ -57,9 +57,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <boost/shared_ptr.hpp>
-
 #include "Updater.h"
+
+#include <boost/shared_ptr.hpp>
 #include <vector>
 
 #ifndef __ENFORCE2DUPDATER_H__

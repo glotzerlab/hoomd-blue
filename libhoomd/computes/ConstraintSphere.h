@@ -49,10 +49,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-
 #include "ForceConstraint.h"
 #include "ParticleGroup.h"
+
+#include <boost/shared_ptr.hpp>
 
 /*! \file ConstraintSphere.h
     \brief Declares a class for computing sphere constraint forces

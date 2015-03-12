@@ -58,14 +58,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#include <stdexcept>
-
 #include "DCDDumpWriter.h"
 #include "time.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
+
+#include <stdexcept>
 
 #include <boost/python.hpp>
 #include <boost/filesystem/operations.hpp>

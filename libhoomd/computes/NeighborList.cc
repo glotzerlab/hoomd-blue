@@ -49,19 +49,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
+#include "NeighborList.h"
+#include "BondedGroupData.h"
+
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 using namespace boost::python;
 
-#ifdef ENABLE_MPI
-#include "Communicator.h"
-#endif
-
 #include <boost/bind.hpp>
-
-#include "NeighborList.h"
-#include "BondedGroupData.h"
 
 #include <sstream>
 #include <fstream>
