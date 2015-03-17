@@ -990,7 +990,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<0>);
+            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<0>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1026,7 +1026,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<1>);
+            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<1>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1062,7 +1062,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<2>);
+            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<2>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1098,7 +1098,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<3>);
+            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<3>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1134,7 +1134,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<4>);
+            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<4>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1170,7 +1170,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<5>);
+            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<5>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1206,7 +1206,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<6>);
+            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<6>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -1242,7 +1242,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         if (max_block_size == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_traverse_tree_kernel<7>);
+            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<7>);
             max_block_size = attr.maxThreadsPerBlock;
             }
 
