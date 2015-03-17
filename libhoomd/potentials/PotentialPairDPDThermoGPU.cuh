@@ -98,8 +98,9 @@ struct dpd_pair_args_t
                     const BoxDim& _box,
                     const unsigned int *_d_n_neigh,
                     const unsigned int *_d_nlist,
-                    const Index2D& _nli,
+                    const unsigned int *_d_head_list,
                     const Scalar *_d_rcutsq,
+                    const unsigned int _size_nlist,
                     const unsigned int _ntypes,
                     const unsigned int _block_size,
                     const unsigned int _seed,
@@ -121,8 +122,9 @@ struct dpd_pair_args_t
                         box(_box),
                         d_n_neigh(_d_n_neigh),
                         d_nlist(_d_nlist),
-                        nli(_nli),
+                        d_head_list(_d_head_list),
                         d_rcutsq(_d_rcutsq),
+                        size_nlist(_size_nlist),
                         ntypes(_ntypes),
                         block_size(_block_size),
                         seed(_seed),
@@ -147,8 +149,9 @@ struct dpd_pair_args_t
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
-    const Index2D& nli;             //!< Indexer for accessing d_nlist
+    const unsigned int *d_head_list;//!< Indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
+    const unsigned int size_nlist;  //!< Total length of the neighbor list
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int seed;        //!< user provided seed for PRNG
@@ -171,6 +174,9 @@ scalar4_tex_t pdata_dpd_vel_tex;
 //! Texture for reading particle tags
 texture<unsigned int, 1, cudaReadModeElementType> pdata_dpd_tag_tex;
 
+//! Texture for reading neighbor list
+texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
+
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
     forces for each pair is handled via the template class \a evaluator.
@@ -185,7 +191,7 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_dpd_tag_tex;
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
+    \param d_head_list Indexes for indexing \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
     \param d_seed user defined seed for PRNG
@@ -208,7 +214,6 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_dpd_tag_tex;
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
-    The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
 template< class evaluator, unsigned int shift_mode, unsigned int compute_virial >
 __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
@@ -221,7 +226,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                                               BoxDim box,
                                               const unsigned int *d_n_neigh,
                                               const unsigned int *d_nlist,
-                                              const Index2D nli,
+                                              const unsigned int *d_head_list,
                                               const typename evaluator::param_type *d_params,
                                               const Scalar *d_rcutsq,
                                               const unsigned int d_seed,
@@ -286,9 +291,10 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
         virial[i] = Scalar(0.0);
 
     // prefetch neighbor index
+    const unsigned int head_idx = d_head_list[idx];
     unsigned int cur_j = 0;
     unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-        d_nlist[nli(idx, threadIdx.x%tpp)] : 0;
+        texFetchUint(d_nlist, nlist_tex, head_idx + threadIdx.x%tpp) : 0;
 
     // this particle's tag
     unsigned int tagi = d_tag[idx];
@@ -297,99 +303,83 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
     // inside the loop
-    #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = threadIdx.x%tpp; neigh_idx < nli.getH(); neigh_idx+=tpp)
-    #else
     for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
-    #endif
         {
-        #if (__CUDA_ARCH__ < 200)
-        if (neigh_idx < n_neigh)
-        #endif
+        // read the current neighbor index (MEM TRANSFER: 4 bytes)
+        // prefetch the next value and set the current one
+        cur_j = next_j;
+        if (neigh_idx+tpp < n_neigh)
+            next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+tpp);
+
+        // get the neighbor's position (MEM TRANSFER: 16 bytes)
+        Scalar4 postypej = texFetchScalar4(d_pos, pdata_dpd_pos_tex, cur_j);
+        Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+
+        // get the neighbor's position (MEM TRANSFER: 16 bytes)
+        Scalar4 velmassj = texFetchScalar4(d_vel, pdata_dpd_vel_tex, cur_j);
+        Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
+
+        // calculate dr (with periodic boundary conditions) (FLOPS: 3)
+        Scalar3 dx = posi - posj;
+
+        // apply periodic boundary conditions: (FLOPS 12)
+        dx = box.minImage(dx);
+
+        // calculate r squard (FLOPS: 5)
+        Scalar rsq = dot(dx,dx);
+
+        // calculate dv (FLOPS: 3)
+        Scalar3 dv = veli - velj;
+
+        Scalar rdotv = dot(dx, dv);
+
+        // access the per type pair parameters
+        unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+        Scalar rcutsq = s_rcutsq[typpair];
+        typename evaluator::param_type param = s_params[typpair];
+
+        // design specifies that energies are shifted if
+        // 1) shift mode is set to shift
+        // or 2) shift mode is explor and ron > rcut
+        bool energy_shift = false;
+        if (shift_mode == 1)
+            energy_shift = true;
+
+        evaluator eval(rsq, rcutsq, param);
+
+        // evaluate the potential
+        Scalar force_divr = Scalar(0.0);
+        Scalar force_divr_cons = Scalar(0.0);
+        Scalar pair_eng = Scalar(0.0);
+
+        // Special Potential Pair DPD Requirements
+        // use particle i's and j's tags
+        unsigned int tagj = texFetchUint(d_tag, pdata_dpd_tag_tex, cur_j);
+        eval.set_seed_ij_timestep(d_seed,tagi,tagj,d_timestep);
+        eval.setDeltaT(d_deltaT);
+        eval.setRDotV(rdotv);
+        eval.setT(d_T);
+
+        eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
+
+        // calculate the virial (FLOPS: 3)
+        if (compute_virial)
             {
-            // read the current neighbor index (MEM TRANSFER: 4 bytes)
-            // prefetch the next value and set the current one
-            cur_j = next_j;
-            if (neigh_idx+tpp < n_neigh)
-                next_j = d_nlist[nli(idx, neigh_idx+tpp)];
-
-            // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            Scalar4 postypej = texFetchScalar4(d_pos, pdata_dpd_pos_tex, cur_j);
-            Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
-
-            // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            Scalar4 velmassj = texFetchScalar4(d_vel, pdata_dpd_vel_tex, cur_j);
-            Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
-
-            // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-            Scalar3 dx = posi - posj;
-
-            // apply periodic boundary conditions: (FLOPS 12)
-            dx = box.minImage(dx);
-
-            // calculate r squard (FLOPS: 5)
-            Scalar rsq = dot(dx,dx);
-
-            // calculate dv (FLOPS: 3)
-            Scalar3 dv = veli - velj;
-
-            Scalar rdotv = dot(dx, dv);
-
-            // access the per type pair parameters
-            unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
-            Scalar rcutsq = s_rcutsq[typpair];
-            typename evaluator::param_type param = s_params[typpair];
-
-            // design specifies that energies are shifted if
-            // 1) shift mode is set to shift
-            // or 2) shift mode is explor and ron > rcut
-            bool energy_shift = false;
-            if (shift_mode == 1)
-                energy_shift = true;
-
-            evaluator eval(rsq, rcutsq, param);
-
-            // evaluate the potential
-            Scalar force_divr = Scalar(0.0);
-            Scalar force_divr_cons = Scalar(0.0);
-            Scalar pair_eng = Scalar(0.0);
-
-            // Special Potential Pair DPD Requirements
-            // use particle i's and j's tags
-            unsigned int tagj = texFetchUint(d_tag, pdata_dpd_tag_tex, cur_j);
-            eval.set_seed_ij_timestep(d_seed,tagi,tagj,d_timestep);
-            eval.setDeltaT(d_deltaT);
-            eval.setRDotV(rdotv);
-            eval.setT(d_T);
-
-            eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
-
-            // calculate the virial (FLOPS: 3)
-            if (compute_virial)
-                {
-                Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
-                virial[0] = dx.x * dx.x * force_div2r_cons;
-                virial[1] = dx.x * dx.y * force_div2r_cons;
-                virial[2] = dx.x * dx.z * force_div2r_cons;
-                virial[3] = dx.y * dx.y * force_div2r_cons;
-                virial[4] = dx.y * dx.z * force_div2r_cons;
-                virial[5] = dx.z * dx.z * force_div2r_cons;
-                }
-
-            // add up the force vector components (FLOPS: 7)
-            #if (__CUDA_ARCH__ >= 200)
-            force.x += dx.x * force_divr;
-            force.y += dx.y * force_divr;
-            force.z += dx.z * force_divr;
-            #else
-            // fmad causes momentum drift here, prevent it from being used
-            force.x += __fmul_rn(dx.x, force_divr);
-            force.y += __fmul_rn(dx.y, force_divr);
-            force.z += __fmul_rn(dx.z, force_divr);
-            #endif
-
-            force.w += pair_eng;
+            Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
+            virial[0] = dx.x * dx.x * force_div2r_cons;
+            virial[1] = dx.x * dx.y * force_div2r_cons;
+            virial[2] = dx.x * dx.z * force_div2r_cons;
+            virial[3] = dx.y * dx.y * force_div2r_cons;
+            virial[4] = dx.y * dx.z * force_div2r_cons;
+            virial[5] = dx.z * dx.z * force_div2r_cons;
             }
+
+        // add up the force vector components (FLOPS: 7)
+        force.x += dx.x * force_divr;
+        force.y += dx.y * force_divr;
+        force.z += dx.z * force_divr;
+
+        force.w += pair_eng;
         }
 
     // potential energy per particle must be halved
@@ -451,6 +441,10 @@ inline void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
     pdata_dpd_tag_tex.normalized = false;
     pdata_dpd_tag_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_dpd_tag_tex, pair_args.d_tag, sizeof(unsigned int) * pair_args.n_max);
+    
+    nlist_tex.normalized = false;
+    nlist_tex.filterMode = cudaFilterModePoint;
+    cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
     }
 
 //! Kernel driver that computes pair DPD thermo forces on the GPU
@@ -510,7 +504,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
-                                    args.nli,
+                                    args.d_head_list,
                                     d_params,
                                     args.d_rcutsq,
                                     args.seed,
@@ -551,7 +545,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
-                                    args.nli,
+                                    args.d_head_list,
                                     d_params,
                                     args.d_rcutsq,
                                     args.seed,
@@ -600,7 +594,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
-                                    args.nli,
+                                    args.d_head_list,
                                     d_params,
                                     args.d_rcutsq,
                                     args.seed,
@@ -641,7 +635,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                     args.box,
                                     args.d_n_neigh,
                                     args.d_nlist,
-                                    args.nli,
+                                    args.d_head_list,
                                     d_params,
                                     args.d_rcutsq,
                                     args.seed,

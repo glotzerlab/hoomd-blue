@@ -274,7 +274,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     // access the neighbor list
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    Index2D nli = m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
 
     // access the particle data
     ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -296,6 +296,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
+        const unsigned int head_i = h_head_list.data[i];
         // sanity check
         assert(typei < m_pdata->getNTypes());
 
@@ -320,7 +321,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
             n_calc++;
 
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-            unsigned int k = h_nlist.data[nli(i, j)];
+            unsigned int k = h_nlist.data[head_i + j];
             // sanity check
             assert(k < m_pdata->getN());
 

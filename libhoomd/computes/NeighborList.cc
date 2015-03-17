@@ -121,6 +121,9 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     GPUArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), exec_conf);
     m_r_listsq.swap(r_listsq);
     
+    // default initialization of the rcut
+    setRCut(_r_cut, r_buff);
+    
     // allocate m_n_neigh
     GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
     m_n_neigh.swap(n_neigh);
@@ -183,6 +186,7 @@ void NeighborList::reallocate()
     m_ex_list_idx.resize(m_pdata->getMaxN(), ex_list_height );
     m_ex_list_indexer = Index2D(m_ex_list_idx.getPitch(), ex_list_height);
 
+    m_head_list.resize(m_pdata->getMaxN());
     m_n_neigh.resize(m_pdata->getMaxN());
 
     if (m_n_ex_tag.getNumElements() != m_pdata->getNGlobal())
@@ -305,6 +309,17 @@ double NeighborList::benchmark(unsigned int num_iters)
 
 void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
     {
+    
+    // loop on all pairs to set the same r_cut
+    for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+        {
+        for (unsigned int j=i; j < m_pdata->getNTypes(); ++j)
+            {
+            setRCutPair(i,j,r_cut);
+            }
+        }
+        
+    setRBuff(r_buff);
     }
 
 /*! \param r_cut New cuttoff radius to set
@@ -1258,18 +1273,9 @@ void NeighborList::allocate()
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
         {
         h_Nmax.data[i] = (h_Nmax.data[i] > 8) ? (h_Nmax.data[i] + 7) & ~7 : 8;
-        
-//      switching to multiples of 32 gives a 2% performance boost in LJ benchmarking, but why? omit for now
-//         h_Nmax.data[i] = (h_Nmax.data[i] > 32) ? (h_Nmax.data[i] + 31) & ~31 : 32;
         }
 
     m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating neighbor list" << endl;
-    
-    // need to be careful about all of this reallocation if memory is already large... may need changing
-    
-    // allocate memory for the head list
-    GPUArray<unsigned int> head_list(m_pdata->getMaxN(), exec_conf);
-    m_head_list.swap(head_list);
     }
 
 //! Slow serial build for the head list

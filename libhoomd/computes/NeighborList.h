@@ -170,7 +170,7 @@ class NeighborList : public Compute
         //! \name Set parameters
         // @{
         
-        //! Change the cutoff radius by pair
+        //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_buff, Scalar r_cut);
         
         //! Change the cutoff radius by pair
@@ -266,11 +266,6 @@ class NeighborList : public Compute
         /*! \note Do not save indexers across calls. Get a new indexer after every call to compute() - they will
             change.
         */
-        const Index2D& getNListIndexer()
-            {
-            return m_nlist_indexer;
-            }
-
         const Index2D& getExListIndexer()
             {
             return m_ex_list_indexer;
@@ -447,7 +442,6 @@ class NeighborList : public Compute
         bool m_diameter_shift;      //!< Set to true if the neighborlist rcut(i,j) should be diameter shifted
         storageMode m_storage_mode; //!< The storage mode
 
-        Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list
         GPUArray<unsigned int> m_nlist;      //!< Neighbor list data
         GPUArray<unsigned int> m_n_neigh;    //!< Number of neighbors for each particle
         GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions

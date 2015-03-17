@@ -81,7 +81,7 @@ class NeighborListBinned : public NeighborList
         virtual ~NeighborListBinned();
 
         //! Change the cuttoff radius
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        virtual void setRCut(Scalar r_buff, Scalar r_cut);
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
 
         //! Set the maximum diameter to use in computing neighbor lists

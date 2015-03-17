@@ -78,6 +78,9 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
     m_cl->setRadius(1);
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
+    
+    // call this class's special setRCut
+    setRCut(r_cut, r_buff);
     }
 
 NeighborListBinned::~NeighborListBinned()
@@ -86,9 +89,15 @@ NeighborListBinned::~NeighborListBinned()
 
     }
 
-void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
+void NeighborListBinned::setRCut(Scalar r_buff, Scalar r_cut)
     {
-    NeighborList::setRCut(r_cut, r_buff);
+    NeighborList::setRCut(r_buff, r_cut);
+    
+    Scalar rmax = m_r_cut_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+        
+    m_cl->setNominalWidth(rmax);
     }
 
 void NeighborListBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)

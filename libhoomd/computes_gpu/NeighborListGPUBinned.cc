@@ -108,6 +108,9 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     // synchronize over MPI
     m_tuner->setSync(m_pdata->getDomainDecomposition());
     #endif
+    
+    // call this class's special setRCut
+    setRCut(r_cut, r_buff);
     }
 
 NeighborListGPUBinned::~NeighborListGPUBinned()
@@ -126,6 +129,12 @@ NeighborListGPUBinned::~NeighborListGPUBinned()
 void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborListGPU::setRCut(r_cut, r_buff);
+    
+    Scalar rmax = m_r_cut_max + m_r_buff;
+    if (m_diameter_shift)
+        rmax += m_d_max - Scalar(1.0);
+        
+    m_cl->setNominalWidth(rmax);
     }
     
 void NeighborListGPUBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)

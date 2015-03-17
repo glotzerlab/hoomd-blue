@@ -64,6 +64,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
+//! Texture for reading the neighbor list
+texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
 //! Kernel for calculating CG-CMM Lennard-Jones forces
 /*! This kernel is called to calculate the Lennard-Jones forces on all N particles for the CG-CMM model potential.
@@ -75,7 +77,7 @@ scalar4_tex_t pdata_pos_tex;
     \param d_pos particle positions on the GPU
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
+    \param d_head_list Indexes for reading \a d_nlist
     \param d_coeffs Coefficients to the lennard jones force (lj12, lj9, lj6, lj4).
     \param coeff_width Width of the coefficient matrix
     \param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
@@ -95,15 +97,15 @@ scalar4_tex_t pdata_pos_tex;
 __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
                                                 Scalar* d_virial,
                                                 const unsigned int virial_pitch,
-                                               const unsigned int N,
-                                               const Scalar4 *d_pos,
-                                               const BoxDim box,
-                                               const unsigned int *d_n_neigh,
-                                               const unsigned int *d_nlist,
-                                               const Index2D nli,
-                                               const Scalar4 *d_coeffs,
-                                               const int coeff_width,
-                                               const Scalar r_cutsq)
+                                                const unsigned int N,
+                                                const Scalar4 *d_pos,
+                                                const BoxDim box,
+                                                const unsigned int *d_n_neigh,
+                                                const unsigned int *d_nlist,
+                                                const unsigned int *d_head_list,
+                                                const Scalar4 *d_coeffs,
+                                                const int coeff_width,
+                                                const Scalar r_cutsq)
     {
     // read in the coefficients
     extern __shared__ Scalar4 s_coeffs[];
@@ -122,6 +124,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 
     // load in the length of the list (MEM_TRANSFER: 4 bytes)
     unsigned int n_neigh = d_n_neigh[idx];
+    const unsigned int head_idx = d_head_list[idx];
 
     // read in the position of our particle.
     // (MEM TRANSFER: 16 bytes)
@@ -136,77 +139,65 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
-    unsigned int next_neigh = d_nlist[nli(idx, 0)];
+    unsigned int next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
 
     // loop over neighbors
-    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
-    // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
-    // inside the loop
-    #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
-    #else
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
-    #endif
         {
-        #if (__CUDA_ARCH__ < 200)
-        if (neigh_idx < n_neigh)
-        #endif
-            {
-            // read the current neighbor index (MEM TRANSFER: 4 bytes)
-            // prefetch the next value and set the current one
-            cur_neigh = next_neigh;
-            next_neigh = d_nlist[nli(idx, neigh_idx+1)];
+        // read the current neighbor index (MEM TRANSFER: 4 bytes)
+        // prefetch the next value and set the current one
+        cur_neigh = next_neigh;
+        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
 
-            // get the neighbor's position (MEM TRANSFER: 16 bytes)
-            Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
-            Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
+        // get the neighbor's position (MEM TRANSFER: 16 bytes)
+        Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
+        Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
-            // calculate dr (with periodic boundary conditions)
-            Scalar3 dx = pos - neigh_pos;
+        // calculate dr (with periodic boundary conditions)
+        Scalar3 dx = pos - neigh_pos;
 
-            // apply periodic boundary conditions: (FLOPS 12)
-            dx = box.minImage(dx);
+        // apply periodic boundary conditions: (FLOPS 12)
+        dx = box.minImage(dx);
 
-            // calculate r squard (FLOPS: 5)
-            Scalar rsq = dot(dx, dx);
+        // calculate r squard (FLOPS: 5)
+        Scalar rsq = dot(dx, dx);
 
-            // calculate 1/r^2 (FLOPS: 2)
-            Scalar r2inv;
-            if (rsq >= r_cutsq)
-                r2inv = Scalar(0.0);
-            else
-                r2inv = Scalar(1.0) / rsq;
+        // calculate 1/r^2 (FLOPS: 2)
+        Scalar r2inv;
+        if (rsq >= r_cutsq)
+            r2inv = Scalar(0.0);
+        else
+            r2inv = Scalar(1.0) / rsq;
 
-            // lookup the coefficients between this combination of particle types
-            int typ_pair = __scalar_as_int(neigh_postype.w) * coeff_width + __scalar_as_int(postype.w);
-            Scalar lj12 = s_coeffs[typ_pair].x;
-            Scalar lj9 = s_coeffs[typ_pair].y;
-            Scalar lj6 = s_coeffs[typ_pair].z;
-            Scalar lj4 = s_coeffs[typ_pair].w;
+        // lookup the coefficients between this combination of particle types
+        int typ_pair = __scalar_as_int(neigh_postype.w) * coeff_width + __scalar_as_int(postype.w);
+        Scalar lj12 = s_coeffs[typ_pair].x;
+        Scalar lj9 = s_coeffs[typ_pair].y;
+        Scalar lj6 = s_coeffs[typ_pair].z;
+        Scalar lj4 = s_coeffs[typ_pair].w;
 
-            // calculate 1/r^3 and 1/r^6 (FLOPS: 3)
-            Scalar r3inv = r2inv * rsqrtf(rsq);
-            Scalar r6inv = r3inv * r3inv;
-            // calculate the force magnitude / r (FLOPS: 11)
-            Scalar forcemag_divr = r6inv * (r2inv * (Scalar(12.0) * lj12  * r6inv + Scalar(9.0) * r3inv * lj9 + Scalar(6.0) * lj6 ) + Scalar(4.0) * lj4);
-            // calculate the virial (FLOPS: 3)
-            Scalar forcemag_div2r = Scalar(0.5)*forcemag_divr;
-            virial[0] += dx.x*dx.x*forcemag_div2r;
-            virial[1] += dx.x*dx.y*forcemag_div2r;
-            virial[2] += dx.x*dx.z*forcemag_div2r;
-            virial[3] += dx.y*dx.y*forcemag_div2r;
-            virial[4] += dx.y*dx.z*forcemag_div2r;
-            virial[5] += dx.z*dx.z*forcemag_div2r;
+        // calculate 1/r^3 and 1/r^6 (FLOPS: 3)
+        Scalar r3inv = r2inv * rsqrtf(rsq);
+        Scalar r6inv = r3inv * r3inv;
+        // calculate the force magnitude / r (FLOPS: 11)
+        Scalar forcemag_divr = r6inv * (r2inv * (Scalar(12.0) * lj12  * r6inv + Scalar(9.0) * r3inv * lj9 + Scalar(6.0) * lj6 ) + Scalar(4.0) * lj4);
+        // calculate the virial (FLOPS: 3)
+        Scalar forcemag_div2r = Scalar(0.5)*forcemag_divr;
+        virial[0] += dx.x*dx.x*forcemag_div2r;
+        virial[1] += dx.x*dx.y*forcemag_div2r;
+        virial[2] += dx.x*dx.z*forcemag_div2r;
+        virial[3] += dx.y*dx.y*forcemag_div2r;
+        virial[4] += dx.y*dx.z*forcemag_div2r;
+        virial[5] += dx.z*dx.z*forcemag_div2r;
 
-            // calculate the pair energy (FLOPS: 8)
-            Scalar pair_eng = r6inv * (lj12 * r6inv + lj9 * r3inv + lj6) + lj4 * r2inv * r2inv;
+        // calculate the pair energy (FLOPS: 8)
+        Scalar pair_eng = r6inv * (lj12 * r6inv + lj9 * r3inv + lj6) + lj4 * r2inv * r2inv;
 
-            // add up the force vector components (FLOPS: 7)
-            force.x += dx.x * forcemag_divr;
-            force.y += dx.y * forcemag_divr;
-            force.z += dx.z * forcemag_divr;
-            force.w += pair_eng;
-            }
+        // add up the force vector components (FLOPS: 7)
+        force.x += dx.x * forcemag_divr;
+        force.y += dx.y * forcemag_divr;
+        force.z += dx.z * forcemag_divr;
+        force.w += pair_eng;
         }
 
     // potential energy per particle must be halved
@@ -226,7 +217,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
+    \param d_head_list Indexes for reading \a d_nlist
     \param d_coeffs A \a coeff_width by \a coeff_width matrix of coefficients indexed by type
         pair i,j. The x-component is the lj12 coefficient and the y-, z-, and w-components
                 are the lj9, lj6, and lj4 coefficients, respectively.
@@ -247,8 +238,9 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
                                      const BoxDim& box,
                                      const unsigned int *d_n_neigh,
                                      const unsigned int *d_nlist,
-                                     const Index2D& nli,
+                                     const unsigned int *d_head_list,
                                      const Scalar4 *d_coeffs,
+                                     const unsigned int size_nlist,
                                      const unsigned int coeff_width,
                                      const Scalar r_cutsq,
                                      const unsigned int block_size)
@@ -266,10 +258,26 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
     if (error != cudaSuccess)
         return error;
+    
+    nlist_tex.normalized = false;
+    nlist_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
+    if (error != cudaSuccess)
+        return error;
 
     // run the kernel
-    gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>
-         (d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist, nli, d_coeffs, coeff_width, r_cutsq);
+    gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>(d_force,
+                                                                                                  d_virial,
+                                                                                                  virial_pitch,
+                                                                                                  N,
+                                                                                                  d_pos,
+                                                                                                  box,
+                                                                                                  d_n_neigh,
+                                                                                                  d_nlist,
+                                                                                                  d_head_list,
+                                                                                                  d_coeffs,
+                                                                                                  coeff_width,
+                                                                                                  r_cutsq);
 
     return cudaSuccess;
     }

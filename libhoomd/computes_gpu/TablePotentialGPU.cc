@@ -115,7 +115,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     // access the neighbor list
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
-    Index2D nli = this->m_nlist->getNListIndexer();
+    ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -139,9 +139,10 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
                              box,
                              d_n_neigh.data,
                              d_nlist.data,
-                             nli,
+                             d_head_list.data,
                              d_tables.data,
                              d_params.data,
+                             this->m_nlist->getNListArray().getPitch(),
                              m_ntypes,
                              m_table_width,
                              m_tuner->getParam(),
