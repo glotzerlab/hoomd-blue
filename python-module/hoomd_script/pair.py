@@ -531,7 +531,7 @@ class nlist:
                 r_cut_max.merge(rcut_obj);
 
         self.r_cut = r_cut_max;
-        for pair,rc in self.r_cut.getValues().iteritems():
+        for pair,rc in self.r_cut.values.iteritems():
             (a,b) = pair
             i = globals.system_definition.getParticleData().getTypeByName(a);
             j = globals.system_definition.getParticleData().getTypeByName(b);
@@ -756,13 +756,6 @@ class nlist:
             raise RuntimeError('Error setting neighbor list parameters');
 
         return self.cpp_nlist.getSmallestRebuild()-1;
-
-
-## DEPRECATED, TO REMOVE ##
-def _update_global_nlist(rcut):
-    return globals.neighbor_list;
-####
-
 
 ## \internal
 # \brief Creates the global neighbor list
@@ -1132,8 +1125,7 @@ class gauss(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -1247,8 +1239,9 @@ class slj(pair):
             d_max = sysdef.getParticleData().getMaxDiameter()
             globals.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
 
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut());
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
+        
+        neighbor_list.cpp_nlist.setDiameterShift(True);
         neighbor_list.cpp_nlist.setMaximumDiameter(d_max);
 
         # create the c++ mirror class
@@ -1364,8 +1357,7 @@ class yukawa(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -1448,8 +1440,7 @@ class ewald(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -1542,10 +1533,18 @@ class cgcmm(force._force):
 
         # initialize the base class
         force._force.__init__(self);
+        
+        # this class extends force, so we need to store the r_cut explicitly as a member
+        # to be used in get_rcut
+        # the authors of this potential also did not incorporate pairwise cutoffs, so we just use
+        # the same number for everything
+        self.r_cut = r_cut
+
+        # setup the coefficent matrix
+        self.pair_coeff = coeff();
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*r_cut)
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -1557,8 +1556,28 @@ class cgcmm(force._force):
 
         globals.system.addCompute(self.cpp_force, self.force_name);
 
-        # setup the coefficent matrix
-        self.pair_coeff = coeff();
+    def get_rcut(self):
+        if not self.log: ## MAKE SURE THAT THIS ACTUALLY WORKS! ##
+            return None
+
+        # go through the list of only the active particle types in the sim
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        # update the rcut by pair type
+        r_cut_dict = rcut();
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
+                r_cut_dict.set_pair(type_list[i],type_list[j],self.r_cut);
+                
+        if not r_cut_dict.verify():
+            globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
+            raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
+            return None;
+        else:
+            return r_cut_dict;
 
     def update_coeffs(self):
         # check that the pair coefficents are valid
@@ -1690,9 +1709,11 @@ class table(force._force):
         # initialize the base class
         force._force.__init__(self, name);
 
+        # setup the coefficent matrix
+        self.pair_coeff = coeff();
+
         # update the neighbor list with a dummy 0 r_cut. The r_cut will be properly updated before the first run()
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -1702,9 +1723,6 @@ class table(force._force):
             self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-
-        # setup the coefficent matrix
-        self.pair_coeff = coeff();
 
         # stash the width for later use
         self.width = width;
@@ -1728,6 +1746,69 @@ class table(force._force):
 
         # pass the tables on to the underlying cpp compute
         self.cpp_force.setTable(typei, typej, Vtable, Ftable, rmin, rmax);
+
+    def update_coeffs(self):
+        coeff_list = self.required_coeffs + ["r_cut", "r_on"];
+        # check that the pair coefficents are valid
+        if not self.pair_coeff.verify(coeff_list):
+            globals.msg.error("Not all pair coefficients are set\n");
+            raise RuntimeError("Error updating pair coefficients");
+
+        # set all the params
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
+                # build a dict of the coeffs to pass to process_coeff
+                coeff_dict = {};
+                for name in coeff_list:
+                    coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
+
+                param = self.process_coeff(coeff_dict);
+                self.cpp_force.setParams(i, j, param);
+                self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
+                self.cpp_force.setRon(i, j, coeff_dict['r_on']);
+    
+    ## \internal
+    # \brief Get the r_cut pair dictionary
+    # \details If coefficients aren't set for some reason, will sanitize the list to have zeroes. Returns none if logging is off
+    def get_rcut(self):
+        if not self.log: ## MAKE SURE THAT THIS ACTUALLY WORKS! ##
+            return None
+            
+        # go through the list of only the active particle types in the sim
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        # update the rcut by pair type
+        r_cut_dict = rcut();
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
+                # get the r_cut value
+                r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
+                if r_cut is not None:
+                    # set the pair in our dictionary (not updating, so force the set)
+                    r_cut_dict.set_pair(type_list[i],type_list[j],r_cut);
+                else:
+                    # using default value for the pair
+                    # it doesn't concern us that the pair has not been explicitly set yet
+                    # because the cutoff will be filled with the default value (or a new value) when
+                    # we pair_coeff.set, and these coefficients will be validated later anyway
+                    # so if something goes wrong there, HOOMD will grind to a halt.
+                    # Plus, update_coeff is always called before update_rcut by run(), so we're solid.
+                    r_cut_dict.set_pair(type_list[i],type_list[j], self.get_max_rcut());
+                
+        if not r_cut_dict.verify():
+            globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
+            raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
+            return None;
+        else:
+            return r_cut_dict;
 
     def get_max_rcut(self):
         # loop only over current particle types
@@ -1908,8 +1989,7 @@ class morse(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -2021,8 +2101,7 @@ class dpd(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -2140,8 +2219,7 @@ class dpd_conservative(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -2214,16 +2292,16 @@ class eam(force._force):
             self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, file, type_of_file);
             #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
             r_cut_new = self.cpp_force.get_r_cut();
-            neighbor_list = _update_global_nlist(r_cut_new);
-            neighbor_list.subscribe(lambda: r_cut_new);
+            neighbor_list = _subscribe_global_nlist(lambda : r_cut_new)
+            
             #Load neighbor list to compute.
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
         else:
             self.cpp_force = hoomd.EAMForceComputeGPU(globals.system_definition, file, type_of_file);
             #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
             r_cut_new = self.cpp_force.get_r_cut();
-            neighbor_list = _update_global_nlist(r_cut_new);
-            neighbor_list.subscribe(lambda: r_cut_new);
+            neighbor_list = _subscribe_global_nlist(lambda : r_cut_new)
+            
             #Load neighbor list to compute.
             self.cpp_force.set_neighbor_list(neighbor_list.cpp_nlist);
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
@@ -2341,8 +2419,7 @@ class dpdlj(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -2482,8 +2559,7 @@ class force_shifted_lj(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -2554,8 +2630,7 @@ class moliere(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -2631,8 +2706,7 @@ class zbl(pair):
         pair.__init__(self, r_cut, name);
 
         # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
 
         # create the c++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
@@ -2693,8 +2767,7 @@ class tersoff(pair):
         pair.__init__(self, r_cut, name);
 
         #update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut())
 
         # this potential cannot handle a half neighbor list
         neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
