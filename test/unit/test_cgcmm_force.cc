@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMForceComputeGPU.h"
 #endif
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -102,7 +102,7 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, boost::share
     pdata_3->setPosition(1,make_scalar3(pow(3.0,1.0/8.0),0.0,0.0));
     pdata_3->setPosition(2,make_scalar3(2.0*pow(3.0,1.0/8.0),0.0,0.0));
 
-    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<CGCMMForceCompute> fc_3 = cgcmm_creator(sysdef_3, nlist_3, Scalar(1.3));
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
@@ -248,7 +248,7 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, boost::shared
     h_pos.data[1].x = Scalar(pow(1.5,1.0/3.0)); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0*pow(1.5,1.0/3.0)); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<CGCMMForceCompute> fc_3 = cgcmm_creator(sysdef_3, nlist_3, Scalar(1.3));
 
     // first test: setup a sigma of 1.0 so that all forces will be 0
@@ -398,7 +398,7 @@ void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, boost::shared_p
     pdata_6->setType(4,2);
     pdata_6->setType(5,1);
 
-    boost::shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_6(new NeighborListTree(sysdef_6, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<CGCMMForceCompute> fc_6 = cgcmm_creator(sysdef_6, nlist_6, Scalar(1.3));
 
     // choose a small sigma so that all interactions are attractive
@@ -486,7 +486,7 @@ void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_c
     boost::shared_ptr<SnapshotSystemData> snap;
     snap = rand_init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
     boost::shared_ptr<CGCMMForceCompute> fc1 = cgcmm_creator1(sysdef, nlist, Scalar(3.0));
     boost::shared_ptr<CGCMMForceCompute> fc2 = cgcmm_creator2(sysdef, nlist, Scalar(3.0));

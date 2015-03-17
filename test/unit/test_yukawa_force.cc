@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AllPairPotentials.h"
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 
 #include <math.h>
@@ -104,7 +104,7 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::share
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    boost::shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
     boost::shared_ptr<PotentialPairYukawa> fc_3 = yukawa_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
@@ -191,7 +191,7 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
 
-    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(3.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
     boost::shared_ptr<PotentialPairYukawa> fc1 = yukawa_creator1(sysdef, nlist);
     boost::shared_ptr<PotentialPairYukawa> fc2 = yukawa_creator2(sysdef, nlist);

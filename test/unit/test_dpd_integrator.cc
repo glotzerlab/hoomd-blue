@@ -68,7 +68,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVEGPU.h"
 #endif
 
-#include "NeighborListBinned.h"
+#include "NeighborListTree.h"
 #include "Initializers.h"
 #include "IntegratorTwoStep.h"
 
@@ -103,7 +103,7 @@ void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_
     pdata->setVelocity(1,make_scalar3(0.0,0.0,0.0));
 
     // Construction of the Force Compute
-    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.0), Scalar(0.8)));
     nlist->setStorageMode(NeighborList::full);
     boost::shared_ptr<PotentialPairDPD> dpdc(new PP_DPD(sysdef,nlist));
     dpdc->setParams(0,0,make_scalar2(30,0));
@@ -167,7 +167,7 @@ void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
 
     // Construction of the Force Compute
-    boost::shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.0), Scalar(0.8)));
+    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(1.0), Scalar(0.8)));
     nlist->setStorageMode(NeighborList::full);
     boost::shared_ptr<PotentialPairDPDThermoDPD> dpd_thermo(new PP_DPD(sysdef,nlist));
     dpd_thermo->setSeed(12345);
