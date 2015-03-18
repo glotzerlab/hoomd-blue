@@ -54,15 +54,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
-
 #include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerRigidGPU.cuh"
 #include "FIREEnergyMinimizerGPU.cuh"
 #include "TwoStepNVERigidGPU.h"
+
+#include <boost/python.hpp>
+using namespace boost::python;
+#include <boost/bind.hpp>
+using namespace boost;
 
 /*! \file FIREEnergyMinimizerRigidGPU.h
     \brief Contains code for the FIREEnergyMinimizerRigidGPU class

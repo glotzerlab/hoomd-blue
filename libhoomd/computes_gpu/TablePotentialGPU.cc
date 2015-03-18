@@ -54,12 +54,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include "TablePotentialGPU.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
-
-#include "TablePotentialGPU.h"
 #include <stdexcept>
 
 /*! \file TablePotentialGPU.cc

@@ -54,13 +54,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "TwoStepNVERigidGPU.h"
+#include "TwoStepNVERigidGPU.cuh"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
-
-#include "TwoStepNVERigidGPU.h"
-#include "TwoStepNVERigidGPU.cuh"
 
 /*! \file TwoStepNVERigidGPU.h
     \brief Contains code for the TwoStepNVERigidGPU class

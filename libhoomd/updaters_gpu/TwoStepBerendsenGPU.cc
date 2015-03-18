@@ -53,13 +53,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines TwoStepBerendsenGPU
 */
 
+#include "TwoStepBerendsenGPU.h"
+#include "TwoStepBerendsenGPU.cuh"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include<boost/bind.hpp>
 using namespace boost;
-
-#include "TwoStepBerendsenGPU.h"
-#include "TwoStepBerendsenGPU.cuh"
 
 /*! \param sysdef System to which the Berendsen thermostat will be applied
     \param group Group of particles to which the Berendsen thermostat will be applied
