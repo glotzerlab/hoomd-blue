@@ -56,10 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
-#include <thrust/device_ptr.h>
-#include <thrust/sort.h>
-#include <thrust/fill.h>
-
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
@@ -90,6 +86,8 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
     
     
     allocateTree();
+    
+    m_tmp_allocator = init_cub_allocator();
     }
 
 NeighborListGPUTree::~NeighborListGPUTree()
@@ -98,6 +96,8 @@ NeighborListGPUTree::~NeighborListGPUTree()
     m_boxchange_connection.disconnect();
     m_max_numchange_conn.disconnect();
     m_sort_conn.disconnect();
+    
+    del_cub_allocator(m_tmp_allocator);
     }
 
 void NeighborListGPUTree::buildNlist(unsigned int timestep)
@@ -117,9 +117,13 @@ void NeighborListGPUTree::allocateTree()
     // allocate per particle memory
     GPUArray<unsigned int> morton_codes(m_pdata->getMaxN(), m_exec_conf);
     m_morton_codes.swap(morton_codes);
+    GPUArray<unsigned int> morton_codes_alt(m_pdata->getMaxN(), m_exec_conf);
+    m_morton_codes_alt.swap(morton_codes_alt);
             
     GPUArray<unsigned int> map_tree_global(m_pdata->getMaxN(), m_exec_conf);
     m_map_tree_global.swap(map_tree_global);
+    GPUArray<unsigned int> map_tree_global_alt(m_pdata->getMaxN(), m_exec_conf);
+    m_map_tree_global_alt.swap(map_tree_global_alt);
     
     GPUArray<unsigned int> type_mask(m_pdata->getMaxN(), m_exec_conf);
     m_type_mask.swap(type_mask);
@@ -179,7 +183,9 @@ void NeighborListGPUTree::setupTree()
     if (m_max_num_changed)
         {
         m_morton_codes.resize(m_pdata->getMaxN());
+        m_morton_codes_alt.resize(m_pdata->getMaxN());
         m_map_tree_global.resize(m_pdata->getMaxN());
+        m_map_tree_global_alt.resize(m_pdata->getMaxN());
         m_type_mask.resize(m_pdata->getMaxN());
         m_cumulative_pids.resize(m_pdata->getMaxN());
         m_leaf_xyzf.resize(m_pdata->getMaxN());
@@ -319,16 +325,16 @@ void NeighborListGPUTree::buildTree()
     
     // step one: morton code calculation
     calcMortonCodes();
-        
+    
     // step two: particle sorting
     sortMortonCodes();
-
+    
     // step three: merge leaf particles into aabbs by morton code
     mergeLeafParticles();   
-
+    
     // step four: hierarchy generation from morton codes
     genTreeHierarchy();
-                
+    
     // step five: bubble up the aabbs
     bubbleAABBs();
             
@@ -400,11 +406,16 @@ void NeighborListGPUTree::sortMortonCodes()
     if (m_prof) m_prof->push(m_exec_conf,"Sort");
     
     ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_morton_codes_alt(m_morton_codes_alt, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_map_tree_global_alt(m_map_tree_global_alt, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
     
     gpu_nlist_morton_sort(d_morton_codes.data,
+                          d_morton_codes_alt.data,
                           d_map_tree_global.data,
+                          d_map_tree_global_alt.data,
+                          m_tmp_allocator,
                           h_num_per_type.data,
                           m_pdata->getNTypes());    
 

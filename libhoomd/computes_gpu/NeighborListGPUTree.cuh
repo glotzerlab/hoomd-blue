@@ -61,6 +61,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMath.h"
 #include "ParticleData.cuh"
 #include "Index1D.h"
+
+// forward declaration of the cub temporary storage allocator
+namespace cub
+    {
+    struct CachingDeviceAllocator;
+    };
                                      
 //! Kernel driver to generate morton codes for particles and reorder by type
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
@@ -74,7 +80,10 @@ cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
 
 //! Wrapper to Thrust sort for morton codes
 cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
+                                  unsigned int *d_morton_codes_alt,
                                   unsigned int *d_map_tree_global,
+                                  unsigned int *d_map_tree_global_alt,
+                                  cub::CachingDeviceAllocator *allocator,
                                   const unsigned int *h_num_per_type,
                                   const unsigned int ntypes);
                                   
@@ -169,5 +178,8 @@ cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
                                     const unsigned int type,
                                     const unsigned int ntypes,
                                     const unsigned int block_size);
+                                    
+cub::CachingDeviceAllocator* init_cub_allocator();
+void del_cub_allocator(cub::CachingDeviceAllocator *allocator);
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__

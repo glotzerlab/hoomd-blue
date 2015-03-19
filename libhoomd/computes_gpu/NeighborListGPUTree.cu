@@ -52,8 +52,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TextureTools.h"
 
 #include <thrust/device_ptr.h>
-#include <thrust/sort.h>
 #include <thrust/scan.h>
+
+#include "cub/cub.cuh"
 
 #define MORTON_CODE_N_BINS 1024     // number of bins (2^k) to use to generate 3k bit morton codes
 #define PARTICLES_PER_LEAF 4        // max number of particles in a leaf node, must be power of two
@@ -173,27 +174,71 @@ cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
                                                                             ghost_width);
     return cudaSuccess;
     }
+
+//! Create a new temporary storage allocator on the heap
+/*!
+ * \return Pointer to an allocator
+ * The cub headers throw lots of errors when included into a file not compiled with nvcc, so
+ * we have to go to some trouble to wrap this object creation. We need to use an allocator
+ * at class scope because we get illegal memory access problems with it global scope when multiple
+ * neighborlists are instantiated. This is a nicer container than the standard containers (GPUArray, GPUVector)
+ * because it manages only device memory, and easily resizes itself as needed from a small pool of memory.
+ */   
+cub::CachingDeviceAllocator* init_cub_allocator()
+    {
+    return new cub::CachingDeviceAllocator(false);
+    }
+//! Deletes the temporary storage allocator object
+/*!
+ * This is called from the class destructor, so there are no memory leaks from the allocator.
+ */
+void del_cub_allocator(cub::CachingDeviceAllocator *allocator)
+    {
+    if (allocator != NULL)
+        delete allocator;
+    }
     
 cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
+                                  unsigned int *d_morton_codes_alt,
                                   unsigned int *d_map_tree_global,
+                                  unsigned int *d_map_tree_global_alt,
+                                  cub::CachingDeviceAllocator *allocator,
                                   const unsigned int *h_num_per_type,
                                   const unsigned int ntypes)
     {
-    
-    // thrust requires to wrap the pod in a thrust object
-    thrust::device_ptr<unsigned int> t_morton_codes = thrust::device_pointer_cast(d_morton_codes);
-    thrust::device_ptr<unsigned int> t_map_tree_global = thrust::device_pointer_cast(d_map_tree_global);
-    
     // loop on types and do a sort by key
+    unsigned int cur_head = 0;
     for (unsigned int cur_type=0; cur_type < ntypes; ++cur_type)
         {
-        thrust::sort_by_key(t_morton_codes,
-                            t_morton_codes + h_num_per_type[cur_type],
-                            t_map_tree_global);
-                            
-        // advance pointers to sort the next type
-        t_morton_codes += h_num_per_type[cur_type];
-        t_map_tree_global += h_num_per_type[cur_type];
+        const unsigned int N_i = h_num_per_type[cur_type];
+        
+        cub::DoubleBuffer<unsigned int> d_keys(d_morton_codes + cur_head, d_morton_codes_alt + cur_head);
+        cub::DoubleBuffer<unsigned int> d_vals(d_map_tree_global + cur_head, d_map_tree_global_alt + cur_head);
+        
+        // get the size of temporary storage needed
+        size_t tmp_storage_bytes = 0;
+        void *d_tmp_storage = NULL;
+        cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N_i);
+        
+        allocator->DeviceAllocate(&d_tmp_storage, tmp_storage_bytes);
+        
+        // do the sort
+        cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N_i);
+        
+        // do a cuda memcpy of the valid buffer if it isn't already in the right container
+        if (d_keys.selector)
+            {
+            cudaMemcpy(d_keys.d_buffers[0], d_keys.Current(), sizeof(unsigned int)*N_i, cudaMemcpyDeviceToDevice);
+            }
+        if (d_vals.selector)
+            {
+            cudaMemcpy(d_vals.d_buffers[0], d_vals.Current(), sizeof(unsigned int)*N_i, cudaMemcpyDeviceToDevice);
+            }
+        
+        // free the temporary storage
+        allocator->DeviceFree(d_tmp_storage);
+        
+        cur_head += N_i;
         }
     
     return cudaSuccess;

@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: mphoward
 
 #include "NeighborListGPU.h"
+#include "NeighborListGPUTree.cuh"
 #include "Autotuner.h"
 
 /*! \file NeighborListGPUTree.h
@@ -192,6 +193,14 @@ class NeighborListGPUTree : public NeighborListGPU
         void buildTree();
         void calcMortonCodes();
         void sortMortonCodes();
+        
+        
+        GPUArray<unsigned int> m_map_tree_global_alt;
+        GPUArray<unsigned int> m_morton_codes_alt;
+        
+        // pointer to the allocator
+        cub::CachingDeviceAllocator *m_tmp_allocator;
+        
         void mergeLeafParticles();
         void genTreeHierarchy();
         void bubbleAABBs();
