@@ -70,9 +70,9 @@ namespace cub
                                      
 //! Kernel driver to generate morton codes for particles and reorder by type
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
+                                   unsigned int *d_map_tree_global,
                                    int *d_morton_conditions,
                                    const Scalar4 *d_pos,
-                                   const unsigned int *d_map_tree_global,
                                    const unsigned int N,
                                    const BoxDim& box,
                                    const Scalar3 ghost_width,
@@ -84,8 +84,9 @@ cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
                                   unsigned int *d_map_tree_global,
                                   unsigned int *d_map_tree_global_alt,
                                   cub::CachingDeviceAllocator *allocator,
-                                  const unsigned int *h_num_per_type,
-                                  const unsigned int ntypes);
+                                  bool &swap_morton_to_alt,
+                                  bool &swap_map_to_alt,
+                                  const unsigned int N);
                                   
 //! Kernel driver to merge the bottom layers of particles into leaf nodes
 cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
@@ -163,17 +164,21 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                      
 cudaError_t gpu_nlist_map_particles_gen_mask(unsigned int *d_type_mask,
                                              const Scalar4 *d_pos,
+                                             const unsigned int *d_map_tree_global_alt,
                                              const unsigned int N,
                                              const unsigned int type,
                                              const unsigned int block_size);
                                                                                   
 cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
+                                    unsigned int *d_morton_codes,
                                     unsigned int *d_num_per_type,
                                     unsigned int *d_type_head,
                                     unsigned int *d_leaf_offset,
                                     unsigned int *d_tree_roots,
                                     unsigned int *d_cumulative_pids,
                                     const unsigned int *d_type_mask,
+                                    const unsigned int *d_map_tree_global_alt,
+                                    const unsigned int *d_morton_codes_alt,
                                     const unsigned int N,
                                     const unsigned int type,
                                     const unsigned int ntypes,

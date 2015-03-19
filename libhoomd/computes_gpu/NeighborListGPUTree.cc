@@ -209,46 +209,6 @@ void NeighborListGPUTree::setupTree()
         // all done with the type reallocation
         m_type_changed = false;
         }
-    
-    // map the particle types if a sort has been triggered (or, particle number has changed)
-    if (m_remap_particles)
-        {
-        mapParticlesByType();
-        
-        // the number of leafs is the first tree root
-        ArrayHandle<unsigned int> h_tree_roots(m_tree_roots, access_location::host, access_mode::readwrite);
-        m_n_leaf = h_tree_roots.data[0];
-    
-        // each tree has Nleaf,i - 1 internal nodes
-        m_n_internal = m_n_leaf - m_pdata->getNTypes();
-        // a binary radix tree has N_leaf - N_types internal nodes
-        m_n_node = m_n_leaf + m_n_internal;
-    
-        // clean up the tree roots
-        ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
-        unsigned int leaf_head = 0;
-        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
-            {
-            const unsigned int n_leaf_i = (h_num_per_type.data[cur_type] + 4 - 1)/4;
-            if (n_leaf_i == 1)
-                {
-                h_tree_roots.data[cur_type] = leaf_head;
-                }
-            leaf_head += n_leaf_i;
-            }
-            
-        m_remap_particles = false;
-        }
-    
-    // allocate memory that depends on tree size
-    if (m_n_node > m_tree_parent_sib.getPitch())
-        {
-        m_tree_parent_sib.resize(m_n_node);
-        m_tree_aabbs.resize(2*m_n_node);
-        m_morton_codes_red.resize(m_n_leaf);
-        m_node_left_child.resize(m_n_internal);
-        m_node_locks.resize(m_n_internal);
-        }
         
     if (m_box_changed)
         {
@@ -268,6 +228,28 @@ void NeighborListGPUTree::mapParticlesByType()
         partialTypeMap(cur_type);       
         }
 
+    // the number of leafs is the first tree root
+    ArrayHandle<unsigned int> h_tree_roots(m_tree_roots, access_location::host, access_mode::readwrite);
+    m_n_leaf = h_tree_roots.data[0];
+
+    // each tree has Nleaf,i - 1 internal nodes
+    m_n_internal = m_n_leaf - m_pdata->getNTypes();
+    // a binary radix tree has N_leaf - N_types internal nodes
+    m_n_node = m_n_leaf + m_n_internal;
+
+    // clean up the tree roots
+    ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
+    unsigned int leaf_head = 0;
+    for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+        {
+        const unsigned int n_leaf_i = (h_num_per_type.data[cur_type] + 4 - 1)/4;
+        if (n_leaf_i == 1)
+            {
+            h_tree_roots.data[cur_type] = leaf_head;
+            }
+        leaf_head += n_leaf_i;
+        }
+
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
@@ -276,9 +258,12 @@ void NeighborListGPUTree::genTypeMask(unsigned int type)
     {
     ArrayHandle<unsigned int> d_type_mask(m_type_mask, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_map_tree_global_alt(m_map_tree_global_alt, access_location::device, access_mode::read);
+    
     m_tuner_mask->begin();
     gpu_nlist_map_particles_gen_mask(d_type_mask.data,
                                      d_pos.data,
+                                     d_map_tree_global_alt.data,
                                      m_pdata->getN() + m_pdata->getNGhosts(),
                                      type,
                                      m_tuner_mask->getParam());
@@ -291,9 +276,12 @@ void NeighborListGPUTree::genTypeMask(unsigned int type)
 void NeighborListGPUTree::partialTypeMap(unsigned int type)
     {
     ArrayHandle<unsigned int> d_type_mask(m_type_mask, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_map_tree_global_alt(m_map_tree_global_alt, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_morton_codes_alt(m_morton_codes_alt, access_location::device, access_mode::read);
     
     ArrayHandle<unsigned int> d_cumulative_pids(m_cumulative_pids, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::readwrite);
     
     ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_type_head(m_type_head, access_location::device, access_mode::readwrite);
@@ -303,12 +291,15 @@ void NeighborListGPUTree::partialTypeMap(unsigned int type)
     // okay, now set the appropriate particle tags
     m_tuner_map->begin();
     gpu_nlist_map_particles(d_map_tree_global.data,
+                            d_morton_codes.data,
                             d_num_per_type.data,
                             d_type_head.data,
                             d_leaf_offset.data,
                             d_tree_roots.data,
                             d_cumulative_pids.data,
                             d_type_mask.data,
+                            d_map_tree_global_alt.data,
+                            d_morton_codes_alt.data,
                             m_pdata->getN() + m_pdata->getNGhosts(),
                             type,
                             m_pdata->getNTypes(),
@@ -328,6 +319,22 @@ void NeighborListGPUTree::buildTree()
     
     // step two: particle sorting
     sortMortonCodes();
+    
+    // map the particles by type always
+    // actually, we should only do this if there is more than one type
+    // otherwise, it's fastest to just do nothing and fill out the single type arrays as needed
+    // since everything is already "sorted" by type
+    mapParticlesByType();
+    
+    // allocate memory that depends on tree size
+    if (m_n_node > m_tree_parent_sib.getPitch())
+        {
+        m_tree_parent_sib.resize(m_n_node);
+        m_tree_aabbs.resize(2*m_n_node);
+        m_morton_codes_red.resize(m_n_leaf);
+        m_node_left_child.resize(m_n_internal);
+        m_node_locks.resize(m_n_internal);
+        }
     
     // step three: merge leaf particles into aabbs by morton code
     mergeLeafParticles();   
@@ -367,9 +374,9 @@ void NeighborListGPUTree::calcMortonCodes()
 
     m_tuner_morton->begin();  
     gpu_nlist_morton_codes(d_morton_codes.data,
+                           d_map_tree_global.data,
                            m_morton_conditions.getDeviceFlags(),
                            d_pos.data,
-                           d_map_tree_global.data,
                            m_pdata->getN() + m_pdata->getNGhosts(),
                            box,
                            ghost_width,
@@ -404,20 +411,37 @@ void NeighborListGPUTree::calcMortonCodes()
 void NeighborListGPUTree::sortMortonCodes()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Sort");
+
+    bool swap_morton_to_alt = false;
+    bool swap_map_to_alt = false;    
+        {
+        ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_morton_codes_alt(m_morton_codes_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_map_tree_global_alt(m_map_tree_global_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
     
-    ArrayHandle<unsigned int> d_morton_codes(m_morton_codes, access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_morton_codes_alt(m_morton_codes_alt, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_map_tree_global_alt(m_map_tree_global_alt, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
-    
-    gpu_nlist_morton_sort(d_morton_codes.data,
-                          d_morton_codes_alt.data,
-                          d_map_tree_global.data,
-                          d_map_tree_global_alt.data,
-                          m_tmp_allocator,
-                          h_num_per_type.data,
-                          m_pdata->getNTypes());    
+        gpu_nlist_morton_sort(d_morton_codes.data,
+                              d_morton_codes_alt.data,
+                              d_map_tree_global.data,
+                              d_map_tree_global_alt.data,
+                              m_tmp_allocator,
+                              swap_morton_to_alt,
+                              swap_map_to_alt,
+                              m_pdata->getN() + m_pdata->getNGhosts());    
+        }
+        
+    // we want the sorted data in alt because the mapping will later use the
+    // alt data to finalize the real sorted order
+    if (swap_morton_to_alt)
+        {
+        m_morton_codes_alt.swap(m_morton_codes);
+        }
+        
+    if (swap_map_to_alt)
+        {
+        m_map_tree_global_alt.swap(m_map_tree_global);
+        }
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }

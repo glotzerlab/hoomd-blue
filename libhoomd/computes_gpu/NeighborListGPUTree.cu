@@ -90,9 +90,9 @@ __device__ inline unsigned int expandBits(unsigned int v)
 }
 
 __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
+                                              unsigned int *d_map_tree_global,
                                               int *d_morton_conditions,
                                               const Scalar4 *d_pos,
-                                              const unsigned int *d_map_tree_global,
                                               const unsigned int N,
                                               const BoxDim box,
                                               const Scalar3 ghost_width)
@@ -105,8 +105,7 @@ __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
         return;
     
     // acquire particle data
-    const unsigned int pidx = d_map_tree_global[idx];
-    Scalar4 postype = d_pos[ pidx ];
+    Scalar4 postype = d_pos[idx];
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     const unsigned int type = __scalar_as_int(postype.w);
         
@@ -119,7 +118,7 @@ __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
         (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
         (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)) )
         {
-        *d_morton_conditions = pidx;
+        *d_morton_conditions = idx;
         return;
         }
 
@@ -142,14 +141,15 @@ __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
     unsigned int kk = expandBits(kb);
     unsigned int morton_code = ii * 4 + jj * 2 + kk;
     
-    // sort morton code by type as we compute it
+    // save the morton code and corresponding particle index for sorting
     d_morton_codes[idx] = morton_code;
+    d_map_tree_global[idx] = idx;
     }
 
 cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
+                                   unsigned int *d_map_tree_global,
                                    int *d_morton_conditions,
                                    const Scalar4 *d_pos,
-                                   const unsigned int *d_map_tree_global,
                                    const unsigned int N,
                                    const BoxDim& box,
                                    const Scalar3 ghost_width,
@@ -166,9 +166,9 @@ cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
     int run_block_size = min(block_size,max_block_size);
     
     gpu_nlist_morton_codes_kernel<<<N/run_block_size + 1, run_block_size>>>(d_morton_codes,
+                                                                            d_map_tree_global,
                                                                             d_morton_conditions,
                                                                             d_pos,
-                                                                            d_map_tree_global,
                                                                             N,
                                                                             box,
                                                                             ghost_width);
@@ -203,43 +203,32 @@ cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
                                   unsigned int *d_map_tree_global,
                                   unsigned int *d_map_tree_global_alt,
                                   cub::CachingDeviceAllocator *allocator,
-                                  const unsigned int *h_num_per_type,
-                                  const unsigned int ntypes)
+                                  bool &swap_morton_to_alt,
+                                  bool &swap_map_to_alt,
+                                  const unsigned int N)
     {
     // loop on types and do a sort by key
-    unsigned int cur_head = 0;
-    for (unsigned int cur_type=0; cur_type < ntypes; ++cur_type)
-        {
-        const unsigned int N_i = h_num_per_type[cur_type];
         
-        cub::DoubleBuffer<unsigned int> d_keys(d_morton_codes + cur_head, d_morton_codes_alt + cur_head);
-        cub::DoubleBuffer<unsigned int> d_vals(d_map_tree_global + cur_head, d_map_tree_global_alt + cur_head);
-        
-        // get the size of temporary storage needed
-        size_t tmp_storage_bytes = 0;
-        void *d_tmp_storage = NULL;
-        cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N_i);
-        
-        allocator->DeviceAllocate(&d_tmp_storage, tmp_storage_bytes);
-        
-        // do the sort
-        cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N_i);
-        
-        // do a cuda memcpy of the valid buffer if it isn't already in the right container
-        if (d_keys.selector)
-            {
-            cudaMemcpy(d_keys.d_buffers[0], d_keys.Current(), sizeof(unsigned int)*N_i, cudaMemcpyDeviceToDevice);
-            }
-        if (d_vals.selector)
-            {
-            cudaMemcpy(d_vals.d_buffers[0], d_vals.Current(), sizeof(unsigned int)*N_i, cudaMemcpyDeviceToDevice);
-            }
-        
-        // free the temporary storage
-        allocator->DeviceFree(d_tmp_storage);
-        
-        cur_head += N_i;
-        }
+    cub::DoubleBuffer<unsigned int> d_keys(d_morton_codes, d_morton_codes_alt);
+    cub::DoubleBuffer<unsigned int> d_vals(d_map_tree_global, d_map_tree_global_alt);
+    
+    // get the size of temporary storage needed
+    // we are sorting 30 bit morton codes, so don't need to check all 32 bits (will save a little bit of time)
+    size_t tmp_storage_bytes = 0;
+    void *d_tmp_storage = NULL;
+    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N, 0, 30);
+    
+    allocator->DeviceAllocate(&d_tmp_storage, tmp_storage_bytes);
+    
+    // do the sort
+    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N, 0, 30);
+    
+    // do a cuda memcpy of the valid buffer if it isn't already in the right container
+    swap_morton_to_alt = (d_keys.selector == 0);
+    swap_map_to_alt = (d_vals.selector == 0);
+    
+    // free the temporary storage
+    allocator->DeviceFree(d_tmp_storage);
     
     return cudaSuccess;
     }
@@ -1324,6 +1313,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
 
 __global__ void gpu_nlist_map_particles_gen_mask_kernel(unsigned int *d_type_mask,
                                                         const Scalar4 *d_pos,
+                                                        const unsigned int *d_map_tree_global_alt,
                                                         const unsigned int N,
                                                         const unsigned int type)
     {
@@ -1333,12 +1323,15 @@ __global__ void gpu_nlist_map_particles_gen_mask_kernel(unsigned int *d_type_mas
     // quit now if this thread is processing past the end of the particle list
     if (idx >= N)
         return; 
+    
+    const unsigned int pidx = d_map_tree_global_alt[idx];
 
-    d_type_mask[idx] = (__scalar_as_int(d_pos[idx].w) == type);
+    d_type_mask[idx] = (__scalar_as_int(d_pos[pidx].w) == type);
     }
 
 cudaError_t gpu_nlist_map_particles_gen_mask(unsigned int *d_type_mask,
                                              const Scalar4 *d_pos,
+                                             const unsigned int *d_map_tree_global_alt,
                                              const unsigned int N,
                                              const unsigned int type,
                                              const unsigned int block_size)
@@ -1355,18 +1348,22 @@ cudaError_t gpu_nlist_map_particles_gen_mask(unsigned int *d_type_mask,
     
     gpu_nlist_map_particles_gen_mask_kernel<<<N/run_block_size + 1, run_block_size>>>(d_type_mask,
                                                                                       d_pos,
+                                                                                      d_map_tree_global_alt,
                                                                                       N,
                                                                                       type);
     return cudaSuccess;
     }
     
 __global__ void gpu_nlist_map_particles_kernel(unsigned int *d_map_tree_global,
+                                               unsigned int *d_morton_codes,
                                                unsigned int *d_num_per_type,
                                                unsigned int *d_type_head,
                                                unsigned int *d_leaf_offset,
                                                unsigned int *d_tree_roots,
                                                unsigned int *d_cumulative_pids,
                                                const unsigned int *d_type_mask,
+                                               const unsigned int *d_map_tree_global_alt,
+                                               const unsigned int *d_morton_codes_alt,
                                                const unsigned int N,
                                                const unsigned int type,
                                                const unsigned int ntypes)
@@ -1383,7 +1380,8 @@ __global__ void gpu_nlist_map_particles_kernel(unsigned int *d_map_tree_global,
     if (is_type_i)
         {
         unsigned int new_idx = d_cumulative_pids[idx] + d_type_head[type];
-        d_map_tree_global[new_idx] = idx;
+        d_map_tree_global[new_idx] = d_map_tree_global_alt[idx];
+        d_morton_codes[new_idx] = d_morton_codes_alt[idx];
         }
         
     // last thread processes the offset
@@ -1417,35 +1415,19 @@ __global__ void gpu_nlist_map_particles_kernel(unsigned int *d_map_tree_global,
                     }
                 }
             }
-        
-        // the last time through, clean up the tree roots
-        // this might seem slow to repeat this work, but it really isn't that expensive to loop through the types
-        //
-        // any type that has only one leaf needs to have its root overridden to just be the leaf
-//         if (type == (ntypes-1))
-//             {
-//             unsigned int leaf_head = 0;
-//             for (unsigned int type_it = 0; type_it < ntypes; ++type_it)
-//                 {
-//                 unsigned int num_type_i = d_num_per_type[type_it];
-//                 unsigned int num_leaf_i = (num_type_i + PARTICLES_PER_LEAF - 1) / PARTICLES_PER_LEAF;
-//                 if (num_leaf_i == 1)
-//                     {
-//                     d_tree_roots[type_it] = leaf_head;
-//                     }
-//                 leaf_head += num_leaf_i;
-//                 }
-//             }
         }
     }
     
 cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
+                                    unsigned int *d_morton_codes,
                                     unsigned int *d_num_per_type,
                                     unsigned int *d_type_head,
                                     unsigned int *d_leaf_offset,
                                     unsigned int *d_tree_roots,
                                     unsigned int *d_cumulative_pids,
                                     const unsigned int *d_type_mask,
+                                    const unsigned int *d_map_tree_global_alt,
+                                    const unsigned int *d_morton_codes_alt,
                                     const unsigned int N,
                                     const unsigned int type,
                                     const unsigned int ntypes,
@@ -1478,12 +1460,15 @@ cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
     int run_block_size = min(block_size,max_block_size);
     
     gpu_nlist_map_particles_kernel<<<N/run_block_size + 1, run_block_size>>>(d_map_tree_global,
+                                                                             d_morton_codes,
                                                                              d_num_per_type,
                                                                              d_type_head,
                                                                              d_leaf_offset,
                                                                              d_tree_roots,
                                                                              d_cumulative_pids,
                                                                              d_type_mask,
+                                                                             d_map_tree_global_alt,
+                                                                             d_morton_codes_alt,
                                                                              N,
                                                                              type,
                                                                              ntypes);
