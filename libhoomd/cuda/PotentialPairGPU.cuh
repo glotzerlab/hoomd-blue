@@ -151,7 +151,7 @@ struct pair_args_t
     const unsigned int *d_head_list;//!< Head list indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
     const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
-    const unsigned int size_neigh_list; //!< Size of the neighbor list in memory for texture binding
+    const unsigned int size_neigh_list; //!< Size of the neighbor list for texture binding
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int shift_mode;  //!< The potential energy shift mode
@@ -170,8 +170,10 @@ scalar_tex_t pdata_diam_tex;
 //! Texture for reading particle charges
 scalar_tex_t pdata_charge_tex;
 
+// there is some naming conflict between the DPD pair force and PotentialPair because
+// the DPD does not extend PotentialPair, and so we need to choose a different name for this texture
 //! Texture for reading neighbor list
-texture<unsigned int, 1, cudaReadModeElementType> pdata_nlist_tex;
+texture<unsigned int, 1, cudaReadModeElementType> pair_nlist_tex;
 
 //! Kernel for calculating pair forces (shared memory version)
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -187,7 +189,7 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_nlist_tex;
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
-    \param nli Indexer for indexing \a d_nlist
+    \param d_head_list Indexes for reading \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
     \param d_ronsq ron squared, stored per type pair
@@ -298,16 +300,8 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     unsigned int cur_j = 0;
     
     // first read only neighborlist fetch
-    #if __CUDA_ARCH__ >= 350
-    unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-        __ldg(d_nlist + my_head + threadIdx.x%tpp) : 0;
-    #else
-    unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-        tex1Dfetch(pdata_nlist_tex, my_head + threadIdx.x%tpp) : 0;
-    #endif
+    unsigned int next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, pair_nlist_tex, my_head + threadIdx.x%tpp) : 0;
     
-//     unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-//         d_nlist[my_head + threadIdx.x%tpp] : 0;
     // loop over neighbors
     for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
         {
@@ -316,13 +310,8 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
             cur_j = next_j;
             if (neigh_idx+tpp < n_neigh)
                 {
-                #if __CUDA_ARCH__ >= 350
-                next_j = __ldg(d_nlist + my_head + neigh_idx + tpp);
-                #else
-                next_j = tex1Dfetch(pdata_nlist_tex, my_head + neigh_idx + tpp);
-                #endif
+                next_j = texFetchUint(d_nlist, pair_nlist_tex, my_head + neigh_idx + tpp);
                 }
-//                 next_j = d_nlist[my_head + neigh_idx+tpp];
 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
             Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
@@ -417,16 +406,9 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                 }
 
             // add up the force vector components (FLOPS: 7)
-            #if (__CUDA_ARCH__ >= 200)
             force.x += dx.x * force_divr;
             force.y += dx.y * force_divr;
             force.z += dx.z * force_divr;
-            #else
-            // fmad causes momentum drift here, prevent it from being used
-            force.x += __fmul_rn(dx.x, force_divr);
-            force.y += __fmul_rn(dx.y, force_divr);
-            force.z += __fmul_rn(dx.z, force_divr);
-            #endif
 
             force.w += pair_eng;
             }
@@ -503,9 +485,9 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
     
     // bind the neighborlist texture
-    pdata_nlist_tex.normalized = false;
-    pdata_nlist_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pdata_nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_neigh_list);
+    pair_nlist_tex.normalized = false;
+    pair_nlist_tex.filterMode = cudaFilterModePoint;
+    cudaBindTexture(0, pair_nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_neigh_list);
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
