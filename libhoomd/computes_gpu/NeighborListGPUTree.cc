@@ -96,6 +96,8 @@ NeighborListGPUTree::~NeighborListGPUTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUTree" << endl;
     m_boxchange_connection.disconnect();
+    m_max_numchange_conn.disconnect();
+    m_sort_conn.disconnect();
     }
 
 void NeighborListGPUTree::buildNlist(unsigned int timestep)
