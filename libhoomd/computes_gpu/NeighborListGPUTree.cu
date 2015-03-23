@@ -55,7 +55,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/scan.h>
 
 #include "cub/cub.cuh"
+#include <stdio.h>
 
+#define MORTON_CODE_BITS   30       // k = 10 bits per direction, 3k = 30 bit morton codes
+#define MORTON_TYPE_MASK_64 0x000000003fffffffu // 64 bit mask for the morton codes
 #define MORTON_CODE_N_BINS 1024     // number of bins (2^k) to use to generate 3k bit morton codes
 #define PARTICLES_PER_LEAF 4        // max number of particles in a leaf node, must be power of two
 
@@ -89,7 +92,7 @@ __device__ inline unsigned int expandBits(unsigned int v)
     return v;
 }
 
-__global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
+__global__ void gpu_nlist_morton_codes_kernel(uint64_t *d_morton_codes,
                                               unsigned int *d_map_tree_global,
                                               int *d_morton_conditions,
                                               const Scalar4 *d_pos,
@@ -142,11 +145,12 @@ __global__ void gpu_nlist_morton_codes_kernel(unsigned int *d_morton_codes,
     unsigned int morton_code = ii * 4 + jj * 2 + kk;
     
     // save the morton code and corresponding particle index for sorting
-    d_morton_codes[idx] = morton_code;
+    // the morton codes hold both the type and the code to sort by both type and position simultaneously
+    d_morton_codes[idx] = (((uint64_t)type) << MORTON_CODE_BITS) + (uint64_t)morton_code;
     d_map_tree_global[idx] = idx;
     }
 
-cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
+cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
                                    unsigned int *d_map_tree_global,
                                    int *d_morton_conditions,
                                    const Scalar4 *d_pos,
@@ -198,30 +202,31 @@ void del_cub_allocator(cub::CachingDeviceAllocator *allocator)
         delete allocator;
     }
     
-cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
-                                  unsigned int *d_morton_codes_alt,
+cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_codes,
+                                  uint64_t *d_morton_codes_alt,
                                   unsigned int *d_map_tree_global,
                                   unsigned int *d_map_tree_global_alt,
                                   cub::CachingDeviceAllocator *allocator,
                                   bool &swap_morton_to_alt,
                                   bool &swap_map_to_alt,
-                                  const unsigned int N)
+                                  const unsigned int N,
+                                  const unsigned int n_type_bits)
     {
     // loop on types and do a sort by key
         
-    cub::DoubleBuffer<unsigned int> d_keys(d_morton_codes, d_morton_codes_alt);
+    cub::DoubleBuffer<uint64_t> d_keys(d_morton_codes, d_morton_codes_alt);
     cub::DoubleBuffer<unsigned int> d_vals(d_map_tree_global, d_map_tree_global_alt);
     
     // get the size of temporary storage needed
     // we are sorting 30 bit morton codes, so don't need to check all 32 bits (will save a little bit of time)
     size_t tmp_storage_bytes = 0;
     void *d_tmp_storage = NULL;
-    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N, 0, 30);
+    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N, 0, MORTON_CODE_BITS + n_type_bits);
     
     allocator->DeviceAllocate(&d_tmp_storage, tmp_storage_bytes);
     
     // do the sort
-    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N, 0, 30);
+    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N, 0,  MORTON_CODE_BITS + n_type_bits);
     
     // do a cuda memcpy of the valid buffer if it isn't already in the right container
     swap_morton_to_alt = (d_keys.selector == 0);
@@ -236,7 +241,7 @@ cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
 __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
                                                  unsigned int *d_morton_codes_red,
                                                  uint2 *d_tree_parent_sib,
-                                                 const unsigned int *d_morton_codes,
+                                                 const uint64_t *d_morton_codes,
                                                  const Scalar4 *d_pos,
                                                  const unsigned int *d_num_per_type,
                                                  const unsigned int ntypes,
@@ -303,7 +308,9 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
     d_leaf_aabbs[2*idx] = upper;
     d_leaf_aabbs[2*idx + 1] = make_scalar4(lower.x, lower.y, lower.z, __int_as_scalar(npart));
     
-    d_morton_codes_red[idx] = d_morton_codes[start_idx];
+    // take logical and with the 30 bit mask for the morton codes to extract just the morton code
+    // no sense swinging around 64 bit integers anymore
+    d_morton_codes_red[idx] = (unsigned int)(d_morton_codes[start_idx] & MORTON_TYPE_MASK_64);
     
     // fill the parent/sib relationships as if everything is a single leaf at first, to be overridden by hierarchy gen
     // when this is not the case
@@ -313,7 +320,7 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
 cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
                                       unsigned int *d_morton_codes_red,
                                       uint2 *d_tree_parent_sib,
-                                      const unsigned int *d_morton_codes,
+                                      const uint64_t *d_morton_codes,
                                       const Scalar4 *d_pos,
                                       const unsigned int *d_num_per_type,
                                       const unsigned int ntypes,
@@ -1355,7 +1362,7 @@ cudaError_t gpu_nlist_map_particles_gen_mask(unsigned int *d_type_mask,
     }
     
 __global__ void gpu_nlist_map_particles_kernel(unsigned int *d_map_tree_global,
-                                               unsigned int *d_morton_codes,
+                                               uint64_t *d_morton_codes,
                                                unsigned int *d_num_per_type,
                                                unsigned int *d_type_head,
                                                unsigned int *d_leaf_offset,
@@ -1363,7 +1370,7 @@ __global__ void gpu_nlist_map_particles_kernel(unsigned int *d_map_tree_global,
                                                unsigned int *d_cumulative_pids,
                                                const unsigned int *d_type_mask,
                                                const unsigned int *d_map_tree_global_alt,
-                                               const unsigned int *d_morton_codes_alt,
+                                               const uint64_t *d_morton_codes_alt,
                                                const unsigned int N,
                                                const unsigned int type,
                                                const unsigned int ntypes)
@@ -1419,7 +1426,7 @@ __global__ void gpu_nlist_map_particles_kernel(unsigned int *d_map_tree_global,
     }
     
 cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
-                                    unsigned int *d_morton_codes,
+                                    uint64_t *d_morton_codes,
                                     unsigned int *d_num_per_type,
                                     unsigned int *d_type_head,
                                     unsigned int *d_leaf_offset,
@@ -1427,7 +1434,7 @@ cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
                                     unsigned int *d_cumulative_pids,
                                     const unsigned int *d_type_mask,
                                     const unsigned int *d_map_tree_global_alt,
-                                    const unsigned int *d_morton_codes_alt,
+                                    const uint64_t *d_morton_codes_alt,
                                     const unsigned int N,
                                     const unsigned int type,
                                     const unsigned int ntypes,
@@ -1475,5 +1482,101 @@ cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
     return cudaSuccess;
     }
 
+__global__ void gpu_nlist_map_particles2_kernel(unsigned int *d_type_head,
+                                                const Scalar4 *d_pos,
+                                                const unsigned int *d_map_tree_global,
+                                                const unsigned int N)
+    {
+    // compute the particle index this thread operates on
+    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    // one thread per particle
+    if (idx >= N || !idx)
+        return; 
+    
+    const unsigned int cur_pidx = d_map_tree_global[idx];
+    const unsigned int left_pidx = d_map_tree_global[idx - 1];
+    
+    // get type of the particle to my left
+    const Scalar4 left_postype = d_pos[left_pidx];
+    const unsigned int left_type = __scalar_as_int(left_postype.w);
+    
+    // get type of the current particle
+    const Scalar4 cur_postype = d_pos[cur_pidx];
+    const unsigned int cur_type = __scalar_as_int(cur_postype.w);
+    
+    // if the left has a different type, then this is a type boundary, and the type starts at the current thread index
+    if (left_type != cur_type)
+        {
+        d_type_head[cur_type] = idx;
+        }
+    }
+    
+__global__ void gpu_nlist_setup_types_kernel(unsigned int *d_num_per_type,
+                                             unsigned int *d_leaf_offset,
+                                             unsigned int *d_tree_roots,
+                                             const unsigned int *d_type_head,
+                                             const unsigned int N,
+                                             const unsigned int ntypes)
+    {
+    const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    // one thread per type
+    if (idx >= ntypes)
+        return;
+
+    const unsigned int end_type = (idx != (ntypes - 1)) ? d_type_head[idx + 1] : N;
+    const unsigned int N_i = end_type - d_type_head[idx];
+    
+    d_num_per_type[idx] = N_i;
+    
+    // fill the tree roots with the number of leafs
+    d_tree_roots[idx] = (N_i + PARTICLES_PER_LEAF - 1)/PARTICLES_PER_LEAF;
+    
+    // stash the current remainder per type
+    const unsigned int remainder = N_i % PARTICLES_PER_LEAF;
+    d_leaf_offset[idx] = (remainder > 0) ? (PARTICLES_PER_LEAF - remainder) : 0;
+    }
+
+
+cudaError_t gpu_nlist_map_particles2(unsigned int *d_type_head,
+                                     unsigned int *d_num_per_type,
+                                     unsigned int *d_leaf_offset,
+                                     unsigned int *d_tree_roots,
+                                     const Scalar4 *d_pos,
+                                     const unsigned int *d_map_tree_global,
+                                     const unsigned int N,
+                                     const unsigned int ntypes,
+                                     const unsigned int block_size)
+    {
+    // apply the scan
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_map_particles2_kernel);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    int run_block_size = min(block_size,max_block_size);
+    
+    // zero out the head list
+    cudaMemset(d_type_head, 0, sizeof(unsigned int)*ntypes);
+    
+    // get the head list divisions
+    gpu_nlist_map_particles2_kernel<<<N/run_block_size + 1, run_block_size>>>(d_type_head, d_pos, d_map_tree_global, N);
+    
+    gpu_nlist_setup_types_kernel<<<N/run_block_size + 1, run_block_size>>>(d_num_per_type,
+                                                                           d_leaf_offset,
+                                                                           d_tree_roots,
+                                                                           d_type_head,
+                                                                           N,
+                                                                           ntypes);
+    
+    return cudaSuccess;
+    }
+
+#undef MORTON_CODE_BITS
+#undef MORTON_TYPE_MASK_64
 #undef MORTON_CODE_N_BINS
 #undef PARTICLES_PER_LEAF

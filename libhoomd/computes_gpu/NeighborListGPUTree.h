@@ -153,7 +153,7 @@ class NeighborListGPUTree : public NeighborListGPU
         GPUArray<Scalar4> m_leaf_xyzf;
         GPUArray<Scalar2> m_leaf_db;
         GPUArray<unsigned int> m_map_tree_global;   //!< map a leaf order id to a global particle
-        GPUArray<unsigned int> m_morton_codes;      //!< 30 bit morton codes for particles to sort on z-order curve
+        GPUArray<uint64_t> m_morton_codes;      //!< 30 bit morton codes for particles to sort on z-order curve
 
         GPUArray<unsigned int> m_leaf_offset;       //!< total offset in particle index for leaf nodes by type
         GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
@@ -187,8 +187,6 @@ class NeighborListGPUTree : public NeighborListGPU
         
         void setupTree();
         void mapParticlesByType();
-        void genTypeMask(unsigned int type);
-        void partialTypeMap(unsigned int type);
         
         void buildTree();
         void calcMortonCodes();
@@ -196,7 +194,10 @@ class NeighborListGPUTree : public NeighborListGPU
         
         
         GPUArray<unsigned int> m_map_tree_global_alt;
-        GPUArray<unsigned int> m_morton_codes_alt;
+        GPUArray<uint64_t> m_morton_codes_alt;
+        
+        void calcTypeBits();
+        unsigned int m_n_type_bits;     //!< the number of bits it takes to represent all the type ids
         
         // pointer to the allocator
         cub::CachingDeviceAllocator *m_tmp_allocator;

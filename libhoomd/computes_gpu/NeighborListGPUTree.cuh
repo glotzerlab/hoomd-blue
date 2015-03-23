@@ -67,9 +67,12 @@ namespace cub
     {
     struct CachingDeviceAllocator;
     };
+
+// include fixed width integer types uint32_t and uint64_t
+#include <stdint.h>
                                      
 //! Kernel driver to generate morton codes for particles and reorder by type
-cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
+cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
                                    unsigned int *d_map_tree_global,
                                    int *d_morton_conditions,
                                    const Scalar4 *d_pos,
@@ -79,20 +82,21 @@ cudaError_t gpu_nlist_morton_codes(unsigned int *d_morton_codes,
                                    const unsigned int block_size);
 
 //! Wrapper to Thrust sort for morton codes
-cudaError_t gpu_nlist_morton_sort(unsigned int *d_morton_codes,
-                                  unsigned int *d_morton_codes_alt,
+cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_codes,
+                                  uint64_t *d_morton_codes_alt,
                                   unsigned int *d_map_tree_global,
                                   unsigned int *d_map_tree_global_alt,
                                   cub::CachingDeviceAllocator *allocator,
                                   bool &swap_morton_to_alt,
                                   bool &swap_map_to_alt,
-                                  const unsigned int N);
+                                  const unsigned int N,
+                                  const unsigned int n_type_bits);
                                   
 //! Kernel driver to merge the bottom layers of particles into leaf nodes
 cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
                                       unsigned int *d_morton_codes_red,
                                       uint2 *d_tree_parent_sib,
-                                      const unsigned int *d_morton_codes,
+                                      const uint64_t *d_morton_codes,
                                       const Scalar4 *d_pos,
                                       const unsigned int *d_num_per_type,
                                       const unsigned int ntypes,
@@ -170,7 +174,7 @@ cudaError_t gpu_nlist_map_particles_gen_mask(unsigned int *d_type_mask,
                                              const unsigned int block_size);
                                                                                   
 cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
-                                    unsigned int *d_morton_codes,
+                                    uint64_t *d_morton_codes,
                                     unsigned int *d_num_per_type,
                                     unsigned int *d_type_head,
                                     unsigned int *d_leaf_offset,
@@ -178,11 +182,21 @@ cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
                                     unsigned int *d_cumulative_pids,
                                     const unsigned int *d_type_mask,
                                     const unsigned int *d_map_tree_global_alt,
-                                    const unsigned int *d_morton_codes_alt,
+                                    const uint64_t *d_morton_codes_alt,
                                     const unsigned int N,
                                     const unsigned int type,
                                     const unsigned int ntypes,
                                     const unsigned int block_size);
+                                    
+cudaError_t gpu_nlist_map_particles2(unsigned int *d_type_head,
+                                     unsigned int *d_num_per_type,
+                                     unsigned int *d_leaf_offset,
+                                     unsigned int *d_tree_roots,
+                                     const Scalar4 *d_pos,
+                                     const unsigned int *d_map_tree_global,
+                                     const unsigned int N,
+                                     const unsigned int ntypes,
+                                     const unsigned int block_size);
                                     
 cub::CachingDeviceAllocator* init_cub_allocator();
 void del_cub_allocator(cub::CachingDeviceAllocator *allocator);
