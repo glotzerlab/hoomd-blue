@@ -65,11 +65,19 @@ using namespace hpmc::detail;
 #ifndef __NEIGHBORLISTTREE_H__
 #define __NEIGHBORLISTTREE_H__
 
-//! Efficient neighbor list build on the CPU
-/*! Implements the O(N) neighbor list build on the CPU using a cell list.
-
-    \ingroup computes
-*/
+//! Efficient neighbor list build on the CPU using BVH trees
+/*!
+ * Implements the O(N) neighbor list build on the CPU using a BVH tree.
+ *
+ * A bounding volume hierarchy (BVH) tree is a binary search tree. It is constructed from axis-aligned bounding boxes
+ * (AABBs). The AABB for a node in the tree encloses all child AABBs. A leaf AABB holds multiple particles. The tree
+ * is constructed in a balanced way using a heuristic to minimize AABB volume. We build one tree per particle type,
+ * and use point AABBs for the particles. The neighbor list is built by traversing down the tree with an AABB
+ * that encloses the pairwise cutoff for the particle. Periodic boundaries are treated by translating the query AABB
+ * by all possible image vectors, many of which are trivially rejected for not intersecting the root node.
+ *
+ * \ingroup computes
+ */
 class NeighborListTree : public NeighborList
     {
     public:
@@ -80,7 +88,12 @@ class NeighborListTree : public NeighborList
 
         //! Destructor
         virtual ~NeighborListTree();
+            
+    protected:
+        //! Builds the neighbor list
+        virtual void buildNlist(unsigned int timestep);
         
+    private:
         //! Notification of a box size change
         void slotBoxChanged()
             {
@@ -104,11 +117,7 @@ class NeighborListTree : public NeighborList
             {
             m_type_changed = true;
             }
-            
-    protected:
-        //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
-        
+    
         bool m_box_changed;                                 //!< flag if box size has changed
         boost::signals2::connection m_boxchange_connection; //!< Connection to the ParticleData box size change signal
         
@@ -117,8 +126,7 @@ class NeighborListTree : public NeighborList
         
         bool m_remap_particles;                     //!< flag if the particles need to remapped (triggered by sort)
         boost::signals2::connection m_sort_conn;    //!< Local connection to the ParticleData sort signal
-        
-    private:
+    
         bool m_type_changed;                                //!< flag if the number of types has changed
         boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
     

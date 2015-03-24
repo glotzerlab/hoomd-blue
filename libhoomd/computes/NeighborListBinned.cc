@@ -74,7 +74,6 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
 
-//     m_cl->setNominalWidth(r_cut + r_buff + m_d_max - Scalar(1.0));
     m_cl->setRadius(1);
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
@@ -86,7 +85,6 @@ NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysde
 NeighborListBinned::~NeighborListBinned()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListBinned" << endl;
-
     }
 
 void NeighborListBinned::setRCut(Scalar r_buff, Scalar r_cut)
@@ -133,7 +131,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "compute");
 
-
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
@@ -142,13 +139,10 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     const BoxDim& box = m_pdata->getBox();
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
-    // start by creating a temporary copy of r_cut sqaured
+    // validate that the cutoff fits inside the box
     Scalar rmax = m_r_cut_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
-        
-    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::read);
 
     if ((box.getPeriodic().x && nearest_plane_distance.x <= rmax * 2.0) ||
         (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
@@ -157,6 +151,10 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
         m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
         throw runtime_error("Error updating neighborlist bins");
         }
+        
+    // access the rlist data
+    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::read);
 
     // access the cell list data arrays
     ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
@@ -236,7 +234,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 if (m_filter_body && body_i != NO_BODY)
                     excluded = excluded | (body_i == h_body.data[cur_neigh]);
 
-
                 Scalar r_list = h_r_cut.data[m_typpair_idx(type_i,cur_neigh_type)] + m_r_buff;
                 Scalar sqshift = Scalar(0.0);
                 if (m_diameter_shift)
@@ -271,9 +268,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
         h_n_neigh.data[i] = cur_n_neigh;
         }
-
-    // write out conditions
-//     m_conditions.resetFlags(conditions);
 
     if (m_prof)
         m_prof->pop(exec_conf);

@@ -100,7 +100,6 @@ void NeighborListTree::buildNlist(unsigned int timestep)
     traverseTree();
     }
 
-//! manage the malloc of the AABB list
 void NeighborListTree::setupTree()
     {
     if (m_max_num_changed)
@@ -135,7 +134,6 @@ void NeighborListTree::setupTree()
         }
     }
 
-//! get the number of particles by type (including ghost particles)
 void NeighborListTree::mapParticlesByType()
     {
     if (this->m_prof) this->m_prof->push("Histogram");
@@ -147,7 +145,7 @@ void NeighborListTree::mapParticlesByType()
         m_num_per_type[i] = 0;
         }
     
-    // histogram the particles
+    // histogram all particles on this rank, and accumulate their positions within the tree
     unsigned int n_local = m_pdata->getN() + m_pdata->getNGhosts();
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     for (unsigned int i=0; i < n_local; ++i)
@@ -157,7 +155,7 @@ void NeighborListTree::mapParticlesByType()
         ++m_num_per_type[my_type];
         }
     
-    // set the head for each type in m_aabbs
+    // set the head for each type in m_aabbs by looping back over the types
     unsigned int local_head = 0;
     for (unsigned int i=0; i < n_types; ++i)
         {
@@ -168,7 +166,6 @@ void NeighborListTree::mapParticlesByType()
     if (this->m_prof) this->m_prof->pop();
     }
 
-//! compute the image vectors for translating periodically around tree
 void NeighborListTree::updateImageVectors()
     {
     const BoxDim& box = m_pdata->getBox();
@@ -238,10 +235,10 @@ void NeighborListTree::buildTree()
     m_exec_conf->msg->notice(4) << "Building AABB tree: " << m_pdata->getN() << " ptls "
                                 << m_pdata->getNGhosts() << " ghosts" << endl;
                                 
-    // do the build
     if (this->m_prof) this->m_prof->push("Build");
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     
+    // construct a point AABB for each particle owned by this rank, and push it into the right spot in the AABB list
     for (unsigned int i=0; i < m_pdata->getN()+m_pdata->getNGhosts(); ++i)
         {
         // make a point particle AABB
@@ -251,12 +248,12 @@ void NeighborListTree::buildTree()
         m_aabbs[my_aabb_idx] = AABB(my_pos,i);
         }
     
+    // call the tree build routine, one tree per type
     for (unsigned int i=0; i < m_pdata->getNTypes(); ++i) 
         {
         m_aabb_trees[i].buildTree(&m_aabbs[0] + m_type_head[i], m_num_per_type[i]);
         }
     if (this->m_prof) this->m_prof->pop();
-    
     }
 
 void NeighborListTree::traverseTree()
@@ -291,9 +288,9 @@ void NeighborListTree::traverseTree()
         const unsigned int nlist_head_i = h_head_list.data[i];
         
         unsigned int n_neigh_i = 0;
-        for (unsigned int cur_pair_type=0; cur_pair_type < m_pdata->getNTypes(); ++cur_pair_type)
+        for (unsigned int cur_pair_type=0; cur_pair_type < m_pdata->getNTypes(); ++cur_pair_type) // loop on pair types
             {
-            // Check primary box
+            // Determine the minimum r_cut_i (no diameter shifting, with buffer) for this particle
             Scalar r_cut_i = h_r_cut.data[m_typpair_idx(type_i,cur_pair_type)]+m_r_buff;
             
             // we save the r_cutsq before diameter shifting, as we will shift later, and reuse the r_cut_i now
@@ -306,12 +303,13 @@ void NeighborListTree::traverseTree()
                 
             AABBTree *cur_aabb_tree = &m_aabb_trees[cur_pair_type];
 
-            for (unsigned int cur_image = 0; cur_image < m_n_images; ++cur_image)
+            for (unsigned int cur_image = 0; cur_image < m_n_images; ++cur_image) // for each image vector
                 {
+                // make an AABB for the image of this particle
                 vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
                 AABB aabb = AABB(pos_i_image, r_list_i);
 
-                // stackless search
+                // stackless traversal of the tree
                 for (unsigned int cur_node_idx = 0; cur_node_idx < cur_aabb_tree->getNumNodes(); ++cur_node_idx)
                     {
                     if (overlap(cur_aabb_tree->getNodeAABB(cur_node_idx), aabb))
@@ -324,8 +322,6 @@ void NeighborListTree::traverseTree()
                                 unsigned int j = cur_aabb_tree->getNodeParticleTag(cur_node_idx, cur_p);
                                 
                                 // skip self-interaction always
-                                if (i == j)
-                                    continue;
                                 bool excluded = (i == j);
 
                                 if (m_filter_body && body_i != NO_BODY)
