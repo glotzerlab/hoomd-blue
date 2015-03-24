@@ -130,7 +130,6 @@ class NeighborListGPUTree : public NeighborListGPU
         boost::scoped_ptr<Autotuner> m_tuner_map;
         boost::scoped_ptr<Autotuner> m_tuner_traverse;
 
-
         GPUArray<Scalar3>       m_image_list;           //!< list of translation vectors
         unsigned int            m_n_images;             //!< number of translation vectors
         
@@ -146,20 +145,20 @@ class NeighborListGPUTree : public NeighborListGPU
         boost::signals2::connection m_sort_conn;    //!< Local connection to the ParticleData sort signal
         
         // tree building on gpu
-        GPUArray<Scalar4> m_leaf_xyzf;
-        GPUArray<Scalar2> m_leaf_db;
+        GPUArray<Scalar4> m_leaf_xyzf;              //!< the position and id of each particle in a leaf
+        GPUArray<Scalar2> m_leaf_db;                //!< the diameter and body of each particle in a leaf
         GPUArray<unsigned int> m_map_tree_global;   //!< map a leaf order id to a global particle
-        GPUArray<uint64_t> m_morton_codes;      //!< 30 bit morton codes for particles to sort on z-order curve
+        GPUArray<uint64_t> m_morton_codes;          //!< 30 bit morton codes for particles to sort on z-order curve
 
-        GPUArray<unsigned int> m_leaf_offset;       //!< total offset in particle index for leaf nodes by type
-        GPUArray<unsigned int>  m_num_per_type;         //!< Number of particles per type
-        GPUArray<unsigned int>  m_type_head;            //!< Head list to each particle type
+        GPUArray<unsigned int> m_leaf_offset;   //!< total offset in particle index for leaf nodes by type
+        GPUArray<unsigned int> m_num_per_type;  //!< Number of particles per type
+        GPUArray<unsigned int> m_type_head;     //!< Head list to each particle type
         
-        GPUVector<unsigned int> m_morton_codes_red;  //!< Reduced capacity morton code array        
-        GPUVector<Scalar4> m_tree_aabbs;             //!< aabbs for merged leaf nodes and internal nodes
-        GPUVector<unsigned int> m_node_locks;        //!< node locks for if node has been visited or not
-        GPUVector<unsigned int> m_node_left_child;   //!< left children of the internal nodes
-        GPUVector<uint2> m_tree_parent_sib;          //!< parents and siblings of all nodes
+        GPUVector<uint32_t> m_morton_codes_red;     //!< Reduced capacity morton code array
+        GPUVector<Scalar4> m_tree_aabbs;            //!< aabbs for merged leaf nodes and internal nodes
+        GPUVector<unsigned int> m_node_locks;       //!< node locks for if node has been visited or not
+        GPUVector<unsigned int> m_node_left_child;  //!< left children of the internal nodes
+        GPUVector<uint2> m_tree_parent_sib;         //!< parents and siblings of all nodes
         
         GPUArray<unsigned int> m_tree_roots;
         

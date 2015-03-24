@@ -235,7 +235,7 @@ cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_codes,
     }
 
 __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
-                                                 unsigned int *d_morton_codes_red,
+                                                 uint32_t *d_morton_codes_red,
                                                  uint2 *d_tree_parent_sib,
                                                  const uint64_t *d_morton_codes,
                                                  const Scalar4 *d_pos,
@@ -314,7 +314,7 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
     }
     
 cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
-                                      unsigned int *d_morton_codes_red,
+                                      uint32_t *d_morton_codes_red,
                                       uint2 *d_tree_parent_sib,
                                       const uint64_t *d_morton_codes,
                                       const Scalar4 *d_pos,
@@ -469,7 +469,7 @@ __device__ inline unsigned int findSplit(const unsigned int *d_morton_codes,
     
 __global__ void gpu_nlist_gen_hierarchy_kernel(unsigned int *d_node_left_child,
                                                uint2 *d_tree_parent_sib,
-                                               const unsigned int *d_morton_codes,
+                                               const uint32_t *d_morton_codes,
                                                const unsigned int *d_num_per_type,
                                                const unsigned int ntypes,
                                                const unsigned int nleafs)
@@ -552,7 +552,7 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(unsigned int *d_node_left_child,
     
 cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_node_left_child,
                                     uint2 *d_tree_parent_sib,
-                                    const unsigned int *d_morton_codes,
+                                    const uint32_t *d_morton_codes,
                                     const unsigned int *d_num_per_type,
                                     const unsigned int ntypes,
                                     const unsigned int nleafs,

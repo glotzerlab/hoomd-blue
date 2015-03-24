@@ -153,7 +153,7 @@ void NeighborListGPUTree::allocateTree()
     m_tree_aabbs.swap(tree_aabbs);
     
     // we really only need as many morton codes as we have leafs
-    GPUVector<unsigned int> morton_codes_red(m_exec_conf);
+    GPUVector<uint32_t> morton_codes_red(m_exec_conf);
     m_morton_codes_red.swap(morton_codes_red);
     
     // left children of all internal nodes
@@ -499,7 +499,7 @@ void NeighborListGPUTree::mergeLeafParticles()
     
     // tree aabbs and reduced morton codes to overwrite
     ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::overwrite);
-    ArrayHandle<unsigned int> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::overwrite);
+    ArrayHandle<uint32_t> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::overwrite);
     ArrayHandle<uint2> d_tree_parent_sib(m_tree_parent_sib, access_location::device, access_mode::overwrite);
     
     m_tuner_merge->begin();  
@@ -540,7 +540,7 @@ void NeighborListGPUTree::genTreeHierarchy()
     ArrayHandle<unsigned int> d_node_left_child(m_node_left_child, access_location::device, access_mode::overwrite);
     ArrayHandle<uint2> d_tree_parent_sib(m_tree_parent_sib, access_location::device, access_mode::overwrite);
     
-    ArrayHandle<unsigned int> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::read);
+    ArrayHandle<uint32_t> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::read);
     
     m_tuner_hierarchy->begin();  

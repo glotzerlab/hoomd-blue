@@ -96,7 +96,7 @@ cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_codes,
                                   
 //! Kernel driver to merge the bottom layers of particles into leaf nodes
 cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
-                                      unsigned int *d_morton_codes_red,
+                                      uint32_t *d_morton_codes_red,
                                       uint2 *d_tree_parent_sib,
                                       const uint64_t *d_morton_codes,
                                       const Scalar4 *d_pos,
@@ -112,7 +112,7 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
 //! Kernel driver to generate the AABB tree hierarchy from morton codes
 cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_node_left_child,
                                     uint2 *d_tree_parent_sib,
-                                    const unsigned int *d_morton_codes,
+                                    const uint32_t *d_morton_codes,
                                     const unsigned int *d_type_head,
                                     const unsigned int ntypes,
                                     const unsigned int nleafs,
