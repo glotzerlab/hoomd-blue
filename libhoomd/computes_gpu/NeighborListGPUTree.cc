@@ -315,12 +315,6 @@ void NeighborListGPUTree::mapParticlesByType()
             leaf_head += n_leaf_i;
             }
         }
-    
-    // for benchmarking, grab a handle back to the data on the GPU to see how much the copy costs us
-        {
-        ArrayHandle<unsigned int> d_leaf_offset(m_leaf_offset, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_tree_roots(m_tree_roots, access_location::device, access_mode::read);
-        }
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -340,7 +334,7 @@ void NeighborListGPUTree::buildTree()
     // actually, we should only do this if there is more than one type
     // otherwise, it's fastest to just do nothing and fill out the single type arrays as needed
     // since everything is already "sorted" by type
-    if (m_pdata->getNTypes() > 0)
+    if (m_pdata->getNTypes() > 1)
         {
         mapParticlesByType();
         }

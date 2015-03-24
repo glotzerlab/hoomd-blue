@@ -1566,12 +1566,12 @@ cudaError_t gpu_nlist_map_particles2(unsigned int *d_type_head,
     // get the head list divisions
     gpu_nlist_map_particles2_kernel<<<N/run_block_size + 1, run_block_size>>>(d_type_head, d_pos, d_map_tree_global, N);
     
-    gpu_nlist_setup_types_kernel<<<N/run_block_size + 1, run_block_size>>>(d_num_per_type,
-                                                                           d_leaf_offset,
-                                                                           d_tree_roots,
-                                                                           d_type_head,
-                                                                           N,
-                                                                           ntypes);
+    gpu_nlist_setup_types_kernel<<<ntypes/run_block_size + 1, run_block_size>>>(d_num_per_type,
+                                                                                d_leaf_offset,
+                                                                                d_tree_roots,
+                                                                                d_type_head,
+                                                                                N,
+                                                                                ntypes);
     
     return cudaSuccess;
     }
