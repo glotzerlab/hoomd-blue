@@ -173,30 +173,6 @@ cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
                                                                             ghost_width);
     return cudaSuccess;
     }
-
-//! Create a new temporary storage allocator on the heap
-/*!
- * \return Pointer to an allocator
- * The cub headers throw lots of errors when included into a file not compiled with nvcc, so
- * we have to go to some trouble to wrap this object creation. We need to use an allocator
- * at class scope because we get illegal memory access problems with it global scope when multiple
- * neighborlists are instantiated. This is a nicer container than the standard containers (GPUArray, GPUVector)
- * because it manages only device memory, and easily resizes itself as needed from a small pool of memory.
- */   
-cub::CachingDeviceAllocator* init_cub_allocator()
-    {
-    return new cub::CachingDeviceAllocator(false);
-    }
-//! Deletes the temporary storage allocator object
-/*!
- * \param allocator pointer to a device cache to destroy
- * \note This is called from the class destructor, so there are no memory leaks from the allocator.
- */
-void del_cub_allocator(cub::CachingDeviceAllocator *allocator)
-    {
-    if (allocator != NULL)
-        delete allocator;
-    }
     
 cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_codes,
                                   uint64_t *d_morton_codes_alt,

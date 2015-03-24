@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for neighbor list tree traversal on the GPU
 */
 
-#define NLIST_PARTICLES_PER_LEAF 4        // max number of particles in a leaf node, must be power of two
+#define NLIST_PARTICLES_PER_LEAF 4        // max number of particles in a leaf node
 
 #include <cuda_runtime.h>
 
@@ -177,8 +177,4 @@ cudaError_t gpu_nlist_map_particles(unsigned int *d_type_head,
                                     const unsigned int N,
                                     const unsigned int ntypes,
                                     const unsigned int block_size);
-                                    
-cub::CachingDeviceAllocator* init_cub_allocator();
-void del_cub_allocator(cub::CachingDeviceAllocator *allocator);
-
 #endif //__NEIGHBORLISTGPUTREE_CUH__

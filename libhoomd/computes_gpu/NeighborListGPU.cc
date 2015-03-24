@@ -177,7 +177,6 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     cudaEventSynchronize(m_event);
 
     bool result = (*h_flags.data == m_checkn);
-//     bool result = true;
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -280,6 +279,7 @@ void NeighborListGPU::buildHeadList()
     m_tuner_head_list->begin();
     gpu_nlist_build_head_list(d_head_list.data,
                               m_req_size_nlist.getDeviceFlags(),
+                              m_tmp_allocator,
                               d_Nmax.data,
                               d_pos.data,
                               m_pdata->getN(),

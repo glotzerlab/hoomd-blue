@@ -189,9 +189,6 @@ class NeighborListGPUTree : public NeighborListGPU
         void calcTypeBits();
         unsigned int m_n_type_bits;     //!< the number of bits it takes to represent all the type ids
         
-        // pointer to the allocator
-        cub::CachingDeviceAllocator *m_tmp_allocator;
-        
         void mergeLeafParticles();
         void genTreeHierarchy();
         void bubbleAABBs();
