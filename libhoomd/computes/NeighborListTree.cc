@@ -68,11 +68,12 @@ using namespace boost::python;
 NeighborListTree::NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborList(sysdef, r_cut, r_buff), m_type_changed(true), m_box_changed(true), m_max_num_changed(true),
-      m_remap_particles(true), m_n_images(0)
+    : NeighborList(sysdef, r_cut, r_buff), m_box_changed(true), m_max_num_changed(true), m_remap_particles(true),
+      m_type_changed(true), m_n_images(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListTree" << endl;
 
+    m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborListTree::slotNumTypesChanged, this));
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListTree::slotBoxChanged, this));
     m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&NeighborListTree::slotMaxNumChanged, this));
     m_sort_conn = m_pdata->connectParticleSort(bind(&NeighborListTree::slotRemapParticles, this));
@@ -81,6 +82,7 @@ NeighborListTree::NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
 NeighborListTree::~NeighborListTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListTree" << endl;
+    m_num_type_change_conn.disconnect();
     m_boxchange_connection.disconnect();
     m_max_numchange_conn.disconnect();
     m_sort_conn.disconnect();

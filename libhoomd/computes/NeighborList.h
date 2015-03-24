@@ -398,7 +398,7 @@ class NeighborList : public Compute
         //! Forces a full update of the list on the next call to compute()
         void forceUpdate()
             {
-                m_force_update = true;
+            m_force_update = true;
             }
 
         //! Get the number of updates
@@ -449,7 +449,6 @@ class NeighborList : public Compute
         Scalar3 m_last_L_local;              //!< Local Box lengths at last update
 
         GPUArray<unsigned int> m_head_list;     //!< Head list for particles in the neighborlist
-        unsigned int m_neigh_in_head;           //!< Total number of neighbors accounted in head list
         GPUArray<unsigned int> m_Nmax;          //!< Holds the maximum number of neighbors for each particle
         GPUArray<unsigned int> m_conditions;    //!< Holds the max number of computed particles for resizing
 
@@ -506,6 +505,8 @@ class NeighborList : public Compute
         #endif
 
     private:
+        boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
+    
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
         int64_t m_forced_updates;       //!< Number of times the neighbor list has been foribly updated
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
@@ -526,6 +527,9 @@ class NeighborList : public Compute
 
         //! Reallocate internal data structures
         void reallocate();
+        
+        //! Reallocate internal data structures that depend on types
+        void reallocateTypes();
 
         //! Check the status of the conditions
         bool checkConditions();

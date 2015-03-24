@@ -139,7 +139,6 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     m_Nmax.swap(Nmax);
     GPUArray<unsigned int> conditions(m_pdata->getNTypes(), exec_conf);
     m_conditions.swap(conditions);
-    m_neigh_in_head = 0;
 
     // allocate neighbor list
     allocate();
@@ -169,6 +168,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
 
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&NeighborList::reallocate, this));
+    m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborList::reallocateTypes, this));
 
     // allocate m_update_periods tracking info
     m_update_periods.resize(100);
@@ -203,6 +203,18 @@ void NeighborList::reallocate()
         }
     }
 
+void NeighborList::reallocateTypes()
+    {
+    m_typpair_idx = Index2D(m_pdata->getNTypes());
+    m_r_cut.resize(m_typpair_idx.getNumElements());
+    m_rcut_max.resize(m_pdata->getNTypes());
+    m_r_listsq.resize(m_typpair_idx.getNumElements());
+    m_Nmax.resize(m_pdata->getNTypes());
+    m_conditions.resize(m_pdata->getNTypes());
+    
+    forceUpdate();
+    }
+
 NeighborList::~NeighborList()
     {
     m_exec_conf->msg->notice(5) << "Destroying Neighborlist" << endl;
@@ -215,6 +227,8 @@ NeighborList::~NeighborList()
     if (m_comm_flags_request.connected())
         m_comm_flags_request.disconnect();
 #endif
+
+    m_num_type_change_conn.disconnect();
     }
 
 /*! Updates the neighborlist if it has not yet been updated this times step

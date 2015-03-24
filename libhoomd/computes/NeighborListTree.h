@@ -98,12 +98,16 @@ class NeighborListTree : public NeighborList
             {
             m_remap_particles = true;
             }
+        
+        //! Notification of a number of types change    
+        void slotNumTypesChanged()
+            {
+            m_type_changed = true;
+            }
             
     protected:
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
-        
-        bool m_type_changed;                                //!< flag if the number of types has changed
         
         bool m_box_changed;                                 //!< flag if box size has changed
         boost::signals2::connection m_boxchange_connection; //!< Connection to the ParticleData box size change signal
@@ -115,6 +119,9 @@ class NeighborListTree : public NeighborList
         boost::signals2::connection m_sort_conn;    //!< Local connection to the ParticleData sort signal
         
     private:
+        bool m_type_changed;                                //!< flag if the number of types has changed
+        boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
+    
         // we use stl vectors here because these tree data structures should *never* be
         // accessed on the GPU, they were optimized for the CPU with SIMD support
         vector<AABBTree>      m_aabb_trees;           //!< Flat array of AABB trees of all types

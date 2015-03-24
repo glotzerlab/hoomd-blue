@@ -68,9 +68,12 @@ using namespace boost;
 NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_n_images(0), m_type_changed(true), m_box_changed(true),
-      m_max_num_changed(false), m_remap_particles(true), m_n_leaf(0), m_n_internal(0), m_n_node(0)
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_n_images(0), m_type_changed(false), m_box_changed(true),
+      m_max_num_changed(false), m_n_leaf(0), m_n_internal(0), m_n_node(0)
     {
+    m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUTree" << endl;
+    
+    m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborListGPUTree::slotNumTypesChanged, this));
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListGPUTree::slotBoxChanged, this));
     m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&NeighborListGPUTree::slotMaxNumChanged, this));
     
@@ -92,9 +95,9 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
 NeighborListGPUTree::~NeighborListGPUTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUTree" << endl;
+    m_num_type_change_conn.disconnect();
     m_boxchange_connection.disconnect();
     m_max_numchange_conn.disconnect();
-    m_sort_conn.disconnect();
     
     del_cub_allocator(m_tmp_allocator);
     }

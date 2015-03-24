@@ -116,33 +116,31 @@ class NeighborListGPUTree : public NeighborListGPU
             m_max_num_changed = true;
             }
         
-        void slotNumTypeChanged()
+        void slotNumTypesChanged()
             {
             m_type_changed = true;
             }
         
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner_morton;
-        boost::scoped_ptr<Autotuner> m_tuner_merge;
-        boost::scoped_ptr<Autotuner> m_tuner_hierarchy;
-        boost::scoped_ptr<Autotuner> m_tuner_bubble;
-        boost::scoped_ptr<Autotuner> m_tuner_move;
-        boost::scoped_ptr<Autotuner> m_tuner_map;
-        boost::scoped_ptr<Autotuner> m_tuner_traverse;
+        boost::scoped_ptr<Autotuner> m_tuner_morton;    //!< tuner for kernel to calculate morton codes
+        boost::scoped_ptr<Autotuner> m_tuner_merge;     //!< tuner for kernel to merge particles into leafs
+        boost::scoped_ptr<Autotuner> m_tuner_hierarchy; //!< tuner for kernel to generate tree hierarchy
+        boost::scoped_ptr<Autotuner> m_tuner_bubble;    //!< tuner for kernel to bubble aabbs up hierarchy
+        boost::scoped_ptr<Autotuner> m_tuner_move;      //!< tuner for kernel to move particles to leaf order
+        boost::scoped_ptr<Autotuner> m_tuner_map;       //!< tuner for kernel to help map particles by type
+        boost::scoped_ptr<Autotuner> m_tuner_traverse;  //!< tuner for kernel to traverse generated tree
 
         GPUArray<Scalar3>       m_image_list;           //!< list of translation vectors
         unsigned int            m_n_images;             //!< number of translation vectors
         
-        bool m_type_changed;
+        bool m_type_changed;                                    //!< flag if types changed
+        boost::signals2::connection m_num_type_change_conn;     //!< Connection to the ParticleData number of types
         
-        bool m_box_changed;
+        bool m_box_changed;                                     //!< flag if box changed
         boost::signals2::connection m_boxchange_connection;     //!< Connection to the ParticleData box size change signal
         
-        bool m_max_num_changed;
+        bool m_max_num_changed;                                 //!< flag if max number of particles changed
         boost::signals2::connection m_max_numchange_conn;       //!< Connection to max particle number change signal
-        
-        bool m_remap_particles;
-        boost::signals2::connection m_sort_conn;    //!< Local connection to the ParticleData sort signal
         
         // tree building on gpu
         GPUArray<Scalar4> m_leaf_xyzf;              //!< the position and id of each particle in a leaf
