@@ -83,7 +83,7 @@ class NeighborListGPUBinned : public NeighborListGPU
         //! Destructor
         virtual ~NeighborListGPUBinned();
 
-        //! Change the cuttoff radius
+        //! Change the cutoff radius
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
 
@@ -106,12 +106,6 @@ class NeighborListGPUBinned : public NeighborListGPU
         
         //! Set the maximum diameter to use in computing neighbor lists
         virtual void setMaximumDiameter(Scalar d_max);
-
-        //! Enable/disable body filtering
-//         virtual void setFilterBody(bool filter_body);
-
-        //! Enable/disable diameter filtering
-//         virtual void setFilterDiameter(bool filter_diameter);
 
     protected:
         boost::shared_ptr<CellList> m_cl;   //!< The cell list

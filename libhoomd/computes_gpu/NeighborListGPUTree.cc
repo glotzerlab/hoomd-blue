@@ -88,8 +88,6 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
     allocateTree();
     
     calcTypeBits();
-    
-//     m_tmp_allocator = init_cub_allocator();
     }
 
 NeighborListGPUTree::~NeighborListGPUTree()
@@ -98,8 +96,6 @@ NeighborListGPUTree::~NeighborListGPUTree()
     m_num_type_change_conn.disconnect();
     m_boxchange_connection.disconnect();
     m_max_numchange_conn.disconnect();
-    
-//     del_cub_allocator(m_tmp_allocator);
     }
 
 void NeighborListGPUTree::buildNlist(unsigned int timestep)
