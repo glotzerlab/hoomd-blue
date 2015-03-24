@@ -56,6 +56,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for neighbor list tree traversal on the GPU
 */
 
+#define NLIST_PARTICLES_PER_LEAF 4        // max number of particles in a leaf node, must be power of two
+
 #include <cuda_runtime.h>
 
 #include "HOOMDMath.h"
@@ -81,14 +83,14 @@ cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
                                    const Scalar3 ghost_width,
                                    const unsigned int block_size);
 
-//! Wrapper to Thrust sort for morton codes
+//! Wrapper to CUB sort for morton codes
 cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_codes,
                                   uint64_t *d_morton_codes_alt,
                                   unsigned int *d_map_tree_global,
                                   unsigned int *d_map_tree_global_alt,
                                   cub::CachingDeviceAllocator *allocator,
-                                  bool &swap_morton_to_alt,
-                                  bool &swap_map_to_alt,
+                                  bool &swap_morton,
+                                  bool &swap_map,
                                   const unsigned int N,
                                   const unsigned int n_type_bits);
                                   
@@ -165,38 +167,16 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     bool diameter_shift,
                                     const unsigned int compute_capability,
                                     const unsigned int block_size);
-                                     
-cudaError_t gpu_nlist_map_particles_gen_mask(unsigned int *d_type_mask,
-                                             const Scalar4 *d_pos,
-                                             const unsigned int *d_map_tree_global_alt,
-                                             const unsigned int N,
-                                             const unsigned int type,
-                                             const unsigned int block_size);
-                                                                                  
-cudaError_t gpu_nlist_map_particles(unsigned int *d_map_tree_global,
-                                    uint64_t *d_morton_codes,
+                                    
+cudaError_t gpu_nlist_map_particles(unsigned int *d_type_head,
                                     unsigned int *d_num_per_type,
-                                    unsigned int *d_type_head,
                                     unsigned int *d_leaf_offset,
                                     unsigned int *d_tree_roots,
-                                    unsigned int *d_cumulative_pids,
-                                    const unsigned int *d_type_mask,
-                                    const unsigned int *d_map_tree_global_alt,
-                                    const uint64_t *d_morton_codes_alt,
+                                    const Scalar4 *d_pos,
+                                    const unsigned int *d_map_tree_global,
                                     const unsigned int N,
-                                    const unsigned int type,
                                     const unsigned int ntypes,
                                     const unsigned int block_size);
-                                    
-cudaError_t gpu_nlist_map_particles2(unsigned int *d_type_head,
-                                     unsigned int *d_num_per_type,
-                                     unsigned int *d_leaf_offset,
-                                     unsigned int *d_tree_roots,
-                                     const Scalar4 *d_pos,
-                                     const unsigned int *d_map_tree_global,
-                                     const unsigned int N,
-                                     const unsigned int ntypes,
-                                     const unsigned int block_size);
                                     
 cub::CachingDeviceAllocator* init_cub_allocator();
 void del_cub_allocator(cub::CachingDeviceAllocator *allocator);

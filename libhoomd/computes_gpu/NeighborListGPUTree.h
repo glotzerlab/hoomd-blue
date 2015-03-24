@@ -98,9 +98,6 @@ class NeighborListGPUTree : public NeighborListGPU
             m_tuner_move->setPeriod(period/10);
             m_tuner_move->setEnabled(enable);
             
-            m_tuner_mask->setPeriod(period/10);
-            m_tuner_mask->setEnabled(enable);
-            
             m_tuner_map->setPeriod(period/10);
             m_tuner_map->setEnabled(enable);
             
@@ -118,10 +115,10 @@ class NeighborListGPUTree : public NeighborListGPU
             {
             m_max_num_changed = true;
             }
-            
-        void slotRemapParticles()
+        
+        void slotNumTypeChanged()
             {
-            m_remap_particles = true;
+            m_type_changed = true;
             }
         
     protected:
@@ -130,7 +127,6 @@ class NeighborListGPUTree : public NeighborListGPU
         boost::scoped_ptr<Autotuner> m_tuner_hierarchy;
         boost::scoped_ptr<Autotuner> m_tuner_bubble;
         boost::scoped_ptr<Autotuner> m_tuner_move;
-        boost::scoped_ptr<Autotuner> m_tuner_mask;
         boost::scoped_ptr<Autotuner> m_tuner_map;
         boost::scoped_ptr<Autotuner> m_tuner_traverse;
 
@@ -164,9 +160,6 @@ class NeighborListGPUTree : public NeighborListGPU
         GPUVector<unsigned int> m_node_locks;        //!< node locks for if node has been visited or not
         GPUVector<unsigned int> m_node_left_child;   //!< left children of the internal nodes
         GPUVector<uint2> m_tree_parent_sib;          //!< parents and siblings of all nodes
-        
-        GPUArray<unsigned int> m_type_mask;         //!< mask array to use for type counting particle mapping
-        GPUArray<unsigned int> m_cumulative_pids;   //!< accumulated particle ids output from scan
         
         GPUArray<unsigned int> m_tree_roots;
         
