@@ -49,11 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: phillicl
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include "TableDihedralForceCompute.h"
 #include "VectorMath.h"
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 #include <stdexcept>
 

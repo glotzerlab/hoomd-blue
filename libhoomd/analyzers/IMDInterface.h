@@ -57,10 +57,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <boost/shared_ptr.hpp>
-
 #include "Analyzer.h"
 #include "ConstForceCompute.h"
+
+#include <boost/shared_ptr.hpp>
 
 #ifndef __IMD_INTERFACE_H__
 #define __IMD_INTERFACE_H__

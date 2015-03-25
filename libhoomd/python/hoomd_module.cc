@@ -58,13 +58,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "HOOMDMath.h"
+#include "ExecutionConfiguration.h"
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
 #include "RigidData.h"
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
-#include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
 #include "HOOMDBinaryInitializer.h"

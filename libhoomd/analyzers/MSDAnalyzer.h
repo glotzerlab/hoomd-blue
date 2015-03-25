@@ -60,11 +60,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "Analyzer.h"
+#include "ParticleGroup.h"
+
 #include <string>
 #include <fstream>
 #include <boost/shared_ptr.hpp>
-#include "Analyzer.h"
-#include "ParticleGroup.h"
 
 //! Prints a log of the mean-squared displacement calculated over particles in the simulation
 /*! On construction, MSDAnalyzer opens the given file name for writing. The file will optionally be overwritten

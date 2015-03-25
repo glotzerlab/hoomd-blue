@@ -60,6 +60,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Logger.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include <boost/python.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -69,10 +73,6 @@ using namespace boost::filesystem;
 #include <stdexcept>
 #include <iomanip>
 using namespace std;
-
-#ifdef ENABLE_MPI
-#include "Communicator.h"
-#endif
 
 /*! \param sysdef Specified for Analyzer, but not used directly by Logger
     \param fname File name to write the log to

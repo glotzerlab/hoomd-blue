@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: sbarr
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
-
 #include "ForceCompute.h"
 #include "NeighborList.h"
 #include "ParticleGroup.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
 
 #include <vector>
 

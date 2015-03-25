@@ -54,9 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 )
 #endif
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
-
 #include "Compute.h"
 #include "Index1D.h"
 
@@ -67,6 +64,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
 
 /*! \file ForceCompute.h
     \brief Declares the ForceCompute class

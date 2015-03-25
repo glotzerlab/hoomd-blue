@@ -49,11 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: phillicl
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include "BondTablePotential.h"
 #include "BondedGroupData.h"
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 #include <stdexcept>
 

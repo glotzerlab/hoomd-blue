@@ -58,10 +58,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "Analyzer.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "Analyzer.h"
 
 /*! \param sysdef System definition this analyzer will act on. Must not be NULL.
     \post The Analyzer is constructed with the given particle data and a NULL profiler.

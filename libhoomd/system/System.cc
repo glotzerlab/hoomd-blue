@@ -61,14 +61,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "System.h"
 #include "SignalHandler.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
 #include <stdexcept>
-
-#ifdef ENABLE_MPI
-#include "Communicator.h"
-#endif
 
 using namespace std;
 

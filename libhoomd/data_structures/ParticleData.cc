@@ -58,6 +58,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 4267 )
 #endif
 
+#include "ParticleData.h"
+#include "Profiler.h"
+
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
+
+#ifdef ENABLE_CUDA
+#include "CachedAllocator.h"
+#endif
+
 #include <iostream>
 #include <cassert>
 #include <stdlib.h>
@@ -69,17 +80,6 @@ using namespace std;
 
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "ParticleData.h"
-#include "Profiler.h"
-
-#ifdef ENABLE_MPI
-#include "HOOMDMPI.h"
-#endif
-
-#ifdef ENABLE_CUDA
-#include "CachedAllocator.h"
-#endif
 
 #include <boost/bind.hpp>
 #include <boost/iterator/zip_iterator.hpp>

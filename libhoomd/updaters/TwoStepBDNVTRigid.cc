@@ -54,12 +54,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "QuaternionMath.h"
+#include "TwoStepBDNVTRigid.h"
+
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 using namespace boost::python;
-
-#include "QuaternionMath.h"
-#include "TwoStepBDNVTRigid.h"
 
 /*! \file TwoStepBDNVTRigid.cc
     \brief Contains code for the TwoStepBDNVTRigid class

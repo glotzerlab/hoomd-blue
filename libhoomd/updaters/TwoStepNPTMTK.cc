@@ -54,10 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "TwoStepNPTMTK.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "TwoStepNPTMTK.h"
 
 /*! \file TwoStepNPTMTK.cc
     \brief Contains code for the TwoStepNPTMTK class

@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "HOOMDVersion.h"
 #include <iostream>
 #include <string>
 
 using namespace std;
 
-#include "HOOMDVersion.h"
 /*! \file HOOMDVersion.cc
     \brief Defines functions for writing compile time version information to the screen.
 

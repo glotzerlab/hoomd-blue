@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-
 #include "ForceCompute.h"
 #include "NeighborList.h"
 #include "Index1D.h"
 #include "GPUArray.h"
+
+#include <boost/shared_ptr.hpp>
 
 /*! \file TablePotential.h
     \brief Declares the TablePotential class

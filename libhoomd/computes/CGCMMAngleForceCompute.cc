@@ -54,10 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "CGCMMAngleForceCompute.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "CGCMMAngleForceCompute.h"
 
 #include <iostream>
 #include <sstream>

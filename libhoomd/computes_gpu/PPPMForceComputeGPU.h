@@ -49,10 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: sbarr
 
-#include <cufft.h>
 #include "PPPMForceCompute.h"
 #include "PPPMForceGPU.cuh"
 #include "NeighborList.h"
+
+#include <cufft.h>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>

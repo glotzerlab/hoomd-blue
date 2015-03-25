@@ -53,11 +53,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines CellList
 */
 
+#include "CellList.h"
+
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 #include <algorithm>
-
-#include "CellList.h"
 
 using namespace boost;
 using namespace boost::python;

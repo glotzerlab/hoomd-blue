@@ -53,17 +53,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the Messenger class
 */
 
-#include "Messenger.h"
 #include "ExecutionConfiguration.h"
+#include "Messenger.h"
+
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
 
 #include <assert.h>
 using namespace std;
 
 #include <boost/python.hpp>
-
-#ifdef ENABLE_MPI
-#include "HOOMDMPI.h"
-#endif
 
 using namespace boost::python;
 

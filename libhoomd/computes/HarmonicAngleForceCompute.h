@@ -48,11 +48,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Maintainer: dnlebard
-
-#include <boost/shared_ptr.hpp>
-
 #include "ForceCompute.h"
 #include "BondedGroupData.h"
+
+#include <boost/shared_ptr.hpp>
 
 #include <vector>
 

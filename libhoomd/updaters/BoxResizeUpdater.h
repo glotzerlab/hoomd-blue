@@ -57,10 +57,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <boost/shared_ptr.hpp>
-
 #include "Updater.h"
 #include "Variant.h"
+
+#include <boost/shared_ptr.hpp>
 
 #ifndef __BOXRESIZEUPDATER_H__
 #define __BOXRESIZEUPDATER_H__

@@ -57,12 +57,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "Analyzer.h"
+#include "BondedGroupData.h"
+
 #include <string>
 
 #include <boost/shared_ptr.hpp>
-
-#include "Analyzer.h"
-#include "BondedGroupData.h"
 
 #ifndef __HOOMD_BINARY_DUMP_WRITER_H__
 #define __HOOMD_BINARY_DUMP_WRITER_H__

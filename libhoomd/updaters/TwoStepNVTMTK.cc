@@ -54,15 +54,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include "TwoStepNVTMTK.h"
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 /*! \file TwoStepNVTMTK.h
     \brief Contains code for the TwoStepNVTMTK class

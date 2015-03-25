@@ -58,14 +58,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include "RigidData.h"
+#include "QuaternionMath.h"
+
 #include <cassert>
 #include <math.h>
 #include <boost/python.hpp>
 #include <algorithm>
 using namespace boost::python;
-
-#include "RigidData.h"
-#include "QuaternionMath.h"
 
 using namespace boost;
 using namespace std;

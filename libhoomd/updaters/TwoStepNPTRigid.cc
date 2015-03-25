@@ -54,11 +54,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include "QuaternionMath.h"
 #include "TwoStepNPTRigid.h"
+
+#include <boost/python.hpp>
+using namespace boost::python;
 #include <math.h>
 
 /*! \file TwoStepNPTRigid.cc

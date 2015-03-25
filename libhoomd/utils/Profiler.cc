@@ -53,6 +53,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the Profiler class
 */
 
+#include "Profiler.h"
+
 #include <iomanip>
 #include <sstream>
 
@@ -60,8 +62,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
 #endif
-
-#include "Profiler.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
