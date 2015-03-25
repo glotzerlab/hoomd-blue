@@ -263,9 +263,11 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
                                                          unsigned int virial_pitch,
                                                          const Scalar4 *d_net_force,
                                                          const Scalar4 *d_oldpos,
+                                                         const Scalar4 *d_body_com,
                                                          const Scalar4 *d_oldvel,
                                                          const Scalar4 *d_vel,
                                                          const unsigned int *d_body,
+                                                         BoxDim box,
                                                          Scalar deltaT,
                                                          unsigned int N)
     {
@@ -278,20 +280,27 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
         // calculate the virial from the position and velocity from the previous step
         Scalar4 old_vel = d_oldvel[pidx];
         Scalar4 old_pos = d_oldpos[pidx];
+        Scalar3 o_p = make_scalar3(old_pos.x, old_pos.y, old_pos.z);
         Scalar4 vel = d_vel[pidx];
         Scalar mass = vel.w;
         Scalar4 net_force = d_net_force[pidx];
+        unsigned int bodyIdx = d_body[pidx];
+        Scalar3 bodyCOM = make_scalar3(d_body_com[bodyIdx].x,d_body_com[bodyIdx].y,d_body_com[bodyIdx].z);
+
+        Scalar3 rawdr = make_scalar3(o_p.x-bodyCOM.x, o_p.y-bodyCOM.y, o_p.z-bodyCOM.z);
+        Scalar3 dr = box.minImage(rawdr);
+
         Scalar3 fc;
         fc.x = mass * (vel.x - old_vel.x) / deltaT - net_force.x;
         fc.y = mass * (vel.y - old_vel.y) / deltaT - net_force.y;
         fc.z = mass * (vel.z - old_vel.z) / deltaT - net_force.z;
 
-        d_net_virial[0*virial_pitch+pidx] += old_pos.x * fc.x;
-        d_net_virial[1*virial_pitch+pidx] += old_pos.x * fc.y;
-        d_net_virial[2*virial_pitch+pidx] += old_pos.x * fc.z;
-        d_net_virial[3*virial_pitch+pidx] += old_pos.y * fc.y;
-        d_net_virial[4*virial_pitch+pidx] += old_pos.y * fc.z;
-        d_net_virial[5*virial_pitch+pidx] += old_pos.z * fc.z;
+        d_net_virial[0*virial_pitch+pidx] += dr.x * fc.x;
+        d_net_virial[1*virial_pitch+pidx] += dr.x * fc.y;
+        d_net_virial[2*virial_pitch+pidx] += dr.x * fc.z;
+        d_net_virial[3*virial_pitch+pidx] += dr.y * fc.y;
+        d_net_virial[4*virial_pitch+pidx] += dr.y * fc.z;
+        d_net_virial[5*virial_pitch+pidx] += dr.z * fc.z;
         }
     }
 
@@ -299,6 +308,7 @@ __global__ void gpu_compute_virial_correction_end_kernel(Scalar *d_net_virial,
     \param virial_pitch Pitch of d_net_virial
     \param d_net_force Net force on each particle
     \param d_oldpos Old position of particles saved at the start of the step
+    \param d_body_com Centres of mass of bodies to which particles belong
     \param d_oldvel Old velocity of particles saved at the start of the step
     \param d_vel Current velocity of particles at the end of the step
     \param d_body Body index of each particle
@@ -309,15 +319,18 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
                                               const unsigned int virial_pitch,
                                               const Scalar4 *d_net_force,
                                               const Scalar4 *d_oldpos,
+                                              const Scalar4 *d_body_com,
                                               const Scalar4 *d_oldvel,
                                               const Scalar4 *d_vel,
                                               const unsigned int *d_body,
+                                              const BoxDim& box,
                                               Scalar deltaT,
                                               unsigned int N)
     {
     assert(d_net_virial);
     assert(d_net_force);
     assert(d_oldpos);
+    assert(d_body_com);
     assert(d_oldvel);
     assert(d_vel);
 
@@ -329,9 +342,11 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
                                                                                   virial_pitch,
                                                                                   d_net_force,
                                                                                   d_oldpos,
+                                                                                  d_body_com,
                                                                                   d_oldvel,
                                                                                   d_vel,
                                                                                   d_body,
+                                                                                  box,
                                                                                   deltaT,
                                                                                   N);
 
