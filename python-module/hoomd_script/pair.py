@@ -419,9 +419,9 @@ class rcut:
     # \param self Python required self variable
     # \param rcut_obj The other rcut to merge in
     def merge(self,rcut_obj):
-        for pair,rc in rcut_obj.values.iteritems():
+        for pair in rcut_obj.values:
             (a,b) = pair;
-            self.merge_pair(a,b,rc);
+            self.merge_pair(a,b,rcut_obj.values[pair]);
         
     ## \internal
     # \brief Sanity check on rcut values
@@ -531,11 +531,11 @@ class nlist:
                 r_cut_max.merge(rcut_obj);
 
         self.r_cut = r_cut_max;
-        for pair,rc in self.r_cut.values.iteritems():
+        for pair in self.r_cut.values:
             (a,b) = pair
             i = globals.system_definition.getParticleData().getTypeByName(a);
             j = globals.system_definition.getParticleData().getTypeByName(b);
-            self.cpp_nlist.setRCutPair(i,j,rc);
+            self.cpp_nlist.setRCutPair(i,j, self.r_cut.values[pair]);
 
     ## \internal
     # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
