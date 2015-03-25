@@ -78,6 +78,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicAngleForceCompute.h"
 #include "TableAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
+#include "OPLSDihedralForceCompute.h"
 #include "TableDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
 #include "CGCMMAngleForceCompute.h"
@@ -158,6 +159,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicAngleForceComputeGPU.h"
 #include "TableAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
+#include "OPLSDihedralForceComputeGPU.h"
 #include "TableDihedralForceComputeGPU.h"
 #include "HarmonicImproperForceComputeGPU.h"
 #include "CGCMMAngleForceComputeGPU.h"
@@ -515,6 +517,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HarmonicAngleForceCompute();
     export_TableAngleForceCompute();
     export_HarmonicDihedralForceCompute();
+    export_OPLSDihedralForceCompute();
     export_TableDihedralForceCompute();
     export_HarmonicImproperForceCompute();
     export_CGCMMAngleForceCompute();
@@ -573,6 +576,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HarmonicAngleForceComputeGPU();
     export_TableAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
+    export_OPLSDihedralForceComputeGPU();
     export_TableDihedralForceComputeGPU();
     export_HarmonicImproperForceComputeGPU();
     export_CGCMMAngleForceComputeGPU();
