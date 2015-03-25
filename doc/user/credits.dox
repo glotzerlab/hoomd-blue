@@ -150,6 +150,9 @@ Trung Dac Nguyen, University of Michigan
 Ryan Marson, University of Michigan
  - unwrap_rigid option to dump.dcd
 
+Kevin Silmore, Princeton University
+ - OPLS dihedral
+
 David Tarjan, University of Virginia
  - performance tweaks to the neighbor list and pair force code
 

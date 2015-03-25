@@ -210,6 +210,7 @@ Table of contents:
 
 \section sec_index_dihedral Dihedral potentials
  - \link hoomd_script.dihedral.harmonic dihedral.harmonic\endlink - <i>Harmonic %dihedral force </i>
+ - \link hoomd_script.dihedral.opls dihedral.opls\endlink - <i>OPLS %dihedral force </i>
  - \link hoomd_script.dihedral.table dihedral.table\endlink - <i>Tabulated %dihedral force </i>
 
 \section sec_index_improper Improper potentials
