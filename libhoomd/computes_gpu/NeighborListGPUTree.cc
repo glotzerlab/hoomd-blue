@@ -107,7 +107,7 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
     buildTree();
     
     // walk with the tree
-    traverseTree();  
+    traverseTree();
     }
 
 void NeighborListGPUTree::allocateTree()
@@ -353,20 +353,12 @@ void NeighborListGPUTree::buildTree()
     mapParticlesByType();
     
     // (re-) allocate memory that depends on tree size
-    if (m_n_node > m_tree_parent_sib.getPitch())
-        {
-        m_tree_parent_sib.resize(m_n_node);
-        m_tree_aabbs.resize(2*m_n_node);
-        }
-    if (m_n_leaf > m_morton_codes_red.getPitch())
-        {
-        m_morton_codes_red.resize(m_n_leaf);
-        }
-    if (m_n_internal > m_node_left_child.getPitch())
-        {
-        m_node_left_child.resize(m_n_internal);
-        m_node_locks.resize(m_n_internal);
-        }
+    // GPUVector should only do this as needed
+    m_tree_parent_sib.resize(m_n_node);
+    m_tree_aabbs.resize(2*m_n_node);
+    m_morton_codes_red.resize(m_n_leaf);
+    m_node_left_child.resize(m_n_internal);
+    m_node_locks.resize(m_n_internal);
     
     // step four: merge leaf particles into aabbs by morton code
     mergeLeafParticles();   

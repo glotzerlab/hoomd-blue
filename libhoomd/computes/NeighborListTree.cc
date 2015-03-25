@@ -89,7 +89,7 @@ NeighborListTree::~NeighborListTree()
     }
 
 void NeighborListTree::buildNlist(unsigned int timestep)
-    {   
+    {  
     // allocate the memory as needed and sort particles
     setupTree();
     
@@ -231,10 +231,7 @@ void NeighborListTree::updateImageVectors()
     }
 
 void NeighborListTree::buildTree()
-    {
-    m_exec_conf->msg->notice(4) << "Building AABB tree: " << m_pdata->getN() << " ptls "
-                                << m_pdata->getNGhosts() << " ghosts" << endl;
-                                
+    {                           
     if (this->m_prof) this->m_prof->push("Build");
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     

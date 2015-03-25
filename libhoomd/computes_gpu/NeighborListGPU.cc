@@ -295,6 +295,7 @@ void NeighborListGPU::buildHeadList()
     unsigned int req_size_nlist = m_req_size_nlist.readFlags();
     if (req_size_nlist > m_nlist.getPitch())
         {
+        m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating neighbor list" << endl;
         GPUArray<unsigned int> nlist(req_size_nlist, exec_conf);
         m_nlist.swap(nlist);
         }
