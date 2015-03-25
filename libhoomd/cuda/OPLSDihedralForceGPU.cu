@@ -165,21 +165,21 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
             }
 
         // the three bonds
-        
+
         Scalar3 vb1 = pos_a - pos_b;
         Scalar3 vb2 = pos_c - pos_b;
         Scalar3 vb3 = pos_d - pos_c;
-        
+
         // apply periodic boundary conditions
         vb1 = box.minImage(vb1);
         vb2 = box.minImage(vb2);
         vb3 = box.minImage(vb3);
-        
+
         Scalar3 vb2m = -vb2;
         vb2m = box.minImage(vb2m);
 
         // c,s calculation
-        
+
         Scalar ax, ay, az, bx, by, bz;
         ax = vb1.y*vb2m.z - vb1.z*vb2m.y;
         ay = vb1.z*vb2m.x - vb1.x*vb2m.z;
@@ -205,7 +205,7 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
 
         if (c > 1.0) c = 1.0;
         if (c < -1.0) c = -1.0;
-        
+
         // get values for k1/2 through k4/2 (MEM TRANSFER: 16 bytes)
         // ----- The 1/2 factor is already stored in the parameters --------
         Scalar4 params = texFetchScalar4(d_params, dihedral_params_tex, cur_dihedral_type);
@@ -213,34 +213,34 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
         Scalar k2 = params.y;
         Scalar k3 = params.z;
         Scalar k4 = params.w;
-        
+
         // calculate the potential p = sum (i=1,4) k_i * (1 + (-1)**(i+1)*cos(i*phi) )
         // and df = dp/dc
-        
+
         // cos(phi) term
         Scalar ddf1 = c;
         Scalar df1 = s;
         Scalar cos_term = ddf1;
-        
+
         Scalar p = k1 * (1.0 + cos_term);
         Scalar df = k1*df1;
-        
+
         // cos(2*phi) term
         ddf1 = cos_term*c - df1*s;
         df1 = cos_term*s + df1*c;
         cos_term = ddf1;
-        
+
         p += k2 * (1.0 - cos_term);
         df += -2.0*k2*df1;
-        
+
         // cos(3*phi) term
         ddf1 = cos_term*c - df1*s;
         df1 = cos_term*s + df1*c;
         cos_term = ddf1;
-        
+
         p += k3 * (1.0 + cos_term);
         df += 3.0*k3*df1;
-        
+
         // cos(4*phi) term
         ddf1 = cos_term*c - df1*s;
         df1 = cos_term*s + df1*c;
@@ -289,10 +289,10 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
         f3.x = -sx2 - f4.x;
         f3.y = -sy2 - f4.y;
         f3.z = -sz2 - f4.z;
-        
+
         // Compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // upper triangular version of virial tensor
-        
+
         Scalar dihedral_virial[6];
         dihedral_virial[0] = 0.25*(vb1.x*f1.x + vb2.x*f3.x + (vb3.x+vb2.x)*f4.x);
         dihedral_virial[1] = 0.25*(vb1.y*f1.x + vb2.y*f3.x + (vb3.y+vb2.y)*f4.x);
@@ -326,7 +326,7 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
             force_idx.z += f4.z;
             }
         force_idx.w += e_dihedral;
-        
+
         for (int k = 0; k < 6; k++)
             virial_idx[k] += dihedral_virial[k];
         }

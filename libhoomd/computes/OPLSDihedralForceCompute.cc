@@ -115,7 +115,7 @@ void OPLSDihedralForceCompute::setParams(unsigned int type, Scalar k1, Scalar k2
         m_exec_conf->msg->error() << "dihedral.opls: Invalid dihedral type specified" << endl;
         throw runtime_error("Error setting parameters in OPLSDihedralForceCompute");
         }
-    
+
     // set parameters in m_params
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[type] = make_scalar4(k1/2.0, k2/2.0, k3/2.0, k4/2.0);
@@ -163,7 +163,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
     // access the force and virial tensor arrays
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-    
+
     // access parameter data
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
 
@@ -189,7 +189,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
     Scalar c,s,p,sx2,sy2,sz2,cos_term,e_dihedral;
     Scalar k1,k2,k3,k4;
     Scalar dihedral_virial[6];
-    
+
     // get a local copy of the simulation box
     const BoxDim& box = m_pdata->getBox();
 
@@ -203,13 +203,13 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
         assert(dihedral.tag[1] < m_pdata->getNGlobal());
         assert(dihedral.tag[2] < m_pdata->getNGlobal());
         assert(dihedral.tag[3] < m_pdata->getNGlobal());
-    
+
         // i1 to i4 are the tags
         i1 = h_rtag.data[dihedral.tag[0]];
         i2 = h_rtag.data[dihedral.tag[1]];
         i3 = h_rtag.data[dihedral.tag[2]];
         i4 = h_rtag.data[dihedral.tag[3]];
-        
+
         // throw an error if this angle is incomplete
         if (i1 == NOT_LOCAL|| i2 == NOT_LOCAL || i3 == NOT_LOCAL || i4 == NOT_LOCAL)
             {
@@ -218,7 +218,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
                 << " incomplete." << endl << endl;
             throw std::runtime_error("Error in dihedral calculation");
             }
-        
+
         assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
@@ -241,12 +241,12 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
         vb3.x = h_pos.data[i4].x - h_pos.data[i3].x;
         vb3.y = h_pos.data[i4].y - h_pos.data[i3].y;
         vb3.z = h_pos.data[i4].z - h_pos.data[i3].z;
-        
+
         // apply periodic boundary conditions
         vb1 = box.minImage(vb1);
         vb2 = box.minImage(vb2);
         vb3 = box.minImage(vb3);
-        
+
         vb2m.x = -vb2.x;
         vb2m.y = -vb2.y;
         vb2m.z = -vb2.z;
@@ -277,7 +277,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
 
         if (c > 1.0) c = 1.0;
         if (c < -1.0) c = -1.0;
-        
+
         // get values for k1/2 through k4/2
         // ----- The 1/2 factor is already stored in the parameters --------
         dihedral_type = m_dihedral_data->getTypeByIndex(n);
@@ -288,31 +288,31 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
 
         // calculate the potential p = sum (i=1,4) k_i * (1 + (-1)**(i+1)*cos(i*phi) )
         // and df = dp/dc
-        
+
         // cos(phi) term
         ddf1 = c;
         df1 = s;
         cos_term = ddf1;
-        
+
         p = k1 * (1.0 + cos_term);
         df = k1*df1;
-        
+
         // cos(2*phi) term
         ddf1 = cos_term*c - df1*s;
         df1 = cos_term*s + df1*c;
         cos_term = ddf1;
-        
+
         p += k2 * (1.0 - cos_term);
         df += -2.0*k2*df1;
-        
+
         // cos(3*phi) term
         ddf1 = cos_term*c - df1*s;
         df1 = cos_term*s + df1*c;
         cos_term = ddf1;
-        
+
         p += k3 * (1.0 + cos_term);
         df += 3.0*k3*df1;
-        
+
         // cos(4*phi) term
         ddf1 = cos_term*c - df1*s;
         df1 = cos_term*s + df1*c;
@@ -364,7 +364,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
         f3.y = -sy2 - f4.y;
         f3.z = -sz2 - f4.z;
         f3.w = e_dihedral;
-        
+
         // Apply force to each of the 4 atoms
         h_force.data[i1].x += f1.x;
         h_force.data[i1].y += f1.y;
@@ -382,7 +382,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
         h_force.data[i4].y += f4.y;
         h_force.data[i4].z += f4.z;
         h_force.data[i4].w += f4.w;
-        
+
         // Compute 1/4 of the virial, 1/4 for each atom in the dihedral
         // upper triangular version of virial tensor
         dihedral_virial[0] = 0.25*(vb1.x*f1.x + vb2.x*f3.x + (vb3.x+vb2.x)*f4.x);
@@ -391,7 +391,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
         dihedral_virial[3] = 0.25*(vb1.y*f1.y + vb2.y*f3.y + (vb3.y+vb2.y)*f4.y);
         dihedral_virial[4] = 0.25*(vb1.z*f1.y + vb2.z*f3.y + (vb3.z+vb2.z)*f4.y);
         dihedral_virial[5] = 0.25*(vb1.z*f1.z + vb2.z*f3.z + (vb3.z+vb2.z)*f4.z);
-        
+
         for (int k = 0; k < 6; k++)
             {
             h_virial.data[virial_pitch*k+i1]  += dihedral_virial[k];

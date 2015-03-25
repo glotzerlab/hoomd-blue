@@ -92,7 +92,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
 
     // create the dihedral force compute to check
     boost::shared_ptr<OPLSDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
-    
+
     // k1 = 1.5, k2 = 6.2, k3 = 1.7, k4 = 3.0
     fc_4->setParams(0, 1.5, 6.2, 1.7, 3.0);
 
@@ -130,7 +130,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
     unsigned int pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    
+
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, 6.40868096, tol);
     MY_BOOST_CHECK_SMALL(h_force_2.data[0].y, tol);
     MY_BOOST_CHECK_CLOSE(h_force_2.data[0].z, -9.61302145, tol);
@@ -219,7 +219,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_
                         +h_virial_3.data[3*pitch+3]
                         +h_virial_3.data[5*pitch+3], tol);
     }
-    
+
     {
     ArrayHandle<Scalar4> h_pos(pdata_4->getPositions(), access_location::host, access_mode::readwrite);
 
