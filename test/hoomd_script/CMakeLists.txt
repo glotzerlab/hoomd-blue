@@ -66,8 +66,8 @@ get_filename_component(_test_name ${test_py} NAME_WE)
 if (CMAKE_MINOR_VERSION GREATER 7)
 get_target_property(HOOMD_EXE hoomd LOCATION)
 # with CMake 2.8.x and newer, use the NAME COMMAND form of add test to run the built hoomd target
-add_test(NAME script-${_test_name}-racecheck-cpu COMMAND ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool racecheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
-add_test(NAME script-${_test_name}-memcheck-cpu COMMAND ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool memcheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
+add_test(NAME script-${_test_name}-racecheck-gpu COMMAND ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool racecheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
+add_test(NAME script-${_test_name}-memcheck-gpu COMMAND ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool memcheck ${HOOMD_EXE} ${test_py} "--mode=gpu")
 
 else (CMAKE_MINOR_VERSION GREATER 7)
 # with CMake 2.6.x, or shared builds use the old form of add_test to add a specific hoomd exename
