@@ -159,7 +159,7 @@ __device__ static T warp_reduce(unsigned int NT, int tid, T x, volatile T* share
             }
         __syncthreads();
         #else
-        x = __shfl_down(x, dest_count);
+        x += __shfl_down(x, dest_count, NT);
         #endif
         }
 
