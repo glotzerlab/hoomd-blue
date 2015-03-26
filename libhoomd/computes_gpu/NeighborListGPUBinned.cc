@@ -91,10 +91,19 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
     std::vector<unsigned int> valid_params;
+
+    unsigned int max_tpp = m_exec_conf->dev_prop.warpSize;
+    if (m_exec_conf->getComputeCapability() < 300)
+        {
+        // no wide parallelism on Fermi
+        max_tpp = 1;
+        }
+
     for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
         {
         int s=1;
-        while (s <= this->m_exec_conf->dev_prop.warpSize)
+
+        while (s <= max_tpp)
             {
             valid_params.push_back(block_size*10000 + s);
             s = s * 2;
@@ -225,7 +234,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         unsigned int block_size = param / 10000;
         unsigned int threads_per_particle = param % 10000;
 
-        gpu_compute_nlist_binned_shared(d_nlist.data,
+        gpu_compute_nlist_binned(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,
                                  m_conditions.getDeviceFlags(),
