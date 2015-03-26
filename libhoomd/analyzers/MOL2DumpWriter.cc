@@ -58,6 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "MOL2DumpWriter.h"
+#include "BondedGroupData.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -65,9 +68,6 @@ using namespace boost::python;
 #include <fstream>
 #include <stdexcept>
 #include <boost/shared_ptr.hpp>
-
-#include "MOL2DumpWriter.h"
-#include "BondedGroupData.h"
 
 using namespace std;
 

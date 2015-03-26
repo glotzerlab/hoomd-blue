@@ -54,11 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
-
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNVEGPU.cuh"
 #include "TwoStepBDNVTGPU.cuh"
@@ -66,6 +61,11 @@ using namespace boost;
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
+#include <boost/bind.hpp>
+using namespace boost;
 
 /*! \file TwoStepBDNVTGPU.h
     \brief Contains code for the TwoStepBDNVTGPU class

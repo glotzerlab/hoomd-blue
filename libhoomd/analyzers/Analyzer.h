@@ -60,11 +60,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __ANALYZER_H__
 #define __ANALYZER_H__
 
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
-
 #include "Profiler.h"
 #include "SystemDefinition.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
 
 /*! \ingroup hoomd_lib
     @{

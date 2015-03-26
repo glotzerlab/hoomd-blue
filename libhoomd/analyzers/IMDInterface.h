@@ -57,10 +57,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <boost/shared_ptr.hpp>
-
 #include "Analyzer.h"
 #include "ConstForceCompute.h"
+
+#include <boost/shared_ptr.hpp>
 
 #ifndef __IMD_INTERFACE_H__
 #define __IMD_INTERFACE_H__
@@ -104,6 +104,7 @@ class IMDInterface : public Analyzer
 
         bool m_is_initialized;  //!< True if the interface has been initialized
         int m_port;             //!< Port to listen on
+        unsigned int m_nglobal; //!< Initial number of particles
 
         boost::shared_ptr<ConstForceCompute> m_force;   //!< Force for applying IMD forces
         float m_force_scale;                            //!< Factor by which to scale all IMD forces

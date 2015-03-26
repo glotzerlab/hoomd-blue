@@ -59,12 +59,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include "QuaternionMath.h"
+#include "TwoStepNVTRigid.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "QuaternionMath.h"
-#include "TwoStepNVTRigid.h"
 #include <math.h>
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.

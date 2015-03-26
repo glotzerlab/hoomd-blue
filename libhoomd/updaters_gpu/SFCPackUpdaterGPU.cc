@@ -60,6 +60,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include "SFCPackUpdaterGPU.h"
+#include "SFCPackUpdaterGPU.cuh"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 using namespace boost;
@@ -69,9 +72,6 @@ using namespace boost;
 #include <algorithm>
 #include <fstream>
 #include <iostream>
-
-#include "SFCPackUpdaterGPU.h"
-#include "SFCPackUpdaterGPU.cuh"
 
 using namespace std;
 

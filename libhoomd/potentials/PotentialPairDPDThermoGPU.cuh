@@ -62,26 +62,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Index1D.h"
 #include <cassert>
 
+#include "PotentialPairGPU.cuh"
+
 //! Maximum number of threads (width of a dpd_warp)
 const unsigned int gpu_dpd_pair_force_max_tpp = 32;
-
-//! CTA reduce
-template<typename T>
-__device__ static T dpd_warp_reduce(unsigned int NT, int tid, T x, volatile T* shared)
-    {
-    shared[tid] = x;
-
-    for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
-        {
-        if (tid < dest_count)
-            {
-            x += shared[dest_count + tid];
-            shared[tid] = x;
-            }
-         }
-    T total = shared[0];
-    return total;
-    }
 
 //! args struct for passing additional options to gpu_compute_dpd_forces
 struct dpd_pair_args_t
@@ -268,21 +252,13 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
         idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
         }
 
+    bool active = true;
+
     if (idx >= N)
-        return;
-
-    // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
-    unsigned int n_neigh = d_n_neigh[idx];
-
-    // read in the position of our particle.
-    // (MEM TRANSFER: 16 bytes)
-    Scalar4 postypei = texFetchScalar4(d_pos, pdata_dpd_pos_tex, idx);
-    Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
-
-    // read in the velocity of our particle.
-    // (MEM TRANSFER: 16 bytes)
-    Scalar4 velmassi = texFetchScalar4(d_vel, pdata_dpd_vel_tex, idx);
-    Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
+        {
+        // need to mask this thread, but still participate in warp-level reduction (because of __syncthreads())
+        active = false;
+        }
 
     // initialize the force to 0
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -290,100 +266,122 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     for (unsigned int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
 
-    // prefetch neighbor index
-    const unsigned int head_idx = d_head_list[idx];
-    unsigned int cur_j = 0;
-    unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-        texFetchUint(d_nlist, nlist_tex, head_idx + threadIdx.x%tpp) : 0;
-
-    // this particle's tag
-    unsigned int tagi = d_tag[idx];
-
-    // loop over neighbors
-    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
-    // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
-    // inside the loop
-    for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
+    if (active)
         {
-        // read the current neighbor index (MEM TRANSFER: 4 bytes)
-        // prefetch the next value and set the current one
-        cur_j = next_j;
-        if (neigh_idx+tpp < n_neigh)
-            next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+tpp);
+        // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
+        unsigned int n_neigh = d_n_neigh[idx];
 
-        // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        Scalar4 postypej = texFetchScalar4(d_pos, pdata_dpd_pos_tex, cur_j);
-        Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+        // read in the position of our particle.
+        // (MEM TRANSFER: 16 bytes)
+        Scalar4 postypei = texFetchScalar4(d_pos, pdata_dpd_pos_tex, idx);
+        Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
 
-        // get the neighbor's position (MEM TRANSFER: 16 bytes)
-        Scalar4 velmassj = texFetchScalar4(d_vel, pdata_dpd_vel_tex, cur_j);
-        Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
+        // read in the velocity of our particle.
+        // (MEM TRANSFER: 16 bytes)
+        Scalar4 velmassi = texFetchScalar4(d_vel, pdata_dpd_vel_tex, idx);
+        Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
 
-        // calculate dr (with periodic boundary conditions) (FLOPS: 3)
-        Scalar3 dx = posi - posj;
+        // prefetch neighbor index
+        const unsigned int head_idx = d_head_list[idx];
+        unsigned int cur_j = 0;
+        unsigned int next_j = threadIdx.x%tpp < n_neigh ?
+            texFetchUint(d_nlist, nlist_tex, head_idx + threadIdx.x%tpp) : 0;
 
-        // apply periodic boundary conditions: (FLOPS 12)
-        dx = box.minImage(dx);
+        // this particle's tag
+        unsigned int tagi = d_tag[idx];
 
-        // calculate r squard (FLOPS: 5)
-        Scalar rsq = dot(dx,dx);
-
-        // calculate dv (FLOPS: 3)
-        Scalar3 dv = veli - velj;
-
-        Scalar rdotv = dot(dx, dv);
-
-        // access the per type pair parameters
-        unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
-        Scalar rcutsq = s_rcutsq[typpair];
-        typename evaluator::param_type param = s_params[typpair];
-
-        // design specifies that energies are shifted if
-        // 1) shift mode is set to shift
-        // or 2) shift mode is explor and ron > rcut
-        bool energy_shift = false;
-        if (shift_mode == 1)
-            energy_shift = true;
-
-        evaluator eval(rsq, rcutsq, param);
-
-        // evaluate the potential
-        Scalar force_divr = Scalar(0.0);
-        Scalar force_divr_cons = Scalar(0.0);
-        Scalar pair_eng = Scalar(0.0);
-
-        // Special Potential Pair DPD Requirements
-        // use particle i's and j's tags
-        unsigned int tagj = texFetchUint(d_tag, pdata_dpd_tag_tex, cur_j);
-        eval.set_seed_ij_timestep(d_seed,tagi,tagj,d_timestep);
-        eval.setDeltaT(d_deltaT);
-        eval.setRDotV(rdotv);
-        eval.setT(d_T);
-
-        eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
-
-        // calculate the virial (FLOPS: 3)
-        if (compute_virial)
+        // loop over neighbors
+        for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
             {
-            Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
-            virial[0] = dx.x * dx.x * force_div2r_cons;
-            virial[1] = dx.x * dx.y * force_div2r_cons;
-            virial[2] = dx.x * dx.z * force_div2r_cons;
-            virial[3] = dx.y * dx.y * force_div2r_cons;
-            virial[4] = dx.y * dx.z * force_div2r_cons;
-            virial[5] = dx.z * dx.z * force_div2r_cons;
+                {
+                // read the current neighbor index (MEM TRANSFER: 4 bytes)
+                // prefetch the next value and set the current one
+                cur_j = next_j;
+                if (neigh_idx+tpp < n_neigh)
+                    next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + tpp);
+
+                // get the neighbor's position (MEM TRANSFER: 16 bytes)
+                Scalar4 postypej = texFetchScalar4(d_pos, pdata_dpd_pos_tex, cur_j);
+                Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
+
+                // get the neighbor's position (MEM TRANSFER: 16 bytes)
+                Scalar4 velmassj = texFetchScalar4(d_vel, pdata_dpd_vel_tex, cur_j);
+                Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
+
+                // calculate dr (with periodic boundary conditions) (FLOPS: 3)
+                Scalar3 dx = posi - posj;
+
+                // apply periodic boundary conditions: (FLOPS 12)
+                dx = box.minImage(dx);
+
+                // calculate r squard (FLOPS: 5)
+                Scalar rsq = dot(dx,dx);
+
+                // calculate dv (FLOPS: 3)
+                Scalar3 dv = veli - velj;
+
+                Scalar rdotv = dot(dx, dv);
+
+                // access the per type pair parameters
+                unsigned int typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
+                Scalar rcutsq = s_rcutsq[typpair];
+                typename evaluator::param_type param = s_params[typpair];
+
+                // design specifies that energies are shifted if
+                // 1) shift mode is set to shift
+                // or 2) shift mode is explor and ron > rcut
+                bool energy_shift = false;
+                if (shift_mode == 1)
+                    energy_shift = true;
+
+                evaluator eval(rsq, rcutsq, param);
+
+                // evaluate the potential
+                Scalar force_divr = Scalar(0.0);
+                Scalar force_divr_cons = Scalar(0.0);
+                Scalar pair_eng = Scalar(0.0);
+
+                // Special Potential Pair DPD Requirements
+                // use particle i's and j's tags
+                unsigned int tagj = texFetchUint(d_tag, pdata_dpd_tag_tex, cur_j);
+                eval.set_seed_ij_timestep(d_seed,tagi,tagj,d_timestep);
+                eval.setDeltaT(d_deltaT);
+                eval.setRDotV(rdotv);
+                eval.setT(d_T);
+
+                eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
+
+                // calculate the virial (FLOPS: 3)
+                if (compute_virial)
+                    {
+                    Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
+                    virial[0] = dx.x * dx.x * force_div2r_cons;
+                    virial[1] = dx.x * dx.y * force_div2r_cons;
+                    virial[2] = dx.x * dx.z * force_div2r_cons;
+                    virial[3] = dx.y * dx.y * force_div2r_cons;
+                    virial[4] = dx.y * dx.z * force_div2r_cons;
+                    virial[5] = dx.z * dx.z * force_div2r_cons;
+                    }
+
+                // add up the force vector components (FLOPS: 7)
+                #if (__CUDA_ARCH__ >= 200)
+                force.x += dx.x * force_divr;
+                force.y += dx.y * force_divr;
+                force.z += dx.z * force_divr;
+                #else
+                // fmad causes momentum drift here, prevent it from being used
+                force.x += __fmul_rn(dx.x, force_divr);
+                force.y += __fmul_rn(dx.y, force_divr);
+                force.z += __fmul_rn(dx.z, force_divr);
+                #endif
+
+                force.w += pair_eng;
+                }
             }
 
-        // add up the force vector components (FLOPS: 7)
-        force.x += dx.x * force_divr;
-        force.y += dx.y * force_divr;
-        force.z += dx.z * force_divr;
-
-        force.w += pair_eng;
+        // potential energy per particle must be halved
+        force.w *= Scalar(0.5);
         }
-
-    // potential energy per particle must be halved
-    force.w *= Scalar(0.5);
 
     // we need to access a separate portion of shared memory to avoid race conditions
     const unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
@@ -395,22 +393,22 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     unsigned int cta_offs = (threadIdx.x/tpp)*tpp;
 
     // reduce force over threads in cta
-    force.x = dpd_warp_reduce(tpp, threadIdx.x % tpp, force.x, &sh[cta_offs]);
-    force.y = dpd_warp_reduce(tpp, threadIdx.x % tpp, force.y, &sh[cta_offs]);
-    force.z = dpd_warp_reduce(tpp, threadIdx.x % tpp, force.z, &sh[cta_offs]);
-    force.w = dpd_warp_reduce(tpp, threadIdx.x % tpp, force.w, &sh[cta_offs]);
+    force.x = warp_reduce(tpp, threadIdx.x % tpp, force.x, &sh[cta_offs]);
+    force.y = warp_reduce(tpp, threadIdx.x % tpp, force.y, &sh[cta_offs]);
+    force.z = warp_reduce(tpp, threadIdx.x % tpp, force.z, &sh[cta_offs]);
+    force.w = warp_reduce(tpp, threadIdx.x % tpp, force.w, &sh[cta_offs]);
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    if (threadIdx.x % tpp == 0)
+    if (active && threadIdx.x % tpp == 0)
         d_force[idx] = force;
 
     if (compute_virial)
         {
         for (unsigned int i = 0; i < 6; ++i)
-            virial[i] = dpd_warp_reduce(tpp, threadIdx.x % tpp, virial[0], &sh[cta_offs]);
+            virial[i] = warp_reduce(tpp, threadIdx.x % tpp, virial[0], &sh[cta_offs]);
 
         // if we are the first thread in the cta, write out virial to global mem
-        if (threadIdx.x %tpp == 0)
+        if (active && threadIdx.x %tpp == 0)
             for (unsigned int i = 0; i < 6; i++) d_virial[i*virial_pitch+idx] = virial[i];
         }
     }
@@ -490,7 +488,10 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                     grid.x = 65535;
                     }
 
-                shared_bytes += sizeof(Scalar)*block_size;
+                if (args.compute_capability < 30)
+                    {
+                    shared_bytes += sizeof(Scalar)*block_size;
+                    }
 
                 gpu_compute_dpd_forces_kernel<evaluator, 0, 1>
                                     <<<grid, block_size, shared_bytes>>>
@@ -531,7 +532,10 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                     grid.x = 65535;
                     }
 
-                shared_bytes += sizeof(Scalar)*block_size;
+                if (args.compute_capability < 30)
+                    {
+                    shared_bytes += sizeof(Scalar)*block_size;
+                    }
 
                 gpu_compute_dpd_forces_kernel<evaluator, 1, 1>
                                     <<<grid, block_size, shared_bytes>>>
@@ -580,7 +584,10 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                     grid.x = 65535;
                     }
 
-                shared_bytes += sizeof(Scalar)*block_size;
+                if (args.compute_capability < 30)
+                    {
+                    shared_bytes += sizeof(Scalar)*block_size;
+                    }
 
                 gpu_compute_dpd_forces_kernel<evaluator, 0, 0>
                                     <<<grid, block_size, shared_bytes>>>
@@ -621,7 +628,10 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                     grid.x = 65535;
                     }
 
-                shared_bytes += sizeof(Scalar)*block_size;
+                if (args.compute_capability < 30)
+                    {
+                    shared_bytes += sizeof(Scalar)*block_size;
+                    }
 
                 gpu_compute_dpd_forces_kernel<evaluator, 1, 0>
                                     <<<grid, block_size, shared_bytes>>>

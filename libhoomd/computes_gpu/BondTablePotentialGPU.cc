@@ -49,12 +49,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "BondTablePotentialGPU.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-#include "BondTablePotentialGPU.h"
 #include <stdexcept>
 
 /*! \file BondTablePotentialGPU.cc

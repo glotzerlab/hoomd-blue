@@ -58,12 +58,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "LJWallForceCompute.h"
+#include "WallData.h"
+
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 using namespace boost::python;
-
-#include "LJWallForceCompute.h"
-#include "WallData.h"
 #include <stdexcept>
 
 using namespace std;

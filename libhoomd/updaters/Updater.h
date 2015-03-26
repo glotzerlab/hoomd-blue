@@ -49,11 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
-
 #include "SystemDefinition.h"
 #include "Profiler.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
 
 #ifndef __UPDATER_H__
 #define __UPDATER_H__

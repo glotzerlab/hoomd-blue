@@ -49,13 +49,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-#include <limits>
-
 #include "Compute.h"
 #include "GPUArray.h"
 #include "ComputeThermoTypes.h"
 #include "ParticleGroup.h"
+
+#include <boost/shared_ptr.hpp>
+#include <limits>
 
 /*! \file ComputeThermo.h
     \brief Declares a class for computing thermodynamic quantities

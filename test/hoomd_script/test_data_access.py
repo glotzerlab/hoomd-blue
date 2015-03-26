@@ -95,6 +95,54 @@ class particle_data_access_tests (unittest.TestCase):
         self.assertAlmostEqual(3, t[2], 5)
         self.assertAlmostEqual(5, t[3], 5)
 
+        # add some particles
+        t0 = self.s.particles.add('A');
+        self.assertEqual(101, len(self.s.particles));
+        t1 = self.s.particles.add('A');
+        self.assertEqual(102, len(self.s.particles));
+        t2 = self.s.particles.add('A');
+        self.assertEqual(103, len(self.s.particles));
+
+        with self.assertRaises(RuntimeError):
+            self.s.particles.add('B');
+
+        self.assertEqual(self.s.particles[100].tag,t0);
+        self.assertEqual(self.s.particles.get(t0).tag,t0);
+
+        self.assertEqual(self.s.particles[101].tag,t1);
+        self.assertEqual(self.s.particles.get(t1).tag,t1);
+
+        self.assertEqual(self.s.particles[102].tag,t2);
+        self.assertEqual(self.s.particles.get(t2).tag,t2);
+
+        # check that we can get particle parameters
+        for p in self.s.particles:
+            p.tag
+            p.type
+            p.position
+
+        # check that we can set/get the position
+        self.s.particles.get(t2).position = (.5,.7,.9)
+        pos = self.s.particles.get(t2).position
+        self.assertAlmostEqual(pos[0],.5,5)
+        self.assertAlmostEqual(pos[1],.7,5)
+        self.assertAlmostEqual(pos[2],.9,5)
+
+        # mass shold be one
+        self.assertAlmostEqual(self.s.particles[100].mass,1.0,5)
+        self.assertAlmostEqual(self.s.particles[101].mass,1.0,5)
+        self.assertAlmostEqual(self.s.particles[102].mass,1.0,5)
+
+        # test deletion by tag
+        self.s.particles.remove(t1);
+        self.assertEqual(102, len(self.s.particles));
+
+        # test deletion by index
+        if self.s.particles[100].tag == t0:
+            del self.s.particles[100];
+        else:
+            del self.s.particles[101];
+
         t = self.s.particles.types
         self.assertEqual(len(t),1)
         self.assertEqual(t[0], 'A')
@@ -143,7 +191,6 @@ class bond_data_access_tests (unittest.TestCase):
             b.b
 
         ####################################
-        ## The bond deletion feature is currently disabled
         # test deletion by tag
         self.s.bonds.remove(b1);
         self.assertEqual(2, len(self.s.bonds));
@@ -155,6 +202,7 @@ class bond_data_access_tests (unittest.TestCase):
             del self.s.bonds[1];
 
         self.assertEqual(b2, self.s.bonds[0].tag);
+        self.assertEqual(b2, self.s.bonds.get(b2).tag);
         self.assertEqual(50, self.s.bonds[0].a);
         self.assertEqual(20, self.s.bonds[0].b);
         self.assertEqual('bondB', self.s.bonds[0].type);
@@ -190,6 +238,7 @@ class bond_data_access_tests (unittest.TestCase):
         else:
             del self.s.angles[1];
 
+        self.assertEqual(b2, self.s.angles.get(b2).tag);
         self.assertEqual(b2, self.s.angles[0].tag);
         self.assertEqual(50, self.s.angles[0].a);
         self.assertEqual(20, self.s.angles[0].b);
@@ -229,6 +278,7 @@ class bond_data_access_tests (unittest.TestCase):
             del self.s.dihedrals[1];
 
         self.assertEqual(b2, self.s.dihedrals[0].tag);
+        self.assertEqual(b2, self.s.dihedrals.get(b2).tag);
         self.assertEqual(50, self.s.dihedrals[0].a);
         self.assertEqual(20, self.s.dihedrals[0].b);
         self.assertEqual(10, self.s.dihedrals[0].c);
@@ -273,6 +323,23 @@ class bond_data_access_tests (unittest.TestCase):
         self.assertEqual(10, self.s.impropers[0].c);
         self.assertEqual(1, self.s.impropers[0].d);
         self.assertEqual('improperB', self.s.impropers[0].type);
+
+    # test that removing a particle invalidates the corresponding bond
+    def test_remove_bonded_particle(self):
+        # add some bonds
+        b0 = self.s.bonds.add('bondA', 0, 1);
+        self.assertEqual(1, len(self.s.bonds));
+        b1 = self.s.bonds.add('bondA', 10, 11);
+        self.assertEqual(2, len(self.s.bonds));
+        b2 = self.s.bonds.add('bondB', 50, 20);
+        self.assertEqual(3, len(self.s.bonds));
+
+        l = len(self.s.particles)
+        del(self.s.particles[50])
+        self.assertEqual(len(self.s.particles),l-1)
+        l_bonds = len(self.s.bonds)
+        with self.assertRaises(RuntimeError):
+            ptag = self.s.bonds[l_bonds-1].a
 
     def tearDown(self):
         del self.s

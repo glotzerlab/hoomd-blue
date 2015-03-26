@@ -49,6 +49,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "TwoStepNVTGPU.h"
+#include "TwoStepNVTGPU.cuh"
+
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "HOOMDMPI.h"
+#endif
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4244 )
@@ -58,14 +66,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
-
-#include "TwoStepNVTGPU.h"
-#include "TwoStepNVTGPU.cuh"
-
-#ifdef ENABLE_MPI
-#include "Communicator.h"
-#include "HOOMDMPI.h"
-#endif
 
 /*! \file TwoStepNVTGPU.h
     \brief Contains code for the TwoStepNVTGPU class

@@ -74,7 +74,7 @@ class Communicator;
 #endif
 
 //! Forward declaration of SnapshotSytemData
-class SnapshotSystemData;
+struct SnapshotSystemData;
 
 //! Container class for all data needed to define the MD system
 /*! SystemDefinition is a big bucket where all of the data defining the MD system goes.

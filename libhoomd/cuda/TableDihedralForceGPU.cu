@@ -116,7 +116,7 @@ __global__ void gpu_compute_table_dihedral_forces_kernel(Scalar4* d_force,
         return;
 
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_dihedrals =n_dihedrals_list[idx];
+    int n_dihedrals = n_dihedrals_list[idx];
 
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
     Scalar4 idx_postype = device_pos[idx];  // we can be either a, b, or c in the a-b-c triplet

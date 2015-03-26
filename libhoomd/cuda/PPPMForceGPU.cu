@@ -1102,7 +1102,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     Scalar rsq = dot(dx,dx);
                     Scalar r = sqrtf(rsq);
                     Scalar qiqj = qi * qj;
-                    Scalar erffac = erf(kappa * r) / r;
+                    Scalar erffac = ::erf(kappa * r) / r;
                     Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * kappa * kappa) * kappa / (sqrtpi * rsq) + erffac / rsq);
                     Scalar pair_eng = qiqj * erffac;
 

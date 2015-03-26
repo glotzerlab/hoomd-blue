@@ -55,12 +55,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborListBinned.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 NeighborListBinned::NeighborListBinned(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,

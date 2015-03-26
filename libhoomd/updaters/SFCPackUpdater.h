@@ -62,14 +62,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 )
 #endif
 
+#include "Updater.h"
+#include "NeighborList.h"
+#include "GPUVector.h"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
-
-#include "Updater.h"
-#include "NeighborList.h"
-#include "GPUVector.h"
 
 #ifndef __SFCPACK_UPDATER_H__
 #define __SFCPACK_UPDATER_H__

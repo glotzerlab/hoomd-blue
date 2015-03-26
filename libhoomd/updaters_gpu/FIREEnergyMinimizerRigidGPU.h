@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
+#include "FIREEnergyMinimizerRigid.h"
+
 #include <boost/shared_ptr.hpp>
 
 #ifndef __FIRE_ENERGY_MINIMIZER_RIGID_GPU_H__
 #define __FIRE_ENERGY_MINIMIZER_RIGID_GPU_H__
-
-#include "FIREEnergyMinimizerRigid.h"
 
 /*! \file FIREEnergyMinimizerRigidGPU.h
     \brief Declares a class for rigid body energy minimization on GPU

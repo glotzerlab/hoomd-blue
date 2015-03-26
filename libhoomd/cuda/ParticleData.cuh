@@ -66,12 +66,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 const unsigned int NO_BODY = 0xffffffff;
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
-
-#ifdef ENABLE_MPI
-//! Sentinel value in \a r_tag to signify that the particle is to be removed from the local processor
-const unsigned int STAGED = 0xfffffffe;
-#endif
-
 #endif
 
 #ifdef NVCC
@@ -90,7 +84,7 @@ struct pdata_element
     };
 #else
 //!Forward declaration
-class pdata_element;
+struct pdata_element;
 #endif
 
 //! Pack particle data into output buffer and remove marked particles

@@ -75,7 +75,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __HOOMD_BINARY_INITIALIZER_H__
 
 //! Forward definition of SnapshotSystemData
-class SnapshotSystemData;
+struct SnapshotSystemData;
 
 //! Initializes particle data from a Hoomd input file
 /*! The input XML file format is identical to the output XML file format that HOOMDDumpWriter writes.

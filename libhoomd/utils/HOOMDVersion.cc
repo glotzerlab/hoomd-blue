@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "HOOMDVersion.h"
 #include <iostream>
 #include <string>
 
 using namespace std;
 
-#include "HOOMDVersion.h"
 /*! \file HOOMDVersion.cc
     \brief Defines functions for writing compile time version information to the screen.
 
@@ -94,8 +94,28 @@ void output_version_info(bool verbose)
     cout << " SSE";
     #endif
 
+    #ifdef __SSE2__
+    cout << " SSE2";
+    #endif
+
+    #ifdef __SSE3__
+    cout << " SSE3";
+    #endif
+
+    #ifdef __SSE4_1__
+    cout << " SSE4_1";
+    #endif
+
+    #ifdef __SSE4_2__
+    cout << " SSE4_2";
+    #endif
+
     #ifdef __AVX__
     cout << " AVX";
+    #endif
+
+    #ifdef __AVX2__
+    cout << " AVX2";
     #endif
 
     cout << endl;

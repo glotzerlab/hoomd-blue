@@ -51,6 +51,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __EXECUTION_CONFIGURATION__
 #define __EXECUTION_CONFIGURATION__
 
+#ifdef ENABLE_MPI
+#include <mpi.h>
+#endif
+
 #include <vector>
 #include <string>
 #include <boost/shared_ptr.hpp>
@@ -61,9 +65,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
-#ifdef ENABLE_MPI
-#include <mpi.h>
-#endif
 
 #include "Messenger.h"
 
@@ -79,6 +80,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Forward declaration
 class CachedAllocator;
 #endif
+
+// values used in measuring hoomd launch timing
+extern unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
+extern bool hoomd_launch_timing;
 
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs

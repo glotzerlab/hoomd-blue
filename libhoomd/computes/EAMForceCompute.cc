@@ -55,13 +55,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include "HOOMDInitializer.h"
+#include "EAMForceCompute.h"
+
 #include <boost/python.hpp>
 #include <boost/dynamic_bitset.hpp>
 using namespace boost;
 using namespace boost::python;
-
-#include "HOOMDInitializer.h"
-#include "EAMForceCompute.h"
 #include <stdexcept>
 
 /*! \file EAMForceCompute.cc

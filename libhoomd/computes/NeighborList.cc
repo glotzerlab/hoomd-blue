@@ -49,19 +49,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#endif
+
+#include "NeighborList.h"
+#include "BondedGroupData.h"
+
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 using namespace boost::python;
 
-#ifdef ENABLE_MPI
-#include "Communicator.h"
-#endif
-
 #include <boost/bind.hpp>
-
-#include "NeighborList.h"
-#include "BondedGroupData.h"
 
 #include <sstream>
 #include <fstream>
@@ -158,10 +158,12 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
-    GPUArray<unsigned int> n_ex_tag(m_pdata->getNGlobal(), exec_conf);
+
+    // note: this breaks O(N/P) memory scaling
+    GPUArray<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
 
-    GPUArray<unsigned int> ex_list_tag(m_pdata->getNGlobal(), 1, exec_conf);
+    GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
 
     GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
@@ -184,6 +186,8 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     // connect to type change to resize type data arrays
     m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborList::reallocateTypes, this));
 
+    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&NeighborList::slotGlobalParticleNumberChange, this));
+
     // allocate m_update_periods tracking info
     m_update_periods.resize(100);
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
@@ -203,10 +207,10 @@ void NeighborList::reallocate()
     m_head_list.resize(m_pdata->getMaxN());
     m_n_neigh.resize(m_pdata->getMaxN());
 
-    if (m_n_ex_tag.getNumElements() != m_pdata->getNGlobal())
+    if (m_n_ex_tag.getNumElements() != m_pdata->getRTags().size())
         {
-        m_n_ex_tag.resize(m_pdata->getNGlobal());
-        m_ex_list_tag.resize(m_pdata->getNGlobal(), m_ex_list_tag.getHeight());
+        m_n_ex_tag.resize(m_pdata->getRTags().size());
+        m_ex_list_tag.resize(m_pdata->getRTags().size(), m_ex_list_tag.getHeight());
         m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
 
         // clear all exclusions
@@ -238,6 +242,7 @@ NeighborList::~NeighborList()
 
     m_sort_connection.disconnect();
     m_max_particle_num_change_connection.disconnect();
+    m_global_particle_num_change_connection.disconnect();
 #ifdef ENABLE_MPI
     if (m_migrate_request_connection.connected())
         m_migrate_request_connection.disconnect();
@@ -503,8 +508,8 @@ Scalar NeighborList::estimateNNeigh()
 */
 void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     {
-    assert(tag1 < m_pdata->getNGlobal());
-    assert(tag2 < m_pdata->getNGlobal());
+    assert(tag1 <= m_pdata->getMaximumTag());
+    assert(tag2 <= m_pdata->getMaximumTag());
 
     m_exclusions_set = true;
 
@@ -561,7 +566,7 @@ void NeighborList::clearExclusions()
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
-    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getNGlobal());
+    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getRTags().size());
     memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_pdata->getN());
     m_exclusions_set = false;
 
@@ -573,24 +578,17 @@ unsigned int NeighborList::getNumExclusions(unsigned int size)
     {
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
     unsigned int count = 0;
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    unsigned int ntags = m_pdata->getRTags().size();
+    for (unsigned int tag = 0; tag <= ntags; tag++)
         {
-        unsigned int num_excluded = h_n_ex_tag.data[i];
+        if (! m_pdata->isTagActive(tag))
+            {
+            continue;
+            }
+        unsigned int num_excluded = h_n_ex_tag.data[tag];
 
         if (num_excluded == size) count++;
         }
-
-    #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        MPI_Allreduce(MPI_IN_PLACE,
-                      &count,
-                      1,
-                      MPI_INT,
-                      MPI_SUM,
-                      m_exec_conf->getMPICommunicator());
-        }
-    #endif
 
     return count;
     }
@@ -609,7 +607,8 @@ void NeighborList::countExclusions()
     for (unsigned int c=0; c <= MAX_COUNT_EXCLUDED+1; ++c)
         excluded_count[c] = 0;
 
-    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
+    unsigned int max_tag = m_pdata->getRTags().size();
+    for (unsigned int i = 0; i < max_tag; i++)
         {
         num_excluded = h_n_ex_tag.data[i];
 
@@ -758,8 +757,8 @@ void NeighborList::addExclusionsFromDihedrals()
 */
 bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
-    assert(tag1 < m_pdata->getNGlobal());
-    assert(tag2 < m_pdata->getNGlobal());
+    assert(tag1 <= m_pdata->getMaximumTag());
+    assert(tag2 <= m_pdata->getMaximumTag());
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::read);
@@ -784,7 +783,7 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
 void NeighborList::addOneThreeExclusionsFromTopology()
     {
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getNGlobal();
+    const unsigned int myNAtoms = m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
 
@@ -801,7 +800,10 @@ void NeighborList::addOneThreeExclusionsFromTopology()
     for (unsigned int i = 0; i < nBonds; i++)
         {
         // loop over all bonds and make a 1D exlcusion map
+
+        // FIXME: this will not work when the group tags are not contiguous
         Bond bondi = bond_data->getGroupByTag(i);
+
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
 
@@ -860,7 +862,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 void NeighborList::addOneFourExclusionsFromTopology()
     {
     boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-    const unsigned int myNAtoms = m_pdata->getNGlobal();
+    const unsigned int myNAtoms = m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
 
@@ -906,6 +908,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
     //  loop over all bonds
     for (unsigned int i = 0; i < nBonds; i++)
         {
+        // FIXME: this will not work when the group tags are not contiguous
         Bond bondi = bond_data->getGroupByTag(i);
         const unsigned int tagA = bondi.a;
         const unsigned int tagB = bondi.b;
@@ -1383,7 +1386,7 @@ void NeighborList::growExclusionList()
     {
     unsigned int new_height = m_ex_list_indexer.getH() + 1;
 
-    m_ex_list_tag.resize(m_pdata->getNGlobal(), new_height);
+    m_ex_list_tag.resize(m_pdata->getRTags().size(), new_height);
     m_ex_list_idx.resize(m_pdata->getMaxN(), new_height);
 
     // update the indexers

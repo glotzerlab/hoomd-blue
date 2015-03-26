@@ -54,12 +54,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 4267 )
 #endif
 
+#include "TablePotential.h"
+
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 using namespace boost::python;
-
-#include "TablePotential.h"
 
 #include <stdexcept>
 
