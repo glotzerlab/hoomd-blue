@@ -156,6 +156,9 @@ Kevin Silmore, Princeton University
 David Tarjan, University of Virginia
  - performance tweaks to the neighbor list and pair force code
 
+Sumedh R. Risbud, James W. Swan, Massachusetts Institute of Technology
+ - bug fixes for rigid body virial corrections
+
 <hr>
 <h1>Source code</h1>
 <hr>
