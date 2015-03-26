@@ -404,7 +404,8 @@ void NeighborListGPUTree::calcMortonCodes()
                            d_map_tree_global.data,
                            m_morton_conditions.getDeviceFlags(),
                            d_pos.data,
-                           m_pdata->getN() + m_pdata->getNGhosts(),
+                           m_pdata->getN(),
+                           m_pdata->getNGhosts(),
                            box,
                            ghost_width,
                            m_tuner_morton->getParam());
@@ -413,21 +414,15 @@ void NeighborListGPUTree::calcMortonCodes()
     m_tuner_morton->end();
     
     const int morton_conditions = m_morton_conditions.readFlags();
-    if (morton_conditions > 0)
+    if (morton_conditions >= 0)
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         Scalar4 post_i = h_pos.data[morton_conditions];
-        // ghost particle
-        if (morton_conditions > (int)m_pdata->getN())
-            {            
-            m_exec_conf->msg->error() << "nlist: Ghost particle " << morton_conditions << " out of bounds "
-                                      << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z << ")" <<endl;
-            }
-        else // regular particle
-            {
-            m_exec_conf->msg->error() << "nlist: Particle " << morton_conditions << " is out of bounds "
-                                      << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z << ")" <<endl;
-            }
+        Scalar3 pos_i = make_scalar3(post_i.x, post_i.y, post_i.z);
+        Scalar3 f = box.makeFraction(pos_i, ghost_width);
+        m_exec_conf->msg->error() << "nlist: Particle " << morton_conditions << " is out of bounds "
+                                  << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z
+                                  << ", fx: "<< f.x <<", fy: "<<f.y<<", fz:"<<f.z<<")"<<endl;
         throw runtime_error("Error updating neighborlist");
         }
                            

@@ -79,6 +79,7 @@ cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
                                    int *d_morton_conditions,
                                    const Scalar4 *d_pos,
                                    const unsigned int N,
+                                   const unsigned int nghosts,
                                    const BoxDim& box,
                                    const Scalar3 ghost_width,
                                    const unsigned int block_size);

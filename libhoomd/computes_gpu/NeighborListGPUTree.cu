@@ -92,6 +92,7 @@ __global__ void gpu_nlist_morton_codes_kernel(uint64_t *d_morton_codes,
                                               int *d_morton_conditions,
                                               const Scalar4 *d_pos,
                                               const unsigned int N,
+                                              const unsigned int nghosts,
                                               const BoxDim box,
                                               const Scalar3 ghost_width)
     {
@@ -99,7 +100,7 @@ __global__ void gpu_nlist_morton_codes_kernel(uint64_t *d_morton_codes,
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     // quit now if this thread is processing past the end of the particle list
-    if (idx >= N)
+    if (idx >= N+nghosts)
         return;
     
     // acquire particle data
@@ -112,31 +113,77 @@ __global__ void gpu_nlist_morton_codes_kernel(uint64_t *d_morton_codes,
 
     // check if the particle is inside the unit cell + ghost layer in all dimensions
     // this tolerance is small enough that when we multiply by the morton code bin size, we are still in range
+    // we silently ignore ghosts outside of this width, and instead deal with that special case below
+    // where extra ghosts are communicated
     if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
         (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
-        (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)) )
+        (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)) && idx < N)
         {
         *d_morton_conditions = idx;
         return;
         }
 
     // find the bin each particle belongs in
-    unsigned int ib = f.x * MORTON_CODE_N_BINS;
-    unsigned int jb = f.y * MORTON_CODE_N_BINS;
-    unsigned int kb = f.z * MORTON_CODE_N_BINS;
+    int ib = (int)(f.x * MORTON_CODE_N_BINS);
+    int jb = (int)(f.y * MORTON_CODE_N_BINS);
+    int kb = (int)(f.z * MORTON_CODE_N_BINS);
 
-    // need to handle the case where the particle is exactly at the box hi
-    if (ib == MORTON_CODE_N_BINS && periodic.x)
+    if (!periodic.x) // ghosts exist and may be past layer width
+        {
+        // handle special cases where random ghosts are beyond the expected layer
+        // by just rounding to the nearest edge
+        if (ib < 0)
+            {
+            ib = 0;
+            }
+        else if (ib >= MORTON_CODE_N_BINS)
+            {
+            ib = MORTON_CODE_N_BINS - 1;
+            }
+        }
+    else if (ib == MORTON_CODE_N_BINS) // some particles lie exactly on the edge, floor them to zero
+        {
         ib = 0;
-    if (jb == MORTON_CODE_N_BINS && periodic.y)
+        }
+
+    // do as for x in y
+    if (!periodic.y)
+        {
+        if (jb < 0)
+            {
+            jb = 0;
+            }
+        else if (jb >= MORTON_CODE_N_BINS)
+            {
+            jb = MORTON_CODE_N_BINS - 1;
+            }
+        }
+    else if (jb == MORTON_CODE_N_BINS)
+        {
         jb = 0;
-    if (kb == MORTON_CODE_N_BINS && periodic.z)
+        }
+
+    // do as for y in z
+    if (!periodic.z)
+        {
+        if (kb < 0)
+            {
+            kb = 0;
+            }
+        else if (kb >= MORTON_CODE_N_BINS)
+            {
+            kb = MORTON_CODE_N_BINS - 1;
+            }
+        }
+    else if (kb == MORTON_CODE_N_BINS)
+        {
         kb = 0;
+        }
     
     // inline call to some bit swizzling arithmetic
-    unsigned int ii = expandBits(ib);
-    unsigned int jj = expandBits(jb);
-    unsigned int kk = expandBits(kb);
+    unsigned int ii = expandBits((unsigned int)ib);
+    unsigned int jj = expandBits((unsigned int)jb);
+    unsigned int kk = expandBits((unsigned int)kb);
     unsigned int morton_code = ii * 4 + jj * 2 + kk;
     
     // save the morton code and corresponding particle index for sorting
@@ -150,6 +197,7 @@ cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
                                    int *d_morton_conditions,
                                    const Scalar4 *d_pos,
                                    const unsigned int N,
+                                   const unsigned int nghosts,
                                    const BoxDim& box,
                                    const Scalar3 ghost_width,
                                    const unsigned int block_size)
@@ -164,13 +212,14 @@ cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
 
     int run_block_size = min(block_size,max_block_size);
     
-    gpu_nlist_morton_codes_kernel<<<N/run_block_size + 1, run_block_size>>>(d_morton_codes,
-                                                                            d_map_tree_global,
-                                                                            d_morton_conditions,
-                                                                            d_pos,
-                                                                            N,
-                                                                            box,
-                                                                            ghost_width);
+    gpu_nlist_morton_codes_kernel<<<(N+nghosts)/run_block_size + 1, run_block_size>>>(d_morton_codes,
+                                                                                      d_map_tree_global,
+                                                                                      d_morton_conditions,
+                                                                                      d_pos,
+                                                                                      N,
+                                                                                      nghosts,
+                                                                                      box,
+                                                                                      ghost_width);
     return cudaSuccess;
     }
     
