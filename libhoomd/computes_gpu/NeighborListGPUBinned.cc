@@ -101,7 +101,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
 
     for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
         {
-        int s=1;
+        unsigned int s=1;
 
         while (s <= max_tpp)
             {

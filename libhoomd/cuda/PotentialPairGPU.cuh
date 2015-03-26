@@ -144,6 +144,26 @@ struct pair_args_t
     };
 
 #ifdef NVCC
+
+#if (__CUDA_ARCH__ >= 300)
+// need this wrapper here for CUDA toolkit versions (<6.5) which do not provide a
+// double specialization
+__device__ inline
+double __my_shfl_down(double var, unsigned int srcLane, int width=32)
+    {
+    int2 a = *reinterpret_cast<int2*>(&var);
+    a.x = __shfl_down(a.x, srcLane, width);
+    a.y = __shfl_down(a.y, srcLane, width);
+    return *reinterpret_cast<double*>(&a);
+    }
+
+__device__ inline
+float __my_shfl_down(float var, unsigned int srcLane, int width=32)
+    {
+    return __shfl_down(var, srcLane, width);
+    }
+#endif
+
 //! CTA reduce, returns result in first thread
 template<typename T>
 __device__ static T warp_reduce(unsigned int NT, int tid, T x, volatile T* shared)
@@ -162,7 +182,7 @@ __device__ static T warp_reduce(unsigned int NT, int tid, T x, volatile T* share
             }
         __syncthreads();
         #else
-        x = __shfl_down(x, dest_count);
+        x += __my_shfl_down(x, dest_count, NT);
         #endif
         }
 
