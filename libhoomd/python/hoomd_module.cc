@@ -58,13 +58,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "HOOMDMath.h"
+#include "ExecutionConfiguration.h"
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
 #include "RigidData.h"
 #include "SystemDefinition.h"
 #include "BondedGroupData.h"
-#include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
 #include "HOOMDBinaryInitializer.h"
@@ -78,6 +78,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicAngleForceCompute.h"
 #include "TableAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
+#include "OPLSDihedralForceCompute.h"
 #include "TableDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
 #include "CGCMMAngleForceCompute.h"
@@ -106,6 +107,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegrationMethodTwoStep.h"
 #include "TwoStepNVE.h"
 #include "TwoStepNVT.h"
+#include "TwoStepNVTMTK.h"
 #include "TwoStepBDNVT.h"
 #include "TwoStepNPTMTK.h"
 #include "TwoStepBerendsen.h"
@@ -141,6 +143,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNPTMTKGPU.h"
+#include "TwoStepNVTMTKGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepNVERigidGPU.h"
 #include "TwoStepNVTRigidGPU.h"
@@ -156,6 +159,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicAngleForceComputeGPU.h"
 #include "TableAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
+#include "OPLSDihedralForceComputeGPU.h"
 #include "TableDihedralForceComputeGPU.h"
 #include "HarmonicImproperForceComputeGPU.h"
 #include "CGCMMAngleForceComputeGPU.h"
@@ -198,6 +202,7 @@ using namespace boost::python;
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
 using namespace std;
 
 /*! \file hoomd_module.cc
@@ -372,6 +377,11 @@ void cuda_profile_stop()
     #endif
     }
 
+// values used in measuring hoomd launch timing
+unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
+bool hoomd_launch_timing=false;
+
+
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
@@ -385,8 +395,29 @@ void initialize_mpi()
     putenv(env_enable_mpi_cuda);
     #endif
 
+    // benchmark hoomd launch times
+    if (getenv("HOOMD_LAUNCH_TIME"))
+        {
+        // get the time that mpirun was called
+        hoomd_launch_time = atoi(getenv("HOOMD_LAUNCH_TIME"));
+
+        // compute the number of seconds to get here
+        timeval t;
+        gettimeofday(&t, NULL);
+        hoomd_start_time = t.tv_sec - hoomd_launch_time;
+        hoomd_launch_timing = true;
+        }
+
     // initalize MPI
     MPI_Init(0, (char ***) NULL);
+
+    if (hoomd_launch_timing)
+        {
+        // compute the number of seconds to get past mpi_init
+        timeval t;
+        gettimeofday(&t, NULL);
+        hoomd_mpi_init_time = t.tv_sec - hoomd_launch_time;
+        }
     }
 
 //! Finalize MPI environment
@@ -486,6 +517,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HarmonicAngleForceCompute();
     export_TableAngleForceCompute();
     export_HarmonicDihedralForceCompute();
+    export_OPLSDihedralForceCompute();
     export_TableDihedralForceCompute();
     export_HarmonicImproperForceCompute();
     export_CGCMMAngleForceCompute();
@@ -544,6 +576,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HarmonicAngleForceComputeGPU();
     export_TableAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
+    export_OPLSDihedralForceComputeGPU();
     export_TableDihedralForceComputeGPU();
     export_HarmonicImproperForceComputeGPU();
     export_CGCMMAngleForceComputeGPU();
@@ -577,6 +610,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BoxResizeUpdater();
     export_TwoStepNVE();
     export_TwoStepNVT();
+    export_TwoStepNVTMTK();
     export_TwoStepBDNVT();
     export_TwoStepNPTMTK();
     export_Berendsen();
@@ -592,6 +626,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_SFCPackUpdaterGPU();
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
+    export_TwoStepNVTMTKGPU();
     export_TwoStepBDNVTGPU();
     export_TwoStepNPTMTKGPU();
     export_BerendsenGPU();

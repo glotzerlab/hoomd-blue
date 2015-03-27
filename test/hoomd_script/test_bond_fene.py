@@ -31,6 +31,15 @@ class bond_fene_tests (unittest.TestCase):
         integrate.nve(all);
         run(100);
 
+    # test integrating with a zero force constant
+    def test_zero_coeff(self):
+        fene = bond.fene();
+        fene.bond_coeff.set('polymer', k=0.0, r0=.001, sigma=1.0, epsilon=0)
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
+        run(100);
+
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         fene = bond.fene();

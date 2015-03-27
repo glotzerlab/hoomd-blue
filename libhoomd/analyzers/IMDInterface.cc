@@ -58,11 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include <boost/python.hpp>
-#include <boost/shared_array.hpp>
-using namespace boost::python;
-using namespace boost;
-
 #include "IMDInterface.h"
 #include "SignalHandler.h"
 
@@ -70,6 +65,11 @@ using namespace boost;
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+#include <boost/shared_array.hpp>
+using namespace boost::python;
+using namespace boost;
 
 #include "vmdsock.h"
 #include "imd.h"
@@ -157,6 +157,7 @@ void IMDInterface::initConnection()
     m_exec_conf->msg->notice(2) << "analyze.imd: listening on port " << m_port << endl;
 
     m_is_initialized = true;
+    m_nglobal = m_pdata->getNGlobal();
     }
 
 IMDInterface::~IMDInterface()
@@ -200,6 +201,14 @@ void IMDInterface::analyze(unsigned int timestep)
     if (! m_is_initialized)
         initConnection();
 #endif
+
+    if (m_nglobal != m_pdata->getNGlobal())
+        {
+        m_exec_conf->msg->error() << "analyze.imd: Change in number of particles unsupported by IMD."
+            << std::endl;
+        throw std::runtime_error("Error sending IMD data");
+        }
+
         {
         m_count++;
 

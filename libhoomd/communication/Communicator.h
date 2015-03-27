@@ -626,6 +626,23 @@ class Communicator
             m_impropers_changed = true;
             }
 
+        //! Remove tags of ghost particles
+        virtual void removeGhostParticleTags();
+
+        // check if box is sufficiently large for communication
+        void checkBoxSize()
+            {
+            Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
+            const Index3D& di = m_decomposition->getDomainIndexer();
+            if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
+                (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
+                (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
+                {
+                m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
+                throw std::runtime_error("Error during communication");
+                }
+            }
+
     private:
         std::vector<pdata_element> m_sendbuf;  //!< Buffer for particles that are sent
         std::vector<pdata_element> m_recvbuf;  //!< Buffer for particles that are received
@@ -648,8 +665,18 @@ class Communicator
         //! Connection to the signal notifying when particles are resorted
         boost::signals2::connection m_sort_connection;
 
+        //! Connection to the signal notifying when ghost particles are removed
+        boost::signals2::connection m_ghost_particles_removed_connection;
+
         //! Helper function to initialize adjacency arrays
         void initializeNeighborArrays();
+
+        //! Method that is called when ghost particles are requested to be removed
+        void slotGhostParticlesRemoved()
+            {
+            removeGhostParticleTags();
+            }
+
     };
 
 

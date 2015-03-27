@@ -337,5 +337,65 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
     delete[] sbuf;
     }
 
+//! Wrapper around MPI_Allgatherv
+template<typename T>
+void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm mpi_comm)
+    {
+    int rank;
+    int size;
+    MPI_Comm_rank(mpi_comm, &rank);
+    MPI_Comm_size(mpi_comm, &size);
+
+    // serialize in_value
+    std::string str;
+    boost::iostreams::back_insert_device <std::string> inserter(str);
+    boost::iostreams::stream<boost::iostreams::back_insert_device< std::string> > s(inserter);
+    boost::archive::binary_oarchive ar(s);
+
+    ar << in_value;
+    s.flush();
+
+    // copy into send buffer
+    unsigned int send_count = str.length();
+    char *sbuf = new char[send_count];
+    str.copy(sbuf, send_count);
+
+    // allocate memory for buffer lengths
+    out_values.resize(size);
+    int *recv_counts = new int[size];
+    int *displs = new int[size];
+
+    // gather lengths of buffers
+    MPI_Allgather(&send_count, 1, MPI_INT, recv_counts, 1, MPI_INT, mpi_comm);
+
+    // allocate receiver buffer
+    unsigned int len = 0;
+    for (unsigned int i = 0; i < (unsigned int) size; i++)
+        {
+        displs[i] = (i > 0) ? displs[i-1] + recv_counts[i-1] : 0;
+        len += recv_counts[i];
+        }
+    char *rbuf = new char[len];
+
+    // now gather actual objects
+    MPI_Allgatherv(sbuf, send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, mpi_comm);
+
+    // de-serialize data
+    for (unsigned int i = 0; i < out_values.size(); i++)
+        {
+        std::string str(rbuf + displs[i], recv_counts[i]);
+        boost::iostreams::basic_array_source<char> dev(str.data(), str.size());
+        boost::iostreams::stream<boost::iostreams::basic_array_source<char> > s(dev);
+        boost::archive::binary_iarchive ar(s);
+
+        ar >> out_values[i];
+        }
+
+    delete[] displs;
+    delete[] recv_counts;
+    delete[] rbuf;
+    delete[] sbuf;
+    }
+
 #endif // ENABLE_MPI
 #endif // __HOOMD_MATH_H__

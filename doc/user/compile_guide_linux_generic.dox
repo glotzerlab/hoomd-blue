@@ -122,7 +122,8 @@ and build python
 ~~~~
 $ cd Python-3.3.0
 $ ./configure --enable-shared --prefix=$HOME/local
-$ make -j 12 install
+$ make -j12
+$ make install
 ~~~~
 This installs python into the `local/` subdirectory of your home directory.
 The `-j` option tells make to use the CPU cores available in your system for the build process.
@@ -145,68 +146,47 @@ manager.
 If your distribution doesn't have a new enough version of boost, or if it is not provided on your cluster,
 you can build it by hand. Building boost is a time consuming process, but not complicated if you follow these instructions.
 
-In order to build boost, you need the development package for bzip. If your
-distribution provides the pacakge *bzip2-devel*, install it.
-If not, or if your cluster installation does not have provide the bzip2 header
-files, you need to install the bzip2 sources.
-~~~~
-$ wget http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz
-$ tar -xvfz bzip2-1.0.6.tar.bz
-$ cd bzip2-1.0.6
-$ make install PREFIX=$HOME/local
-~~~~
-
-Proceed by downloading `boost_1_52_0.tar.bz2` from http://www.boost.org/. Extract the tarball and
+Proceed by downloading `boost_1_55_0.tar.bz2` from http://www.boost.org/. Extract the tarball and
 configure boost for building with the following commands.
 ~~~~
-$ tar -xvjf boost_1_52_0.tar.bz2
-$ cd boost_1_52_0
+$ tar -xvjf boost_1_55_0.tar.bz2
+$ cd boost_1_55_0
 ~~~~
 
-If you have also installed python from source, the Boost installation scripts may not find
-it automatically. In this case, you need to inform the build system about the location of your python
-installation.
-~~~~
-$ cp tools/build/v2/user-config.jam $HOME
-~~~~
-Now edit the file `user-config.jam` and add a line
+Next, run the bootstrap.
+~~~
+$ ./bootstrap.sh --prefix=$HOME/local
+Building Boost.Build engine with toolset gcc... tools/build/v2/engine/bin.linuxx86_64/b2
+Detecting Python version... 2.6  <--- ignore this if you built python from source
+...
+~~~
+If you built python from source, edit the file `project-config.jam` and replace the `using python` line with this:
 ~~~~
 using python : 3.3 : /home/myuser/local/bin/python3 : /home/myuser/local/include/python3.3m : /home/myuser/local/lib ;
 ~~~~
-at the end of file. Now you can build boost.
-~~~~
-$ ./bootstrap.sh --prefix=$HOME/local
-Building Boost.Build engine with toolset gcc... tools/build/v2/engine/bin.linuxx86_64/b2
-Detecting Python version... 3.3
-...
-~~~~
 
-If it reports a different Python version than the one you have requested in
-your \b user-config.jam file, just ignore that message.
-The build engine should find the correct Python version nevertheless.
-Now, run the command
+Now you can build boost. Run:
 ~~~~
 $ ./b2 install -j 11
-~~~~
-or, if you have installed the bzip2 sources,
-~~~~
-$ ./b2 install -j 10 -s BZIP2_SOURCE=/path/to/bzip2-1.0.6
 ~~~~
 and wait some time for everything to compile. At the end, you should see a
 message saying
 ~~~~
 ...updated 963 targets...
 ~~~~
+If it reports that some targets were skipped, run the build command again to see the compiler errors. Most likely the
+skipped targets are the python libraries and you can correct the problem by double checking the paths in
+`project-config.jam`
 
 Boost is now installed.
 
-You can delete the boost_1_52_0 directory now if you wish. It might be worth
+You can delete the boost_1_55_0 directory now if you wish. It might be worth
 saving for a little while until you have compiled HOOMD-blue and know everything
 is working so that you won't need to go through all the setup steps again.
 
 Before running cmake, set the following environment variables to the location where you installed boost:
 ~~~~
-$ export BOOST_ROOT=/home/myuser/local
+$ export BOOST_ROOT=$HOME/local
 $ cmake ../
 ... continue with build instructions ...
 ~~~~
@@ -303,22 +283,24 @@ Now that all of the prerequisite software is installed, you are ready to compile
 There are two ways to get the source code for HOOMD-blue.  You can [download it](http://codeblue.umich.edu/hoomd-blue/download.html)
 or you can clone the git repository:
 ~~~~
-$ git clone https://codeblue.umich.edu/git/hoomd-blue
+$ git clone https://bitbucket.org/glotzer/hoomd-blue
 ~~~~
 By default, the *master* branch will be checked out. This branch includes new features added since the last release.
 Use `git checkout name` to switch to a different branch or tag.
 
 Valid names:
 - *maint* - includes bugfixes since the last release
+- *v1.0.3* - Release version 1.0.3
+- *v1.0.2* - Release version 1.0.2
+- *v1.0.1* - Release version 1.0.1
 - *v1.0.0* - Release version 1.0.0
-- *v0.11.3* - Release version 0.11.3
 - *etc...*
 
 You can verify that a tagged release is exactly as it appeared to the developers when it was created if you
 have GPG installed.
 ~~~~
 $ git cat-file blob 175bf6edfc8ac23c067df1d9bd7b5dd41982be3c | gpg --import
-$ git tag -v v1.0.0
+$ git tag -v v1.0.3
 ~~~~
 
 **Compile and install HOOMD-blue with makefiles:*

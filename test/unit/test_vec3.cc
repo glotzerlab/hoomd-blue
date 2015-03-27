@@ -86,6 +86,42 @@ BOOST_AUTO_TEST_CASE( construction )
     MY_BOOST_CHECK_CLOSE(d.x, s4.x, tol);
     MY_BOOST_CHECK_CLOSE(d.y, s4.y, tol);
     MY_BOOST_CHECK_CLOSE(d.z, s4.z, tol);
+
+    vec3<float> e(123, 86, -103);
+    MY_BOOST_CHECK_CLOSE(vec3<float>(e).x, 123, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<float>(e).y, 86, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<float>(e).z, -103, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<double>(e).x, 123, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<double>(e).y, 86, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<double>(e).z, -103, tol);
+
+    vec3<double> f(123, 86, -103);
+    MY_BOOST_CHECK_CLOSE(vec3<float>(f).x, 123, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<float>(f).y, 86, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<float>(f).z, -103, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<double>(f).x, 123, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<double>(f).y, 86, tol);
+    MY_BOOST_CHECK_CLOSE(vec3<double>(f).z, -103, tol);
+
+    // Test assignment
+    vec3<float> g;
+    vec3<double> h;
+    g = vec3<float>(121, 12, -10);
+    MY_BOOST_CHECK_CLOSE(g.x, 121, tol);
+    MY_BOOST_CHECK_CLOSE(g.y, 12, tol);
+    MY_BOOST_CHECK_CLOSE(g.z, -10, tol);
+    g = vec3<double>(-122, 15, 3);
+    MY_BOOST_CHECK_CLOSE(g.x, -122, tol);
+    MY_BOOST_CHECK_CLOSE(g.y, 15, tol);
+    MY_BOOST_CHECK_CLOSE(g.z, 3, tol);
+    h = vec3<float>(18, 12, -1000);
+    MY_BOOST_CHECK_CLOSE(h.x, 18, tol);
+    MY_BOOST_CHECK_CLOSE(h.y, 12, tol);
+    MY_BOOST_CHECK_CLOSE(h.z, -1000, tol);
+    h = vec3<double>(55, -64, 1);
+    MY_BOOST_CHECK_CLOSE(h.x, 55, tol);
+    MY_BOOST_CHECK_CLOSE(h.y, -64, tol);
+    MY_BOOST_CHECK_CLOSE(h.z, 1, tol);
     }
 
 BOOST_AUTO_TEST_CASE( component_wise )

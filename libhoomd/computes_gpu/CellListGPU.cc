@@ -53,10 +53,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines CellListGPU
 */
 
-#include <boost/python.hpp>
-
 #include "CellListGPU.h"
 #include "CellListGPU.cuh"
+
+#include <boost/python.hpp>
 
 using namespace boost::python;
 

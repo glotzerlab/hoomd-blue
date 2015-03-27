@@ -14,7 +14,7 @@ if(NOT PASSED_FIRST_CONFIGURE)
         endif(${CMAKE_GENERATOR} STREQUAL "Xcode")
     endif(NOT CMAKE_BUILD_TYPE AND NOT HONOR_GENTOO_FLAGS)
 
-    if(CMAKE_COMPILER_IS_GNUCXX)
+    if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
         # special handling to honor gentoo flags
         if (HONOR_GENTOO_FLAGS)
         set(CMAKE_CXX_FLAGS_DEBUG "-Wall" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
@@ -25,10 +25,10 @@ if(NOT PASSED_FIRST_CONFIGURE)
         else (HONOR_GENTOO_FLAGS)
 
         # default flags for g++
-        set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -Wno-unknown-pragmas" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
-        set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -Wall -Wno-unknown-pragmas -DNDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -DNDEBUG -Wall -Wno-unknown-pragmas" CACHE STRING "Flags used by the compiler during release builds." FORCE)
-        set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3 -funroll-loops -DNDEBUG -Wall -Wno-unknown-pragmas" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
+        set(CMAKE_CXX_FLAGS_DEBUG "-march=native -g -Wall -Wno-unknown-pragmas" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
+        set(CMAKE_CXX_FLAGS_MINSIZEREL "-march=native -Os -Wall -Wno-unknown-pragmas -DNDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
+        set(CMAKE_CXX_FLAGS_RELEASE "-march=native -O3 -funroll-loops -DNDEBUG -Wall -Wno-unknown-pragmas" CACHE STRING "Flags used by the compiler during release builds." FORCE)
+        set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-march=native -g -O3 -funroll-loops -DNDEBUG -Wall -Wno-unknown-pragmas" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
 
         endif (HONOR_GENTOO_FLAGS)
     elseif(MSVC80)
@@ -53,7 +53,7 @@ if(NOT PASSED_FIRST_CONFIGURE)
 
     else(CMAKE_COMPILER_IS_GNUCXX)
         message(STATUS "No default CXXFLAGS for your compiler, set them manually")
-    endif(CMAKE_COMPILER_IS_GNUCXX)
+    endif(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 
 SET(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "First configure has run: CXX_FLAGS have had their defaults changed" FORCE)
 endif(NOT PASSED_FIRST_CONFIGURE)

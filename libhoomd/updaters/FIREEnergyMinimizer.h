@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: askeys
 
+#include "IntegratorTwoStep.h"
+
 #include <boost/shared_ptr.hpp>
 
 #ifndef __FIRE_ENERGY_MINIMIZER_H__
 #define __FIRE_ENERGY_MINIMIZER_H__
-
-#include "IntegratorTwoStep.h"
 
 /*! \file FIREEnergyMinimizer.h
     \brief Declares the FIRE energy minimizer class

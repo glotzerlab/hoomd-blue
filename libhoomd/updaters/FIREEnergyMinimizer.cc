@@ -54,11 +54,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include "FIREEnergyMinimizer.h"
 #include "TwoStepNVE.h"
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 // windows feels the need to #define min and max
 #ifdef WIN32

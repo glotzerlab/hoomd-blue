@@ -57,9 +57,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <boost/shared_ptr.hpp>
-
 #include "ForceCompute.h"
+
+#include <boost/shared_ptr.hpp>
 
 #ifndef __LJWallForceCompute__
 #define __LJWallForceCompute__
@@ -99,6 +99,13 @@ class LJWallForceCompute :  public ForceCompute
 
         Scalar * __restrict__ m_lj1;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
         Scalar * __restrict__ m_lj2;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+
+        //! Method to be called when number of types changes
+        virtual void slotNumTypesChange();
+
+    private:
+        //! Connection to the signal notifying when number of particle types changes
+        boost::signals2::connection m_num_type_change_connection;
     };
 
 //! Exports the LJWallForceCompute class to python

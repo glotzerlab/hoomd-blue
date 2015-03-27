@@ -54,9 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNPTMTKGPU.cuh"
 
@@ -64,6 +61,9 @@ using namespace boost::python;
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 /*! \file TwoStepNPTMTKGPU.h
     \brief Contains code for the TwoStepNPTMTKGPU class
@@ -390,8 +390,8 @@ void TwoStepNPTMTKGPU::integrateStepTwo(unsigned int timestep)
     gpu_npt_mtk_thermostat(d_vel.data,
                            d_index_array.data,
                            group_size,
-                           xi_prime,
-                           m_deltaT);
+                           exp(-Scalar(1.0/2.0)*xi_prime*m_deltaT),
+                           256);
 
     } // end GPUArray scope
 

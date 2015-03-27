@@ -49,14 +49,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
+#include "FIREEnergyMinimizer.h"
+#include "RigidData.h"
+#include "RigidBodyGroup.h"
+
 #include <boost/shared_ptr.hpp>
 
 #ifndef __FIRE_ENERGY_MINIMIZER_RIGID_H__
 #define __FIRE_ENERGY_MINIMIZER_RIGID_H__
-
-#include "FIREEnergyMinimizer.h"
-#include "RigidData.h"
-#include "RigidBodyGroup.h"
 
 /*! \file FIREEnergyMinimizerRigid.h
     \brief Declares a class for energy minimization for rigid bodies

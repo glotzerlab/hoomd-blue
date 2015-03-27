@@ -49,10 +49,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: akohlmey
 
-#include <boost/shared_ptr.hpp>
-
 #include "ForceCompute.h"
 #include "NeighborList.h"
+
+#include <boost/shared_ptr.hpp>
 
 /*! \file CGCMMForceCompute.h
     \brief Declares the CGCMMForceCompute class
@@ -114,6 +114,13 @@ class CGCMMForceCompute : public ForceCompute
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
+
+        //! Method to be called when number of types changes
+        virtual void slotNumTypesChange();
+
+    private:
+        //! Connection to the signal notifying when number of particle types changes
+        boost::signals2::connection m_num_type_change_connection;
     };
 
 //! Exports the CGCMMForceCompute class to python

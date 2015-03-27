@@ -653,6 +653,15 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
         }
 
     }
+
+    // check that new types can be added
+    ParticleData pdata_type_test(123, box, 1, exec_conf);
+
+    BOOST_CHECK(pdata_type_test.getNTypes()==1);
+    BOOST_CHECK(pdata_type_test.addType("test")==1);
+    BOOST_CHECK(pdata_type_test.getNTypes()==2);
+    BOOST_CHECK(pdata_type_test.getNameByType(1) == "test");
+    BOOST_CHECK(pdata_type_test.getTypeByName("test") == 1);
     }
 
 //! Test operation of the simple cubic initializer class

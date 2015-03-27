@@ -238,3 +238,22 @@ BOOST_AUTO_TEST_CASE( test_swap )
     BOOST_CHECK(a==d);
     BOOST_CHECK(b==c);
     }
+
+BOOST_AUTO_TEST_CASE(test_assignment )
+    {
+    // Test assignment
+    vec2<float> g;
+    vec2<double> h;
+    g = vec2<float>(121, 12);
+    MY_BOOST_CHECK_CLOSE(g.x, 121, tol);
+    MY_BOOST_CHECK_CLOSE(g.y, 12, tol);
+    g = vec2<double>(-122, 15);
+    MY_BOOST_CHECK_CLOSE(g.x, -122, tol);
+    MY_BOOST_CHECK_CLOSE(g.y, 15, tol);
+    h = vec2<float>(18, 12);
+    MY_BOOST_CHECK_CLOSE(h.x, 18, tol);
+    MY_BOOST_CHECK_CLOSE(h.y, 12, tol);
+    h = vec2<double>(55, -64);
+    MY_BOOST_CHECK_CLOSE(h.x, 55, tol);
+    MY_BOOST_CHECK_CLOSE(h.y, -64, tol);
+    }

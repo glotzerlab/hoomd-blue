@@ -1151,35 +1151,13 @@ void CommunicatorGPU::migrateParticles()
     {
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: migrate particles" << std::endl;
 
-    // check if box is sufficiently large for communication
-    Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
-    const Index3D& di = m_decomposition->getDomainIndexer();
-    if ((m_r_ghost >= L.x/Scalar(2.0) && di.getW() > 1) ||
-        (m_r_ghost >= L.y/Scalar(2.0) && di.getH() > 1) ||
-        (m_r_ghost >= L.z/Scalar(2.0) && di.getD() > 1))
-        {
-        m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
-        throw std::runtime_error("Error during communication");
-        }
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
 
     if (m_prof)
         m_prof->push(m_exec_conf,"comm_migrate");
 
-    if (m_last_flags[comm_flag::tag])
-        {
-        // Reset reverse lookup tags of old ghost atoms
-        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
-
-        gpu_reset_rtags(m_pdata->getNGhosts(),
-                        d_tag.data + m_pdata->getN(),
-                        d_rtag.data);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        }
-
-    // reset ghost particle number
+    // remove ghost particles from system
     m_pdata->removeAllGhostParticles();
 
     // main communication loop
@@ -1446,9 +1424,29 @@ void CommunicatorGPU::migrateParticles()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
+void CommunicatorGPU::removeGhostParticleTags()
+    {
+    if (m_last_flags[comm_flag::tag])
+        {
+        // Reset reverse lookup tags of old ghost atoms
+        ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+
+        gpu_reset_rtags(m_pdata->getNGhosts(),
+                        d_tag.data + m_pdata->getN(),
+                        d_rtag.data);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+    }
+
 //! Build a ghost particle list, exchange ghost particle data with neighboring processors
 void CommunicatorGPU::exchangeGhosts()
     {
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
+
     if (m_prof) m_prof->push(m_exec_conf, "comm_ghost_exch");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
@@ -2023,9 +2021,6 @@ void CommunicatorGPU::exchangeGhosts()
     m_last_flags = flags;
 
     if (m_prof) m_prof->pop(m_exec_conf);
-
-    // we have updated ghost particles, so notify subscribers about this
-    m_pdata->notifyGhostParticleNumberChange();
     }
 
 //! Perform ghosts update

@@ -54,7 +54,6 @@
 
 import sys
 import os
-import importlib
 
 # If HOOMD_PLUGIN_PATH is on the environment, add each colon-separated entry to the python module search path
 if 'HOOMD_PLUGIN_PATH' in os.environ:
@@ -63,9 +62,14 @@ if 'HOOMD_PLUGIN_PATH' in os.environ:
     for p in plugin_path:
         sys.path.append(p);
 
-# If HOOMD_EXTERNAL_PLUGINS is on the environment, import each colon-separated entry into this module
-if 'HOOMD_EXTERNAL_PLUGINS' in os.environ:
-    plugins = os.environ['HOOMD_EXTERNAL_PLUGINS'].split(':');
+try:
+    import importlib
 
-    for p in plugins:
-        vars()[p] = importlib.import_module(p)
+    # If HOOMD_EXTERNAL_PLUGINS is on the environment, import each colon-separated entry into this module
+    if 'HOOMD_EXTERNAL_PLUGINS' in os.environ:
+        plugins = os.environ['HOOMD_EXTERNAL_PLUGINS'].split(':');
+
+        for p in plugins:
+            vars()[p] = importlib.import_module(p)
+except Exception:
+    pass

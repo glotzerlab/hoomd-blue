@@ -54,10 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "HarmonicAngleForceCompute.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "HarmonicAngleForceCompute.h"
 
 #include <iostream>
 #include <sstream>
@@ -193,9 +193,9 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
         {
         // lookup the tag of each of the particles participating in the angle
         const AngleData::members_t& angle = m_angle_data->getMembersByIndex(i);
-        assert(angle.tag[0] < m_pdata->getNGlobal());
-        assert(angle.tag[1] < m_pdata->getNGlobal());
-        assert(angle.tag[1] < m_pdata->getNGlobal());
+        assert(angle.tag[0] <= m_pdata->getMaximumTag());
+        assert(angle.tag[1] <= m_pdata->getMaximumTag());
+        assert(angle.tag[2] <= m_pdata->getMaximumTag());
 
         // transform a, b, and c into indices into the particle data arrays
         // MEM TRANSFER: 6 ints

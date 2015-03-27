@@ -54,14 +54,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "FIREEnergyMinimizerGPU.h"
+#include "FIREEnergyMinimizerGPU.cuh"
+#include "TwoStepNVEGPU.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
-
-#include "FIREEnergyMinimizerGPU.h"
-#include "FIREEnergyMinimizerGPU.cuh"
-#include "TwoStepNVEGPU.h"
 
 // windows feels the need to #define min and max
 #ifdef WIN32

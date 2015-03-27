@@ -78,6 +78,7 @@ set(TEST_LIST
     test_force_shifted_lj
     test_nve_integrator
     test_nvt_integrator
+    test_nvt_mtk_integrator
     test_berendsen_integrator
     test_zero_momentum_updater
     test_temp_rescale_updater
@@ -92,6 +93,7 @@ set(TEST_LIST
     test_table_dihedral_force
     test_table_angle_force
     test_gridshift_correct
+    test_opls_dihedral_force
     )
 
     # put the longest tests last

@@ -54,10 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "PPPMForceCompute.h"
+
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
-
-#include "PPPMForceCompute.h"
 
 #include <iostream>
 #include <sstream>

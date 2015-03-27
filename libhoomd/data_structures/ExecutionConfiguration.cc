@@ -140,9 +140,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     if (exec_mode == GPU)
         {
         initializeGPU(gpu_id, min_cpu);
-
-        // initialize cached allocator
-        m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
         }
 #else
     if (exec_mode == GPU)
@@ -160,6 +157,43 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     #endif
 
     setupStats();
+
+    #ifdef ENABLE_CUDA
+    if (exec_mode == GPU)
+        {
+        // initialize cached allocator, max allocation 0.5*global mem
+        m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        }
+    #endif
+
+    #ifdef ENABLE_MPI
+    if (hoomd_launch_timing && getNRanksGlobal() > 1)
+        {
+        // compute the number of seconds to get an exec conf
+        timeval t;
+        gettimeofday(&t, NULL);
+        unsigned int conf_time = t.tv_sec - hoomd_launch_time;
+
+        // get the min and max times
+        unsigned int start_time_min, start_time_max, mpi_init_time_min, mpi_init_time_max, conf_time_min, conf_time_max;
+        MPI_Reduce(&hoomd_start_time, &start_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&hoomd_start_time, &start_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+
+        MPI_Reduce(&conf_time, &conf_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&conf_time, &conf_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+
+        // write them out to a file
+        if (getRankGlobal() == 0)
+            {
+            msg->notice(2) << "start_time:    [" << start_time_min << ", " << start_time_max << "]" << std::endl;
+            msg->notice(2) << "mpi_init_time: [" << mpi_init_time_min << ", " << mpi_init_time_max << "]" << std::endl;
+            msg->notice(2) << "conf_time:     [" << conf_time_min << ", " << conf_time_max << "]" << std::endl;
+            }
+        }
+    #endif
     }
 
 ExecutionConfiguration::~ExecutionConfiguration()
@@ -315,8 +349,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
     if (min_cpu)
         {
         if (CUDART_VERSION < 2020)
-            msg->warning() << "--minimize-cpu-usage will have no effect because this hoomd was built " << endl;
-            msg->warning() << "against a version of CUDA prior to 2.2" << endl;
+            msg->notice(2) << "--minimize-cpu-usage will have no effect because this hoomd was built " << endl;
+            msg->notice(2) << "against a version of CUDA prior to 2.2" << endl;
 
         flags |= cudaDeviceBlockingSync;
         }
@@ -400,7 +434,7 @@ void ExecutionConfiguration::printGPUStats()
     // if the gpu is compute 1.1 or older, it is unsupported. Issue a warning to the user.
     if (dev_prop.major <= 1 && dev_prop.minor <= 1)
         {
-        msg->warning() << "HOOMD-blue is not supported on compute 1.1 and older GPUs" << endl;
+        msg->notice(2) << "HOOMD-blue is not supported on compute 1.1 and older GPUs" << endl;
         }
     }
 
@@ -440,7 +474,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     // first handle the situation where no driver is installed (or it is a CUDA 2.1 or earlier driver)
     if (driverVersion == 0)
         {
-        msg->warning() << "NVIDIA driver not installed or is too old, ignoring any GPUs in the system." << endl;
+        msg->notice(2) << "NVIDIA driver not installed or is too old, ignoring any GPUs in the system." << endl;
         return;
         }
 
@@ -452,9 +486,9 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         int cudart_major = CUDART_VERSION / 1000;
         int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
 
-        msg->warning() << "The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
+        msg->notice(2) << "The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
              << driver_minor << ", but HOOMD was built against CUDA " << cudart_major << "." << cudart_minor << endl;
-        msg->warning() << "Ignoring any GPUs in the system." << endl;
+        msg->notice(2) << "Ignoring any GPUs in the system." << endl;
         return;
         }
 
@@ -463,8 +497,10 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     cudaError_t error = cudaGetDeviceCount(&dev_count);
     if (error != cudaSuccess)
         {
-        msg->error() << "Error calling cudaGetDeviceCount()" << endl;
-        throw runtime_error("Error initializing execution configuration");
+        msg->notice(2) << "Error calling cudaGetDeviceCount(). No NVIDIA driver is present, or this user" << endl;
+        msg->notice(2) << "does not have readwrite permissions on /dev/nvidia*" << endl;
+        msg->notice(2) << "Ignoring any GPUs in the system." << endl;
+        return;
         }
 
     // initialize variables

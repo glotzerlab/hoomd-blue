@@ -93,6 +93,9 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
+
+        //! Method to be called when number of types changes
+        virtual void slotNumTypesChange();
     };
 
 //! Exports the CGCMMForceComputeGPU class to python

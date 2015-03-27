@@ -9,7 +9,7 @@ import os
 class pair_lj_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_random(N=100, phi_p=0.05);
 
         sorter.set_params(grid=8)
 
@@ -68,6 +68,16 @@ class pair_lj_tests (unittest.TestCase):
     def test_coeff_list(self):
         lj = pair.lj(r_cut=3.0);
         lj.pair_coeff.set(['A', 'B'], ['A', 'C'], epsilon=1.0, sigma=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
+        lj.update_coeffs();
+
+    # test adding types
+    def test_type_add(self):
+        lj = pair.lj(r_cut=3.0);
+        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
+        self.s.particles.types.add('B')
+        self.assertRaises(RuntimeError, lj.update_coeffs);
+        lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0)
+        lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0)
         lj.update_coeffs();
 
     def tearDown(self):

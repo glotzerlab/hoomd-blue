@@ -54,12 +54,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include "ConstraintSphere.h"
 #include "EvaluatorConstraint.h"
 #include "EvaluatorConstraintSphere.h"
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 using namespace std;
 
