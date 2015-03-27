@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param d_pos Current particle positions
     \param N Number of particles
     \param box Box dimensions
-    \param d_rcut_max The maximum rcut(i,j) that any particle i participates in
+    \param d_rcut_max The maximum rcut(i,j) that any particle of type i participates in
     \param r_buff The buffer size that particles can move in
     \param ntypes The number of particle types
     \param lambda_min Minimum contraction of deformation tensor
@@ -359,6 +359,17 @@ cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
     }
 
 //! GPU kernel to do a preliminary sizing on particles
+/*!
+ * \param d_head_list The head list of indexes to overwrite
+ * \param d_req_size_nlist Flag for the required size of the neighbor list to overwrite
+ * \param d_Nmax The number of neighbors to size per particle type
+ * \param d_pos Particle positions and types
+ * \param N the number of particles on this rank
+ * \param ntypes the number of types in the system
+ *
+ * This kernel initializes the head list with the number of neighbors that each type expects from d_Nmax. A prefix sum
+ * is then performed in gpu_nlist_build_head_list() to accumulate starting indices.
+ */
 __global__ void gpu_nlist_init_head_list_kernel(unsigned int *d_head_list,
                                                 unsigned int *d_req_size_nlist,
                                                 const unsigned int *d_Nmax,
@@ -366,7 +377,7 @@ __global__ void gpu_nlist_init_head_list_kernel(unsigned int *d_head_list,
                                                 const unsigned int N,
                                                 const unsigned int ntypes)
     {
-    // cache the d_Nmax into shared memory for fast reads
+    // cache the d_Nmax into shared memory for faster reads
     extern __shared__ unsigned char sh[];
     unsigned int *s_Nmax = (unsigned int *)(&sh[0]);
     for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
@@ -379,10 +390,10 @@ __global__ void gpu_nlist_init_head_list_kernel(unsigned int *d_head_list,
     __syncthreads();
     
     
-    // compute the bin index this thread operates on
+    // particle index
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
     
-    // quit now if this thread is processing past the end of the particle list
+    // one thread per particle
     if (idx >= N)
         return;
 
@@ -392,20 +403,47 @@ __global__ void gpu_nlist_init_head_list_kernel(unsigned int *d_head_list,
     
     d_head_list[idx] = Nmax_i;
     
-    // last thread sets the number of particles in the memory req as well
+    // last thread presets its number of particles in the memory req as well
     if (idx == (N-1))
         {
         *d_req_size_nlist = Nmax_i;
         }
     }
 
-__global__ void gpu_nlist_get_nlist_mem_kernel(unsigned int *d_req_size_nlist,
-                                               const unsigned int *d_head_list,
-                                               const unsigned int N)
+/*!
+ * \param d_req_size_nlist Flag for the total size of the neighbor list
+ * \param d_head_list The complete particle head list
+ * \param N the number of particles on this rank
+ *
+ * A single thread on the device is needed to complete the exclusive scan and find the size of the neighbor list.
+ * Because gpu_nlist_init_head_list_kernel() already set the number of neighbors for the last particle in
+ * d_req_size_nlist, the head index of the last particle is added to this number to get the total size.
+ */
+__global__ void gpu_nlist_get_nlist_size_kernel(unsigned int *d_req_size_nlist,
+                                                const unsigned int *d_head_list,
+                                                const unsigned int N)
     {
     *d_req_size_nlist += d_head_list[N-1];
     }
 
+/*!
+ * \param d_head_list The head list of indexes to compute for reading the neighbor list
+ * \param d_req_size_nlist The required size of the neighbor list flat array
+ * \param allocator A temporary caching allocator for device memory
+ * \param d_Nmax The number of neighbors to size per particle type
+ * \param d_pos Particle positions and types
+ * \param N the number of particles on this rank
+ * \param ntypes the number of types in the system
+ * \param block_size Number of threads per block for gpu_nlist_init_head_list_kernel()
+ *
+ * \return cudaSuccess on completion
+ *
+ * \b Implementation
+ * This driver wraps multiple kernel calls to build the head list. First, the head list is filled with the
+ * number of neighbors per particle. Then, an exclusive prefix sum is performed in place on this list using the
+ * CUB libraries. Finally, a single thread is used to perform compute the total size of the neighbor list while still
+ * on device.
+ */
 cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
                                       unsigned int *d_req_size_nlist,
                                       cub::CachingDeviceAllocator* allocator,
@@ -447,23 +485,19 @@ cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
     // free the temporary storage
     allocator->DeviceFree(d_tmp_storage);
     
-    // compute the total number on the GPU from the last element (it would be nice if the thrust code could do this)
-    // it would be better to write our own scan algorithm to avoid the extra kernel overhead,
-    // but this is better than a data copy of the whole head list, and faster to code up
-    gpu_nlist_get_nlist_mem_kernel<<<1,1>>>(d_req_size_nlist,
-                                            d_head_list,
-                                            N);
+    // compute the total number on the GPU from the last element (it would be nice if the cub code could do this)
+    gpu_nlist_get_nlist_size_kernel<<<1,1>>>(d_req_size_nlist, d_head_list, N);
     
     return cudaSuccess;
     }
 
 /*!
  * \return Pointer to an allocator
+ *
  * The cub headers throw lots of errors when included into a file not compiled with nvcc, so
- * we have to go to some trouble to wrap this object creation. We need to use an allocator
+ * we need a wrapper in this file. We need to use an allocator
  * at class scope because we get illegal memory access problems with it global scope when multiple
- * neighborlists are instantiated. This is a nicer container than the standard containers (GPUArray, GPUVector)
- * because it manages only device memory, and easily resizes itself as needed from a small pool of memory.
+ * neighborlists are instantiated.
  */   
 cub::CachingDeviceAllocator* init_cub_allocator()
     {
@@ -472,7 +506,7 @@ cub::CachingDeviceAllocator* init_cub_allocator()
     
 /*!
  * \param allocator pointer to a device cache to destroy
- * \note This is called from the class destructor, so there are no memory leaks from the allocator.
+ * \note This is called from the NeighborListGPU destructor, so there are no memory leaks from the allocator.
  */
 void del_cub_allocator(cub::CachingDeviceAllocator *allocator)
     {

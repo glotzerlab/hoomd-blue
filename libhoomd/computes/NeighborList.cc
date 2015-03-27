@@ -1332,15 +1332,32 @@ void NeighborList::buildHeadList()
         headAddress += h_Nmax.data[myType];
         }
 
-    // re-allocate the neighbor list
-    // needs logical check
-    if (headAddress > m_nlist.getPitch())
-        {
-        m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating neighbor list" << endl;
-        GPUArray<unsigned int> nlist(headAddress, exec_conf);
-        m_nlist.swap(nlist);
-        }
+    resizeNlist(headAddress);
+    
     if (m_prof) m_prof->pop();
+    }
+
+/*!
+ * \param size the requested number of elements in the neighbor list
+ *
+ * Increases the size of the neighbor list memory using amortized resizing (growth factor: 9/8)
+ * only when needed.
+ */
+void NeighborList::resizeNlist(unsigned int size)
+    {
+    if (size > m_nlist.getPitch())
+        {
+        m_exec_conf->msg->notice(6) << "nlist: (Re-)allocating neighbor list" << endl;
+        
+        unsigned int alloc_size = m_nlist.getPitch() ? m_nlist.getPitch() : 1;
+        
+        while (size > alloc_size)
+            {
+            alloc_size = ((unsigned int) (((float) alloc_size) * 1.125f)) + 1 ;
+            }
+        
+        m_nlist.resize(alloc_size);
+        }    
     }
 
 /*!

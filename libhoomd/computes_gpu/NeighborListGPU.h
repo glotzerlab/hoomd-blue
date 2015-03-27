@@ -66,7 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __NEIGHBORLISTGPU_H__
 
 //! Neighbor list build on the GPU
-/*! Implements the O(N^2) neighbor list build on the GPU. Also implements common functions (like distance check)
+/*! Implements common functions (like distance check)
     on the GPU for use by other GPU nlist classes derived from NeighborListGPU.
 
     GPU kernel methods are defined in NeighborListGPU.cuh and defined in NeighborListGPU.cu.
@@ -155,7 +155,7 @@ class NeighborListGPU : public NeighborList
     protected:
         GPUArray<unsigned int> m_flags;   //!< Storage for device flags on the GPU
         
-        GPUFlags<unsigned int> m_req_size_nlist;    //!< CUDA flag to hold the required size of the neighborlist
+        GPUFlags<unsigned int> m_req_size_nlist;    //!< Flag to hold the required size of the neighborlist
         
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
@@ -173,7 +173,7 @@ class NeighborListGPU : public NeighborList
         //! Filter the neighbor list of excluded particles
         virtual void filterNlist();
         
-        //! Build the head list to allocated memory
+        //! Build the head list for neighbor list indexing on the GPU
         virtual void buildHeadList();
 
         //! Schedule the distance check kernel
@@ -189,13 +189,11 @@ class NeighborListGPU : public NeighborList
         boost::signals2::connection m_callback_connection; //!< Connection to Communicator
         #endif
         
-        // pointer to the allocator
-        cub::CachingDeviceAllocator *m_tmp_allocator;
+        cub::CachingDeviceAllocator *m_tmp_allocator;   //!< Temporary device memory caching allocator
 
     private:
         boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
         boost::scoped_ptr<Autotuner> m_tuner_head_list; //!< Autotuner for the head list block size
-
     };
 
 //! Exports NeighborListGPU to python

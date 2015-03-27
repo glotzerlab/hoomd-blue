@@ -257,7 +257,7 @@ void NeighborListGPU::updateExListIdx()
         m_prof->pop(m_exec_conf);
     }
 
-//! GPU implementation of buildHeadList
+//! Build the head list for neighbor list indexing on the GPU
 void NeighborListGPU::buildHeadList()
     {
     // don't do anything if there are no particles owned by this rank
@@ -285,16 +285,8 @@ void NeighborListGPU::buildHeadList()
         CHECK_CUDA_ERROR();
     m_tuner_head_list->end();
         
-    // reallocate if needed
-    // needs amortized resizing though...
     unsigned int req_size_nlist = m_req_size_nlist.readFlags();
-    if (req_size_nlist > m_nlist.getPitch())
-        {
-        m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating neighbor list" << endl;
-        GPUArray<unsigned int> nlist(req_size_nlist, exec_conf);
-        m_nlist.swap(nlist);
-        }
-    
+    resizeNlist(req_size_nlist);
     
     if (m_prof) m_prof->pop(exec_conf);
     }

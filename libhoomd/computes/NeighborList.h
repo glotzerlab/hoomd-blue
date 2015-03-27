@@ -505,6 +505,9 @@ class NeighborList : public Compute
         
         //! Build the head list to allocated memory
         virtual void buildHeadList();
+        
+        //! Amortized resizing of the neighborlist
+        void resizeNlist(unsigned int size);
 
         #ifdef ENABLE_MPI
         CommFlags getRequestedCommFlags(unsigned int timestep)
