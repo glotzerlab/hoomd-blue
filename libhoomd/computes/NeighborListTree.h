@@ -67,7 +67,6 @@ using namespace hpmc::detail;
 
 //! Efficient neighbor list build on the CPU using BVH trees
 /*!
- * Implements the O(N) neighbor list build on the CPU using a BVH tree.
  *
  * A bounding volume hierarchy (BVH) tree is a binary search tree. It is constructed from axis-aligned bounding boxes
  * (AABBs). The AABB for a node in the tree encloses all child AABBs. A leaf AABB holds multiple particles. The tree
@@ -118,38 +117,42 @@ class NeighborListTree : public NeighborList
             m_type_changed = true;
             }
     
-        bool m_box_changed;                                 //!< flag if box size has changed
+        bool m_box_changed;                                 //!< Flag if box size has changed
         boost::signals2::connection m_boxchange_connection; //!< Connection to the ParticleData box size change signal
         
-        bool m_max_num_changed;                             //!< flag if the particle arrays need to be resized
+        bool m_max_num_changed;                             //!< Flag if the particle arrays need to be resized
         boost::signals2::connection m_max_numchange_conn;   //!< Connection to max particle number change signal
         
-        bool m_remap_particles;                     //!< flag if the particles need to remapped (triggered by sort)
+        bool m_remap_particles;                     //!< Flag if the particles need to remapped (triggered by sort)
         boost::signals2::connection m_sort_conn;    //!< Local connection to the ParticleData sort signal
     
-        bool m_type_changed;                                //!< flag if the number of types has changed
+        bool m_type_changed;                                //!< Flag if the number of types has changed
         boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
     
         // we use stl vectors here because these tree data structures should *never* be
         // accessed on the GPU, they were optimized for the CPU with SIMD support
-        vector<AABBTree>      m_aabb_trees;           //!< Flat array of AABB trees of all types
-        vector<AABB>          m_aabbs;                //!< Flat array of AABBs of all types
-        vector<unsigned int>  m_num_per_type;         //!< Total number of particles per type
-        vector<unsigned int>  m_type_head;            //!< Index of first particle of each type, after sorting
-        vector<unsigned int>  m_map_p_global_tree;    //!< Maps the particle id to its tag in tree for sorting
+        vector<AABBTree>      m_aabb_trees;     //!< Flat array of AABB trees of all types
+        vector<AABB>          m_aabbs;          //!< Flat array of AABBs of all types
+        vector<unsigned int>  m_num_per_type;   //!< Total number of particles per type
+        vector<unsigned int>  m_type_head;      //!< Index of first particle of each type, after sorting
+        vector<unsigned int>  m_map_pid_tree;   //!< Maps the particle id to its tag in tree for sorting
 
-        vector< vec3<Scalar> > m_image_list;    //!< list of translation vectors
-        unsigned int m_n_images;                //!< the number of image vectors to check
+        vector< vec3<Scalar> > m_image_list;    //!< List of translation vectors
+        unsigned int m_n_images;                //!< The number of image vectors to check
         
-        //! driver for tree configuration
+        //! Driver for tree configuration
         void setupTree();
-        //! maps particles by local id to their id within their type trees
+        
+        //! Maps particles by local id to their id within their type trees
         void mapParticlesByType();
-        //! computes the image vectors to query for 
+        
+        //! Computes the image vectors to query for 
         void updateImageVectors();
-        //! driver to build AABB trees
+        
+        //! Driver to build AABB trees
         void buildTree();
-        //! traverses AABB trees to compute neighbors
+        
+        //! Traverses AABB trees to compute neighbors
         void traverseTree();
     };
 

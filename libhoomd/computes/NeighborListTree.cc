@@ -105,7 +105,7 @@ void NeighborListTree::setupTree()
     if (m_max_num_changed)
         {
         m_aabbs.resize(m_pdata->getMaxN());
-        m_map_p_global_tree.resize(m_pdata->getMaxN());
+        m_map_pid_tree.resize(m_pdata->getMaxN());
         
         m_max_num_changed = false;
         }
@@ -134,6 +134,10 @@ void NeighborListTree::setupTree()
         }
     }
 
+/*!
+ * Efficiently "sorts" particles by type into trees by generating a map from the local particle id to the
+ * id within a flat array of AABBs sorted by type.
+ */
 void NeighborListTree::mapParticlesByType()
     {
     if (this->m_prof) this->m_prof->push("Histogram");
@@ -151,7 +155,7 @@ void NeighborListTree::mapParticlesByType()
     for (unsigned int i=0; i < n_local; ++i)
         {
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
-        m_map_p_global_tree[i] = m_num_per_type[my_type]; // global id i is particle num_per_type after head of my_type
+        m_map_pid_tree[i] = m_num_per_type[my_type]; // global id i is particle num_per_type after head of my_type
         ++m_num_per_type[my_type];
         }
     
@@ -166,10 +170,20 @@ void NeighborListTree::mapParticlesByType()
     if (this->m_prof) this->m_prof->pop();
     }
 
+/*!
+ * (Re-)computes the translation vectors for traversing the BVH tree. At most, there are 27 translation vectors
+ * when the simulation box is 3D periodic. In 2D, there are at most 9 translation vectors. In MPI runs, a ghost layer
+ * of particles is added from adjacent ranks, so there is no need to perform any translations in this direction.
+ * The translation vectors are determined by linear combination of the lattice vectors, and must be recomputed any
+ * time that the box resizes.
+ */
 void NeighborListTree::updateImageVectors()
     {
     const BoxDim& box = m_pdata->getBox();
     uchar3 periodic = box.getPeriodic();
+    
+    // check if the box is 3d or 2d, and use this to compute number of lattice vectors below
+    unsigned char sys3d = (this->m_sysdef->getNDimensions() == 3);
 
     // check that rcut fits in the box
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
@@ -179,7 +193,7 @@ void NeighborListTree::updateImageVectors()
         
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
+        (sys3d && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
         {
         m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
         throw runtime_error("Error updating neighborlist bins");
@@ -187,7 +201,7 @@ void NeighborListTree::updateImageVectors()
 
     // now compute the image vectors
     // each dimension increases by one power of 3
-    unsigned int n_dim_periodic = (periodic.x + periodic.y + periodic.z);
+    unsigned int n_dim_periodic = (unsigned int)(periodic.x + periodic.y + sys3d*periodic.z);
     m_n_images = 1;
     for (unsigned int dim = 0; dim < n_dim_periodic; ++dim)
         {
@@ -220,7 +234,7 @@ void NeighborListTree::updateImageVectors()
                     // skip any periodic images if we don't have periodicity
                     if (i != 0 && !periodic.x) continue;
                     if (j != 0 && !periodic.y) continue;
-                    if (k != 0 && !periodic.z) continue;
+                    if (!sys3d || (k != 0 && !periodic.z)) continue;
                     
                     m_image_list[n_images] = Scalar(i) * latt_a + Scalar(j) * latt_b + Scalar(k) * latt_c;
                     ++n_images;
@@ -230,6 +244,9 @@ void NeighborListTree::updateImageVectors()
         }
     }
 
+/*!
+ * \note AABBTree implements its own build routine, so this is a wrapper to call this for multiple tree types.
+ */
 void NeighborListTree::buildTree()
     {                           
     if (this->m_prof) this->m_prof->push("Build");
@@ -241,7 +258,7 @@ void NeighborListTree::buildTree()
         // make a point particle AABB
         vec3<Scalar> my_pos(h_postype.data[i]);
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
-        unsigned int my_aabb_idx = m_type_head[my_type] + m_map_p_global_tree[i];
+        unsigned int my_aabb_idx = m_type_head[my_type] + m_map_pid_tree[i];
         m_aabbs[my_aabb_idx] = AABB(my_pos,i);
         }
     
@@ -253,6 +270,12 @@ void NeighborListTree::buildTree()
     if (this->m_prof) this->m_prof->pop();
     }
 
+/*!
+ * Each AABBTree is traversed in a stackless fashion. One traversal is performed (per particle)-(per tree)-(per image).
+ * The stackless traversal is a variation on left descent, where each node knows how far ahead to advance in the list
+ * of nodes if there is no intersection between the current node AABB and the query AABB. Otherwise, the search advances
+ * by one to the next node in the list.
+ */
 void NeighborListTree::traverseTree()
     {
     if (this->m_prof) this->m_prof->push("Traverse");

@@ -342,6 +342,12 @@ class NeighborList : public Compute
             }
         
         //! Enable/disable diameter shifting
+        /*!
+         * If diameter shifting is enabled, a value (d_i + d_j)/2.0 - 1.0 is added to r_cut(i,j) for
+         * inclusion in the neighbor list (where d_i and d_j are the diameters). This is useful in simulations
+         * where there is only a single particle type, but each particle may have a different diameter, and
+         * the potential (and its cutoff) depends on this diameter (i.e. shifted Lennard-Jones).
+         */
         virtual void setDiameterShift(bool diameter_shift)
             {
             m_diameter_shift = diameter_shift;
@@ -367,6 +373,10 @@ class NeighborList : public Compute
             }
 
         //! Set the maximum diameter to use in computing neighbor lists
+        /*!
+         * If diameter shifting is enabled, then this sets the maximum query radius for inclusion in the neighborlist.
+         * The shift (d_i + d_j)/2.0 - 1.0 can be no bigger than d_max - 1.0.
+         */
         virtual void setMaximumDiameter(Scalar d_max)
             {
             m_d_max = d_max;
@@ -385,6 +395,7 @@ class NeighborList : public Compute
             forceUpdate();
             }
 
+        //! Get the maximum diameter value
         Scalar getMaximumDiameter()
             {
             return m_d_max;
