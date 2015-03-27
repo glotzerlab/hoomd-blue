@@ -73,8 +73,8 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     if (!m_cl)
         m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
 
-//     m_cl->setNominalWidth(2.0);
     m_cl->setRadius(1);
+    // types are always required now
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
 
@@ -203,7 +203,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
 
-    // start by creating a temporary copy of r_cut sqaured
+    // the maximum cutoff that any particle can participate in
     Scalar rmax = m_r_cut_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);

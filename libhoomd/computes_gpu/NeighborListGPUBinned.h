@@ -83,8 +83,10 @@ class NeighborListGPUBinned : public NeighborListGPU
         //! Destructor
         virtual ~NeighborListGPUBinned();
 
-        //! Change the cutoff radius
+        //! Change the cutoff radius for all pairs
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        
+        //! Change the cutoff radius by pair type
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
 
         //! Set the autotuner period
@@ -117,8 +119,8 @@ class NeighborListGPUBinned : public NeighborListGPU
         unsigned int m_block_size;          //!< Block size to execute on the GPU
         unsigned int m_param;               //!< Kernel tuning parameter
 
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
-        unsigned int m_last_tuned_timestep; //!< Last tuning timestep
+        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
+        unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
         
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);

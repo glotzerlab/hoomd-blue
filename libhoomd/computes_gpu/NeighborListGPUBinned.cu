@@ -95,7 +95,8 @@ struct warp_scan_sm30
     \param d_n_neigh Number of neighbors to write
     \param d_last_updated_pos Particle positions at this update are written to this array
     \param d_conditions Conditions array for writing overflow condition
-    \param nli Indexer to access \a d_nlist
+    \param d_Nmax Maximum number of neighbors per type
+    \param d_head_list List of indexes to access \a d_nlist
     \param d_pos Particle positions
     \param d_body Particle body indices
     \param d_diameter Particle diameters
@@ -108,8 +109,9 @@ struct warp_scan_sm30
     \param cli Cell list indexer for indexing into d_cell_xyzf
     \param cadji Adjacent cell indexer listing the 27 neighboring cells
     \param box Simulation box dimensions
-    \param r_maxsq The maximum radius for which to include particles as neighbors, squared
-    \param r_max The maximum radius for which to include particles as neighbors
+    \param d_r_cut Cutoff radius stored by pair type r_cut(i,j)
+    \param r_buff The maximum radius for which to include particles as neighbors
+    \param ntypes Number of particle types
     \param ghost_width Width of ghost cell layer
 
     \note optimized for Kepler
@@ -178,10 +180,9 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
         my_pidx = blockIdx.x * (blockDim.x/threads_per_particle) + threadIdx.x/threads_per_particle;
         }
 
-    // return early if out of bounds
+    // one thread per particle
     if (my_pidx >= N) return;
 
-    // first, determine which bin this particle belongs to
     Scalar4 my_postype = d_pos[my_pidx];
     Scalar3 my_pos = make_scalar3(my_postype.x, my_postype.y, my_postype.z);
 
