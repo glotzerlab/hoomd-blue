@@ -941,10 +941,6 @@ void NeighborList::addOneFourExclusionsFromTopology()
         to this method that returned true.
     \returns false If none of the particles has been moved more than 1/2 of the buffer distance since the last call to this
         method that returned true.
-
-    The buffer distance is defined as the distance between the minimum cutoff (including diameter shifting) for the
-    given particle type. That is, the minimum cutoff implied is r_cut' = r_cut + delta, where delta is nonzero if
-    (1) diameter shifting is on and (2) d_max != 1.0. The r_list buffer is applied on top of this value.
     
     Note: this method relies on data set by setLastUpdatedPos(), which must be called to set the previous data used
     in the next call to distanceCheck();
@@ -981,11 +977,7 @@ bool NeighborList::distanceCheck(unsigned int timestep)
         const unsigned int type_i = __scalar_as_int(h_pos.data[i].w);
         
         // minimum distance within which all particles should be included
-        // this must be increased by the diameter size if diameter shifting is on so that
-        // the safe skin size is not artificially increased
         Scalar old_rmin = h_rcut_max.data[type_i];
-        if (m_diameter_shift)
-            old_rmin += m_d_max - Scalar(1.0);
         
         // maximum value we have checked for neighbors, defined by the buffer layer
         Scalar rmax = old_rmin + m_r_buff;

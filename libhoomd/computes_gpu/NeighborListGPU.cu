@@ -64,7 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \param box Box dimensions
     \param d_rcut_max The maximum rcut(i,j) that any particle i participates in
     \param r_buff The buffer size that particles can move in
-    \param diam_shift The amount to add to the set r_cut_max(i,j) to determine the minimum safe cutoff distance
     \param ntypes The number of particle types
     \param lambda_min Minimum contraction of deformation tensor
     \param lambda Diagonal deformation tensor (for orthorhombic boundaries)
@@ -81,7 +80,6 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
                                                         const BoxDim box,
                                                         const Scalar *d_rcut_max,
                                                         const Scalar r_buff,
-                                                        const Scalar diam_shift,
                                                         const unsigned int ntypes,
                                                         const Scalar lambda_min,
                                                         const Scalar3 lambda,
@@ -99,7 +97,7 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
         {
         if (cur_offset + threadIdx.x < ntypes)
             {
-            const Scalar rmin = d_rcut_max[cur_offset + threadIdx.x] + diam_shift;
+            const Scalar rmin = d_rcut_max[cur_offset + threadIdx.x];
             const Scalar rmax = rmin + r_buff;
             const Scalar delta_max = (rmax*lambda_min - rmin)/Scalar(2.0);
             s_maxshiftsq[cur_offset + threadIdx.x] = (delta_max > 0) ? delta_max*delta_max : 0.0f;
@@ -134,7 +132,6 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const BoxDim& box,
                                              const Scalar *d_rcut_max,
                                              const Scalar r_buff,
-                                             const Scalar diam_shift,
                                              const unsigned int ntypes,
                                              const Scalar lambda_min,
                                              const Scalar3 lambda,
@@ -151,7 +148,6 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                                                                     box,
                                                                                     d_rcut_max,
                                                                                     r_buff,
-                                                                                    diam_shift,
                                                                                     ntypes,
                                                                                     lambda_min,
                                                                                     lambda,
