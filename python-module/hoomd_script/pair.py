@@ -412,7 +412,7 @@ class nlist:
     #        run() commands. (in distance units)
     # \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
     #        \a check_period steps
-    # \param deterministic (if set) Enable deterministic runs on the GPU by sorting the cell list (not enabled by default)
+    # \param deterministic (if set) Enable deterministic runs on the GPU by sorting the cell list
     #
     # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
     # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
@@ -445,6 +445,15 @@ class nlist:
     # d_max is greater than 1.0.
     #
     # A single global neighbor list is created for the entire simulation.
+    #
+    # \note For truly deterministic simulations, also the autotuner should be disabled.
+    # This can significantly decrease performance.
+    #
+    # \b Example:
+    # \code
+    # nlist.set_params(deterministic=True)
+    # option.set_autotuner_params(enable=False)
+    # \endcode
     #
     # \b Examples:
     # \code
