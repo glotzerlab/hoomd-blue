@@ -53,9 +53,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cub/cub.cuh"
 
-#define MORTON_CODE_BITS   30       // k = 10 bits per direction, 3k = 30 bit morton codes
-#define MORTON_TYPE_MASK_64 0x000000003fffffffu // 64 bit mask for the morton codes
-#define MORTON_CODE_N_BINS 1024     // number of bins (2^k) to use to generate 3k bit morton codes
+#define MORTON_CODE_BITS   30       //!< Length of the Morton code in bits (k = 10 bits per direction)
+#define MORTON_CODE_N_BINS 1024     //!< Number of bins (2^10) per direction to generate 30 bit Morton codes
+#define MORTON_TYPE_MASK_64 0x000000003fffffffu //!< 64 bit mask to turn morton code-type back to morton code
 
 /*! \file NeighborListGPUTree.cu
     \brief Defines GPU kernel code for neighbor list tree traversal on the GPU
@@ -71,13 +71,14 @@ scalar2_tex_t leaf_db_tex;
 scalar4_tex_t aabb_node_bounds_tex;
 //! Texture for the head list
 texture<unsigned int, 1, cudaReadModeElementType> head_list_tex;
-//! Texture for the left children
-texture<unsigned int, 1, cudaReadModeElementType> node_left_child_tex;
 
 
-// Expands a 10-bit integer into 30 bits
-// by inserting 2 zeros after each bit.
-// http://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
+//!< Expands a 10-bit integer into 30 bits by inserting 2 zeros after each bit.
+/*!
+ * \param v unsigned integer with 10 bits set
+ * \returns The integer expanded with two zeros interleaved between bits
+ * http://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
+ */
 __device__ inline unsigned int expandBits(unsigned int v)
 {
     v = (v * 0x00010001u) & 0xFF0000FFu;
@@ -87,8 +88,26 @@ __device__ inline unsigned int expandBits(unsigned int v)
     return v;
 }
 
-__global__ void gpu_nlist_morton_codes_kernel(uint64_t *d_morton_codes,
-                                              unsigned int *d_map_tree_global,
+//! Assigns the Morton code-type key for each particle on this processor
+/*!
+ * \param d_morton_types Morton code-type keys per particle
+ * \param d_map_tree_pid List to be overwritten with particle ids in ascending order
+ * \param d_morton_conditions Flag if a local particle (not a ghost) is detected out of bounds
+ * \param d_pos Particle positions
+ * \param N Number of local particles
+ * \param nghosts Number of ghost particles
+ * \param box Local simulation box
+ * \param ghost_width Anticipated size of the ghost layer for nonbonded interactions
+ *
+ * \b Implementation
+ * A sorting key is generated for each particle by determining the 30 bit Morton code for each particle, and then
+ * concatenating onto the type. Both the Morton code and the type are 32 bit integers, so the concatenation is stored
+ * compactly in a 64 bit integer morton_type = (type << 30) + morton code. In this way, a lexicographic sort will
+ * sort first by type, then by morton code. The corresponding particle id (thread index) is stashed into d_map_tree_pid
+ * to track particles after sorting.
+ */
+__global__ void gpu_nlist_morton_types_kernel(uint64_t *d_morton_types,
+                                              unsigned int *d_map_tree_pid,
                                               int *d_morton_conditions,
                                               const Scalar4 *d_pos,
                                               const unsigned int N,
@@ -99,7 +118,7 @@ __global__ void gpu_nlist_morton_codes_kernel(uint64_t *d_morton_codes,
     // compute the particle index this thread operates on
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    // quit now if this thread is processing past the end of the particle list
+    // one thread per particle
     if (idx >= N+nghosts)
         return;
     
@@ -107,14 +126,16 @@ __global__ void gpu_nlist_morton_codes_kernel(uint64_t *d_morton_codes,
     Scalar4 postype = d_pos[idx];
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     const unsigned int type = __scalar_as_int(postype.w);
-        
+    
+    // get position in simulation box
     uchar3 periodic = box.getPeriodic();
     Scalar3 f = box.makeFraction(pos,ghost_width);
 
-    // check if the particle is inside the unit cell + ghost layer in all dimensions
-    // this tolerance is small enough that when we multiply by the morton code bin size, we are still in range
-    // we silently ignore ghosts outside of this width, and instead deal with that special case below
-    // where extra ghosts are communicated
+    /* check if the particle is inside the unit cell + ghost layer in all dimensions
+     * this tolerance is small enough that when we multiply by the morton code bin size, we are still in range
+     * we silently ignore ghosts outside of this width, and instead deal with that special case below
+     * where extra ghosts are communicated (e.g. for bonded interactions)
+     */
     if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
         (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
         (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)) && idx < N)
@@ -188,12 +209,25 @@ __global__ void gpu_nlist_morton_codes_kernel(uint64_t *d_morton_codes,
     
     // save the morton code and corresponding particle index for sorting
     // the morton codes hold both the type and the code to sort by both type and position simultaneously
-    d_morton_codes[idx] = (((uint64_t)type) << MORTON_CODE_BITS) + (uint64_t)morton_code;
-    d_map_tree_global[idx] = idx;
+    d_morton_types[idx] = (((uint64_t)type) << MORTON_CODE_BITS) + (uint64_t)morton_code;
+    d_map_tree_pid[idx] = idx;
     }
 
-cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
-                                   unsigned int *d_map_tree_global,
+/*!
+ * \param d_morton_types Morton code-type keys per particle
+ * \param d_map_tree_pid List to be overwritten with particle ids in ascending order
+ * \param d_morton_conditions Flag if a local particle (not a ghost) is detected out of bounds
+ * \param d_pos Particle positions
+ * \param N Number of local particles
+ * \param nghosts Number of ghost particles
+ * \param box Local simulation box
+ * \param ghost_width Anticipated size of the ghost layer for nonbonded interactions
+ * \param block_size Requested thread block size of kernel launch
+ *
+ * \returns cudaSuccess on completion
+ */
+cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
+                                   unsigned int *d_map_tree_pid,
                                    int *d_morton_conditions,
                                    const Scalar4 *d_pos,
                                    const unsigned int N,
@@ -206,14 +240,14 @@ cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_morton_codes_kernel);
+        cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_morton_types_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     int run_block_size = min(block_size,max_block_size);
     
-    gpu_nlist_morton_codes_kernel<<<(N+nghosts)/run_block_size + 1, run_block_size>>>(d_morton_codes,
-                                                                                      d_map_tree_global,
+    gpu_nlist_morton_types_kernel<<<(N+nghosts)/run_block_size + 1, run_block_size>>>(d_morton_types,
+                                                                                      d_map_tree_pid,
                                                                                       d_morton_conditions,
                                                                                       d_pos,
                                                                                       N,
@@ -222,32 +256,62 @@ cudaError_t gpu_nlist_morton_codes(uint64_t *d_morton_codes,
                                                                                       ghost_width);
     return cudaSuccess;
     }
-    
-cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_codes,
-                                  uint64_t *d_morton_codes_alt,
-                                  unsigned int *d_map_tree_global,
-                                  unsigned int *d_map_tree_global_alt,
+ 
+/*!
+ * \param d_morton_types Morton code-type keys per particle
+ * \param d_morton_types_alt Auxiliary array of equal size to d_morton_types for double buffered sorting
+ * \param d_map_tree_pid List of particle ids
+ * \param d_map_tree_pid_alt Auxiliary array of equal size to d_map_tree_pid for double buffered sorting
+ * \param allocator Device caching allocator for temporary memory
+ * \param swap_morton Flag to switch real data from auxiliary array to primary array after sorting
+ * \param swap_map Flag to switch real data from auxiliary array to primary array after sorting
+ * \param Ntot Total number of keys to sort
+ * \param n_type_bits Number of bits to check for particle types
+ *
+ * \returns cudaSuccess on completion
+ *
+ * \b Implementation
+ * The CUB library is used for device-wide radix sorting. Radix sorting is O(kN) where k is the number of bits to check
+ * in an unsigned integer key, and N is the number of keys. We restrict the number of bits checked in the max 64 bit
+ * keys by only checking up to the MORTON_CODE_BITS + n_type_bits most significant bit. CUB DeviceRadixSort performs
+ * its own tuning at run time.
+ */   
+cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
+                                  uint64_t *d_morton_types_alt,
+                                  unsigned int *d_map_tree_pid,
+                                  unsigned int *d_map_tree_pid_alt,
                                   cub::CachingDeviceAllocator *allocator,
                                   bool &swap_morton,
                                   bool &swap_map,
-                                  const unsigned int N,
+                                  const unsigned int Ntot,
                                   const unsigned int n_type_bits)
     {
-    // loop on types and do a sort by key
-        
-    cub::DoubleBuffer<uint64_t> d_keys(d_morton_codes, d_morton_codes_alt);
-    cub::DoubleBuffer<unsigned int> d_vals(d_map_tree_global, d_map_tree_global_alt);
+    // initialize memory as "double buffered"   
+    cub::DoubleBuffer<uint64_t> d_keys(d_morton_types, d_morton_types_alt);
+    cub::DoubleBuffer<unsigned int> d_vals(d_map_tree_pid, d_map_tree_pid_alt);
     
     // get the size of temporary storage needed
     // we are sorting 30 bit morton codes, so don't need to check all 32 bits (will save a little bit of time)
     size_t tmp_storage_bytes = 0;
     void *d_tmp_storage = NULL;
-    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N, 0, MORTON_CODE_BITS + n_type_bits);
+    cub::DeviceRadixSort::SortPairs(d_tmp_storage,
+                                    tmp_storage_bytes,
+                                    d_keys,
+                                    d_vals,
+                                    Ntot,
+                                    0,
+                                    MORTON_CODE_BITS+n_type_bits);
     
     allocator->DeviceAllocate(&d_tmp_storage, tmp_storage_bytes);
     
     // do the sort
-    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N, 0,  MORTON_CODE_BITS + n_type_bits);
+    cub::DeviceRadixSort::SortPairs(d_tmp_storage,
+                                    tmp_storage_bytes,
+                                    d_keys,
+                                    d_vals,
+                                    Ntot,
+                                    0,
+                                    MORTON_CODE_BITS+n_type_bits);
     
     // mark that the gpu arrays should be flipped if the final result is not in the right array
     swap_morton = (d_keys.selector == 1);
@@ -259,30 +323,60 @@ cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_codes,
     return cudaSuccess;
     }
 
-__global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
+//! Kernel to merge adjacent codes into leaf nodes
+/*!
+ * \param d_tree_aabbs Flat array holding all AABBs for the tree
+ * \param d_morton_codes_red The Morton codes corresponding to the merged leafs
+ * \param d_tree_parent_sib Parent and sibling indexes for all nodes
+ * \param d_morton_types Morton-code type keys for all particles
+ * \param d_pos Particle positions
+ * \param d_num_per_type Number of particles per type
+ * \param ntypes Number of particle types
+ * \param d_map_tree_pid Sorted particle order (maps local index to ParticleData index)
+ * \param d_leaf_offset Amount to subtract from the expected leaf starting index to make an array with no holes by type
+ * \param d_type_head Index to first type and leaf ordered particles by type
+ * \param Ntot Total number of keys to sort
+ * \param nleafs Number of leaf nodes
+ *
+ * \b Implementation
+ * One thread per leaf is called, and is responsible for merging NLIST_PARTICLES_PER_LEAF into an AABB. Each thread
+ * first determines what type of leaf particle it is operating on by calculating and iterating on the number of leafs
+ * of each type. Then, the starting index is determined by subtracting d_leaf_offset[type] from the starting index that
+ * would be set in a nleaf x NLIST_PARTICLES_PER_LEAF array. The reason for this complexity is that the leaf particle
+ * array is not permitted to have any "holes" in it for faster traversal. The AABB is merged from the particle
+ * positions, and a Morton code is assigned to this AABB for determining tree hierarchy based on the Morton code of
+ * the first particle in the leaf. Although this does not necessarily generate the best ordering along the Z order curve
+ * for the newly merged leafs, it does guarantee that the leaf Morton codes are still in lexicographic ordering.
+ *
+ * AABBs are stored as two Scalar4s in a flat array. The first three coordinates of each Scalar4 correspond to the upper
+ * and lower bounds of the AABB. The last value of the upper AABB will hold a "rope" for traversing the tree (see
+ * gpu_nlist_bubble_aabbs_kernel), while the last value of the lower AABB holds the number of particles for a leaf node,
+ * or the left child for an internal node. This is determined by setting a bit to mark this value as a rope or as child.
+ */
+__global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_tree_aabbs,
                                                  uint32_t *d_morton_codes_red,
                                                  uint2 *d_tree_parent_sib,
-                                                 const uint64_t *d_morton_codes,
+                                                 const uint64_t *d_morton_types,
                                                  const Scalar4 *d_pos,
                                                  const unsigned int *d_num_per_type,
                                                  const unsigned int ntypes,
-                                                 const unsigned int *d_map_tree_global,
+                                                 const unsigned int *d_map_tree_pid,
                                                  const unsigned int *d_leaf_offset,
                                                  const unsigned int *d_type_head,
-                                                 const unsigned int N,
+                                                 const unsigned int Ntot,
                                                  const unsigned int nleafs)
     {
-    // compute the internal node index this thread operates on
+    // leaf index
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    // quit now if this thread is processing past the end of the particle list
+    // one thread per leaf
     if (idx >= nleafs)
         return;
     
     // get what type of leaf I am
     unsigned int total_bins = 0;
     int leaf_type = -1;
-    unsigned int max_idx = N;
+    unsigned int max_idx = Ntot;
     for (unsigned int cur_type=0; leaf_type == -1 && cur_type < ntypes; ++cur_type)
         {
         total_bins += (d_num_per_type[cur_type] + NLIST_PARTICLES_PER_LEAF - 1)/NLIST_PARTICLES_PER_LEAF;
@@ -297,12 +391,13 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
             }
         }
     
+    // get the starting particle index assuming naive leaf structure, and then subtract offset to eliminate "holes"
     unsigned int start_idx = idx*NLIST_PARTICLES_PER_LEAF - d_leaf_offset[leaf_type];
     unsigned int end_idx = (max_idx - start_idx > NLIST_PARTICLES_PER_LEAF) ? start_idx + NLIST_PARTICLES_PER_LEAF : max_idx;
     
     
     // upper also holds the skip value, but we have no idea what this is right now
-    Scalar4 upper = d_pos[ d_map_tree_global[start_idx] ];
+    Scalar4 upper = d_pos[ d_map_tree_pid[start_idx] ];
     upper.w = 0.0f;
     
     // lower holds the particle number, we have one already
@@ -311,7 +406,7 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
     
     for (unsigned int cur_p=start_idx+1; cur_p < end_idx; ++cur_p)
         {
-        Scalar4 cur_pos = d_pos[ d_map_tree_global[cur_p] ];
+        Scalar4 cur_pos = d_pos[ d_map_tree_pid[cur_p] ];
         
         // merge the boxes together
         if (cur_pos.x < lower.x) lower.x = cur_pos.x;
@@ -326,29 +421,45 @@ __global__ void gpu_nlist_merge_particles_kernel(Scalar4 *d_leaf_aabbs,
         ++npart;
         }
     
-    d_leaf_aabbs[2*idx] = upper;
-    d_leaf_aabbs[2*idx + 1] = make_scalar4(lower.x, lower.y, lower.z, __int_as_scalar(npart));
+    d_tree_aabbs[2*idx] = upper;
+    d_tree_aabbs[2*idx + 1] = make_scalar4(lower.x, lower.y, lower.z, __int_as_scalar(npart << 1));
     
     // take logical AND with the 30 bit mask for the morton codes to extract just the morton code
     // no sense swinging around 64 bit integers anymore
-    d_morton_codes_red[idx] = (unsigned int)(d_morton_codes[start_idx] & MORTON_TYPE_MASK_64);
+    d_morton_codes_red[idx] = (unsigned int)(d_morton_types[start_idx] & MORTON_TYPE_MASK_64);
     
     // fill the parent/sib relationships as if everything is a single leaf at first, to be overridden by hierarchy gen
     // when this is not the case
     d_tree_parent_sib[idx] = make_uint2(idx, idx << 1);
     }
-    
-cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
+
+/*!
+ * \param d_tree_aabbs Flat array holding all AABBs for the tree
+ * \param d_morton_codes_red The Morton codes corresponding to the merged leafs
+ * \param d_tree_parent_sib Parent and sibling indexes for all nodes
+ * \param d_morton_types Morton-code type keys for all particles
+ * \param d_pos Particle positions
+ * \param d_num_per_type Number of particles per type
+ * \param ntypes Number of particle types
+ * \param d_map_tree_pid Sorted particle order (maps local index to ParticleData index)
+ * \param d_leaf_offset Amount to subtract from the expected leaf starting index to make an array with no holes by type
+ * \param d_type_head Index to first type and leaf ordered particles by type
+ * \param Ntot Total number of keys to sort
+ * \param nleafs Number of leaf nodes
+ *
+ * \returns cudaSuccess on completion
+ */    
+cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
                                       uint32_t *d_morton_codes_red,
                                       uint2 *d_tree_parent_sib,
-                                      const uint64_t *d_morton_codes,
+                                      const uint64_t *d_morton_types,
                                       const Scalar4 *d_pos,
                                       const unsigned int *d_num_per_type,
                                       const unsigned int ntypes,
-                                      const unsigned int *d_map_tree_global,
+                                      const unsigned int *d_map_tree_pid,
                                       const unsigned int *d_leaf_offset,
                                       const unsigned int *d_type_head,
-                                      const unsigned int N,
+                                      const unsigned int Ntot,
                                       const unsigned int nleafs,
                                       const unsigned int block_size)
     {
@@ -362,23 +473,35 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_leaf_aabbs,
 
     int run_block_size = min(block_size,max_block_size);
     
-    gpu_nlist_merge_particles_kernel<<<nleafs/run_block_size + 1, block_size>>>(d_leaf_aabbs,
+    gpu_nlist_merge_particles_kernel<<<nleafs/run_block_size + 1, block_size>>>(d_tree_aabbs,
                                                                                 d_morton_codes_red,
                                                                                 d_tree_parent_sib,
-                                                                                d_morton_codes,
+                                                                                d_morton_types,
                                                                                 d_pos,
                                                                                 d_num_per_type,
                                                                                 ntypes,
-                                                                                d_map_tree_global,
+                                                                                d_map_tree_pid,
                                                                                 d_leaf_offset,
                                                                                 d_type_head,
-                                                                                N,
+                                                                                Ntot,
                                                                                 nleafs);
     return cudaSuccess;
     }
 
+//! Computes the longest common prefix between Morton codes
 /*!
- * computes the longest common prefix
+ * \param d_morton_codes Array of Morton codes
+ * \param i First Morton code index
+ * \param j Second Morton code index
+ * \param min_idx The smallest index considered "in range" (inclusive)
+ * \param max_idx The first index considered "out of range"
+ *
+ * \returns number of bits shared between the Morton codes of i and j
+ *
+ * delta(i,j) is defined as the largest number of bits shared between Morton codes i and j. When the Morton codes are
+ * sorted, this implies delta(i',j') >= delta(i,j) for any i',j' in [i,j]. If i and j lie outside
+ * of the range of Morton codes corresponding to this tree, then it always returns -1. If the Morton codes for i and j
+ * are identical, then the longest prefix of i and j is used as a tie breaker.
  */
 __device__ inline int delta(const unsigned int *d_morton_codes,
                             unsigned int i,
@@ -405,8 +528,17 @@ __device__ inline int delta(const unsigned int *d_morton_codes,
         }
     }
 
+//! Determines the range of Morton codes that a node covers
 /*!
- * This is a literal implementation of the Karras pseudocode, with no optimizations or refinement
+ * \param d_morton_codes Array of Morton codes
+ * \param min_idx The smallest Morton code index considered "in range" (inclusive)
+ * \param max_idx The first Morton code index considered "out of range"
+ * \param idx Current node (Morton code) index
+ *
+ * \returns the minimum and maximum leafs covered by this node
+ * \note This is a literal implementation of the Karras pseudocode, with no optimizations or refinement.
+ *       Tero Karras, "Maximizing parallelism in the construction of BVHs, octrees, and k-d trees", 
+ *       High Performance Graphics (2012).
  */
 __device__ inline uint2 determineRange(const unsigned int *d_morton_codes,
                                        const int min_idx,
@@ -416,10 +548,13 @@ __device__ inline uint2 determineRange(const unsigned int *d_morton_codes,
     int forward_prefix = delta(d_morton_codes, idx, idx+1, min_idx, max_idx);
     int backward_prefix = delta(d_morton_codes, idx, idx-1, min_idx, max_idx);
         
-    // depends on sign
+    // get direction of the range based on sign
     int d = ((forward_prefix - backward_prefix) > 0) ? 1 : -1;
+    
+    // get minimum prefix
     int min_prefix = delta(d_morton_codes, idx, idx-d, min_idx, max_idx);
     
+    // get maximum prefix by binary search
     int lmax = 2;
     while( delta(d_morton_codes, idx, idx + d*lmax, min_idx, max_idx) > min_prefix)
         {
@@ -437,6 +572,7 @@ __device__ inline uint2 determineRange(const unsigned int *d_morton_codes,
         }
     while (step > 1);
    
+   // order range based on direction
     uint2 range;
     if (d > 0)
         {
@@ -451,6 +587,15 @@ __device__ inline uint2 determineRange(const unsigned int *d_morton_codes,
     return range;
     }
 
+//! Finds the split position in Morton codes covered by a range
+/*!
+ * \param d_morton_codes Array of Morton codes
+ * \param first First leaf node in the range
+ * \param last Last leaf node in the range
+ *
+ * \returns the leaf index corresponding to the split in Morton codes
+ * See determineRange for original source of algorithm.
+ */
 __device__ inline unsigned int findSplit(const unsigned int *d_morton_codes,
                                          const unsigned int first,
                                          const unsigned int last)
@@ -491,9 +636,27 @@ __device__ inline unsigned int findSplit(const unsigned int *d_morton_codes,
     
     return split;
     }
-    
-__global__ void gpu_nlist_gen_hierarchy_kernel(unsigned int *d_node_left_child,
-                                               uint2 *d_tree_parent_sib,
+
+//! Kernel to generate the parent-child-sibling relationships between nodes
+/*!
+ * \param d_tree_parent_sib Parent and sibling for each node in the tree
+ * \param d_morton_codes Morton codes for each leaf node
+ * \param d_num_per_type Number of particles per type
+ * \param ntypes Number of types
+ * \param nleafs Number of leafs
+ *
+ * \b Implementation
+ * One thread is called per internal node in a single kernel launch. Each thread first determines its "local" index
+ * as an internal node within a tree based on the number of leafs per tree. The range of leafs covered by the internal
+ * node is determined, and then its split position is identified. The split identifies the children of the node as
+ * another internal node or as a leaf node.
+ *
+ * The parent and sibling of each child node is saved. The sibling id is bit shifted so as to use a single bit to encode
+ * the sibling as a right child or left child (after shifting, we mask the bit to 1 if the sibling is a right child).
+ * If the child is a root node, it also saves information for itself (since no other node ever identifies a root as a
+ * child node).
+ */    
+__global__ void gpu_nlist_gen_hierarchy_kernel(uint2 *d_tree_parent_sib,
                                                const uint32_t *d_morton_codes,
                                                const unsigned int *d_num_per_type,
                                                const unsigned int ntypes,
@@ -502,7 +665,7 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(unsigned int *d_node_left_child,
     // compute the internal node index this thread operates on
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    // at first, we work with internal nodes
+    // one thread per internal node
     if (idx >= (nleafs - ntypes))
         return;
     
@@ -570,13 +733,19 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(unsigned int *d_node_left_child,
         
         d_tree_parent_sib[nleafs + idx] = parent_sib;
         }
-
-    // set the left child of this node
-    d_node_left_child[idx] = children.x;
     }
-    
-cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_node_left_child,
-                                    uint2 *d_tree_parent_sib,
+
+/*!
+ * \param d_tree_parent_sib Parent and sibling for each node in the tree
+ * \param d_morton_codes Morton codes for each leaf node
+ * \param d_num_per_type Number of particles per type
+ * \param ntypes Number of types
+ * \param nleafs Number of leafs
+ * \param block_size Requested thread block size
+ *
+ * \returns cudaSuccess on completion
+ */
+cudaError_t gpu_nlist_gen_hierarchy(uint2 *d_tree_parent_sib,
                                     const uint32_t *d_morton_codes,
                                     const unsigned int *d_num_per_type,
                                     const unsigned int ntypes,
@@ -594,8 +763,7 @@ cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_node_left_child,
     int run_block_size = min(block_size,max_block_size);
     
     // one thread per internal node
-    gpu_nlist_gen_hierarchy_kernel<<<(nleafs-ntypes)/run_block_size + 1, run_block_size>>>(d_node_left_child,
-                                                                                           d_tree_parent_sib,
+    gpu_nlist_gen_hierarchy_kernel<<<(nleafs-ntypes)/run_block_size + 1, run_block_size>>>(d_tree_parent_sib,
                                                                                            d_morton_codes,
                                                                                            d_num_per_type,
                                                                                            ntypes,
@@ -603,13 +771,35 @@ cudaError_t gpu_nlist_gen_hierarchy(unsigned int *d_node_left_child,
     return cudaSuccess;
     }
 
-
+//! Kernel to bubble up enclosing AABBs to internal nodes from leaf nodes
+/*!
+ * \param d_node_locks Atomic flags identifying when node has been visited
+ * \param d_tree_aabbs AABB array for all tree nodes
+ * \param d_tree_parent_sib Parent and sibling indexes of each node
+ * \param ntypes Number of particle types
+ * \param nleafs Number of leaf nodes
+ *
+ * \b Implementation
+ * One thread is called per leaf node. The second thread to reach an internal node processes its two children,
+ * which guarantees that no node AABB is prematurely processed. The arrival order at a node is controlled by an atomic
+ * thread lock.
+ *
+ * When processing the node, the thread also walks up the tree to find the "rope" that tells a traverser
+ * how to navigate the tree. If a query AABB intersects the current node, then the traverser always moves the the left
+ * child of the current node. If the AABB does not intersect, it moves along the "rope" to the next portion of the tree.
+ * The "rope" is calculated by walking back up the tree to find the earliest ancestor that is a left child of its
+ * parent. The rope then goes to that ancestor's sibling. If the root node is reached, then the rope is set to -1 to
+ * indicate traversal should be aborted.
+ *
+ * This kernel also encodes the left child of a node into the AABB for internal nodes. The thread processing the node
+ * checks if it arrived from a left child or right child of the node it is processing, and sets the left child of that
+ * parent accordingly.
+ */
 __global__ void gpu_nlist_bubble_aabbs_kernel(unsigned int *d_node_locks,
                                               Scalar4 *d_tree_aabbs,
                                               const uint2 *d_tree_parent_sib,
                                               const unsigned int ntypes,
-                                              const unsigned int nleafs,
-                                              const unsigned int block_size)
+                                              const unsigned int nleafs)
     {
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
     
@@ -630,6 +820,10 @@ __global__ void gpu_nlist_bubble_aabbs_kernel(unsigned int *d_node_locks,
         {
         uint2 cur_parent_sib = d_tree_parent_sib[cur_node];
         unsigned int cur_parent = cur_parent_sib.x;
+        
+        // if the current sibling is a right child, then the current node is a left child
+        bool cur_is_left = (cur_parent_sib.y & 1);
+        
         unsigned int cur_sibling = cur_parent_sib.y >> 1;
         
         // first we compute the skip for this node always
@@ -670,6 +864,11 @@ __global__ void gpu_nlist_bubble_aabbs_kernel(unsigned int *d_node_locks,
             if (sib_lower.x < cur_lower.x) cur_lower.x = sib_lower.x;
             if (sib_lower.y < cur_lower.y) cur_lower.y = sib_lower.y;
             if (sib_lower.z < cur_lower.z) cur_lower.z = sib_lower.z;
+            
+            // this must always be some internal node, so stash the left child of this node here
+            unsigned int left_child_masked = ((cur_is_left ? cur_node : cur_sibling) << 1) | 1;
+            cur_lower.w = __int_as_scalar( left_child_masked );
+            
             d_tree_aabbs[2*cur_parent+1] = cur_lower;
             
             // bump the current node one level
@@ -679,7 +878,17 @@ __global__ void gpu_nlist_bubble_aabbs_kernel(unsigned int *d_node_locks,
     while (lock_key == 1);
     
     }
-    
+
+/*!
+ * \param d_node_locks Atomic flags identifying when node has been visited
+ * \param d_tree_aabbs AABB array for all tree nodes
+ * \param d_tree_parent_sib Parent and sibling indexes of each node
+ * \param ntypes Number of particle types
+ * \param nleafs Number of leaf nodes
+ * \param block_size Requested thread block size
+ *
+ * \returns cudaSuccess on completion
+ */    
 cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                    Scalar4 *d_tree_aabbs,
                                    const uint2 *d_tree_parent_sib,
@@ -695,40 +904,64 @@ cudaError_t gpu_nlist_bubble_aabbs(unsigned int *d_node_locks,
                                                                          d_tree_aabbs,
                                                                          d_tree_parent_sib,
                                                                          ntypes,
-                                                                         nleafs,
-                                                                         block_size);
+                                                                         nleafs);
     
     return cudaSuccess;
     }
-    
+
+//! Kernel to rearrange particle data into leaf order for faster traversal
+/*!
+ * \param d_leaf_xyzf Particle xyz coordinates + particle id in leaf order
+ * \param d_leaf_db Particle diameter and body id in leaf order
+ * \param d_pos Particle positions
+ * \param d_diameter Particle diameters
+ * \param d_body Particle body ids
+ * \param d_map_tree_pid ParticleData indexes corresponding to a leaf particle id
+ * \param Ntot Number of particles owned by this rank
+ */
 __global__ void gpu_nlist_move_particles_kernel(Scalar4 *d_leaf_xyzf,
                                                 Scalar2 *d_leaf_db,
                                                 const Scalar4 *d_pos,
                                                 const Scalar *d_diameter,
                                                 const unsigned int *d_body,
-                                                const unsigned int *d_map_tree_global,
-                                                const unsigned int N)
+                                                const unsigned int *d_map_tree_pid,
+                                                const unsigned int Ntot)
     {
+    // get thread index
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
     
-    if (idx >= N)
+    // one thread per particle
+    if (idx >= Ntot)
         return;
-        
-    unsigned int p_idx = d_map_tree_global[idx];
+    
+    // read and write particle data
+    unsigned int p_idx = d_map_tree_pid[idx];
     Scalar4 pos_i = d_pos[p_idx];
     d_leaf_xyzf[idx] = make_scalar4(pos_i.x, pos_i.y, pos_i.z, __int_as_scalar(p_idx));
     
     Scalar2 db = make_scalar2(d_diameter[p_idx], __int_as_scalar(d_body[p_idx]));
     d_leaf_db[idx] = db;
     }
-                                         
+
+/*!
+ * \param d_leaf_xyzf Particle xyz coordinates + particle id in leaf order
+ * \param d_leaf_db Particle diameter and body id in leaf order
+ * \param d_pos Particle positions
+ * \param d_diameter Particle diameters
+ * \param d_body Particle body ids
+ * \param d_map_tree_pid ParticleData indexes corresponding to a leaf particle id
+ * \param Ntot Number of particles owned by this rank
+ * \param block_size Requested thread block size
+ *
+ * \returns cudaSuccess on completion
+ */                   
 cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
                                      Scalar2 *d_leaf_db,
                                      const Scalar4 *d_pos,
                                      const Scalar *d_diameter,
                                      const unsigned int *d_body,
-                                     const unsigned int *d_map_tree_global,
-                                     const unsigned int N,
+                                     const unsigned int *d_map_tree_pid,
+                                     const unsigned int Ntot,
                                      const unsigned int block_size)
     {
     static unsigned int max_block_size = UINT_MAX;
@@ -741,17 +974,44 @@ cudaError_t gpu_nlist_move_particles(Scalar4 *d_leaf_xyzf,
 
     int run_block_size = min(block_size,max_block_size);
     
-    gpu_nlist_move_particles_kernel<<<N/run_block_size + 1, run_block_size>>>(d_leaf_xyzf,
-                                                                              d_leaf_db,
-                                                                              d_pos,
-                                                                              d_diameter,
-                                                                              d_body,
-                                                                              d_map_tree_global,
-                                                                              N);
+    gpu_nlist_move_particles_kernel<<<Ntot/run_block_size + 1, run_block_size>>>(d_leaf_xyzf,
+                                                                                 d_leaf_db,
+                                                                                 d_pos,
+                                                                                 d_diameter,
+                                                                                 d_body,
+                                                                                 d_map_tree_pid,
+                                                                                 Ntot);
     return cudaSuccess;
     }
 
 
+//! Kernel for traversing tree to generate neighbor list
+/*!
+ * \param d_nlist
+ * \param d_n_neigh
+ * \param d_last_updated_pos
+ * \param d_conditions
+ * \param d_Nmax
+ * \param d_head_list
+ * \param N
+ * \param nghosts
+ * \param d_map_tree_pid
+ * \param d_leaf_offset
+ * \param d_tree_roots
+ * \param d_tree_aabbs
+ * \param nleafs
+ * \param d_leaf_xyzf
+ * \param d_leaf_db
+ * \param d_pos
+ * \param d_image_list
+ * \param nimages
+ * \param d_r_cut
+ * \param r_buff
+ * \param max_diam
+ * \param ntypes
+ *
+ * \b Implementation
+ */
 template<unsigned char flags>
 __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                                                unsigned int *d_n_neigh,
@@ -761,21 +1021,16 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                                                const unsigned int *d_head_list,
                                                const unsigned int N,
                                                const unsigned int nghosts,
-                                               // tree data
-                                               const unsigned int *d_map_tree_global,
+                                               const unsigned int *d_map_tree_pid,
                                                const unsigned int *d_leaf_offset,
                                                const unsigned int *d_tree_roots,
-                                               const unsigned int *d_node_left_child,
                                                const Scalar4 *d_tree_aabbs,
                                                const unsigned int nleafs,
                                                const Scalar4 *d_leaf_xyzf,
                                                const Scalar2 *d_leaf_db,
-                                               // particle data
                                                const Scalar4 *d_pos,
-                                               // images
                                                const Scalar3 *d_image_list,
                                                const unsigned int nimages,
-                                               // neighbor list cutoffs
                                                const Scalar *d_r_cut,
                                                const Scalar r_buff,
                                                const Scalar max_diam,
@@ -783,7 +1038,6 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
     {
     bool filter_body = flags & 1;
     bool diameter_shift = flags & 2;
-    bool has_internal = !(flags & 4);
 
     // cache the r_listsq parameters into shared memory
     const Index2D typpair_idx(ntypes);
@@ -822,7 +1076,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
         return;  
     
     // read in the current position and orientation
-    unsigned int my_pidx = d_map_tree_global[idx];
+    unsigned int my_pidx = d_map_tree_pid[idx];
     // we only process particles owned by this processor for neighbors
     if (my_pidx >= N)
         return;
@@ -878,12 +1132,14 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                       || aabb_upper.z < lower_np.z
                       || aabb_lower.z > upper_rope.z))                
                     {
-                    const unsigned int n_part = __scalar_as_int(lower_np.w);
-                    if(n_part > 0)
+                    const unsigned int np_child_masked = __scalar_as_int(lower_np.w);
+                    
+                    if(!(np_child_masked & 1))
                         {
                         // leaf node
                         // all leaves must have at least 1 particle, so we can use this to decide
                         const unsigned int node_head = NLIST_PARTICLES_PER_LEAF*cur_node_idx - s_leaf_offset[cur_pair_type];
+                        const unsigned int n_part = np_child_masked >> 1;
                         for (unsigned int cur_p = node_head; cur_p < node_head + n_part; ++cur_p)
                             { 
                             // neighbor j
@@ -931,10 +1187,10 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                         // leaf nodes always move to their rope
                         cur_node_idx = __scalar_as_int(upper_rope.w);
                         }
-                    else if (has_internal)
+                    else
                         {
                         // internal node, take left child
-                        cur_node_idx = texFetchUint(d_node_left_child, node_left_child_tex, cur_node_idx - nleafs);
+                        cur_node_idx = (np_child_masked >> 1);
                         }
                     }
                 else
@@ -963,23 +1219,18 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const unsigned int *d_head_list,
                                     const unsigned int N,
                                     const unsigned int nghosts,
-                                    // tree data
-                                    const unsigned int *d_map_tree_global,
+                                    const unsigned int *d_map_tree_pid,
                                     const unsigned int *d_leaf_offset,
                                     const unsigned int *d_tree_roots,
-                                    const unsigned int *d_node_left_child,
                                     const Scalar4 *d_tree_aabbs,
                                     const unsigned int nleafs,
                                     const unsigned int ninternal,
                                     const unsigned int nnodes,
                                     const Scalar4 *d_leaf_xyzf,
                                     const Scalar2 *d_leaf_db,
-                                    // particle data
                                     const Scalar4 *d_pos,
-                                    // images
                                     const Scalar3 *d_image_list,
                                     const unsigned int nimages,
-                                    // neighbor list cutoffs
                                     const Scalar *d_r_cut,
                                     const Scalar r_buff,
                                     const Scalar max_diam,
@@ -1015,24 +1266,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
         head_list_tex.normalized = false;
         head_list_tex.filterMode = cudaFilterModePoint;
         cudaBindTexture(0, head_list_tex, d_head_list, sizeof(unsigned int)*(N+nghosts));
-        
-        if (ninternal > 0)
-            {
-            node_left_child_tex.normalized = false;
-            node_left_child_tex.filterMode = cudaFilterModePoint;
-            cudaBindTexture(0, node_left_child_tex, d_node_left_child, sizeof(unsigned int)*ninternal);
-            }
         }
     
-    // here we template on a few simple bools, which seems to make the traversal a little faster in microbenchmarks
-    // the bools are encoded as bitwise flags in a char
-    // filter body = (flags & 1)
-    // diameter shift = (flags & 2)
-    // has_internal_nodes = !(flags & 4)
-    //
-    // We enumerate all possibilities below
-    
-    if (!filter_body && !diameter_shift && ninternal)
+    if (!filter_body && !diameter_shift)
         {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
@@ -1052,10 +1288,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     d_head_list,
                                                                                     N,
                                                                                     nghosts,
-                                                                                    d_map_tree_global,
+                                                                                    d_map_tree_pid,
                                                                                     d_leaf_offset,
                                                                                     d_tree_roots,
-                                                                                    d_node_left_child,
                                                                                     d_tree_aabbs,
                                                                                     nleafs,
                                                                                     d_leaf_xyzf,
@@ -1068,7 +1303,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     max_diam,
                                                                                     ntypes);
         }
-    else if (filter_body && !diameter_shift && ninternal)
+    else if (filter_body && !diameter_shift)
         {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
@@ -1088,10 +1323,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     d_head_list,
                                                                                     N,
                                                                                     nghosts,
-                                                                                    d_map_tree_global,
+                                                                                    d_map_tree_pid,
                                                                                     d_leaf_offset,
                                                                                     d_tree_roots,
-                                                                                    d_node_left_child,
                                                                                     d_tree_aabbs,
                                                                                     nleafs,
                                                                                     d_leaf_xyzf,
@@ -1104,7 +1338,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     max_diam,
                                                                                     ntypes);
         }
-    else if (!filter_body && diameter_shift && ninternal)
+    else if (!filter_body && diameter_shift)
         {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
@@ -1124,10 +1358,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     d_head_list,
                                                                                     N,
                                                                                     nghosts,
-                                                                                    d_map_tree_global,
+                                                                                    d_map_tree_pid,
                                                                                     d_leaf_offset,
                                                                                     d_tree_roots,
-                                                                                    d_node_left_child,
                                                                                     d_tree_aabbs,
                                                                                     nleafs,
                                                                                     d_leaf_xyzf,
@@ -1140,7 +1373,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     max_diam,
                                                                                     ntypes);
         }
-    else if (filter_body && diameter_shift && ninternal)
+    else if (filter_body && diameter_shift)
         {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
@@ -1160,154 +1393,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     d_head_list,
                                                                                     N,
                                                                                     nghosts,
-                                                                                    d_map_tree_global,
+                                                                                    d_map_tree_pid,
                                                                                     d_leaf_offset,
                                                                                     d_tree_roots,
-                                                                                    d_node_left_child,
-                                                                                    d_tree_aabbs,
-                                                                                    nleafs,
-                                                                                    d_leaf_xyzf,
-                                                                                    d_leaf_db,
-                                                                                    d_pos,
-                                                                                    d_image_list,
-                                                                                    nimages,
-                                                                                    d_r_cut,
-                                                                                    r_buff,
-                                                                                    max_diam,
-                                                                                    ntypes);
-        }
-    else if (!filter_body && !diameter_shift && !ninternal)
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<4>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
-
-        int run_block_size = min(block_size,max_block_size);
-        int nblocks = (N+nghosts)/run_block_size + 1;
-        gpu_nlist_traverse_tree_kernel<4><<<nblocks, run_block_size, shared_size>>>(d_nlist,
-                                                                                    d_n_neigh,
-                                                                                    d_last_updated_pos,
-                                                                                    d_conditions,
-                                                                                    d_Nmax,
-                                                                                    d_head_list,
-                                                                                    N,
-                                                                                    nghosts,
-                                                                                    d_map_tree_global,
-                                                                                    d_leaf_offset,
-                                                                                    d_tree_roots,
-                                                                                    d_node_left_child,
-                                                                                    d_tree_aabbs,
-                                                                                    nleafs,
-                                                                                    d_leaf_xyzf,
-                                                                                    d_leaf_db,
-                                                                                    d_pos,
-                                                                                    d_image_list,
-                                                                                    nimages,
-                                                                                    d_r_cut,
-                                                                                    r_buff,
-                                                                                    max_diam,
-                                                                                    ntypes);
-        }
-    else if (filter_body && !diameter_shift && !ninternal)
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<5>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
-
-        int run_block_size = min(block_size,max_block_size);
-        int nblocks = (N+nghosts)/run_block_size + 1;
-        gpu_nlist_traverse_tree_kernel<5><<<nblocks, run_block_size, shared_size>>>(d_nlist,
-                                                                                    d_n_neigh,
-                                                                                    d_last_updated_pos,
-                                                                                    d_conditions,
-                                                                                    d_Nmax,
-                                                                                    d_head_list,
-                                                                                    N,
-                                                                                    nghosts,
-                                                                                    d_map_tree_global,
-                                                                                    d_leaf_offset,
-                                                                                    d_tree_roots,
-                                                                                    d_node_left_child,
-                                                                                    d_tree_aabbs,
-                                                                                    nleafs,
-                                                                                    d_leaf_xyzf,
-                                                                                    d_leaf_db,
-                                                                                    d_pos,
-                                                                                    d_image_list,
-                                                                                    nimages,
-                                                                                    d_r_cut,
-                                                                                    r_buff,
-                                                                                    max_diam,
-                                                                                    ntypes);
-        }
-    else if (!filter_body && diameter_shift && !ninternal)
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<6>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
-
-        int run_block_size = min(block_size,max_block_size);
-        int nblocks = (N+nghosts)/run_block_size + 1;
-        gpu_nlist_traverse_tree_kernel<6><<<nblocks, run_block_size, shared_size>>>(d_nlist,
-                                                                                    d_n_neigh,
-                                                                                    d_last_updated_pos,
-                                                                                    d_conditions,
-                                                                                    d_Nmax,
-                                                                                    d_head_list,
-                                                                                    N,
-                                                                                    nghosts,
-                                                                                    d_map_tree_global,
-                                                                                    d_leaf_offset,
-                                                                                    d_tree_roots,
-                                                                                    d_node_left_child,
-                                                                                    d_tree_aabbs,
-                                                                                    nleafs,
-                                                                                    d_leaf_xyzf,
-                                                                                    d_leaf_db,
-                                                                                    d_pos,
-                                                                                    d_image_list,
-                                                                                    nimages,
-                                                                                    d_r_cut,
-                                                                                    r_buff,
-                                                                                    max_diam,
-                                                                                    ntypes);
-        }
-    else if (filter_body && diameter_shift && !ninternal)
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_nlist_traverse_tree_kernel<7>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
-
-        int run_block_size = min(block_size,max_block_size);
-        int nblocks = (N+nghosts)/run_block_size + 1;
-        gpu_nlist_traverse_tree_kernel<7><<<nblocks, run_block_size, shared_size>>>(d_nlist,
-                                                                                    d_n_neigh,
-                                                                                    d_last_updated_pos,
-                                                                                    d_conditions,
-                                                                                    d_Nmax,
-                                                                                    d_head_list,
-                                                                                    N,
-                                                                                    nghosts,
-                                                                                    d_map_tree_global,
-                                                                                    d_leaf_offset,
-                                                                                    d_tree_roots,
-                                                                                    d_node_left_child,
                                                                                     d_tree_aabbs,
                                                                                     nleafs,
                                                                                     d_leaf_xyzf,
@@ -1326,7 +1414,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
 
 __global__ void gpu_nlist_get_divisions_kernel(unsigned int *d_type_head,
                                                const Scalar4 *d_pos,
-                                               const unsigned int *d_map_tree_global,
+                                               const unsigned int *d_map_tree_pid,
                                                const unsigned int N)
     {
     // compute the particle index this thread operates on
@@ -1336,8 +1424,8 @@ __global__ void gpu_nlist_get_divisions_kernel(unsigned int *d_type_head,
     if (idx >= N || !idx)
         return; 
     
-    const unsigned int cur_pidx = d_map_tree_global[idx];
-    const unsigned int left_pidx = d_map_tree_global[idx - 1];
+    const unsigned int cur_pidx = d_map_tree_pid[idx];
+    const unsigned int left_pidx = d_map_tree_pid[idx - 1];
     
     // get type of the particle to my left
     const Scalar4 left_postype = d_pos[left_pidx];
@@ -1381,15 +1469,15 @@ __global__ void gpu_nlist_setup_types_kernel(unsigned int *d_num_per_type,
     }
 
 
-cudaError_t gpu_nlist_map_particles(unsigned int *d_type_head,
-                                    unsigned int *d_num_per_type,
-                                    unsigned int *d_leaf_offset,
-                                    unsigned int *d_tree_roots,
-                                    const Scalar4 *d_pos,
-                                    const unsigned int *d_map_tree_global,
-                                    const unsigned int N,
-                                    const unsigned int ntypes,
-                                    const unsigned int block_size)
+cudaError_t gpu_nlist_init_count(unsigned int *d_type_head,
+                                 unsigned int *d_num_per_type,
+                                 unsigned int *d_leaf_offset,
+                                 unsigned int *d_tree_roots,
+                                 const Scalar4 *d_pos,
+                                 const unsigned int *d_map_tree_pid,
+                                 const unsigned int N,
+                                 const unsigned int ntypes,
+                                 const unsigned int block_size)
     {
     // apply the scan
     static unsigned int max_block_size = UINT_MAX;
@@ -1406,7 +1494,7 @@ cudaError_t gpu_nlist_map_particles(unsigned int *d_type_head,
     cudaMemset(d_type_head, 0, sizeof(unsigned int)*ntypes);
     
     // get the head list divisions
-    gpu_nlist_get_divisions_kernel<<<N/run_block_size + 1, run_block_size>>>(d_type_head, d_pos, d_map_tree_global, N);
+    gpu_nlist_get_divisions_kernel<<<N/run_block_size + 1, run_block_size>>>(d_type_head, d_pos, d_map_tree_pid, N);
     
     // do some gpu setups while we have the data here that will be finished on the cpu
     gpu_nlist_setup_types_kernel<<<ntypes/run_block_size + 1, run_block_size>>>(d_num_per_type,

@@ -67,7 +67,6 @@ using namespace hpmc::detail;
 
 //! Efficient neighbor list build on the CPU using BVH trees
 /*!
- *
  * A bounding volume hierarchy (BVH) tree is a binary search tree. It is constructed from axis-aligned bounding boxes
  * (AABBs). The AABB for a node in the tree encloses all child AABBs. A leaf AABB holds multiple particles. The tree
  * is constructed in a balanced way using a heuristic to minimize AABB volume. We build one tree per particle type,

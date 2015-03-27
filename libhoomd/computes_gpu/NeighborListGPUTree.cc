@@ -113,15 +113,15 @@ void NeighborListGPUTree::buildNlist(unsigned int timestep)
 void NeighborListGPUTree::allocateTree()
     {
     // allocate per particle memory
-    GPUArray<uint64_t> morton_codes(m_pdata->getMaxN(), m_exec_conf);
-    m_morton_codes.swap(morton_codes);
-    GPUArray<uint64_t> morton_codes_alt(m_pdata->getMaxN(), m_exec_conf);
-    m_morton_codes_alt.swap(morton_codes_alt);
+    GPUArray<uint64_t> morton_types(m_pdata->getMaxN(), m_exec_conf);
+    m_morton_types.swap(morton_types);
+    GPUArray<uint64_t> morton_types_alt(m_pdata->getMaxN(), m_exec_conf);
+    m_morton_types_alt.swap(morton_types_alt);
             
-    GPUArray<unsigned int> map_tree_global(m_pdata->getMaxN(), m_exec_conf);
-    m_map_tree_global.swap(map_tree_global);
-    GPUArray<unsigned int> map_tree_global_alt(m_pdata->getMaxN(), m_exec_conf);
-    m_map_tree_global_alt.swap(map_tree_global_alt);
+    GPUArray<unsigned int> map_tree_pid(m_pdata->getMaxN(), m_exec_conf);
+    m_map_tree_pid.swap(map_tree_pid);
+    GPUArray<unsigned int> map_tree_pid_alt(m_pdata->getMaxN(), m_exec_conf);
+    m_map_tree_pid_alt.swap(map_tree_pid_alt);
     
     GPUArray<Scalar4> leaf_xyzf(m_pdata->getMaxN(), m_exec_conf);
     m_leaf_xyzf.swap(leaf_xyzf);
@@ -154,10 +154,6 @@ void NeighborListGPUTree::allocateTree()
     // we really only need as many morton codes as we have leafs
     GPUVector<uint32_t> morton_codes_red(m_exec_conf);
     m_morton_codes_red.swap(morton_codes_red);
-    
-    // left children of all internal nodes
-    GPUVector<unsigned int> node_left_child(m_exec_conf);
-    m_node_left_child.swap(node_left_child);
 
     // 1 / 0 locks for traversing up the tree
     GPUVector<unsigned int> node_locks(m_exec_conf);
@@ -168,16 +164,18 @@ void NeighborListGPUTree::allocateTree()
     m_morton_conditions.swap(morton_conditions);
     }
 
-//! memory management for tree and particle mapping
+/*!
+ * \post Tree internal data structures are updated to begin a build.
+ */
 void NeighborListGPUTree::setupTree()
     {    
     // increase arrays that depend on the local number of particles
     if (m_max_num_changed)
         {
-        m_morton_codes.resize(m_pdata->getMaxN());
-        m_morton_codes_alt.resize(m_pdata->getMaxN());
-        m_map_tree_global.resize(m_pdata->getMaxN());
-        m_map_tree_global_alt.resize(m_pdata->getMaxN());
+        m_morton_types.resize(m_pdata->getMaxN());
+        m_morton_types_alt.resize(m_pdata->getMaxN());
+        m_map_tree_pid.resize(m_pdata->getMaxN());
+        m_map_tree_pid_alt.resize(m_pdata->getMaxN());
         m_leaf_xyzf.resize(m_pdata->getMaxN());
         m_leaf_db.resize(m_pdata->getMaxN());
         
@@ -207,7 +205,11 @@ void NeighborListGPUTree::setupTree()
         }
     }
 
-//! get the number of bits needed to represent all the types
+/*!
+ * Determines the number of bits needed to represent the largest type index for more efficient particle sorting.
+ * This is done by taking the ceiling of the log2 of the type index using integers.
+ * \sa sortMortonCodes
+ */
 inline void NeighborListGPUTree::calcTypeBits()
     {
     if (m_pdata->getNTypes() > 1)
@@ -233,11 +235,14 @@ inline void NeighborListGPUTree::calcTypeBits()
         }
     }
 
-//! map particle ids by type
-void NeighborListGPUTree::mapParticlesByType()
+/*!
+ * Determines the number of particles per type (and their starting indexes) in the flat leaf particle order. Also
+ * determines the leaf offsets and and tree roots. When there is only one type, most operations are skipped since these
+ * values are simple to determine.
+ */
+void NeighborListGPUTree::countParticlesAndTrees()
     {
     if (m_prof) m_prof->push(m_exec_conf,"map");
-    
     
     if (m_pdata->getNTypes() > 1)
         {
@@ -248,24 +253,24 @@ void NeighborListGPUTree::mapParticlesByType()
             ArrayHandle<unsigned int> d_leaf_offset(m_leaf_offset, access_location::device, access_mode::overwrite);
             ArrayHandle<unsigned int> d_tree_roots(m_tree_roots, access_location::device, access_mode::overwrite);
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-            ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::read);
             m_tuner_map->begin();
-            gpu_nlist_map_particles(d_type_head.data,
-                                    d_num_per_type.data,
-                                    d_leaf_offset.data,
-                                    d_tree_roots.data,
-                                    d_pos.data,
-                                    d_map_tree_global.data,
-                                    m_pdata->getN() + m_pdata->getNGhosts(),
-                                    m_pdata->getNTypes(),
-                                    m_tuner_map->getParam());
+            gpu_nlist_init_count(d_type_head.data,
+                                 d_num_per_type.data,
+                                 d_leaf_offset.data,
+                                 d_tree_roots.data,
+                                 d_pos.data,
+                                 d_map_tree_pid.data,
+                                 m_pdata->getN() + m_pdata->getNGhosts(),
+                                 m_pdata->getNTypes(),
+                                 m_tuner_map->getParam());
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             m_tuner_map->end();
             }
 
 
-        // then do the hard to parallelize stuff on the cpu because the number of types is small
+        // then do the hard to parallelize stuff on the cpu because the number of types is usually small
         // and you don't get much out of doing scans on the data
             {
             // the number of leafs is the first tree root
@@ -307,7 +312,7 @@ void NeighborListGPUTree::mapParticlesByType()
                 }
             }
         }
-    else
+    else // only one type
         {
         ArrayHandle<unsigned int> h_type_head(m_type_head, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::overwrite);
@@ -338,7 +343,11 @@ void NeighborListGPUTree::mapParticlesByType()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-//! build tree on gpu    
+/*!
+ * Driver to implement the tree build algorithm of Karras,
+ * "Maximizing parallelism in the construction of BVHs, octrees, and k-d trees", High Performance Graphics (2012).
+ * \post a valid tree is allocated and ready for traversal
+ */    
 void NeighborListGPUTree::buildTree()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Build tree");
@@ -350,14 +359,13 @@ void NeighborListGPUTree::buildTree()
     sortMortonCodes();
     
     // step three: map the particles by type
-    mapParticlesByType();
+    countParticlesAndTrees();
     
     // (re-) allocate memory that depends on tree size
     // GPUVector should only do this as needed
     m_tree_parent_sib.resize(m_n_node);
     m_tree_aabbs.resize(2*m_n_node);
     m_morton_codes_red.resize(m_n_leaf);
-    m_node_left_child.resize(m_n_internal);
     m_node_locks.resize(m_n_internal);
     
     // step four: merge leaf particles into aabbs by morton code
@@ -372,16 +380,21 @@ void NeighborListGPUTree::buildTree()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-//! calculate the morton codes for each particle
+/*!
+ * \post One morton code-type key is assigned per particle
+ * \note Call before sortMortonCodes().
+ */
 void NeighborListGPUTree::calcMortonCodes()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Morton codes");
+    
     // particle data and where to write it
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::read);
 
-    ArrayHandle<uint64_t> d_morton_codes(m_morton_codes, access_location::device, access_mode::overwrite);
+    ArrayHandle<uint64_t> d_morton_types(m_morton_types, access_location::device, access_mode::overwrite);
     
+    // need a ghost layer width to get the fractional position of particles in the local box
     const BoxDim& box = m_pdata->getBox();
 
     Scalar ghost_layer_width = m_r_cut_max + m_r_buff;
@@ -397,11 +410,12 @@ void NeighborListGPUTree::calcMortonCodes()
         }
 
 
+    // reset the flag to an invalid particle id before calling the compute
     m_morton_conditions.resetFlags(-1);
 
     m_tuner_morton->begin();  
-    gpu_nlist_morton_codes(d_morton_codes.data,
-                           d_map_tree_global.data,
+    gpu_nlist_morton_types(d_morton_types.data,
+                           d_map_tree_pid.data,
                            m_morton_conditions.getDeviceFlags(),
                            d_pos.data,
                            m_pdata->getN(),
@@ -413,6 +427,7 @@ void NeighborListGPUTree::calcMortonCodes()
         CHECK_CUDA_ERROR();
     m_tuner_morton->end();
     
+    // error check that no local particles are out of bounds
     const int morton_conditions = m_morton_conditions.readFlags();
     if (morton_conditions >= 0)
         {
@@ -429,7 +444,12 @@ void NeighborListGPUTree::calcMortonCodes()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-//! sort the morton codes within a type using thrust libraries    
+/*!
+ * Invokes the CUB libraries to sort the morton code-type keys.
+ * \pre Morton code-keys are in local ParticleData order
+ * \post Morton code-keys are sorted by type then position along the Z order curve.
+ * \note Call after calcMortonCodes(), but before mergeLeafParticles().
+ */
 void NeighborListGPUTree::sortMortonCodes()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Sort");
@@ -437,16 +457,16 @@ void NeighborListGPUTree::sortMortonCodes()
     bool swap_morton = false;
     bool swap_map = false;    
         {
-        ArrayHandle<uint64_t> d_morton_codes(m_morton_codes, access_location::device, access_mode::readwrite);
-        ArrayHandle<uint64_t> d_morton_codes_alt(m_morton_codes_alt, access_location::device, access_mode::overwrite);
-        ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::readwrite);
-        ArrayHandle<unsigned int> d_map_tree_global_alt(m_map_tree_global_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<uint64_t> d_morton_types(m_morton_types, access_location::device, access_mode::readwrite);
+        ArrayHandle<uint64_t> d_morton_types_alt(m_morton_types_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_map_tree_pid_alt(m_map_tree_pid_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
         
-        gpu_nlist_morton_sort(d_morton_codes.data,
-                              d_morton_codes_alt.data,
-                              d_map_tree_global.data,
-                              d_map_tree_global_alt.data,
+        gpu_nlist_morton_sort(d_morton_types.data,
+                              d_morton_types_alt.data,
+                              d_map_tree_pid.data,
+                              d_map_tree_pid_alt.data,
                               m_tmp_allocator,
                               swap_morton,
                               swap_map,
@@ -457,18 +477,21 @@ void NeighborListGPUTree::sortMortonCodes()
     // we want the sorted data in the real data because the alt is just a tmp holder
     if (swap_morton)
         {
-        m_morton_codes.swap(m_morton_codes_alt);
+        m_morton_types.swap(m_morton_types_alt);
         }
         
     if (swap_map)
         {
-        m_map_tree_global.swap(m_map_tree_global_alt);
+        m_map_tree_pid.swap(m_map_tree_pid_alt);
         }
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
     
-//! merge leaf particles by ID into AABBs    
+/*!
+ * \post AABB leafs are constructed for adjacent groupings of particles.
+ * \note Call after sortMortonCodes(), but before genTreeHierarchy().
+ */    
 void NeighborListGPUTree::mergeLeafParticles()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Leaf merge");
@@ -479,8 +502,8 @@ void NeighborListGPUTree::mergeLeafParticles()
     ArrayHandle<unsigned int> d_type_head(m_type_head, access_location::device, access_mode::read);
     
     // leaf particle data
-    ArrayHandle<uint64_t> d_morton_codes(m_morton_codes, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::read);
+    ArrayHandle<uint64_t> d_morton_types(m_morton_types, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_leaf_offset(m_leaf_offset, access_location::device, access_mode::read);
     
     // tree aabbs and reduced morton codes to overwrite
@@ -492,11 +515,11 @@ void NeighborListGPUTree::mergeLeafParticles()
     gpu_nlist_merge_particles(d_tree_aabbs.data,
                               d_morton_codes_red.data,
                               d_tree_parent_sib.data,
-                              d_morton_codes.data,
+                              d_morton_types.data,
                               d_pos.data,
                               d_num_per_type.data,
                               m_pdata->getNTypes(),
-                              d_map_tree_global.data,
+                              d_map_tree_pid.data,
                               d_leaf_offset.data,
                               d_type_head.data,
                               m_pdata->getN() + m_pdata->getNGhosts(),
@@ -508,12 +531,13 @@ void NeighborListGPUTree::mergeLeafParticles()
     
     if (m_prof) m_prof->pop(m_exec_conf);
     }
-
-//! generate the parent/child/sibling relationships using the morton codes    
+ 
 /*!
- * This function should always be called alongside bubbleAABBs to generate a complete hierarchy.
- * genTreeHierarchy saves only the left children of the nodes for downward traversal because bubbleAABBs
- * saves the right child as a rope.
+ * \post Parent-child-sibling relationships are established between nodes.
+ * \note This function should always be called alongside bubbleAABBs to generate a complete hierarchy.
+ *       genTreeHierarchy saves only the left children of the nodes for downward traversal because bubbleAABBs
+ *       saves the right child as a rope to complete the edge graph.
+ * \note Call after mergeLeafParticles(), but before bubbleAABBs().
  */
 void NeighborListGPUTree::genTreeHierarchy()
     {
@@ -523,15 +547,13 @@ void NeighborListGPUTree::genTreeHierarchy()
     if (!m_n_internal)
         return;    
         
-    ArrayHandle<unsigned int> d_node_left_child(m_node_left_child, access_location::device, access_mode::overwrite);
     ArrayHandle<uint2> d_tree_parent_sib(m_tree_parent_sib, access_location::device, access_mode::overwrite);
     
     ArrayHandle<uint32_t> d_morton_codes_red(m_morton_codes_red, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_num_per_type(m_num_per_type, access_location::device, access_mode::read);
     
     m_tuner_hierarchy->begin();  
-    gpu_nlist_gen_hierarchy(d_node_left_child.data,
-                            d_tree_parent_sib.data,
+    gpu_nlist_gen_hierarchy(d_tree_parent_sib.data,
                             d_morton_codes_red.data,
                             d_num_per_type.data,
                             m_pdata->getNTypes(),
@@ -543,7 +565,12 @@ void NeighborListGPUTree::genTreeHierarchy()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-//! walk up the tree from the leaves, and assign stackless ropes for traversal, and conservative AABBs    
+//! walk up the tree from the leaves, and assign stackless ropes for traversal, and conservative AABBs  
+/*!
+ * \post Conservative AABBs are assigned to all internal nodes, and stackless "ropes" for downward traversal are
+ *       defined between nodes.
+ * \note Call after genTreeHierarchy()
+ */  
 void NeighborListGPUTree::bubbleAABBs()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Bubble");
@@ -566,7 +593,6 @@ void NeighborListGPUTree::bubbleAABBs()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-//! rearrange the leaf positions in memory to make xyzf and tdb for faster traversal
 void NeighborListGPUTree::moveLeafParticles()
     {    
     if (m_prof) m_prof->push(m_exec_conf,"move");
@@ -576,7 +602,7 @@ void NeighborListGPUTree::moveLeafParticles()
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::read);
     
     m_tuner_move->begin();  
     gpu_nlist_move_particles(d_leaf_xyzf.data,
@@ -584,7 +610,7 @@ void NeighborListGPUTree::moveLeafParticles()
                              d_pos.data,
                              d_diameter.data,
                              d_body.data,
-                             d_map_tree_global.data,
+                             d_map_tree_pid.data,
                              m_pdata->getN() + m_pdata->getNGhosts(),
                              m_tuner_move->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -594,12 +620,21 @@ void NeighborListGPUTree::moveLeafParticles()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-//! compute the image vectors for translating periodically around tree
+/*!
+ * (Re-)computes the translation vectors for traversing the BVH tree. At most, there are 27 translation vectors
+ * when the simulation box is 3D periodic. In 2D, there are at most 9 translation vectors. In MPI runs, a ghost layer
+ * of particles is added from adjacent ranks, so there is no need to perform any translations in this direction.
+ * The translation vectors are determined by linear combination of the lattice vectors, and must be recomputed any
+ * time that the box resizes.
+ */
 void NeighborListGPUTree::updateImageVectors()
     {
     const BoxDim& box = m_pdata->getBox();
     uchar3 periodic = box.getPeriodic();
 
+    // check if the box is 3d or 2d, and use this to compute number of lattice vectors below
+    unsigned char sys3d = (this->m_sysdef->getNDimensions() == 3);
+    
     // check that rcut fits in the box
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
     Scalar rmax = m_r_cut_max + m_r_buff;
@@ -608,7 +643,7 @@ void NeighborListGPUTree::updateImageVectors()
         
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
-        (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
+        (sys3d && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
         {
         m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
         throw runtime_error("Error updating neighborlist bins");
@@ -616,7 +651,7 @@ void NeighborListGPUTree::updateImageVectors()
 
     // now compute the image vectors
     // each dimension increases by one power of 3
-    unsigned int n_dim_periodic = (periodic.x + periodic.y + periodic.z);
+    unsigned int n_dim_periodic = (periodic.x + periodic.y + sys3d*periodic.z);
     m_n_images = 1;
     for (unsigned int dim = 0; dim < n_dim_periodic; ++dim)
         {
@@ -651,7 +686,7 @@ void NeighborListGPUTree::updateImageVectors()
                     // skip any periodic images if we don't have periodicity
                     if (i != 0 && !periodic.x) continue;
                     if (j != 0 && !periodic.y) continue;
-                    if (k != 0 && !periodic.z) continue;
+                    if (!sys3d || (k != 0 && !periodic.z)) continue;
                     
                     h_image_list.data[n_images] = Scalar(i) * latt_a + Scalar(j) * latt_b + Scalar(k) * latt_c;
                     ++n_images;
@@ -661,7 +696,9 @@ void NeighborListGPUTree::updateImageVectors()
         }
     }
     
-//! traverse the tree built on the GPU using two kernels
+/*!
+ * \post The neighbor list has been fully generated.
+ */
 void NeighborListGPUTree::traverseTree()
     {
     if (m_prof) m_prof->push(m_exec_conf,"Traverse");
@@ -679,10 +716,9 @@ void NeighborListGPUTree::traverseTree()
     ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::read);
     
     // tree data    
-    ArrayHandle<unsigned int> d_map_tree_global(m_map_tree_global, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_leaf_offset(m_leaf_offset, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_tree_roots(m_tree_roots, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_node_left_child(m_node_left_child, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_tree_aabbs(m_tree_aabbs, access_location::device, access_mode::read);
     
     // tree particle data
@@ -707,10 +743,9 @@ void NeighborListGPUTree::traverseTree()
                             d_head_list.data,
                             m_pdata->getN(),
                             m_pdata->getNGhosts(),
-                            d_map_tree_global.data,
+                            d_map_tree_pid.data,
                             d_leaf_offset.data,
                             d_tree_roots.data,
-                            d_node_left_child.data,
                             d_tree_aabbs.data,
                             m_n_leaf,
                             m_n_internal,

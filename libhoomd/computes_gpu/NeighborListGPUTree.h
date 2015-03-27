@@ -64,13 +64,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __NEIGHBORLISTGPUTREE_H__
 #define __NEIGHBORLISTGPUTREE_H__
 
+//! Efficient neighbor list build on the GPU using BVH trees
+/*!
+ * GPU kernel methods are defined in NeighborListGPUTree.cuh and implemented in NeighborListGPUTree.cu.
+ *
+ * \ingroup computes
+ */
 class NeighborListGPUTree : public NeighborListGPU
     {
     public:
         //! Constructs the compute
         NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
-                              Scalar r_cut,
-                              Scalar r_buff);
+                            Scalar r_cut,
+                            Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborListGPUTree();
@@ -104,97 +110,129 @@ class NeighborListGPUTree : public NeighborListGPU
             m_tuner_traverse->setPeriod(period/10);
             m_tuner_traverse->setEnabled(enable);
             }
-            
+        
+    protected:
+        //! Builds the neighbor list
+        virtual void buildNlist(unsigned int timestep);
+        
+    private:
+        //! \name Autotuners
+        // @{
+        boost::scoped_ptr<Autotuner> m_tuner_morton;    //!< Tuner for kernel to calculate morton codes
+        boost::scoped_ptr<Autotuner> m_tuner_merge;     //!< Tuner for kernel to merge particles into leafs
+        boost::scoped_ptr<Autotuner> m_tuner_hierarchy; //!< Tuner for kernel to generate tree hierarchy
+        boost::scoped_ptr<Autotuner> m_tuner_bubble;    //!< Tuner for kernel to bubble aabbs up hierarchy
+        boost::scoped_ptr<Autotuner> m_tuner_move;      //!< Tuner for kernel to move particles to leaf order
+        boost::scoped_ptr<Autotuner> m_tuner_map;       //!< Tuner for kernel to help map particles by type
+        boost::scoped_ptr<Autotuner> m_tuner_traverse;  //!< Tuner for kernel to traverse generated tree
+        // @}
+        
+        //! \name Signal updates
+        // @{
+        
         //! Notification of a box size change
         void slotBoxChanged()
             {
             m_box_changed = true;
             }
             
+        //! Notification of a change in the maximum number of particles on any rank    
         void slotMaxNumChanged()
             {
             m_max_num_changed = true;
             }
         
+        //! Notification of a change in the number of types
         void slotNumTypesChanged()
             {
             m_type_changed = true;
             }
+            
+        bool m_type_changed;                                //!< Flag if types changed
+        boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
         
-    protected:
-        boost::scoped_ptr<Autotuner> m_tuner_morton;    //!< tuner for kernel to calculate morton codes
-        boost::scoped_ptr<Autotuner> m_tuner_merge;     //!< tuner for kernel to merge particles into leafs
-        boost::scoped_ptr<Autotuner> m_tuner_hierarchy; //!< tuner for kernel to generate tree hierarchy
-        boost::scoped_ptr<Autotuner> m_tuner_bubble;    //!< tuner for kernel to bubble aabbs up hierarchy
-        boost::scoped_ptr<Autotuner> m_tuner_move;      //!< tuner for kernel to move particles to leaf order
-        boost::scoped_ptr<Autotuner> m_tuner_map;       //!< tuner for kernel to help map particles by type
-        boost::scoped_ptr<Autotuner> m_tuner_traverse;  //!< tuner for kernel to traverse generated tree
-
-        GPUArray<Scalar3>       m_image_list;           //!< list of translation vectors
-        unsigned int            m_n_images;             //!< number of translation vectors
+        bool m_box_changed;                                 //!< Flag if box changed
+        boost::signals2::connection m_boxchange_connection; //!< Connection to the ParticleData box size change signal
         
-        bool m_type_changed;                                    //!< flag if types changed
-        boost::signals2::connection m_num_type_change_conn;     //!< Connection to the ParticleData number of types
+        bool m_max_num_changed;                             //!< Flag if max number of particles changed
+        boost::signals2::connection m_max_numchange_conn;   //!< Connection to max particle number change signal
+        // @}
         
-        bool m_box_changed;                                     //!< flag if box changed
-        boost::signals2::connection m_boxchange_connection;     //!< Connection to the ParticleData box size change signal
+        //! \name Tree building
+        // @{
+        // mapping and sorting
+        GPUArray<unsigned int> m_map_tree_pid;      //!< Map a leaf order id to a particle id
+        GPUArray<unsigned int> m_map_tree_pid_alt;  //!< Double buffer for map needed for sorting
         
-        bool m_max_num_changed;                                 //!< flag if max number of particles changed
-        boost::signals2::connection m_max_numchange_conn;       //!< Connection to max particle number change signal
+        GPUArray<uint64_t> m_morton_types;      //!< 30 bit morton codes + type for particles to sort on z-order curve
+        GPUArray<uint64_t> m_morton_types_alt;  //!< Double buffer for morton codes needed for sorting
+        GPUFlags<int> m_morton_conditions;      //!< Condition flag to catch out of bounds particles
         
-        // tree building on gpu
-        GPUArray<Scalar4> m_leaf_xyzf;              //!< the position and id of each particle in a leaf
-        GPUArray<Scalar2> m_leaf_db;                //!< the diameter and body of each particle in a leaf
-        GPUArray<unsigned int> m_map_tree_global;   //!< map a leaf order id to a global particle
-        GPUArray<uint64_t> m_morton_codes;          //!< 30 bit morton codes for particles to sort on z-order curve
-
-        GPUArray<unsigned int> m_leaf_offset;   //!< total offset in particle index for leaf nodes by type
+        GPUArray<unsigned int> m_leaf_offset;   //!< Total offset in particle index for leaf nodes by type
         GPUArray<unsigned int> m_num_per_type;  //!< Number of particles per type
         GPUArray<unsigned int> m_type_head;     //!< Head list to each particle type
+        GPUArray<unsigned int> m_tree_roots;    //!< Index for root node of each tree by type
         
-        GPUVector<uint32_t> m_morton_codes_red;     //!< Reduced capacity morton code array
-        GPUVector<Scalar4> m_tree_aabbs;            //!< aabbs for merged leaf nodes and internal nodes
-        GPUVector<unsigned int> m_node_locks;       //!< node locks for if node has been visited or not
-        GPUVector<unsigned int> m_node_left_child;  //!< left children of the internal nodes
-        GPUVector<uint2> m_tree_parent_sib;         //!< parents and siblings of all nodes
+        // hierarchy generation
+        unsigned int m_n_leaf;                      //!< Total number of leaves in trees
+        unsigned int m_n_internal;                  //!< Total number of internal nodes in trees
+        unsigned int m_n_node;                      //!< Total number of leaf + internal nodes in trees
         
-        GPUArray<unsigned int> m_tree_roots;
+        GPUVector<uint32_t> m_morton_codes_red;     //!< Reduced capacity 30 bit morton code array (per leaf)
+        GPUVector<Scalar4> m_tree_aabbs;            //!< AABBs for merged leaf nodes and internal nodes
+        GPUVector<unsigned int> m_node_locks;       //!< Node locks for if node has been visited or not
+        GPUVector<uint2> m_tree_parent_sib;         //!< Parents and siblings of all nodes
         
-        unsigned int m_n_leaf;                      //!< number of leaves in tree
-        unsigned int m_n_internal;                  //!< number of internal nodes in tree
-        unsigned int m_n_node;                      //!< leaves + internal nodes
-        
-        GPUFlags<int> m_morton_conditions; //!< condition flag to catch out of bounds particles
-        
-        
-        //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
-        
-    private:
-        void updateImageVectors();
-        
+        //! Performs initial allocation of tree internal data structure memory
         void allocateTree();
         
+        //! Performs all tasks needed before tree build and traversal
         void setupTree();
-        void mapParticlesByType();
         
+        //! Determines the number and head indexes for particle types and leafs
+        void countParticlesAndTrees();
+        
+        //! Driver for tree multi-step tree build on the GPU
         void buildTree();
+        
+        //! Calculates 30-bit morton codes for particles
         void calcMortonCodes();
+        
+        //! Driver to sort particles by type and morton code along a Z order curve
         void sortMortonCodes();
         
-        
-        GPUArray<unsigned int> m_map_tree_global_alt;
-        GPUArray<uint64_t> m_morton_codes_alt;
-        
+        //! Calculates the number of bits needed to represent the largest particle type
         void calcTypeBits();
         unsigned int m_n_type_bits;     //!< the number of bits it takes to represent all the type ids
         
+        //! Merges sorted particles into leafs based on adjacency
         void mergeLeafParticles();
+        
+        //! Generates the edges between nodes based on the sorted morton codes
         void genTreeHierarchy();
+        
+        //! Constructs enclosing AABBs from leaf to roots
         void bubbleAABBs();
         
-        void traverseTree();        
+        // @}
+        //! \name Tree traversal
+        // @{
+        
+        GPUArray<Scalar4> m_leaf_xyzf;          //!< Position and id of each particle in a leaf
+        GPUArray<Scalar2> m_leaf_db;            //!< Diameter and body of each particle in a leaf
+        
+        GPUArray<Scalar3> m_image_list; //!< List of translation vectors
+        unsigned int m_n_images;        //!< Number of translation vectors
+        
+        //! Computes the image vectors to query for 
+        void updateImageVectors();
+
+        //! Moves particles from ParticleData order to leaf order for more efficient tree traversal
         void moveLeafParticles();
+
+        //! Traverses the trees on the GPU
+        void traverseTree();
+        // @}
     };
 
 //! Exports NeighborListGPUBinned to python
