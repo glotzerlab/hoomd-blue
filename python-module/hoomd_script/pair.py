@@ -289,24 +289,6 @@ class coeff:
         return valid;
 
     ## \internal
-    # \brief Gets the value of a single %pair coefficient
-    # \detail
-    # \param a First name in the type pair
-    # \param b Second name in the type pair
-    # \param coeff_name Coefficient to get
-#     def get(self, a, b, coeff_name):
-#         # Find the pair to update
-#         if (a,b) in self.values:
-#             cur_pair = (a,b);
-#         elif (b,a) in self.values:
-#             cur_pair = (b,a);
-#         else:
-#             globals.msg.error("Bug detected in pair.coeff. Please report\n");
-#             raise RuntimeError("Error setting pair coeff");
-# 
-#         return self.values[cur_pair][coeff_name];
-
-    ## \internal
     # \brief Try to get whether a single %pair coefficient
     # \detail
     # \param a First name in the type pair
@@ -479,22 +461,14 @@ class nlist:
             globals.msg.error("Cannot create neighbor list before initialization\n");
             raise RuntimeError('Error creating neighbor list');
 
-        # moved down from the constructor
-        r_cut = 3.0;
-        # magic number leftover from something, should go in the constructor
+        # default values for r_cut and r_buff will be overridden by pair potentials' individual rcut classes
+        r_cut = 0.0;
         default_r_buff = 0.4;
         
         # create the C++ mirror class
-        ## HERE WE NEED TO REMOVE r_cut FROM THE C++ CONSTRUCTOR, SINCE THIS DOES NOT MAKE SENSE ANYMORE ## 
         if not globals.exec_conf.isCUDAEnabled():
-#             cl_c = hoomd.CellList(globals.system_definition);
-#             globals.system.addCompute(cl_c, "auto_cl")
-#             self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
             self.cpp_nlist = hoomd.NeighborListTree(globals.system_definition, r_cut, default_r_buff)
         else:
-#             cl_g = hoomd.CellListGPU(globals.system_definition);
-#             globals.system.addCompute(cl_g, "auto_cl")
-#             self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
             self.cpp_nlist = hoomd.NeighborListGPUTree(globals.system_definition, r_cut, default_r_buff)
 
         self.cpp_nlist.setEvery(1, True);
@@ -933,7 +907,7 @@ class pair(force._force):
     # \brief Get the r_cut pair dictionary
     # \details If coefficients aren't set for some reason, will sanitize the list to have zeroes. Returns none if logging is off
     def get_rcut(self):
-        if not self.log: ## MAKE SURE THAT THIS ACTUALLY WORKS! ##
+        if not self.log:
             return None
             
         # go through the list of only the active particle types in the sim
@@ -1007,8 +981,8 @@ class pair(force._force):
 #
 # The cutoff radius \a r_cut passed into the initial pair.lj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials.
 #
 # \MPI_SUPPORTED
 class lj(pair):
@@ -1098,8 +1072,8 @@ class lj(pair):
 #
 # The cutoff radius \a r_cut passed into the initial pair.gauss command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials.
 #
 # \MPI_SUPPORTED
 class gauss(pair):
@@ -1187,18 +1161,14 @@ class gauss(pair):
 #
 # The cutoff radius \a r_cut passed into the initial pair.slj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials..
 #
 # The actual cutoff radius for pair.slj is shifted by the diameter of two particles interacting.  Thus to determine
 # the maximum possible actual r_cut in simulation
 # pair.slj must know the maximum diameter of all the particles over the entire run, or \a d_max .
 # This value is either determined automatically from the initialization or can be set by the user and can be modified between runs with the
 # command nlist.set_params(). In most cases, the correct value can be identified automatically (see __init__()).
-#
-# When using pair.slj, you may obtain considerably better performance when diameter exclusions are enabled for the neighbor list:
-# nlist.reset_exclusions(['diameter', ...your other exclusions...])
-# See nlist.reset_exclusions() for more details.
 #
 # \MPI_SUPPORTED
 class slj(pair):
@@ -1242,6 +1212,7 @@ class slj(pair):
 
         neighbor_list = _subscribe_global_nlist(lambda : self.get_rcut());
         
+        # SLJ requires diameter shifting to be on
         neighbor_list.cpp_nlist.setDiameterShift(True);
         neighbor_list.cpp_nlist.setMaximumDiameter(d_max);
 
@@ -1330,8 +1301,8 @@ class slj(pair):
 #
 # The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials.
 #
 # \MPI_SUPPORTED
 class yukawa(pair):
@@ -1410,8 +1381,8 @@ class yukawa(pair):
 #
 # The cutoff radius \a r_cut passed into the initial pair.ewald command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials.
 #
 # \note <b>DO NOT</b> use in conjunction with charge.pppm. charge.pppm automatically creates and configures a pair.ewald
 #       for you.
@@ -1962,8 +1933,8 @@ class table(force._force):
 #
 # The cutoff radius \a r_cut passed into the initial pair.morse command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials.
 #
 # \MPI_SUPPORTED
 class morse(pair):
@@ -2069,8 +2040,8 @@ class morse(pair):
 #
 # The cutoff radius \a r_cut passed into the initial pair.dpd command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
-# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials.
 #
 # pair.dpd does not implement and energy shift / smoothing modes due to the function of the force.
 #
@@ -2191,8 +2162,8 @@ class dpd(pair):
 #
 # The cutoff radius \a r_cut passed into the initial pair.dpd_conservative command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
-# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials.
 #
 # \MPI_SUPPORTED
 class dpd_conservative(pair):
@@ -2386,8 +2357,8 @@ class eam(force._force):
 #
 # The cutoff radius \a r_cut passed into the initial pair.dpdlj command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
-# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials.
 #
 # pair.dpdlj is a standard %pair potential and supports an energy shif for the conservative LJ potential.
 # See hoomd_script.pair.pair for a full description of the various options. XPLOR smoothing is not available.
@@ -2533,8 +2504,8 @@ class dpdlj(pair):
 #
 # The cutoff radius \a r_cut passed into the initial pair.force_shifted_lj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
-# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
-# %pair parameters among all %pair potentials.
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
+# specified among all type %pair parameters among all %pair potentials.
 #
 # \MPI_SUPPORTED
 class force_shifted_lj(pair):
