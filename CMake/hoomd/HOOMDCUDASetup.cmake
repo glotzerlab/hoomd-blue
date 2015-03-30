@@ -72,11 +72,6 @@ if (ENABLE_CUDA)
     list(REVERSE _cuda_arch_list_sorted)
     list(GET _cuda_arch_list_sorted 0 _cuda_max_arch)
     list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${_cuda_max_arch},code=compute_${_cuda_max_arch}")
-    
-    # add lineinfo flag for nvvp source correlation
-    if (ENABLE_NVTOOLS)
-        list(APPEND CUDA_NVCC_FLAGS "-lineinfo")
-    endif (ENABLE_NVTOOLS)
 endif (ENABLE_CUDA)
 
 # embed the CUDA libraries into the lib dir
