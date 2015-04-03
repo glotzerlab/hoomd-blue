@@ -4,13 +4,18 @@
 from hoomd_script import *
 import unittest
 import os
+import tempfile
 
 # unit tests for init.read_xml
 class init_read_xml_tests (unittest.TestCase):
     def setUp(self):
         print
+
         if (comm.get_rank()==0):
-            f = open("test.xml", "w");
+            tmp = tempfile.mkstemp(suffix='.test.xml');
+            self.tmp_file = tmp[1];
+
+            f = open(self.tmp_file, "w");
             f.write('''<?xml version="1.0" encoding="UTF-8"?>
 <hoomd_xml version="1.0">
 <configuration time_step="0">
@@ -42,17 +47,19 @@ A B C
 </configuration>
 </hoomd_xml>
 ''');
+        else:
+            self.tmp_file = "invalid";
 
     # tests basic creation of the random initializer
     def test(self):
-        init.read_xml('test.xml');
+        init.read_xml(self.tmp_file);
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
         self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
 
     # tests creation with a few more arugments specified
     def test_moreargs(self):
-        init.read_xml('test.xml', time_step=100);
+        init.read_xml(self.tmp_file, time_step=100);
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
         self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
@@ -71,12 +78,12 @@ A B C
 
     # checks for an error if initialized twice
     def test_inittwice(self):
-        init.read_xml('test.xml');
-        self.assertRaises(RuntimeError, init.read_xml, 'test.xml');
+        init.read_xml(self.tmp_file);
+        self.assertRaises(RuntimeError, init.read_xml, self.tmp_file);
 
     def tearDown(self):
         if (comm.get_rank()==0):
-            os.remove("test.xml");
+            os.remove(self.tmp_file);
             os.remove("test_out_of_box.xml");
         init.reset();
 
