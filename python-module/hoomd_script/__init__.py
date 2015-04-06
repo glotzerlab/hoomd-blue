@@ -90,6 +90,7 @@ from hoomd_script import hoomd;
 from hoomd_script import compute;
 from hoomd_script import charge;
 from hoomd_script import comm;
+from hoomd_script import cite;
 
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API
@@ -97,6 +98,9 @@ from hoomd_script import comm;
 # hoomd_script provides a very high level user interface for executing
 # simulations using HOOMD. This python module is designed to be imported
 # into python with "from hoomd_script import *"
+
+# create the bibliography on import with HOOMD citations that are always needed
+cite._ensure_global_bib()
 
 ## \internal
 # \brief Internal python variable

@@ -107,6 +107,9 @@ options = None;
 # messages
 msg = hoomd.Messenger();
 
+## Global bibliography
+bib = None;
+
 ## \internal
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
@@ -126,3 +129,4 @@ def clear():
     thermos = [];
     group_all = None;
     sorter = None;
+    bib = None;

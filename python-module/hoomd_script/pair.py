@@ -84,6 +84,7 @@ from hoomd_script import tune;
 from hoomd_script import init;
 from hoomd_script import data;
 from hoomd_script import variant;
+from hoomd_script import cite;
 
 import math;
 import sys;
@@ -1840,7 +1841,20 @@ class dpd(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
-
+        
+        # register the citation
+        cite.article(cite_key='phillips2011',
+                     author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                     title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
+                     journal='Journal of Computational Physics',
+                     volume=230,
+                     number=19,
+                     pages='7191--7201',
+                     month='Aug',
+                     year='2011',
+                     doi='10.1016/j.jcp.2011.05.021',
+                     feature='DPD')
+        
         # tell the base class how we operate
 
         # initialize the base class
@@ -1960,6 +1974,19 @@ class dpd_conservative(pair):
     def __init__(self, r_cut, name=None):
         util.print_status_line();
 
+        # register the citation
+        cite.article(cite_key='phillips2011',
+                     author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                     title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
+                     journal='Journal of Computational Physics',
+                     volume=230,
+                     number=19,
+                     pages='7191--7201',
+                     month='Aug',
+                     year='2011',
+                     doi='10.1016/j.jcp.2011.05.021',
+                     feature='DPD')
+                     
         # tell the base class how we operate
 
         # initialize the base class
@@ -2020,6 +2047,17 @@ class eam(force._force):
     # eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
     # \endcode
     def __init__(self, file, type):
+        cite.article(key = 'morozov2011',
+                     author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
+                     title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
+                     journal = 'Computer Physics Communications',
+                     volume = 182,
+                     number = 9,
+                     pages = '1974--1978',
+                     year = '2011',
+                     doi = '10.1016/j.cpc.2010.12.026',
+                     url = 'http://dx.doi.org/10.1016/j.cpc.2010.12.026')
+                     
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -2160,6 +2198,19 @@ class dpdlj(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
+        
+        # register the citation
+        cite.article(cite_key='phillips2011',
+                     author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                     title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
+                     journal='Journal of Computational Physics',
+                     volume=230,
+                     number=19,
+                     pages='7191--7201',
+                     month='Aug',
+                     year='2011',
+                     doi='10.1016/j.jcp.2011.05.021',
+                     feature='DPD')
 
         # tell the base class how we operate
 
