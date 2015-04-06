@@ -31,7 +31,11 @@ A B C
 </configuration>
 </hoomd_xml>
 ''');
-            f = open("test_out_of_box.xml", "w");
+
+            tmp = tempfile.mkstemp(suffix='.test_out_of_box.xml');
+            self.tmp_file2 = tmp[1];
+
+            f = open(self.tmp_file2, "w");
             f.write('''<?xml version="1.0" encoding="UTF-8"?>
 <hoomd_xml version="1.0">
 <configuration time_step="0">
@@ -49,6 +53,7 @@ A B C
 ''');
         else:
             self.tmp_file = "invalid";
+            self.tmp_file2 = "invalid";
 
     # tests basic creation of the random initializer
     def test(self):
@@ -66,11 +71,11 @@ A B C
 
     # tests creation with out of box particles
     def test_out_of_box_1(self):
-        self.assertRaises(RuntimeError, init.read_xml, 'test_out_of_box.xml')
+        self.assertRaises(RuntimeError, init.read_xml, self.tmp_file2)
 
     # tests creation with out of box particles
     def test_out_of_box_2(self):
-        sys=init.read_xml('test_out_of_box.xml',wrap_coordinates=True)
+        sys=init.read_xml(self.tmp_file2,wrap_coordinates=True)
         self.assert_(globals.system_definition);
         self.assert_(globals.system);
         self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
@@ -84,7 +89,7 @@ A B C
     def tearDown(self):
         if (comm.get_rank()==0):
             os.remove(self.tmp_file);
-            os.remove("test_out_of_box.xml");
+            os.remove(self.tmp_file2);
         init.reset();
 
 if __name__ == '__main__':
