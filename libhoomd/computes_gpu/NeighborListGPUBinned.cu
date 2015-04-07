@@ -51,7 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborListGPUBinned.cuh"
 #include "TextureTools.h"
-#include <stdio.h>
 
 /*! \file NeighborListGPUBinned.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
@@ -282,13 +281,7 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
         #endif
 
         if (has_neighbor && nneigh + k < nli.getH())
-            {
             d_nlist[nli(my_pidx, nneigh + k)] = neighbor;
-            if (my_pidx == 15000)
-                {
-                printf("Adding particle %d\n", neighbor);
-                }
-            }
 
         // increment total neighbor count
         #if (__CUDA_ARCH__ >= 300)
@@ -306,10 +299,6 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
             atomicMax(&d_conditions[0], nneigh);
 
         d_n_neigh[my_pidx] = nneigh;
-           if (my_pidx == 15000)
-                {
-                printf("n_neigh %d\n", nneigh);
-                }
         d_last_updated_pos[my_pidx] = my_postype;
         }
     }
@@ -595,7 +584,6 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const Scalar3& ghost_width,
                                      const unsigned int compute_capability)
     {
-        printf("\n");
     launcher<max_threads_per_particle>(d_nlist,
                                    d_n_neigh,
                                    d_last_updated_pos,
