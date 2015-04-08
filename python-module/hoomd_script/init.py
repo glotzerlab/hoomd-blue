@@ -238,22 +238,27 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
 ## Reads initial system state from an XML file
 #
 # \param filename File to read
+# \param restart If it exists, read \a restart instead of \a filename
 # \param time_step (if specified) Time step number to use instead of the one stored in the XML file
 # \param wrap_coordinates Wrap input coordinates back into the box
 #
 # \b Examples:
 # \code
 # init.read_xml(filename="data.xml")
+# init.read_xml(filename="init.xml", restart="restart.xml")
 # init.read_xml(filename="directory/data.xml")
 # init.read_xml(filename="restart.xml", time_step=0)
 # system = init.read_xml(filename="data.xml")
 # \endcode
 #
-# All particles, bonds, etc...  are read from the XML file given,
+# All particles, bonds, etc...  are read from the given XML file,
 # setting the initial condition of the simulation.
 # After this command completes, the system is initialized allowing
 # other commands in hoomd_script to be run. For more details
 # on the file format read by this command, see \ref page_xml_file_format.
+#
+# For restartable jobs, specify the initial condition in \a filename and the restart file in \a restart.
+# init.read_xml will read the restart file if it exists, otherwise it will read \a filename.
 #
 # All values are read in native units, see \ref page_units for more information.
 #
@@ -268,7 +273,7 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
 # later in the script. See hoomd_script.data for more information.
 #
 # \sa dump.xml
-def read_xml(filename, time_step = None, wrap_coordinates = False):
+def read_xml(filename, restart = None, time_step = None, wrap_coordinates = False):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
@@ -277,10 +282,15 @@ def read_xml(filename, time_step = None, wrap_coordinates = False):
     # check if initialization has already occured
     if is_initialized():
         globals.msg.error("Cannot initialize more than once\n");
-        raise RuntimeError("Error creating random polymers");
+        raise RuntimeError("Error reading XML file");
+
+    filename_to_read = filename;
+    if restart is not None:
+        if os.path.isfile(restart):
+            filename_to_read = restart;
 
     # read in the data
-    initializer = hoomd.HOOMDInitializer(my_exec_conf,filename,wrap_coordinates);
+    initializer = hoomd.HOOMDInitializer(my_exec_conf,filename_to_read,wrap_coordinates);
     snapshot = initializer.getSnapshot()
 
     my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
