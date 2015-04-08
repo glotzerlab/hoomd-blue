@@ -219,10 +219,10 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
             throw std::runtime_error("Error in dihedral calculation");
             }
 
-        assert(idx_a < m_pdata->getN() + m_pdata->getNGhosts());
-        assert(idx_b < m_pdata->getN() + m_pdata->getNGhosts());
-        assert(idx_c < m_pdata->getN() + m_pdata->getNGhosts());
-        assert(idx_d < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(i1 < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(i2 < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(i3 < m_pdata->getN() + m_pdata->getNGhosts());
+        assert(i4 < m_pdata->getN() + m_pdata->getNGhosts());
 
         // 1st bond
 
