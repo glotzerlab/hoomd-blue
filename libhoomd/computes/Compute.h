@@ -191,10 +191,6 @@ class Compute : boost::noncopyable
             m_comm = comm;
             }
 #endif
-        virtual void computeForcesAndEngergyOfParticlePair( const unsigned int& tag1,
-                                                            const unsigned int& tag2,
-                                                            Scalar& force_divr,
-                                                            Scalar& pair_eng) {printf("\n *not implemented* \n");}
 
 
     protected:
