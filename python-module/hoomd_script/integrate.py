@@ -154,7 +154,6 @@ class _integrator:
         # set the forces
         self.cpp_integrator.removeForceComputes();
         for f in globals.forces:
-            print "updating force = ", f.force_name
             if f.cpp_force is None:
                 globals.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
                 raise RuntimeError('Error updating forces');
