@@ -864,7 +864,7 @@ void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
 
     // connect to ghost communication flags request
     if (! m_request_flags_connection.connected() && m_comm)
-        m_comm->addCommFlagsRequest(boost::bind(&Integrator::determineFlags, this, _1));
+        m_request_flags_connection = m_comm->addCommFlagsRequest(boost::bind(&Integrator::determineFlags, this, _1));
 
     if (! m_callback_connection.connected() && m_comm)
         m_callback_connection = comm->addComputeCallback(bind(&Integrator::computeCallback, this, _1));
