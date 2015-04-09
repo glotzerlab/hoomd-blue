@@ -69,6 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include <stdexcept>
+#include <time.h>
 
 using namespace std;
 
@@ -80,7 +81,7 @@ using namespace std;
     statistics are printed every 10 seconds.
 */
 System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
-        : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
+        : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep), m_cur_tps(0),
         m_last_status_time(0), m_last_status_tstep(initial_tstep), m_quiet_run(false),
         m_profile(false), m_stats_period(10)
     {
@@ -408,6 +409,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                  boost::python::object callback, double limit_hours,
                  unsigned int limit_multiple)
     {
+    // track if a wall clock timeout ended the run
+    unsigned int timeout_end_run = 0;
+    char *walltime_stop = getenv("HOOMD_WALLTIME_STOP");
 
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
@@ -476,24 +480,53 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 {
                 if (m_cur_tstep % limit_multiple == 0)
                     {
-                    unsigned int end_run = 0;
                     int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
                     if (int64_t(cur_time) - initial_time > time_limit)
-                        end_run = 1;
+                        timeout_end_run = 1;
 
                     #ifdef ENABLE_MPI
                     // if any processor wants to end the run, end it on all processors
                     if (m_comm)
-                        MPI_Allreduce(MPI_IN_PLACE, &end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                        MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
                     #endif
 
-                    if (end_run)
+                    if (timeout_end_run)
                         {
                         m_exec_conf->msg->notice(2) << "Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
                         break;
                         }
                     }
                 }
+
+            // check if wall clock time limit has passed
+            if (walltime_stop != NULL)
+                {
+                if (m_cur_tstep % limit_multiple == 0)
+                    {
+                    time_t end_time = atoi(walltime_stop);
+                    time_t predict_time = time(NULL);
+
+                    // predict when the next limit_multiple will be reached
+                    if (m_cur_tps != Scalar(0))
+                        predict_time += time_t(Scalar(limit_multiple) / m_cur_tps);
+
+                    if (predict_time >= end_time)
+                        timeout_end_run = 1;
+
+                    #ifdef ENABLE_MPI
+                    // if any processor wants to end the run, end it on all processors
+                    if (m_comm)
+                        MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                    #endif
+
+                    if (timeout_end_run)
+                        {
+                        m_exec_conf->msg->notice(2) << "Ending run before HOOMD_WALLTIME_STOP - current time step: " << m_cur_tstep << endl;
+                        break;
+                        }
+                    }
+                }
+
             // execute python callback, if present and needed
             // a negative return value indicates immediate end of run.
             if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
@@ -510,8 +543,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
             if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
                 {
-                if (!m_quiet_run)
-                    generateStatusLine();
+                generateStatusLine();
                 m_last_status_time = cur_time;
                 m_last_status_tstep = m_cur_tstep;
 
@@ -590,8 +622,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     #endif
 
     // generate a final status line
-    if (!m_quiet_run)
-        generateStatusLine();
+    generateStatusLine();
     m_last_status_tstep = m_cur_tstep;
 
     // execute python callback, if present and needed
@@ -621,6 +652,12 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     if (!m_quiet_run)
         printStats();
 
+    // throw a StopIteration exception if we timed out, but only if the user is using the HOOMD_WALLTIME_STOP feature
+    if (timeout_end_run && walltime_stop != NULL)
+        {
+        PyErr_SetNone(PyExc_StopIteration);
+        boost::python::throw_error_already_set();
+        }
     }
 
 /*! \param enable Set to true to enable profiling during calls to run()
@@ -782,12 +819,16 @@ void System::generateStatusLine()
 
     // time steps per second
     Scalar TPS = Scalar(m_cur_tstep - m_last_status_tstep) / Scalar(cur_time - m_last_status_time) * Scalar(1e9);
+    m_cur_tps = TPS;
 
     // estimated time to go (base on current TPS)
     string ETA = ClockSource::formatHMS(int64_t((m_end_tstep - m_cur_tstep) / TPS * Scalar(1e9)));
 
     // write the line
-    m_exec_conf->msg->notice(1) << "Time " << t_elap << " | Step " << m_cur_tstep << " / " << m_end_tstep << " | TPS " << TPS << " | ETA " << ETA << endl;
+    if (!m_quiet_run)
+        {
+        m_exec_conf->msg->notice(1) << "Time " << t_elap << " | Step " << m_cur_tstep << " / " << m_end_tstep << " | TPS " << TPS << " | ETA " << ETA << endl;
+        }
     }
 
 /*! \param tstep Time step for which to determine the flags

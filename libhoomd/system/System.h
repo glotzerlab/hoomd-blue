@@ -451,6 +451,7 @@ class System
         unsigned int m_start_tstep;     //!< Intial time step of the current run
         unsigned int m_end_tstep;       //!< Final time step of the current run
         unsigned int m_cur_tstep;       //!< Current time step
+        Scalar m_cur_tps;               //!< Current average TPS
 
         ClockSource m_clk;              //!< A clock counting time from the beginning of the run
         uint64_t m_last_status_time;    //!< Time (measured by m_clk) of the last time generateStatusLine() was called
