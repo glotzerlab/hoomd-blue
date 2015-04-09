@@ -1000,7 +1000,7 @@ class ParticleData : boost::noncopyable
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
-        GPUArray<unsigned int> m_cached_tag_set;     //!< Cached constant-time lookup table for tags by active index
+        GPUVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
 
         /* Alternate particle data arrays are provided for fast swapping in and out of particle data
            The size of these arrays is updated in sync with the main particle data arrays.

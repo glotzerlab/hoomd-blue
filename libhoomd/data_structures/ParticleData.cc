@@ -672,13 +672,8 @@ void ParticleData::reallocate(unsigned int max_n)
 */
 void ParticleData::rebuild_tag_cache()
     {
-    // Only resize cached array if necessary
-    if(m_cached_tag_set.getNumElements() != m_tag_set.size())
-        m_cached_tag_set.resize(m_tag_set.size());
-
-    // array handle for active tag cache
-    ArrayHandle<unsigned int> h_active_tag(m_cached_tag_set, access_location::host,
-                                           access_mode::overwrite);
+    // GPUVector checks if the resize is necessary
+    m_cached_tag_set.resize(m_tag_set.size());
 
     // iterate over each element in the set, building a mapping
     // from dense array indices to sparse particle tag indices
@@ -686,7 +681,7 @@ void ParticleData::rebuild_tag_cache()
     for(std::set<unsigned int>::const_iterator it(m_tag_set.begin());
         it != m_tag_set.end(); ++it, ++i)
         {
-        h_active_tag.data[i] = *it;
+        m_cached_tag_set[i] = *it;
         }
     }
 
