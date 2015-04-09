@@ -522,7 +522,7 @@ class dcd(analyze._analyzer):
     #   consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False):
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -544,7 +544,7 @@ class dcd(analyze._analyzer):
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
         self.cpp_analyzer.setAngleZ(angle_z);
-        self.setupAnalyzer(period);
+        self.setupAnalyzer(period, phase);
 
     def enable(self):
         util.print_status_line();

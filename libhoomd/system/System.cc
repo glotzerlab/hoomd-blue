@@ -104,13 +104,15 @@ System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_
     \param name A unique name to identify the Analyzer by
     \param period Analyzer::analyze() will be called for every time step that is a multiple
     of \a period.
+    \param phase Phase offset. A value of -1 sets no phase, updates start on the current step. A value of 0 or greater
+                 sets the analyzer to run at steps where (step % (period + phase)) == 0.
 
     All Analyzers will be called, in the order that they are added, and with the specified
     \a period during time step calculations performed when run() is called. An analyzer
     can be prevented from running in future runs by removing it (removeAnalyzer()) before
     calling run()
 */
-void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period)
+void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(analyzer);
@@ -127,8 +129,16 @@ void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string
             }
         }
 
+    unsigned int start_step = m_cur_tstep;
+    if (phase >= 0)
+        {
+        // determine next step that is in line with period + phase
+        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
+        start_step = multiple * period + phase;
+        }
+
     // if we get here, we can add it
-    m_analyzers.push_back(analyzer_item(analyzer, name, period, m_cur_tstep));
+    m_analyzers.push_back(analyzer_item(analyzer, name, period, m_cur_tstep, start_step));
     }
 
 /*! \param name Name of the Analyzer to find in m_analyzers
@@ -173,13 +183,21 @@ boost::shared_ptr<Analyzer> System::getAnalyzer(const std::string& name)
 /*! \param name Name of the Analyzer to modify
     \param period New period to set
 */
-void System::setAnalyzerPeriod(const std::string& name, unsigned int period)
+void System::setAnalyzerPeriod(const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(period != 0);
 
+    unsigned int start_step = m_cur_tstep;
+    if (phase >= 0)
+        {
+        // determine next step that is in line with period + phase
+        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
+        start_step = multiple * period + phase;
+        }
+
     vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
-    i->setPeriod(period, m_cur_tstep);
+    i->setPeriod(period, start_step);
     }
 
 /*! \param name Name of the Updater to modify
@@ -229,13 +247,15 @@ std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::s
     \param name A unique name to identify the Updater by
     \param period Updater::update() will be called for every time step that is a multiple
     of \a period.
+    \param phase Phase offset. A value of -1 sets no phase, updates start on the current step. A value of 0 or greater
+                 sets the analyzer to run at steps where (step % (period + phase)) == 0.
 
     All Updaters will be called, in the order that they are added, and with the specified
     \a period during time step calculations performed when run() is called. An updater
     can be prevented from running in future runs by removing it (removeUpdater()) before
     calling run()
 */
-void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period)
+void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(updater);
@@ -252,8 +272,16 @@ void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& n
             }
         }
 
+    unsigned int start_step = m_cur_tstep;
+    if (phase >= 0)
+        {
+        // determine next step that is in line with period + phase
+        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
+        start_step = multiple * period + phase;
+        }
+
     // if we get here, we can add it
-    m_updaters.push_back(updater_item(updater, name, period, m_cur_tstep));
+    m_updaters.push_back(updater_item(updater, name, period, m_cur_tstep, start_step));
     }
 
 /*! \param name Name of the Updater to be removed
@@ -276,14 +304,23 @@ boost::shared_ptr<Updater> System::getUpdater(const std::string& name)
 
 /*! \param name Name of the Updater to modify
     \param period New period to set
+    \param phase New phase to set
 */
-void System::setUpdaterPeriod(const std::string& name, unsigned int period)
+void System::setUpdaterPeriod(const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(period != 0);
 
+    unsigned int start_step = m_cur_tstep;
+    if (phase >= 0)
+        {
+        // determine next step that is in line with period + phase
+        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
+        start_step = multiple * period + phase;
+        }
+
     vector<System::updater_item>::iterator i = findUpdaterItem(name);
-    i->setPeriod(period, m_cur_tstep);
+    i->setPeriod(period, start_step);
     }
 
 /*! \param name Name of the Updater to modify

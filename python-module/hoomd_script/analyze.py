@@ -145,18 +145,21 @@ class _analyzer:
     # \brief Helper function to setup analyzer period
     #
     # \param period An integer or callable function period
+    # \param phase Phase parameter
     #
     # If an integer is specified, then that is set as the period for the analyzer.
     # If a callable is passed in as a period, then a default period of 1000 is set
     # to the integer period and the variable period is enabled
     #
-    def setupAnalyzer(self, period):
+    def setupAnalyzer(self, period, phase=-1):
+        self.phase = phase;
+
         if type(period) == type(1.0):
-            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period));
+            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period), phase);
         elif type(period) == type(1):
-            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period, phase);
         elif type(period) == type(lambda n: n*2):
-            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000);
+            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000, -1);
             globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
         else:
             globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + " expecting an int or a function\n");
@@ -235,7 +238,7 @@ class _analyzer:
             globals.msg.warning("Ignoring command to enable an analyzer that is already enabled");
             return;
 
-        globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period);
+        globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
         self.enabled = True;
 
     ## Changes the period between analyzer executions
@@ -263,7 +266,7 @@ class _analyzer:
 
         if type(period) == type(1):
             if self.enabled:
-                globals.system.setAnalyzerPeriod(self.analyzer_name, period);
+                globals.system.setAnalyzerPeriod(self.analyzer_name, period, self.phase);
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):

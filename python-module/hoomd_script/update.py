@@ -97,19 +97,22 @@ class _updater:
     # \brief Helper function to setup updater period
     #
     # \param period An integer or callable function period
+    # \param phase Phase parameter
     #
     # If an integer is specified, then that is set as the period for the analyzer.
     # If a callable is passed in as a period, then a default period of 1000 is set
     # to the integer period and the variable period is enabled
     #
-    def setupUpdater(self, period):
+    def setupUpdater(self, period, phase=-1):
+        self.phase = phase;
+
         if type(period) == type(1.0):
             period = int(period);
 
         if type(period) == type(1):
-            globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
+            globals.system.addUpdater(self.cpp_updater, self.updater_name, period, phase);
         elif type(period) == type(lambda n: n*2):
-            globals.system.addUpdater(self.cpp_updater, self.updater_name, 1000);
+            globals.system.addUpdater(self.cpp_updater, self.updater_name, 1000, -1);
             globals.system.setUpdaterPeriodVariable(self.updater_name, period);
         else:
             globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + "expecting an int or a function\n");
@@ -188,7 +191,7 @@ class _updater:
             globals.msg.warning("Ignoring command to enable an updater that is already enabled");
             return;
 
-        globals.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period);
+        globals.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period, self.phase);
         self.enabled = True;
 
     ## Changes the period between updater executions
@@ -219,7 +222,7 @@ class _updater:
 
         if type(period) == type(1):
             if self.enabled:
-                globals.system.setUpdaterPeriod(self.updater_name, period);
+                globals.system.setUpdaterPeriod(self.updater_name, period, self.phase);
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
