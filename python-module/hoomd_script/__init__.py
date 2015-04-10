@@ -137,10 +137,10 @@ def get_hoomd_script_version():
 
 ## \brief Runs the simulation for a given number of time steps
 #
-# \param tsteps Number of time steps to advance the simulation by
+# \param tsteps Number of time steps to advance the simulation
 # \param profile Set to True to enable detailed profiling
 # \param limit_hours  (if set) Limit the run to a given number of hours.
-# \param limit_multiple Only allow the \a limit_hours setting to stop the simulation when the time step is a multiple of
+# \param limit_multiple When stopping the run() due to walltime limits, only stop when the time step is a multiple of
 #                       \a limit_multiple .
 # \param callback     (if set) Sets a Python function to be called regularly during a run.
 # \param callback_period Sets the period, in time steps, between calls made to \a callback
@@ -149,7 +149,7 @@ def get_hoomd_script_version():
 # \b Examples:
 # \code
 # run(1000)
-# run(10e6)
+# run(10e6, limit_multiple=100000)
 # run(10000, profile=True)
 # run(1e9, limit_hours=11)
 #
@@ -159,43 +159,58 @@ def get_hoomd_script_version():
 # run(10000, callback_period=100, callback=py_cb)
 # \endcode
 #
+# \b Overview
+#
 # Execute the run() command to advance the simulation forward in time.
 # During the run, all previously specified \ref analyze "analyzers",
 # \ref dump "dumps", \ref update "updaters" and the \ref integrate "integrators"
 # are executed at the specified regular periods.
 #
-# After run() completes, you may change parameters of the simulation (i.e. temperature)
+# After run() completes, you may change parameters of the simulation
 # and continue the simulation by executing run() again. Time steps are added
 # cumulatively, so calling run(1000) and then run(2000) would run the simulation
 # up to time step 3000.
 #
 # run() cannot be executed before the system is \ref init "initialized". In most
-# cases, it also doesn't make sense to execute run() until after pair forces, bond forces,
-# and an \ref integrate "integrator" have been created.
+# cases, run() should only be called after after pair forces, bond forces,
+# and an \ref integrate "integrator" are specified.
 #
 # When \a profile is \em True, a detailed breakdown of how much time was spent in each
 # portion of the calculation is printed at the end of the run. Collecting this timing information
-# can slow the simulation on the GPU significantly; so only enable profiling for testing
-# and troubleshooting purposes.
+# can slow the simulation significantly.
 #
-# If \a limit_hours is changed from the default of None, the run will continue until either
-# the specified number of time steps has been reached, or the given number of hours has
-# elapsed. This option can be useful in shared machines where the queuing system limits
-# job run times. A fractional value can be given to limit a run to only a few minutes,
-# if needed.
+# <b>Wallclock limited runs</b>
 #
-# When running restartable jobs, it may be advantageous to enforce that run() ends on a time step that is a multiple
-# of some value. For example, when dumping dcd trajectories with a period of 200,000 you may want to ensure that a job
-# always ends on a multiple of 200,000 so that when the next run begins, dump.dcd can continue writing right where it
-# left off instead of at some random time (e.g. 234,187) that just happened to be when the time limit was reached in
-# the previous run. Set this multiple with the \a limit_multiple argument. Keep in mind that a large multiple may
-# require a long buffer time between \a limit_hours and the job %wall clock limit as submitted to the queue.
+# There are a number of mechanisms to limit the time of a running hoomd script. Use these in a job
+# queuing environment to allow your script to cleanly exit before reaching the system enforced walltime limit.
+#
+# Force run() to end only on time steps that are a multiple of \a limit_mulitple. Set this to the period at which you
+# dump restart files so that you always end a run() cleanly at a point where you can restart from. Use
+# \a phase=0 on logs, file dumps, and other periodic tasks. With phase=0, these tasks will continue on the same
+# sequence regardless of the restart period.
+#
+# Set the environment variable `HOOMD_WALLTIME_START` prior to executing `hoomd` to stop the run() at a given wall
+# clock time. run() monitors performance and tries to ensure that it will end *before* `HOOMD_WALLTIME_START`. This
+# environment variable works even with multiple stages of runs in a script (use run_upto()). Set the variable to
+# a unix epoch time. For example in a job script that should run 12 hours, set `HOOMD_WALLTIME_START` to 12 hours from
+# now, minus 10 minutes to allow for job cleanup.
+# ~~~
+# export HOOMD_WALLTIME_STOP=$((`date +%s` + 12 * 3600 - 10 * 60))
+# ~~~
+#
+# When using `HOOMD_WALLTIME_STOP`, run() will throw the exception `WalltimeLimitReached` if it exits due to the walltime
+# limit. For more information on using this exception, see (TODO: page to be written).#
+#
+# \a limit_hours is another way to limit the length of a run(). Set it to a number of hours (use fractional values for
+# minutes) to limit this particular run() to that length of time. This is less useful than `HOOMD_WALLTIME_STOP` in a
+# job queuing environment.
+#
+# \b Callbacks
 #
 # If \a callback is set to a Python function then this function will be called regularly
 # at \a callback_period intervals. The callback function must receive one integer as argument
-# and can return an integer. The argument is the current time step number,
-# and if the callback function returns a negative number then the run is immediately aborted.
-# All other return values are currently ignored.
+# and can return an integer. The argument passed to the callback is the current time step number.
+# If the callback function returns a negative number, the run is immediately aborted.
 #
 # If \a callback_period is set to 0 (the default) then the callback is only called
 # once at the end of the run. Otherwise the callback is executed whenever the current
@@ -251,7 +266,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 # \param keywords (see below) Catch for all keyword arguments to pass on to run()
 #
 # run_upto() runs the simulation, but only until it reaches the given time step, \a step. If the simulation has already
-# reached the specified step, a warning is printed and no simulation steps are run.
+# reached the specified step, a message is printed and no simulation steps are run.
 #
 # It accepts all keyword options that run() does.
 #
@@ -275,7 +290,7 @@ def run_upto(step, **keywords):
     cur_step = globals.system.getCurrentTimeStep();
 
     if cur_step >= step:
-        globals.msg.warning("Requesting run up to a time step that has already passed, doing nothing\n");
+        globals.msg.notice(2, "Requesting run up to a time step that has already passed, doing nothing\n");
         return;
 
     n_steps = step - cur_step;
