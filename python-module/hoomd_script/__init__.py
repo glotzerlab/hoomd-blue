@@ -91,6 +91,8 @@ from hoomd_script import compute;
 from hoomd_script import charge;
 from hoomd_script import comm;
 
+from hoomd import WalltimeLimitReached;
+
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API
 #

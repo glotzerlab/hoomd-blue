@@ -73,6 +73,8 @@ using namespace boost::python;
 
 using namespace std;
 
+PyObject* walltimeLimitExceptionTypeObj = 0;
+
 /*! \param sysdef SystemDefinition for the system to be simulated
     \param initial_tstep Initial time step of the simulation
 
@@ -692,7 +694,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     // throw a StopIteration exception if we timed out, but only if the user is using the HOOMD_WALLTIME_STOP feature
     if (timeout_end_run && walltime_stop != NULL)
         {
-        PyErr_SetNone(PyExc_StopIteration);
+        PyErr_SetString(walltimeLimitExceptionTypeObj, "HOOMD_WALLTIME_STOP reached");
         boost::python::throw_error_already_set();
         }
     }
@@ -896,8 +898,28 @@ PDataFlags System::determineFlags(unsigned int tstep)
     return flags;
     }
 
+//! Create a custom exception
+PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_Exception)
+    {
+    // http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class
+
+    using std::string;
+    namespace bp = boost::python;
+
+    string scopeName = bp::extract<string>(bp::scope().attr("__name__"));
+    string qualifiedName0 = scopeName + "." + name;
+    char* qualifiedName1 = const_cast<char*>(qualifiedName0.c_str());
+
+    PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
+    if(!typeObj) bp::throw_error_already_set();
+    bp::scope().attr(name) = bp::handle<>(bp::borrowed(typeObj));
+    return typeObj;
+    }
+
 void export_System()
     {
+    walltimeLimitExceptionTypeObj = createExceptionClass("WalltimeLimitReached");
+
     class_< System, boost::shared_ptr<System>, boost::noncopyable > ("System", init< boost::shared_ptr<SystemDefinition>, unsigned int >())
     .def("addAnalyzer", &System::addAnalyzer)
     .def("removeAnalyzer", &System::removeAnalyzer)
