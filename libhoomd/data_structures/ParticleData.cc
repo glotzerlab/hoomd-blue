@@ -668,12 +668,17 @@ void ParticleData::reallocate(unsigned int max_n)
     m_max_particle_num_signal();
     }
 
-/*! Rebuild the cached vector of active tags
+/*! Rebuild the cached vector of active tags, if necessary
 */
-void ParticleData::rebuild_tag_cache()
+void ParticleData::maybe_rebuild_tag_cache()
     {
+    if(!m_invalid_cached_tags)
+        return;
+
     // GPUVector checks if the resize is necessary
     m_cached_tag_set.resize(m_tag_set.size());
+
+    ArrayHandle<unsigned int> h_active_tag(m_cached_tag_set, access_location::host, access_mode::overwrite);
 
     // iterate over each element in the set, building a mapping
     // from dense array indices to sparse particle tag indices
@@ -681,8 +686,10 @@ void ParticleData::rebuild_tag_cache()
     for(std::set<unsigned int>::const_iterator it(m_tag_set.begin());
         it != m_tag_set.end(); ++it, ++i)
         {
-        m_cached_tag_set[i] = *it;
+        h_active_tag.data[i] = *it;
         }
+
+    m_invalid_cached_tags = false;
     }
 
 /*! \return true If and only if all particles are in the simulation box
@@ -943,8 +950,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             m_tag_set.insert(tag);
             }
 
-        // Now that active tag list has changed, rebuild the cache
-        rebuild_tag_cache();
+        // Now that active tag list has changed, invalidate the cache
+        m_invalid_cached_tags = true;
 
         // we have to allocate even if the number of particles on a processor
         // is zero, so that the arrays can be resized later
@@ -1007,8 +1014,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             m_tag_set.insert(tag);
             }
 
-        // Now that active tag list has changed, rebuild the cache
-        rebuild_tag_cache();
+        // Now that active tag list has changed, invalidate the cache
+        m_invalid_cached_tags = true;
 
         // allocate particle data such that we can accomodate the particles
         allocate(snapshot.size);
@@ -1938,8 +1945,8 @@ unsigned int ParticleData::addParticle(unsigned int type)
     // add to set of active tags
     m_tag_set.insert(tag);
 
-    // rebuild the active tag cache
-    rebuild_tag_cache();
+    // invalidate the active tag cache
+    m_invalid_cached_tags = true;
 
     // resize array of global reverse lookup tags
     m_rtag.resize(getMaximumTag()+1);
@@ -2122,8 +2129,8 @@ void ParticleData::removeParticle(unsigned int tag)
     // maintain a stack of deleted group tags for future recycling
     m_recycled_tags.push(tag);
 
-    // rebuild active tag cache
-    rebuild_tag_cache();
+    // invalidate active tag cache
+    m_invalid_cached_tags = true;
 
     // update global particle number
     setNGlobal(getNGlobal()-1);
@@ -2135,7 +2142,7 @@ void ParticleData::removeParticle(unsigned int tag)
 //! Return the nth active global tag
 /*! \param n Index of bond in global bond table
  */
-unsigned int ParticleData::getNthTag(unsigned int n) const
+unsigned int ParticleData::getNthTag(unsigned int n)
     {
    if (n >= getNGlobal())
         {
@@ -2144,8 +2151,10 @@ unsigned int ParticleData::getNthTag(unsigned int n) const
         }
 
     assert(m_tag_set.size() == getNGlobal());
-    ArrayHandle<unsigned int> h_active_tag(m_cached_tag_set, access_location::host, access_mode::read);
-    return h_active_tag.data[n];
+
+    // maybe_rebuild_tag_cache only rebuilds if necessary
+    maybe_rebuild_tag_cache();
+    return m_cached_tag_set[n];
     }
 
 void export_BoxDim()

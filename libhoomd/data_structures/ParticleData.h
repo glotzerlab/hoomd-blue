@@ -928,7 +928,7 @@ class ParticleData : boost::noncopyable
         void removeParticle(unsigned int tag);
 
         //! Return the nth active global tag
-        unsigned int getNthTag(unsigned int n) const;
+        unsigned int getNthTag(unsigned int n);
 
         //! Add particle types
         /*! \param Name of type to add
@@ -1001,6 +1001,7 @@ class ParticleData : boost::noncopyable
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
         GPUVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
+        bool m_invalid_cached_tags;                  //!< true if m_cached_tag_set needs to be rebuilt
 
         /* Alternate particle data arrays are provided for fast swapping in and out of particle data
            The size of these arrays is updated in sync with the main particle data arrays.
@@ -1054,8 +1055,8 @@ class ParticleData : boost::noncopyable
         //! Helper function to reallocate particle data
         void reallocate(unsigned int max_n);
 
-        //! Helper function to rebuild the active tag cache
-        void rebuild_tag_cache();
+        //! Helper function to rebuild the active tag cache if necessary
+        void maybe_rebuild_tag_cache();
 
         //! Helper function to check that particles of a snapshot are in the box
         /*! \return true If and only if all particles are in the simulation box
