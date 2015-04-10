@@ -205,7 +205,8 @@ class _updater:
     # \endcode
     #
     # While the simulation is \ref run() "running", the action of each updater
-    # is executed every \a period time steps.
+    # is executed every \a period time steps. Changing the period does not change the phase set when the analyzer
+    # was first created.
     #
     # To use this command, you must have saved the updater in a variable, as
     # shown in this example:
@@ -318,6 +319,7 @@ class rescale_temp(_updater):
     #
     # \param T Temperature set point (in energy units)
     # \param period Velocities will be rescaled every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
@@ -330,7 +332,7 @@ class rescale_temp(_updater):
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, T, period=1):
+    def __init__(self, T, period=1, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -344,7 +346,7 @@ class rescale_temp(_updater):
 
         # create the c++ mirror class
         self.cpp_updater = hoomd.TempRescaleUpdater(globals.system_definition, thermo.cpp_compute, T.cpp_variant);
-        self.setupUpdater(period);
+        self.setupUpdater(period, phase);
 
     ## Change rescale_temp parameters
     #
@@ -381,6 +383,7 @@ class zero_momentum(_updater):
     ## Initialize the momentum zeroer
     #
     # \param period Momentum will be zeroed every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -389,7 +392,7 @@ class zero_momentum(_updater):
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, period=1):
+    def __init__(self, period=1, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -397,7 +400,7 @@ class zero_momentum(_updater):
 
         # create the c++ mirror class
         self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.system_definition);
-        self.setupUpdater(period);
+        self.setupUpdater(period, phase);
 
 ## Enforces 2D simulation
 #
@@ -451,6 +454,7 @@ class box_resize(_updater):
     # \param xz (if set) X-Z tilt factor as a function of time (dimensionless)
     # \param yz (if set) Y-Z tilt factor as a function of time (dimensionless)
     # \param period The box size will be updated every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \a L, Lx, \a Ly, \a Lz, \a xy, \a xz, \a yz can either be set to a constant number or a variant may be provided.
     # if any of the box parameters are not specified, they are set to maintain the same value in the current box.
@@ -482,7 +486,7 @@ class box_resize(_updater):
     # If \a period is set to None, then the given box lengths are applied immediately and periodic updates
     # are not performed.
     #
-    def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None):
+    def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -528,7 +532,7 @@ class box_resize(_updater):
         if period is None:
             self.cpp_updater.update(globals.system.getCurrentTimeStep());
         else:
-            self.setupUpdater(period);
+            self.setupUpdater(period, phase);
 
     ## Change box_resize parameters
     #

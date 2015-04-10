@@ -252,7 +252,8 @@ class _analyzer:
     # \endcode
     #
     # While the simulation is \ref run() "running", the action of each analyzer
-    # is executed every \a period time steps.
+    # is executed every \a period time steps. Changing the period does not change the phase set when the analyzer
+    # was first created.
     #
     # To use this command, you must have saved the analyzer in a variable, as
     # shown in this example:
@@ -302,6 +303,7 @@ class imd(_analyzer):
     # \param pause Set to True to \b pause the simulation at the first time step until an imd connection is made
     # \param force Give a saved force.constant to analyze.imd to apply forces received from VMD
     # \param force_scale Factor by which to scale all forces received from VMD
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -311,7 +313,7 @@ class imd(_analyzer):
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1):
+    def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -325,7 +327,7 @@ class imd(_analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port, pause, rate, cpp_force);
-        self.setupAnalyzer(period);
+        self.setupAnalyzer(period, phase);
 
 
 ## Logs a number of calculated quantities to a file
@@ -433,6 +435,7 @@ class log(_analyzer):
     # \param header_prefix (optional) Specify a string to print before the header
     # \param overwrite When False (the default) an existing log will be appended to.
     #                  If True, an existing log file will be overwritten instead.
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -465,7 +468,7 @@ class log(_analyzer):
     # to log and in the same order for all runs of hoomd that append to the same log.
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, quantities, period, header_prefix='', overwrite=False):
+    def __init__(self, filename, quantities, period, header_prefix='', overwrite=False, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -473,7 +476,7 @@ class log(_analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.Logger(globals.system_definition, filename, header_prefix, overwrite);
-        self.setupAnalyzer(period);
+        self.setupAnalyzer(period, phase);
 
         # set the logged quantities
         quantity_list = hoomd.std_vector_string();
@@ -572,6 +575,7 @@ class msd(_analyzer):
     # \param header_prefix (optional) Specify a string to print before the header
     # \param r0_file hoomd_xml file specifying the positions (and images) to use for \f$ \vec{r}_0 \f$
     # \param overwrite set to True to overwrite the file \a filename if it exists
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -601,7 +605,7 @@ class msd(_analyzer):
     # analyze.msd command is used to initialize \f$ \vec{r}_0 \f$.
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False):
+    def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -609,7 +613,7 @@ class msd(_analyzer):
 
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.MSDAnalyzer(globals.system_definition, filename, header_prefix, overwrite);
-        self.setupAnalyzer(period);
+        self.setupAnalyzer(period, phase);
 
         # it is an error to specify no groups
         if len(groups) == 0:

@@ -18,6 +18,11 @@ class update_box_resize_tests (unittest.TestCase):
         update.box_resize(L = variant.linear_interp([(0, 20), (1e6, 50)]))
         run(100);
 
+    # tests with phase
+    def test_phase(self):
+        update.box_resize(L = variant.linear_interp([(0, 20), (1e6, 50)]), period=10, phase=0)
+        run(100);
+
     # test the setting of more args
     def test_moreargs(self):
         update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]),

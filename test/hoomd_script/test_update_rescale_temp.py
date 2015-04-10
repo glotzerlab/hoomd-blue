@@ -18,6 +18,11 @@ class update_rescale_temp_tests (unittest.TestCase):
         update.rescale_temp(T=1.0)
         run(100);
 
+    # tests with phase
+    def test_phase(self):
+        update.rescale_temp(T=1.0, period=10, phase=0)
+        run(100);
+
     # test variable periods
     def test_variable(self):
         update.rescale_temp(T=1.0, period=lambda n: n*10)
