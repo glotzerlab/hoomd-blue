@@ -199,11 +199,11 @@ const unsigned int NOT_LOCAL = 0xffffffff;
  * - inside an Analyzer to iterate over the current ParticleData
  *
  * Initializing the ParticleData is accomplished by first filling the particle data arrays with default values
- * (such as type, mass, diameter). Then a snapshot of this initial state is taken and pased to the
+ * (such as type, mass, diameter). Then a snapshot of this initial state is taken and passed to the
  * ParticleDataInitializer, which may modify any of the fields of the snapshot. It then returns it to
  * ParticleData, which in turn initializes its internal arrays from the snapshot using ParticleData::initializeFromSnapshot().
  *
- * To support the second scenerio it is necessary that particles can be accessed in global tag order. Therefore,
+ * To support the second scenario it is necessary that particles can be accessed in global tag order. Therefore,
  * the data in a snapshot is stored in global tag order.
  * \ingroup data_structs
  */

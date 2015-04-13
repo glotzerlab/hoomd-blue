@@ -464,7 +464,7 @@ class RigidData
         //! Performs steps needed to compute the rigid body virial correction at the end of the step
         void computeVirialCorrectionEnd(Scalar deltaT);
 
-        //! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.
+        //! Initialize and fill out all data members: public to be called from NVEUpdater when the body information of particles was already set.
         void initializeData();
 
         //! Compute the axes from quaternion, used when reading from restart files
