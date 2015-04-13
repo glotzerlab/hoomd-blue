@@ -174,9 +174,10 @@ class PotentialPair : public ForceCompute
         #endif
         
         //! Calculates the energy between two lists of particles.
-        void computeEnergyBetweenLists( const std::vector<unsigned int>& tags1,
-                                        const std::vector<unsigned int>& tags2,
-                                        Scalar& pair_eng );
+        template< class InputIterator >
+        void computeEnergyBetweenSets(  InputIterator first1, InputIterator last1,
+                                        InputIterator first2, InputIterator last2,
+                                        Scalar& energy );
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -588,12 +589,13 @@ CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timeste
 //! \param tags2 second set of particles. assumes the list is sorted for nlog(n) lookups. 
 //! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.  
 //! \param pair_eng is the sum of the energies between all particles in tags1 and tags2, U = \sum_{i \in tags1, j \in tags2} u_{ij}.
-//! TODO: use numpy array instead of the std::vector for better integration with the python interface.
-//! TODO: This creates some code duplication (is this acceptable?)
+//! TODO: using the iterator form because hopefully this can be used with the numpy interface seamlessly.
+//! TODO: Alternatively we could make some accessor functions in the PotentialPair class and the define a "hoomd helper function"
 template< class evaluator >
-void PotentialPair< evaluator >::computeEnergyBetweenLists( const std::vector<unsigned int>& tags1,
-                                                            const std::vector<unsigned int>& tags2,
-                                                            Scalar& energy );
+template< class InputIterator >
+inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterator first1, InputIterator last1,
+                                                                    InputIterator first2, InputIterator last2,
+                                                                    Scalar& energy )
     {    
     // start the profile for this compute
     if (m_prof) m_prof->push(m_prof_name);
@@ -611,9 +613,9 @@ void PotentialPair< evaluator >::computeEnergyBetweenLists( const std::vector<un
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
     // for each particle in tags1
-    for (unsigned int t1 = 0; t1 < tags1.size(); t1++)
+    while (first1 != last1)
         {
-        unsigned int i = h_rtags.data[tags1[t1]];
+        unsigned int i = h_rtags.data[*first1]; first1++;
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
@@ -630,10 +632,10 @@ void PotentialPair< evaluator >::computeEnergyBetweenLists( const std::vector<un
             qi = h_charge.data[i];
 
         // loop over all particles in tags2
-        for (unsigned int t2 = 0; t2 < tags2.size(); t2++)
+        for (InputIterator iter = first2; iter != last2; ++iter)
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
-            unsigned int j = h_rtags.data[tags2[t2]];
+            unsigned int j = h_rtags.data[*iter];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
             
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
