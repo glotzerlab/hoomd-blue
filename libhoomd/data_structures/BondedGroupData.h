@@ -274,7 +274,7 @@ class BondedGroupData : boost::noncopyable
         void setTypeName(unsigned int type, const std::string& new_name);
 
         //! Return the nth active global tag
-        unsigned int getNthTag(unsigned int n) const;
+        unsigned int getNthTag(unsigned int n);
 
         //! Return the maximum particle tag in the simulation
         unsigned int getMaximumTag() const
@@ -555,6 +555,8 @@ class BondedGroupData : boost::noncopyable
         unsigned int m_nglobal;                      //!< Global number of groups
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed groups
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
+        GPUVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
+        bool m_invalid_cached_tags;                  //!< true if m_cached_tag_set needs to be rebuilt
         boost::shared_ptr<Profiler> m_prof;          //!< Profiler
 
     private:
@@ -576,6 +578,9 @@ class BondedGroupData : boost::noncopyable
         #ifdef ENABLE_CUDA
         //! Helper function to rebuild lookup by index table on the GPU
         void rebuildGPUTableGPU();
+
+        //! Helper function to rebuild the active tag cache if necessary
+        void maybe_rebuild_tag_cache();
 
         GPUArray<unsigned int> m_condition;          //!< Condition variable for rebuilding GPU table on the GPU
         unsigned int m_next_flag;                    //!< Next flag value for GPU table rebuild
