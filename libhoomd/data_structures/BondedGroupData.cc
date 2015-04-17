@@ -661,6 +661,31 @@ void BondedGroupData<group_size, Group, name>::setTypeName(unsigned int type, co
     m_type_mapping[type] = new_name;
     }
 
+/*! Rebuild the cached vector of active tags, if necessary
+*/
+template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::maybe_rebuild_tag_cache()
+    {
+    if(!m_invalid_cached_tags)
+        return;
+
+    // GPUVector checks if the resize is necessary
+    m_cached_tag_set.resize(m_tag_set.size());
+
+    ArrayHandle<unsigned int> h_active_tag(m_cached_tag_set, access_location::host, access_mode::overwrite);
+
+    // iterate over each element in the set, building a mapping
+    // from dense array indices to sparse particle tag indices
+    unsigned int i(0);
+    for(std::set<unsigned int>::const_iterator it(m_tag_set.begin());
+        it != m_tag_set.end(); ++it, ++i)
+        {
+        h_active_tag.data[i] = *it;
+        }
+
+    m_invalid_cached_tags = false;
+    }
+
 template<unsigned int group_size, typename Group, const char *name>
 void BondedGroupData<group_size, Group, name>::rebuildGPUTable()
     {
@@ -860,32 +885,6 @@ void BondedGroupData<group_size, Group, name>::rebuildGPUTableGPU()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 #endif
-
-
-/*! Rebuild the cached vector of active tags, if necessary
-*/
-template<unsigned int group_size, typename Group, const char *name>
-void BondedGroupData<group_size, Group, name>::maybe_rebuild_tag_cache()
-    {
-    if(!m_invalid_cached_tags)
-        return;
-
-    // GPUVector checks if the resize is necessary
-    m_cached_tag_set.resize(m_tag_set.size());
-
-    ArrayHandle<unsigned int> h_active_tag(m_cached_tag_set, access_location::host, access_mode::overwrite);
-
-    // iterate over each element in the set, building a mapping
-    // from dense array indices to sparse particle tag indices
-    unsigned int i(0);
-    for(std::set<unsigned int>::const_iterator it(m_tag_set.begin());
-        it != m_tag_set.end(); ++it, ++i)
-        {
-        h_active_tag.data[i] = *it;
-        }
-
-    m_invalid_cached_tags = false;
-    }
 
 /*! \param snapshot Snapshot that will contain the group data
  *

@@ -572,15 +572,15 @@ class BondedGroupData : boost::noncopyable
         //! Initialize internal memory
         void initialize();
 
+        //! Helper function to rebuild the active tag cache if necessary
+        void maybe_rebuild_tag_cache();
+
         //! Helper function to rebuild lookup by index table
         void rebuildGPUTable();
 
         #ifdef ENABLE_CUDA
         //! Helper function to rebuild lookup by index table on the GPU
         void rebuildGPUTableGPU();
-
-        //! Helper function to rebuild the active tag cache if necessary
-        void maybe_rebuild_tag_cache();
 
         GPUArray<unsigned int> m_condition;          //!< Condition variable for rebuilding GPU table on the GPU
         unsigned int m_next_flag;                    //!< Next flag value for GPU table rebuild
