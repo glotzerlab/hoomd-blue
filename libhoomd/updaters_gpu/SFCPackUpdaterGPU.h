@@ -64,16 +64,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 )
 #endif
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
-#include <vector>
-#include <utility>
-
 #include "Updater.h"
 
 #include "SFCPackUpdater.h"
 #include "SFCPackUpdaterGPU.cuh"
 #include "GPUArray.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
+#include <vector>
+#include <utility>
 
 #ifndef __SFCPACK_UPDATER_GPU_H__
 #define __SFCPACK_UPDATER_GPU_H__

@@ -60,8 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-#include "PotentialPair.h"
 #include "PPPMForceComputeGPU.h"
+#include "PotentialPair.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;

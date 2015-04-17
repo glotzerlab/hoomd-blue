@@ -49,14 +49,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
-#include <vector>
-
 #include "Compute.h"
 #include "GPUArray.h"
 #include "GPUFlags.h"
 #include "Index1D.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
+#include <vector>
 
 /*! \file NeighborList.h
     \brief Declares the NeighborList class
@@ -436,6 +436,7 @@ class NeighborList : public Compute
 
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
+        boost::signals2::connection m_global_particle_num_change_connection; //!< Connection to global particle number change signal
         #ifdef ENABLE_MPI
         boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
         boost::signals2::connection m_comm_flags_request;         //!< Connection to request ghost particle fields
@@ -506,6 +507,14 @@ class NeighborList : public Compute
 
         //! Grow the exclusions list memory capacity by one row
         void growExclusionList();
+
+        //! Method to be called when the global particle number changes
+        void slotGlobalParticleNumberChange()
+            {
+            m_want_exclusions = true;
+
+            reallocate();
+            }
     };
 
 //! Exports NeighborList to python

@@ -165,6 +165,35 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
         }
     #endif
+
+    #ifdef ENABLE_MPI
+    if (hoomd_launch_timing && getNRanksGlobal() > 1)
+        {
+        // compute the number of seconds to get an exec conf
+        timeval t;
+        gettimeofday(&t, NULL);
+        unsigned int conf_time = t.tv_sec - hoomd_launch_time;
+
+        // get the min and max times
+        unsigned int start_time_min, start_time_max, mpi_init_time_min, mpi_init_time_max, conf_time_min, conf_time_max;
+        MPI_Reduce(&hoomd_start_time, &start_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&hoomd_start_time, &start_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+
+        MPI_Reduce(&conf_time, &conf_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&conf_time, &conf_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+
+        // write them out to a file
+        if (getRankGlobal() == 0)
+            {
+            msg->notice(2) << "start_time:    [" << start_time_min << ", " << start_time_max << "]" << std::endl;
+            msg->notice(2) << "mpi_init_time: [" << mpi_init_time_min << ", " << mpi_init_time_max << "]" << std::endl;
+            msg->notice(2) << "conf_time:     [" << conf_time_min << ", " << conf_time_max << "]" << std::endl;
+            }
+        }
+    #endif
     }
 
 ExecutionConfiguration::~ExecutionConfiguration()
@@ -468,8 +497,10 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
     cudaError_t error = cudaGetDeviceCount(&dev_count);
     if (error != cudaSuccess)
         {
-        msg->error() << "Error calling cudaGetDeviceCount()" << endl;
-        throw runtime_error("Error initializing execution configuration");
+        msg->notice(2) << "Error calling cudaGetDeviceCount(). No NVIDIA driver is present, or this user" << endl;
+        msg->notice(2) << "does not have readwrite permissions on /dev/nvidia*" << endl;
+        msg->notice(2) << "Ignoring any GPUs in the system." << endl;
+        return;
         }
 
     // initialize variables

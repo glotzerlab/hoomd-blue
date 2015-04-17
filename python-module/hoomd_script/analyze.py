@@ -335,6 +335,7 @@ class imd(_analyzer):
 #
 # Quantities that can be logged at any time:
 # - \b volume - Volume of the simulation box (in volume units)
+# - \b N - Particle nubmer (dimensionless)
 # - \b lx - Box length in x direction (in length units)
 # - \b ly - Box length in y direction (in length units)
 # - \b lz - Box length in z direction (in length units)

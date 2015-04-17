@@ -54,13 +54,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ComputeThermo.h"
-#include <boost/python.hpp>
-using namespace boost::python;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 #include <iostream>
 using namespace std;

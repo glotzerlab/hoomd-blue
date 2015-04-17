@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "TableAngleForceComputeGPU.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
-
-#include "TableAngleForceComputeGPU.h"
 #include <stdexcept>
 
 /*! \file TableAngleForceComputeGPU.cc

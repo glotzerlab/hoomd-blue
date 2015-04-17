@@ -49,13 +49,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include "TwoStepBerendsen.h"
 #ifdef ENABLE_CUDA
 #include "TwoStepBerendsenGPU.cuh"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 /*! \file TwoStepBerendsen.cc
     \brief Definition of Berendsen thermostat

@@ -54,10 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "HarmonicImproperForceCompute.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "HarmonicImproperForceCompute.h"
 
 #include <iostream>
 #include <sstream>
@@ -193,10 +193,10 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
         {
         // lookup the tag of each of the particles participating in the improper
         const ImproperData::members_t& improper = m_improper_data->getMembersByIndex(i);
-        assert(improper.tag[0] < m_pdata->getNGlobal());
-        assert(improper.tag[1] < m_pdata->getNGlobal());
-        assert(improper.tag[2] < m_pdata->getNGlobal());
-        assert(improper.tag[3] < m_pdata->getNGlobal());
+        assert(improper.tag[0] <= m_pdata->getMaximumTag());
+        assert(improper.tag[1] <= m_pdata->getMaximumTag());
+        assert(improper.tag[2] <= m_pdata->getMaximumTag());
+        assert(improper.tag[3] <= m_pdata->getMaximumTag());
 
         // transform a, b, and c into indicies into the particle data arrays
         // MEM TRANSFER: 6 ints

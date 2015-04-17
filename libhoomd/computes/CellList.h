@@ -49,13 +49,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
 #include "GPUArray.h"
 #include "GPUFlags.h"
 
 #include "Index1D.h"
 #include "Compute.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
 
 /*! \file CellList.h
     \brief Declares the CellList class

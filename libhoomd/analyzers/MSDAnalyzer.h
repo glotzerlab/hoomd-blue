@@ -60,11 +60,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "Analyzer.h"
+#include "ParticleGroup.h"
+
 #include <string>
 #include <fstream>
 #include <boost/shared_ptr.hpp>
-#include "Analyzer.h"
-#include "ParticleGroup.h"
 
 //! Prints a log of the mean-squared displacement calculated over particles in the simulation
 /*! On construction, MSDAnalyzer opens the given file name for writing. The file will optionally be overwritten
@@ -122,6 +123,8 @@ class MSDAnalyzer : public Analyzer
         std::vector<Scalar> m_initial_x;    //!< initial value of the x-component listed by tag
         std::vector<Scalar> m_initial_y;    //!< initial value of the y-component listed by tag
         std::vector<Scalar> m_initial_z;    //!< initial value of the z-component listed by tag
+
+        unsigned int m_nglobal; //!< Initial number of particles
 
         //! struct for storing the particle group and name assocated with a column in the output
         struct column

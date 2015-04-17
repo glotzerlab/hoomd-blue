@@ -57,6 +57,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include "HOOMDVersion.h"
+#include "PathUtils.h"
+
 #include <boost/version.hpp>
 #include <boost/python.hpp>
 
@@ -64,9 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/convenience.hpp>
 
 using namespace boost::filesystem;
-
-#include "PathUtils.h"
-#include "HOOMDVersion.h"
 
 #include <string>
 #include <sstream>

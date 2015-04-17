@@ -49,14 +49,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "SystemDefinition.h"
+#include "Profiler.h"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 #include <boost/thread.hpp>
 #include <string>
 #include <vector>
-#
-#include "SystemDefinition.h"
-#include "Profiler.h"
 
 #ifndef __COMPUTE_H__
 #define __COMPUTE_H__

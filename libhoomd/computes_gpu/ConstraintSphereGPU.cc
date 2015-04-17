@@ -54,14 +54,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include "ConstraintSphereGPU.h"
+#include "ConstraintSphereGPU.cuh"
+
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 
 using namespace boost::python;
 using namespace boost;
-
-#include "ConstraintSphereGPU.h"
-#include "ConstraintSphereGPU.cuh"
 
 using namespace std;
 

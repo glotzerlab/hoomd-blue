@@ -49,9 +49,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
-
 #include "ForceCompute.h"
+
+#include <boost/shared_ptr.hpp>
 
 /*! \file ForceConstraint.h
     \brief Declares a base class for computing constraint

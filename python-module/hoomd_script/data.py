@@ -83,13 +83,13 @@ from hoomd_script import util
 # <h3>Getting/setting the box</h3>
 # You can access the dimensions of the simulation box like so:
 # \code
-# >>> print system.box
+# >>> print(system.box)
 # Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0
 # \endcode
 # and can change it like so:
 # \code
 # >>> system.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
-# >>> print system.box
+# >>> print(system.box)
 # Box: Lx=10 Ly=20 Lz=30 xy=1.0 xz=0.1 yz=2.0
 # \endcode
 # \b All particles must \b always remain inside the box. If a box is set in this way such that a particle ends up outside of the box, expect
@@ -108,11 +108,13 @@ from hoomd_script import util
 # \endcode
 # - A short summary can be printed of the list
 # \code
-# >>> print system.particles
+# >>> print(system.particles)
 # Particle Data for 64000 particles of 1 type(s)
 # \endcode
 # - The list of all particle types in the simulation can be accessed
 # \code
+# >>> print(system.particles.types)
+# ['A']
 # >>> print system.particles.types
 # Particle types: ['A']
 # \endcode
@@ -139,8 +141,10 @@ from hoomd_script import util
 # 1.0
 # >>> p.type
 # 'A'
+# >>> p.tag
+# 4
 # \endcode
-# (note that p can be replaced with system.particles.[i] above and the results are the same)
+# (note that p can be replaced with system.particles[i] above and the results are the same)
 # - Particle properties can be set in the same way:
 # \code
 # >>> p.position = (1,2,3)
@@ -156,8 +160,56 @@ from hoomd_script import util
 # Performance is decent, but not great. The for loop above that sets all velocities to 0 takes 0.86 seconds to execute
 # on a 2.93 GHz core2 iMac. The interface has been designed to be flexible and easy to use for the widest variety of
 # initialization tasks, not efficiency.
-# For doing modifications that operate on the whole system data efficiently, snapshots have been
-# designed. Their usage is described below.
+# For doing modifications that operate on the whole system data efficiently, snapshots can be used.
+# Their usage is described below.
+#
+# Particles may be added at any time in the job script, and a unique tag is returned.
+# \code
+# >>> system.particles.add('A')
+# >>> t = system.particles.add('B')
+# \endcode
+#
+# Particles may be deleted by index.
+# \code
+# >>> del system.particles[0]
+# >>> print(system.particles[0])
+# tag         : 1
+# position    : (23.846603393554688, -27.558368682861328, -20.501256942749023)
+# image       : (0, 0, 0)
+# velocity    : (0.0, 0.0, 0.0)
+# acceleration: (0.0, 0.0, 0.0)
+# charge      : 0.0
+# mass        : 1.0
+# diameter    : 1.0
+# type        : A
+# typeid      : 0
+# body        : 4294967295
+# orientation : (1.0, 0.0, 0.0, 0.0)
+# net_force   : (0.0, 0.0, 0.0)
+# net_energy  : 0.0
+# net_torque  : (0.0, 0.0, 0.0)
+# \endcode
+# \note The particle with tag 1 is now at index 0. No guarantee is made about how the
+# order of particles by index will or will not change, so do not write any job scripts which assume a given ordering.
+#
+# To access particles in an index-independent manner, use their tags. For example, to remove all particles
+# of type 'A', do
+# \code
+# tags = []
+# for p in system.particles:
+#     if p.type == 'A'
+#         tags.append(p.tag)
+# \endcode
+# Then remove each of the bonds by their unique tag.
+# \code
+# for t in tags:
+#     system.particles.remove(t)
+# \endcode
+# Particles can also be accessed through their unique tag:
+# \code
+# t = system.particles.add('A')
+# p = system.particles.get(t)
+# \endcode
 #
 # There is a second way to access the particle data. Any defined group can be used in exactly the same way as
 # \c system.particles above, only the particles accessed will be those just belonging to the group. For a specific
@@ -175,7 +227,7 @@ from hoomd_script import util
 #\code
 #
 # >>> b = system.bodies[0]
-# >>> print b
+# >>> print(b)
 #num_particles    : 5
 #mass             : 5.0
 # COM              : (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
@@ -185,7 +237,7 @@ from hoomd_script import util
 # moment_inertia: (10.000000953674316, 10.0, 0.0)
 # particle_tags    : [0, 1, 2, 3, 4]
 # particle_disp    : [[-3.725290298461914e-09, -4.172325134277344e-07, 2.0], [-2.421438694000244e-08, -2.086162567138672e-07, 0.9999998211860657], [-2.6206091519043184e-08, -2.073889504572435e-09, -3.361484459674102e-07], [-5.029141902923584e-08, 2.682209014892578e-07, -1.0000004768371582], [-3.3527612686157227e-08, -2.980232238769531e-07, -2.0]]
-# >>> print b.COM
+# >>> print(b.COM)
 # (0.33264800906181335, -2.495814800262451, -1.2669427394866943)
 # >>> b.particle_disp = [[0,0,0], [0,0,0], [0,0,0.0], [0,0,0], [0,0,0]]
 #
@@ -204,17 +256,17 @@ from hoomd_script import util
 # Individual bonds may be accessed by index.
 # \code
 # >>> bnd = system.bonds[0]
-# >>> print bnd
+# >>> print(bnd)
 # tag          : 0
 # typeid       : 0
 # a            : 0
 # b            : 1
 # type         : bondA
-# >>> print bnd.type
+# >>> print(bnd.type)
 # bondA
-# >>> print bnd.a
+# >>> print(bnd.a)
 # 0
-# >>> print bnd.b
+# >>> print(bnd.b)
 #1
 # \endcode
 # \note The order in which bonds appear by index is not static and may change at any time!
@@ -222,7 +274,7 @@ from hoomd_script import util
 # Bonds may be deleted by index.
 # \code
 # >>> del system.bonds[0]
-# >>> print system.bonds[0]
+# >>> print(system.bonds[0])
 # tag          : 3
 # typeid       : 0
 # a            : 3
@@ -245,6 +297,11 @@ from hoomd_script import util
 # for t in tags:
 #     system.bonds.remove(t)
 # \endcode
+# Bonds can also be accessed through their unique tag:
+# \code
+# t = system.bonds.add('polymer',0,1)
+# p = system.bonds.get(t)
+# \endcode
 #
 # <hr>
 # <h3>Angle, Dihedral, and Improper Data</h3>
@@ -265,17 +322,17 @@ from hoomd_script import util
 # \code
 # >>> lj = pair.lj(r_cut=3.0)
 # >>> lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-# >>> print lj.forces[0]
+# >>> print(lj.forces[0])
 # tag         : 0
 # force       : (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
 # virial      : -0.0931386947632
 # energy      : -0.0469368174672
 # >>> f0 = lj.forces[0]
-# >>> print f0.force
+# >>> print(f0.force)
 # (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
-# >>> print f0.virial
-# -0.0931386947632
-# >>> print f0.energy
+# >>> print(f0.virial)
+# -0.093138694763n
+# >>> print(f0.energy)
 # -0.0469368174672
 # \endcode
 #
@@ -829,10 +886,19 @@ class particle_data:
     # \brief ParticleData to which this instance is connected
 
     ## \internal
+    # \brief Get a particle_proxy reference to the particle with contiguous id \a id
+    # \param id Contiguous particle id to access
+    def __getitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+        tag = self.pdata.getNthTag(id);
+        return particle_data_proxy(self.pdata, tag);
+
+    ## \internal
     # \brief Get a particle_proxy reference to the particle with tag \a tag
     # \param tag Particle tag to access
-    def __getitem__(self, tag):
-        if tag >= len(self) or tag < 0:
+    def get(self, tag):
+        if tag > self.pdata.getMaximumTag() or tag < 0:
             raise IndexError;
         return particle_data_proxy(self.pdata, tag);
 
@@ -842,6 +908,29 @@ class particle_data:
     # \param p Value containing properties to set
     def __setitem__(self, tag, p):
         raise RuntimeError('__setitem__ not implemented');
+
+    ## \internal
+    # \brief Add a new particle
+    # \param type Type name of the particle to add
+    # \returns Unique tag identifying this bond
+    def add(self, type):
+        typeid = self.pdata.getTypeByName(type);
+        return self.pdata.addParticle(typeid);
+
+    ## \internal
+    # \brief Remove a bond by tag
+    # \param tag Unique tag of the bond to remove
+    def remove(self, tag):
+        self.pdata.removeParticle(tag);
+
+    ## \internal
+    # \brief Delete a particle by id
+    # \param id Bond id to delete
+    def __delitem__(self, id):
+        if id >= len(self) or id < 0:
+            raise IndexError;
+        tag = self.pdata.getNthTag(id);
+        self.pdata.removeParticle(tag);
 
     ## \internal
     # \brief Get the number of particles
@@ -855,7 +944,7 @@ class particle_data:
         return result
 
     ## \internal
-    # \brief Return an interator
+    # \brief Return an iterator
     def __iter__(self):
         return particle_data.particle_data_iterator(self);
 
@@ -892,10 +981,10 @@ class particle_data_proxy:
     # \brief create a particle_data_proxy
     #
     # \param pdata ParticleData to which this proxy belongs
-    # \param tag Tag of this particle in \a pdata
+    # \param tag Tag this particle in \a pdata
     def __init__(self, pdata, tag):
         self.pdata = pdata;
-        self.tag = tag;
+        self.tag = tag
 
     ## \internal
     # \brief Get an informal string representing the object
@@ -1204,12 +1293,21 @@ class bond_data:
     # \brief BondData to which this instance is connected
 
     ## \internal
-    # \brief Get a bond_proxy reference to the bond with id \a id
+    # \brief Get a bond_data_proxy reference to the bond with contiguous id \a id
     # \param id Bond id to access
     def __getitem__(self, id):
         if id >= len(self) or id < 0:
             raise IndexError;
-        return bond_data_proxy(self.bdata, id);
+        tag = self.bdata.getNthTag(id);
+        return bond_data_proxy(self.bdata, tag);
+
+    ## \internal
+    # \brief Get a bond_data_proxy reference to the bond with tag \a tag
+    # \param tag Bond tag to access
+    def get(self, tag):
+        if tag > self.bdata.getMaximumTag() or tag < 0:
+            raise IndexError;
+        return bond_data_proxy(self.bdata, tag);
 
     ## \internal
     # \brief Set a bond's properties
@@ -1265,10 +1363,10 @@ class bond_data_proxy:
     # \brief create a bond_data_proxy
     #
     # \param bdata BondData to which this proxy belongs
-    # \param id index of this bond in \a bdata (at time of proxy creation)
-    def __init__(self, bdata, id):
+    # \param tag Tag of this bond in \a bdata
+    def __init__(self, bdata, tag):
         self.bdata = bdata;
-        self.tag = bdata.getNthTag(id)
+        self.tag = tag;
 
     ## \internal
     # \brief Get an informal string representing the object
@@ -1371,12 +1469,21 @@ class angle_data:
     # \brief AngleData to which this instance is connected
 
     ## \internal
-    # \brief Get anm angle_proxy reference to the bond with id \a id
+    # \brief Get an angle_data_proxy reference to the angle with contiguous id \a id
     # \param id Angle id to access
     def __getitem__(self, id):
         if id >= len(self) or id < 0:
             raise IndexError;
-        return angle_data_proxy(self.adata, id);
+        tag = self.adata.getNthTag(id);
+        return angle_data_proxy(self.adata, tag);
+
+    ## \internal
+    # \brief Get a angle_data_proxy reference to the angle with tag \a tag
+    # \param tag Angle tag to access
+    def get(self, tag):
+        if tag > self.adata.getMaximumTag() or tag < 0:
+            raise IndexError;
+        return angle_data_proxy(self.adata, tag);
 
     ## \internal
     # \brief Set an angle's properties
@@ -1435,10 +1542,10 @@ class angle_data_proxy:
     # \brief create a angle_data_proxy
     #
     # \param adata AngleData to which this proxy belongs
-    # \param id index of this angle in \a adata (at time of proxy creation)
-    def __init__(self, adata, id):
+    # \param tag Tag of this angle in \a adata
+    def __init__(self, adata, tag):
         self.adata = adata;
-        self.tag = self.adata.getNthTag(id);
+        self.tag = tag;
 
     ## \internal
     # \brief Get an informal string representing the object
@@ -1549,12 +1656,21 @@ class dihedral_data:
     # \brief DihedralData to which this instance is connected
 
     ## \internal
-    # \brief Get anm dihedral_proxy reference to the dihedral with id \a id
+    # \brief Get an dihedral_data_proxy reference to the dihedral with contiguous id \a id
     # \param id Dihedral id to access
     def __getitem__(self, id):
         if id >= len(self) or id < 0:
             raise IndexError;
-        return dihedral_data_proxy(self.ddata, id);
+        tag = self.ddata.getNthTag(id);
+        return dihedral_data_proxy(self.ddata, tag);
+
+    ## \internal
+    # \brief Get a dihedral_data_proxy reference to the dihedral with tag \a tag
+    # \param tag Dihedral tag to access
+    def get(self, tag):
+        if tag > self.ddata.getMaximumTag() or tag < 0:
+            raise IndexError;
+        return dihedral_data_proxy(self.ddata, tag);
 
     ## \internal
     # \brief Set an dihedral's properties
@@ -1614,10 +1730,10 @@ class dihedral_data_proxy:
     # \brief create a dihedral_data_proxy
     #
     # \param ddata DihedralData to which this proxy belongs
-    # \param id index of this dihedral in \a ddata (at time of proxy creation)
-    def __init__(self, ddata, id):
+    # \param tag Tag of this dihedral in \a ddata
+    def __init__(self, ddata, tag):
         self.ddata = ddata;
-        self.tag = self.ddata.getNthTag(id);
+        self.tag = tag;
 
     ## \internal
     # \brief Get an informal string representing the object

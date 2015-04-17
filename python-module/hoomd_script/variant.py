@@ -163,6 +163,7 @@ class linear_interp(_variant):
                 globals.msg.error("Cannot create a linear_interp variant with a zero in the future\n");
                 raise RuntimeError('Error creating variant');
 
+            zero = int(zero)
             self.cpp_variant.setOffset(zero);
 
         # set the points

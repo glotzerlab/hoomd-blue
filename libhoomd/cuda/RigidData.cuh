@@ -116,9 +116,11 @@ cudaError_t gpu_compute_virial_correction_end(Scalar *d_net_virial,
                                               const unsigned int virial_pitch,
                                               const Scalar4 *d_net_force,
                                               const Scalar4 *d_oldpos,
+                                              const Scalar4 *d_body_com, // SRR: passing body COM for minimum image in stress calc
                                               const Scalar4 *d_oldvel,
                                               const Scalar4 *d_vel,
                                               const unsigned int *d_body,
+                                              const BoxDim& box, // SRR: passing box for minimum image in stress calculations
                                               Scalar deltaT,
                                               unsigned int N);
 

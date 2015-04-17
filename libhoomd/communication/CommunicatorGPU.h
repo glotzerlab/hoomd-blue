@@ -186,6 +186,9 @@ class CommunicatorGPU : public Communicator
                 GPUVector<group_element_t> m_groups_in;                 //!< Input buffer of unique groups
             };
 
+        //! Remove tags of ghost particles
+        virtual void removeGhostParticleTags();
+
     private:
         /* General communication */
         unsigned int m_max_stages;                     //!< Maximum number of (dependent) communication stages

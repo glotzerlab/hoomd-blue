@@ -4,6 +4,7 @@
 from hoomd_script import *
 import unittest
 import os
+import tempfile
 
 # unit tests for dump.dcd
 class dmp_dcd_tests (unittest.TestCase):
@@ -13,53 +14,59 @@ class dmp_dcd_tests (unittest.TestCase):
 
         sorter.set_params(grid=8)
 
+        if comm.get_rank() == 0:
+            tmp = tempfile.mkstemp(suffix='.test.dcd');
+            self.tmp_file = tmp[1]+'.tmp';
+        else:
+            self.tmp_file = "invalid";
+
     # tests basic creation of the dump
     def test(self):
-        dump.dcd(filename="dump_dcd", period=100);
+        dump.dcd(filename=self.tmp_file, period=100);
         run(100)
         if (comm.get_rank() == 0):
-            os.remove('dump_dcd')
+            os.remove(self.tmp_file)
 
     # tests unwrap_full option
     def test_unwrap_full(self):
-        dump.dcd(filename="dump_dcd", period=100, unwrap_full=True);
+        dump.dcd(filename=self.tmp_file, period=100, unwrap_full=True);
         run(100)
         if (comm.get_rank() == 0):
-            os.remove('dump_dcd')
+            os.remove(self.tmp_file)
 
     # tests unwrap_rigid option
     def test_unwrap_rigid(self):
         # only supported in single-processor mode
         if comm.get_num_ranks()==1:
-            dump.dcd(filename="dump_dcd", period=100, unwrap_rigid=True);
+            dump.dcd(filename=self.tmp_file, period=100, unwrap_rigid=True);
             run(100)
             if (comm.get_rank() == 0):
-                os.remove('dump_dcd')
+                os.remove(self.tmp_file)
 
     # tests group option
     def test_group(self):
         typeA = group.type('A');
-        dump.dcd(filename="dump_dcd", group=typeA, period=100);
+        dump.dcd(filename=self.tmp_file, group=typeA, period=100);
         run(100)
         if (comm.get_rank() == 0):
-            os.remove('dump_dcd')
+            os.remove(self.tmp_file)
 
     # tests variable periods
     def test_variable(self):
-        dump.dcd(filename="dump_dcd", period=lambda n: n*100);
+        dump.dcd(filename=self.tmp_file, period=lambda n: n*100);
         run(100)
         if (comm.get_rank() == 0):
-            os.remove('dump_dcd')
+            os.remove(self.tmp_file)
 
     # test disable/enable
     def test_enable_disable(self):
-        dcd = dump.dcd(filename="dump_dcd", period=100);
+        dcd = dump.dcd(filename=self.tmp_file, period=100);
         dcd.disable()
         self.assertRaises(RuntimeError, dcd.enable)
 
     # test set_period
     def test_set_period(self):
-        dcd = dump.dcd(filename="dump_dcd", period=100);
+        dcd = dump.dcd(filename=self.tmp_file, period=100);
         self.assertRaises(RuntimeError, dcd.set_period, 10)
 
     def tearDown(self):

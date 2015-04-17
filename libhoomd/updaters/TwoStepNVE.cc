@@ -54,10 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "TwoStepNVE.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "TwoStepNVE.h"
 
 /*! \file TwoStepNVE.h
     \brief Contains code for the TwoStepNVE class

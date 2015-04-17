@@ -56,12 +56,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
-
-#include <boost/shared_ptr.hpp>
-
 #include "Updater.h"
 #include "ComputeThermo.h"
 #include "Variant.h"
+
+#include <boost/shared_ptr.hpp>
+
 #include <vector>
 
 #ifndef __TEMPRESCALEUPDATER_H__

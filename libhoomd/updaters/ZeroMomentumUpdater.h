@@ -56,10 +56,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+#include "Updater.h"
 
 #include <boost/shared_ptr.hpp>
 
-#include "Updater.h"
 #include <vector>
 
 #ifndef __ZEROMOMENTUMUPDATER_H__

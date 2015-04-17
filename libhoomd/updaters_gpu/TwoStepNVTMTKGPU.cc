@@ -54,11 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
-
 #include "TwoStepNVTMTKGPU.h"
 #include "TwoStepNVTMTKGPU.cuh"
 #include "TwoStepNPTMTKGPU.cuh"
@@ -67,6 +62,11 @@ using namespace boost;
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
+#include <boost/bind.hpp>
+using namespace boost;
 
 /*! \file TwoStepNVTMTKGPU.h
     \brief Contains code for the TwoStepNVTMTKGPU class

@@ -69,6 +69,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "PDBDumpWriter.h"
+#include "BondedGroupData.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -76,9 +79,6 @@ using namespace boost::python;
 #include <fstream>
 #include <iomanip>
 #include <stdio.h>
-
-#include "PDBDumpWriter.h"
-#include "BondedGroupData.h"
 
 using namespace std;
 using namespace boost;

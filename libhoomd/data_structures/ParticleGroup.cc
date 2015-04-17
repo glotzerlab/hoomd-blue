@@ -98,6 +98,25 @@ bool ParticleSelector::isSelected(unsigned int tag) const
     }
 
 //////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorAll
+
+/*! \param sysdef System the particles are to be selected from
+*/
+ParticleSelectorAll::ParticleSelectorAll(boost::shared_ptr<SystemDefinition> sysdef)
+    : ParticleSelector(sysdef)
+    { }
+
+/*! \param tag All of the particle to check
+    \returns true if particle is local
+*/
+bool ParticleSelectorAll::isSelected(unsigned int tag) const
+    {
+    assert(tag <= m_pdata->getMaximumTag());
+
+    return m_pdata->isParticleLocal(tag);
+    }
+
+//////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorTag
 
 /*! \param sysdef System the particles are to be selected from
@@ -113,7 +132,7 @@ ParticleSelectorTag::ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sys
     if (m_tag_max < m_tag_min)
         m_exec_conf->msg->warning() << "group: max < min specified when selecting particle tags" << endl;
 
-    if (m_tag_max >= m_pdata->getNGlobal())
+    if (!m_pdata->getNGlobal() || m_tag_max > m_pdata->getMaximumTag())
         {
         m_exec_conf->msg->error() << "Cannot select particles with tags larger than the number of particles "
              << endl;
@@ -126,7 +145,7 @@ ParticleSelectorTag::ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sys
 */
 bool ParticleSelectorTag::isSelected(unsigned int tag) const
     {
-    assert(tag < m_pdata->getNGlobal());
+    assert(tag <= m_pdata->getMaximumTag());
     return (m_tag_min <= tag && tag <= m_tag_max);
     }
 
@@ -155,8 +174,21 @@ ParticleSelectorType::ParticleSelectorType(boost::shared_ptr<SystemDefinition> s
 */
 bool ParticleSelectorType::isSelected(unsigned int tag) const
     {
-    assert(tag < m_pdata->getNGlobal());
-    unsigned int typ = m_pdata->getType(tag);
+    assert(tag <= m_pdata->getMaximumTag());
+
+    // access array directly instead of going through the getType() interface
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    unsigned int idx = h_rtag.data[tag];
+
+    if (idx >= m_pdata->getN())
+        {
+        // particle is not local
+        return false;
+        }
+
+    unsigned int typ = __scalar_as_int(h_postype.data[idx].w);
 
     // see if it matches the criteria
     bool result = (m_typ_min <= typ && typ <= m_typ_max);
@@ -181,7 +213,7 @@ ParticleSelectorRigid::ParticleSelectorRigid(boost::shared_ptr<SystemDefinition>
 */
 bool ParticleSelectorRigid::isSelected(unsigned int tag) const
     {
-    assert(tag < m_pdata->getNGlobal());
+    assert(tag <=  m_pdata->getMaximumTag());
 
     // get body id of current particle tag
     unsigned int body = m_pdata->getBody(tag);
@@ -215,15 +247,27 @@ ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinitio
 */
 bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
     {
-    assert(tag < m_pdata->getNGlobal());
+    assert(tag <= m_pdata->getMaximumTag());
 
-    // identify the index of the current particle tag
-    Scalar3 pos = m_pdata->getPosition(tag);
+    // access array directly instead of going through the getPosition() interface
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    unsigned int idx = h_rtag.data[tag];
+
+    if (idx >= m_pdata->getN())
+        {
+        // particle is not local
+        return false;
+        }
+
+    // get position of particle
+    Scalar4 postype = h_postype.data[idx];
 
     // see if it matches the criteria
-    bool result = (m_min.x <= pos.x && pos.x < m_max.x &&
-                   m_min.y <= pos.y && pos.y < m_max.y &&
-                   m_min.z <= pos.z && pos.z < m_max.z);
+    bool result = (m_min.x <= postype.x && postype.x < m_max.x &&
+                   m_min.y <= postype.y && postype.y < m_max.y &&
+                   m_min.z <= postype.z && postype.z < m_max.z);
 
     return result;
     }
@@ -233,15 +277,20 @@ bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
 
 /*! \param sysdef System definition to build the group from
     \param selector ParticleSelector used to choose the group members
+    \param update_tags If true, update tags whenever global particle number changes
 
     Particles where criteria falls within the range [min,max] (inclusive) are added to the group.
 */
-ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector)
+ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef,
+    boost::shared_ptr<ParticleSelector> selector,
+    bool update_tags)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()),
       m_num_local_members(0),
-      m_particles_sorted(true)
+      m_particles_sorted(true),
+      m_selector(selector),
+      m_update_tags(update_tags)
     {
     #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled())
@@ -252,13 +301,16 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
     #endif
 
     // update member tag arrays
-    updateMemberTags(selector);
+    updateMemberTags(true);
 
     // connect to the particle sort signal
     m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
 
     // connect reallocate() method to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
+
+    // connect updateMemberTags() method to maximum particle number change signal
+    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::slotGlobalParticleNumChange, this));
     }
 
 /*! \param sysdef System definition to build the group from
@@ -271,7 +323,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
       m_pdata(sysdef->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()),
       m_num_local_members(0),
-      m_particles_sorted(true)
+      m_particles_sorted(true),
+      m_update_tags(false)
     {
     // let's make absolutely sure that the tag order given from outside is sorted
     std::vector<unsigned int> sorted_member_tags =  member_tags;
@@ -290,7 +343,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
     GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
 
-    GPUArray<unsigned char> is_member_tag(m_pdata->getNGlobal(), m_pdata->getExecConf());
+    GPUArray<unsigned char> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
 
     // build the reverse lookup table for tags
@@ -315,6 +368,9 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
 
     // connect reallocate() method to maximum particle number change signal
     m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::reallocate, this));
+
+    // connect updateMemberTags() method to maximum particle number change signal
+    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::slotGlobalParticleNumChange, this));
     }
 
 ParticleGroup::~ParticleGroup()
@@ -324,43 +380,82 @@ ParticleGroup::~ParticleGroup()
         {
         m_sort_connection.disconnect();
         m_max_particle_num_change_connection.disconnect();
+        m_global_particle_num_change_connection.disconnect();
         }
     }
 
-void ParticleGroup::updateMemberTags(boost::shared_ptr<ParticleSelector> selector)
+/*! \param force_update If true, always update member tags
+ */
+void ParticleGroup::updateMemberTags(bool force_update)
     {
-    // assign all of the particles that belong to the group
-    // for each particle in the (global) data
-    vector<unsigned int> member_tags;
-    for (unsigned int tag = 0; tag < m_pdata->getNGlobal(); tag++)
+    if (m_selector && (m_update_tags || force_update))
         {
-        // add the tag to the list if it matches the selection
-        if (selector->isSelected(tag))
-            member_tags.push_back(tag);
+        // notice message
+        m_pdata->getExecConf()->msg->notice(7) << "ParticleGroup: rebuilding tags" << std::endl;
+
+        // assign all of the particles that belong to the group
+        // for each particle in the (global) data
+        vector<unsigned int> member_tags;
+
+            {
+            // loop through local particles and select those that match selection criterium
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+            for (unsigned int idx = 0; idx < m_pdata->getN(); ++idx)
+                {
+                unsigned int tag = h_tag.data[idx];
+                if (m_selector->isSelected(tag))
+                    member_tags.push_back(tag);
+                }
+            }
+
+        #ifdef ENABLE_MPI
+        if (m_pdata->getDomainDecomposition())
+            {
+            // combine lists from all processors
+            std::vector< std::vector<unsigned int> > member_tags_proc(m_exec_conf->getNRanks());
+            all_gather_v(member_tags, member_tags_proc, m_exec_conf->getMPICommunicator());
+
+            assert(member_tags_proc.size() == m_exec_conf->getNRanks());
+
+            // combine all tags into an ordered set
+            unsigned int n_ranks = m_exec_conf->getNRanks();
+            std::set<unsigned int> tag_set;
+            for (unsigned int irank = 0; irank < n_ranks; ++irank)
+                {
+                tag_set.insert(member_tags_proc[irank].begin(), member_tags_proc[irank].end());
+                }
+
+            // construct list
+            member_tags.clear();
+            member_tags.insert(member_tags.begin(), tag_set.begin(), tag_set.end());
+            }
+        #endif
+
+        // store member tags in GPUArray
+        GPUArray<unsigned int> member_tags_array(member_tags.size(), m_pdata->getExecConf());
+        m_member_tags.swap(member_tags_array);
+
+        // sort member tags
+        std::sort(member_tags.begin(), member_tags.end());
+
+            {
+            ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::overwrite);
+            std::copy(member_tags.begin(), member_tags.end(), h_member_tags.data);
+            }
+
+        GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
+        m_member_idx.swap(member_idx);
         }
-
-    // store member tags
-    GPUArray<unsigned int> member_tags_array(member_tags.size(), m_pdata->getExecConf());
-    m_member_tags.swap(member_tags_array);
-
-        {
-        ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::overwrite);
-        std::copy(member_tags.begin(), member_tags.end(), h_member_tags.data);
-        }
-
 
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
     GPUArray<unsigned char> is_member(m_pdata->getMaxN(), m_pdata->getExecConf());
     m_is_member.swap(is_member);
 
-    GPUArray<unsigned char> is_member_tag(m_pdata->getNGlobal(), m_pdata->getExecConf());
+    GPUArray<unsigned char> is_member_tag(m_pdata->getRTags().size(), m_pdata->getExecConf());
     m_is_member_tag.swap(is_member_tag);
 
     // build the reverse lookup table for tags
     buildTagHash();
-
-    GPUArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
-    m_member_idx.swap(member_idx);
 
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
@@ -370,10 +465,10 @@ void ParticleGroup::reallocate()
     {
     m_is_member.resize(m_pdata->getMaxN());
 
-    if (m_is_member_tag.getNumElements() != m_pdata->getNGlobal())
+    if (m_is_member_tag.getNumElements() != m_pdata->getRTags().size())
         {
         // reallocate if necessary
-        GPUArray<unsigned char> is_member_tag(m_pdata->getNGlobal(), m_exec_conf);
+        GPUArray<unsigned char> is_member_tag(m_pdata->getRTags().size(), m_exec_conf);
         m_is_member_tag.swap(is_member_tag);
 
         buildTagHash();
@@ -569,7 +664,7 @@ void ParticleGroup::buildTagHash()
     ArrayHandle<unsigned int> h_member_tags(m_member_tags, access_location::host, access_mode::read);
 
     // reset member ship flags
-    memset(h_is_member_tag.data, 0, sizeof(unsigned char)*m_pdata->getNGlobal());
+    memset(h_is_member_tag.data, 0, sizeof(unsigned char)*(m_pdata->getRTags().size()));
 
     unsigned int num_members = m_member_tags.getNumElements();
     for (unsigned int member = 0; member < num_members; member++)
@@ -604,7 +699,7 @@ void ParticleGroup::rebuildIndexList() const
         unsigned int cur_member = 0;
         for (unsigned int idx = 0; idx < nparticles; idx ++)
             {
-            assert(h_tag.data[idx] < m_pdata->getNGlobal());
+            assert(h_tag.data[idx] <= m_pdata->getMaximumTag());
             unsigned char is_member = h_is_member_tag.data[h_tag.data[idx]];
             h_is_member.data[idx] =  is_member;
             if (is_member)
@@ -656,7 +751,8 @@ void ParticleGroup::rebuildIndexListGPU() const
 void export_ParticleGroup()
     {
     class_<ParticleGroup, boost::shared_ptr<ParticleGroup>, boost::noncopyable>
-            ("ParticleGroup", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleSelector> >())
+            ("ParticleGroup", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleSelector>, bool >())
+            .def(init<boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleSelector> >())
             .def(init<boost::shared_ptr<SystemDefinition>, const std::vector<unsigned int>& >())
             .def(init<>())
             .def("getNumMembersGlobal", &ParticleGroup::getNumMembersGlobal)
@@ -673,6 +769,10 @@ void export_ParticleGroup()
             ("ParticleSelector", init< boost::shared_ptr<SystemDefinition> >())
             .def("isSelected", &ParticleSelector::isSelected)
             ;
+
+    class_<ParticleSelectorAll, boost::shared_ptr<ParticleSelectorAll>, bases<ParticleSelector>, boost::noncopyable>
+        ("ParticleSelectorAll", init< boost::shared_ptr<SystemDefinition> >())
+        ;
 
     class_<ParticleSelectorTag, boost::shared_ptr<ParticleSelectorTag>, bases<ParticleSelector>, boost::noncopyable>
         ("ParticleSelectorTag", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())

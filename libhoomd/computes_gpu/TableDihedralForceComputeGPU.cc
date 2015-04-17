@@ -49,12 +49,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "TableDihedralForceComputeGPU.h"
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-#include "TableDihedralForceComputeGPU.h"
 #include <stdexcept>
 
 /*! \file TableDihedralForceComputeGPU.cc

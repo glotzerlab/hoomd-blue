@@ -53,6 +53,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#include "Initializers.h"
+#include "WallData.h"
+#include "SnapshotSystemData.h"
+
 #include <stdlib.h>
 
 #include <iostream>
@@ -63,10 +67,6 @@ using namespace std;
 
 #include <boost/python.hpp>
 using namespace boost::python;
-
-#include "Initializers.h"
-#include "WallData.h"
-#include "SnapshotSystemData.h"
 
 
 /*! \file Initializers.cc

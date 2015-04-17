@@ -49,12 +49,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: phillicl
 
-#include <boost/shared_ptr.hpp>
-
 #include "ForceCompute.h"
 #include "BondedGroupData.h"
 #include "Index1D.h"
 #include "GPUArray.h"
+
+#include <boost/shared_ptr.hpp>
 
 /*! \file TableAngleForceCompute.h
     \brief Declares the TableAngleForceCompute class
