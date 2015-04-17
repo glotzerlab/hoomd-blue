@@ -417,7 +417,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 template<unsigned int group_size, typename Group, const char *name>
 unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n)
     {
-   if (n >= getNGlobal())
+    if (n >= getNGlobal())
         {
         m_exec_conf->msg->error() << name << ".*: " << name << " index " << n << " out of bounds!"
             << "The number of " << name << "s is " << getNGlobal() << std::endl;
@@ -430,7 +430,6 @@ unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n)
     maybe_rebuild_tag_cache();
     return m_cached_tag_set[n];
     }
-
 
 /*! \param tag Tag of bonded group
  * \returns the group
