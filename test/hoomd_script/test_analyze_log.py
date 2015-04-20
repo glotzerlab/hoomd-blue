@@ -4,6 +4,7 @@
 from hoomd_script import *
 import unittest
 import os
+import tempfile
 
 # unit tests for analyze.log
 class analyze_log_tests (unittest.TestCase):
@@ -13,14 +14,20 @@ class analyze_log_tests (unittest.TestCase):
 
         sorter.set_params(grid=8)
 
+        if comm.get_rank() == 0:
+            tmp = tempfile.mkstemp(suffix='.test.log');
+            self.tmp_file = tmp[1];
+        else:
+            self.tmp_file = "invalid";
+
     # tests basic creation of the analyzer
     def test(self):
-        analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename="test_analyze_log.log");
+        analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
         run(100);
 
     # test set_params
     def test_set_params(self):
-        ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename="test_analyze_log.log");
+        ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
         ana.set_params(quantities = ['test1']);
         run(100);
         ana.set_params(delimiter = ' ');
@@ -30,12 +37,12 @@ class analyze_log_tests (unittest.TestCase):
 
     # test variable period
     def test_variable(self):
-        ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = lambda n: n*10, filename="test_analyze_log.log");
+        ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = lambda n: n*10, filename=self.tmp_file);
         run(100);
 
     # test the initialization checks
     def test_init_checks(self):
-        ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename="test_analyze_log.log");
+        ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
         ana.cpp_analyzer = None;
 
         self.assertRaises(RuntimeError, ana.enable);
@@ -44,7 +51,7 @@ class analyze_log_tests (unittest.TestCase):
     def tearDown(self):
         init.reset();
         if (comm.get_rank()==0):
-            os.remove("test_analyze_log.log");
+            os.remove(self.tmp_file);
 
 
 if __name__ == '__main__':

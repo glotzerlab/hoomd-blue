@@ -304,9 +304,9 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
         // no syncthreads here, we assume threads_per_particle < warp size
 
         // scan over flags
-        unsigned char n = 1;
         int k = 0;
         #if (__CUDA_ARCH__ >= 300)
+        unsigned char n = 1;
         k = warp_scan_sm30<threads_per_particle>::Scan(threadIdx.x % threads_per_particle, has_neighbor, &n);
         #endif
 
@@ -314,7 +314,12 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
             d_nlist[my_head + nneigh + k] = neighbor;
 
         // increment total neighbor count
+        #if (__CUDA_ARCH__ >= 300)
         nneigh += n;
+        #else
+        if (has_neighbor)
+            nneigh++;
+        #endif
         } // end while
 
     if (threadIdx.x % threads_per_particle == 0)

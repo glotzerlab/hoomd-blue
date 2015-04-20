@@ -248,6 +248,8 @@ NeighborList::~NeighborList()
         m_migrate_request_connection.disconnect();
     if (m_comm_flags_request.connected())
         m_comm_flags_request.disconnect();
+    if (m_ghost_layer_width_request.connected())
+        m_ghost_layer_width_request.disconnect();
 #endif
 
     m_num_type_change_conn.disconnect();
@@ -438,19 +440,6 @@ void NeighborList::setRBuff(Scalar r_buff)
         m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        Scalar r_list_max = m_r_cut_max + m_r_buff;
-        // diameter shifting requires to communicate a larger rlist
-        if (m_diameter_shift)
-            r_list_max += m_d_max - Scalar(1.0);
-            
-        m_comm->setGhostLayerWidth(r_list_max);
-        m_comm->setRBuff(m_r_buff);
-        }
-#endif
     forceUpdate();
     } 
 
@@ -1413,21 +1402,11 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
     if (!m_comm)
         {
         // only add the migrate request on the first call
+        assert(comm);
+
         m_migrate_request_connection = comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
         m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
-        }
-
-    if (comm)
-        {
-        m_comm = comm;
-
-        Scalar r_list_max = m_r_cut_max + m_r_buff;
-        // diameter shifting requires to communicate a larger rlist
-        if (m_diameter_shift)
-            r_list_max += m_d_max - Scalar(1.0);
-            
-        m_comm->setGhostLayerWidth(r_list_max);
-        m_comm->setRBuff(m_r_buff);
+        m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(bind(&NeighborList::getGhostLayerWidth, this));
         }
     }
 

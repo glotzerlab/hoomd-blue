@@ -380,19 +380,18 @@ class NeighborList : public Compute
         virtual void setMaximumDiameter(Scalar d_max)
             {
             m_d_max = d_max;
-
-#ifdef ENABLE_MPI
-            if (m_comm)
-                {
-                // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-                Scalar r_max = m_r_cut_max + m_r_buff;
-                if (m_diameter_shift);
-                    r_max += m_d_max - Scalar(1.0);
-                m_comm->setGhostLayerWidth(r_max);
-                m_comm->setRBuff(m_r_buff);
-                }
-#endif
             forceUpdate();
+            }
+
+        //! Return the requested ghost layer width
+        virtual Scalar getGhostLayerWidth() const
+            {
+            Scalar rmax = m_r_cut + m_r_buff;
+
+            // diameter shifting requires to communicate a larger rlist
+            if (m_diameter_shift)
+                rmax += m_d_max - Scalar(1.0);
+            return rmax;
             }
 
         //! Get the maximum diameter value
@@ -480,6 +479,7 @@ class NeighborList : public Compute
         #ifdef ENABLE_MPI
         boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
         boost::signals2::connection m_comm_flags_request;         //!< Connection to request ghost particle fields
+        boost::signals2::connection m_ghost_layer_width_request;  //!< Connection to request ghost layer width
         #endif
 
         //! Return true if we are supposed to do a distance check in this time step
