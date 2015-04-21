@@ -351,18 +351,6 @@ class NeighborList : public Compute
         virtual void setDiameterShift(bool diameter_shift)
             {
             m_diameter_shift = diameter_shift;
-            
-#ifdef ENABLE_MPI
-            if (m_comm)
-                {
-                // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-                Scalar r_max = m_r_cut_max + m_r_buff;
-                if (m_diameter_shift);
-                    r_max += m_d_max - Scalar(1.0);
-                m_comm->setGhostLayerWidth(r_max);
-                m_comm->setRBuff(m_r_buff);
-                }
-#endif
             forceUpdate();
             }
             
@@ -386,7 +374,7 @@ class NeighborList : public Compute
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth() const
             {
-            Scalar rmax = m_r_cut + m_r_buff;
+            Scalar rmax = m_r_cut_max + m_r_buff;
 
             // diameter shifting requires to communicate a larger rlist
             if (m_diameter_shift)

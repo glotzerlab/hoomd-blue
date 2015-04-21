@@ -411,20 +411,7 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
             r_cut_max = r_cut_max_i;
         }
     m_r_cut_max = r_cut_max;
-        
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        Scalar r_list_max = m_r_cut_max + m_r_buff;
-        
-        // diameter shifting requires to communicate a larger rlist
-        if (m_diameter_shift)
-            r_list_max += m_d_max - Scalar(1.0);
-            
-        m_comm->setGhostLayerWidth(r_list_max);
-        m_comm->setRBuff(m_r_buff);
-        }
-#endif
+
     forceUpdate();
     }
     

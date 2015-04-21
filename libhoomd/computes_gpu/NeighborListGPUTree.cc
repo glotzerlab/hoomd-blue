@@ -68,8 +68,8 @@ using namespace boost;
 NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_n_images(0), m_type_changed(false), m_box_changed(true),
-      m_max_num_changed(false), m_n_leaf(0), m_n_internal(0), m_n_node(0)
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_type_changed(false), m_box_changed(true),
+      m_max_num_changed(false), m_n_leaf(0), m_n_internal(0), m_n_node(0), m_n_images(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUTree" << endl;
     
