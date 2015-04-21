@@ -50,22 +50,22 @@ class nlist_cell_tests (unittest.TestCase):
         nl2 = nlist.tree()
         nl2.set_params(r_buff = 0.8)
 
-        self.assertEqual(self.nl.r_buff, 0.3)
-        self.assertEqual(nl2.r_buff, 0.8)
+        self.assertAlmostEqual(self.nl.r_buff, 0.3)
+        self.assertAlmostEqual(nl2.r_buff, 0.8)
 
         lj1 = pair.lj(r_cut = 2.0, nlist = self.nl)
         lj2 = pair.lj(r_cut = 3.0, nlist = nl2)
         lj3 = pair.lj(r_cut = 4.0, nlist = nl2)
 
         # check that each neighbor list has the right cutoff
-        self.assertEqual(self.nl.r_cut.get_pair('A','A'), 2.0)
-        self.assertEqual(nl2.r_cut.get_pair('A','A'), 4.0)
+        self.assertAlmostEqual(self.nl.r_cut.get_pair('A','A'), 2.0)
+        self.assertAlmostEqual(nl2.r_cut.get_pair('A','A'), 4.0)
         
         # force an update to trigger and recheck that the right coefficients updated
         lj1.pair_coeff.set('A','A', r_cut = 5.0)
         run(1)
-        self.assertEqual(self.nl.r_cut.get_pair('A','A'), 5.0)
-        self.assertEqual(nl2.r_cut.get_pair('A','A'), 4.0)
+        self.assertAlmostEqual(self.nl.r_cut.get_pair('A','A'), 5.0)
+        self.assertAlmostEqual(nl2.r_cut.get_pair('A','A'), 4.0)
 
     def tearDown(self):
         del self.nl

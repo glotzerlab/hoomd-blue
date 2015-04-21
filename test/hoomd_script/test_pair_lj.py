@@ -53,8 +53,8 @@ class pair_lj_tests (unittest.TestCase):
         lj.pair_coeff.set('A', 'A', r_cut = 2.0)
         self.assertAlmostEqual(2.0, lj.get_max_rcut());
 
-    # test nlist subscribe
-    def test_nlist_subscribe(self):
+    # test nlist global subscribe
+    def test_nlist_global_subscribe(self):
         lj = pair.lj(r_cut=2.5);
         lj.pair_coeff.set('A', 'A', sigma = 1.0, epsilon=1.0)
         globals.neighbor_list.update_rcut();
@@ -63,6 +63,20 @@ class pair_lj_tests (unittest.TestCase):
         lj.pair_coeff.set('A', 'A', r_cut = 2.0)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut.get_pair('A','A'));
+    
+    # test specific nlist subscription
+    def test_nlist_subscribe(self):
+        nl = nlist.cell()
+        lj = pair.lj(r_cut=2.5, nlist=nl);        
+        self.assertEqual(globals.neighbor_list, None)
+
+        lj.pair_coeff.set('A', 'A', sigma = 1.0, epsilon=1.0)
+        nl.update_rcut();
+        self.assertAlmostEqual(2.5, nl.r_cut.get_pair('A','A'));
+
+        lj.pair_coeff.set('A', 'A', r_cut = 2.0)
+        nl.update_rcut();
+        self.assertAlmostEqual(2.0, nl.r_cut.get_pair('A','A'));
 
     # test coeff list
     def test_coeff_list(self):
