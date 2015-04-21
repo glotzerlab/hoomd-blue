@@ -159,7 +159,9 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
         {
         if (cur_offset + threadIdx.x < num_typ_parameters)
             {
-            s_r_list[cur_offset + threadIdx.x] = d_r_cut[cur_offset + threadIdx.x] + r_buff;
+            Scalar r_cut = d_r_cut[cur_offset + threadIdx.x];
+            // force the r_list(i,j) to a skippable value if r_cut(i,j) is skippable
+            s_r_list[cur_offset + threadIdx.x] = (r_cut > Scalar(0.0)) ? r_cut+r_buff : Scalar(-1.0);
             }
         if (cur_offset + threadIdx.x < ntypes)
             {
@@ -261,43 +263,48 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
             cur_offset += threads_per_particle;
 
             unsigned int neigh_type = __scalar_as_int(cur_tdb.x);
-            Scalar neigh_diam = cur_tdb.y;
-            unsigned int neigh_body = __scalar_as_int(cur_tdb.z);
-
-            Scalar3 neigh_pos = make_scalar3(cur_xyzf.x,
-                                           cur_xyzf.y,
-                                           cur_xyzf.z);
-            int cur_neigh = __scalar_as_int(cur_xyzf.w);
-
-            // compute the distance between the two particles
-            Scalar3 dx = my_pos - neigh_pos;
-
-            // wrap the periodic boundary conditions
-            dx = box.minImage(dx);
-
-            // compute dr squared
-            Scalar drsq = dot(dx,dx);
-
-            bool excluded = (my_pidx == cur_neigh);
-
-            if (filter_body && my_body != 0xffffffff)
-                excluded = excluded | (my_body == neigh_body);
-
+            
+            // Only do the hard work if the particle should be included by r_cut(i,j)
             Scalar r_list = s_r_list[typpair_idx(my_type,neigh_type)];
-            Scalar sqshift = Scalar(0.0);
-            if (diameter_shift)
+            if (r_list > Scalar(0.0))
                 {
-                const Scalar delta = (my_diam + neigh_diam) * Scalar(0.5) - Scalar(1.0);
-                // r^2 < (r_list + delta)^2
-                // r^2 < r_listsq + delta^2 + 2*r_list*delta
-                sqshift = (delta + Scalar(2.0) * r_list) * delta;
-                }
+                Scalar neigh_diam = cur_tdb.y;
+                unsigned int neigh_body = __scalar_as_int(cur_tdb.z);
 
-            // store result in shared memory
-            if (drsq <= (r_list*r_list + sqshift) && !excluded)
-                {
-                neighbor = cur_neigh;
-                has_neighbor = 1;
+                Scalar3 neigh_pos = make_scalar3(cur_xyzf.x,
+                                               cur_xyzf.y,
+                                               cur_xyzf.z);
+                int cur_neigh = __scalar_as_int(cur_xyzf.w);
+
+                // compute the distance between the two particles
+                Scalar3 dx = my_pos - neigh_pos;
+
+                // wrap the periodic boundary conditions
+                dx = box.minImage(dx);
+
+                // compute dr squared
+                Scalar drsq = dot(dx,dx);
+
+                bool excluded = (my_pidx == cur_neigh);
+
+                if (filter_body && my_body != 0xffffffff)
+                    excluded = excluded | (my_body == neigh_body);
+
+                Scalar sqshift = Scalar(0.0);
+                if (diameter_shift)
+                    {
+                    const Scalar delta = (my_diam + neigh_diam) * Scalar(0.5) - Scalar(1.0);
+                    // r^2 < (r_list + delta)^2
+                    // r^2 < r_listsq + delta^2 + 2*r_list*delta
+                    sqshift = (delta + Scalar(2.0) * r_list) * delta;
+                    }
+
+                // store result in shared memory
+                if (drsq <= (r_list*r_list + sqshift) && !excluded)
+                    {
+                    neighbor = cur_neigh;
+                    has_neighbor = 1;
+                    }
                 }
             }
 

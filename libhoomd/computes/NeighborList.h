@@ -374,12 +374,19 @@ class NeighborList : public Compute
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth() const
             {
-            Scalar rmax = m_r_cut_max + m_r_buff;
+            if (m_r_cut_max > Scalar(0.0)) // ensure communication is required
+                {
+                Scalar rmax = m_r_cut_max + m_r_buff;
 
-            // diameter shifting requires to communicate a larger rlist
-            if (m_diameter_shift)
-                rmax += m_d_max - Scalar(1.0);
-            return rmax;
+                // diameter shifting requires to communicate a larger rlist
+                if (m_diameter_shift)
+                    rmax += m_d_max - Scalar(1.0);
+                return rmax;
+                }
+            else
+                {
+                return Scalar(0.0);
+                }
             }
 
         //! Get the maximum diameter value

@@ -90,7 +90,7 @@ NeighborListBinned::~NeighborListBinned()
 void NeighborListBinned::setRCut(Scalar r_buff, Scalar r_cut)
     {
     NeighborList::setRCut(r_buff, r_cut);
-    
+
     Scalar rmax = m_r_cut_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
@@ -222,19 +222,23 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 
                 // get the current neighbor type from the position data (will use tdb on the GPU)
                 unsigned int cur_neigh_type = __scalar_as_int(h_pos.data[cur_neigh].w);
-
-                Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
-
-                Scalar3 dx = my_pos - neigh_pos;
-
-                dx = box.minImage(dx);
-
-                bool excluded = (i == (int)cur_neigh);
-
+                Scalar r_cut = h_r_cut.data[m_typpair_idx(type_i,cur_neigh_type)];
+                
+                // automatically exclude particles without a distance check when:
+                // (1) they are the same particle, or
+                // (2) the r_cut(i,j) indicates to skip, or
+                // (3) they are in the same body
+                bool excluded = ((i == (int)cur_neigh) || (r_cut <= Scalar(0.0)));
                 if (m_filter_body && body_i != NO_BODY)
                     excluded = excluded | (body_i == h_body.data[cur_neigh]);
+                if (excluded)
+                    continue;
 
-                Scalar r_list = h_r_cut.data[m_typpair_idx(type_i,cur_neigh_type)] + m_r_buff;
+                Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
+                Scalar3 dx = my_pos - neigh_pos;
+                dx = box.minImage(dx);
+
+                Scalar r_list = r_cut + m_r_buff;
                 Scalar sqshift = Scalar(0.0);
                 if (m_diameter_shift)
                     {

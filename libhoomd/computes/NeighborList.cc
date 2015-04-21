@@ -374,14 +374,7 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
          The new cuttoff will take effect when compute is called for the next timestep.
 */
 void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    // check that r_cut is not negative
-    if (r_cut < 0.0)
-        {
-        m_exec_conf->msg->error() << "nlist: Requested cuttoff radius is less than zero" << endl;
-        throw runtime_error("Error changing NeighborList parameters");
-        }
-        
+    {   
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
         this->m_exec_conf->msg->error() << "nlist: Trying to set rcut for a non existant type! "
@@ -443,7 +436,7 @@ void NeighborList::updateRList()
 	
 	for (unsigned int i=0; i < m_typpair_idx.getNumElements(); ++i)
 		{
-		Scalar r_list = h_r_cut.data[i] + m_r_buff;
+		Scalar r_list = (h_r_cut.data[i] > Scalar(0.0)) ? h_r_cut.data[i] + m_r_buff : Scalar(0.0);
 		h_r_listsq.data[i] = r_list*r_list;
 		}
 	}
