@@ -373,6 +373,9 @@ class pair(force._force):
         # initialize the base class
         force._force.__init__(self, name);
 
+        # convert r_cut False to a floating point type
+        if r_cut is False:
+            r_cut = -1.0
         self.global_r_cut = r_cut;
         
         # setup the coefficent matrix
@@ -446,8 +449,10 @@ class pair(force._force):
 
                 param = self.process_coeff(coeff_dict);
                 self.cpp_force.setParams(i, j, param);
-                self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
-                self.cpp_force.setRon(i, j, coeff_dict['r_on']);
+
+                # rcut can now have "invalid" C++ values, which we round up to zero
+                self.cpp_force.setRcut(i, j, max(coeff_dict['r_cut'], 0.0));
+                self.cpp_force.setRon(i, j, max(coeff_dict['r_on'], 0.0));
 
     ## \internal
     # \brief Get the maximum r_cut value set for any type pair
@@ -472,7 +477,7 @@ class pair(force._force):
     
     ## \internal
     # \brief Get the r_cut pair dictionary
-    # \details If coefficients aren't set for some reason, will sanitize the list to have zeroes. Returns none if logging is off
+    # \returns The rcut(i,j) dict if logging is on, and None if logging is off
     def get_rcut(self):
         if not self.log:
             return None
@@ -489,24 +494,16 @@ class pair(force._force):
             for j in range(i,ntypes):
                 # get the r_cut value
                 r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
-                if r_cut is not None:
-                    # set the pair in our dictionary (not updating, so force the set)
-                    r_cut_dict.set_pair(type_list[i],type_list[j],r_cut);
-                else:
-                    # using default value for the pair
-                    # it doesn't concern us that the pair has not been explicitly set yet
-                    # because the cutoff will be filled with the default value (or a new value) when
-                    # we pair_coeff.set, and these coefficients will be validated later anyway
-                    # so if something goes wrong there, HOOMD will grind to a halt.
-                    # Plus, update_coeff is always called before update_rcut by run(), so we're solid.
-                    r_cut_dict.set_pair(type_list[i],type_list[j],self.global_r_cut);
                 
-        if not r_cut_dict.verify():
-            globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
-            raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
-            return None;
-        else:
-            return r_cut_dict;
+                if r_cut is not None: # use the defined value
+                    if r_cut is False: # interaction is turned off
+                        r_cut_dict.set_pair(type_list[i],type_list[j], -1.0);
+                    else:
+                        r_cut_dict.set_pair(type_list[i],type_list[j], r_cut);
+                else: # use the global default
+                    r_cut_dict.set_pair(type_list[i],type_list[j],self.global_r_cut);
+
+        return r_cut_dict;
 
 ## Lennard-Jones %pair %force
 #
@@ -1094,7 +1091,7 @@ class cgcmm(force._force):
         globals.system.addCompute(self.cpp_force, self.force_name);
 
     def get_rcut(self):
-        if not self.log: ## MAKE SURE THAT THIS ACTUALLY WORKS! ##
+        if not self.log:
             return None
 
         # go through the list of only the active particle types in the sim
@@ -1108,13 +1105,7 @@ class cgcmm(force._force):
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 r_cut_dict.set_pair(type_list[i],type_list[j],self.r_cut);
-                
-        if not r_cut_dict.verify():
-            globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
-            raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
-            return None;
-        else:
-            return r_cut_dict;
+        return r_cut_dict;
 
     def update_coeffs(self):
         # check that the pair coefficents are valid
@@ -1289,37 +1280,12 @@ class table(force._force):
 
         # pass the tables on to the underlying cpp compute
         self.cpp_force.setTable(typei, typej, Vtable, Ftable, rmin, rmax);
-
-    def update_coeffs(self):
-        coeff_list = self.required_coeffs + ["r_cut", "r_on"];
-        # check that the pair coefficents are valid
-        if not self.pair_coeff.verify(coeff_list):
-            globals.msg.error("Not all pair coefficients are set\n");
-            raise RuntimeError("Error updating pair coefficients");
-
-        # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                # build a dict of the coeffs to pass to process_coeff
-                coeff_dict = {};
-                for name in coeff_list:
-                    coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
-
-                param = self.process_coeff(coeff_dict);
-                self.cpp_force.setParams(i, j, param);
-                self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
-                self.cpp_force.setRon(i, j, coeff_dict['r_on']);
     
     ## \internal
     # \brief Get the r_cut pair dictionary
-    # \details If coefficients aren't set for some reason, will sanitize the list to have zeroes. Returns none if logging is off
+    # \returns rcut(i,j) dict if logging is on, and None otherwise
     def get_rcut(self):
-        if not self.log: ## MAKE SURE THAT THIS ACTUALLY WORKS! ##
+        if not self.log:
             return None
             
         # go through the list of only the active particle types in the sim
@@ -1333,25 +1299,10 @@ class table(force._force):
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 # get the r_cut value
-                r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
-                if r_cut is not None:
-                    # set the pair in our dictionary (not updating, so force the set)
-                    r_cut_dict.set_pair(type_list[i],type_list[j],r_cut);
-                else:
-                    # using default value for the pair
-                    # it doesn't concern us that the pair has not been explicitly set yet
-                    # because the cutoff will be filled with the default value (or a new value) when
-                    # we pair_coeff.set, and these coefficients will be validated later anyway
-                    # so if something goes wrong there, HOOMD will grind to a halt.
-                    # Plus, update_coeff is always called before update_rcut by run(), so we're solid.
-                    r_cut_dict.set_pair(type_list[i],type_list[j], self.get_max_rcut());
-                
-        if not r_cut_dict.verify():
-            globals.msg.error('Failed building rcut dictionary. Some cutoffs may not be set correctly.\n');
-            raise RuntimeError('rcut dictionary build failed in pair.get_rcut.\n');
-            return None;
-        else:
-            return r_cut_dict;
+                rmax = self.pair_coeff.get(type_list[i], type_list[j], 'rmax');
+                r_cut_dict.set_pair(type_list[i],type_list[j], rmax);
+
+        return r_cut_dict;
 
     def get_max_rcut(self):
         # loop only over current particle types

@@ -118,13 +118,23 @@ class _nlist:
             rcut_obj = c();
             if rcut_obj is not None:
                 r_cut_max.merge(rcut_obj);
-
+        
+        # ensure that all type pairs are filled
+        r_cut_max.fill()
         self.r_cut = r_cut_max;
-        for pair in self.r_cut.values:
-            (a,b) = pair
-            i = globals.system_definition.getParticleData().getTypeByName(a);
-            j = globals.system_definition.getParticleData().getTypeByName(b);
-            self.cpp_nlist.setRCutPair(i,j, self.r_cut.values[pair]);
+
+        # get a list of types from the particle data
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+
+        # loop over all possible pairs and require that a dictionary key exists for them
+        for i in range(0,ntypes):
+            for j in range(i,ntypes):
+                a = type_list[i];
+                b = type_list[j];
+                self.cpp_nlist.setRCutPair(i,j, self.r_cut.values[(a,b)]);
 
     ## \internal
     # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
@@ -439,9 +449,6 @@ class rcut:
 
     ## \internal
     # \brief Initializes the class
-    # \details
-    # Initialize the dictionary that will hold r_cut
-    # \param self Python required class instance variable
     def __init__(self):
         self.values = {};
 
@@ -452,13 +459,12 @@ class rcut:
     ## \internal
     # \brief Ensures a pair exists for the type by creating one if it doesn't exist
     # \details
-    # \param self Python required self variable
     # \param a Atom type A
     # \param b Atom type B
     def ensure_pair(self,a,b):
         # create the pair if it hasn't been created yet
         if (not (a,b) in self.values) and (not (b,a) in self.values):
-            self.values[(a,b)] = -1.0; # negative means this hasn't been set yet since it is invalid
+            self.values[(a,b)] = -1.0; # negative means this hasn't been set yet
            
         # find the pair we seek    
         if (a,b) in self.values:
@@ -467,53 +473,42 @@ class rcut:
             cur_pair = (b,a);
         else:
             globals.msg.error("Bug ensuring pair exists in nlist.r_cut.ensure_pair. Please report.\n");
-            raise RuntimeError("Error fetching pair in nlist.r_cut.ensure_pair");
+            raise RuntimeError("Error fetching rcut(i,j) pair");
         
         return cur_pair;
             
     ## \internal
     # \brief Forces a change of a single r_cut
     # \details
-    # \param self Python required self variable
     # \param a Atom type A
     # \param b Atom type B
     # \param cutoff Cutoff radius
     def set_pair(self, a, b, cutoff):
         cur_pair = self.ensure_pair(a,b);
         
-        # set the cutoff with simple error checking
-        try:
+        if cutoff is None or cutoff is False:
+            cutoff = -1.0
+        else:
             cutoff = float(cutoff);
-            if cutoff < 0.0:
-                globals.msg.error("Cutoff must be non-negative float\n");
-            else:
-                self.values[cur_pair] = cutoff;
-        except ValueError:
-            globals.msg.error("Cutoff must be non-negative float\n");
+        self.values[cur_pair] = cutoff;
 
     ## \internal
     # \brief Attempts to update a single r_cut
     # \details Similar to set_pair, but updates to the larger r_cut value
-    # \param self Python required self variable
     # \param a Atom type A
     # \param b Atom type B
     # \param cutoff Cutoff radius
     def merge_pair(self,a,b,cutoff):
         cur_pair = self.ensure_pair(a,b);
         
-        # update the cutoff to the largest value for this pair with simple error checking
-        try:
+        if cutoff is None or cutoff is False:
+            cutoff = -1.0
+        else:
             cutoff = float(cutoff);
-            if cutoff < 0.0:
-                globals.msg.error("Cutoff must be non-negative float\n");
-            else:
-                self.values[cur_pair] = max(cutoff,self.values[cur_pair]); 
-        except ValueError:
-            globals.msg.error("Cutoff must be non-negative float\n");
+        self.values[cur_pair] = max(cutoff,self.values[cur_pair]); 
             
     ## \internal
     # \brief Gets the value of a single %pair coefficient
-    # \param self Python required self variable
     # \param a First name in the type pair
     # \param b Second name in the type pair
     def get_pair(self, a, b):
@@ -522,7 +517,6 @@ class rcut:
     
     ## \internal
     # \brief Merges two rcut objects by maximum cutoff
-    # \param self Python required self variable
     # \param rcut_obj The other rcut to merge in
     def merge(self,rcut_obj):
         for pair in rcut_obj.values:
@@ -530,15 +524,14 @@ class rcut:
             self.merge_pair(a,b,rcut_obj.values[pair]);
         
     ## \internal
-    # \brief Sanity check on rcut values
-    # \param self Python required self variable
+    # \brief Fills out the rcut(i,j) dictionary to include default unset keys
     #
     # This can only be run after the system has been initialized
-    def verify(self):
+    def fill(self):
         # first, check that the system has been initialized
         if not init.is_initialized():
-            globals.msg.error("Cannot verify pair coefficients before initialization\n");
-            raise RuntimeError('Error verifying pair coefficients');
+            globals.msg.error("Cannot fill rcut(i,j) before initialization\n");
+            raise RuntimeError('Error filling nlist rcut(i,j)');
 
         # get a list of types from the particle data
         ntypes = globals.system_definition.getParticleData().getNTypes();
@@ -546,8 +539,7 @@ class rcut:
         for i in range(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 
-        # loop over all possible pairs and verify that all required variables are set
-        valid = True;
+        # loop over all possible pairs and require that a dictionary key exists for them
         for i in range(0,ntypes):
             for j in range(i,ntypes):
                 a = type_list[i];
@@ -555,12 +547,6 @@ class rcut:
                     
                 # ensure the pair
                 cur_pair = self.ensure_pair(a,b);
-                
-                if self.values[cur_pair] < 0.0:
-                    msg = "Pair " + str((a,b)) + "cutoff (" + str(self.values[cur_pair]) + ") is invalid.\n";
-                    globals.msg.error(msg);
-                    valid = False;
-        return valid;
 
 ## %Cell list-based neighbor list
 #
