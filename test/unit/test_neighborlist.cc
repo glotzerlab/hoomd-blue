@@ -804,6 +804,94 @@ void neighborlist_large_ex_tests(boost::shared_ptr<ExecutionConfiguration> exec_
         }
     }
 
+//! Test that NeighborList can exclude particles correctly when cutoff radius is negative
+template <class NL>
+void neighborlist_cutoff_exclude_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    // Initialize a system of 3 particles each having a distinct type
+    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(25.0), 3, 0, 0, 0, 0, exec_conf));
+    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    
+    // put the particles on top of each other, the worst case scenario for inclusion / exclusion since the distance
+    // between them is zero
+        {
+        ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::overwrite);
+        for (unsigned int i=0; i < pdata_3->getN(); ++i)
+            {
+            h_pos.data[i] = make_scalar4(0.0, 0.0, 0.0, __int_as_scalar(i));
+            }
+        }
+
+    boost::shared_ptr<NeighborList> nlist(new NL(sysdef_3, Scalar(-1.0), Scalar(0.4)));
+    // explicitly set the cutoff radius of each pair type to ignore
+    for (unsigned int i = 0; i < pdata_3->getNTypes(); ++i)
+        {
+        for (unsigned int j = i; j < pdata_3->getNTypes(); ++j)
+            {
+            nlist->setRCutPair(i,j,-1.0);
+            }
+        }
+    nlist->setStorageMode(NeighborList::full);
+
+    // compute the neighbor list, each particle should have no neighbors
+    nlist->compute(0);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 0);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 0);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 0);
+        }
+    
+    // turn on cross interaction with B particle
+    for (unsigned int i=0; i < pdata_3->getNTypes(); ++i)
+        {
+        nlist->setRCutPair(1, i, 1.0);
+        }
+    nlist->compute(1);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 1);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 2); // B ignores itself, but gets everyone else as a neighbor
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 1);
+        
+        ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(), access_location::host, access_mode::read);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[0]], 1);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2]], 1);
+        
+        vector<unsigned int> nbrs(2, 0);
+        nbrs[0] = h_nlist.data[h_head_list.data[1] + 0];
+        nbrs[1] = h_nlist.data[h_head_list.data[1] + 1];
+        sort(nbrs.begin(), nbrs.end());
+        unsigned int check_nbrs[] = {0,2};
+        BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);
+        }
+
+    // turn A-C on and B-C off with things very close to the < 0.0 criterion as a pathological case
+    nlist->setRCutPair(0, 2, 0.00001);
+    nlist->setRCutPair(1, 2, -0.00001);
+    nlist->compute(3);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[0], 2);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
+        BOOST_CHECK_EQUAL_UINT(h_n_neigh.data[2], 1);
+        
+        ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_head_list(nlist->getHeadList(), access_location::host, access_mode::read);
+
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[1]], 0);
+        BOOST_CHECK_EQUAL_UINT(h_nlist.data[h_head_list.data[2]], 0);
+
+        vector<unsigned int> nbrs(2, 0);
+        nbrs[0] = h_nlist.data[h_head_list.data[0] + 0];
+        nbrs[1] = h_nlist.data[h_head_list.data[0] + 1];
+        sort(nbrs.begin(), nbrs.end());
+        unsigned int check_nbrs[] = {1,2};
+        BOOST_CHECK_EQUAL_COLLECTIONS(nbrs.begin(), nbrs.end(), check_nbrs, check_nbrs + 2);        
+        }
+    }
+
 //! basic test case for base class
 // BOOST_AUTO_TEST_CASE( NeighborList_basic )
 //     {
@@ -855,6 +943,11 @@ BOOST_AUTO_TEST_CASE( NeighborListBinned_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+//! cutoff exclusion test case for binned class
+BOOST_AUTO_TEST_CASE( NeighborListBinned_cutoff_exclude)
+    {
+    neighborlist_cutoff_exclude_tests<NeighborListBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
 
 //! basic test case for tree class
 BOOST_AUTO_TEST_CASE( NeighborListTree_basic )
@@ -885,6 +978,11 @@ BOOST_AUTO_TEST_CASE( NeighborListTree_diameter_shift )
 BOOST_AUTO_TEST_CASE( NeighborListTree_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! cutoff exclusion test case for tree class
+BOOST_AUTO_TEST_CASE( NeighborListTree_cutoff_exclude)
+    {
+    neighborlist_cutoff_exclude_tests<NeighborListTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! comparison test case for binned class
@@ -951,36 +1049,46 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
+//! cutoff exclusion test case for GPUBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_cutoff_exclude)
+    {
+    neighborlist_cutoff_exclude_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
     
-//! basic test case for tree class
+//! basic test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_basic )
     {
     neighborlist_basic_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-//! exclusion test case for tree class
+//! exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_exclusion )
     {
     neighborlist_exclusion_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-//! large exclusion test case for tree class
+//! large exclusion test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_large_ex )
     {
     neighborlist_large_ex_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-//! body filter test case for tree class
+//! body filter test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_body_filter)
     {
     neighborlist_body_filter_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-//! diameter filter test case for binned class
+//! diameter filter test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_diameter_shift )
     {
     neighborlist_diameter_shift_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-//! particle asymmetry test case for tree class
+//! particle asymmetry test case for GPUTree class
 BOOST_AUTO_TEST_CASE( NeighborListGPUTree_particle_asymm)
     {
     neighborlist_particle_asymm_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! cutoff exclusion test case for GPUTree class
+BOOST_AUTO_TEST_CASE( NeighborListGPUTree_cutoff_exclude)
+    {
+    neighborlist_cutoff_exclude_tests<NeighborListGPUTree>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
     
 //! comparison test case for GPU class
