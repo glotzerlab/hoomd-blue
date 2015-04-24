@@ -2047,7 +2047,7 @@ class eam(force._force):
     # eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
     # \endcode
     def __init__(self, file, type):
-        cite.article(key = 'morozov2011',
+        cite.article(cite_key = 'morozov2011',
                      author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
                      title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
                      journal = 'Computer Physics Communications',
@@ -2056,7 +2056,7 @@ class eam(force._force):
                      pages = '1974--1978',
                      year = '2011',
                      doi = '10.1016/j.cpc.2010.12.026',
-                     url = 'http://dx.doi.org/10.1016/j.cpc.2010.12.026')
+                     feature = 'EAM')
                      
         util.print_status_line();
 

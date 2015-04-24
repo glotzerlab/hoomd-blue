@@ -51,15 +51,39 @@
 
 from hoomd_script import util
 from hoomd_script import globals
+from hoomd_script import comm
 import textwrap
 import os
 
 ## \package hoomd_script.cite
 # \brief Commands to support automatic citation generation
+#
+# Certain features of HOOMD-blue require citation because they represent significant contributions from developers.
+# In order to make these citations transparent and easy, HOOMD-blue will automatically print citation notices at run
+# time when you use a feature that should be cited. Users should read and cite these publications in their work.
+# Citations can be saved as a BibTeX file for easy incorporation into bibliographies. The bibliography is generated
+# in accordance with the terms laid out at \ref page_citing.
+#
 
 ## \internal
-# 
+# \brief Generic citation object
+# Objects representing specific BibTeX records derive from this object, which stores relevant citation information,
+# and also supplies common methods for printing and saving these methods.
+#
+# Each deriving BibTeX record must supply the following:
+# 1. __str__ to print the record in a human readable format
+# 2. the string name for the BibTeX record
+#
+# Optionally, deriving objects may supply a list of BibTeX keys that are required. The record will then be validated
+# for the existence of these keys when the record is added to the bibliography. The constructor of each deriving
+# record should always conclude by (1) adding the record to the global bibliography and (2) calling log() if logging
+# is enabled.
 class _citation(object):
+    ## \internal
+    # \brief Constructs a citation
+    # \param cite_key Unique key identifying this reference
+    # \param feature HOOMD functionality this citation corresponds to
+    # \param author Author or list of authors for this citation
     def __init__(self, cite_key, feature, author):
         self.cite_key = cite_key
         self.feature = feature
@@ -82,40 +106,81 @@ class _citation(object):
         self.doi = None
         self.url = None
     
+    ## \var cite_key
+    # \internal
+    # \brief Unique key identifying this reference
+
+    ## \var feature
+    # \internal
+    # \brief String representation of the HOOMD functionality
+
+    ## \var author
+    # \internal
+    # \brief List of authors
+
+    ## \var required_entries
+    # \internal
+    # \brief List of BibTeX values that \b must be set in the record
+
+    ## \var bibtex_type
+    # \internal
+    # \brief String for BibTeX record type
+
+    ## \var doi
+    # \internal
+    # \brief The DOI for this citation
+
+    ## \var url
+    # \internal
+    # \brief The URL for this citation (if web reference)
+
+    ## \internal
+    # \brief Prints the citation as a human readable notice
     def log(self):
         wrapper = textwrap.TextWrapper(initial_indent = '* ', subsequent_indent = '  ', width = 80)
         
-        print '-'*5
+        globals.msg.notice(1,'-'*5 + '\n')
         if self.feature is not None:
-            print textwrap.fill('You are using %s. Read and cite the following:' % self.feature)
+            globals.msg.notice(1, textwrap.fill('You are using %s. Read and cite the following:\n' % self.feature))
         else:
-            print textwrap.fill('Read and cite the following:')
+            globals.msg.notice(1, textwrap.fill('Read and cite the following:\n'))
         
         out = ''
         if self.author is not None:
             out += self.format_authors(True)
             out += '. '
         
-        out += self.fancy_print()
+        out += str(self)
         
         out += '.'
         
-        print wrapper.fill(out)
-        print '-'*5
+        globals.msg.notice(1, '\n' + wrapper.fill(out) + '\n')
+        globals.msg.notice(1, '-'*5 + '\n')
     
-    def fancy_print(self):
-        globals.msg.error('Bug in hoomd_script.cite: each deriving class must implement its own fancy_print\n')
-        raise RuntimeError()
+    ## \internal
+    # \brief Get the citation in human readable format (except for the author string, which is automatically prepended)
+    # \note Deriving classes \b must implement this method themselves.
+    def __str__(self):
+        globals.msg.error('Bug in hoomd_script.cite: each deriving class must implement its own string method\n')
+        raise RuntimeError('Citation does not implement string method')
     
+    ## \internal
+    # \brief Ensures that all required fields have been set
+    # \returns True on completion
     def validate(self):
         for entry in self.required_entries:
             if getattr(self,entry) is None:
                 globals.msg.error('Bug in hoomd_script.cite: required field %s not set, please report\n' % entry)
-                raise RuntimeError()
-        
+                raise RuntimeError('Required citation field not set')
+        return True
+
+    ## \internal
+    # \brief Formats the author name list
+    # \param fancy Flag to print as a human readable list
+    # \returns Author list as a string or None if there are no authors
     def format_authors(self, fancy=False):
         if self.author is None:
-            return
+            return None
         
         if len(self.author) > 1:
             if fancy:
@@ -125,6 +190,12 @@ class _citation(object):
         else:
             return self.author[0]
     
+    ## \internal
+    # \brief Converts the citation to a BibTeX record
+    # \returns BibTeX record as a string
+    #
+    # If a DOI is set for the citation and no URL record has been specified, the URL is specified from the DOI.
+    # If no note is set for the citation, a default note identifying the HOOMD feature used is generated.
     def bibtex(self):
         if self.bibtex_type is None:
             globals.msg.error('Bug in hoomd_script.cite: BibTeX record type must be set, please report\n')
@@ -139,9 +210,14 @@ class _citation(object):
             if getattr(self, key) is not None:
                 lines += ['  %s = {%s},' % (key, val)]
         
-        # doi requires special handling
+        # doi requires special handling because it is not "standard"
         if self.doi is not None:
-            lines += ['  doi = {%s},' % self.doi, '  url = {http://dx.doi.org/%s},' % self.doi]
+            lines += ['  doi = {%s},' % self.doi]
+        # only override the url with the doi if it is not set
+        if self.url is None and self.doi is not None:
+            lines += ['  url = {http://dx.doi.org/%s},' % self.doi]
+        elif self.url is not None:
+            lines += ['  url = {%s},' % self.url]
         
         # add note based on the feature if a note has not been set
         if self.feature is not None and self.note is None:
@@ -150,19 +226,40 @@ class _citation(object):
         # remove trailing comma
         lines[-1] = lines[-1][:-1]
         
-        #close off record
+        # close off record
         lines += ['}']
         
         return '\n'.join(lines)
+## \internal
+# List of standard BibTeX keys that citations may use
 _citation.standard_keys = ['address','annote','booktitle','chapter','crossref','edition','editor','howpublished',
                            'institution', 'journal','key','month','note','number','organization','pages','publisher',
                            'school','series','title', 'type','volume','year']
 
 
-## Article BibTeX entry
-# 
+## \internal
+# \brief Article BibTeX entry
+#
 class article(_citation):
-    def __init__(self, cite_key, author, title, journal, year, volume, number=None, pages=None, month=None, note=None, key=None, doi=None, feature=None, display=True):
+    ## \internal
+    # \brief Creates an article entry
+    #
+    # \param cite_key Unique key identifying this reference
+    # \param author Author or list of authors for this citation
+    # \param title Article title
+    # \param journal Journal name (full or abbreviated)
+    # \param year Year of publication
+    # \param volume Journal volume
+    # \param pages Page range or article id
+    # \param number Journal issue number
+    # \param month Month of publication
+    # \param note Optional note on the article
+    # \param key Optional key
+    # \param doi Digital object identifier
+    # \param feature Name of HOOMD feature corresponding to citation
+    # \param display Flag to automatically print the citation on construction
+    #
+    def __init__(self, cite_key, author, title, journal, year, volume, pages, number=None, month=None, note=None, key=None, doi=None, feature=None, display=True):
         _citation.__init__(self, cite_key, feature, author)
         
         self.required_entries = ['author', 'title', 'journal', 'year', 'volume', 'pages']
@@ -185,12 +282,28 @@ class article(_citation):
         if display:
             self.log()
     
-    def fancy_print(self):
+    ## \internal
+    # \brief Get the rest of the citation as a string
+    def __str__(self):
         return '"%s", %s %s (%s) %s' % (self.title, self.journal, str(self.volume), str(self.year), str(self.pages))
 
-## Miscellaneous BibTeX entry
+## \internal
+# \brief Miscellaneous BibTeX entry
 #
 class misc(_citation):
+    ## \internal
+    # \brief Creates a miscellaneous entry
+    #
+    # \param cite_key Unique key identifying this reference
+    # \param author Author or list of authors for this citation
+    # \param title Article title
+    # \param howpublished Format of publication (<i>e.g.</i> a url for a website)
+    # \param year Year of publication
+    # \param month Month of publication
+    # \param note Optional note on the article
+    # \param key Optional key
+    # \param feature Name of HOOMD feature corresponding to citation
+    # \param display Flag to automatically print the citation on construction
     def __init__(self, cite_key, author=None, title=None, howpublished=None, year=None, month=None, note=None, key=None, feature=None, display=True):
         _citation.__init__(self, cite_key, feature, author)
         self.required_entries = []
@@ -202,45 +315,75 @@ class misc(_citation):
         self.month = month
         self.note = note
         self.key = key
-        
+
+        # attach to the global bibliography
+        _ensure_global_bib().add(self)
+
         if display:
             self.log()
-        
-    def fancy_print(self):
+    
+    ## \internal
+    # \brief Get the rest of the citation as a string
+    def __str__(self):
         out = ''
         if self.title is not None:
-            out += '"%s", ' % self.title
+            out += '"%s"' % self.title
         if self.howpublished is not None:
+            if len(out) > 0:
+                out += ', '
             out += self.howpublished
-        if len(out) > 0:
-            out += ' (%s)' % str(year)
+        if self.year is not None:
+            if len(out) > 0:
+                out += ' '
+            out += '(%s)' % str(year)
         return out
 
-## Bibliography
+## \internal
+# \brief Collection of citations
 #
+# A %bibliography is a dictionary of all citations that have been generated. It ensures that each citation is unique,
+# and provides a mechanism for generating a BibTeX file.
 class bibliography(object):
+    ## \internal
+    # \brief Creates a bibliography
     def __init__(self):
         self.entries = {}
+    ## \var entries
+    # \internal
+    # \brief Dictionary of citations
     
+    ## \internal
+    # \brief Adds a citation, ensuring it is unique
     def add(self, entry):
         entry.validate()
-        
+
+        if entry.cite_key in self.entries:
+            globals.msg.error('Bug in hoomd_script.cite: BibTeX key %s already exists in bibliography\n' % entry.cite_key)
+            raise RuntimeError()
         self.entries[entry.cite_key] = entry
     
-    def save(self, file):
+    ## \internal
+    # \brief Saves the bibliography to file
+    def save(self, file, overwrite=True):
         if len(self.entries) == 0:
-            globals.msg.warning('Empty bibliography generated, not saving anything to file.\n')
             return
-            
+
+        # if the file already exists, notify the user if overwriting is on, or abort otherwise
         if os.path.isfile(file):
-            globals.msg.warning('Bibliography file %s already exists, overwriting.\n' % file)
-        
-        f = open(file, 'w')
-        f.write('% This BibTeX file was automatically generated from HOOMD-blue\n')
-        f.write('% Encoding: UTF-8\n\n')
-        for entry in self.entries:
-            f.write(self.entries[entry].bibtex() + '\n\n')
-        f.close()
+            if overwrite:
+                globals.msg.notice(3, 'cite.save: bibliography file %s already exists, overwriting.\n' % file)
+            else:
+                globals.msg.error('cite.save: bibliography file %s already exists, cannot save\n' % file)
+                raise RuntimeError('Cannot write bibliography')
+
+        # only the root rank should write the bibliography to disk
+        if comm.get_rank() == 0:
+            f = open(file, 'w')
+            f.write('% This BibTeX file was automatically generated from HOOMD-blue\n')
+            f.write('% Encoding: UTF-8\n\n')
+            for entry in self.entries:
+                f.write(self.entries[entry].bibtex() + '\n\n')
+            f.close()
 
 ## \internal
 # \brief Ensures that the global bibliography is properly initialized
@@ -262,18 +405,25 @@ def _ensure_global_bib():
                         doi = '10.1016/j.jcp.2008.01.047',
                         display = False)
         hoomd_web = misc(cite_key = 'hoomdweb', howpublished = 'http://codeblue.umich.edu/hoomd-blue', display = False)
-                    
-        globals.bib.add(hoomd)
-        globals.bib.add(hoomd_web)
+
     return globals.bib
 
-## Wrapper to write global bibliography to file
+## Saves the automatically generated %bibliography to file
 #
-def save_bib(file='hoomd.bib'):
+# \param file File name for the saved %bibliography
+# \param overwrite Flag to allow %bibliography file to be overwritten if it already exists
+#
+# If the %bibliography file already exists, and \a overwrite is set to false, an error will be raised.
+# This is done because the BibTeX file cannot not be appended to (behavior of analyze.log), or else duplicated
+# citation keys would be recorded.
+#
+# \b Examples
+# \code
+# cite.save(file='citations.bib')
+# cite.save(overwrite=False)
+# \endcode
+def save(file='hoomd.bib', overwrite=True):
     util.print_status_line()
     
     if globals.bib is not None:
         globals.bib.save(file)
-    else:
-        globals.msg.warning('No bibliography generated, not saving anything to file.\n')
-    
