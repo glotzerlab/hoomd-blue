@@ -67,6 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HOOMD_VERSION_PATCH ${HOOMD_VERSION_PATCH}
 
 #include "ExecutionConfiguration.h"
+#include <string>
 
 /*! \file HOOMDVersion.h.in
 	\brief Functions and variables for printing compile time build information of HOOMD
@@ -76,9 +77,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	\ingroup utils
 */
 
-//! Prints version information to cout
-/*! \param verbose Enables verbose output including details on compile time options
-*/
-void output_version_info(bool verbose);
+//! Formats the HOOMD version info header as string
+std::string output_version_info();
 
 #endif
