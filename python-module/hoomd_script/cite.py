@@ -84,9 +84,11 @@ class _citation(object):
     # \param cite_key Unique key identifying this reference
     # \param feature HOOMD functionality this citation corresponds to
     # \param author Author or list of authors for this citation
-    def __init__(self, cite_key, feature, author):
+    # \param display Flag to automatically print the citation when adding to a bibliography
+    def __init__(self, cite_key, feature=None, author=None, display=False):
         self.cite_key = cite_key
         self.feature = feature
+        self.display = display
         
         # author requires special handling for I/O
         self.author = None
@@ -137,25 +139,15 @@ class _citation(object):
     ## \internal
     # \brief Prints the citation as a human readable notice
     def log(self):
+        if self.display is False:
+            return None
+
+        out = str(self)
+        if len(out) == 0:
+            return None # quit if there is nothing to actually log in this citation
+
         wrapper = textwrap.TextWrapper(initial_indent = '* ', subsequent_indent = '  ', width = 80)
-        
-        globals.msg.notice(1,'-'*5 + '\n')
-        if self.feature is not None:
-            globals.msg.notice(1, textwrap.fill('You are using %s. Read and cite the following:\n' % self.feature))
-        else:
-            globals.msg.notice(1, textwrap.fill('Read and cite the following:\n'))
-        
-        out = ''
-        if self.author is not None:
-            out += self.format_authors(True)
-            out += '. '
-        
-        out += str(self)
-        
-        out += '.'
-        
-        globals.msg.notice(1, '\n' + wrapper.fill(out) + '\n')
-        globals.msg.notice(1, '-'*5 + '\n')
+        return wrapper.fill(out) + '\n'
     
     ## \internal
     # \brief Get the citation in human readable format (except for the author string, which is automatically prepended)
@@ -183,10 +175,12 @@ class _citation(object):
             return None
         
         if len(self.author) > 1:
-            if fancy:
+            if not fancy:
+                return ' and '.join(self.author)
+            elif len(self.author) > 2:
                 return '%s, and %s' % (', '.join(self.author[:-1]), self.author[-1])
             else:
-                return ' and '.join(self.author)
+                return '%s and %s' % tuple(self.author)
         else:
             return self.author[0]
     
@@ -239,7 +233,6 @@ _citation.standard_keys = ['address','annote','booktitle','chapter','crossref','
 
 ## \internal
 # \brief Article BibTeX entry
-#
 class article(_citation):
     ## \internal
     # \brief Creates an article entry
@@ -257,10 +250,9 @@ class article(_citation):
     # \param key Optional key
     # \param doi Digital object identifier
     # \param feature Name of HOOMD feature corresponding to citation
-    # \param display Flag to automatically print the citation on construction
-    #
+    # \param display Flag to automatically print the citation when adding to a bibliography
     def __init__(self, cite_key, author, title, journal, year, volume, pages, number=None, month=None, note=None, key=None, doi=None, feature=None, display=True):
-        _citation.__init__(self, cite_key, feature, author)
+        _citation.__init__(self, cite_key, feature, author, display)
         
         self.required_entries = ['author', 'title', 'journal', 'year', 'volume', 'pages']
         self.bibtex_type = 'article'
@@ -275,21 +267,19 @@ class article(_citation):
         self.note = note
         self.key = key
         self.doi = doi
-        
-        # attach to the global bibliography
-        _ensure_global_bib().add(self)
-        
-        if display:
-            self.log()
     
     ## \internal
     # \brief Get the rest of the citation as a string
     def __str__(self):
-        return '"%s", %s %s (%s) %s' % (self.title, self.journal, str(self.volume), str(self.year), str(self.pages))
+        out = ''
+        if self.author is not None:
+            out += self.format_authors(True)
+            out += '. '
+        out += '"%s", %s %s (%s) %s' % (self.title, self.journal, str(self.volume), str(self.year), str(self.pages))
+        return out
 
 ## \internal
 # \brief Miscellaneous BibTeX entry
-#
 class misc(_citation):
     ## \internal
     # \brief Creates a miscellaneous entry
@@ -303,9 +293,9 @@ class misc(_citation):
     # \param note Optional note on the article
     # \param key Optional key
     # \param feature Name of HOOMD feature corresponding to citation
-    # \param display Flag to automatically print the citation on construction
+    # \param display Flag to automatically print the citation when adding to a bibliography
     def __init__(self, cite_key, author=None, title=None, howpublished=None, year=None, month=None, note=None, key=None, feature=None, display=True):
-        _citation.__init__(self, cite_key, feature, author)
+        _citation.__init__(self, cite_key, feature, author, display)
         self.required_entries = []
         self.bibtex_type = 'misc'
         
@@ -315,17 +305,14 @@ class misc(_citation):
         self.month = month
         self.note = note
         self.key = key
-
-        # attach to the global bibliography
-        _ensure_global_bib().add(self)
-
-        if display:
-            self.log()
     
     ## \internal
     # \brief Get the rest of the citation as a string
     def __str__(self):
         out = ''
+        if self.author is not None:
+            out += self.format_authors(True)
+            out += '. '
         if self.title is not None:
             out += '"%s"' % self.title
         if self.howpublished is not None:
@@ -353,14 +340,37 @@ class bibliography(object):
     # \brief Dictionary of citations
     
     ## \internal
-    # \brief Adds a citation, ensuring it is unique
+    # \brief Adds a citation, ensuring each key is only saved once
+    # \param entry Citation or citations to add to the bibliography
     def add(self, entry):
-        entry.validate()
+        # wrap the entry as a list if it is not
+        if not isinstance(entry, (list,tuple)):
+            entry = [entry]
 
-        if entry.cite_key in self.entries:
-            globals.msg.error('Bug in hoomd_script.cite: BibTeX key %s already exists in bibliography\n' % entry.cite_key)
-            raise RuntimeError()
-        self.entries[entry.cite_key] = entry
+        features = {}
+        for e in entry:
+            e.validate()
+            self.entries[e.cite_key] = e
+            log_str = e.log()
+            if log_str is not None:
+                if e.feature is not None:
+                    if e.feature not in features:
+                        features[e.feature] = [log_str]
+                    else:
+                        features[e.feature] += [log_str]
+                else:
+                    cite_str = '-'*5 + '\n'
+                    cite_str += 'Read and cite the following:\n'
+                    cite_str += log_str
+                    cite_str += '-'*5 + '\n'
+                    globals.msg.notice(1, cite_str)
+
+        for f in features:
+            cite_str = '-'*5 + '\n'
+            cite_str += 'You are using %s. Read and cite the following:\n' % f
+            cite_str += 'and\n'.join(features[f])
+            cite_str += '-'*5 + '\n'
+            globals.msg.notice(1, cite_str)
     
     ## \internal
     # \brief Saves the bibliography to file
@@ -391,7 +401,6 @@ class bibliography(object):
 def _ensure_global_bib():
     if globals.bib is None:
         globals.bib = bibliography()
-    
         # the hoomd bibliography always includes the following citations
         hoomd = article(cite_key = 'anderson2008',
                         author = ['J A Anderson','C D Lorenz','A Travesset'],
@@ -403,8 +412,9 @@ def _ensure_global_bib():
                         year = 2008,
                         month = 'may',
                         doi = '10.1016/j.jcp.2008.01.047',
-                        display = False)
-        hoomd_web = misc(cite_key = 'hoomdweb', howpublished = 'http://codeblue.umich.edu/hoomd-blue', display = False)
+                        feature = 'HOOMD-blue')
+        hoomd_web = misc(cite_key = 'hoomdweb', howpublished = 'http://codeblue.umich.edu/hoomd-blue', feature = 'HOOMD-blue')
+        globals.bib.add([hoomd, hoomd_web])
 
     return globals.bib
 
@@ -426,4 +436,4 @@ def save(file='hoomd.bib', overwrite=True):
     util.print_status_line()
     
     if globals.bib is not None:
-        globals.bib.save(file)
+        globals.bib.save(file, overwrite)

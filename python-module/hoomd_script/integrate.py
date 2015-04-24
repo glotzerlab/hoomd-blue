@@ -1008,17 +1008,18 @@ class nve_rigid(_integration_method):
         util.print_status_line();
         
         # register the citation
-        cite.article(cite_key='nguyen2011',
-                     author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                     title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
-                     journal='Computer Physics Communications',
-                     volume=182,
-                     number=11,
-                     pages='2307--2313',
-                     month='Jun',
-                     year='2011',
-                     doi='10.1016/j.cpc.2011.06.005',
-                     feature='rigid body integration')
+        c = cite.article(cite_key='nguyen2011',
+                         author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=182,
+                         number=11,
+                         pages='2307--2313',
+                         month='Jun',
+                         year='2011',
+                         doi='10.1016/j.cpc.2011.06.005',
+                         feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
@@ -1069,17 +1070,18 @@ class nvt_rigid(_integration_method):
         util.print_status_line();
 
         # register the citation
-        cite.article(cite_key='nguyen2011',
-                     author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                     title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
-                     journal='Computer Physics Communications',
-                     volume=182,
-                     number=11,
-                     pages='2307--2313',
-                     month='Jun',
-                     year='2011',
-                     doi='10.1016/j.cpc.2011.06.005',
-                     feature='rigid body integration')
+        c = cite.article(cite_key='nguyen2011',
+                         author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=182,
+                         number=11,
+                         pages='2307--2313',
+                         month='Jun',
+                         year='2011',
+                         doi='10.1016/j.cpc.2011.06.005',
+                         feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
@@ -1176,17 +1178,18 @@ class bdnvt_rigid(_integration_method):
         util.print_status_line();
 
         # register the citation
-        cite.article(cite_key='nguyen2011',
-                     author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                     title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
-                     journal='Computer Physics Communications',
-                     volume=182,
-                     number=11,
-                     pages='2307--2313',
-                     month='Jun',
-                     year='2011',
-                     doi='10.1016/j.cpc.2011.06.005',
-                     feature='rigid body integration')
+        c = cite.article(cite_key='nguyen2011',
+                         author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=182,
+                         number=11,
+                         pages='2307--2313',
+                         month='Jun',
+                         year='2011',
+                         doi='10.1016/j.cpc.2011.06.005',
+                         feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
@@ -1300,7 +1303,7 @@ class npt_rigid(_integration_method):
         util.print_status_line();
 
         # register the citation
-        cite.article(cite_key='nguyen2011',
+        c = cite.article(cite_key='nguyen2011',
                      author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
                      title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
                      journal='Computer Physics Communications',
@@ -1311,6 +1314,7 @@ class npt_rigid(_integration_method):
                      year='2011',
                      doi='10.1016/j.cpc.2011.06.005',
                      feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
@@ -1403,7 +1407,7 @@ class nph_rigid(_integration_method):
         util.print_status_line();
 
         # register the citation
-        cite.article(cite_key='nguyen2011',
+        c = cite.article(cite_key='nguyen2011',
                      author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
                      title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
                      journal='Computer Physics Communications',
@@ -1414,6 +1418,7 @@ class nph_rigid(_integration_method):
                      year='2011',
                      doi='10.1016/j.cpc.2011.06.005',
                      feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
@@ -1602,7 +1607,7 @@ class mode_minimize_rigid_fire(_integrator):
         util.print_status_line();
 
         # register the citation
-        cite.article(cite_key='nguyen2011',
+        c = cite.article(cite_key='nguyen2011',
                      author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
                      title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
                      journal='Computer Physics Communications',
@@ -1613,6 +1618,7 @@ class mode_minimize_rigid_fire(_integrator):
                      year='2011',
                      doi='10.1016/j.cpc.2011.06.005',
                      feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # initialize base class
         _integrator.__init__(self);

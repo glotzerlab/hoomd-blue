@@ -1843,17 +1843,18 @@ class dpd(pair):
         util.print_status_line();
         
         # register the citation
-        cite.article(cite_key='phillips2011',
-                     author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                     title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
-                     journal='Journal of Computational Physics',
-                     volume=230,
-                     number=19,
-                     pages='7191--7201',
-                     month='Aug',
-                     year='2011',
-                     doi='10.1016/j.jcp.2011.05.021',
-                     feature='DPD')
+        c = cite.article(cite_key='phillips2011',
+                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
+                         journal='Journal of Computational Physics',
+                         volume=230,
+                         number=19,
+                         pages='7191--7201',
+                         month='Aug',
+                         year='2011',
+                         doi='10.1016/j.jcp.2011.05.021',
+                         feature='DPD')
+        cite._ensure_global_bib().add(c)
         
         # tell the base class how we operate
 
@@ -1975,18 +1976,19 @@ class dpd_conservative(pair):
         util.print_status_line();
 
         # register the citation
-        cite.article(cite_key='phillips2011',
-                     author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                     title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
-                     journal='Journal of Computational Physics',
-                     volume=230,
-                     number=19,
-                     pages='7191--7201',
-                     month='Aug',
-                     year='2011',
-                     doi='10.1016/j.jcp.2011.05.021',
-                     feature='DPD')
-                     
+        c = cite.article(cite_key='phillips2011',
+                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
+                         journal='Journal of Computational Physics',
+                         volume=230,
+                         number=19,
+                         pages='7191--7201',
+                         month='Aug',
+                         year='2011',
+                         doi='10.1016/j.jcp.2011.05.021',
+                         feature='DPD')
+        cite._ensure_global_bib().add(c)
+
         # tell the base class how we operate
 
         # initialize the base class
@@ -2047,16 +2049,17 @@ class eam(force._force):
     # eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
     # \endcode
     def __init__(self, file, type):
-        cite.article(cite_key = 'morozov2011',
-                     author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
-                     title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
-                     journal = 'Computer Physics Communications',
-                     volume = 182,
-                     number = 9,
-                     pages = '1974--1978',
-                     year = '2011',
-                     doi = '10.1016/j.cpc.2010.12.026',
-                     feature = 'EAM')
+        c = cite.article(cite_key = 'morozov2011',
+                         author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
+                         title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
+                         journal = 'Computer Physics Communications',
+                         volume = 182,
+                         number = 9,
+                         pages = '1974--1978',
+                         year = '2011',
+                         doi = '10.1016/j.cpc.2010.12.026',
+                         feature = 'EAM')
+        cite._ensure_global_bib().add(c)
                      
         util.print_status_line();
 
@@ -2200,17 +2203,18 @@ class dpdlj(pair):
         util.print_status_line();
         
         # register the citation
-        cite.article(cite_key='phillips2011',
-                     author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
-                     title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
-                     journal='Journal of Computational Physics',
-                     volume=230,
-                     number=19,
-                     pages='7191--7201',
-                     month='Aug',
-                     year='2011',
-                     doi='10.1016/j.jcp.2011.05.021',
-                     feature='DPD')
+        c = cite.article(cite_key='phillips2011',
+                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
+                         journal='Journal of Computational Physics',
+                         volume=230,
+                         number=19,
+                         pages='7191--7201',
+                         month='Aug',
+                         year='2011',
+                         doi='10.1016/j.jcp.2011.05.021',
+                         feature='DPD')
+        cite._ensure_global_bib().add(c)
 
         # tell the base class how we operate
 
