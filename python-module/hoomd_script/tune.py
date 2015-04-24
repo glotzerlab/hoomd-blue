@@ -83,7 +83,7 @@ import sys
 # \note By default, the maximum check_period is \b not set in tune.r_buff() for safety. If you wish to have it set
 # when the call completes, call with the parameter set_max_check_period=True.
 #
-# \returns (optimal_r_buff, maximum check_period)
+# \returns (optimal_r_buff, maximum_check_period)
 #
 # \MPI_SUPPORTED
 def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
