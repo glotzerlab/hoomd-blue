@@ -360,6 +360,10 @@ class coeff:
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
+# If \f$ r_{\mathrm{cut}} \le 0 \f$ or is set to False, the particle type %pair interaction is excluded from the neighbor
+# list. This mechanism can be used in conjunction with multiple neighbor lists to make efficient calculations in systems
+# with large size disparity. Functionally, this is equivalent to setting \f$ r_{\mathrm{cut}} = 0 \f$ in the %pair force
+# because negative \f$ r_{\mathrm{cut}} \f$ has no physical meaning.
 class pair(force._force):
     ## \internal
     # \brief Initialize the pair force
@@ -546,14 +550,14 @@ class pair(force._force):
 # The cutoff radius \a r_cut passed into the initial pair.lj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class lj(pair):
     ## Specify the Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -636,14 +640,14 @@ class lj(pair):
 # The cutoff radius \a r_cut passed into the initial pair.gauss command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class gauss(pair):
     ## Specify the Gaussian %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -723,7 +727,7 @@ class gauss(pair):
 # The cutoff radius \a r_cut passed into the initial pair.slj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials..
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # The actual cutoff radius for pair.slj is shifted by the diameter of two particles interacting.  Thus to determine
 # the maximum possible actual r_cut in simulation
@@ -736,7 +740,7 @@ class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     # \param d_max Maximum diameter particles in the simulation will have (in distance units)
     #
@@ -862,14 +866,14 @@ class slj(pair):
 # The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class yukawa(pair):
     ## Specify the Yukawa %pair %force
     #
     # \param r_cut Default cutoff radius (in units of distance)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -940,7 +944,7 @@ class yukawa(pair):
 # The cutoff radius \a r_cut passed into the initial pair.ewald command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \note <b>DO NOT</b> use in conjunction with charge.pppm. charge.pppm automatically creates and configures a pair.ewald
 #       for you.
@@ -950,7 +954,7 @@ class ewald(pair):
     ## Specify the Ewald %pair %force
     #
     # \param r_cut Default cutoff radius
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1041,7 +1045,7 @@ class cgcmm(force._force):
     ## Specify the CG-CMM Lennard-Jones %pair %force
     #
     # \param r_cut Cuttoff radius (see documentation above) (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     #
     # \b Example:
     # \code
@@ -1229,7 +1233,7 @@ class table(force._force):
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
     # \param r_cut Default r_cut to set in the generated neighbor list. Ignored otherwise.
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     def __init__(self, width, r_cut=0, nlist=None, name=None):
@@ -1456,14 +1460,14 @@ class table(force._force):
 # The cutoff radius \a r_cut passed into the initial pair.morse command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class morse(pair):
     ## Specify the Morse %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1561,7 +1565,7 @@ class morse(pair):
 # The cutoff radius \a r_cut passed into the initial pair.dpd command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # pair.dpd does not implement and energy shift / smoothing modes due to the function of the force.
 #
@@ -1573,7 +1577,7 @@ class dpd(pair):
     # \param T Temperature of thermostat (in energy units)
     # \param name Name of the force instance
     # \param seed seed for the PRNG in the DPD thermostat
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     #
     # \b Example:
     # \code
@@ -1681,14 +1685,14 @@ class dpd(pair):
 # The cutoff radius \a r_cut passed into the initial pair.dpd_conservative command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class dpd_conservative(pair):
     ## Specify the DPD conservative %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -1755,7 +1759,7 @@ class eam(force._force):
     #
     # \param file Filename with potential tables in Alloy or FS format
     # \param type Type of file potential ('Alloy', 'FS')
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     #
     # \b Example:
     # \code
@@ -1878,7 +1882,7 @@ class eam(force._force):
 # The cutoff radius \a r_cut passed into the initial pair.dpdlj command sets the default \a r_cut for all
 # %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
 # for the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # pair.dpdlj is a standard %pair potential and supports an energy shif for the conservative LJ potential.
 # See hoomd_script.pair.pair for a full description of the various options. XPLOR smoothing is not available.
@@ -1891,7 +1895,7 @@ class dpdlj(pair):
     # \param T Temperature of thermostat (in energy units)
     # \param name Name of the force instance
     # \param seed seed for the PRNG in the DPD thermostat
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     #
     # \b Example:
     # \code
@@ -2023,14 +2027,14 @@ class dpdlj(pair):
 # The cutoff radius \a r_cut passed into the initial pair.force_shifted_lj command sets the default \a r_cut for all %pair
 # interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
 # the neighbor list will by dynamically determined from the maximum of all \a r_cut values on a per %pair basis
-# specified among all type %pair parameters among all %pair potentials.
+# specified among all type %pair parameters among all %pair potentials attached to the neighbor list.
 #
 # \MPI_SUPPORTED
 class force_shifted_lj(pair):
     ## Specify the force-shifted Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \b Example:
@@ -2100,7 +2104,7 @@ class moliere(pair):
     ## Specify the Moliere %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \code
@@ -2174,7 +2178,7 @@ class zbl(pair):
     ## Specify the ZBL %pair %force
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \code
@@ -2239,7 +2243,7 @@ class tersoff(pair):
     ## Specify the Tersoff force
     #
     # \param r_cut Default cutoff radius (in distance units)
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
+    # \param nlist Neighbor list (default of None automatically creates a global cell-list based neighbor list)
     # \param name Name of the force instance
     #
     # \note %Pair coefficients for all type pairs in the simulation must be set before it can be started with run()

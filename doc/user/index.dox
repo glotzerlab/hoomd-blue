@@ -83,6 +83,7 @@ Table of contents:
  - \ref sec_index_compute
  - \ref sec_index_analyze
  - \ref sec_index_dump
+ - \ref sec_index_nlist
  - Potentials
    - \ref sec_index_pair
    - \ref sec_index_manybody
@@ -177,6 +178,11 @@ Table of contents:
 
 <h2>Potentials</h2>
 
+\section sec_index_nlist Neighbor lists
+ - \link hoomd_script.nlist.cell nlist.cell\endlink - <i>Cell-list constructed neighbor list </i>
+ - \link hoomd_script.nlist.tree nlist.tree\endlink - <i>Fast neighbor list for size asymmetric particles </i>
+ - \link hoomd_script.nlist nlist\endlink - <i>Legacy wrappers for the global neighbor list</i>
+ 
 \section sec_index_pair Pair potentials
  - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>CMM coarse-grain model %pair %force </i>
  - \link hoomd_script.pair.dpd pair.dpd\endlink - <i>NVT Integration via Dissipative Particle Dynamics %pair %force </i>
@@ -192,7 +198,6 @@ Table of contents:
  - \link hoomd_script.pair.yukawa pair.yukawa\endlink - <i>Yukawa %pair %force </i>
  - \link hoomd_script.pair.zbl pair.zbl\endlink - <i>Ziegler-Biersack-Littmark %pair %force</i>
  - \link hoomd_script.pair.force_shifted_lj pair.force_shifted_lj\endlink - <i>Force shifted Lennard-Jones %pair %force </i>
- - \link hoomd_script.pair.nlist nlist\endlink - <i>Interface for controlling neighbor list parameters </i>
 
 \section sec_index_manybody Many-body potentials
  - \link hoomd_script.pair.eam pair.eam\endlink - <i>EAM many-body %pair %force </i>

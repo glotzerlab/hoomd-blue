@@ -56,21 +56,43 @@ import hoomd;
 import hoomd_script
 
 ## \package hoomd_script.nlist
-# \brief Wrapper for "global" nlist commands
+# \brief Commands that create neighbor lists
 #
-# This package is a thin wrapper around globals.neighbor_list. It takes the place of the old model for making the
-# global neighbor list available as "nlist" in the __main__ namespace. Moving it into the hoomd_script namespace
-# is backwards compatible as long as the user does "from hoomd_script import *" - but it also makes it much easier
-# to reference the nlist from modules other than __main__.
+# Neighbor lists accelerate %pair force calculation by maintaining a list of particles within a cutoff radius.
+# Multiple %pair forces can utilize the same neighbor list. Neighbors are included using a pairwise cutoff
+# \f$ r_\mathrm{cut}(i,j) \f$ that is the maximum of all \f$ r_\mathrm{cut}(i,j) \f$ set for the %pair forces attached
+# to the list.
 #
-# Backwards compatibility is only ensured if the script only uses the public python facing API. Bypassing this to get
-# at the C++ interface should be done through globals.neighbor_list
+# Multiple neighbor lists can be created to accelerate simulations where there is significant disparity in
+# \f$ r_\mathrm{cut}(i,j) \f$ between pair potentials. If one %pair force has a cutoff radius much smaller than
+# another %pair force, the %pair force calculation for the short cutoff will be slowed down considerably because many
+# particles in the neighbor list will have to be read and skipped because they lie outside the shorter cutoff.
 #
-# Future expansions to enable multiple neighbor lists could be enabled through this same mechanism.
+# The simplest way to build a neighbor list is \f$ O(N^2) \f$: each particle loops over all other particles and only
+# includes those within the neighbor list cutoff. This algorithm is no longer implemented in HOOMD-blue because it is
+# slow and inefficient. Instead, two accelerated algorithms based on %cell lists and bounding volume hierarchy trees
+# are implemented. The %cell list implementation is fastest when the cutoff radius is similar between all %pair forces,
+# while the %tree implementation is faster when there is significant size disparity.
+#
+# Particles can be excluded from the neighbor list based on certain criteria. Setting \f$ r_\mathrm{cut}(i,j) \le 0\f$ 
+# will excluded this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
+# or for belonging to the same rigid body (see reset_exclusions()).
+#
+# In previous versions of HOOMD-blue, %pair forces automatically created and subscribed to a single global neighbor
+# list that was automatically created. Backwards compatibility is maintained to this behavior if a neighbor list is
+# not specified by a %pair force. This package also maintains a thin wrapper around globals.neighbor_list for
+# for interfacing with this object. It takes the place of the old model for making the global neighbor list available
+# as "nlist" in the __main__ namespace. Moving it into the hoomd_script namespace is backwards compatible as long as
+# the user does "from hoomd_script import *" - but it also makes it much easier to reference the nlist from modules
+# other than __main__. Backwards compatibility is only ensured if the script only uses the public python facing API.
+# Bypassing this to get at the C++ interface should be done through globals.neighbor_list . These wrappers are
+# (re-)documented below, but should \b only be used to interface with globals.neighbor_list. Otherwise, the methods
+# should be called directly on the neighbor list objects themselves. These global wrappers may be deprecated in a
+# future release.
+#
 
 ## \internal
 # \brief Generic neighbor list object
-#
 #
 # Any bonds defined in the simulation are automatically used to exclude bonded particle
 # pairs from appearing in the neighbor list. Use the command reset_exclusions() to change this behavior.
@@ -187,17 +209,14 @@ class _nlist:
     # by using nlist.set_params() after the
     # pair.slj class has been initialized.   When <i>not</i> using pair.slj (or other diameter-using potential), \a d_max
     # \b MUST be left at the default value of 1.0 or the simulation will be incorrect if d_max is less than 1.0 and slower
-    # than necessary if
-    # d_max is greater than 1.0.
-    #
-    # A single global neighbor list is created for the entire simulation.
+    # than necessary if d_max is greater than 1.0.
     #
     # \b Examples:
     # \code
-    # nlist.set_params(r_buff = 0.9)
-    # nlist.set_params(check_period = 11)
-    # nlist.set_params(r_buff = 0.7, check_period = 4)
-    # nlist.set_params(d_max = 3.0)
+    # nl.set_params(r_buff = 0.9)
+    # nl.set_params(check_period = 11)
+    # nl.set_params(r_buff = 0.7, check_period = 4)
+    # nl.set_params(d_max = 3.0)
     # \endcode
     def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True):
         util.print_status_line();
@@ -246,10 +265,10 @@ class _nlist:
     #
     # \b Examples:
     # \code
-    # nlist.reset_exclusions(exclusions = ['1-2'])
-    # nlist.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
-    # nlist.reset_exclusions(exclusions = ['bond', 'angle'])
-    # nlist.reset_exclusions(exclusions = [])
+    # nl.reset_exclusions(exclusions = ['1-2'])
+    # nl.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
+    # nl.reset_exclusions(exclusions = ['bond', 'angle'])
+    # nl.reset_exclusions(exclusions = [])
     # \endcode
     #
     def reset_exclusions(self, exclusions = None):
@@ -315,7 +334,7 @@ class _nlist:
     #
     # \b Examples:
     # \code
-    # t = nlist.benchmark(n = 100)
+    # t = nl.benchmark(n = 100)
     # \endcode
     #
     # The value returned by benchmark() is the average time to perform the neighbor list
@@ -617,7 +636,7 @@ class cell(_nlist):
         util._disable_status_lines = False
 cell.cur_id = 0
 
-## BVH %tree-based neighbor list
+## Fast neighbor list for size asymmetric particles
 #
 # nlist.tree creates a neighbor list using bounding volume hierarchy (BVH) tree traversal. %Pair potentials are attached
 # for computing non-bonded pairwise interactions. A BVH tree of axis-aligned bounding boxes is constructed per particle
@@ -699,45 +718,151 @@ def _subscribe_global_nlist(cb):
 
     return globals.neighbor_list;
 
-## \internal
-# \brief Thin wrapper for set_params
-def set_params(*args, **kwargs):
+## Thin wrapper for changing parameters for the global neighbor list
+#
+# \param r_buff (if set) changes the buffer radius around the cutoff (in distance units)
+# \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list
+#        needs updating
+# \param d_max (if set) notifies the neighbor list of the maximum diameter that a particle attain over the following
+#        run() commands. (in distance units)
+# \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
+#        \a check_period steps
+#
+# set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
+# can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
+# to be updated less often, but more particles are included leading to slower %force computations.
+# Smaller values of \a r_buff lead to faster %force computation, but more often neighbor list updates,
+# slowing overall performance again. The sweet spot for the best performance needs to be found by
+# experimentation. The default of \a r_buff = 0.8 works well in practice for Lennard-Jones liquid
+# simulations.
+#
+# As \a r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
+# no sooner than \a check_period time steps after the last %update. If \a check_period is set too high,
+# the neighbor list may not be updated when it needs to be.
+#
+# For safety, the default check_period is 1 to ensure that the neighbor list is always updated when it
+# needs to be. Increasing this to an appropriate value for your simulation can lead to performance gains
+# of approximately 2 percent.
+#
+# \a check_period should be set so that no particle
+# moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
+# \b build is counted and printed in the neighbor list statistics at the end of a run().
+#
+# When using pair.slj, \a d_max \b MUST be set to the maximum diameter that a particle will attain at any point
+# during the following run() commands (see pair.slj for more information). When using in conjunction with pair.slj,
+# pair.slj will
+# automatically set \a d_max for the nlist.  This can be overridden (e.g. if multiple potentials using diameters are used)
+# by using nlist.set_params() after the
+# pair.slj class has been initialized.   When <i>not</i> using pair.slj (or other diameter-using potential), \a d_max
+# \b MUST be left at the default value of 1.0 or the simulation will be incorrect if d_max is less than 1.0 and slower
+# than necessary if d_max is greater than 1.0.
+#
+# \b Examples:
+# \code
+# nl.set_params(r_buff = 0.9)
+# nl.set_params(check_period = 11)
+# nl.set_params(r_buff = 0.7, check_period = 4)
+# nl.set_params(d_max = 3.0)
+# \endcode
+def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True):
     util.print_status_line();
     if globals.neighbor_list is None:
         globals.msg.error('Cannot set global neighbor list parameters without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
-    globals.neighbor_list.set_params(*args, **kwargs);
+    globals.neighbor_list.set_params(rbuff, check_period, d_max, dist_check);
     util._disable_status_lines = False;
 
-## \internal
-# \brief Thin wrapper for reset_exclusions
-def reset_exclusions(*args, **kwargs):
+## Thin wrapper for resetting exclusion for global neighbor list
+#
+# \param exclusions Select which interactions should be excluded from the %pair interaction calculation.
+#
+# By default, the following are excluded from short range %pair interactions.
+# - Directly bonded particles
+# - Particles that are in the same rigid body
+#
+# reset_exclusions allows that setting to be overridden to add other exclusions or to remove
+# the exclusion for bonded particles.
+#
+# Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
+# All desired exclusions have to be explicitly listed, i.e. '1-3' does \b not imply '1-2'.
+#
+# Valid types are:
+# - \b %bond - Exclude particles that are directly bonded together
+# - \b %angle - Exclude the two outside particles in all defined angles.
+# - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
+# - \b %body - Exclude particles that belong to the same body
+#
+# The following types are determined solely by the bond topology. Every chain of particles in the simulation
+# connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit
+# angles or dihedrals are defined.
+# - \b 1-2  - Same as bond
+# - \b 1-3  - Exclude particles connected with a sequence of two bonds.
+# - \b 1-4  - Exclude particles connected with a sequence of three bonds.
+#
+# \b Examples:
+# \code
+# nl.reset_exclusions(exclusions = ['1-2'])
+# nl.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
+# nl.reset_exclusions(exclusions = ['bond', 'angle'])
+# nl.reset_exclusions(exclusions = [])
+# \endcode
+#
+def reset_exclusions(exclusions = None):
     util.print_status_line();
     if globals.neighbor_list is None:
         globals.msg.error('Cannot set exclusions in global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
-    globals.neighbor_list.reset_exclusions(*args, **kwargs);
+    globals.neighbor_list.reset_exclusions(exclusions);
     util._disable_status_lines = False;
 
-## \internal
-# \brief Thin wrapper for benchmark
-def benchmark(*args, **kwargs):
+## Thin wrapper for benchmarking the global neighbor list
+#
+# \param n Number of iterations to average the benchmark over
+#
+# \b Examples:
+# \code
+# t = nl.benchmark(n = 100)
+# \endcode
+#
+# The value returned by benchmark() is the average time to perform the neighbor list
+# computation, in milliseconds. The benchmark is performed by taking the current
+# positions of all particles in the simulation and repeatedly calculating the neighbor list.
+# Thus, you can benchmark different situations as you need to by simply
+# running a simulation to achieve the desired state before running benchmark().
+#
+# \note
+# There is, however, one subtle side effect. If the benchmark() command is run
+# directly after the particle data is initialized with an init command, then the
+# results of the benchmark will not be typical of the time needed during the actual
+# simulation. Particles are not reordered to improve cache performance until at least
+# one time step is performed. Executing run(1) before the benchmark will solve this problem.
+#
+def benchmark(n):
     util.print_status_line();
     if globals.neighbor_list is None:
         globals.msg.error('Cannot benchmark global neighbor list without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
-    globals.neighbor_list.benchmark(*args, **kwargs);
+    globals.neighbor_list.benchmark(n);
     util._disable_status_lines = False;
 
-## \internal
-# \brief Thin wrapper for query_update_period
-def query_update_period(*args, **kwargs):
+## Thin wrapper for querying the update period for the global neighbor list
+#
+# query_update_period examines the counts of nlist rebuilds during the previous run() command.
+# It returns \c s-1, where s is the smallest update period experienced during that time.
+# Use it after a medium-length warm up run with check_period=1 to determine what check_period to set
+# for production runs.
+#
+# \note If the previous run() was short, insufficient sampling may cause the queried update period
+# to be large enough to result in dangerous builds during longer runs. Unless you use a really long
+# warm up run, subtract an additional 1 from this when you set check_period for additional safety.
+#
+def query_update_period():
     util.print_status_line();
     if globals.neighbor_list is None:
         globals.msg.error('Cannot query global neighbor list without creating it first\n');

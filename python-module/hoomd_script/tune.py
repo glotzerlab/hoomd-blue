@@ -56,11 +56,36 @@ from hoomd_script import util
 # \package hoomd_script.tune
 # \brief Commands for tuning the performance of HOOMD
 
-## \internal
-# \brief Thin wrapper to tune the global neighbor list parameters
-def r_buff(*args, **kwargs):
+## Thin wrapper to tune the global neighbor list parameters
+#
+# \param warmup Number of time steps to run() to warm up the benchmark
+# \param r_min Smallest value of r_buff to test
+# \param r_max Largest value of r_buff to test
+# \param jumps Number of different r_buff values to test
+# \param steps Number of time steps to run() at each point
+# \param set_max_check_period Set to True to enable automatic setting of the maximum nlist check_period
+#
+# tune() executes \a warmup time steps. Then it sets the nlist \a r_buff value to \a r_min and runs for
+# \a steps time steps. The TPS value is recorded, and the benchmark moves on to the next \a r_buff value
+# completing at \a r_max in \a jumps jumps. Status information is printed out to the screen, and the optimal
+# \a r_buff value is left set for further runs() to continue at optimal settings.
+#
+# Each benchmark is repeated 3 times and the median value chosen. Then, \a warmup time steps are run() again
+# at the optimal r_buff in order to determine the maximum value of check_period. In total,
+# (2*warmup + 3*jump*steps) time steps are run().
+#
+# \note By default, the maximum check_period is \b not set for safety. If you wish to have it set
+# when the call completes, call with the parameter set_max_check_period=True.
+#
+# \returns (optimal_r_buff, maximum check_period)
+#
+# \note This wrapper is maintained for backwards compatibility with the global neighbor list, but may be removed in
+# future versions.
+#
+# \MPI_SUPPORTED
+def r_buff(warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
     util.print_status_line();
     util._disable_status_lines = True;
-    tuner_output = globals.neighbor_list.tune(*args, **kwargs)
+    tuner_output = globals.neighbor_list.tune(warmup, r_min, r_max, jumps, steps, set_max_check_period)
     util._disable_status_lines = False;
     return tuner_output
