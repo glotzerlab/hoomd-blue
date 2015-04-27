@@ -360,6 +360,7 @@ class bibliography(object):
                     cite_str = '-'*5 + '\n'
                     cite_str += 'Read and cite the following:\n'
                     cite_str += log_str
+                    cite_str += 'You can save this citation to file using cite.save().\n'
                     cite_str += '-'*5 + '\n'
                     globals.msg.notice(1, cite_str)
 
@@ -368,6 +369,10 @@ class bibliography(object):
             cite_str = '-'*5 + '\n'
             cite_str += 'You are using %s. Read and cite the following:\n' % f
             cite_str += 'and\n'.join(features[f])
+            if len(features[f]) > 1:
+                cite_str += 'You can save these citations to file using cite.save().\n'
+            else:
+                cite_str += 'You can save this citation to file using cite.save().\n'
             cite_str += '-'*5 + '\n'
             globals.msg.notice(1, cite_str)
     
