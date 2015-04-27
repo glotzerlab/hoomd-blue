@@ -214,6 +214,9 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         globals.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
 
+    # save the bibliography at run time
+    cite._ensure_global_bib().save()
+
     if globals.integrator is None:
         globals.msg.warning("Starting a run without an integrator set");
     else:

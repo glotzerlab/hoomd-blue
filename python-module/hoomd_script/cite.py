@@ -330,10 +330,36 @@ class bibliography(object):
     # \brief Creates a bibliography
     def __init__(self):
         self.entries = {}
+        self.autosave = False
+        self.first_save = True
+        self.updated = False
+        self.force = False
+        self.file = 'hoomd.bib'
+        self.overwrite = True
     ## \var entries
     # \internal
     # \brief Dictionary of citations
-    
+
+    ## \var autosave
+    # \internal
+    # \brief Flag marking if the bibliography should be saved to file on run time
+
+    ## \var updated
+    # \internal
+    # \brief Flag marking if the bibliography has been updated since the last save
+
+    ## \var force
+    # \internal
+    # \brief Flag to force bibliography to be written to file
+
+    ## \var file
+    # \internal
+    # \brief File name to use to save the bibliography
+
+    ## \var overwrite
+    # \internal
+    # \brief Flag allowing the current bibliography file to be overwritten
+
     ## \internal
     # \brief Adds a citation, ensuring each key is only saved once
     # \param entry Citation or list of citations to add to the bibliography
@@ -375,35 +401,77 @@ class bibliography(object):
                 cite_str += 'You can save this citation to file using cite.save().\n'
             cite_str += '-'*5 + '\n'
             globals.msg.notice(1, cite_str)
+
+        # after adding, we need to update the file
+        self.updated = True
     
     ## \internal
     # \brief Saves the bibliography to file
-    # \param file File name for the saved %bibliography
-    # \param overwrite Flag to allow %bibliography file to be overwritten if it already exists
     #
-    # If the %bibliography file already exists, and \a overwrite is set to false, an error will be raised.
+    # If the %bibliography file already exists, and overwrite is set to false, an error will be raised.
     # This is done because the BibTeX file cannot not be appended to (behavior of analyze.log), or else duplicated
     # citation keys would be recorded.
-    def save(self, file, overwrite=True):
-        # only the root rank should write the bibliography to disk
-        if len(self.entries) == 0 or comm.get_rank() != 0:
+    def save(self):
+        if not self.should_save():
             return
 
         # if the file already exists, notify the user if overwriting is on, or abort otherwise
-        if os.path.isfile(file):
-            if overwrite:
-                globals.msg.notice(3, 'cite.save: bibliography file %s already exists, overwriting.\n' % file)
-            else:
-                globals.msg.error('cite.save: bibliography file %s already exists, cannot save\n' % file)
+        if os.path.isfile(self.file):
+            if self.overwrite:
+                globals.msg.notice(3, 'cite.save: bibliography file %s already exists, overwriting.\n' % self.file)
+            # raise an error if autosaving for the first time and name conflict, or for any forced save
+            elif (self.autosave and self.first_save) or not self.autosave:
+                globals.msg.error('cite.save: bibliography file %s already exists, cannot save\n' % self.file)
                 raise RuntimeError('Cannot write bibliography')
 
         # dump all BibTeX entries to file (in no particular order)
-        f = open(file, 'w')
+        f = open(self.file, 'w')
         f.write('% This BibTeX file was automatically generated from HOOMD-blue\n')
         f.write('% Encoding: UTF-8\n\n')
         for entry in self.entries:
             f.write(self.entries[entry].bibtex() + '\n\n')
         f.close()
+
+        # after saving, we no longer need updating
+        self.updated = False
+        # toggle off first save so that overwriting is now allowed
+        if self.autosave and self.first_save:
+            self.first_save = False
+
+    ## \internal
+    # \brief Set parameters for saving the %bibliography file
+    # \param file %Bibliography file name
+    # \param autosave Flag to have %bibliography automatically saved as needed during run
+    # \param overwrite Flag to overwrite an existing %bibliography file
+    #
+    # If \a autosave is true, the bibliography will be automatically generated and updated each time run() is called.
+    def set_params(self, file=None, autosave=None, overwrite=None):
+        if file is not None:
+            self.file = file
+        if autosave is not None:
+            self.autosave = autosave
+        if overwrite is not None:
+            self.overwrite = overwrite
+
+    ## \internal
+    # \brief Set a flag to force the bibliography to be saved
+    def force_save(self):
+        self.force = True
+
+    ## \internal
+    # \brief Determines if the current rank should save the bibliography file
+    def should_save(self):
+        # only the root rank should save the bibliography
+        if len(self.entries) == 0 or comm.get_rank() != 0:
+            return False
+
+        # if a save is forced (one time), toggle off and always return true
+        if self.force:
+            force = False
+            return True
+
+        # otherwise, check for auto saving and bibliography is updated
+        return (self.autosave and self.updated)
 
 ## \internal
 # \brief Ensures that the global bibliography is properly initialized
@@ -435,22 +503,39 @@ def _ensure_global_bib():
 
     return globals.bib
 
-## Saves the automatically generated %bibliography to file
+## Saves the automatically generated %bibliography to a BibTeX file
 #
 # \param file File name for the saved %bibliography
 # \param overwrite Flag to allow %bibliography file to be overwritten if it already exists
+# \param force Flag to force generation of the bibliography immediately
 #
-# If the %bibliography file already exists, and \a overwrite is set to false, an error will be raised.
-# This is done because the BibTeX file cannot not be appended to (behavior of analyze.log), or else duplicated
+# If the BibTeX file already exists, and \a overwrite is set to false, an error will be raised.
+# This is done because the BibTeX file cannot not be appended to (behavior of analyze.log), or duplicated
 # citation keys would be recorded.
+#
+# If \a force is true, the BibTeX file will be written immediately. By default, the %bibliography
+# will check for new entries and (re-)generate each time that run() is called to ensure that all citations have been
+# included. In this case, the BibTeX file name only needs to be specified once, and when \a overwrite is false, multiple
+# calls to run() are permitted to overwrite \a file after ensuring that \a file did not exist before run() was called
+# the first time.
 #
 # \b Examples
 # \code
-# cite.save(file='citations.bib')
-# cite.save(overwrite=False)
+# cite.save(file='citenow.bib', force=True)
+# cite.save(file='citeonrun.bib', overwrite=False)
 # \endcode
-def save(file='hoomd.bib', overwrite=True):
+def save(file='hoomd.bib', overwrite=True, force=False):
     util.print_status_line()
     
-    if globals.bib is not None:
-        globals.bib.save(file, overwrite)
+    # force a bibliography to exist
+    bib = _ensure_global_bib()
+
+    # update the bibliography save parameters
+    bib.set_params(file=file, overwrite=overwrite)
+
+    # force save, or else mark to save later
+    if force:
+        bib.force_save()
+        bib.save()
+    else:
+        bib.set_params(autosave=True)

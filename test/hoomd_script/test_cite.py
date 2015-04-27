@@ -10,7 +10,7 @@ import tempfile
 class cite_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_empty(N=100, box=data.boxdim(L=20));
+        init.create_random(N=100, phi_p=0.05);
 
         sorter.set_params(grid=8)
         
@@ -95,11 +95,80 @@ class cite_tests (unittest.TestCase):
     
     ## Test that bibtex file will only overwrite when it is supposed to
     def test_overwrite(self):
-        # the tmp file already exists, so we can only write if overwrite is enabled
-        cite.save(file=self.tmp_file,overwrite=True)
-        
-        # okay, now try to do it with overwrite disabled and make sure we get an error
-        self.assertRaises(RuntimeError, cite.save, file=self.tmp_file, overwrite=False) 
+        # only the root rank should attempt to save
+        if comm.get_rank() == 0:
+            # the tmp file already exists, so we can only write if overwrite is enabled
+            cite.save(file=self.tmp_file,overwrite=True,force=True)
+
+            # okay, now try to do it with overwrite disabled and make sure we get an error
+            self.assertRaises(RuntimeError, cite.save, file=self.tmp_file, overwrite=False, force=True)
+        else:
+            fname = 'invalid%d' % comm.get_rank()
+            cite.save(file=fname,overwrite=True,force=True)
+            self.assertFalse(os.path.isfile(fname))
+
+    ## Test that the bibliography is automatically (or forcibly) generated as requested by the user
+    def test_autosave(self):
+        all = group.all()
+        integrate.mode_standard(dt=0.005)
+        integrate.nve(group=all)
+
+        if comm.get_rank() == 0:
+            # at first, nothing should be in the file
+            nl = sum(1 for line in open(self.tmp_file))
+            self.assertEqual(nl, 0)
+
+        # force a save at this immediate moment
+        cite.save(file=self.tmp_file, force=True)
+
+        if comm.get_rank() == 0:
+            nl1 = sum(1 for line in open(self.tmp_file))
+            self.assertTrue(nl1 > nl)
+
+        # add a citation and request a delayed save
+        c = cite.misc(cite_key='test')
+        cite._ensure_global_bib().add(c)
+        cite.save(file=self.tmp_file)
+
+        # this should not change the file yet
+        if comm.get_rank() == 0:
+            nl2 = sum(1 for line in open(self.tmp_file))
+            self.assertEqual(nl1, nl2)
+
+        # then, call run. shouldn't be able to save because a file already exists
+        cite.save(file=self.tmp_file, overwrite=False)
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, run, 1)
+            nl2 = sum(1 for line in open(self.tmp_file))
+            self.assertEqual(nl1, nl2)
+
+        # when overwriting is turned on, run should work now
+        cite.save(file=self.tmp_file, overwrite=True)
+        run(1)
+        if comm.get_rank() == 0:
+            nl2 = sum(1 for line in open(self.tmp_file))
+            self.assertTrue(nl2 > nl1)
+
+        # add another record
+        c2 = cite.misc(cite_key='test2')
+        cite._ensure_global_bib().add(c2)
+        cite.save(file=self.tmp_file, overwrite=False)
+        # run again, this should add the extra citation (and because we already turned saving on,
+        # it will just do it again)
+        run(1)
+        if comm.get_rank() == 0:
+            nl3 = sum(1 for line in open(self.tmp_file))
+            self.assertTrue(nl3 > nl2)
+
+        # finally, make sure that if we switch overwriting off, it still works
+        c3 = cite.misc(cite_key='test3')
+        cite._ensure_global_bib().add(c3)
+        # run again, this should add the extra citation (and because we already turned saving on,
+        # it will just do it again)
+        run(1)
+        if comm.get_rank() == 0:
+            nl4 = sum(1 for line in open(self.tmp_file))
+            self.assertTrue(nl4 > nl3)
 
     def tearDown(self):
         init.reset();
