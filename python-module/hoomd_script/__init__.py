@@ -102,9 +102,6 @@ from hoomd_script import cite;
 # output the version info on import
 globals.msg.notice(1, hoomd.output_version_info())
 
-# create the bibliography on import with HOOMD citations that are always needed
-cite._ensure_global_bib()
-
 ## \internal
 # \brief Internal python variable
 
