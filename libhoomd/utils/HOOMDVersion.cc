@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 /*! \file HOOMDVersion.cc
-    \brief Defines functions for writing compile time version information to the screen.
+    \brief Defines functions for formatting compile time version information as a string.
 
     \ingroup utils
 */
@@ -128,12 +128,12 @@ string output_version_info()
 
     // warn the user if they are running a debug or GPU emulation build
 #ifndef NDEBUG
-    o << endl << "WARNING: This is a DEBUG build, expect slow performance." << endl << endl;
+    o << endl << "WARNING: This is a DEBUG build, expect slow performance." << endl;
 #endif
 
 #ifdef ENABLE_CUDA
 #ifdef _DEVICEEMU
-    o << endl << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl << endl;
+    o << endl << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
 #endif
 #endif
     return o.str();

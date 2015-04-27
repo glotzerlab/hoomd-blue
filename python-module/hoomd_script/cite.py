@@ -75,9 +75,7 @@ import os
 # 2. the string name for the BibTeX record
 #
 # Optionally, deriving objects may supply a list of BibTeX keys that are required. The record will then be validated
-# for the existence of these keys when the record is added to the bibliography. The constructor of each deriving
-# record should always conclude by (1) adding the record to the global bibliography and (2) calling log() if logging
-# is enabled.
+# for the existence of these keys when the record is added to a bibliography.
 class _citation(object):
     ## \internal
     # \brief Constructs a citation
@@ -101,6 +99,7 @@ class _citation(object):
         self.required_entries = []
         self.bibtex_type = None
         
+        # initialize all standard keys as member variables
         for key in _citation.standard_keys:
             setattr(self,key,None)
 
@@ -150,7 +149,7 @@ class _citation(object):
         return wrapper.fill(out) + '\n'
     
     ## \internal
-    # \brief Get the citation in human readable format (except for the author string, which is automatically prepended)
+    # \brief Get the citation in human readable format
     # \note Deriving classes \b must implement this method themselves.
     def __str__(self):
         globals.msg.error('Bug in hoomd_script.cite: each deriving class must implement its own string method\n')
@@ -158,13 +157,11 @@ class _citation(object):
     
     ## \internal
     # \brief Ensures that all required fields have been set
-    # \returns True on completion
     def validate(self):
         for entry in self.required_entries:
             if getattr(self,entry) is None:
                 globals.msg.error('Bug in hoomd_script.cite: required field %s not set, please report\n' % entry)
                 raise RuntimeError('Required citation field not set')
-        return True
 
     ## \internal
     # \brief Formats the author name list
@@ -267,9 +264,7 @@ class article(_citation):
         self.note = note
         self.key = key
         self.doi = doi
-    
-    ## \internal
-    # \brief Get the rest of the citation as a string
+
     def __str__(self):
         out = ''
         if self.author is not None:
@@ -305,15 +300,14 @@ class misc(_citation):
         self.month = month
         self.note = note
         self.key = key
-    
-    ## \internal
-    # \brief Get the rest of the citation as a string
+
     def __str__(self):
         out = ''
         if self.author is not None:
             out += self.format_authors(True)
-            out += '. '
         if self.title is not None:
+            if len(out) > 0:
+                out += '. '
             out += '"%s"' % self.title
         if self.howpublished is not None:
             if len(out) > 0:
@@ -328,8 +322,9 @@ class misc(_citation):
 ## \internal
 # \brief Collection of citations
 #
-# A %bibliography is a dictionary of all citations that have been generated. It ensures that each citation is unique,
-# and provides a mechanism for generating a BibTeX file.
+# A %bibliography is a dictionary of citations. It ensures that each citation exists only once for a given key,
+# and provides a mechanism for generating a BibTeX file. If two citations attempt to use the same citation key, only
+# the most recent citation object is used for that entry.
 class bibliography(object):
     ## \internal
     # \brief Creates a bibliography
@@ -341,30 +336,34 @@ class bibliography(object):
     
     ## \internal
     # \brief Adds a citation, ensuring each key is only saved once
-    # \param entry Citation or citations to add to the bibliography
+    # \param entry Citation or list of citations to add to the bibliography
     def add(self, entry):
         # wrap the entry as a list if it is not
         if not isinstance(entry, (list,tuple)):
             entry = [entry]
 
+        # parse unique sets of features out of attached citations
         features = {}
         for e in entry:
             e.validate()
             self.entries[e.cite_key] = e
+
             log_str = e.log()
-            if log_str is not None:
+            if log_str is not None: # if display is enabled and log returns an output
+                # if a feature is specified, we try to group them together into logical sets
                 if e.feature is not None:
                     if e.feature not in features:
                         features[e.feature] = [log_str]
                     else:
                         features[e.feature] += [log_str]
-                else:
+                else: # otherwise, just print the feature without any decoration
                     cite_str = '-'*5 + '\n'
                     cite_str += 'Read and cite the following:\n'
                     cite_str += log_str
                     cite_str += '-'*5 + '\n'
                     globals.msg.notice(1, cite_str)
 
+        # print each feature set together
         for f in features:
             cite_str = '-'*5 + '\n'
             cite_str += 'You are using %s. Read and cite the following:\n' % f
@@ -374,8 +373,15 @@ class bibliography(object):
     
     ## \internal
     # \brief Saves the bibliography to file
+    # \param file File name for the saved %bibliography
+    # \param overwrite Flag to allow %bibliography file to be overwritten if it already exists
+    #
+    # If the %bibliography file already exists, and \a overwrite is set to false, an error will be raised.
+    # This is done because the BibTeX file cannot not be appended to (behavior of analyze.log), or else duplicated
+    # citation keys would be recorded.
     def save(self, file, overwrite=True):
-        if len(self.entries) == 0:
+        # only the root rank should write the bibliography to disk
+        if len(self.entries) == 0 or comm.get_rank() != 0:
             return
 
         # if the file already exists, notify the user if overwriting is on, or abort otherwise
@@ -386,18 +392,24 @@ class bibliography(object):
                 globals.msg.error('cite.save: bibliography file %s already exists, cannot save\n' % file)
                 raise RuntimeError('Cannot write bibliography')
 
-        # only the root rank should write the bibliography to disk
-        if comm.get_rank() == 0:
-            f = open(file, 'w')
-            f.write('% This BibTeX file was automatically generated from HOOMD-blue\n')
-            f.write('% Encoding: UTF-8\n\n')
-            for entry in self.entries:
-                f.write(self.entries[entry].bibtex() + '\n\n')
-            f.close()
+        # dump all BibTeX entries to file (in no particular order)
+        f = open(file, 'w')
+        f.write('% This BibTeX file was automatically generated from HOOMD-blue\n')
+        f.write('% Encoding: UTF-8\n\n')
+        for entry in self.entries:
+            f.write(self.entries[entry].bibtex() + '\n\n')
+        f.close()
 
 ## \internal
 # \brief Ensures that the global bibliography is properly initialized
 # \returns Global bibliography
+#
+# Citations generated in hoomd_script should always attach to a single global bibliography. This makes %bibliography
+# generation invisible to the HOOMD users (that is, they should never actually instantiate a bibliography themselves).
+# This function provides a convenient way to get the global bibliography while ensuring that it exists: if globals.bib
+# already exists, it returns it. Otherwise, globals.bib is first created and then returned. Any %bibliography in HOOMD
+# always includes two references: (1) the original HOOMD paper and (2) the HOOMD-blue website, which are automatically
+# put into the global bibliography. Subsequent citations are then added to these citations.
 def _ensure_global_bib():
     if globals.bib is None:
         globals.bib = bibliography()
