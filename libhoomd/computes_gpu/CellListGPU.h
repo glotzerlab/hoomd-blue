@@ -92,6 +92,8 @@ class CellListGPU : public CellList
         virtual void computeCellList();
 
         boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+
+        mgpu::ContextPtr m_mgpu_context;      //!< moderngpu context
     };
 
 //! Exports CellListGPU to python
