@@ -73,7 +73,13 @@ def print_status_line():
     stack = traceback.extract_stack();
     if len(stack) < 3:
         globals.msg.notice(2, "hoomd_script executing unknown command\n");
-    file_name, line, module, code = stack[-3];
+
+    if sys.version_info < (3,5):
+        frame = -3
+    else:
+        frame = -4
+
+    file_name, line, module, code = stack[frame];
 
     # if we are in interactive mode, there is no need to print anything: the
     # interpreter loop does it for us. We can make that check by testing if
