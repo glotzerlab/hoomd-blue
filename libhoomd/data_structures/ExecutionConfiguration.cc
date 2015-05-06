@@ -123,13 +123,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         int dev_count = getNumCapableGPUs();
 
         if (dev_count > 0)
-            {
             exec_mode = GPU;
-
-            // if we are not running in compute exclusive mode, use
-            // local MPI rank as preferred GPU id
-            gpu_id = m_system_compute_exclusive ? -1 : guessLocalRank();
-            }
         else
             exec_mode = CPU;
         }
@@ -139,6 +133,10 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
         {
+        // if we are not running in compute exclusive mode, use
+        // local MPI rank as preferred GPU id
+        gpu_id = m_system_compute_exclusive ? -1 : guessLocalRank();
+
         initializeGPU(gpu_id, min_cpu);
         }
 #else
