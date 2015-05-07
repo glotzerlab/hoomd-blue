@@ -115,13 +115,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #ifdef ENABLE_CUDA
     // scan the available GPUs
     scanGPUs(ignore_display);
+    int dev_count = getNumCapableGPUs();
 
     // auto select a mode
     if (exec_mode == AUTO)
         {
         // if there are available GPUs, initialize them. Otherwise, default to running on the CPU
-        int dev_count = getNumCapableGPUs();
-
         if (dev_count > 0)
             exec_mode = GPU;
         else
@@ -135,7 +134,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         {
         // if we are not running in compute exclusive mode, use
         // local MPI rank as preferred GPU id
-        gpu_id = m_system_compute_exclusive ? -1 : guessLocalRank();
+        gpu_id = m_system_compute_exclusive ? -1 : (guessLocalRank() % dev_count);
 
         initializeGPU(gpu_id, min_cpu);
         }
