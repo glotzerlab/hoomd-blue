@@ -185,7 +185,6 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
                     // Insert ranks per node into an ordered set (multimap doesn't guarantee order
                     // and thus order can be different on different ranks, especially after deserialization)
                     node_rank_set.clear();
-                    unsigned k  =0;
                     for (map_t::iterator it = p.first; it != p.second; ++it)
                         {
                         node_rank_set.insert(it->second);
