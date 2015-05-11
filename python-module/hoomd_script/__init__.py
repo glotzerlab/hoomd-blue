@@ -102,6 +102,9 @@ from hoomd_script import cite;
 # output the version info on import
 globals.msg.notice(1, hoomd.output_version_info())
 
+# ensure creation of global bibliography to print HOOMD base citations
+cite._ensure_global_bib()
+
 ## \internal
 # \brief Internal python variable
 
@@ -210,9 +213,6 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     if not init.is_initialized():
         globals.msg.error("Cannot run before initialization\n");
         raise RuntimeError('Error running');
-
-    # save the bibliography at run time
-    cite._ensure_global_bib().save()
 
     if globals.integrator is None:
         globals.msg.warning("Starting a run without an integrator set");

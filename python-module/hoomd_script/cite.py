@@ -331,11 +331,8 @@ class bibliography(object):
     def __init__(self):
         self.entries = {}
         self.autosave = False
-        self.first_save = True
         self.updated = False
-        self.force = False
         self.file = 'hoomd.bib'
-        self.overwrite = True
     ## \var entries
     # \internal
     # \brief Dictionary of citations
@@ -348,17 +345,9 @@ class bibliography(object):
     # \internal
     # \brief Flag marking if the bibliography has been updated since the last save
 
-    ## \var force
-    # \internal
-    # \brief Flag to force bibliography to be written to file
-
     ## \var file
     # \internal
     # \brief File name to use to save the bibliography
-
-    ## \var overwrite
-    # \internal
-    # \brief Flag allowing the current bibliography file to be overwritten
 
     ## \internal
     # \brief Adds a citation, ensuring each key is only saved once
@@ -369,7 +358,7 @@ class bibliography(object):
             entry = [entry]
 
         # parse unique sets of features out of attached citations
-        features = {}
+        citations = {}
         for e in entry:
             e.validate()
             self.entries[e.cite_key] = e
@@ -378,10 +367,10 @@ class bibliography(object):
             if log_str is not None: # if display is enabled and log returns an output
                 # if a feature is specified, we try to group them together into logical sets
                 if e.feature is not None:
-                    if e.feature not in features:
-                        features[e.feature] = [log_str]
+                    if e.feature not in citations:
+                        citations[e.feature] = [log_str]
                     else:
-                        features[e.feature] += [log_str]
+                        citations[e.feature] += [log_str]
                 else: # otherwise, just print the feature without any decoration
                     cite_str = '-'*5 + '\n'
                     cite_str += 'Read and cite the following:\n'
@@ -391,11 +380,11 @@ class bibliography(object):
                     globals.msg.notice(1, cite_str)
 
         # print each feature set together
-        for f in features:
+        for feature in citations:
             cite_str = '-'*5 + '\n'
-            cite_str += 'You are using %s. Read and cite the following:\n' % f
-            cite_str += 'and\n'.join(features[f])
-            if len(features[f]) > 1:
+            cite_str += 'You are using %s. Read and cite the following:\n' % feature
+            cite_str += 'and\n'.join(citations[feature])
+            if len(citations[feature]) > 1:
                 cite_str += 'You can save these citations to file using cite.save().\n'
             else:
                 cite_str += 'You can save this citation to file using cite.save().\n'
@@ -404,25 +393,16 @@ class bibliography(object):
 
         # after adding, we need to update the file
         self.updated = True
-    
+
+        # if autosaving is enabled, bibliography should try to save itself to file
+        if self.autosave:
+            self.save()
+
     ## \internal
     # \brief Saves the bibliography to file
-    #
-    # If the %bibliography file already exists, and overwrite is set to false, an error will be raised.
-    # This is done because the BibTeX file cannot not be appended to (behavior of analyze.log), or else duplicated
-    # citation keys would be recorded.
     def save(self):
         if not self.should_save():
             return
-
-        # if the file already exists, notify the user if overwriting is on, or abort otherwise
-        if os.path.isfile(self.file):
-            if self.overwrite:
-                globals.msg.notice(3, 'cite.save: bibliography file %s already exists, overwriting.\n' % self.file)
-            # raise an error if autosaving for the first time and name conflict, or for any forced save
-            elif (self.autosave and self.first_save) or not self.autosave:
-                globals.msg.error('cite.save: bibliography file %s already exists, cannot save\n' % self.file)
-                raise RuntimeError('Cannot write bibliography')
 
         # dump all BibTeX entries to file (in no particular order)
         f = open(self.file, 'w')
@@ -434,29 +414,18 @@ class bibliography(object):
 
         # after saving, we no longer need updating
         self.updated = False
-        # toggle off first save so that overwriting is now allowed
-        if self.autosave and self.first_save:
-            self.first_save = False
 
     ## \internal
     # \brief Set parameters for saving the %bibliography file
     # \param file %Bibliography file name
     # \param autosave Flag to have %bibliography automatically saved as needed during run
-    # \param overwrite Flag to overwrite an existing %bibliography file
     #
-    # If \a autosave is true, the bibliography will be automatically generated and updated each time run() is called.
-    def set_params(self, file=None, autosave=None, overwrite=None):
+    # If \a autosave is true, the bibliography will be automatically saved to file each time a new citation is added.
+    def set_params(self, file=None, autosave=None):
         if file is not None:
             self.file = file
         if autosave is not None:
             self.autosave = autosave
-        if overwrite is not None:
-            self.overwrite = overwrite
-
-    ## \internal
-    # \brief Set a flag to force the bibliography to be saved
-    def force_save(self):
-        self.force = True
 
     ## \internal
     # \brief Determines if the current rank should save the bibliography file
@@ -465,13 +434,8 @@ class bibliography(object):
         if len(self.entries) == 0 or comm.get_rank() != 0:
             return False
 
-        # if a save is forced (one time), toggle off and always return true
-        if self.force:
-            force = False
-            return True
-
-        # otherwise, check for auto saving and bibliography is updated
-        return (self.autosave and self.updated)
+        # otherwise, check if the bibliography has been updated since last save
+        return self.updated
 
 ## \internal
 # \brief Ensures that the global bibliography is properly initialized
@@ -506,36 +470,23 @@ def _ensure_global_bib():
 ## Saves the automatically generated %bibliography to a BibTeX file
 #
 # \param file File name for the saved %bibliography
-# \param overwrite Flag to allow %bibliography file to be overwritten if it already exists
-# \param force Flag to force generation of the bibliography immediately
 #
-# If the BibTeX file already exists, and \a overwrite is set to false, an error will be raised.
-# This is done because the BibTeX file cannot not be appended to (behavior of analyze.log), or duplicated
-# citation keys would be recorded.
-#
-# If \a force is true, the BibTeX file will be written immediately. By default, the %bibliography
-# will check for new entries and (re-)generate each time that run() is called to ensure that all citations have been
-# included. In this case, the BibTeX file name only needs to be specified once, and when \a overwrite is false, multiple
-# calls to run() are permitted to overwrite \a file after ensuring that \a file did not exist before run() was called
-# the first time.
+# After save() is called for the first time, the %bibliography will (re-)generate each time that a new feature is added
+# to ensure that all citations have been included. If \a file already exists, it will be overwritten.
 #
 # \b Examples
 # \code
-# cite.save(file='citenow.bib', force=True)
-# cite.save(file='citeonrun.bib', overwrite=False)
+# cite.save()
+# cite.save(file='cite.bib')
 # \endcode
-def save(file='hoomd.bib', overwrite=True, force=False):
+def save(file='hoomd.bib'):
     util.print_status_line()
     
     # force a bibliography to exist
     bib = _ensure_global_bib()
 
     # update the bibliography save parameters
-    bib.set_params(file=file, overwrite=overwrite)
+    bib.set_params(file=file, autosave=True)
 
-    # force save, or else mark to save later
-    if force:
-        bib.force_save()
-        bib.save()
-    else:
-        bib.set_params(autosave=True)
+    # save to file
+    bib.save()
