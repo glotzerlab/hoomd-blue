@@ -691,7 +691,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     if (!m_quiet_run)
         printStats();
 
-    // throw a StopIteration exception if we timed out, but only if the user is using the HOOMD_WALLTIME_STOP feature
+    // throw a WalltimeLimitReached exception if we timed out, but only if the user is using the HOOMD_WALLTIME_STOP feature
     if (timeout_end_run && walltime_stop != NULL)
         {
         PyErr_SetString(walltimeLimitExceptionTypeObj, "HOOMD_WALLTIME_STOP reached");
