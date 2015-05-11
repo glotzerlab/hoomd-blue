@@ -189,10 +189,10 @@ def get_hoomd_script_version():
 # \a phase=0 on logs, file dumps, and other periodic tasks. With phase=0, these tasks will continue on the same
 # sequence regardless of the restart period.
 #
-# Set the environment variable `HOOMD_WALLTIME_START` prior to executing `hoomd` to stop the run() at a given wall
-# clock time. run() monitors performance and tries to ensure that it will end *before* `HOOMD_WALLTIME_START`. This
+# Set the environment variable `HOOMD_WALLTIME_STOP` prior to executing `hoomd` to stop the run() at a given wall
+# clock time. run() monitors performance and tries to ensure that it will end *before* `HOOMD_WALLTIME_STOP`. This
 # environment variable works even with multiple stages of runs in a script (use run_upto()). Set the variable to
-# a unix epoch time. For example in a job script that should run 12 hours, set `HOOMD_WALLTIME_START` to 12 hours from
+# a unix epoch time. For example in a job script that should run 12 hours, set `HOOMD_WALLTIME_STOP` to 12 hours from
 # now, minus 10 minutes to allow for job cleanup.
 # ~~~
 # export HOOMD_WALLTIME_STOP=$((`date +%s` + 12 * 3600 - 10 * 60))
