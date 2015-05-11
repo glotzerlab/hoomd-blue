@@ -26,6 +26,11 @@ class analyze_msd_tests (unittest.TestCase):
         analyze.msd(period = 10, filename=self.tmp_file, groups=[group.all()]);
         run(100);
 
+    # tests with phase
+    def test_phase(self):
+        analyze.msd(period = 10, filename=self.tmp_file, groups=[group.all()], phase=0);
+        run(100);
+
     # test variable period
     def test_variable(self):
         analyze.msd(period = lambda n: n*10, filename=self.tmp_file, groups=[group.all()]);
