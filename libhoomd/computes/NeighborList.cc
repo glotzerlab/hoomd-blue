@@ -191,6 +191,8 @@ NeighborList::~NeighborList()
         m_migrate_request_connection.disconnect();
     if (m_comm_flags_request.connected())
         m_comm_flags_request.disconnect();
+    if (m_ghost_layer_width_request.connected())
+        m_ghost_layer_width_request.disconnect();
 #endif
     }
 
@@ -299,16 +301,6 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
         throw runtime_error("Error changing NeighborList parameters");
         }
 
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        Scalar rmax = m_r_cut + m_r_buff;
-        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-        rmax += m_d_max - Scalar(1.0);
-        m_comm->setGhostLayerWidth(rmax);
-        m_comm->setRBuff(m_r_buff);
-        }
-#endif
     forceUpdate();
     }
 
@@ -1339,19 +1331,11 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
     if (!m_comm)
         {
         // only add the migrate request on the first call
+        assert(comm);
+
         m_migrate_request_connection = comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
         m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
-        }
-
-    if (comm)
-        {
-        m_comm = comm;
-
-        Scalar rmax = m_r_cut + m_r_buff;
-        // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-        rmax += m_d_max - Scalar(1.0);
-        m_comm->setGhostLayerWidth(rmax);
-        m_comm->setRBuff(m_r_buff);
+        m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(bind(&NeighborList::getGhostLayerWidth, this));
         }
     }
 
