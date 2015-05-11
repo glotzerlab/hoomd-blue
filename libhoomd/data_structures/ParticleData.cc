@@ -1690,6 +1690,9 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
         // should the particle migrate?
         if (new_rank != owner_rank)
             {
+            // we are changing the local particle number, so remove ghost particles
+            removeAllGhostParticles();
+
             m_exec_conf->msg->notice(6) << "Moving particle " << tag << " from rank " << owner_rank << " to " << new_rank << std::endl;
 
             if (ptl_local)
