@@ -23,7 +23,7 @@ set(_libhoomd_cu_sources "")
 
 # process all subdirectories, which add source files to _libhoomd_sources and _libhoomd_cu_sources
 set(_dir_list analyzers communication computes data_structures extern
-    potentials python system updaters utils)
+    potentials system updaters utils)
 if (ENABLE_CUDA)
 list(APPEND _dir_list computes_gpu cuda updaters_gpu)
 endif (ENABLE_CUDA)
@@ -31,6 +31,9 @@ endif (ENABLE_CUDA)
 foreach (dir ${_dir_list})
 add_libhoomd_source_dir(${dir})
 endforeach (dir)
+
+# Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc
+set_source_files_properties(${_libhoomd_sources} ${_libhoomd_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
 if (ENABLE_CUDA)
 if (BUILD_SHARED_LIBS)
@@ -40,7 +43,7 @@ CUDA_COMPILE(_CUDA_GENERATED_FILES ${_libhoomd_cu_sources} OPTIONS ${CUDA_ADDITI
 source_group(cuda_generated FILES ${_CUDA_GENERATED_FILES})
 endif (ENABLE_CUDA)
 
-add_library (libhoomd ${_libhoomd_sources} ${_CUDA_GENERATED_FILES})
+add_library (libhoomd ${_libhoomd_sources} ${_CUDA_GENERATED_FILES} python/hoomd_module.cc)
 
 ##################################
 # change the name of the library if it is dynamic
@@ -102,4 +105,4 @@ install(TARGETS libhoomd
         )
 
 add_subdirectory(api)
-
+add_subdirectory(python)

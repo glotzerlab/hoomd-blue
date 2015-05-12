@@ -66,6 +66,7 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
 
 - Required to compile:
     - Python >= 2.6
+    - numpy >= 1.7
     - boost >= 1.39.0
     - CMake >= 2.6.2
     - C++ Compiler

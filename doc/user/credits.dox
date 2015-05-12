@@ -408,6 +408,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 \endverbatim
 
 <hr>
+num_util is embedded in HOOMD's package.
+
+\verbatim
+Copyright 2006  Phil Austin (http://www.eos.ubc.ca/personal/paustin)
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+\endverbatim
+
+<hr>
 <h1>Libraries</h1>
 <hr>
 HOOMD-blue links to the following libraries, possibly statically or dynamically depending on configuration options chosen at build time <br>

@@ -192,6 +192,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDVersion.h"
 #include "PathUtils.h"
 
+#include "num_util.h"
+
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -199,6 +201,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::filesystem;
 using namespace boost::python;
+namespace bnp=boost::python::numeric;
 
 #include <iostream>
 #include <sstream>
@@ -208,6 +211,31 @@ using namespace std;
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
+
+/* numpy is terrible (see /opt/local/Library/Frameworks/Python.framework/Versions/2.7/
+lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
+The following #defines help get around this
+*/
+
+#if PY_VERSION_HEX >= 0x03000000
+#define MY_PY_VER_3x
+#else
+#define MY_PY_VER_2x
+#endif
+
+#ifdef MY_PY_VER_3x
+void *my_import_array()
+    {
+    import_array();
+    return NULL;
+    }
+#endif
+#ifdef MY_PY_VER_2x
+void my_import_array()
+    {
+    import_array();
+    }
+#endif
 
 //! Function to export the tersoff parameter type to python
 void export_tersoff_params()
@@ -451,6 +479,10 @@ BOOST_PYTHON_MODULE(hoomd)
     // register clean-up function
     Py_AtExit(finalize_mpi);
     #endif
+
+    // setup needed for numpy
+    my_import_array();
+    bnp::array::set_module_and_type("numpy", "ndarray");
 
     def("abort_mpi", abort_mpi);
 
