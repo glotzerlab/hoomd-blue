@@ -136,6 +136,19 @@ namespace num_util{
   }
 
   /**
+   *Function template creates a one-dimensional numpy array of length n containing
+   *a reference of data at data*.  See num_util.cpp::getEnum<T>() for list of specializations
+   *@param T  C type of data
+   *@param T* data pointer to start of data
+   *@param n an integer indicates the size of the array.
+   *@return a numpy array that references data.
+   */
+  template <typename T> boost::python::numeric::array makeNumFromData(T* data, intp n = 0){
+    boost::python::object obj(boost::python::handle<>(PyArray_SimpleNewFromData(1, &n, getEnum<T>(), (void*)data)));
+    return boost::python::extract<boost::python::numeric::array>(obj);
+  }
+
+  /**
    *Function template creates an n-dimensional numpy array with dimensions dimens containing
    *a copy of values starting at data.  See num_util.cpp::getEnum<T>() for list of specializations
    *@param T  C type of data
@@ -153,6 +166,18 @@ namespace num_util{
     return boost::python::extract<boost::python::numeric::array>(obj);
   }
 
+  /**
+   *Function template creates an n-dimensional numpy array with dimensions dimens containing
+   *a reference of values starting at data.  See num_util.cpp::getEnum<T>() for list of specializations
+   *@param T  C type of data
+   *@param T*  data pointer to start of data
+   *@param dims size of each array dimension
+   *@return a numpy array of size that references data.
+   */
+  template <typename T> boost::python::numeric::array makeNumFromData(T * data, std::vector<intp> dims){
+    boost::python::object obj(boost::python::handle<>(PyArray_SimpleNewFromData(dims.size(),&dims[0], getEnum<T>(), (void*)data)));
+    return boost::python::extract<boost::python::numeric::array>(obj);
+  }
 
   /**
    *Creates a numpy array from a numpy array, referencing the data.
