@@ -65,6 +65,9 @@ using namespace boost::python;
 #include "Communicator.h"
 #endif
 
+using namespace std;
+using namespace hpmc::detail;
+
 NeighborListTree::NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)

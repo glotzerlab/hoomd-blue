@@ -63,6 +63,8 @@ using namespace boost::python;
 #include "Communicator.h"
 #endif
 
+#include "CachedAllocator.h"
+
 #include <iostream>
 using namespace std;
 
@@ -272,10 +274,15 @@ void NeighborListGPU::buildHeadList()
     
     m_req_size_nlist.resetFlags(0);
     
+    // initialize and allocate
+    void *d_tmp_storage = NULL;
+    size_t tmp_storage_bytes = 0;
+
     m_tuner_head_list->begin();
     gpu_nlist_build_head_list(d_head_list.data,
                               m_req_size_nlist.getDeviceFlags(),
-                              m_tmp_allocator,
+                              d_tmp_storage,
+                              tmp_storage_bytes,
                               d_Nmax.data,
                               d_pos.data,
                               m_pdata->getN(),
@@ -284,7 +291,22 @@ void NeighborListGPU::buildHeadList()
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_head_list->end();
-        
+
+    // allocate temporary storage (unsigned char = 1 B)
+    ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), tmp_storage_bytes);
+    d_tmp_storage = (void*)d_alloc();
+
+    // prefix sum
+    gpu_nlist_build_head_list(d_head_list.data,
+                              m_req_size_nlist.getDeviceFlags(),
+                              d_tmp_storage,
+                              tmp_storage_bytes,
+                              d_Nmax.data,
+                              d_pos.data,
+                              m_pdata->getN(),
+                              m_pdata->getNTypes(),
+                              m_tuner_head_list->getParam());
+
     unsigned int req_size_nlist = m_req_size_nlist.readFlags();
     resizeNlist(req_size_nlist);
     

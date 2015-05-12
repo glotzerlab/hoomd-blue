@@ -174,7 +174,7 @@ class NeighborList : public Compute
         // @{
         
         //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_buff, Scalar r_cut);
+        virtual void setRCut(Scalar r_cut, Scalar r_buff);
         
         //! Change the cutoff radius by pair
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
@@ -355,7 +355,6 @@ class NeighborList : public Compute
 #ifdef ENABLE_MPI
             if (m_comm)
                 {
-                // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
                 Scalar r_max = m_r_cut_max + m_r_buff;
                 if (m_diameter_shift);
                     r_max += m_d_max - Scalar(1.0);

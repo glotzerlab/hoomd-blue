@@ -100,8 +100,6 @@ class NeighborListGPU : public NeighborList
 
             m_tuner_filter.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_filter", this->m_exec_conf));
             m_tuner_head_list.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_head_list", this->m_exec_conf));
-            
-            m_tmp_allocator = init_cub_allocator();
             }
 
         //! Destructor
@@ -113,8 +111,6 @@ class NeighborListGPU : public NeighborList
             #endif
 
             cudaEventDestroy(m_event);
-            
-            del_cub_allocator(m_tmp_allocator);
             }
 
         //! Set autotuner parameters
@@ -188,8 +184,6 @@ class NeighborListGPU : public NeighborList
         #ifdef ENABLE_MPI
         boost::signals2::connection m_callback_connection; //!< Connection to Communicator
         #endif
-        
-        cub::CachingDeviceAllocator *m_tmp_allocator;   //!< Temporary device memory caching allocator
 
     private:
         boost::scoped_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size

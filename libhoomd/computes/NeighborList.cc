@@ -479,8 +479,6 @@ void NeighborList::updateRList()
     \note Under NO circumstances should calling this method produce any
     appreciable amount of overhead. This is mainly a warning to
     derived classes.
-    
-    \todo Correct this method to factor in differing particle types.
 */
 Scalar NeighborList::estimateNNeigh()
     {
@@ -1345,11 +1343,11 @@ void NeighborList::buildHeadList()
  */
 void NeighborList::resizeNlist(unsigned int size)
     {
-    if (size > m_nlist.getPitch())
+    if (size > m_nlist.getNumElements())
         {
         m_exec_conf->msg->notice(6) << "nlist: (Re-)allocating neighbor list" << endl;
         
-        unsigned int alloc_size = m_nlist.getPitch() ? m_nlist.getPitch() : 1;
+        unsigned int alloc_size = m_nlist.getNumElements() ? m_nlist.getNumElements() : 1;
         
         while (size > alloc_size)
             {

@@ -68,8 +68,8 @@ using namespace boost;
 NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_n_images(0), m_type_changed(false), m_box_changed(true),
-      m_max_num_changed(false), m_n_leaf(0), m_n_internal(0), m_n_node(0)
+    : NeighborListGPU(sysdef, r_cut, r_buff), m_type_changed(false), m_box_changed(true),
+      m_max_num_changed(false), m_n_leaf(0), m_n_internal(0), m_n_node(0), m_n_images(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUTree" << endl;
     
@@ -463,11 +463,31 @@ void NeighborListGPUTree::sortMortonCodes()
         ArrayHandle<unsigned int> d_map_tree_pid_alt(m_map_tree_pid_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> h_num_per_type(m_num_per_type, access_location::host, access_mode::read);
         
+        // size the temporary storage
+        void *d_tmp_storage = NULL;
+        size_t tmp_storage_bytes = 0;
         gpu_nlist_morton_sort(d_morton_types.data,
                               d_morton_types_alt.data,
                               d_map_tree_pid.data,
                               d_map_tree_pid_alt.data,
-                              m_tmp_allocator,
+                              d_tmp_storage,
+                              tmp_storage_bytes,
+                              swap_morton,
+                              swap_map,
+                              m_pdata->getN() + m_pdata->getNGhosts(),
+                              m_n_type_bits);
+
+        // allocate temporary storage (unsigned char = 1 B)
+        ScopedAllocation<unsigned char> d_alloc(m_exec_conf->getCachedAllocator(), tmp_storage_bytes);
+        d_tmp_storage = (void *)d_alloc();
+
+        // perform the sort
+        gpu_nlist_morton_sort(d_morton_types.data,
+                              d_morton_types_alt.data,
+                              d_map_tree_pid.data,
+                              d_map_tree_pid_alt.data,
+                              d_tmp_storage,
+                              tmp_storage_bytes,
                               swap_morton,
                               swap_map,
                               m_pdata->getN() + m_pdata->getNGhosts(),

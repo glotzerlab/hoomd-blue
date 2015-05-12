@@ -56,12 +56,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for cell list generation on the GPU
 */
 
-// forward declaration of the cub temporary storage allocator
-namespace cub
-    {
-    struct CachingDeviceAllocator;
-    };
-
 #include <cuda_runtime.h>
 
 #include "HOOMDMath.h"
@@ -94,7 +88,8 @@ cudaError_t gpu_nlist_filter(unsigned int *d_n_neigh,
 //! Kernel driver to build head list on gpu
 cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
                                       unsigned int *d_req_size_nlist,
-                                      cub::CachingDeviceAllocator *allocator,
+                                      void *d_tmp_storage,
+                                      size_t &tmp_storage_bytes,
                                       const unsigned int *d_Nmax,
                                       const Scalar4 *d_pos,
                                       const unsigned int N,
@@ -112,11 +107,5 @@ cudaError_t gpu_update_exclusion_list(const unsigned int *d_tag,
                                 unsigned int *d_ex_list_idx,
                                 const Index2D& ex_list_indexer,
                                 const unsigned int N);
-                                
-//! Creates a new temporary storage allocator on the heap
-cub::CachingDeviceAllocator* init_cub_allocator();
-
-//! Deletes a temporary storage allocator object
-void del_cub_allocator(cub::CachingDeviceAllocator *allocator);
 
 #endif

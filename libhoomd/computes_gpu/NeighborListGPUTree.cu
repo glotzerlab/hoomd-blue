@@ -262,7 +262,8 @@ cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
  * \param d_morton_types_alt Auxiliary array of equal size to d_morton_types for double buffered sorting
  * \param d_map_tree_pid List of particle ids
  * \param d_map_tree_pid_alt Auxiliary array of equal size to d_map_tree_pid for double buffered sorting
- * \param allocator Device caching allocator for temporary memory
+ * \param d_tmp_storage Temporary storage in device memory
+ * \param tmp_storage_bytes Number of bytes allocated for temporary storage
  * \param swap_morton Flag to switch real data from auxiliary array to primary array after sorting
  * \param swap_map Flag to switch real data from auxiliary array to primary array after sorting
  * \param Ntot Total number of keys to sort
@@ -275,12 +276,19 @@ cudaError_t gpu_nlist_morton_types(uint64_t *d_morton_types,
  * in an unsigned integer key, and N is the number of keys. We restrict the number of bits checked in the max 64 bit
  * keys by only checking up to the MORTON_CODE_BITS + n_type_bits most significant bit. CUB DeviceRadixSort performs
  * its own tuning at run time.
+ *
+ * Because CUB requires temporary storage, this function must be called twice. First, when \a d_tmp_storage is NULL,
+ * the number of bytes required for temporary storage is saved in \a tmp_storage_bytes. This memory must then be
+ * allocated in \a d_tmp_storage. On the second call, the radix sort is performed. Because the radix sort may put the
+ * active (sorted) buffer in either slot of the DoubleBuffer, a boolean flag is set in \a swap_morton and \a swap_map
+ * for whether these data arrays should be swapped.
  */   
 cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
                                   uint64_t *d_morton_types_alt,
                                   unsigned int *d_map_tree_pid,
                                   unsigned int *d_map_tree_pid_alt,
-                                  cub::CachingDeviceAllocator *allocator,
+                                  void *d_tmp_storage,
+                                  size_t &tmp_storage_bytes,
                                   bool &swap_morton,
                                   bool &swap_map,
                                   const unsigned int Ntot,
@@ -289,11 +297,9 @@ cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
     // initialize memory as "double buffered"   
     cub::DoubleBuffer<uint64_t> d_keys(d_morton_types, d_morton_types_alt);
     cub::DoubleBuffer<unsigned int> d_vals(d_map_tree_pid, d_map_tree_pid_alt);
-    
-    // get the size of temporary storage needed
-    // we are sorting 30 bit morton codes, so don't need to check all 32 bits (will save a little bit of time)
-    size_t tmp_storage_bytes = 0;
-    void *d_tmp_storage = NULL;
+
+    // on the first pass, this just sizes the temporary storage
+    // on the second pass, it actually does the radix sort
     cub::DeviceRadixSort::SortPairs(d_tmp_storage,
                                     tmp_storage_bytes,
                                     d_keys,
@@ -301,24 +307,14 @@ cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
                                     Ntot,
                                     0,
                                     MORTON_CODE_BITS+n_type_bits);
-    
-    allocator->DeviceAllocate(&d_tmp_storage, tmp_storage_bytes);
-    
-    // do the sort
-    cub::DeviceRadixSort::SortPairs(d_tmp_storage,
-                                    tmp_storage_bytes,
-                                    d_keys,
-                                    d_vals,
-                                    Ntot,
-                                    0,
-                                    MORTON_CODE_BITS+n_type_bits);
-    
-    // mark that the gpu arrays should be flipped if the final result is not in the right array
-    swap_morton = (d_keys.selector == 1);
-    swap_map = (d_vals.selector == 1);
-    
-    // free the temporary storage
-    allocator->DeviceFree(d_tmp_storage);
+
+    // we've only done something to the buffers on the second time when temporary storage is allocated
+    if (d_tmp_storage != NULL)
+        {
+        // mark that the gpu arrays should be flipped if the final result is not in the right array
+        swap_morton = (d_keys.selector == 1);
+        swap_map = (d_vals.selector == 1);
+        }
     
     return cudaSuccess;
     }

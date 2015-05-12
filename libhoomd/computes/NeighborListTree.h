@@ -51,8 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborList.h"
 #include "AABBTree.h"
-
-using namespace hpmc::detail;
+#include <vector>
 
 /*! \file NeighborListTree.h
     \brief Declares the NeighborListTree class
@@ -73,6 +72,11 @@ using namespace hpmc::detail;
  * and use point AABBs for the particles. The neighbor list is built by traversing down the tree with an AABB
  * that encloses the pairwise cutoff for the particle. Periodic boundaries are treated by translating the query AABB
  * by all possible image vectors, many of which are trivially rejected for not intersecting the root node.
+ *
+ * Because one tree is built per type, complications can arise if particles change type "on the fly" during a
+ * a simulation. At present, there is no signal for the types of particles changing (only the total number of types).
+ * Any class directly modifying the types of particles \b must signal this change to NeighborListTree using
+ * notifyParticleSort().
  *
  * \ingroup computes
  */
@@ -130,13 +134,13 @@ class NeighborListTree : public NeighborList
     
         // we use stl vectors here because these tree data structures should *never* be
         // accessed on the GPU, they were optimized for the CPU with SIMD support
-        vector<AABBTree>      m_aabb_trees;     //!< Flat array of AABB trees of all types
-        vector<AABB>          m_aabbs;          //!< Flat array of AABBs of all types
-        vector<unsigned int>  m_num_per_type;   //!< Total number of particles per type
-        vector<unsigned int>  m_type_head;      //!< Index of first particle of each type, after sorting
-        vector<unsigned int>  m_map_pid_tree;   //!< Maps the particle id to its tag in tree for sorting
+        std::vector<hpmc::detail::AABBTree>      m_aabb_trees;     //!< Flat array of AABB trees of all types
+        std::vector<hpmc::detail::AABB>          m_aabbs;          //!< Flat array of AABBs of all types
+        std::vector<unsigned int>  m_num_per_type;   //!< Total number of particles per type
+        std::vector<unsigned int>  m_type_head;      //!< Index of first particle of each type, after sorting
+        std::vector<unsigned int>  m_map_pid_tree;   //!< Maps the particle id to its tag in tree for sorting
 
-        vector< vec3<Scalar> > m_image_list;    //!< List of translation vectors
+        std::vector< vec3<Scalar> > m_image_list;    //!< List of translation vectors
         unsigned int m_n_images;                //!< The number of image vectors to check
         
         //! Driver for tree configuration
