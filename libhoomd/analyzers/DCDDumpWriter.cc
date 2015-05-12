@@ -426,11 +426,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         // this only works in 2D simulations, obviously
         if (m_angle)
             {
-            Scalar s = 1;
-            if (snapshot.orientation[i].w < 0)
-                s = -1;
-
-            m_staging_buffer[group_idx] = acosf(snapshot.orientation[i].x) * 2 * s;
+            m_staging_buffer[group_idx] = float(atan2(snapshot.orientation[i].w, snapshot.orientation[i].x) * 2);
             }
         }
 
