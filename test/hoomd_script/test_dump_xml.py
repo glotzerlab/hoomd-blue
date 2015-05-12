@@ -17,6 +17,10 @@ class dmp_xml_tests (unittest.TestCase):
     def test(self):
         dump.xml(filename="dump_xml", period=100);
 
+    # tests with phase
+    def test(self):
+        dump.xml(filename="dump_xml", period=100, phase=0);
+
     # test variable period
     def test_variable(self):
         dump.xml(filename="dump_xml", period=lambda n: n*100);

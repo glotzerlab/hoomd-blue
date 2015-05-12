@@ -87,8 +87,7 @@ using namespace std;
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
     : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_r_cut_max(_r_cut), m_r_buff(r_buff), m_d_max(1.0),
       m_filter_body(false), m_diameter_shift(false), m_storage_mode(half), m_updates(0), m_forced_updates(0),
-      m_dangerous_updates(0), m_force_update(true), m_dist_check(true), m_has_been_updated_once(false),
-      m_want_exclusions(false)
+      m_dangerous_updates(0), m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -105,6 +104,8 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     m_last_check_result = false;
     m_every = 0;
     m_exclusions_set = false;
+
+    m_need_reallocate_exlist = false;
 
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
@@ -160,7 +161,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
 
     // note: this breaks O(N/P) memory scaling
-    GPUArray<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
+    GPUVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
 
     GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, exec_conf);
@@ -206,19 +207,6 @@ void NeighborList::reallocate()
     // resize the head list and number of neighbors per particle
     m_head_list.resize(m_pdata->getMaxN());
     m_n_neigh.resize(m_pdata->getMaxN());
-
-    if (m_n_ex_tag.getNumElements() != m_pdata->getRTags().size())
-        {
-        m_n_ex_tag.resize(m_pdata->getRTags().size());
-        m_ex_list_tag.resize(m_pdata->getRTags().size(), m_ex_list_tag.getHeight());
-        m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
-
-        // clear all exclusions
-        clearExclusions();
-
-        // they need to be added again
-        m_want_exclusions = true;
-        }
     
     // force a rebuild
     forceUpdate();
@@ -248,6 +236,8 @@ NeighborList::~NeighborList()
         m_migrate_request_connection.disconnect();
     if (m_comm_flags_request.connected())
         m_comm_flags_request.disconnect();
+    if (m_ghost_layer_width_request.connected())
+        m_ghost_layer_width_request.disconnect();
 #endif
 
     m_num_type_change_conn.disconnect();
@@ -409,20 +399,6 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
             r_cut_max = r_cut_max_i;
         }
     m_r_cut_max = r_cut_max;
-        
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        Scalar r_list_max = m_r_cut_max + m_r_buff;
-        
-        // diameter shifting requires to communicate a larger rlist
-        if (m_diameter_shift)
-            r_list_max += m_d_max - Scalar(1.0);
-            
-        m_comm->setGhostLayerWidth(r_list_max);
-        m_comm->setRBuff(m_r_buff);
-        }
-#endif
     forceUpdate();
     }
     
@@ -438,19 +414,6 @@ void NeighborList::setRBuff(Scalar r_buff)
         m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
-
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        Scalar r_list_max = m_r_cut_max + m_r_buff;
-        // diameter shifting requires to communicate a larger rlist
-        if (m_diameter_shift)
-            r_list_max += m_d_max - Scalar(1.0);
-            
-        m_comm->setGhostLayerWidth(r_list_max);
-        m_comm->setRBuff(m_r_buff);
-        }
-#endif
     forceUpdate();
     } 
 
@@ -509,6 +472,8 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
 
+    assert(! m_need_reallocate_exlist);
+
     m_exclusions_set = true;
 
     // don't add an exclusion twice
@@ -551,9 +516,6 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         h_n_ex_tag.data[tag2]++;
         }
 
-    // Exclusions have been added, so assume the exclusion list is now current
-    m_want_exclusions = false;
-
     forceUpdate();
     }
 
@@ -561,11 +523,28 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 */
 void NeighborList::clearExclusions()
     {
+    // reallocate list of exclusions per tag if necessary
+    if (m_need_reallocate_exlist)
+        {
+        m_n_ex_tag.resize(m_pdata->getRTags().size());
+
+        // slave the width of the exclusion list to the capacity of the number of exclusions array
+        // in order to amortize reallocation costs
+        if (m_ex_list_tag.getPitch() != m_n_ex_tag.getNumElements())
+            {
+            m_ex_list_tag.resize(m_n_ex_tag.getNumElements(), m_ex_list_tag.getHeight());
+            m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
+            }
+
+        m_need_reallocate_exlist = false;
+        }
+
+
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
-    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getRTags().size());
-    memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_pdata->getN());
+    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_n_ex_tag.getNumElements());
+    memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_n_ex_idx.getNumElements());
     m_exclusions_set = false;
 
     forceUpdate();
@@ -598,6 +577,8 @@ void NeighborList::countExclusions()
     unsigned int MAX_COUNT_EXCLUDED = 16;
     unsigned int excluded_count[MAX_COUNT_EXCLUDED+2];
     unsigned int num_excluded, max_num_excluded;
+
+    assert(! m_need_reallocate_exlist);
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
 
@@ -755,6 +736,8 @@ void NeighborList::addExclusionsFromDihedrals()
 */
 bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
+    assert(! m_need_reallocate_exlist);
+
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
 
@@ -1215,8 +1198,11 @@ void NeighborList::buildNlist(unsigned int timestep)
 */
 void NeighborList::updateExListIdx()
     {
+    assert(! m_need_reallocate_exlist);
+
     if (m_prof)
         m_prof->push("update-ex");
+
     // access data
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -1411,21 +1397,11 @@ void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
     if (!m_comm)
         {
         // only add the migrate request on the first call
+        assert(comm);
+
         m_migrate_request_connection = comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
         m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
-        }
-
-    if (comm)
-        {
-        m_comm = comm;
-
-        Scalar r_list_max = m_r_cut_max + m_r_buff;
-        // diameter shifting requires to communicate a larger rlist
-        if (m_diameter_shift)
-            r_list_max += m_d_max - Scalar(1.0);
-            
-        m_comm->setGhostLayerWidth(r_list_max);
-        m_comm->setRBuff(m_r_buff);
+        m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(bind(&NeighborList::getGhostLayerWidth, this));
         }
     }
 

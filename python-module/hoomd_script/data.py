@@ -743,7 +743,7 @@ class system_data:
         if name == "box":
             b = self.sysdef.getParticleData().getGlobalBox();
             L = b.getL();
-            return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ());
+            return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ(), dimensions=self.sysdef.getNDimensions());
 
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;

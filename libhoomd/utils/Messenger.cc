@@ -215,11 +215,11 @@ void Messenger::errorStr(const std::string& msg) const
 */
 std::ostream& Messenger::warning() const
     {
+    if (m_rank != 0) return *m_nullstream;
+
     assert(m_warning_stream);
     if (m_warning_prefix != string(""))
         *m_warning_stream << m_warning_prefix << ": ";
-   if (m_nranks > 1)
-        *m_err_stream << " (Rank " << m_rank << "): ";
     return *m_warning_stream;
     }
 

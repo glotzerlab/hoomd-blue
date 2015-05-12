@@ -69,8 +69,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include <stdexcept>
+#include <time.h>
 
 using namespace std;
+
+PyObject* walltimeLimitExceptionTypeObj = 0;
 
 /*! \param sysdef SystemDefinition for the system to be simulated
     \param initial_tstep Initial time step of the simulation
@@ -80,7 +83,7 @@ using namespace std;
     statistics are printed every 10 seconds.
 */
 System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
-        : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
+        : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep), m_cur_tps(0),
         m_last_status_time(0), m_last_status_tstep(initial_tstep), m_quiet_run(false),
         m_profile(false), m_stats_period(10)
     {
@@ -103,13 +106,15 @@ System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_
     \param name A unique name to identify the Analyzer by
     \param period Analyzer::analyze() will be called for every time step that is a multiple
     of \a period.
+    \param phase Phase offset. A value of -1 sets no phase, updates start on the current step. A value of 0 or greater
+                 sets the analyzer to run at steps where (step % (period + phase)) == 0.
 
     All Analyzers will be called, in the order that they are added, and with the specified
     \a period during time step calculations performed when run() is called. An analyzer
     can be prevented from running in future runs by removing it (removeAnalyzer()) before
     calling run()
 */
-void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period)
+void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(analyzer);
@@ -126,8 +131,16 @@ void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string
             }
         }
 
+    unsigned int start_step = m_cur_tstep;
+    if (phase >= 0)
+        {
+        // determine next step that is in line with period + phase
+        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
+        start_step = multiple * period + phase;
+        }
+
     // if we get here, we can add it
-    m_analyzers.push_back(analyzer_item(analyzer, name, period, m_cur_tstep));
+    m_analyzers.push_back(analyzer_item(analyzer, name, period, m_cur_tstep, start_step));
     }
 
 /*! \param name Name of the Analyzer to find in m_analyzers
@@ -172,13 +185,21 @@ boost::shared_ptr<Analyzer> System::getAnalyzer(const std::string& name)
 /*! \param name Name of the Analyzer to modify
     \param period New period to set
 */
-void System::setAnalyzerPeriod(const std::string& name, unsigned int period)
+void System::setAnalyzerPeriod(const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(period != 0);
 
+    unsigned int start_step = m_cur_tstep;
+    if (phase >= 0)
+        {
+        // determine next step that is in line with period + phase
+        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
+        start_step = multiple * period + phase;
+        }
+
     vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
-    i->setPeriod(period, m_cur_tstep);
+    i->setPeriod(period, start_step);
     }
 
 /*! \param name Name of the Updater to modify
@@ -228,13 +249,15 @@ std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::s
     \param name A unique name to identify the Updater by
     \param period Updater::update() will be called for every time step that is a multiple
     of \a period.
+    \param phase Phase offset. A value of -1 sets no phase, updates start on the current step. A value of 0 or greater
+                 sets the analyzer to run at steps where (step % (period + phase)) == 0.
 
     All Updaters will be called, in the order that they are added, and with the specified
     \a period during time step calculations performed when run() is called. An updater
     can be prevented from running in future runs by removing it (removeUpdater()) before
     calling run()
 */
-void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period)
+void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(updater);
@@ -251,8 +274,16 @@ void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& n
             }
         }
 
+    unsigned int start_step = m_cur_tstep;
+    if (phase >= 0)
+        {
+        // determine next step that is in line with period + phase
+        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
+        start_step = multiple * period + phase;
+        }
+
     // if we get here, we can add it
-    m_updaters.push_back(updater_item(updater, name, period, m_cur_tstep));
+    m_updaters.push_back(updater_item(updater, name, period, m_cur_tstep, start_step));
     }
 
 /*! \param name Name of the Updater to be removed
@@ -275,14 +306,23 @@ boost::shared_ptr<Updater> System::getUpdater(const std::string& name)
 
 /*! \param name Name of the Updater to modify
     \param period New period to set
+    \param phase New phase to set
 */
-void System::setUpdaterPeriod(const std::string& name, unsigned int period)
+void System::setUpdaterPeriod(const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(period != 0);
 
+    unsigned int start_step = m_cur_tstep;
+    if (phase >= 0)
+        {
+        // determine next step that is in line with period + phase
+        unsigned int multiple = m_cur_tstep / period + (m_cur_tstep % period != 0);
+        start_step = multiple * period + phase;
+        }
+
     vector<System::updater_item>::iterator i = findUpdaterItem(name);
-    i->setPeriod(period, m_cur_tstep);
+    i->setPeriod(period, start_step);
     }
 
 /*! \param name Name of the Updater to modify
@@ -408,6 +448,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                  boost::python::object callback, double limit_hours,
                  unsigned int limit_multiple)
     {
+    // track if a wall clock timeout ended the run
+    unsigned int timeout_end_run = 0;
+    char *walltime_stop = getenv("HOOMD_WALLTIME_STOP");
 
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
@@ -476,24 +519,53 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 {
                 if (m_cur_tstep % limit_multiple == 0)
                     {
-                    unsigned int end_run = 0;
                     int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
                     if (int64_t(cur_time) - initial_time > time_limit)
-                        end_run = 1;
+                        timeout_end_run = 1;
 
                     #ifdef ENABLE_MPI
                     // if any processor wants to end the run, end it on all processors
                     if (m_comm)
-                        MPI_Allreduce(MPI_IN_PLACE, &end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                        MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
                     #endif
 
-                    if (end_run)
+                    if (timeout_end_run)
                         {
                         m_exec_conf->msg->notice(2) << "Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
                         break;
                         }
                     }
                 }
+
+            // check if wall clock time limit has passed
+            if (walltime_stop != NULL)
+                {
+                if (m_cur_tstep % limit_multiple == 0)
+                    {
+                    time_t end_time = atoi(walltime_stop);
+                    time_t predict_time = time(NULL);
+
+                    // predict when the next limit_multiple will be reached
+                    if (m_cur_tps != Scalar(0))
+                        predict_time += time_t(Scalar(limit_multiple) / m_cur_tps);
+
+                    if (predict_time >= end_time)
+                        timeout_end_run = 1;
+
+                    #ifdef ENABLE_MPI
+                    // if any processor wants to end the run, end it on all processors
+                    if (m_comm)
+                        MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                    #endif
+
+                    if (timeout_end_run)
+                        {
+                        m_exec_conf->msg->notice(2) << "Ending run before HOOMD_WALLTIME_STOP - current time step: " << m_cur_tstep << endl;
+                        break;
+                        }
+                    }
+                }
+
             // execute python callback, if present and needed
             // a negative return value indicates immediate end of run.
             if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
@@ -510,8 +582,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
             if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
                 {
-                if (!m_quiet_run)
-                    generateStatusLine();
+                generateStatusLine();
                 m_last_status_time = cur_time;
                 m_last_status_tstep = m_cur_tstep;
 
@@ -590,8 +661,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     #endif
 
     // generate a final status line
-    if (!m_quiet_run)
-        generateStatusLine();
+    generateStatusLine();
     m_last_status_tstep = m_cur_tstep;
 
     // execute python callback, if present and needed
@@ -621,6 +691,12 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     if (!m_quiet_run)
         printStats();
 
+    // throw a WalltimeLimitReached exception if we timed out, but only if the user is using the HOOMD_WALLTIME_STOP feature
+    if (timeout_end_run && walltime_stop != NULL)
+        {
+        PyErr_SetString(walltimeLimitExceptionTypeObj, "HOOMD_WALLTIME_STOP reached");
+        boost::python::throw_error_already_set();
+        }
     }
 
 /*! \param enable Set to true to enable profiling during calls to run()
@@ -782,12 +858,16 @@ void System::generateStatusLine()
 
     // time steps per second
     Scalar TPS = Scalar(m_cur_tstep - m_last_status_tstep) / Scalar(cur_time - m_last_status_time) * Scalar(1e9);
+    m_cur_tps = TPS;
 
     // estimated time to go (base on current TPS)
     string ETA = ClockSource::formatHMS(int64_t((m_end_tstep - m_cur_tstep) / TPS * Scalar(1e9)));
 
     // write the line
-    m_exec_conf->msg->notice(1) << "Time " << t_elap << " | Step " << m_cur_tstep << " / " << m_end_tstep << " | TPS " << TPS << " | ETA " << ETA << endl;
+    if (!m_quiet_run)
+        {
+        m_exec_conf->msg->notice(1) << "Time " << t_elap << " | Step " << m_cur_tstep << " / " << m_end_tstep << " | TPS " << TPS << " | ETA " << ETA << endl;
+        }
     }
 
 /*! \param tstep Time step for which to determine the flags
@@ -818,8 +898,28 @@ PDataFlags System::determineFlags(unsigned int tstep)
     return flags;
     }
 
+//! Create a custom exception
+PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_Exception)
+    {
+    // http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class
+
+    using std::string;
+    namespace bp = boost::python;
+
+    string scopeName = bp::extract<string>(bp::scope().attr("__name__"));
+    string qualifiedName0 = scopeName + "." + name;
+    char* qualifiedName1 = const_cast<char*>(qualifiedName0.c_str());
+
+    PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
+    if(!typeObj) bp::throw_error_already_set();
+    bp::scope().attr(name) = bp::handle<>(bp::borrowed(typeObj));
+    return typeObj;
+    }
+
 void export_System()
     {
+    walltimeLimitExceptionTypeObj = createExceptionClass("WalltimeLimitReached");
+
     class_< System, boost::shared_ptr<System>, boost::noncopyable > ("System", init< boost::shared_ptr<SystemDefinition>, unsigned int >())
     .def("addAnalyzer", &System::addAnalyzer)
     .def("removeAnalyzer", &System::removeAnalyzer)

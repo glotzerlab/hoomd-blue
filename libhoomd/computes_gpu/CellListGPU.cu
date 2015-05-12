@@ -51,6 +51,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CellListGPU.cuh"
 
+#include "util/mgpucontext.h"
+#include "kernels/localitysort.cuh"
+
 /*! \file CellListGPU.cu
     \brief Defines GPU kernel code for cell list generation on the GPU
 */
@@ -647,6 +650,154 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                                               ci,
                                                               cli,
                                                               ghost_width);
+
+    return cudaSuccess;
+    }
+
+__global__ void gpu_fill_indices_kernel(
+    unsigned int cl_size,
+    uint2 *d_idx,
+    unsigned int *d_sort_permutation,
+    unsigned int *d_cell_idx,
+    unsigned int *d_cell_size,
+    Index3D ci,
+    Index2D cli
+    )
+    {
+    unsigned int cell_idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (cell_idx >= cl_size) return;
+
+    unsigned int icell = cell_idx / cli.getW();
+    unsigned int pidx = UINT_MAX;
+
+    if (icell < ci.getNumElements())
+        {
+        unsigned int my_cell_size = d_cell_size[icell];
+        unsigned int ilocal = cell_idx % cli.getW();
+        if (ilocal < my_cell_size)
+            {
+            pidx = d_cell_idx[cell_idx];
+            }
+        }
+
+    // pack cell idx and particle idx into uint2
+    uint2 result;
+    result.x = icell;
+    result.y = pidx;
+
+    // write out result
+    d_idx[cell_idx] = result;
+
+    // write identity permutation
+    d_sort_permutation[cell_idx] = cell_idx;
+    }
+
+//! Lexicographic comparison operator on uint2
+struct comp_less_uint2
+    {
+    __device__ bool operator()(const uint2 a, const uint2 b)
+        {
+        return a.x < b.x || (a.x == b.x && a.y < b.y);
+        }
+    };
+
+__global__ void gpu_apply_sorted_cell_list_order(
+    unsigned int cl_size,
+    unsigned int *d_cell_idx,
+    unsigned int *d_cell_idx_new,
+    Scalar4 *d_xyzf,
+    Scalar4 *d_xyzf_new,
+    Scalar4 *d_tdb,
+    Scalar4 *d_tdb_new,
+    Scalar4 *d_cell_orientation,
+    Scalar4 *d_cell_orientation_new,
+    unsigned int *d_sort_permutation,
+    Index2D cli)
+    {
+    unsigned int cell_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (cell_idx >= cl_size)
+        return;
+
+    unsigned int perm_idx = d_sort_permutation[cell_idx];
+
+    d_xyzf_new[cell_idx] = d_xyzf[perm_idx];
+    if (d_cell_idx) d_cell_idx_new[cell_idx] = d_cell_idx[perm_idx];
+    if (d_tdb) d_tdb_new[cell_idx] = d_tdb[perm_idx];
+    if (d_cell_orientation) d_cell_orientation_new[cell_idx] = d_cell_orientation[perm_idx];
+    }
+
+/*! Driver function to sort the cell list on the GPU
+
+   This applies lexicographical order to cell idx, particle idx pairs
+   \param d_cell_size List of cell sizes
+   \param d_xyzf List of coordinates and flag
+   \param d_tdb List type diameter and body index
+   \param d_sort_idx Temporary array for storing the cell/particle indices to be sorted
+   \param d_sort_permutation Temporary array for storing the permuted cell list indices
+   \param ci Cell indexer
+   \param cli Cell list indexer
+   \param mgpu_context ModernGPU context
+ */
+cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
+                        Scalar4 *d_xyzf,
+                        Scalar4 *d_xyzf_new,
+                        Scalar4 *d_tdb,
+                        Scalar4 *d_tdb_new,
+                        Scalar4 *d_cell_orientation,
+                        Scalar4 *d_cell_orientation_new,
+                        unsigned int *d_cell_idx,
+                        unsigned int *d_cell_idx_new,
+                        uint2 *d_sort_idx,
+                        unsigned int *d_sort_permutation,
+                        const Index3D ci,
+                        const Index2D cli,
+                        mgpu::ContextPtr mgpu_context)
+    {
+    unsigned int block_size = 256;
+
+    // fill indices table with cell idx/particle idx pairs
+    dim3 threads(block_size);
+    dim3 grid(cli.getNumElements()/block_size + 1);
+
+    gpu_fill_indices_kernel<<<grid, threads>>>
+        (
+        cli.getNumElements(),
+        d_sort_idx,
+        d_sort_permutation,
+        d_cell_idx,
+        d_cell_size,
+        ci,
+        cli);
+
+    // locality sort on those pairs
+    mgpu::LocalitySortPairs(d_sort_idx, d_sort_permutation, cli.getNumElements(), *mgpu_context, comp_less_uint2());
+
+    // apply sorted order
+    gpu_apply_sorted_cell_list_order<<<grid, threads>>>(
+        cli.getNumElements(),
+        d_cell_idx,
+        d_cell_idx_new,
+        d_xyzf,
+        d_xyzf_new,
+        d_tdb,
+        d_tdb_new,
+        d_cell_orientation,
+        d_cell_orientation_new,
+        d_sort_permutation,
+        cli);
+
+    // copy back permuted arrays to original ones
+    cudaMemcpy(d_xyzf, d_xyzf_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(d_cell_idx, d_cell_idx_new, sizeof(unsigned int)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+    if (d_tdb)
+        {
+        cudaMemcpy(d_tdb, d_tdb_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+        }
+    if (d_cell_orientation)
+        {
+        cudaMemcpy(d_cell_orientation, d_cell_orientation_new, sizeof(Scalar4)*cli.getNumElements(), cudaMemcpyDeviceToDevice);
+        }
 
     return cudaSuccess;
     }
