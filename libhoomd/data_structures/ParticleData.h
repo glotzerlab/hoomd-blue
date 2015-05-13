@@ -81,6 +81,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/python.hpp>
 
 #ifdef ENABLE_MPI
 #include "Index1D.h"
@@ -238,6 +239,31 @@ struct SnapshotParticleData {
      */
     void replicate(unsigned int nx, unsigned int ny, unsigned int nz,
         const BoxDim& old_box, const BoxDim& new_box);
+
+    //! Get pos as a numpy array
+    boost::python::numeric::array getPosNP();
+    //! Get vel as a numpy array
+    boost::python::numeric::array getVelNP();
+    //! Get accel as a numpy array
+    boost::python::numeric::array getAccelNP();
+    //! Get type as a numpy array
+    boost::python::numeric::array getTypeNP();
+    //! Get mass as a numpy array
+    boost::python::numeric::array getMassNP();
+    //! Get charge as a numpy array
+    boost::python::numeric::array getChargeNP();
+    //! Get diameter as a numpy array
+    boost::python::numeric::array getDiameterNP();
+    //! Get image as a numpy array
+    boost::python::numeric::array getImageNP();
+    //! Get body as a numpy array
+    boost::python::numeric::array getBodyNP();
+    //! Get orientation as a numpy array
+    boost::python::numeric::array getOrientationNP();
+    //! Get the type names for python
+    boost::python::list getTypes();
+    //! Set the type names from python
+    void setTypes(boost::python::list types);
 
     std::vector<Scalar3> pos;       //!< positions
     std::vector<Scalar3> vel;       //!< velocities

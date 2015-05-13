@@ -69,6 +69,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CachedAllocator.h"
 #endif
 
+#include "num_util.h"
+
 #include <iostream>
 #include <cassert>
 #include <stdlib.h>
@@ -2863,20 +2865,137 @@ void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned 
         }
     }
 
+/*! \returns a numpy array that wraps the pos data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getPosNP()
+    {
+    std::vector<intp> dims(2);
+    dims[0] = pos.size();
+    dims[1] = 3;
+    return num_util::makeNumFromData((Scalar*)&pos[0], dims);
+    }
+
+/*! \returns a numpy array that wraps the pos data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getVelNP()
+    {
+    std::vector<intp> dims(2);
+    dims[0] = pos.size();
+    dims[1] = 3;
+    return num_util::makeNumFromData((Scalar*)&vel[0], dims);
+    }
+
+/*! \returns a numpy array that wraps the pos data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getAccelNP()
+    {
+    std::vector<intp> dims(2);
+    dims[0] = pos.size();
+    dims[1] = 3;
+    return num_util::makeNumFromData((Scalar*)&accel[0], dims);
+    }
+
+/*! \returns a numpy array that wraps the type data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getTypeNP()
+    {
+    return num_util::makeNumFromData((Scalar*)&type[0], type.size());
+    }
+
+/*! \returns a numpy array that wraps the mass data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getMassNP()
+    {
+    return num_util::makeNumFromData(&mass[0], mass.size());
+    }
+
+/*! \returns a numpy array that wraps the charge data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getChargeNP()
+    {
+    return num_util::makeNumFromData(&charge[0], charge.size());
+    }
+
+/*! \returns a numpy array that wraps the diameter data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getDiameterNP()
+    {
+    return num_util::makeNumFromData(&diameter[0], diameter.size());
+    }
+
+/*! \returns a numpy array that wraps the image data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getImageNP()
+    {
+    std::vector<intp> dims(2);
+    dims[0] = pos.size();
+    dims[1] = 3;
+    return num_util::makeNumFromData((int*)&image[0], dims);
+    }
+
+/*! \returns a numpy array that wraps the body data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getBodyNP()
+    {
+    return num_util::makeNumFromData(&body[0], body.size());
+    }
+
+/*! \returns a numpy array that wraps the orientation data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+boost::python::numeric::array SnapshotParticleData::getOrientationNP()
+    {
+    std::vector<intp> dims(2);
+    dims[0] = pos.size();
+    dims[1] = 4;
+    return num_util::makeNumFromData((Scalar*)&orientation[0], dims);
+    }
+
+/*! \returns A python list of type names
+*/
+boost::python::list SnapshotParticleData::getTypes()
+    {
+    boost::python::list types;
+
+    for (unsigned int i = 0; i < type_mapping.size(); i++)
+        types.append(str(type_mapping[i]));
+
+    return types;
+    }
+
+/*! \param types Python list of type names to set
+*/
+void SnapshotParticleData::setTypes(boost::python::list types)
+    {
+    type_mapping.resize(len(types));
+
+    for (unsigned int i = 0; i < len(types); i++)
+        type_mapping[i] = extract<string>(types[i]);
+    }
+
 void export_SnapshotParticleData()
     {
     class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData> >("SnapshotParticleData", init<unsigned int>())
-    .def_readwrite("pos", &SnapshotParticleData::pos)
-    .def_readwrite("vel", &SnapshotParticleData::vel)
-    .def_readwrite("accel", &SnapshotParticleData::accel)
-    .def_readwrite("type", &SnapshotParticleData::type)
-    .def_readwrite("mass", &SnapshotParticleData::mass)
-    .def_readwrite("charge", &SnapshotParticleData::charge)
-    .def_readwrite("diameter", &SnapshotParticleData::diameter)
-    .def_readwrite("image", &SnapshotParticleData::image)
-    .def_readwrite("body", &SnapshotParticleData::body)
-    .def_readwrite("type_mapping", &SnapshotParticleData::type_mapping)
-    .def_readwrite("size", &SnapshotParticleData::size)
+    .add_property("position", &SnapshotParticleData::getPosNP)
+    .add_property("velocity", &SnapshotParticleData::getVelNP)
+    .add_property("acceleration", &SnapshotParticleData::getAccelNP)
+    .add_property("typeid", &SnapshotParticleData::getTypeNP)
+    .add_property("mass", &SnapshotParticleData::getMassNP)
+    .add_property("charge", &SnapshotParticleData::getChargeNP)
+    .add_property("diameter", &SnapshotParticleData::getDiameterNP)
+    .add_property("image", &SnapshotParticleData::getImageNP)
+    .add_property("body", &SnapshotParticleData::getBodyNP)
+    .add_property("types", &SnapshotParticleData::getTypes, &SnapshotParticleData::setTypes)
+    .def_readonly("N", &SnapshotParticleData::size)
     .def("resize", &SnapshotParticleData::resize)
     ;
     }
