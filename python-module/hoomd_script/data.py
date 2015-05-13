@@ -537,7 +537,7 @@ class boxdim:
 
     def __str__(self):
         return 'Box: Lx=' + str(self.Lx) + ' Ly=' + str(self.Ly) + ' Lz=' + str(self.Lz) + ' xy=' + str(self.xy) + \
-                    ' xz='+ str(self.xz) + ' yz=' + str(self.yz);
+                    ' xz='+ str(self.xz) + ' yz=' + str(self.yz) + ' dimensions=' + str(self.dimensions);
 ##
 # \brief Access system data
 #
@@ -587,7 +587,7 @@ class system_data:
     # \endcode
     #
     # \MPI_SUPPORTED
-    def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None):
+    def take_snapshot(self,particles=True,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None):
         util.print_status_line();
 
         if all is True:
@@ -2025,3 +2025,69 @@ class body_data_proxy:
 
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
+
+## \internal
+# \brief Get data.boxdim from a SnapshotSystemData
+def get_snapshot_box(snapshot):
+    b = snapshot._global_box;
+    L = b.getL();
+    return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ(), dimensions=snapshot._dimensions);
+
+## \internal
+# \brief Set data.boxdim to a SnapshotSystemData
+def set_snapshot_box(snapshot, box):
+    snapshot._global_box = box._getBoxDim();
+    snapshot._dimensions = box.dimensions;
+
+# Inject a box property into SnapshotSystemData that provides and accepts boxdim objects
+hoomd.SnapshotSystemData.box = property(get_snapshot_box, set_snapshot_box);
+
+## Make an empty snapshot
+#
+# \param N Number of particles to create
+# \param box a data.boxdim object that defines the simulation box
+# \param particle_types List of particle type names (must not be zero length)
+# \param bond_types List of bond type names (may be zero length)
+# \param angle_types List of angle type names (may be zero length)
+# \param dihedral_types List of Dihedral type names (may be zero length)
+# \param improper_types List of improper type names (may be zero length)
+#
+# \b Examples:
+# \code
+# snapshot = data.make_snapshot(N=1000, box=data.boxdim(L=10))
+# snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
+# snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
+# ... set properties in snapshot ...
+# init.read_snapshot(snapshot);
+# \endcode
+#
+# make_snapshot() creates particles with <b> <i> DEFAULT VALUES</i> </b>. You must set reasonable values for particle
+# properties before initializing the system with init.read_snapshot().
+#
+# Specifically, all created particles have:
+# - position 0,0,0
+# - velocity 0,0,0
+# - image 0,0,0
+# - orientation 1,0,0,0
+# - typeid 0
+# - charge 0
+# - mass 1.0
+# - diameter 1.0
+#
+# make_snapshot() creates the particle, bond, angle, dihedral, and improper types with the names specified. Use these
+# type names later in the job script to refer to particles (i.e. in lj.set_params).
+#
+# \sa hoomd_script.init.read_snapshot()
+def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[]):
+    snapshot = hoomd.SnapshotSystemData();
+    snapshot.box = box;
+    snapshot.particles.resize(N);
+    snapshot.particles.types = particle_types;
+
+    # TODO: Uncomment when bond snapshot interface is written
+    # snapshot.bonds.types = bond_types;
+    # snapshot.angles.types = angle_types;
+    # snapshot.dihedrals.types = dihedral_types;
+    # snapshot.impropers.types = improper_types;
+
+    return snapshot;
