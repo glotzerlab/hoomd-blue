@@ -293,7 +293,7 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
     initializer = hoomd.HOOMDInitializer(my_exec_conf,filename_to_read,wrap_coordinates);
     snapshot = initializer.getSnapshot()
 
-    my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
+    my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
         globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
     else:
@@ -353,7 +353,7 @@ def read_bin(filename, time_step = None):
     initializer = hoomd.HOOMDBinaryInitializer(my_exec_conf,filename);
     snapshot = initializer.getSnapshot()
 
-    my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
+    my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
         globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
     else:
@@ -446,7 +446,7 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
     # initialize snapshot
     snapshot = generator.getSnapshot()
 
-    my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
+    my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
         globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
     else:
@@ -678,7 +678,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
     # copy over data to snapshot
     snapshot = generator.getSnapshot()
 
-    my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
+    my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
     if my_domain_decomposition is not None:
         globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
     else:
@@ -721,7 +721,7 @@ def read_snapshot(snapshot):
         globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error creating random polymers");
 
-    my_domain_decomposition = _create_domain_decomposition(snapshot.global_box);
+    my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
         globals.system_definition = hoomd.SystemDefinition(snapshot, my_exec_conf, my_domain_decomposition);
