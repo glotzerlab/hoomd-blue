@@ -79,7 +79,7 @@ from hoomd_script import util
 # * init.read_snapshot() initializes a simulation from a snapshot.
 #
 # \code
-# snapshot = system.take_snapshot(all=True)
+# snapshot = system.take_snapshot()
 # system.restore_snapshot(snapshot)
 # snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'])
 # # ... populate snapshot with data ...
@@ -636,63 +636,33 @@ class system_data:
     # in the snapshot.
     #
     # \param particles If true, particle data is included in the snapshot
-    # \param bonds If true, bond data is included in the snapshot
-    # \param angles If true, angle data is included in the snapshot
-    # \param dihedrals If true, dihedral data is included in the snapshot
-    # \param impropers If true, dihedral data is included in the snapshot
+    # \param bonds If true, bond, angle, dihedral, and improper data is included in the snapshot
     # \param rigid_bodies If true, rigid body data is included in the snapshot
     # \param walls If true, wall data is included in the snapshot
     # \param integrators If true, integrator data is included the snapshot
     # \param all If true, the entire system state is saved in the snapshot
     #
-    # Specific options (such as \b particles=True) take precedence over \b all=True.
-    #
     # \returns the snapshot object.
     #
     # \code
     # snapshot = system.take_snapshot()
-    # snapshot = system.take_snapshot(particles=true)
+    # snapshot = system.take_snapshot()
     # snapshot = system.take_snapshot(bonds=true)
     # \endcode
     #
     # \MPI_SUPPORTED
-    def take_snapshot(self,particles=True,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None):
+    def take_snapshot(self,particles=True,bonds=False, rigid_bodies=False, walls=False, integrators=False, all=False):
         util.print_status_line();
 
         if all is True:
-            if particles is None:
                 particles=True
-            if bonds is None:
                 bonds=True
-            if angles is None:
                 angles=True
-            if dihedrals is None:
                 dihedrals=True
-            if impropers is None:
                 impropers=True
-            if rigid_bodies is None:
                 rigid_bodies=True
-            if walls is None:
                 walls=True
-            if integrators is None:
                 integrators=True
-
-        if particles is None and not all:
-            particles = False
-        if bonds is None and not all:
-            bonds = False
-        if angles is None and not all:
-            angles = False
-        if dihedrals is None and not all:
-            dihedrals = False
-        if impropers is None and not all:
-            impropers = False
-        if rigid_bodies is None and not all:
-            rigid_bodies = False
-        if walls is None and not all:
-            walls = False
-        if integrators is None and not all:
-            integrators = False
 
         if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or walls or integrators):
             globals.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
