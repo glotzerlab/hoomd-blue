@@ -173,6 +173,7 @@ void BondedGroupData<group_size, Group, name>::initialize()
 
     // clear set of active tags
     m_tag_set.clear();
+    m_invalid_cached_tags = true;
 
     // clear reservoir of recycled tags
     while (! m_recycled_tags.empty())
@@ -396,6 +397,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 
     // add to set of active tags
     m_tag_set.insert(tag);
+    m_invalid_cached_tags = true;
 
     // increment number of bonded groups
     m_nglobal++;
@@ -413,9 +415,9 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 /*! \param n Index of bond in global bond table
  */
 template<unsigned int group_size, typename Group, const char *name>
-unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n) const
+unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n)
     {
-   if (n >= getNGlobal())
+    if (n >= getNGlobal())
         {
         m_exec_conf->msg->error() << name << ".*: " << name << " index " << n << " out of bounds!"
             << "The number of " << name << "s is " << getNGlobal() << std::endl;
@@ -423,11 +425,11 @@ unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n)
         }
 
     assert(m_tag_set.size() == getNGlobal());
-    std::set<unsigned int>::const_iterator it = m_tag_set.begin();
-    std::advance(it, n);
-    return *it;
-    }
 
+    // maybe_rebuild_tag_cache only rebuilds if necessary
+    maybe_rebuild_tag_cache();
+    return m_cached_tag_set[n];
+    }
 
 /*! \param tag Tag of bonded group
  * \returns the group
@@ -600,6 +602,7 @@ void BondedGroupData<group_size, Group, name>::removeBondedGroup(unsigned int ta
 
     // remove from set of active tags
     m_tag_set.erase(tag);
+    m_invalid_cached_tags = true;
 
     // maintain a stack of deleted group tags for future recycling
     m_recycled_tags.push(tag);
@@ -656,6 +659,31 @@ void BondedGroupData<group_size, Group, name>::setTypeName(unsigned int type, co
         }
 
     m_type_mapping[type] = new_name;
+    }
+
+/*! Rebuild the cached vector of active tags, if necessary
+*/
+template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::maybe_rebuild_tag_cache()
+    {
+    if(!m_invalid_cached_tags)
+        return;
+
+    // GPUVector checks if the resize is necessary
+    m_cached_tag_set.resize(m_tag_set.size());
+
+    ArrayHandle<unsigned int> h_active_tag(m_cached_tag_set, access_location::host, access_mode::overwrite);
+
+    // iterate over each element in the set, building a mapping
+    // from dense array indices to sparse particle tag indices
+    unsigned int i(0);
+    for(std::set<unsigned int>::const_iterator it(m_tag_set.begin());
+        it != m_tag_set.end(); ++it, ++i)
+        {
+        h_active_tag.data[i] = *it;
+        }
+
+    m_invalid_cached_tags = false;
     }
 
 template<unsigned int group_size, typename Group, const char *name>

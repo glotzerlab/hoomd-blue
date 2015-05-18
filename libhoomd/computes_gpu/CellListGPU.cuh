@@ -107,4 +107,18 @@ cudaError_t gpu_compute_cell_list_1x(unsigned int *d_cell_size,
                                      const Index2D& cli,
                                      const Scalar3& ghost_width);
 
+cudaError_t gpu_sort_cell_list(unsigned int *d_cell_size,
+                        Scalar4 *d_xyzf,
+                        Scalar4 *d_xyzf_new,
+                        Scalar4 *d_tdb,
+                        Scalar4 *d_tdb_new,
+                        Scalar4 *d_cell_orientation,
+                        Scalar4 *d_cell_orientation_new,
+                        unsigned int *d_cell_idx,
+                        unsigned int *d_cell_idx_new,
+                        uint2 *d_sort_idx,
+                        unsigned int *d_sort_permutation,
+                        const Index3D ci,
+                        const Index2D cli,
+                        mgpu::ContextPtr mgpu_context);
 #endif

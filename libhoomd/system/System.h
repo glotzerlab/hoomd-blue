@@ -113,7 +113,7 @@ class System
         // -------------- Analyzer get/set methods
 
         //! Adds an Analyzer
-        void addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period);
+        void addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period, int phase);
 
         //! Removes an Analyzer
         void removeAnalyzer(const std::string& name);
@@ -122,7 +122,7 @@ class System
         boost::shared_ptr<Analyzer> getAnalyzer(const std::string& name);
 
         //! Change the period of an Analyzer
-        void setAnalyzerPeriod(const std::string& name, unsigned int period);
+        void setAnalyzerPeriod(const std::string& name, unsigned int period, int phase);
 
         //! Change the period of an Analyzer to be variable
         void setAnalyzerPeriodVariable(const std::string& name, boost::python::object update_func);
@@ -133,7 +133,7 @@ class System
         // -------------- Updater get/set methods
 
         //! Adds an Updater
-        void addUpdater(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period);
+        void addUpdater(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase);
 
         //! Removes an Updater
         void removeUpdater(const std::string& name);
@@ -142,7 +142,7 @@ class System
         boost::shared_ptr<Updater> getUpdater(const std::string& name);
 
         //! Change the period of an Updater
-        void setUpdaterPeriod(const std::string& name, unsigned int period);
+        void setUpdaterPeriod(const std::string& name, unsigned int period, int phase);
 
         //! Change the period of an Updater to be variable
         void setUpdaterPeriodVariable(const std::string& name, boost::python::object update_func);
@@ -236,10 +236,11 @@ class System
                 \param name user defined name of the analyzer
                 \param period number of time steps between calls to Analyzer::analyze() for this analyzer
                 \param created_tstep time step the analyzer was created on
+                \param next_execute_tstep time step to first execute the analyzer
             */
             analyzer_item(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period,
-                          unsigned int created_tstep)
-                    : m_analyzer(analyzer), m_name(name), m_period(period), m_created_tstep(created_tstep), m_next_execute_tstep(created_tstep), m_is_variable_period(false), m_n(1)
+                          unsigned int created_tstep, unsigned int next_execute_tstep)
+                    : m_analyzer(analyzer), m_name(name), m_period(period), m_created_tstep(created_tstep), m_next_execute_tstep(next_execute_tstep), m_is_variable_period(false), m_n(1)
                 {
                 }
 
@@ -342,10 +343,11 @@ class System
                 \param name user defined name of the updater
                 \param period number of time steps between calls to Updater::update() for this updater
                 \param created_tstep time step the analyzer was created on
+                \param next_execute_tstep time step to first execute the analyzer
             */
             updater_item(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period,
-                         unsigned int created_tstep)
-                    : m_updater(updater), m_name(name), m_period(period), m_created_tstep(created_tstep), m_next_execute_tstep(created_tstep), m_is_variable_period(false), m_n(1)
+                         unsigned int created_tstep, unsigned int next_execute_tstep)
+                    : m_updater(updater), m_name(name), m_period(period), m_created_tstep(created_tstep), m_next_execute_tstep(next_execute_tstep), m_is_variable_period(false), m_n(1)
                 {
                 }
 
@@ -451,6 +453,7 @@ class System
         unsigned int m_start_tstep;     //!< Intial time step of the current run
         unsigned int m_end_tstep;       //!< Final time step of the current run
         unsigned int m_cur_tstep;       //!< Current time step
+        Scalar m_cur_tps;               //!< Current average TPS
 
         ClockSource m_clk;              //!< A clock counting time from the beginning of the run
         uint64_t m_last_status_time;    //!< Time (measured by m_clk) of the last time generateStatusLine() was called

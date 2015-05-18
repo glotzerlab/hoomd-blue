@@ -25,6 +25,11 @@ class analyze_log_tests (unittest.TestCase):
         analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
         run(100);
 
+    # tests with phase
+    def test_phase(self):
+        analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file, phase=0);
+        run(100);
+
     # test set_params
     def test_set_params(self):
         ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
