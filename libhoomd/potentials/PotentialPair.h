@@ -172,7 +172,7 @@ class PotentialPair : public ForceCompute
         //! Get ghost particle fields requested by this pair potential
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
         #endif
-        
+
         //! Calculates the energy between two lists of particles.
         template< class InputIterator >
         void computeEnergyBetweenSets(  InputIterator first1, InputIterator last1,
@@ -585,21 +585,21 @@ CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timeste
 
 
 //! function to compute the energy between two lists of particles.
-//! \param tags1 first set of particles. assumes the list is sorted for nlog(n) lookups. 
-//! \param tags2 second set of particles. assumes the list is sorted for nlog(n) lookups. 
-//! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.  
-//! \param pair_eng is the sum of the energies between all particles in tags1 and tags2, U = \sum_{i \in tags1, j \in tags2} u_{ij}.
-//! TODO: using the iterator form because hopefully this can be used with the numpy interface seamlessly.
-//! TODO: Alternatively we could make some accessor functions in the PotentialPair class and the define a "hoomd helper function"
+//! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.
+//! \param energy is the sum of the energies between all particles in tags1 and tags2, U = \sum_{i \in tags1, j \in tags2} u_{ij}.
+//! TODO: using the iterator for generality. Numpy interface should supply iterator. Wrtie an overload that calls this function to deal with the numpy case.
 template< class evaluator >
 template< class InputIterator >
 inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterator first1, InputIterator last1,
                                                                     InputIterator first2, InputIterator last2,
                                                                     Scalar& energy )
-    {    
+    {
     // start the profile for this compute
     if (m_prof) m_prof->push(m_prof_name);
-    
+
+    if( first1 == last1 || first2 == last2 )
+        return;
+
     energy = Scalar(0.0);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -637,7 +637,7 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_rtags.data[*iter];
             assert(j < m_pdata->getN() + m_pdata->getNGhosts());
-            
+
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
             Scalar3 dx = pi - pj;
@@ -722,7 +722,7 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
                 }
             }
         }
-    if (m_prof) m_prof->pop();    
+    if (m_prof) m_prof->pop();
     }
 
 //! Export this pair potential to python
