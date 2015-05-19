@@ -229,7 +229,7 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
             Scalar rsq = dot(dx,dx);
 
             // only compute the force if the particles are closer than the cuttoff
-            if (rsq < r_cut_sq)
+            if (rsq < r_cut_sq && m_lj1[type] != Scalar(0.0) && m_lj2[type] != Scalar(0.0))
                 {
                 // compute the force magnitude/r
                 Scalar r2inv = Scalar(1.0)/rsq;

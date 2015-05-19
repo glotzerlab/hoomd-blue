@@ -183,6 +183,39 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::share
     MY_BOOST_CHECK_CLOSE(h_force_3.data[2].z, 0.0159463169, tol);
     MY_BOOST_CHECK_CLOSE(h_force_3.data[2].w, -0.0077203876329103, tol);
     }
+
+
+    // compute the with an epsilon of 0 and the particles on top of the walls
+    fc_3->setParams(0,0.0,0.0);
+        {
+        ArrayHandle<Scalar4> h_pos(pdata_3->getPositions(), access_location::host, access_mode::readwrite);
+        h_pos.data[0].x = 0.0; h_pos.data[0].y = 0.0; h_pos.data[0].z = 0.0;    // particle to test wall at pos 0,0,0
+        h_pos.data[1].x = Scalar(10.0); h_pos.data[1].y = Scalar(-10.0); h_pos.data[1].z = 0.0; // particle to test wall at pos 10,0,0
+        h_pos.data[2].x = 0.0; h_pos.data[2].y = Scalar(10.0); h_pos.data[2].z = Scalar(-10.0); // particle to test wall at pos 0,0,-10
+        }
+    fc_3->compute(3);
+
+    {
+    // epsilon is 0, so all forces should be zero
+    GPUArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
+    GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
+    ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
+    ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[0].w, tol_small);
+
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[1].w, tol_small);
+
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].x, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
+    MY_BOOST_CHECK_SMALL(h_force_1.data[2].w, tol_small);
+    }
     }
 
 //! LJWallForceCompute creator for unit tests
