@@ -2903,7 +2903,7 @@ boost::python::numeric::array SnapshotParticleData::getAccelNP()
 */
 boost::python::numeric::array SnapshotParticleData::getTypeNP()
     {
-    return num_util::makeNumFromData((Scalar*)&type[0], type.size());
+    return num_util::makeNumFromData(&type[0], type.size());
     }
 
 /*! \returns a numpy array that wraps the mass data element.
@@ -2994,6 +2994,7 @@ void export_SnapshotParticleData()
     .add_property("diameter", &SnapshotParticleData::getDiameterNP)
     .add_property("image", &SnapshotParticleData::getImageNP)
     .add_property("body", &SnapshotParticleData::getBodyNP)
+    .add_property("orientation", &SnapshotParticleData::getOrientationNP)
     .add_property("types", &SnapshotParticleData::getTypes, &SnapshotParticleData::setTypes)
     .def_readonly("N", &SnapshotParticleData::size)
     .def("resize", &SnapshotParticleData::resize)
