@@ -651,15 +651,12 @@ class system_data:
     # \endcode
     #
     # \MPI_SUPPORTED
-    def take_snapshot(self,particles=True,bonds=False, rigid_bodies=False, walls=False, integrators=False, all=False):
+    def take_snapshot(self,particles=True, bonds=False, rigid_bodies=False, walls=False, integrators=False, all=False):
         util.print_status_line();
 
         if all is True:
                 particles=True
                 bonds=True
-                angles=True
-                dihedrals=True
-                impropers=True
                 rigid_bodies=True
                 walls=True
                 integrators=True
@@ -669,7 +666,7 @@ class system_data:
             return None
 
         # take the snapshot
-        cpp_snapshot = self.sysdef.takeSnapshot(particles,bonds,angles,dihedrals,impropers,rigid_bodies,walls,integrators)
+        cpp_snapshot = self.sysdef.takeSnapshot(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
 
         return cpp_snapshot
 
