@@ -1165,6 +1165,7 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
     typedef typename T::Snapshot Snapshot;
     class_<Snapshot, boost::shared_ptr<Snapshot> >
         (snapshot_name.c_str(), init<unsigned int>())
+        .add_property("typeid", &Snapshot::getTypeNP)
         .add_property("tags", &Snapshot::getBondedTagsNP)
         .add_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
         .def("resize", &Snapshot::resize)

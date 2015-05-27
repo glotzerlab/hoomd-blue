@@ -201,8 +201,12 @@ class BondedGroupData : boost::noncopyable
              */
             void resize(unsigned int n_groups)
                 {
-                type_id.resize(n_groups);
-                groups.resize(n_groups);
+                // zero the newly created bonds
+                group_storage<group_size> def;
+                memset(&def, 0, sizeof(def));
+
+                type_id.resize(n_groups, 0);
+                groups.resize(n_groups, def);
                 size = n_groups;
                 }
 
