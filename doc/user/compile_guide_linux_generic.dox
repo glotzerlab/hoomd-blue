@@ -290,18 +290,15 @@ Use `git checkout name` to switch to a different branch or tag.
 
 Valid names:
 - *maint* - includes bugfixes since the last release
+- *v1.0.5* - Release version 1.0.5
 - *v1.0.4* - Release version 1.0.4
-- *v1.0.3* - Release version 1.0.3
-- *v1.0.2* - Release version 1.0.2
-- *v1.0.1* - Release version 1.0.1
-- *v1.0.0* - Release version 1.0.0
 - *etc...*
 
 You can verify that a tagged release is exactly as it appeared to the developers when it was created if you
 have GPG installed.
 ~~~~
 $ git cat-file blob 175bf6edfc8ac23c067df1d9bd7b5dd41982be3c | gpg --import
-$ git tag -v v1.0.4
+$ git tag -v v1.0.5
 ~~~~
 
 **Compile and install HOOMD-blue with makefiles:*
