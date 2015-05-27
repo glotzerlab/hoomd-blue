@@ -60,12 +60,13 @@ from hoomd_script import util
 # current state of the system. You can use python code to directly read and modify this data, allowing you to analyze
 # simulation results while the simulation runs, or to create custom initial configurations with python code.
 #
-# There are two ways to access this data. Snapshots record the system configuration at one instant in time. You can
-# store this state to analyze the data, restore it at a future point in time, or to modify it and reload it. Data
-# proxies directly access the current simulation state.
+# There are two ways to access the data.
 #
-# * Use snapshots for initializing simulations, or when you need to access or modify the entire simulation state.
-# * Use data proxies if you need to only touch a few particles at a a time.
+# 1. Snapshots record the system configuration at one instant in time. You can store this state to analyze the data,
+#    restore it at a future point in time, or to modify it and reload it. Use snapshots for initializing simulations,
+#    or when you need to access or modify the entire simulation state.
+# 2. Data proxies directly access the current simulation state. Use data proxies if you need to only touch a few
+#    particles or bonds at a a time.
 #
 # \section data_snapshot Snapshots
 # <hr>
@@ -73,7 +74,7 @@ from hoomd_script import util
 # <h3>Relevant methods:</h3>
 #
 # * system_data.take_snapshot() captures a snapshot of the current system state. A snapshot is a copy of the simulation
-# state. As the simulation continues to progress, data in the snapshot will remain constant.
+# state. As the simulation continues to progress, data in a captured snapshot will remain constant.
 # * system_data.restore_snapshot() replaces the current system state with the state stored in a snapshot.
 # * data.make_snapshot() creates an empty snapshot that you can populate with custom data.
 # * init.read_snapshot() initializes a simulation from a snapshot.
@@ -87,31 +88,38 @@ from hoomd_script import util
 # \endcode
 #
 # <hr>
-# <h3>Getting/setting the box</h3>
-# You can access the dimensions of the simulation box from a snapshot:
+# <h3>Simulation box</h3>
+# You can access the simulation box from a snapshot:
 # \code
 # >>> print(snapshot.box)
 # Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0 dimensions=3
 # \endcode
-# and can change
+# and can change it:
 # \code
 # >>> snapsot.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
 # >>> print(snapshot.box)
 # Box: Lx=10 Ly=20 Lz=30 xy=1.0 xz=0.1 yz=2.0 dimensions=3
 # \endcode
-# \b All particles must \b always remain inside the box. The dimensionality of the system cannot change after
-# initialization.
+# \b All particles must be inside the box before using the snapshot to initialize a simulation or restoring it.
+# The dimensionality of the system (2D/3D) cannot change after initialization.
 #
 # <h3>Particle properties</h3>
 #
 # Particle properties are present in `snapshot.particles`. Each property is stored in a numpy array that directly
-# accesses the memory of the snapshot. References to these arrays will not be valid after the snapshot itself is
-# no longer referenced.
+# accesses the memory of the snapshot. References to these arrays will become invalid when the snapshot itself is
+# garbage collected.
 #
 # - `N` is the number of particles in the particle data snapshot
 # \code
 # >>> print(snapshot.particles.N)
 # 64000
+# \endcode
+# - Change the number of particles in the snapshot with resize. Existing particle properties are
+#   preserved after the resize. Any newly created particles will have default values. After resizing,
+#   existing references to the numpy arrays will be invalid, access them again
+#   from `snapshot.particles.*`
+# \code
+# >>> system.particles.resize(1000);
 # \endcode
 # - The list of all particle types in the simulation can be accessed and modified
 # \code
@@ -125,8 +133,8 @@ from hoomd_script import util
 # >>> print(snapshot.particles.position[10])
 # [ 1.2398  -10.2687  100.6324]
 # \endcode
-# - Various properties can be accessed of any particle, or numpy arrays can be sliced, passed whole to other routines,
-#   or whatever you can do with a numpy array.
+# - Various properties can be accessed of any particle, and the numpy arrays can be sliced or passed whole to other
+#   routines.
 # \code
 # >>> print(snapshot.particles.typeid[10])
 # 2
@@ -137,24 +145,71 @@ from hoomd_script import util
 # >>> print(snapshot.particles.diameter[10])
 # 1.0
 # \endcode
-# - Particle properties can be set in the same way. This modifies the internal data in the snapshot, but not the
-#   internal simulation state.
+# - Particle properties can be set in the same way. This modifies the data in the snapshot, not the
+#   current simulation state.
 # \code
 # >>> snapshot.particles.position[10] = [1,2,3]
 # >>> print(snapshot.particles.position[10])
 # [ 1.  2.  3.]
 # \endcode
-# - Unlike the rest of hoomd, snapshots store particle types as integers that index into the type name array:
+# - Snapshots store particle types as integers that index into the type name array:
 # \code
-# >>> print(snap.particles.typeid)
+# >>> print(snapshot.particles.typeid)
 # [ 0.  1.  2.  0.  1.  2.  0.  1.  2.  0.]
-# >>> snap.particles.types = ['A', 'B', 'C'];
-# >>> snap.particles.typeid[0] = 2;   # C
-# >>> snap.particles.typeid[1] = 0;   # A
-# >>> snap.particles.typeid[2] = 1;   # B
+# >>> snapshot.particles.types = ['A', 'B', 'C'];
+# >>> snapshot.particles.typeid[0] = 2;   # C
+# >>> snapshot.particles.typeid[1] = 0;   # A
+# >>> snapshot.particles.typeid[2] = 1;   # B
 # \endcode
 #
 # For a list of all particle properties in the snapshot see SnapshotParticleData.
+#
+# <h3>Bonds</h3>
+#
+# Bonds are stored in `snapshot.bonds`. system_data.take_snapshot() does not record the bonds by default, you need to
+# request them with the argument `bonds=True`.
+#
+# - `N` is the number of bonds in the bond data snapshot
+# \code
+# >>> print(snapshot.bonds.N)
+# 100
+# \endcode
+# - Change the number of bonds in the snapshot with resize. Existing bonds are
+#   preserved after the resize. Any newly created bonds will be initialized to 0. After resizing,
+#   existing references to the numpy arrays will be invalid, access them again
+#   from `snapshot.bonds.*`
+# \code
+# >>> system.bonds.resize(1000);
+# \endcode
+# - Bonds are stored in an Nx2 numpy array `tags`. The first axis accesses the bond `i`. The second axis `j` goes over
+#   the individual particles in the bond. The value of each element is the tag of the particle participating in the
+#   bond.
+# \code
+# >>> print(system.bonds.tags)
+# [[0 1]
+# [1 2]
+# [3 4]
+# [4 5]]
+# >>> system.bonds.tags[0] = [10,11]
+# \endcode
+# - Snapshots store bond types as integers that index into the type name array:
+# \code
+# >>> print(snapshot.bonds.typeid)
+# [ 0.  1.  2.  0.  1.  2.  0.  1.  2.  0.]
+# >>> snapshot.bonds.types = ['A', 'B', 'C'];
+# >>> snapshot.bonds.typeid[0] = 2;   # C
+# >>> snapshot.bonds.typeid[1] = 0;   # A
+# >>> snapshot.bonds.typeid[2] = 1;   # B
+# \endcode
+#
+# <h3>Angles, dihedrals and impropers</h3>
+#
+# Angles, dihedrals, and impropers are stored similar to bonds. The only difference is that the tags array is sized
+# appropriately to store the number needed for each type of bond.
+#
+# * `snapshot.angles.tags` is Nx3
+# * `snapshot.dihedrals.tags` is Nx4
+# * `snapshot.impropers.tags` is Nx4
 #
 # \section data_proxy Proxy access
 #
@@ -165,8 +220,8 @@ from hoomd_script import util
 # \endcode
 #
 # <hr>
-# <h3>Getting/setting the box</h3>
-# You can access the dimensions of the simulation box like so:
+# <h3>Simulation box</h3>
+# You can access the simulation box like so:
 # \code
 # >>> print(system.box)
 # Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0
@@ -432,9 +487,8 @@ from hoomd_script import util
 # \code
 # p = system.particles[i]
 # \endcode
-# is executed, \a p \b doesn't store the position, velocity, ... of particle \a i. Instead, it just stores \a i and
-# provides an interface to get/set the properties on demand. This has some side effects. They aren't necessarily
-# bad side effects, just some to be aware of.
+# is executed, \a p \b does \b not store the position, velocity, ... of particle \a i. Instead, it just stores \a i and
+# provides an interface to get/set the properties on demand. This has some side effects you need to be aware of.
 # - First, it means that \a p (or any other proxy reference) always references the current state of the particle.
 # As an example, note how the position of particle p moves after the run() command.
 # \code
@@ -2097,10 +2151,10 @@ hoomd.SnapshotSystemData.box = property(get_snapshot_box, set_snapshot_box);
 # init.read_snapshot(snapshot);
 # \endcode
 #
-# make_snapshot() creates particles with <b> <i> DEFAULT VALUES</i> </b>. You must set reasonable values for particle
+# make_snapshot() creates particles with <b>default properties</b>. You must set reasonable values for particle
 # properties before initializing the system with init.read_snapshot().
 #
-# Specifically, all created particles have:
+# The default properties are:
 # - position 0,0,0
 # - velocity 0,0,0
 # - image 0,0,0
@@ -2139,7 +2193,7 @@ class SnapshotParticleData:
     # dummy class just to make doxygen happy
 
     def __init__(self):
-        # doxygen even needs to see these variables, ahh!
+        # doxygen even needs to see these variables to generate documentation for them
         self.N = None;
         self.position = None;
         self.velocity = None;
@@ -2168,7 +2222,7 @@ class SnapshotParticleData:
     # Nx3 numpy array containing the acceleration of each particle (float or double)
 
     ## \property typeid
-    # N length numpy array containing the acceleration of each particle (32-bit unsigned int)
+    # N length numpy array containing the type id of each particle (32-bit unsigned int)
 
     ## \property mass
     # N length numpy array containing the mass of each particle (float or double)
@@ -2180,7 +2234,18 @@ class SnapshotParticleData:
     # N length numpy array containing the diameter of each particle (float or double)
 
     ## \property image
-    # Nx3 numpy array containing the image of each particle (int)
+    # Nx3 numpy array containing the image of each particle (32-bit int)
 
     ## \property body
-    # N length numpy array containing the body of each particle (unsigned int)
+    # N length numpy array containing the body of each particle (32-bit unsigned int)
+
+    ## Resize the snapshot to hold N particles
+    #
+    # \param N new size of the snapshot
+    #
+    # resize() changes the size of the arrays in the snapshot to hold \a N particles. Existing particle properties are
+    # preserved after the resize. Any newly created particles will have default values. After resizing,
+    # existing references to the numpy arrays will be invalid, access them again
+    # from `snapshot.particles.*`
+    def resize(self, N):
+        pass
