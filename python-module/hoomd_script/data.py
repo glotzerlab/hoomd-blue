@@ -2173,12 +2173,10 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
     snapshot.box = box;
     snapshot.particles.resize(N);
     snapshot.particles.types = particle_types;
-
-    # TODO: Uncomment when bond snapshot interface is written
-    # snapshot.bonds.types = bond_types;
-    # snapshot.angles.types = angle_types;
-    # snapshot.dihedrals.types = dihedral_types;
-    # snapshot.impropers.types = improper_types;
+    snapshot.bonds.types = bond_types;
+    snapshot.angles.types = angle_types;
+    snapshot.dihedrals.types = dihedral_types;
+    snapshot.impropers.types = improper_types;
 
     return snapshot;
 
