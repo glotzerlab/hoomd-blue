@@ -56,10 +56,10 @@ if(NOT PASSED_FIRST_CONFIGURE)
 
     elseif(CMAKE_CXX_COMPILER MATCHES "icpc")
         # default flags for intel
-        set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
-        set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds." FORCE)
-        set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3 -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
+        set(CMAKE_CXX_FLAGS_DEBUG "-xHOST -O0 -g" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
+        set(CMAKE_CXX_FLAGS_MINSIZEREL "-xHOST -Os -DNDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
+        set(CMAKE_CXX_FLAGS_RELEASE "-xHOST -O3 -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds." FORCE)
+        set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-xHOST -g -O3 -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
 
     else(CMAKE_COMPILER_IS_GNUCXX)
         message(STATUS "No default CXXFLAGS for your compiler, set them manually")

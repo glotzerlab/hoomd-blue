@@ -1092,6 +1092,9 @@ void Communicator::migrateParticles()
     {
     m_exec_conf->msg->notice(7) << "Communicator: migrate particles" << std::endl;
 
+    // check if simulation box is sufficiently large for domain decomposition
+    checkBoxSize();
+
     if (m_prof)
         m_prof->push("comm_migrate");
 
