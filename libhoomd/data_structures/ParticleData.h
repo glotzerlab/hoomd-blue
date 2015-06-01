@@ -428,7 +428,8 @@ class ParticleData : boost::noncopyable
                      );
 
         //! Construct using a ParticleDataSnapshot
-        ParticleData(const SnapshotParticleData<Scalar>& snapshot,
+        template<class Real>
+        ParticleData(const SnapshotParticleData<Real>& snapshot,
                      const BoxDim& global_box,
                      boost::shared_ptr<ExecutionConfiguration> exec_conf,
                      boost::shared_ptr<DomainDecomposition> decomposition
@@ -873,10 +874,12 @@ class ParticleData : boost::noncopyable
         void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
         //! Initialize from a snapshot
-        void initializeFromSnapshot(const SnapshotParticleData<Scalar> & snapshot);
+        template <class Real>
+        void initializeFromSnapshot(const SnapshotParticleData<Real> & snapshot);
 
         //! Take a snapshot
-        void takeSnapshot(SnapshotParticleData<Scalar> &snapshot);
+        template <class Real>
+        void takeSnapshot(SnapshotParticleData<Real> &snapshot);
 
         //! Add ghost particles at the end of the local particle data
         void addGhostParticles(const unsigned int nghosts);
@@ -1089,7 +1092,8 @@ class ParticleData : boost::noncopyable
         /*! \return true If and only if all particles are in the simulation box
          * \param Snapshot to check
          */
-        bool inBox(const SnapshotParticleData<Scalar>& snap);
+        template <class Real>
+        bool inBox(const SnapshotParticleData<Real>& snap);
     };
 
 
