@@ -130,7 +130,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
         }
 
     // initialize snapshot with default values
-    SnapshotParticleData snap(N);
+    SnapshotParticleData<Scalar> snap(N);
 
     snap.type_mapping.clear();
 
@@ -180,7 +180,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
  * \param exec_conf The execution configuration
  * \param decomposition (optional) Domain decomposition layout
  */
-ParticleData::ParticleData(const SnapshotParticleData& snapshot,
+ParticleData::ParticleData(const SnapshotParticleData<Scalar>& snapshot,
                            const BoxDim& global_box,
                            boost::shared_ptr<ExecutionConfiguration> exec_conf,
                            boost::shared_ptr<DomainDecomposition> decomposition
@@ -696,7 +696,7 @@ void ParticleData::maybe_rebuild_tag_cache()
 
 /*! \return true If and only if all particles are in the simulation box
 */
-bool ParticleData::inBox(const SnapshotParticleData &snap)
+bool ParticleData::inBox(const SnapshotParticleData<Scalar> &snap)
     {
     bool in_box = true;
     if (m_exec_conf->getRank() == 0)
@@ -708,7 +708,7 @@ bool ParticleData::inBox(const SnapshotParticleData &snap)
 
         for (unsigned int i = 0; i < snap.size; i++)
             {
-            Scalar3 f = m_global_box.makeFraction(snap.pos[i]);
+            vec3<Scalar> f = m_global_box.makeFraction(snap.pos[i]);
             if (f.x < -tol || f.x > Scalar(1.0)+tol ||
                 f.y < -tol || f.y > Scalar(1.0)+tol ||
                 f.z < -tol || f.z > Scalar(1.0)+tol)
@@ -738,7 +738,7 @@ bool ParticleData::inBox(const SnapshotParticleData &snap)
 
     \pre In parallel simulations, the local box size must be set before a call to initializeFromSnapshot().
  */
-void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
+void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Scalar>& snapshot)
     {
     m_exec_conf->msg->notice(4) << "ParticleData: initializing from snapshot" << std::endl;
 
@@ -819,11 +819,11 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
             BoxDim global_box = m_global_box;
 
             // loop over particles in snapshot, place them into domains
-            for (std::vector<Scalar3>::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
+            for (std::vector< vec3<Scalar> >::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
                 {
                 // determine domain the particle is placed into
-                Scalar3 pos = *it;
-                Scalar3 f = m_global_box.makeFraction(pos);
+                vec3<Scalar> pos = *it;
+                vec3<Scalar> f = m_global_box.makeFraction(pos);
                 int i= f.x * ((Scalar)di.getW());
                 int j= f.y * ((Scalar)di.getH());
                 int k= f.z * ((Scalar)di.getD());
@@ -876,16 +876,16 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                     }
 
                 // fill up per-processor data structures
-                pos_proc[rank].push_back(pos);
+                pos_proc[rank].push_back(vec_to_scalar3(pos));
                 image_proc[rank].push_back(img);
-                vel_proc[rank].push_back(snapshot.vel[tag]);
-                accel_proc[rank].push_back(snapshot.accel[tag]);
+                vel_proc[rank].push_back(vec_to_scalar3(snapshot.vel[tag]));
+                accel_proc[rank].push_back(vec_to_scalar3(snapshot.accel[tag]));
                 type_proc[rank].push_back(snapshot.type[tag]);
                 mass_proc[rank].push_back(snapshot.mass[tag]);
                 charge_proc[rank].push_back(snapshot.charge[tag]);
                 diameter_proc[rank].push_back(snapshot.diameter[tag]);
                 body_proc[rank].push_back(snapshot.body[tag]);
-                orientation_proc[rank].push_back(snapshot.orientation[tag]);
+                orientation_proc[rank].push_back(quat_to_scalar4(snapshot.orientation[tag]));
                 tag_proc[rank].push_back(tag);
                 N_proc[rank]++;
                 }
@@ -1043,14 +1043,14 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
                                              snapshot.vel[tag].y,
                                              snapshot.vel[tag].z,
                                              snapshot.mass[tag]);
-            h_accel.data[tag] = snapshot.accel[tag];
+            h_accel.data[tag] = vec_to_scalar3(snapshot.accel[tag]);
             h_charge.data[tag] = snapshot.charge[tag];
             h_diameter.data[tag] = snapshot.diameter[tag];
             h_image.data[tag] = snapshot.image[tag];
             h_tag.data[tag] = tag;
             h_rtag.data[tag] = tag;
             h_body.data[tag] = snapshot.body[tag];
-            h_orientation.data[tag] = snapshot.orientation[tag];
+            h_orientation.data[tag] = quat_to_scalar4(snapshot.orientation[tag]);
             m_inertia_tensor[tag] = snapshot.inertia_tensor[tag];
             }
 
@@ -1077,7 +1077,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData& snapshot)
 
    \pre snapshot has to be allocated with a number of elements equal to the global number of particles)
 */
-void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
+void ParticleData::takeSnapshot(SnapshotParticleData<Scalar> &snapshot)
     {
     m_exec_conf->msg->notice(4) << "ParticleData: taking snapshot" << std::endl;
     // allocate memory in snapshot
@@ -1214,16 +1214,16 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
                 unsigned int rank = rank_idx.first;
                 unsigned int idx = rank_idx.second;
 
-                snapshot.pos[snap_id] = pos_proc[rank][idx];
-                snapshot.vel[snap_id] = vel_proc[rank][idx];
-                snapshot.accel[snap_id] = accel_proc[rank][idx];
+                snapshot.pos[snap_id] = vec3<Scalar>(pos_proc[rank][idx]);
+                snapshot.vel[snap_id] = vec3<Scalar>(vel_proc[rank][idx]);
+                snapshot.accel[snap_id] = vec3<Scalar>(accel_proc[rank][idx]);
                 snapshot.type[snap_id] = type_proc[rank][idx];
                 snapshot.mass[snap_id] = mass_proc[rank][idx];
                 snapshot.charge[snap_id] = charge_proc[rank][idx];
                 snapshot.diameter[snap_id] = diameter_proc[rank][idx];
                 snapshot.image[snap_id] = image_proc[rank][idx];
                 snapshot.body[snap_id] = body_proc[rank][idx];
-                snapshot.orientation[snap_id] = orientation_proc[rank][idx];
+                snapshot.orientation[snap_id] = quat<Scalar>(orientation_proc[rank][idx]);
 
                 // make sure the position stored in the snapshot is within the boundaries
                 m_global_box.wrap(snapshot.pos[snap_id], snapshot.image[snap_id]);
@@ -1246,9 +1246,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             unsigned int idx = h_rtag.data[tag];
             assert(idx < m_nparticles);
 
-            snapshot.pos[snap_id] = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin;
-            snapshot.vel[snap_id] = make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z);
-            snapshot.accel[snap_id] = h_accel.data[idx];
+            snapshot.pos[snap_id] = vec3<Scalar>(make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin);
+            snapshot.vel[snap_id] = vec3<Scalar>(make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z));
+            snapshot.accel[snap_id] = vec3<Scalar>(h_accel.data[idx]);
             snapshot.type[snap_id] = __scalar_as_int(h_pos.data[idx].w);
             snapshot.mass[snap_id] = h_vel.data[idx].w;
             snapshot.charge[snap_id] = h_charge.data[idx];
@@ -1258,7 +1258,7 @@ void ParticleData::takeSnapshot(SnapshotParticleData &snapshot)
             snapshot.image[snap_id].y -= m_o_image.y;
             snapshot.image[snap_id].z -= m_o_image.z;
             snapshot.body[snap_id] = h_body.data[idx];
-            snapshot.orientation[snap_id] = h_orientation.data[idx];
+            snapshot.orientation[snap_id] = quat<Scalar>(h_orientation.data[idx]);
             snapshot.inertia_tensor[snap_id] = m_inertia_tensor[idx];
 
             // make sure the position stored in the snapshot is within the boundaries
@@ -2185,9 +2185,6 @@ void export_BoxDim()
     .def("getTiltFactorYZ", &BoxDim::getTiltFactorYZ)
     .def("getLatticeVector", &BoxDim::getLatticeVector)
     .def("wrap", wrap_overload)
-    .def("makeFraction", &BoxDim::makeFraction)
-    .def("makeCoordinates", &BoxDim::makeFraction)
-    .def("minImage", &BoxDim::minImage)
     .def("getVolume", &BoxDim::getVolume)
     ;
     }
@@ -2208,8 +2205,8 @@ void export_ParticleData()
     {
     class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
     .def(init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
-    .def(init<const SnapshotParticleData&, const BoxDim&, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<const SnapshotParticleData&, const BoxDim&, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
+    .def(init<const SnapshotParticleData<Scalar>&, const BoxDim&, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<const SnapshotParticleData<Scalar>&, const BoxDim&, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
     .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
@@ -2263,29 +2260,32 @@ void export_ParticleData()
     }
 
 //! Constructor for SnapshotParticleData
-SnapshotParticleData::SnapshotParticleData(unsigned int N)
+template <class Real>
+SnapshotParticleData<Real>::SnapshotParticleData(unsigned int N)
        : size(N)
     {
     resize(N);
     }
 
-void SnapshotParticleData::resize(unsigned int N)
+template <class Real>
+void SnapshotParticleData<Real>::resize(unsigned int N)
     {
-    pos.resize(N,make_scalar3(0.0,0.0,0.0));
-    vel.resize(N,make_scalar3(0.0,0.0,0.0));
-    accel.resize(N,make_scalar3(0.0,0.0,0.0));
+    pos.resize(N,vec3<Real>(0.0,0.0,0.0));
+    vel.resize(N,vec3<Real>(0.0,0.0,0.0));
+    accel.resize(N,vec3<Real>(0.0,0.0,0.0));
     type.resize(N,0);
     mass.resize(N,Scalar(1.0));
     charge.resize(N,Scalar(0.0));
     diameter.resize(N,Scalar(1.0));
     image.resize(N,make_int3(0,0,0));
     body.resize(N,NO_BODY);
-    orientation.resize(N,make_scalar4(1.0,0.0,0.0,0.0));
+    orientation.resize(N,quat<Real>(1.0,vec3<Real>(0.0,0.0,0.0)));
     inertia_tensor.resize(N);
     size = N;
     }
 
-bool SnapshotParticleData::validate() const
+template <class Real>
+bool SnapshotParticleData<Real>::validate() const
     {
     // Check that a type mapping exists
     if (type_mapping.size() == 0) return false;
@@ -2815,7 +2815,8 @@ unsigned int ParticleData::addType(const std::string& type_name)
     return m_type_mapping.size() - 1;
     }
 
-void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned int nz,
+template <class Real>
+void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, unsigned int nz,
         const BoxDim& old_box, const BoxDim& new_box)
     {
     unsigned int old_size = size;
@@ -2826,11 +2827,12 @@ void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned 
     for (unsigned int i = 0; i < old_size; ++i)
         {
         // unwrap position of particle i in old box using image flags
-        Scalar3 p = pos[i];
+        vec3<Real> p = pos[i];
         int3 img = image[i];
 
-        p = old_box.shift(p, img);
-        Scalar3 f = old_box.makeFraction(p);
+        // need to cast to a scalar and back because the Box is in Scalars, but we might be in a differen type
+        p = vec3<Real>(old_box.shift(vec3<Scalar>(p), img));
+        vec3<Real> f = old_box.makeFraction(p);
 
         unsigned int j = 0;
         for (unsigned int l = 0; l < nx; l++)
@@ -2839,9 +2841,9 @@ void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned 
                     {
                     Scalar3 f_new;
                     // replicate particle
-                    f_new.x = f.x/(Scalar)nx + (Scalar)l/(Scalar)nx;
-                    f_new.y = f.y/(Scalar)ny + (Scalar)m/(Scalar)ny;
-                    f_new.z = f.z/(Scalar)nz + (Scalar)n/(Scalar)nz;
+                    f_new.x = f.x/(Real)nx + (Real)l/(Real)nx;
+                    f_new.y = f.y/(Real)ny + (Real)m/(Real)ny;
+                    f_new.z = f.z/(Real)nz + (Real)n/(Real)nz;
 
                     unsigned int k = j*old_size + i;
 
@@ -2850,7 +2852,7 @@ void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned 
                     image[k] = make_int3(0,0,0);
                     new_box.wrap(q,image[k]);
 
-                    pos[k] = q;
+                    pos[k] = vec3<Real>(q);
                     vel[k] = vel[i];
                     accel[k] = accel[i];
                     type[k] = type[i];
@@ -2868,7 +2870,8 @@ void SnapshotParticleData::replicate(unsigned int nx, unsigned int ny, unsigned 
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getPosNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getPosNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
@@ -2879,7 +2882,8 @@ boost::python::numeric::array SnapshotParticleData::getPosNP()
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getVelNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getVelNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
@@ -2890,7 +2894,8 @@ boost::python::numeric::array SnapshotParticleData::getVelNP()
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getAccelNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getAccelNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
@@ -2901,7 +2906,8 @@ boost::python::numeric::array SnapshotParticleData::getAccelNP()
 /*! \returns a numpy array that wraps the type data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getTypeNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getTypeNP()
     {
     return num_util::makeNumFromData(&type[0], type.size());
     }
@@ -2909,7 +2915,8 @@ boost::python::numeric::array SnapshotParticleData::getTypeNP()
 /*! \returns a numpy array that wraps the mass data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getMassNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getMassNP()
     {
     return num_util::makeNumFromData(&mass[0], mass.size());
     }
@@ -2917,7 +2924,8 @@ boost::python::numeric::array SnapshotParticleData::getMassNP()
 /*! \returns a numpy array that wraps the charge data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getChargeNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getChargeNP()
     {
     return num_util::makeNumFromData(&charge[0], charge.size());
     }
@@ -2925,7 +2933,8 @@ boost::python::numeric::array SnapshotParticleData::getChargeNP()
 /*! \returns a numpy array that wraps the diameter data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getDiameterNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getDiameterNP()
     {
     return num_util::makeNumFromData(&diameter[0], diameter.size());
     }
@@ -2933,7 +2942,8 @@ boost::python::numeric::array SnapshotParticleData::getDiameterNP()
 /*! \returns a numpy array that wraps the image data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getImageNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getImageNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
@@ -2944,7 +2954,8 @@ boost::python::numeric::array SnapshotParticleData::getImageNP()
 /*! \returns a numpy array that wraps the body data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getBodyNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getBodyNP()
     {
     return num_util::makeNumFromData(&body[0], body.size());
     }
@@ -2952,7 +2963,8 @@ boost::python::numeric::array SnapshotParticleData::getBodyNP()
 /*! \returns a numpy array that wraps the orientation data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
-boost::python::numeric::array SnapshotParticleData::getOrientationNP()
+template <class Real>
+boost::python::numeric::array SnapshotParticleData<Real>::getOrientationNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
@@ -2962,7 +2974,8 @@ boost::python::numeric::array SnapshotParticleData::getOrientationNP()
 
 /*! \returns A python list of type names
 */
-boost::python::list SnapshotParticleData::getTypes()
+template <class Real>
+boost::python::list SnapshotParticleData<Real>::getTypes()
     {
     boost::python::list types;
 
@@ -2974,7 +2987,8 @@ boost::python::list SnapshotParticleData::getTypes()
 
 /*! \param types Python list of type names to set
 */
-void SnapshotParticleData::setTypes(boost::python::list types)
+template <class Real>
+void SnapshotParticleData<Real>::setTypes(boost::python::list types)
     {
     type_mapping.resize(len(types));
 
@@ -2982,22 +2996,25 @@ void SnapshotParticleData::setTypes(boost::python::list types)
         type_mapping[i] = extract<string>(types[i]);
     }
 
+template class SnapshotParticleData<float>;
+template class SnapshotParticleData<double>;
+
 void export_SnapshotParticleData()
     {
-    class_<SnapshotParticleData, boost::shared_ptr<SnapshotParticleData> >("SnapshotParticleData", init<unsigned int>())
-    .add_property("position", &SnapshotParticleData::getPosNP)
-    .add_property("velocity", &SnapshotParticleData::getVelNP)
-    .add_property("acceleration", &SnapshotParticleData::getAccelNP)
-    .add_property("typeid", &SnapshotParticleData::getTypeNP)
-    .add_property("mass", &SnapshotParticleData::getMassNP)
-    .add_property("charge", &SnapshotParticleData::getChargeNP)
-    .add_property("diameter", &SnapshotParticleData::getDiameterNP)
-    .add_property("image", &SnapshotParticleData::getImageNP)
-    .add_property("body", &SnapshotParticleData::getBodyNP)
-    .add_property("orientation", &SnapshotParticleData::getOrientationNP)
-    .add_property("types", &SnapshotParticleData::getTypes, &SnapshotParticleData::setTypes)
-    .def_readonly("N", &SnapshotParticleData::size)
-    .def("resize", &SnapshotParticleData::resize)
+    class_<SnapshotParticleData<Scalar>, boost::shared_ptr<SnapshotParticleData<Scalar> > >("SnapshotParticleData", init<unsigned int>())
+    .add_property("position", &SnapshotParticleData<Scalar>::getPosNP)
+    .add_property("velocity", &SnapshotParticleData<Scalar>::getVelNP)
+    .add_property("acceleration", &SnapshotParticleData<Scalar>::getAccelNP)
+    .add_property("typeid", &SnapshotParticleData<Scalar>::getTypeNP)
+    .add_property("mass", &SnapshotParticleData<Scalar>::getMassNP)
+    .add_property("charge", &SnapshotParticleData<Scalar>::getChargeNP)
+    .add_property("diameter", &SnapshotParticleData<Scalar>::getDiameterNP)
+    .add_property("image", &SnapshotParticleData<Scalar>::getImageNP)
+    .add_property("body", &SnapshotParticleData<Scalar>::getBodyNP)
+    .add_property("orientation", &SnapshotParticleData<Scalar>::getOrientationNP)
+    .add_property("types", &SnapshotParticleData<Scalar>::getTypes, &SnapshotParticleData<Scalar>::setTypes)
+    .def_readonly("N", &SnapshotParticleData<Scalar>::size)
+    .def("resize", &SnapshotParticleData<Scalar>::resize)
     ;
     }
 

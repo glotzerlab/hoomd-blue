@@ -92,7 +92,7 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing MSDAnalyzer: " << fname << " " << header_prefix << " " << overwrite << endl;
 
-    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
 
     m_pdata->takeSnapshot(snapshot);
 
@@ -134,8 +134,8 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
     for (unsigned int tag = 0; tag < snapshot.size; tag++)
         {
         // save its initial position
-        Scalar3 pos = snapshot.pos[tag];
-        Scalar3 unwrapped = box.shift(pos, snapshot.image[tag]);
+        vec3<Scalar> pos = snapshot.pos[tag];
+        vec3<Scalar> unwrapped = box.shift(pos, snapshot.image[tag]);
         m_initial_x[tag] = unwrapped.x;
         m_initial_y[tag] = unwrapped.y;
         m_initial_z[tag] = unwrapped.z;
@@ -167,7 +167,7 @@ void MSDAnalyzer::analyze(unsigned int timestep)
         }
 
     // take particle data snapshot
-    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
 
     m_pdata->takeSnapshot(snapshot);
 
@@ -237,11 +237,6 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
     {
     // read in the xml file
     HOOMDInitializer xml(m_exec_conf,xml_fname);
-
-    // take particle data snapshot
-    SnapshotParticleData snapshot(m_pdata->getNGlobal());
-
-    m_pdata->takeSnapshot(snapshot);
 
 #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
@@ -326,7 +321,7 @@ void MSDAnalyzer::writeHeader()
     Loop through all particles in the given group and calculate the MSD over them.
     \returns The calculated MSD
 */
-Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData& snapshot)
+Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData<Scalar>& snapshot)
     {
     BoxDim box = m_pdata->getGlobalBox();
 
@@ -345,9 +340,9 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
         {
         // get the tag for the current group member from the group
         unsigned int tag = group->getMemberTag(group_idx);
-        Scalar3 pos = snapshot.pos[tag];
+        vec3<Scalar> pos = snapshot.pos[tag];
         int3 image = snapshot.image[tag];
-        Scalar3 unwrapped = box.shift(pos, image);
+        vec3<Scalar> unwrapped = box.shift(pos, image);
         Scalar dx = unwrapped.x - m_initial_x[tag];
         Scalar dy = unwrapped.y - m_initial_y[tag];
         Scalar dz = unwrapped.z - m_initial_z[tag];
@@ -365,7 +360,7 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
     Performs all the steps needed in order to calculate the MSDs for all the groups in the columns and writes out an
     entire row to the file.
 */
-void MSDAnalyzer::writeRow(unsigned int timestep, const SnapshotParticleData& snapshot)
+void MSDAnalyzer::writeRow(unsigned int timestep, const SnapshotParticleData<Scalar>& snapshot)
     {
     if (m_prof) m_prof->push("MSD");
 

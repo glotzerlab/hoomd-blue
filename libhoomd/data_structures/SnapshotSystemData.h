@@ -87,7 +87,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct SnapshotSystemData {
     unsigned int dimensions;               //!< The dimensionality of the system
     BoxDim global_box;                     //!< The dimensions of the simulation box
-    SnapshotParticleData particle_data;    //!< The particle data
+    SnapshotParticleData<Scalar> particle_data;    //!< The particle data
     BondData::Snapshot bond_data;          //!< The bond data
     AngleData::Snapshot angle_data;         //!< The angle data
     DihedralData::Snapshot dihedral_data;    //!< The dihedral data

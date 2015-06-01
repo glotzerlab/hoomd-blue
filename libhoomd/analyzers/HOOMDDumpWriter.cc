@@ -209,7 +209,7 @@ void HOOMDDumpWriter::setOutputMomentInertia(bool enable)
 void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     {
     // acquire the particle data
-    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
 
     m_pdata->takeSnapshot(snapshot);
 
@@ -266,7 +266,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f << "<position num=\"" << m_pdata->getNGlobal() << "\">" << "\n";
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            Scalar3 pos = snapshot.pos[j];
+            vec3<Scalar> pos = snapshot.pos[j];
 
             f << pos.x << " " << pos.y << " "<< pos.z << "\n";
 
@@ -305,7 +305,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            Scalar3 vel = snapshot.vel[j];
+            vec3<Scalar> vel = snapshot.vel[j];
             f << vel.x << " " << vel.y << " " << vel.z << "\n";
             if (!f.good())
                 {
@@ -324,7 +324,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
-            Scalar3 accel = snapshot.accel[j];
+            vec3<Scalar> accel = snapshot.accel[j];
 
             f << accel.x << " " << accel.y << " " << accel.z << "\n";
             if (!f.good())
@@ -520,7 +520,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int j = 0; j < m_pdata->getNGlobal(); j++)
             {
             // use the rtag data to output the particles in the order they were read in
-            Scalar4 orientation = snapshot.orientation[j];
+            Scalar4 orientation = quat_to_scalar4(snapshot.orientation[j]);
             f << orientation.x << " " << orientation.y << " " << orientation.z << " " << orientation.w << "\n";
             if (!f.good())
                 {

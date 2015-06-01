@@ -150,7 +150,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
      */
     assert(m_pos_array.size() > 0);
 
-    SnapshotParticleData& pdata = snapshot->particle_data;
+    SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
 
     // allocate memory in snapshot
     pdata.resize(m_pos_array.size());
@@ -158,7 +158,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < m_pos_array.size(); i++)
         {
-        pdata.pos[i] = make_scalar3(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
+        pdata.pos[i] = vec3<Scalar>(m_pos_array[i].x, m_pos_array[i].y, m_pos_array[i].z);
         }
 
     if (m_image_array.size() != 0)
@@ -183,7 +183,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
         assert(m_vel_array.size() == m_pos_array.size());
 
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.vel[i] = make_scalar3(m_vel_array[i].x, m_vel_array[i].y, m_vel_array[i].z);
+            pdata.vel[i] = vec3<Scalar>(m_vel_array[i].x, m_vel_array[i].y, m_vel_array[i].z);
         }
 
     if (m_mass_array.size() != 0)
@@ -232,7 +232,13 @@ boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
     if (m_moment_inertia.size()) pdata.inertia_tensor = m_moment_inertia;
 
     // Initialize orientations
-    if (m_orientation.size()) pdata.orientation = m_orientation;
+    if (m_orientation.size())
+        {
+        for (unsigned int i = 0; i < m_pos_array.size(); i++)
+            {
+            pdata.orientation[i] = quat<Scalar>(m_orientation[i]);
+            }
+        }
 
     /*
      * Initialize bond data

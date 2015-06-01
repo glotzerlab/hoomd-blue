@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE( test_swap )
     vec3<Scalar> d(3.3, 4.4, 0.0);
 
     // test swap
-    swap(a, b);
+    a.swap(b);
     BOOST_CHECK(a==d);
     BOOST_CHECK(b==c);
     }

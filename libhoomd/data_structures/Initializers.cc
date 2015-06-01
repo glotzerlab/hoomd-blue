@@ -93,7 +93,7 @@ boost::shared_ptr<SnapshotSystemData> SimpleCubicInitializer::getSnapshot() cons
     boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
     snapshot->global_box = box;
 
-    SnapshotParticleData& pdata = snapshot->particle_data;
+    SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
     unsigned int num_particles = m_M * m_M * m_M;
     pdata.resize(num_particles);
 
@@ -174,7 +174,7 @@ boost::shared_ptr<SnapshotSystemData> RandomInitializer::getSnapshot() const
     boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
     snapshot->global_box = m_box;
 
-    SnapshotParticleData& pdata = snapshot->particle_data;
+    SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
     pdata.resize(m_N);
 
     Scalar L = m_box.getL().x;
@@ -231,7 +231,7 @@ boost::shared_ptr<SnapshotSystemData> RandomInitializer::getSnapshot() const
                 }
             }
 
-        pdata.pos[i] = make_scalar3(x,y,z);
+        pdata.pos[i] = vec3<Scalar>(x,y,z);
         }
 
     pdata.type_mapping.push_back(m_type_name);

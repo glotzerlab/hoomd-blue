@@ -376,14 +376,14 @@ boost::shared_ptr<SnapshotSystemData> RandomGenerator::getSnapshot() const
     snapshot->global_box = m_box;
 
     // initialize particle data
-    SnapshotParticleData& pdata_snap = snapshot->particle_data;
+    SnapshotParticleData<Scalar>& pdata_snap = snapshot->particle_data;
 
     unsigned int nparticles = m_data.m_particles.size();
     pdata_snap.resize(nparticles);
 
     for (unsigned int i = 0; i < nparticles; i++)
         {
-        pdata_snap.pos[i] = make_scalar3(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
+        pdata_snap.pos[i] = vec3<Scalar>(m_data.m_particles[i].x, m_data.m_particles[i].y, m_data.m_particles[i].z);
         pdata_snap.image[i] = make_int3(m_data.m_particles[i].ix, m_data.m_particles[i].iy, m_data.m_particles[i].iz);
         pdata_snap.type[i] = m_data.m_particles[i].type_id;
         }
