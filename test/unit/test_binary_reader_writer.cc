@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_REQUIRE(exists(tmp_path+"/test.0000000000.bin"));
 
     HOOMDBinaryInitializer init(exec_conf, tmp_path+"/test.0000000000.bin");
-    boost::shared_ptr<SnapshotSystemData> snapshot;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
     snapshot = init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snapshot, exec_conf));
     boost::shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_REQUIRE(exists(tmp_path+"/test.0000000010.bin"));
 
     HOOMDBinaryInitializer init3(exec_conf,tmp_path+"/test.0000000010.bin");
-    boost::shared_ptr<SnapshotSystemData> snapshot2;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot2;
     snapshot2 = init3.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(snapshot2, exec_conf));
     boost::shared_ptr<ParticleData> pdata3 = sysdef3->getParticleData();

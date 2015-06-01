@@ -276,7 +276,7 @@ class RandomGenerator
         virtual ~RandomGenerator() { }
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
+        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
         //! Sets the separation radius for a particle
         void setSeparationRadius(string type, Scalar radius);

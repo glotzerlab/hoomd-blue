@@ -364,10 +364,10 @@ RandomGenerator::RandomGenerator(boost::shared_ptr<const ExecutionConfiguration>
     }
 
 /*! initializes a snapshot->with the internally stored copy of the particle and bond data */
-boost::shared_ptr<SnapshotSystemData> RandomGenerator::getSnapshot() const
+boost::shared_ptr< SnapshotSystemData<Scalar> > RandomGenerator::getSnapshot() const
     {
     // create a snapshot
-    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
 
     // only execute on rank 0
     if (m_exec_conf->getRank()) return snapshot;

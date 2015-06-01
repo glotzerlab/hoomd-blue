@@ -115,9 +115,9 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
     }
 
 /*! initializes a snapshot with the internally stored copy of the particle data */
-boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() const
+boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDBinaryInitializer::getSnapshot() const
     {
-    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
 
     // execute only on rank zero
     if (m_exec_conf->getRank()) return snapshot;

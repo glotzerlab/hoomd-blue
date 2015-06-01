@@ -75,7 +75,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __HOOMD_BINARY_INITIALIZER_H__
 
 //! Forward definition of SnapshotSystemData
-struct SnapshotSystemData;
+template <class Real> struct SnapshotSystemData;
 
 //! Initializes particle data from a Hoomd input file
 /*! The input XML file format is identical to the output XML file format that HOOMDDumpWriter writes.
@@ -108,7 +108,7 @@ class HOOMDBinaryInitializer
         virtual void setTimeStep(unsigned int ts);
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
+        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
     private:
         //! Helper function to read the input file

@@ -132,9 +132,9 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
     }
 
 /*! initializes a snapshot with the internally stored copy of the system data */
-boost::shared_ptr<SnapshotSystemData> HOOMDInitializer::getSnapshot() const
+boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() const
     {
-    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
 
     // we only execute on rank 0
     if (m_exec_conf->getRank()) return snapshot;

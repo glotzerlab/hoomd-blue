@@ -352,7 +352,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     // use a simple cubic array of particles so that random bonds
     // don't result in huge forces on a random particle arrangement
     SimpleCubicInitializer sc_init(M, 1.5, "A");
-    boost::shared_ptr<SnapshotSystemData> snap = sc_init.getSnapshot();
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = sc_init.getSnapshot();
     snap->bond_data.type_mapping.push_back("A");
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();

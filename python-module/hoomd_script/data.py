@@ -695,6 +695,7 @@ class system_data:
     # \param walls If true, wall data is included in the snapshot
     # \param integrators If true, integrator data is included the snapshot
     # \param all If true, the entire system state is saved in the snapshot
+    # \param dtype Datatype for the snapshot numpy arrays. Must be either 'float' or 'double'.
     #
     # \returns the snapshot object.
     #
@@ -705,7 +706,14 @@ class system_data:
     # \endcode
     #
     # \MPI_SUPPORTED
-    def take_snapshot(self,particles=True, bonds=False, rigid_bodies=False, walls=False, integrators=False, all=False):
+    def take_snapshot(self,
+                      particles=True,
+                      bonds=False,
+                      rigid_bodies=False,
+                      walls=False,
+                      integrators=False,
+                      all=False,
+                      dtype='float'):
         util.print_status_line();
 
         if all is True:
@@ -720,7 +728,12 @@ class system_data:
             return None
 
         # take the snapshot
-        cpp_snapshot = self.sysdef.takeSnapshot(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
+        if dtype == 'float':
+            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
+        elif dtype == 'double':
+            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
+        else:
+            raise ValueError("dtype must be float or double");
 
         return cpp_snapshot
 
@@ -2130,7 +2143,8 @@ def set_snapshot_box(snapshot, box):
     snapshot._dimensions = box.dimensions;
 
 # Inject a box property into SnapshotSystemData that provides and accepts boxdim objects
-hoomd.SnapshotSystemData.box = property(get_snapshot_box, set_snapshot_box);
+hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
+hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_box);
 
 ## Make an empty snapshot
 #
@@ -2141,6 +2155,7 @@ hoomd.SnapshotSystemData.box = property(get_snapshot_box, set_snapshot_box);
 # \param angle_types List of angle type names (may be zero length)
 # \param dihedral_types List of Dihedral type names (may be zero length)
 # \param improper_types List of improper type names (may be zero length)
+# \param dtype Data type for the real valued numpy arrays in the snapshot. Must be either 'float' or 'double'.
 #
 # \b Examples:
 # \code
@@ -2168,8 +2183,14 @@ hoomd.SnapshotSystemData.box = property(get_snapshot_box, set_snapshot_box);
 # type names later in the job script to refer to particles (i.e. in lj.set_params).
 #
 # \sa hoomd_script.init.read_snapshot()
-def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[]):
-    snapshot = hoomd.SnapshotSystemData();
+def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[], dtype='float'):
+    if dtype == 'float':
+        snapshot = hoomd.SnapshotSystemData_float();
+    elif dtype == 'double':
+        snapshot = hoomd.SnapshotSystemData_double();
+    else:
+        raise ValueError("dtype must be either float or double");
+
     snapshot.box = box;
     snapshot.particles.resize(N);
     snapshot.particles.types = particle_types;

@@ -75,7 +75,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Forward declarations
 class ExecutionConfiguation;
-struct SnapshotSystemData;
+template <class Real> struct SnapshotSystemData;
 
 //! Initializes particle data from a Hoomd input file
 /*! The input XML file format is identical to the output XML file format that HOOMDDumpWriter writes.
@@ -109,7 +109,7 @@ class HOOMDInitializer
         virtual void setTimeStep(unsigned int ts);
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
+        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
         //! simple vec for storing particle data
         struct vec
