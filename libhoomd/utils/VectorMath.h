@@ -58,8 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+#undef DEVICE
 #ifdef NVCC
-#define DEVICE __device__
+#define DEVICE __host__ __device__
 #else
 #define DEVICE
 #endif
@@ -1257,5 +1258,7 @@ DEVICE inline Vec project(const Vec& a, const Vec& b)
 
 // end group math
 /*! @}*/
+
+#undef DEVICE
 
 #endif //__VECTOR_MATH_H__
