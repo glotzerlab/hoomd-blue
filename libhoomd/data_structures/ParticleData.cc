@@ -822,11 +822,11 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
             BoxDim global_box = m_global_box;
 
             // loop over particles in snapshot, place them into domains
-            for (std::vector< vec3<Real> >::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
+            for (typename std::vector< vec3<Real> >::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
                 {
                 // determine domain the particle is placed into
-                vec3<Real> pos = *it;
-                Scalar3 f = m_global_box.makeFraction(vec_to_scalar3(pos));
+                Scalar3 pos = vec_to_scalar3(*it);
+                Scalar3 f = m_global_box.makeFraction(pos);
                 int i= f.x * ((Scalar)di.getW());
                 int j= f.y * ((Scalar)di.getH());
                 int k= f.z * ((Scalar)di.getD());
@@ -879,7 +879,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                     }
 
                 // fill up per-processor data structures
-                pos_proc[rank].push_back(vec_to_scalar3(pos));
+                pos_proc[rank].push_back(pos);
                 image_proc[rank].push_back(img);
                 vel_proc[rank].push_back(vec_to_scalar3(snapshot.vel[tag]));
                 accel_proc[rank].push_back(vec_to_scalar3(snapshot.accel[tag]));
@@ -1230,7 +1230,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
                 snapshot.orientation[snap_id] = quat<Real>(orientation_proc[rank][idx]);
 
                 // make sure the position stored in the snapshot is within the boundaries
-                m_global_box.wrap(snapshot.pos[snap_id], snapshot.image[snap_id]);
+                Scalar3 tmp = vec_to_scalar3(snapshot.pos[snap_id]);
+                m_global_box.wrap(tmp, snapshot.image[snap_id]);
+                snapshot.pos[snap_id] = vec3<Real>(tmp);
 
                 std::advance(tag_set_it, 1);
                 }
