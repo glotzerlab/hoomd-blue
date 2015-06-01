@@ -176,6 +176,9 @@ def reset():
 # run before the initial particle positions were set, \b all particles would have position 0,0,0 and the memory
 # initialized by the neighbor list would be so large that the memory allocation would fail.
 #
+# \warning create_empty() is deprecated. Use data.make_snapshot() and init.read_snapshot() instead. create_empty will be
+#          removed in the next release of HOOMD-blue.
+#
 # \sa hoomd_script.data
 def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[]):
     util.print_status_line();
@@ -184,6 +187,8 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
     if is_initialized():
         globals.msg.error("Cannot initialize more than once\n");
         raise RuntimeError('Error initializing');
+
+    globals.msg.warning("init.create_empty() is deprecated. Use data.make_snapshot and init.read_snapshot instead\n");
 
     my_exec_conf = _create_exec_conf();
 
