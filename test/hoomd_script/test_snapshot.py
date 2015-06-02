@@ -112,114 +112,116 @@ class init_verify_npy_dtype (unittest.TestCase):
     def test_take_snapshot_double(self):
         snapshot = self.s.take_snapshot(all=True, dtype='double');
 
-        float_type = numpy.float64;
+        if comm.get_rank() == 0:
+            float_type = numpy.float64;
 
-        # check the particles
-        self.assertEqual(snapshot.particles.N, 9)
-        self.assertEqual(snapshot.particles.position.shape, (9,3));
-        self.assertEqual(snapshot.particles.position.dtype, float_type);
-        self.assertEqual(snapshot.particles.velocity.shape, (9,3));
-        self.assertEqual(snapshot.particles.velocity.dtype, float_type);
-        self.assertEqual(snapshot.particles.acceleration.shape, (9,3));
-        self.assertEqual(snapshot.particles.acceleration.dtype, float_type);
-        self.assertEqual(snapshot.particles.typeid.shape, (9,));
-        self.assertEqual(snapshot.particles.typeid.dtype, numpy.uint32);
-        self.assertEqual(snapshot.particles.mass.shape, (9,));
-        self.assertEqual(snapshot.particles.mass.dtype, float_type);
-        self.assertEqual(snapshot.particles.charge.shape, (9,));
-        self.assertEqual(snapshot.particles.charge.dtype, float_type);
-        self.assertEqual(snapshot.particles.diameter.shape, (9,));
-        self.assertEqual(snapshot.particles.diameter.dtype, float_type);
+            # check the particles
+            self.assertEqual(snapshot.particles.N, 9)
+            self.assertEqual(snapshot.particles.position.shape, (9,3));
+            self.assertEqual(snapshot.particles.position.dtype, float_type);
+            self.assertEqual(snapshot.particles.velocity.shape, (9,3));
+            self.assertEqual(snapshot.particles.velocity.dtype, float_type);
+            self.assertEqual(snapshot.particles.acceleration.shape, (9,3));
+            self.assertEqual(snapshot.particles.acceleration.dtype, float_type);
+            self.assertEqual(snapshot.particles.typeid.shape, (9,));
+            self.assertEqual(snapshot.particles.typeid.dtype, numpy.uint32);
+            self.assertEqual(snapshot.particles.mass.shape, (9,));
+            self.assertEqual(snapshot.particles.mass.dtype, float_type);
+            self.assertEqual(snapshot.particles.charge.shape, (9,));
+            self.assertEqual(snapshot.particles.charge.dtype, float_type);
+            self.assertEqual(snapshot.particles.diameter.shape, (9,));
+            self.assertEqual(snapshot.particles.diameter.dtype, float_type);
 
-        self.assertEqual(snapshot.particles.image.shape, (9,3));
-        self.assertEqual(snapshot.particles.image.dtype, numpy.int32);
+            self.assertEqual(snapshot.particles.image.shape, (9,3));
+            self.assertEqual(snapshot.particles.image.dtype, numpy.int32);
 
-        self.assertEqual(snapshot.particles.body.shape, (9,));
-        self.assertEqual(snapshot.particles.body.dtype, numpy.uint32);
+            self.assertEqual(snapshot.particles.body.shape, (9,));
+            self.assertEqual(snapshot.particles.body.dtype, numpy.uint32);
 
-        self.assertEqual(snapshot.particles.types, ["A", "B"]);
+            self.assertEqual(snapshot.particles.types, ["A", "B"]);
 
-        for i in range(0,9):
-            self.assertEqual(list(snapshot.particles.velocity[i]), [0,0,0]);
-            self.assertEqual(list(snapshot.particles.acceleration[i]), [0,0,0]);
-            self.assertEqual(snapshot.particles.mass[i], 1.0);
-            self.assertEqual(snapshot.particles.diameter[i], 1.0);
-            self.assertEqual(snapshot.particles.charge[i], 0.0);
-            # don't check image because the polymer generator can place particles with non-zero images
-            self.assertEqual(snapshot.particles.body[i], 4294967295);
+            for i in range(0,9):
+                self.assertEqual(list(snapshot.particles.velocity[i]), [0,0,0]);
+                self.assertEqual(list(snapshot.particles.acceleration[i]), [0,0,0]);
+                self.assertEqual(snapshot.particles.mass[i], 1.0);
+                self.assertEqual(snapshot.particles.diameter[i], 1.0);
+                self.assertEqual(snapshot.particles.charge[i], 0.0);
+                # don't check image because the polymer generator can place particles with non-zero images
+                self.assertEqual(snapshot.particles.body[i], 4294967295);
 
-        self.assertEqual(list(snapshot.particles.typeid), [0, 1, 1, 0, 1, 1, 0, 1, 1]);
+            self.assertEqual(list(snapshot.particles.typeid), [0, 1, 1, 0, 1, 1, 0, 1, 1]);
 
-        # check the bonds
-        self.assertEqual(snapshot.bonds.N, 6);
-        self.assertEqual(snapshot.bonds.typeid.shape, (6,));
-        self.assertEqual(snapshot.bonds.typeid.dtype, numpy.uint32);
-        self.assertEqual(snapshot.bonds.tags.shape, (6,2));
-        self.assertEqual(snapshot.bonds.tags.dtype, numpy.uint32);
-        self.assertEqual(snapshot.bonds.types, ['polymer']);
+            # check the bonds
+            self.assertEqual(snapshot.bonds.N, 6);
+            self.assertEqual(snapshot.bonds.typeid.shape, (6,));
+            self.assertEqual(snapshot.bonds.typeid.dtype, numpy.uint32);
+            self.assertEqual(snapshot.bonds.tags.shape, (6,2));
+            self.assertEqual(snapshot.bonds.tags.dtype, numpy.uint32);
+            self.assertEqual(snapshot.bonds.types, ['polymer']);
 
-        self.assertEqual(list(snapshot.bonds.tags[0]), [0,1]);
-        self.assertEqual(list(snapshot.bonds.tags[1]), [1,2]);
-        self.assertEqual(list(snapshot.bonds.tags[2]), [3,4]);
-        self.assertEqual(list(snapshot.bonds.tags[3]), [4,5]);
-        self.assertEqual(list(snapshot.bonds.tags[4]), [6,7]);
-        self.assertEqual(list(snapshot.bonds.tags[5]), [7,8]);
+            self.assertEqual(list(snapshot.bonds.tags[0]), [0,1]);
+            self.assertEqual(list(snapshot.bonds.tags[1]), [1,2]);
+            self.assertEqual(list(snapshot.bonds.tags[2]), [3,4]);
+            self.assertEqual(list(snapshot.bonds.tags[3]), [4,5]);
+            self.assertEqual(list(snapshot.bonds.tags[4]), [6,7]);
+            self.assertEqual(list(snapshot.bonds.tags[5]), [7,8]);
 
     def test_take_snapshot_float(self):
         snapshot = self.s.take_snapshot(all=True, dtype='float');
 
-        float_type = numpy.float32;
+        if comm.get_rank() == 0:
+            float_type = numpy.float32;
 
-        # check the particles
-        self.assertEqual(snapshot.particles.N, 9)
-        self.assertEqual(snapshot.particles.position.shape, (9,3));
-        self.assertEqual(snapshot.particles.position.dtype, float_type);
-        self.assertEqual(snapshot.particles.velocity.shape, (9,3));
-        self.assertEqual(snapshot.particles.velocity.dtype, float_type);
-        self.assertEqual(snapshot.particles.acceleration.shape, (9,3));
-        self.assertEqual(snapshot.particles.acceleration.dtype, float_type);
-        self.assertEqual(snapshot.particles.typeid.shape, (9,));
-        self.assertEqual(snapshot.particles.typeid.dtype, numpy.uint32);
-        self.assertEqual(snapshot.particles.mass.shape, (9,));
-        self.assertEqual(snapshot.particles.mass.dtype, float_type);
-        self.assertEqual(snapshot.particles.charge.shape, (9,));
-        self.assertEqual(snapshot.particles.charge.dtype, float_type);
-        self.assertEqual(snapshot.particles.diameter.shape, (9,));
-        self.assertEqual(snapshot.particles.diameter.dtype, float_type);
+            # check the particles
+            self.assertEqual(snapshot.particles.N, 9)
+            self.assertEqual(snapshot.particles.position.shape, (9,3));
+            self.assertEqual(snapshot.particles.position.dtype, float_type);
+            self.assertEqual(snapshot.particles.velocity.shape, (9,3));
+            self.assertEqual(snapshot.particles.velocity.dtype, float_type);
+            self.assertEqual(snapshot.particles.acceleration.shape, (9,3));
+            self.assertEqual(snapshot.particles.acceleration.dtype, float_type);
+            self.assertEqual(snapshot.particles.typeid.shape, (9,));
+            self.assertEqual(snapshot.particles.typeid.dtype, numpy.uint32);
+            self.assertEqual(snapshot.particles.mass.shape, (9,));
+            self.assertEqual(snapshot.particles.mass.dtype, float_type);
+            self.assertEqual(snapshot.particles.charge.shape, (9,));
+            self.assertEqual(snapshot.particles.charge.dtype, float_type);
+            self.assertEqual(snapshot.particles.diameter.shape, (9,));
+            self.assertEqual(snapshot.particles.diameter.dtype, float_type);
 
-        self.assertEqual(snapshot.particles.image.shape, (9,3));
-        self.assertEqual(snapshot.particles.image.dtype, numpy.int32);
+            self.assertEqual(snapshot.particles.image.shape, (9,3));
+            self.assertEqual(snapshot.particles.image.dtype, numpy.int32);
 
-        self.assertEqual(snapshot.particles.body.shape, (9,));
-        self.assertEqual(snapshot.particles.body.dtype, numpy.uint32);
+            self.assertEqual(snapshot.particles.body.shape, (9,));
+            self.assertEqual(snapshot.particles.body.dtype, numpy.uint32);
 
-        self.assertEqual(snapshot.particles.types, ["A", "B"]);
+            self.assertEqual(snapshot.particles.types, ["A", "B"]);
 
-        for i in range(0,9):
-            self.assertEqual(list(snapshot.particles.velocity[i]), [0,0,0]);
-            self.assertEqual(list(snapshot.particles.acceleration[i]), [0,0,0]);
-            self.assertEqual(snapshot.particles.mass[i], 1.0);
-            self.assertEqual(snapshot.particles.diameter[i], 1.0);
-            self.assertEqual(snapshot.particles.charge[i], 0.0);
-            # don't check image because the polymer generator can place particles with non-zero images
-            self.assertEqual(snapshot.particles.body[i], 4294967295);
+            for i in range(0,9):
+                self.assertEqual(list(snapshot.particles.velocity[i]), [0,0,0]);
+                self.assertEqual(list(snapshot.particles.acceleration[i]), [0,0,0]);
+                self.assertEqual(snapshot.particles.mass[i], 1.0);
+                self.assertEqual(snapshot.particles.diameter[i], 1.0);
+                self.assertEqual(snapshot.particles.charge[i], 0.0);
+                # don't check image because the polymer generator can place particles with non-zero images
+                self.assertEqual(snapshot.particles.body[i], 4294967295);
 
-        self.assertEqual(list(snapshot.particles.typeid), [0, 1, 1, 0, 1, 1, 0, 1, 1]);
+            self.assertEqual(list(snapshot.particles.typeid), [0, 1, 1, 0, 1, 1, 0, 1, 1]);
 
-        # check the bonds
-        self.assertEqual(snapshot.bonds.N, 6);
-        self.assertEqual(snapshot.bonds.typeid.shape, (6,));
-        self.assertEqual(snapshot.bonds.typeid.dtype, numpy.uint32);
-        self.assertEqual(snapshot.bonds.tags.shape, (6,2));
-        self.assertEqual(snapshot.bonds.tags.dtype, numpy.uint32);
-        self.assertEqual(snapshot.bonds.types, ['polymer']);
+            # check the bonds
+            self.assertEqual(snapshot.bonds.N, 6);
+            self.assertEqual(snapshot.bonds.typeid.shape, (6,));
+            self.assertEqual(snapshot.bonds.typeid.dtype, numpy.uint32);
+            self.assertEqual(snapshot.bonds.tags.shape, (6,2));
+            self.assertEqual(snapshot.bonds.tags.dtype, numpy.uint32);
+            self.assertEqual(snapshot.bonds.types, ['polymer']);
 
-        self.assertEqual(list(snapshot.bonds.tags[0]), [0,1]);
-        self.assertEqual(list(snapshot.bonds.tags[1]), [1,2]);
-        self.assertEqual(list(snapshot.bonds.tags[2]), [3,4]);
-        self.assertEqual(list(snapshot.bonds.tags[3]), [4,5]);
-        self.assertEqual(list(snapshot.bonds.tags[4]), [6,7]);
-        self.assertEqual(list(snapshot.bonds.tags[5]), [7,8]);
+            self.assertEqual(list(snapshot.bonds.tags[0]), [0,1]);
+            self.assertEqual(list(snapshot.bonds.tags[1]), [1,2]);
+            self.assertEqual(list(snapshot.bonds.tags[2]), [3,4]);
+            self.assertEqual(list(snapshot.bonds.tags[3]), [4,5]);
+            self.assertEqual(list(snapshot.bonds.tags[4]), [6,7]);
+            self.assertEqual(list(snapshot.bonds.tags[5]), [7,8]);
 
     def tearDown(self):
         del self.s
