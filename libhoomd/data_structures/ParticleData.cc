@@ -2898,7 +2898,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getPosNP()
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return num_util::makeNumFromData((Scalar*)&pos[0], dims);
+    return num_util::makeNumFromData((Real*)&pos[0], dims);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
@@ -2910,7 +2910,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getVelNP()
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return num_util::makeNumFromData((Scalar*)&vel[0], dims);
+    return num_util::makeNumFromData((Real*)&vel[0], dims);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
@@ -2922,7 +2922,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getAccelNP()
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return num_util::makeNumFromData((Scalar*)&accel[0], dims);
+    return num_util::makeNumFromData((Real*)&accel[0], dims);
     }
 
 /*! \returns a numpy array that wraps the type data element.
@@ -2991,7 +2991,7 @@ boost::python::numeric::array SnapshotParticleData<Real>::getOrientationNP()
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 4;
-    return num_util::makeNumFromData((Scalar*)&orientation[0], dims);
+    return num_util::makeNumFromData((Real*)&orientation[0], dims);
     }
 
 /*! \returns A python list of type names
