@@ -199,16 +199,16 @@ import hoomd_script
 # \code
 # >>> system.bonds.resize(1000);
 # \endcode
-# - Bonds are stored in an Nx2 numpy array `tags`. The first axis accesses the bond `i`. The second axis `j` goes over
+# - Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the bond `i`. The second axis `j` goes over
 #   the individual particles in the bond. The value of each element is the tag of the particle participating in the
 #   bond.
 # \code
-# >>> print(system.bonds.tags)
+# >>> print(system.bonds.group)
 # [[0 1]
 # [1 2]
 # [3 4]
 # [4 5]]
-# >>> system.bonds.tags[0] = [10,11]
+# >>> system.bonds.group[0] = [10,11]
 # \endcode
 # - Snapshots store bond types as integers that index into the type name array:
 # \code
@@ -222,12 +222,12 @@ import hoomd_script
 #
 # <h3>Angles, dihedrals and impropers</h3>
 #
-# Angles, dihedrals, and impropers are stored similar to bonds. The only difference is that the tags array is sized
+# Angles, dihedrals, and impropers are stored similar to bonds. The only difference is that the group array is sized
 # appropriately to store the number needed for each type of bond.
 #
-# * `snapshot.angles.tags` is Nx3
-# * `snapshot.dihedrals.tags` is Nx4
-# * `snapshot.impropers.tags` is Nx4
+# * `snapshot.angles.group` is Nx3
+# * `snapshot.dihedrals.group` is Nx4
+# * `snapshot.impropers.group` is Nx4
 #
 # \section data_proxy Proxy access
 #

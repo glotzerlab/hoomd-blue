@@ -155,16 +155,16 @@ class init_verify_npy_dtype (unittest.TestCase):
             self.assertEqual(snapshot.bonds.N, 6);
             self.assertEqual(snapshot.bonds.typeid.shape, (6,));
             self.assertEqual(snapshot.bonds.typeid.dtype, numpy.uint32);
-            self.assertEqual(snapshot.bonds.tags.shape, (6,2));
-            self.assertEqual(snapshot.bonds.tags.dtype, numpy.uint32);
+            self.assertEqual(snapshot.bonds.group.shape, (6,2));
+            self.assertEqual(snapshot.bonds.group.dtype, numpy.uint32);
             self.assertEqual(snapshot.bonds.types, ['polymer']);
 
-            self.assertEqual(list(snapshot.bonds.tags[0]), [0,1]);
-            self.assertEqual(list(snapshot.bonds.tags[1]), [1,2]);
-            self.assertEqual(list(snapshot.bonds.tags[2]), [3,4]);
-            self.assertEqual(list(snapshot.bonds.tags[3]), [4,5]);
-            self.assertEqual(list(snapshot.bonds.tags[4]), [6,7]);
-            self.assertEqual(list(snapshot.bonds.tags[5]), [7,8]);
+            self.assertEqual(list(snapshot.bonds.group[0]), [0,1]);
+            self.assertEqual(list(snapshot.bonds.group[1]), [1,2]);
+            self.assertEqual(list(snapshot.bonds.group[2]), [3,4]);
+            self.assertEqual(list(snapshot.bonds.group[3]), [4,5]);
+            self.assertEqual(list(snapshot.bonds.group[4]), [6,7]);
+            self.assertEqual(list(snapshot.bonds.group[5]), [7,8]);
 
     def test_take_snapshot_float(self):
         snapshot = self.s.take_snapshot(all=True, dtype='float');
@@ -212,16 +212,16 @@ class init_verify_npy_dtype (unittest.TestCase):
             self.assertEqual(snapshot.bonds.N, 6);
             self.assertEqual(snapshot.bonds.typeid.shape, (6,));
             self.assertEqual(snapshot.bonds.typeid.dtype, numpy.uint32);
-            self.assertEqual(snapshot.bonds.tags.shape, (6,2));
-            self.assertEqual(snapshot.bonds.tags.dtype, numpy.uint32);
+            self.assertEqual(snapshot.bonds.group.shape, (6,2));
+            self.assertEqual(snapshot.bonds.group.dtype, numpy.uint32);
             self.assertEqual(snapshot.bonds.types, ['polymer']);
 
-            self.assertEqual(list(snapshot.bonds.tags[0]), [0,1]);
-            self.assertEqual(list(snapshot.bonds.tags[1]), [1,2]);
-            self.assertEqual(list(snapshot.bonds.tags[2]), [3,4]);
-            self.assertEqual(list(snapshot.bonds.tags[3]), [4,5]);
-            self.assertEqual(list(snapshot.bonds.tags[4]), [6,7]);
-            self.assertEqual(list(snapshot.bonds.tags[5]), [7,8]);
+            self.assertEqual(list(snapshot.bonds.group[0]), [0,1]);
+            self.assertEqual(list(snapshot.bonds.group[1]), [1,2]);
+            self.assertEqual(list(snapshot.bonds.group[2]), [3,4]);
+            self.assertEqual(list(snapshot.bonds.group[3]), [4,5]);
+            self.assertEqual(list(snapshot.bonds.group[4]), [6,7]);
+            self.assertEqual(list(snapshot.bonds.group[5]), [7,8]);
 
     def tearDown(self):
         del self.s
@@ -260,27 +260,27 @@ class init_take_snapshot_float (unittest.TestCase):
             self.snapshot.bonds.types = ['b1', 'b2'];
             self.snapshot.bonds.resize(2);
             self.snapshot.bonds.typeid[:] = [0, 1];
-            self.snapshot.bonds.tags[0] = [0, 1];
-            self.snapshot.bonds.tags[1] = [2, 3];
+            self.snapshot.bonds.group[0] = [0, 1];
+            self.snapshot.bonds.group[1] = [2, 3];
 
             # angles
             self.snapshot.angles.types = ['a1', 'a2'];
             self.snapshot.angles.resize(2);
             self.snapshot.angles.typeid[:] = [1, 0];
-            self.snapshot.angles.tags[0] = [0, 1, 2];
-            self.snapshot.angles.tags[1] = [2, 3, 0];
+            self.snapshot.angles.group[0] = [0, 1, 2];
+            self.snapshot.angles.group[1] = [2, 3, 0];
 
             # dihedrals
             self.snapshot.dihedrals.types = ['d1'];
             self.snapshot.dihedrals.resize(1);
             self.snapshot.dihedrals.typeid[:] = [0];
-            self.snapshot.dihedrals.tags[0] = [0, 1, 2, 3];
+            self.snapshot.dihedrals.group[0] = [0, 1, 2, 3];
 
             # impropers
             self.snapshot.impropers.types = ['i1'];
             self.snapshot.impropers.resize(1);
             self.snapshot.impropers.typeid[:] = [0];
-            self.snapshot.impropers.tags[0] = [3, 2, 1, 0];
+            self.snapshot.impropers.group[0] = [3, 2, 1, 0];
 
         self.s = init.read_snapshot(self.snapshot);
         self.assertTrue(self.s);
@@ -400,27 +400,27 @@ class init_take_snapshot_double (unittest.TestCase):
             self.snapshot.bonds.types = ['b1', 'b2'];
             self.snapshot.bonds.resize(2);
             self.snapshot.bonds.typeid[:] = [0, 1];
-            self.snapshot.bonds.tags[0] = [0, 1];
-            self.snapshot.bonds.tags[1] = [2, 3];
+            self.snapshot.bonds.group[0] = [0, 1];
+            self.snapshot.bonds.group[1] = [2, 3];
 
             # angles
             self.snapshot.angles.types = ['a1', 'a2'];
             self.snapshot.angles.resize(2);
             self.snapshot.angles.typeid[:] = [1, 0];
-            self.snapshot.angles.tags[0] = [0, 1, 2];
-            self.snapshot.angles.tags[1] = [2, 3, 0];
+            self.snapshot.angles.group[0] = [0, 1, 2];
+            self.snapshot.angles.group[1] = [2, 3, 0];
 
             # dihedrals
             self.snapshot.dihedrals.types = ['d1'];
             self.snapshot.dihedrals.resize(1);
             self.snapshot.dihedrals.typeid[:] = [0];
-            self.snapshot.dihedrals.tags[0] = [0, 1, 2, 3];
+            self.snapshot.dihedrals.group[0] = [0, 1, 2, 3];
 
             # impropers
             self.snapshot.impropers.types = ['i1'];
             self.snapshot.impropers.resize(1);
             self.snapshot.impropers.typeid[:] = [0];
-            self.snapshot.impropers.tags[0] = [3, 2, 1, 0];
+            self.snapshot.impropers.group[0] = [3, 2, 1, 0];
 
         self.s = init.read_snapshot(self.snapshot);
         self.assertTrue(self.s);
