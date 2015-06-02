@@ -100,7 +100,7 @@ class init_take_restore_snapshot (unittest.TestCase):
         init.reset();
 
 # test take_snapshot with the numpy API
-class init_take_snapshot (unittest.TestCase):
+class init_verify_npy_dtype (unittest.TestCase):
     def setUp(self):
         polymer = dict(bond_len=1.2, type=['A']*1 + ['B']*2, bond="linear", count=3);
         box = data.boxdim(L=35);
@@ -168,7 +168,7 @@ class init_take_snapshot (unittest.TestCase):
     def test_take_snapshot_float(self):
         snapshot = self.s.take_snapshot(all=True, dtype='float');
 
-        float_type = numpy.float;
+        float_type = numpy.float32;
 
         # check the particles
         self.assertEqual(snapshot.particles.N, 9)
@@ -227,7 +227,7 @@ class init_take_snapshot (unittest.TestCase):
 
 
 # test make_snapshot and read_snapshot
-class init_take_snapshot (unittest.TestCase):
+class init_take_snapshot_float (unittest.TestCase):
     def setUp(self):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
         # particles
