@@ -419,12 +419,12 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
     if phi_p is not None:
         # calculate the box size
         L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
-        box = data.boxdim(L=L);
+        box = hoomd_script.data.boxdim(L=L);
 
     if box is None:
         raise RuntimeError('box or phi_p must be specified');
 
-    if not isinstance(box, data.boxdim):
+    if not isinstance(box, hoomd_script.data.boxdim):
         globals.msg.error('box must be a data.boxdim object');
         raise TypeError('box must be a data.boxdim object');
 
