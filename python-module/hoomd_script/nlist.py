@@ -615,13 +615,13 @@ class cell(_nlist):
 
         # create the C++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
-            cl_c = hoomd.CellList(globals.system_definition)
-            globals.system.addCompute(cl_c, self.name + "_cl")
-            self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, default_r_cut, default_r_buff, cl_c)
+            self.cpp_cl = hoomd.CellList(globals.system_definition)
+            globals.system.addCompute(self.cpp_cl , self.name + "_cl")
+            self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
         else:
-            cl_c = hoomd.CellListGPU(globals.system_definition)
-            globals.system.addCompute(cl_c, self.name + "_cl")
-            self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, default_r_cut, default_r_buff, cl_c)
+            self.cpp_cl  = hoomd.CellListGPU(globals.system_definition)
+            globals.system.addCompute(self.cpp_cl , self.name + "_cl")
+            self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, default_r_cut, default_r_buff, self.cpp_cl )
 
         self.cpp_nlist.setEvery(1, True)
 
@@ -634,6 +634,83 @@ class cell(_nlist):
         util._disable_status_lines = True
         self.set_params(r_buff, check_period, d_max, dist_check)
         util._disable_status_lines = False
+
+    ## Change neighbor list parameters
+    #
+    # \param r_buff (if set) changes the buffer radius around the cutoff (in distance units)
+    # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list
+    #        needs updating
+    # \param d_max (if set) notifies the neighbor list of the maximum diameter that a particle attain over the following
+    #        run() commands. (in distance units)
+    # \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
+    #        \a check_period steps
+    # \param deterministic (if set) Enable deterministic runs on the GPU by sorting the cell list
+    #
+    # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
+    # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
+    # to be updated less often, but more particles are included leading to slower %force computations.
+    # Smaller values of \a r_buff lead to faster %force computation, but more often neighbor list updates,
+    # slowing overall performance again. The sweet spot for the best performance needs to be found by
+    # experimentation. The default of \a r_buff = 0.8 works well in practice for Lennard-Jones liquid
+    # simulations.
+    #
+    # As \a r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
+    # no sooner than \a check_period time steps after the last %update. If \a check_period is set too high,
+    # the neighbor list may not be updated when it needs to be.
+    #
+    # For safety, the default check_period is 1 to ensure that the neighbor list is always updated when it
+    # needs to be. Increasing this to an appropriate value for your simulation can lead to performance gains
+    # of approximately 2 percent.
+    #
+    # \a check_period should be set so that no particle
+    # moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
+    # \b build is counted and printed in the neighbor list statistics at the end of a run().
+    #
+    # When using pair.slj, \a d_max \b MUST be set to the maximum diameter that a particle will attain at any point
+    # during the following run() commands (see pair.slj for more information). When using in conjunction with pair.slj,
+    # pair.slj will
+    # automatically set \a d_max for the nlist.  This can be overridden (e.g. if multiple potentials using diameters are used)
+    # by using nlist.set_params() after the
+    # pair.slj class has been initialized.   When <i>not</i> using pair.slj (or other diameter-using potential), \a d_max
+    # \b MUST be left at the default value of 1.0 or the simulation will be incorrect if d_max is less than 1.0 and slower
+    # than necessary if d_max is greater than 1.0.
+    #
+    # \b Examples:
+    # \code
+    # nl.set_params(r_buff = 0.9)
+    # nl.set_params(check_period = 11)
+    # nl.set_params(r_buff = 0.7, check_period = 4)
+    # nl.set_params(d_max = 3.0)
+    # \endcode
+    #
+    # \note For truly deterministic simulations, also the autotuner should be disabled.
+    # This can significantly decrease performance.
+    #
+    # \b Example:
+    # \code
+    # nlist.set_params(deterministic=True)
+    # option.set_autotuner_params(enable=False)
+    # \endcode
+    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=None):
+        util.print_status_line();
+
+        if self.cpp_nlist is None:
+            globals.msg.error('Bug in hoomd_script: cpp_nlist not set, please report\n');
+            raise RuntimeError('Error setting neighbor list parameters');
+
+        # update the parameters
+        if r_buff is not None:
+            self.cpp_nlist.setRBuff(r_buff);
+            self.r_buff = r_buff;
+
+        if check_period is not None:
+            self.cpp_nlist.setEvery(check_period, dist_check);
+
+        if d_max is not None:
+            self.cpp_nlist.setMaximumDiameter(d_max);
+
+        if deterministic is not None:
+            self.cpp_cl.setSortCellList(deterministic)
 cell.cur_id = 0
 
 ## Fast neighbor list for size asymmetric particles
@@ -727,6 +804,7 @@ def _subscribe_global_nlist(cb):
 #        run() commands. (in distance units)
 # \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
 #        \a check_period steps
+# \param deterministic (if set) Enable deterministic runs on the GPU by sorting the cell list
 #
 # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
 # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
@@ -764,14 +842,23 @@ def _subscribe_global_nlist(cb):
 # nl.set_params(r_buff = 0.7, check_period = 4)
 # nl.set_params(d_max = 3.0)
 # \endcode
-def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True):
+#
+# \note For truly deterministic simulations, also the autotuner should be disabled.
+# This can significantly decrease performance.
+#
+# \b Example:
+# \code
+# nlist.set_params(deterministic=True)
+# option.set_autotuner_params(enable=False)
+# \endcode
+def set_params(r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=True):
     util.print_status_line();
     if globals.neighbor_list is None:
         globals.msg.error('Cannot set global neighbor list parameters without creating it first\n');
         raise RuntimeError('Error modifying global neighbor list');
 
     util._disable_status_lines = True;
-    globals.neighbor_list.set_params(rbuff, check_period, d_max, dist_check);
+    globals.neighbor_list.set_params(r_buff, check_period, d_max, dist_check, deterministic);
     util._disable_status_lines = False;
 
 ## Thin wrapper for resetting exclusion for global neighbor list

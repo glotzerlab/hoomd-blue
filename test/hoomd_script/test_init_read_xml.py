@@ -81,6 +81,14 @@ A B C
         self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
         self.assertAlmostEqual(sys.particles[0].position[2],-1,5)
 
+    # test read restart file
+    def test_read_restart(self):
+        sys=init.read_xml(self.tmp_file, self.tmp_file2,wrap_coordinates=True)
+        self.assert_(globals.system_definition);
+        self.assert_(globals.system);
+        self.assertEqual(globals.system_definition.getParticleData().getNGlobal(), 3);
+        self.assertAlmostEqual(sys.particles[0].position[2],-1,5)
+
     # checks for an error if initialized twice
     def test_inittwice(self):
         init.read_xml(self.tmp_file);

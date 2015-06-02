@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Compute.h"
 #include "GPUArray.h"
+#include "GPUVector.h"
 #include "GPUFlags.h"
 #include "Index1D.h"
 
@@ -174,7 +175,7 @@ class NeighborList : public Compute
         // @{
         
         //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_buff, Scalar r_cut);
+        virtual void setRCut(Scalar r_cut, Scalar r_buff);
         
         //! Change the cutoff radius by pair
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
@@ -281,7 +282,7 @@ class NeighborList : public Compute
 
         bool wantExclusions()
             {
-            return m_want_exclusions;
+            return m_need_reallocate_exlist;
             }
 
         //! Gives an estimate of the number of nearest neighbors per particle
@@ -462,11 +463,12 @@ class NeighborList : public Compute
 
         GPUArray<unsigned int> m_ex_list_tag;  //!< List of excluded particles referenced by tag
         GPUArray<unsigned int> m_ex_list_idx;  //!< List of excluded particles referenced by index
-        GPUArray<unsigned int> m_n_ex_tag;     //!< Number of exclusions for a given particle tag
+        GPUVector<unsigned int> m_n_ex_tag;    //!< Number of exclusions for a given particle tag
         GPUArray<unsigned int> m_n_ex_idx;     //!< Number of exclusions for a given particle index
         Index2D m_ex_list_indexer;             //!< Indexer for accessing the exclusion list
         Index2D m_ex_list_indexer_tag;         //!< Indexer for accessing the by-tag exclusion list
         bool m_exclusions_set;                 //!< True if any exclusions have been set
+        bool m_need_reallocate_exlist;         //!< True if global exclusion list needs to be reallocated
 
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
@@ -530,8 +532,6 @@ class NeighborList : public Compute
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
         vector<unsigned int> m_update_periods;    //!< Steps between updates
 
-        bool m_want_exclusions;       //!< True if we want updated exclusions
-
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
 
@@ -553,9 +553,7 @@ class NeighborList : public Compute
         //! Method to be called when the global particle number changes
         void slotGlobalParticleNumberChange()
             {
-            m_want_exclusions = true;
-
-            reallocate();
+            m_need_reallocate_exlist = true;
             }
     };
 

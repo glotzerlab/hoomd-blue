@@ -64,12 +64,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
-// forward declaration of the cub temporary storage allocator
-namespace cub
-    {
-    struct CachingDeviceAllocator;
-    };
-
 // include fixed width integer types uint32_t and uint64_t
 #include <stdint.h>
                                      
@@ -89,7 +83,8 @@ cudaError_t gpu_nlist_morton_sort(uint64_t *d_morton_types,
                                   uint64_t *d_morton_types_alt,
                                   unsigned int *d_map_tree_pid,
                                   unsigned int *d_map_tree_pid_alt,
-                                  cub::CachingDeviceAllocator *allocator,
+                                  void *d_tmp_storage,
+                                  size_t &tmp_storage_bytes,
                                   bool &swap_morton,
                                   bool &swap_map,
                                   const unsigned int Ntot,

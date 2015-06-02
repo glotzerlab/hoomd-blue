@@ -429,7 +429,8 @@ __global__ void gpu_nlist_get_nlist_size_kernel(unsigned int *d_req_size_nlist,
 /*!
  * \param d_head_list The head list of indexes to compute for reading the neighbor list
  * \param d_req_size_nlist The required size of the neighbor list flat array
- * \param allocator A temporary caching allocator for device memory
+ * \param d_tmp_storage Temporary storage in device memory
+ * \param tmp_storage_bytes Size of temporary storage in bytes
  * \param d_Nmax The number of neighbors to size per particle type
  * \param d_pos Particle positions and types
  * \param N the number of particles on this rank
@@ -439,77 +440,55 @@ __global__ void gpu_nlist_get_nlist_size_kernel(unsigned int *d_req_size_nlist,
  * \return cudaSuccess on completion
  *
  * \b Implementation
- * This driver wraps multiple kernel calls to build the head list. First, the head list is filled with the
- * number of neighbors per particle. Then, an exclusive prefix sum is performed in place on this list using the
- * CUB libraries. Finally, a single thread is used to perform compute the total size of the neighbor list while still
- * on device.
+ * This function must be called twice to build the head list. In the first call (when \a d_tmp_storage is NULL),
+ * the head list is filled with the number of neighbors per particle and the amount of temporary storage space needed
+ * to compute the head list is saved in \a tmp_storage_bytes. This amount of memory must then be allocated on the
+ * device in \a d_tmp_storage before this function is called again. In the second call, an exclusive prefix sum is
+ * performed in place on this list using the CUB libraries and a single thread is used to perform compute the total
+ * size of the neighbor list while still on device.
  */
 cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
                                       unsigned int *d_req_size_nlist,
-                                      cub::CachingDeviceAllocator* allocator,
+                                      void *d_tmp_storage,
+                                      size_t &tmp_storage_bytes,
                                       const unsigned int *d_Nmax,
                                       const Scalar4 *d_pos,
                                       const unsigned int N,
                                       const unsigned int ntypes,
                                       const unsigned int block_size)
-    {   
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
+    {
+    if (d_tmp_storage == NULL) // initialization
         {
-       cudaFuncAttributes attr;
-       cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_init_head_list_kernel);
-       max_block_size = attr.maxThreadsPerBlock;
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+           cudaFuncAttributes attr;
+           cudaFuncGetAttributes(&attr, (const void *)gpu_nlist_init_head_list_kernel);
+           max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(block_size, max_block_size);
+        unsigned int shared_bytes = ntypes*sizeof(unsigned int);
+    
+        // initialize each particle with its number of neighbors
+        gpu_nlist_init_head_list_kernel<<<N/run_block_size + 1, run_block_size, shared_bytes>>>(d_head_list,
+                                                                                                d_req_size_nlist,
+                                                                                                d_Nmax,
+                                                                                                d_pos,
+                                                                                                N,
+                                                                                                ntypes);
+    
+        // size the temporary storage
+        cub::DeviceScan::ExclusiveSum(d_tmp_storage, tmp_storage_bytes, d_head_list, d_head_list, N);
         }
-
-    unsigned int run_block_size = min(block_size, max_block_size);
-    unsigned int shared_bytes = ntypes*sizeof(unsigned int);
+    else
+        {
+        // perform the exclusive sum
+        cub::DeviceScan::ExclusiveSum(d_tmp_storage, tmp_storage_bytes, d_head_list, d_head_list, N);
     
-    // initialize each particle with its number of neighbors
-    gpu_nlist_init_head_list_kernel<<<N/run_block_size + 1, run_block_size, shared_bytes>>>(d_head_list,
-                                                                                            d_req_size_nlist,
-                                                                                            d_Nmax,
-                                                                                            d_pos,
-                                                                                            N,
-                                                                                            ntypes);
-    
-    // perform an exclusive sum, first allocate the temporary storage
-    size_t tmp_storage_bytes = 0;
-    void *d_tmp_storage = NULL;
-    cub::DeviceScan::ExclusiveSum(d_tmp_storage, tmp_storage_bytes, d_head_list, d_head_list, N);
-    allocator->DeviceAllocate(&d_tmp_storage, tmp_storage_bytes);
-
-    // perform the exclusive sum    
-    // check: does this work with same input and output vector?
-    cub::DeviceScan::ExclusiveSum(d_tmp_storage, tmp_storage_bytes, d_head_list, d_head_list, N);
-    
-    // free the temporary storage
-    allocator->DeviceFree(d_tmp_storage);
-    
-    // compute the total number on the GPU from the last element (it would be nice if the cub code could do this)
-    gpu_nlist_get_nlist_size_kernel<<<1,1>>>(d_req_size_nlist, d_head_list, N);
+        // compute the total number on the GPU from the last element (it would be nice if the cub code could do this)
+        gpu_nlist_get_nlist_size_kernel<<<1,1>>>(d_req_size_nlist, d_head_list, N);
+        }
     
     return cudaSuccess;
     }
-
-/*!
- * \return Pointer to an allocator
- *
- * The cub headers throw lots of errors when included into a file not compiled with nvcc, so
- * we need a wrapper in this file. We need to use an allocator
- * at class scope because we get illegal memory access problems with it global scope when multiple
- * neighborlists are instantiated.
- */   
-cub::CachingDeviceAllocator* init_cub_allocator()
-    {
-    return new cub::CachingDeviceAllocator(false);
-    }
-    
-/*!
- * \param allocator pointer to a device cache to destroy
- * \note This is called from the NeighborListGPU destructor, so there are no memory leaks from the allocator.
- */
-void del_cub_allocator(cub::CachingDeviceAllocator *allocator)
-    {
-    if (allocator != NULL)
-        delete allocator;
-    }    

@@ -87,8 +87,7 @@ using namespace std;
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
     : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_r_cut_max(_r_cut), m_r_buff(r_buff), m_d_max(1.0),
       m_filter_body(false), m_diameter_shift(false), m_storage_mode(half), m_updates(0), m_forced_updates(0),
-      m_dangerous_updates(0), m_force_update(true), m_dist_check(true), m_has_been_updated_once(false),
-      m_want_exclusions(false)
+      m_dangerous_updates(0), m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing Neighborlist" << endl;
 
@@ -105,6 +104,8 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     m_last_check_result = false;
     m_every = 0;
     m_exclusions_set = false;
+
+    m_need_reallocate_exlist = false;
 
     // initialize box length at last update
     m_last_L = m_pdata->getGlobalBox().getNearestPlaneDistance();
@@ -160,7 +161,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
 
     // note: this breaks O(N/P) memory scaling
-    GPUArray<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
+    GPUVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
 
     GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, exec_conf);
@@ -206,19 +207,6 @@ void NeighborList::reallocate()
     // resize the head list and number of neighbors per particle
     m_head_list.resize(m_pdata->getMaxN());
     m_n_neigh.resize(m_pdata->getMaxN());
-
-    if (m_n_ex_tag.getNumElements() != m_pdata->getRTags().size())
-        {
-        m_n_ex_tag.resize(m_pdata->getRTags().size());
-        m_ex_list_tag.resize(m_pdata->getRTags().size(), m_ex_list_tag.getHeight());
-        m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
-
-        // clear all exclusions
-        clearExclusions();
-
-        // they need to be added again
-        m_want_exclusions = true;
-        }
     
     // force a rebuild
     forceUpdate();
@@ -448,8 +436,6 @@ void NeighborList::updateRList()
     \note Under NO circumstances should calling this method produce any
     appreciable amount of overhead. This is mainly a warning to
     derived classes.
-    
-    \todo Correct this method to factor in differing particle types.
 */
 Scalar NeighborList::estimateNNeigh()
     {
@@ -479,6 +465,8 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     {
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
+
+    assert(! m_need_reallocate_exlist);
 
     m_exclusions_set = true;
 
@@ -522,9 +510,6 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         h_n_ex_tag.data[tag2]++;
         }
 
-    // Exclusions have been added, so assume the exclusion list is now current
-    m_want_exclusions = false;
-
     forceUpdate();
     }
 
@@ -532,11 +517,28 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 */
 void NeighborList::clearExclusions()
     {
+    // reallocate list of exclusions per tag if necessary
+    if (m_need_reallocate_exlist)
+        {
+        m_n_ex_tag.resize(m_pdata->getRTags().size());
+
+        // slave the width of the exclusion list to the capacity of the number of exclusions array
+        // in order to amortize reallocation costs
+        if (m_ex_list_tag.getPitch() != m_n_ex_tag.getNumElements())
+            {
+            m_ex_list_tag.resize(m_n_ex_tag.getNumElements(), m_ex_list_tag.getHeight());
+            m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), m_ex_list_tag.getHeight());
+            }
+
+        m_need_reallocate_exlist = false;
+        }
+
+
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
-    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getRTags().size());
-    memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_pdata->getN());
+    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_n_ex_tag.getNumElements());
+    memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_n_ex_idx.getNumElements());
     m_exclusions_set = false;
 
     forceUpdate();
@@ -569,6 +571,8 @@ void NeighborList::countExclusions()
     unsigned int MAX_COUNT_EXCLUDED = 16;
     unsigned int excluded_count[MAX_COUNT_EXCLUDED+2];
     unsigned int num_excluded, max_num_excluded;
+
+    assert(! m_need_reallocate_exlist);
 
     ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
 
@@ -726,6 +730,8 @@ void NeighborList::addExclusionsFromDihedrals()
 */
 bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
+    assert(! m_need_reallocate_exlist);
+
     assert(tag1 <= m_pdata->getMaximumTag());
     assert(tag2 <= m_pdata->getMaximumTag());
 
@@ -1186,8 +1192,11 @@ void NeighborList::buildNlist(unsigned int timestep)
 */
 void NeighborList::updateExListIdx()
     {
+    assert(! m_need_reallocate_exlist);
+
     if (m_prof)
         m_prof->push("update-ex");
+
     // access data
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -1314,11 +1323,11 @@ void NeighborList::buildHeadList()
  */
 void NeighborList::resizeNlist(unsigned int size)
     {
-    if (size > m_nlist.getPitch())
+    if (size > m_nlist.getNumElements())
         {
         m_exec_conf->msg->notice(6) << "nlist: (Re-)allocating neighbor list" << endl;
         
-        unsigned int alloc_size = m_nlist.getPitch() ? m_nlist.getPitch() : 1;
+        unsigned int alloc_size = m_nlist.getNumElements() ? m_nlist.getNumElements() : 1;
         
         while (size > alloc_size)
             {

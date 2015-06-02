@@ -81,7 +81,7 @@ class NeighborListBinned : public NeighborList
         virtual ~NeighborListBinned();
 
         //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_buff, Scalar r_cut);
+        virtual void setRCut(Scalar r_cut, Scalar r_buff);
         
         //! Set the cutoff radius by pair type
         virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);

@@ -77,7 +77,7 @@ from hoomd_script import util
 # \note By default, the maximum check_period is \b not set for safety. If you wish to have it set
 # when the call completes, call with the parameter set_max_check_period=True.
 #
-# \returns (optimal_r_buff, maximum check_period)
+# \returns (optimal_r_buff, maximum_check_period)
 #
 # \note This wrapper is maintained for backwards compatibility with the global neighbor list, but may be removed in
 # future versions.

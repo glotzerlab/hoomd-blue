@@ -87,9 +87,9 @@ NeighborListBinned::~NeighborListBinned()
     m_exec_conf->msg->notice(5) << "Destroying NeighborListBinned" << endl;
     }
 
-void NeighborListBinned::setRCut(Scalar r_buff, Scalar r_cut)
+void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
-    NeighborList::setRCut(r_buff, r_cut);
+    NeighborList::setRCut(r_cut, r_buff);
 
     Scalar rmax = m_r_cut_max + m_r_buff;
     if (m_diameter_shift)

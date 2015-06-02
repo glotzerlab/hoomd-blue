@@ -27,6 +27,13 @@ class dmp_dcd_tests (unittest.TestCase):
         if (comm.get_rank() == 0):
             os.remove(self.tmp_file)
 
+    # tests with phase
+    def test_phase(self):
+        dump.dcd(filename=self.tmp_file, period=100, phase=0);
+        run(100)
+        if (comm.get_rank() == 0):
+            os.remove(self.tmp_file)
+
     # tests unwrap_full option
     def test_unwrap_full(self):
         dump.dcd(filename=self.tmp_file, period=100, unwrap_full=True);
