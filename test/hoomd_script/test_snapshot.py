@@ -232,54 +232,55 @@ class init_verify_npy_dtype (unittest.TestCase):
 class init_take_snapshot_float (unittest.TestCase):
     def setUp(self):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
-        # particles
-        self.snapshot.particles.position[0] = [0,1,2];
-        self.snapshot.particles.position[1] = [1,2,3];
-        self.snapshot.particles.position[2] = [0,-1,-2];
-        self.snapshot.particles.position[3] = [-1, -2, -3];
-        self.snapshot.particles.velocity[0] = [10, 11, 12];
-        self.snapshot.particles.velocity[1] = [11, 12, 13];
-        self.snapshot.particles.velocity[2] = [12, 13, 14];
-        self.snapshot.particles.velocity[3] = [13, 14, 15];
-        self.snapshot.particles.acceleration[0] = [20, 21, 22];
-        self.snapshot.particles.acceleration[1] = [21, 22, 23];
-        self.snapshot.particles.acceleration[2] = [22, 23, 24];
-        self.snapshot.particles.acceleration[3] = [23, 24, 25];
-        self.snapshot.particles.typeid[:] = [0,0,1,1];
-        self.snapshot.particles.mass[:] = [33, 34, 35,  36];
-        self.snapshot.particles.charge[:] = [44, 45, 46, 47];
-        self.snapshot.particles.diameter[:] = [55, 56, 57, 58];
-        self.snapshot.particles.image[0] = [60, 61, 62];
-        self.snapshot.particles.image[1] = [61, 62, 63];
-        self.snapshot.particles.image[2] = [62, 63, 64];
-        self.snapshot.particles.image[3] = [63, 64, 65];
-        self.snapshot.particles.types = ['p1', 'p2'];
+        if comm.get_rank() == 0:
+            # particles
+            self.snapshot.particles.position[0] = [0,1,2];
+            self.snapshot.particles.position[1] = [1,2,3];
+            self.snapshot.particles.position[2] = [0,-1,-2];
+            self.snapshot.particles.position[3] = [-1, -2, -3];
+            self.snapshot.particles.velocity[0] = [10, 11, 12];
+            self.snapshot.particles.velocity[1] = [11, 12, 13];
+            self.snapshot.particles.velocity[2] = [12, 13, 14];
+            self.snapshot.particles.velocity[3] = [13, 14, 15];
+            self.snapshot.particles.acceleration[0] = [20, 21, 22];
+            self.snapshot.particles.acceleration[1] = [21, 22, 23];
+            self.snapshot.particles.acceleration[2] = [22, 23, 24];
+            self.snapshot.particles.acceleration[3] = [23, 24, 25];
+            self.snapshot.particles.typeid[:] = [0,0,1,1];
+            self.snapshot.particles.mass[:] = [33, 34, 35,  36];
+            self.snapshot.particles.charge[:] = [44, 45, 46, 47];
+            self.snapshot.particles.diameter[:] = [55, 56, 57, 58];
+            self.snapshot.particles.image[0] = [60, 61, 62];
+            self.snapshot.particles.image[1] = [61, 62, 63];
+            self.snapshot.particles.image[2] = [62, 63, 64];
+            self.snapshot.particles.image[3] = [63, 64, 65];
+            self.snapshot.particles.types = ['p1', 'p2'];
 
-        # bonds
-        self.snapshot.bonds.types = ['b1', 'b2'];
-        self.snapshot.bonds.resize(2);
-        self.snapshot.bonds.typeid[:] = [0, 1];
-        self.snapshot.bonds.tags[0] = [0, 1];
-        self.snapshot.bonds.tags[1] = [2, 3];
+            # bonds
+            self.snapshot.bonds.types = ['b1', 'b2'];
+            self.snapshot.bonds.resize(2);
+            self.snapshot.bonds.typeid[:] = [0, 1];
+            self.snapshot.bonds.tags[0] = [0, 1];
+            self.snapshot.bonds.tags[1] = [2, 3];
 
-        # angles
-        self.snapshot.angles.types = ['a1', 'a2'];
-        self.snapshot.angles.resize(2);
-        self.snapshot.angles.typeid[:] = [1, 0];
-        self.snapshot.angles.tags[0] = [0, 1, 2];
-        self.snapshot.angles.tags[1] = [2, 3, 0];
+            # angles
+            self.snapshot.angles.types = ['a1', 'a2'];
+            self.snapshot.angles.resize(2);
+            self.snapshot.angles.typeid[:] = [1, 0];
+            self.snapshot.angles.tags[0] = [0, 1, 2];
+            self.snapshot.angles.tags[1] = [2, 3, 0];
 
-        # dihedrals
-        self.snapshot.dihedrals.types = ['d1'];
-        self.snapshot.dihedrals.resize(1);
-        self.snapshot.dihedrals.typeid[:] = [0];
-        self.snapshot.dihedrals.tags[0] = [0, 1, 2, 3];
+            # dihedrals
+            self.snapshot.dihedrals.types = ['d1'];
+            self.snapshot.dihedrals.resize(1);
+            self.snapshot.dihedrals.typeid[:] = [0];
+            self.snapshot.dihedrals.tags[0] = [0, 1, 2, 3];
 
-        # impropers
-        self.snapshot.impropers.types = ['i1'];
-        self.snapshot.impropers.resize(1);
-        self.snapshot.impropers.typeid[:] = [0];
-        self.snapshot.impropers.tags[0] = [3, 2, 1, 0];
+            # impropers
+            self.snapshot.impropers.types = ['i1'];
+            self.snapshot.impropers.resize(1);
+            self.snapshot.impropers.typeid[:] = [0];
+            self.snapshot.impropers.tags[0] = [3, 2, 1, 0];
 
         self.s = init.read_snapshot(self.snapshot);
         self.assertTrue(self.s);
@@ -371,54 +372,55 @@ class init_take_snapshot_float (unittest.TestCase):
 class init_take_snapshot_double (unittest.TestCase):
     def setUp(self):
         self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='double');
-        # particles
-        self.snapshot.particles.position[0] = [0,1,2];
-        self.snapshot.particles.position[1] = [1,2,3];
-        self.snapshot.particles.position[2] = [0,-1,-2];
-        self.snapshot.particles.position[3] = [-1, -2, -3];
-        self.snapshot.particles.velocity[0] = [10, 11, 12];
-        self.snapshot.particles.velocity[1] = [11, 12, 13];
-        self.snapshot.particles.velocity[2] = [12, 13, 14];
-        self.snapshot.particles.velocity[3] = [13, 14, 15];
-        self.snapshot.particles.acceleration[0] = [20, 21, 22];
-        self.snapshot.particles.acceleration[1] = [21, 22, 23];
-        self.snapshot.particles.acceleration[2] = [22, 23, 24];
-        self.snapshot.particles.acceleration[3] = [23, 24, 25];
-        self.snapshot.particles.typeid[:] = [0,0,1,1];
-        self.snapshot.particles.mass[:] = [33, 34, 35,  36];
-        self.snapshot.particles.charge[:] = [44, 45, 46, 47];
-        self.snapshot.particles.diameter[:] = [55, 56, 57, 58];
-        self.snapshot.particles.image[0] = [60, 61, 62];
-        self.snapshot.particles.image[1] = [61, 62, 63];
-        self.snapshot.particles.image[2] = [62, 63, 64];
-        self.snapshot.particles.image[3] = [63, 64, 65];
-        self.snapshot.particles.types = ['p1', 'p2'];
+        if comm.get_rank() == 0:
+            # particles
+            self.snapshot.particles.position[0] = [0,1,2];
+            self.snapshot.particles.position[1] = [1,2,3];
+            self.snapshot.particles.position[2] = [0,-1,-2];
+            self.snapshot.particles.position[3] = [-1, -2, -3];
+            self.snapshot.particles.velocity[0] = [10, 11, 12];
+            self.snapshot.particles.velocity[1] = [11, 12, 13];
+            self.snapshot.particles.velocity[2] = [12, 13, 14];
+            self.snapshot.particles.velocity[3] = [13, 14, 15];
+            self.snapshot.particles.acceleration[0] = [20, 21, 22];
+            self.snapshot.particles.acceleration[1] = [21, 22, 23];
+            self.snapshot.particles.acceleration[2] = [22, 23, 24];
+            self.snapshot.particles.acceleration[3] = [23, 24, 25];
+            self.snapshot.particles.typeid[:] = [0,0,1,1];
+            self.snapshot.particles.mass[:] = [33, 34, 35,  36];
+            self.snapshot.particles.charge[:] = [44, 45, 46, 47];
+            self.snapshot.particles.diameter[:] = [55, 56, 57, 58];
+            self.snapshot.particles.image[0] = [60, 61, 62];
+            self.snapshot.particles.image[1] = [61, 62, 63];
+            self.snapshot.particles.image[2] = [62, 63, 64];
+            self.snapshot.particles.image[3] = [63, 64, 65];
+            self.snapshot.particles.types = ['p1', 'p2'];
 
-        # bonds
-        self.snapshot.bonds.types = ['b1', 'b2'];
-        self.snapshot.bonds.resize(2);
-        self.snapshot.bonds.typeid[:] = [0, 1];
-        self.snapshot.bonds.tags[0] = [0, 1];
-        self.snapshot.bonds.tags[1] = [2, 3];
+            # bonds
+            self.snapshot.bonds.types = ['b1', 'b2'];
+            self.snapshot.bonds.resize(2);
+            self.snapshot.bonds.typeid[:] = [0, 1];
+            self.snapshot.bonds.tags[0] = [0, 1];
+            self.snapshot.bonds.tags[1] = [2, 3];
 
-        # angles
-        self.snapshot.angles.types = ['a1', 'a2'];
-        self.snapshot.angles.resize(2);
-        self.snapshot.angles.typeid[:] = [1, 0];
-        self.snapshot.angles.tags[0] = [0, 1, 2];
-        self.snapshot.angles.tags[1] = [2, 3, 0];
+            # angles
+            self.snapshot.angles.types = ['a1', 'a2'];
+            self.snapshot.angles.resize(2);
+            self.snapshot.angles.typeid[:] = [1, 0];
+            self.snapshot.angles.tags[0] = [0, 1, 2];
+            self.snapshot.angles.tags[1] = [2, 3, 0];
 
-        # dihedrals
-        self.snapshot.dihedrals.types = ['d1'];
-        self.snapshot.dihedrals.resize(1);
-        self.snapshot.dihedrals.typeid[:] = [0];
-        self.snapshot.dihedrals.tags[0] = [0, 1, 2, 3];
+            # dihedrals
+            self.snapshot.dihedrals.types = ['d1'];
+            self.snapshot.dihedrals.resize(1);
+            self.snapshot.dihedrals.typeid[:] = [0];
+            self.snapshot.dihedrals.tags[0] = [0, 1, 2, 3];
 
-        # impropers
-        self.snapshot.impropers.types = ['i1'];
-        self.snapshot.impropers.resize(1);
-        self.snapshot.impropers.typeid[:] = [0];
-        self.snapshot.impropers.tags[0] = [3, 2, 1, 0];
+            # impropers
+            self.snapshot.impropers.types = ['i1'];
+            self.snapshot.impropers.resize(1);
+            self.snapshot.impropers.typeid[:] = [0];
+            self.snapshot.impropers.tags[0] = [3, 2, 1, 0];
 
         self.s = init.read_snapshot(self.snapshot);
         self.assertTrue(self.s);
@@ -516,16 +518,17 @@ class init_take_snapshot (unittest.TestCase):
                                       dihedral_types=['dihedralA', 'dihedralB'],
                                       improper_types=['improperA', 'improperB', 'improperC']);
 
-        self.assertEqual(snapshot.particles.N, 10);
-        self.assertEqual(snapshot.particles.types, ['p1', 'p2']);
-        self.assertEqual(snapshot.bonds.N, 0);
-        self.assertEqual(snapshot.bonds.types, ['polymer']);
-        self.assertEqual(snapshot.angles.N, 0);
-        self.assertEqual(snapshot.angles.types, ['a1', 'a2']);
-        self.assertEqual(snapshot.dihedrals.N, 0);
-        self.assertEqual(snapshot.dihedrals.types, ['dihedralA', 'dihedralB']);
-        self.assertEqual(snapshot.impropers.N, 0);
-        self.assertEqual(snapshot.impropers.types, ['improperA', 'improperB', 'improperC']);
+        if comm.get_rank() == 0:
+            self.assertEqual(snapshot.particles.N, 10);
+            self.assertEqual(snapshot.particles.types, ['p1', 'p2']);
+            self.assertEqual(snapshot.bonds.N, 0);
+            self.assertEqual(snapshot.bonds.types, ['polymer']);
+            self.assertEqual(snapshot.angles.N, 0);
+            self.assertEqual(snapshot.angles.types, ['a1', 'a2']);
+            self.assertEqual(snapshot.dihedrals.N, 0);
+            self.assertEqual(snapshot.dihedrals.types, ['dihedralA', 'dihedralB']);
+            self.assertEqual(snapshot.impropers.N, 0);
+            self.assertEqual(snapshot.impropers.types, ['improperA', 'improperB', 'improperC']);
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

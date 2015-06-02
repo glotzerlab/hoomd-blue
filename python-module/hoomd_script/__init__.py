@@ -63,12 +63,12 @@ if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     sys.setdlopenflags(flags);
 
 from hoomd_script import util as _util;
+from hoomd_script import init;
 from hoomd_script import analyze;
 from hoomd_script import bond;
 from hoomd_script import benchmark;
 from hoomd_script import angle;
 from hoomd_script import dihedral;
-from hoomd_script import data;
 from hoomd_script import improper;
 from hoomd_script import dump;
 from hoomd_script import force;
@@ -76,7 +76,6 @@ from hoomd_script import external;
 from hoomd_script import constrain;
 from hoomd_script import globals;
 from hoomd_script import group;
-from hoomd_script import init;
 from hoomd_script import integrate;
 from hoomd_script import option;
 from hoomd_script import nlist;
@@ -91,6 +90,7 @@ from hoomd_script import compute;
 from hoomd_script import charge;
 from hoomd_script import comm;
 from hoomd_script import cite;
+from hoomd_script import data;
 
 from hoomd import WalltimeLimitReached;
 

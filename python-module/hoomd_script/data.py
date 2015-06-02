@@ -52,6 +52,7 @@
 import hoomd
 from hoomd_script import globals
 from hoomd_script import util
+import hoomd_script
 
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
@@ -84,6 +85,23 @@ from hoomd_script import util
 # system.restore_snapshot(snapshot)
 # snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'])
 # # ... populate snapshot with data ...
+# init.read_snapshot(snapshot)
+# \endcode
+#
+# <hr>
+# <h3>Snapshot and MPI</h3>
+# In MPI simulations, the snapshot is only valid on rank 0. make_snapshot, read_snapshot, and take_snapshot, restore_snapshot are
+# collective calls, and need to be called on all ranks. But only rank 0 can access data in the snapshot.
+# \code
+# snapshot = system.take_snapshot(all=True)
+# if comm.get_rank() == 0:
+#     print(numpy.mean(snapshot.particles.velocity))
+#     snapshot.particles.position[0] = [1,2,3];
+#
+# system.restore_snapshot(snapshot);
+# snapshot = data.make_snapshot(N=10)
+# if comm.get_rank() == 0:
+#     snapshot.particles.position = ....
 # init.read_snapshot(snapshot)
 # \endcode
 #
@@ -785,8 +803,7 @@ class system_data:
         cpp_snapshot = self.take_snapshot(all=True)
         util._disable_status_lines = False
 
-        from hoomd_script import comm
-        if comm.get_rank() == 0:
+        if hoomd_script.comm.get_rank() == 0:
             # replicate
             cpp_snapshot.replicate(nx, ny, nz)
 
@@ -2192,7 +2209,9 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
         raise ValueError("dtype must be either float or double");
 
     snapshot.box = box;
-    snapshot.particles.resize(N);
+    if hoomd_script.comm.get_rank() == 0:
+        snapshot.particles.resize(N);
+
     snapshot.particles.types = particle_types;
     snapshot.bonds.types = bond_types;
     snapshot.angles.types = angle_types;

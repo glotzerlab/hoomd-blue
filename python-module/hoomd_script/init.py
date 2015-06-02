@@ -62,7 +62,7 @@ import platform;
 
 from hoomd_script import util;
 from hoomd_script import globals;
-from hoomd_script import data;
+import hoomd_script
 
 ## \package hoomd_script.init
 # \brief Data initialization commands
@@ -193,7 +193,7 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
     my_exec_conf = _create_exec_conf();
 
     # create the empty system
-    if not isinstance(box, data.boxdim):
+    if not isinstance(box, hoomd_script.data.boxdim):
         globals.msg.error('box must be a data.boxdim object');
         raise TypeError('box must be a data.boxdim object');
 
@@ -238,7 +238,7 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
     globals.system = hoomd.System(globals.system_definition, 0);
 
     _perform_common_init_tasks();
-    return data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(globals.system_definition);
 
 ## Reads initial system state from an XML file
 #
@@ -311,7 +311,7 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
         globals.system = hoomd.System(globals.system_definition, time_step);
 
     _perform_common_init_tasks();
-    return data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(globals.system_definition);
 
 ## Reads initial system state from a binary file
 #
@@ -371,7 +371,7 @@ def read_bin(filename, time_step = None):
         globals.system = hoomd.System(globals.system_definition, time_step);
 
     _perform_common_init_tasks();
-    return data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(globals.system_definition);
 
 ## Generates N randomly positioned particles of the same type
 #
@@ -461,7 +461,7 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
     globals.system = hoomd.System(globals.system_definition, 0);
 
     _perform_common_init_tasks();
-    return data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(globals.system_definition);
 
 ## Generates any number of randomly positioned polymers of configurable types
 #
@@ -585,7 +585,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
         globals.msg.error("Polymers specified incorrectly. See the hoomd_script documentation\n");
         raise RuntimeError("Error creating random polymers");
 
-    if not isinstance(box, data.boxdim):
+    if not isinstance(box, hoomd_script.data.boxdim):
         globals.msg.error('Box must be a data.boxdim object\n');
         raise TypeError('box must be a data.boxdim object');
 
@@ -693,7 +693,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
     globals.system = hoomd.System(globals.system_definition, 0);
 
     _perform_common_init_tasks();
-    return data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(globals.system_definition);
 
 ## Initializes the system from a snapshot
 #
@@ -737,7 +737,7 @@ def read_snapshot(snapshot):
     globals.system = hoomd.System(globals.system_definition, 0);
 
     _perform_common_init_tasks();
-    return data.system_data(globals.system_definition);
+    return hoomd_script.data.system_data(globals.system_definition);
 
 
 ## Performs common initialization tasks
