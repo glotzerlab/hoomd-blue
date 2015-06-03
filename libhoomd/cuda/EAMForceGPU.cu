@@ -68,6 +68,9 @@ Moscow group.
     \brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
 */
 
+// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
+#define MAX_TEXTURE_WIDTH 0x8000000
+
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
@@ -108,7 +111,8 @@ texture<int2, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
 __constant__ EAMTexInterData eam_data_ti;
 
 //! Kernel for computing EAM forces on the GPU
-extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
+template<unsigned char use_gmem_nlist>
+__global__ void gpu_compute_eam_tex_inter_forces_kernel(
     Scalar4* d_force,
     Scalar* d_virial,
     const unsigned int virial_pitch,
@@ -141,7 +145,15 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
     // prefetch neighbor index
     int cur_neigh = 0;
-    int next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
+    int next_neigh(0);
+    if (use_gmem_nlist)
+        {
+        next_neigh = d_nlist[head_idx];
+        }
+    else
+        {
+        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
+        }
     int typei  = __scalar_as_int(postype.w);
     // loop over neighbors
 
@@ -153,7 +165,14 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         // read the current neighbor index (MEM TRANSFER: 4 bytes)
         // prefetch the next value and set the current one
         cur_neigh = next_neigh;
-        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
+        if (use_gmem_nlist)
+            {
+            next_neigh = d_nlist[head_idx + neigh_idx + 1];
+            }
+        else
+            {
+            next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
+            }
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
         Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
@@ -185,7 +204,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
     }
 
 //! Second stage kernel for computing EAM forces on the GPU
-extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
+template<unsigned char use_gmem_nlist>
+__global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     Scalar4* d_force,
     Scalar* d_virial,
     const unsigned int virial_pitch,
@@ -216,7 +236,15 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     // prefetch neighbor index
     Scalar position;
     int cur_neigh = 0;
-    int next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
+    int next_neigh(0);
+    if (use_gmem_nlist)
+        {
+        next_neigh = d_nlist[head_idx];
+        }
+    else
+        {
+        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
+        }
     //Scalar4 force = force_data.force[idx];
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
     //force.w = force_data.force[idx].w;
@@ -236,7 +264,14 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
         {
         cur_neigh = next_neigh;
-        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
+        if (use_gmem_nlist)
+            {
+            next_neigh = d_nlist[head_idx + neigh_idx + 1];
+            }
+        else
+            {
+            next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
+            }
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
         Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex,cur_neigh);
@@ -308,31 +343,18 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     const unsigned int size_nlist,
     const EAMtex& eam_tex,
     const EAMTexInterArrays& eam_arrays,
-    const EAMTexInterData& eam_data)
+    const EAMTexInterData& eam_data,
+    const unsigned int compute_capability)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
+    cudaError_t error;
+    if (compute_capability < 35 && size_nlist <= MAX_TEXTURE_WIDTH)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_compute_eam_tex_inter_forces_kernel);
-
-        cudaFuncAttributes attr2;
-        cudaFuncGetAttributes(&attr2, (const void *)gpu_compute_eam_tex_inter_forces_kernel_2);
-
-        max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+        nlist_tex.normalized = false;
+        nlist_tex.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
+        if (error != cudaSuccess)
+            return error;
         }
-
-    unsigned int run_block_size = min(eam_data.block_size, max_block_size);
-
-    // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
-    nlist_tex.normalized = false;
-    nlist_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
-    if (error != cudaSuccess)
-        return error;
 
     // bind the texture
     #ifdef SINGLE_PRECISION
@@ -375,29 +397,94 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     // run the kernel
     cudaMemcpyToSymbol("eam_data_ti", &eam_data, sizeof(EAMTexInterData));
 
-    gpu_compute_eam_tex_inter_forces_kernel<<< grid, threads>>>(d_force,
-                                                                d_virial,
-                                                                virial_pitch,
-                                                                N,
-                                                                d_pos,
-                                                                box,
-                                                                d_n_neigh,
-                                                                d_nlist,
-                                                                d_head_list,
-                                                                eam_arrays.atomDerivativeEmbeddingFunction);
+    if (compute_capability < 35 && size_nlist > MAX_TEXTURE_WIDTH)
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void *)gpu_compute_eam_tex_inter_forces_kernel<1>);
 
-    gpu_compute_eam_tex_inter_forces_kernel_2<<< grid, threads>>>(d_force,
-                                                                  d_virial,
-                                                                  virial_pitch,
-                                                                  N,
-                                                                  d_pos,
-                                                                  box,
-                                                                  d_n_neigh,
-                                                                  d_nlist,
-                                                                  d_head_list,
-                                                                  eam_arrays.atomDerivativeEmbeddingFunction);
+            cudaFuncAttributes attr2;
+            cudaFuncGetAttributes(&attr2, (const void *)gpu_compute_eam_tex_inter_forces_kernel_2<1>);
+
+            max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+            }
+
+        unsigned int run_block_size = min(eam_data.block_size, max_block_size);
+
+        // setup the grid to run the kernel
+        dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        gpu_compute_eam_tex_inter_forces_kernel<1><<< grid, threads>>>(d_force,
+                                                                    d_virial,
+                                                                    virial_pitch,
+                                                                    N,
+                                                                    d_pos,
+                                                                    box,
+                                                                    d_n_neigh,
+                                                                    d_nlist,
+                                                                    d_head_list,
+                                                                    eam_arrays.atomDerivativeEmbeddingFunction);
+
+        gpu_compute_eam_tex_inter_forces_kernel_2<1><<< grid, threads>>>(d_force,
+                                                                      d_virial,
+                                                                      virial_pitch,
+                                                                      N,
+                                                                      d_pos,
+                                                                      box,
+                                                                      d_n_neigh,
+                                                                      d_nlist,
+                                                                      d_head_list,
+                                                                      eam_arrays.atomDerivativeEmbeddingFunction);
+        }
+    else
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void *)gpu_compute_eam_tex_inter_forces_kernel<0>);
+
+            cudaFuncAttributes attr2;
+            cudaFuncGetAttributes(&attr2, (const void *)gpu_compute_eam_tex_inter_forces_kernel_2<0>);
+
+            max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+            }
+
+        unsigned int run_block_size = min(eam_data.block_size, max_block_size);
+
+        // setup the grid to run the kernel
+        dim3 grid( (int)ceil((double)N / (double)run_block_size), 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        gpu_compute_eam_tex_inter_forces_kernel<0><<< grid, threads>>>(d_force,
+                                                                    d_virial,
+                                                                    virial_pitch,
+                                                                    N,
+                                                                    d_pos,
+                                                                    box,
+                                                                    d_n_neigh,
+                                                                    d_nlist,
+                                                                    d_head_list,
+                                                                    eam_arrays.atomDerivativeEmbeddingFunction);
+
+        gpu_compute_eam_tex_inter_forces_kernel_2<0><<< grid, threads>>>(d_force,
+                                                                      d_virial,
+                                                                      virial_pitch,
+                                                                      N,
+                                                                      d_pos,
+                                                                      box,
+                                                                      d_n_neigh,
+                                                                      d_nlist,
+                                                                      d_head_list,
+                                                                      eam_arrays.atomDerivativeEmbeddingFunction);
+        }
 
     return cudaSuccess;
     }
+
+#undef MAX_TEXTURE_WIDTH
 
 // vim:syntax=cpp

@@ -149,6 +149,9 @@ struct dpd_pair_args_t
     };
 
 #ifdef NVCC
+// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
+#define MAX_TEXTURE_WIDTH 0x8000000
+
 //! Texture for reading particle positions
 scalar4_tex_t pdata_dpd_pos_tex;
 
@@ -194,12 +197,14 @@ texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut.
     \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
+    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+                           is used depending on architecture.
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
 */
-template< class evaluator, unsigned int shift_mode, unsigned int compute_virial >
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned char use_gmem_nlist>
 __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                                               Scalar *d_virial,
                                               const unsigned int virial_pitch,
@@ -284,8 +289,15 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
         // prefetch neighbor index
         const unsigned int head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
-        unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-            texFetchUint(d_nlist, nlist_tex, head_idx + threadIdx.x%tpp) : 0;
+        unsigned int next_j(0);
+        if (use_gmem_nlist)
+            {
+            next_j = (threadIdx.x%tpp < n_neigh) ? d_nlist[head_idx + threadIdx.x%tpp] : 0;
+            }
+        else
+            {
+            next_j = (threadIdx.x%tpp < n_neigh) ? texFetchUint(d_nlist, nlist_tex, head_idx + threadIdx.x%tpp) : 0;
+            }
 
         // this particle's tag
         unsigned int tagi = d_tag[idx];
@@ -298,7 +310,16 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                 // prefetch the next value and set the current one
                 cur_j = next_j;
                 if (neigh_idx+tpp < n_neigh)
-                    next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + tpp);
+                    {
+                    if (use_gmem_nlist)
+                        {
+                        next_j = d_nlist[head_idx + neigh_idx + tpp];
+                        }
+                    else
+                        {
+                        next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + tpp);
+                        }
+                    }
 
                 // get the neighbor's position (MEM TRANSFER: 16 bytes)
                 Scalar4 postypej = texFetchScalar4(d_pos, pdata_dpd_pos_tex, cur_j);
@@ -440,10 +461,69 @@ inline void gpu_dpd_pair_force_bind_textures(const dpd_pair_args_t pair_args)
     pdata_dpd_tag_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_dpd_tag_tex, pair_args.d_tag, sizeof(unsigned int) * pair_args.n_max);
     
-    nlist_tex.normalized = false;
-    nlist_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
+    if (pair_args.size_nlist <= MAX_TEXTURE_WIDTH)
+        {
+        nlist_tex.normalized = false;
+        nlist_tex.filterMode = cudaFilterModePoint;
+        cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
+        }
     }
+
+//! Templated launcher for the dpd force kernel
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned char use_gmem_nlist>
+inline void launch_gpu_compute_dpd_forces_kernel(const dpd_pair_args_t& args,
+                                                 const typename evaluator::param_type *d_params)
+    {
+    // setup the grid to run the kernel
+    unsigned int block_size = args.block_size;
+    unsigned int tpp = args.threads_per_particle;
+
+    Index2D typpair_idx(args.ntypes);
+    unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                * typpair_idx.getNumElements();
+
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist>);
+
+    if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
+
+    block_size = block_size < max_block_size ? block_size : max_block_size;
+    dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
+    if (args.compute_capability < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x/65535 + 1;
+        grid.x = 65535;
+        }
+
+    if (args.compute_capability < 30)
+        {
+        shared_bytes += sizeof(Scalar)*block_size;
+        }
+
+    gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist>
+                        <<<grid, block_size, shared_bytes>>>
+                        (args.d_force,
+                        args.d_virial,
+                        args.virial_pitch,
+                        args.N,
+                        args.d_pos,
+                        args.d_vel,
+                        args.d_tag,
+                        args.box,
+                        args.d_n_neigh,
+                        args.d_nlist,
+                        args.d_head_list,
+                        d_params,
+                        args.d_rcutsq,
+                        args.seed,
+                        args.timestep,
+                        args.deltaT,
+                        args.T,
+                        args.ntypes,
+                        tpp);
+    }
+
 
 //! Kernel driver that computes pair DPD thermo forces on the GPU
 /*! \param args Additional options
@@ -459,211 +539,89 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
     assert(args.d_rcutsq);
     assert(args.ntypes > 0);
 
-    // setup the grid to run the kernel
-    unsigned int block_size = args.block_size;
-    unsigned int tpp = args.threads_per_particle;
-
-    Index2D typpair_idx(args.ntypes);
-    unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                * typpair_idx.getNumElements();
-
     // run the kernel
-    if (args.compute_virial)
+    if (args.compute_capability < 35 && args.size_nlist > MAX_TEXTURE_WIDTH)
         {
-        switch (args.shift_mode)
+        if (args.compute_virial)
             {
-            case 0:
+            switch (args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, 0, 1>);
-
-                if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
-                if (args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_gpu_compute_dpd_forces_kernel<evaluator, 0, 1, 1>(args, d_params);
+                    break;
                     }
-
-                if (args.compute_capability < 30)
+                case 1:
                     {
-                    shared_bytes += sizeof(Scalar)*block_size;
+                    launch_gpu_compute_dpd_forces_kernel<evaluator, 1, 1, 1>(args, d_params);
+                    break;
                     }
-
-                gpu_compute_dpd_forces_kernel<evaluator, 0, 1>
-                                    <<<grid, block_size, shared_bytes>>>
-                                    (args.d_force,
-                                    args.d_virial,
-                                    args.virial_pitch,
-                                    args.N,
-                                    args.d_pos,
-                                    args.d_vel,
-                                    args.d_tag,
-                                    args.box,
-                                    args.d_n_neigh,
-                                    args.d_nlist,
-                                    args.d_head_list,
-                                    d_params,
-                                    args.d_rcutsq,
-                                    args.seed,
-                                    args.timestep,
-                                    args.deltaT,
-                                    args.T,
-                                    args.ntypes,
-                                    tpp);
-                break;
+                default:
+                    return cudaErrorUnknown;
                 }
-            case 1:
+            }
+        else
+            {
+            switch (args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, 1, 1>);
-
-                if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
-                if (args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_gpu_compute_dpd_forces_kernel<evaluator, 0, 0, 1>(args, d_params);
+                    break;
                     }
-
-                if (args.compute_capability < 30)
+                case 1:
                     {
-                    shared_bytes += sizeof(Scalar)*block_size;
+                    launch_gpu_compute_dpd_forces_kernel<evaluator, 1, 0, 1>(args, d_params);
+                    break;
                     }
-
-                gpu_compute_dpd_forces_kernel<evaluator, 1, 1>
-                                    <<<grid, block_size, shared_bytes>>>
-                                    (args.d_force,
-                                    args.d_virial,
-                                    args.virial_pitch,
-                                    args.N,
-                                    args.d_pos,
-                                    args.d_vel,
-                                    args.d_tag,
-                                    args.box,
-                                    args.d_n_neigh,
-                                    args.d_nlist,
-                                    args.d_head_list,
-                                    d_params,
-                                    args.d_rcutsq,
-                                    args.seed,
-                                    args.timestep,
-                                    args.deltaT,
-                                    args.T,
-                                    args.ntypes,
-                                    tpp);
-                break;
+                default:
+                    return cudaErrorUnknown;
                 }
-            default:
-                return cudaErrorUnknown;
             }
         }
     else
         {
-        switch (args.shift_mode)
+        if (args.compute_virial)
             {
-            case 0:
+            switch (args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, 0, 0>);
-
-                if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
-                if (args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_gpu_compute_dpd_forces_kernel<evaluator, 0, 1, 0>(args, d_params);
+                    break;
                     }
-
-                if (args.compute_capability < 30)
+                case 1:
                     {
-                    shared_bytes += sizeof(Scalar)*block_size;
+                    launch_gpu_compute_dpd_forces_kernel<evaluator, 1, 1, 0>(args, d_params);
+                    break;
                     }
-
-                gpu_compute_dpd_forces_kernel<evaluator, 0, 0>
-                                    <<<grid, block_size, shared_bytes>>>
-                                    (args.d_force,
-                                    args.d_virial,
-                                    args.virial_pitch,
-                                    args.N,
-                                    args.d_pos,
-                                    args.d_vel,
-                                    args.d_tag,
-                                    args.box,
-                                    args.d_n_neigh,
-                                    args.d_nlist,
-                                    args.d_head_list,
-                                    d_params,
-                                    args.d_rcutsq,
-                                    args.seed,
-                                    args.timestep,
-                                    args.deltaT,
-                                    args.T,
-                                    args.ntypes,
-                                    tpp);
-                break;
+                default:
+                    return cudaErrorUnknown;
                 }
-            case 1:
+            }
+        else
+            {
+            switch (args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = dpd_get_max_block_size(gpu_compute_dpd_forces_kernel<evaluator, 1, 0>);
-
-                if (args.compute_capability < 35) gpu_dpd_pair_force_bind_textures(args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
-                if (args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_gpu_compute_dpd_forces_kernel<evaluator, 0, 0, 0>(args, d_params);
+                    break;
                     }
-
-                if (args.compute_capability < 30)
+                case 1:
                     {
-                    shared_bytes += sizeof(Scalar)*block_size;
+                    launch_gpu_compute_dpd_forces_kernel<evaluator, 1, 0, 0>(args, d_params);
+                    break;
                     }
-
-                gpu_compute_dpd_forces_kernel<evaluator, 1, 0>
-                                    <<<grid, block_size, shared_bytes>>>
-                                    (args.d_force,
-                                    args.d_virial,
-                                    args.virial_pitch,
-                                    args.N,
-                                    args.d_pos,
-                                    args.d_vel,
-                                    args.d_tag,
-                                    args.box,
-                                    args.d_n_neigh,
-                                    args.d_nlist,
-                                    args.d_head_list,
-                                    d_params,
-                                    args.d_rcutsq,
-                                    args.seed,
-                                    args.timestep,
-                                    args.deltaT,
-                                    args.T,
-                                    args.ntypes,
-                                    tpp);
-                break;
+                default:
+                    return cudaErrorUnknown;
                 }
-            default:
-                return cudaErrorUnknown;
             }
         }
 
     return cudaSuccess;
     }
-
+#undef MAX_TEXTURE_WIDTH
 #endif
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_CUH__

@@ -62,6 +62,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.
 */
 
+// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
+#define MAX_TEXTURE_WIDTH 0x8000000
+
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
@@ -94,6 +97,7 @@ texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
+template<unsigned char use_gmem_nlist>
 __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
                                                 Scalar* d_virial,
                                                 const unsigned int virial_pitch,
@@ -139,7 +143,15 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
 
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
-    unsigned int next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
+    unsigned int next_neigh(0);
+    if (use_gmem_nlist)
+        {
+        next_neigh = d_nlist[head_idx];
+        }
+    else
+        {
+        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
+        }
 
     // loop over neighbors
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
@@ -147,7 +159,14 @@ __global__ void gpu_compute_cgcmm_forces_kernel(Scalar4* d_force,
         // read the current neighbor index (MEM TRANSFER: 4 bytes)
         // prefetch the next value and set the current one
         cur_neigh = next_neigh;
-        next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
+        if (use_gmem_nlist)
+            {
+            next_neigh = d_nlist[head_idx + neigh_idx + 1];
+            }
+        else
+            {
+            next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
+            }
 
         // get the neighbor's position (MEM TRANSFER: 16 bytes)
         Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
@@ -243,7 +262,8 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
                                      const unsigned int size_nlist,
                                      const unsigned int coeff_width,
                                      const Scalar r_cutsq,
-                                     const unsigned int block_size)
+                                     const unsigned int block_size,
+                                     const unsigned int compute_capability)
     {
     assert(d_coeffs);
     assert(coeff_width > 0);
@@ -253,33 +273,59 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
     dim3 threads(block_size, 1, 1);
 
     // bind the texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
-    if (error != cudaSuccess)
-        return error;
-    
-    nlist_tex.normalized = false;
-    nlist_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
-    if (error != cudaSuccess)
-        return error;
+    if (compute_capability < 35)
+        {
+        pdata_pos_tex.normalized = false;
+        pdata_pos_tex.filterMode = cudaFilterModePoint;
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
+        if (error != cudaSuccess)
+            return error;
+
+        if (size_nlist <= MAX_TEXTURE_WIDTH)
+            {
+            nlist_tex.normalized = false;
+            nlist_tex.filterMode = cudaFilterModePoint;
+            error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int)*size_nlist);
+            if (error != cudaSuccess)
+                return error;
+            }
+        }
 
     // run the kernel
-    gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>(d_force,
-                                                                                                  d_virial,
-                                                                                                  virial_pitch,
-                                                                                                  N,
-                                                                                                  d_pos,
-                                                                                                  box,
-                                                                                                  d_n_neigh,
-                                                                                                  d_nlist,
-                                                                                                  d_head_list,
-                                                                                                  d_coeffs,
-                                                                                                  coeff_width,
-                                                                                                  r_cutsq);
+    if (compute_capability < 35 && size_nlist > MAX_TEXTURE_WIDTH)
+        { // fall back to slow global loads when the neighbor list is too big for texture memory
+        gpu_compute_cgcmm_forces_kernel<1><<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>(d_force,
+                                                                                                      d_virial,
+                                                                                                      virial_pitch,
+                                                                                                      N,
+                                                                                                      d_pos,
+                                                                                                      box,
+                                                                                                      d_n_neigh,
+                                                                                                      d_nlist,
+                                                                                                      d_head_list,
+                                                                                                      d_coeffs,
+                                                                                                      coeff_width,
+                                                                                                      r_cutsq);
+        }
+    else
+        {
+        gpu_compute_cgcmm_forces_kernel<0><<< grid, threads, sizeof(Scalar4)*coeff_width*coeff_width >>>(d_force,
+                                                                                                      d_virial,
+                                                                                                      virial_pitch,
+                                                                                                      N,
+                                                                                                      d_pos,
+                                                                                                      box,
+                                                                                                      d_n_neigh,
+                                                                                                      d_nlist,
+                                                                                                      d_head_list,
+                                                                                                      d_coeffs,
+                                                                                                      coeff_width,
+                                                                                                      r_cutsq);
+        }
 
     return cudaSuccess;
     }
+
+#undef MAX_TEXTURE_WIDTH
 
 // vim:syntax=cpp

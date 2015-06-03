@@ -191,7 +191,8 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep, bool ghost)
                                      this->m_nlist->getNListArray().getPitch(),
                                      eam_tex_data,
                                      eam_arrays,
-                                     eam_data);
+                                     eam_data,
+                                     m_exec_conf->getComputeCapability()/10);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
