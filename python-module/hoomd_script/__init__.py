@@ -90,6 +90,7 @@ from hoomd_script import hoomd;
 from hoomd_script import compute;
 from hoomd_script import charge;
 from hoomd_script import comm;
+from hoomd_script import cite;
 
 from hoomd import WalltimeLimitReached;
 
@@ -99,6 +100,12 @@ from hoomd import WalltimeLimitReached;
 # hoomd_script provides a very high level user interface for executing
 # simulations using HOOMD. This python module is designed to be imported
 # into python with "from hoomd_script import *"
+
+# output the version info on import
+globals.msg.notice(1, hoomd.output_version_info())
+
+# ensure creation of global bibliography to print HOOMD base citations
+cite._ensure_global_bib()
 
 ## \internal
 # \brief Internal python variable

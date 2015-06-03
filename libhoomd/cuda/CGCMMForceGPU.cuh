@@ -74,6 +74,7 @@ cudaError_t gpu_compute_cgcmm_forces(Scalar4* d_force,
                                      const unsigned int size_nlist,
                                      const unsigned int coeff_width,
                                      const Scalar r_cutsq,
-                                     const unsigned int block_size);
+                                     const unsigned int block_size,
+                                     const unsigned int compute_capability);
 
 #endif

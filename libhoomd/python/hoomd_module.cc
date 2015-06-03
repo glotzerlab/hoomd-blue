@@ -456,8 +456,7 @@ BOOST_PYTHON_MODULE(hoomd)
 
     def("abort_mpi", abort_mpi);
 
-    // write out the version information on the module import
-    output_version_info(false);
+    def("output_version_info", &output_version_info);
     def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
 

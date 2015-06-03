@@ -110,6 +110,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
     const unsigned int size_nlist,
     const EAMtex& eam_tex,
     const EAMTexInterArrays& eam_arrays,
-    const EAMTexInterData& eam_data);
+    const EAMTexInterData& eam_data,
+    const unsigned int compute_capability);
 
 #endif

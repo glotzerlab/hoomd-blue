@@ -110,12 +110,15 @@ options = None;
 # messages
 msg = hoomd.Messenger();
 
+## Global bibliography
+bib = None;
+
 ## \internal
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
 def clear():
     global system_definition, system, forces, constraint_forces, external_forces, integration_methods, integrator;
-    global neighbor_list, neighbor_lists, loggers, thermos, sorter, group_all, exec_conf;
+    global neighbor_list, neighbor_lists, loggers, thermos, sorter, group_all, exec_conf, bib;
 
     system_definition = None;
     system = None;
@@ -130,3 +133,4 @@ def clear():
     thermos = [];
     group_all = None;
     sorter = None;
+    bib = None;

@@ -80,7 +80,8 @@ struct tersoff_args_t
                    const Scalar *_d_ronsq,
                    const unsigned int _size_nlist,
                    const unsigned int _ntypes,
-                   const unsigned int _block_size)
+                   const unsigned int _block_size,
+                   const unsigned int _compute_capability)
                    : d_force(_d_force),
                      N(_N),
                      d_pos(_d_pos),
@@ -92,7 +93,8 @@ struct tersoff_args_t
                      d_ronsq(_d_ronsq),
                      size_nlist(_size_nlist),
                      ntypes(_ntypes),
-                     block_size(_block_size)
+                     block_size(_block_size),
+                     compute_capability(_compute_capability)
         {
         };
 
@@ -108,10 +110,14 @@ struct tersoff_args_t
     const unsigned int size_nlist;  //!< Number of elements in the neighborlist
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
+    const unsigned int compute_capability; //!< GPU compute capability (20, 30, 35, ...)
     };
 
 
 #ifdef NVCC
+// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
+#define MAX_TEXTURE_WIDTH 0x8000000
+
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading neighbor list
@@ -163,13 +169,15 @@ static __device__ inline double atomicAdd(double* address, double val)
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+                           is used depending on architecture.
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator >
+template< class evaluator , unsigned char use_gmem_nlist>
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int N,
                                                   const Scalar4 *d_pos,
@@ -221,7 +229,15 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     // prefetch neighbor index
     const unsigned int head_idx = d_head_list[idx];
     unsigned int cur_j = 0;
-    unsigned int next_j = texFetchUint(d_nlist, nlist_tex, head_idx);
+    unsigned int next_j(0);
+    if (use_gmem_nlist)
+        {
+        next_j = d_nlist[head_idx];
+        }
+    else
+        {
+        next_j = texFetchUint(d_nlist, nlist_tex, head_idx);
+        }
 
     // loop over neighbors
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
@@ -229,7 +245,14 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         // read the current neighbor index (MEM TRANSFER: 4 bytes)
         // prefetch the next value and set the current one
         cur_j = next_j;
-        next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + 1);
+        if (use_gmem_nlist)
+            {
+            next_j = d_nlist[head_idx + neigh_idx + 1];
+            }
+        else
+            {
+            next_j = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx + 1);
+            }
 
         // read the position of j (MEM TRANSFER: 16 bytes)
         Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
@@ -263,12 +286,27 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             // compute chi
             Scalar chi = Scalar(0.0);
             unsigned int cur_k = 0;
-            unsigned int next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
+            unsigned int next_k(0);
+            if (use_gmem_nlist)
+                {
+                next_k = d_nlist[head_idx];
+                }
+            else
+                {
+                next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
+                }
             for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                 {
                 // read the current index of k and prefetch the next one
                 cur_k = next_k;
-                next_k = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idy+1);
+                if (use_gmem_nlist)
+                    {
+                    next_k = d_nlist[head_idx + neigh_idy + 1];
+                    }
+                else
+                    {
+                    next_k = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idy+1);
+                    }
 
                 // get the position of neighbor k
                 Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
@@ -329,12 +367,26 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
             // now evaluate the force from the ik interactions
             cur_k = 0;
-            next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
+            if (use_gmem_nlist)
+                {
+                next_k = d_nlist[head_idx];
+                }
+            else
+                {
+                next_k = texFetchUint(d_nlist, nlist_tex, head_idx);
+                }
             for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                 {
                 // read the current neighbor index and prefetch the next one
                 cur_k = next_k;
-                next_k = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idy+1);
+                if (use_gmem_nlist)
+                    {
+                    next_k = d_nlist[head_idx + neigh_idy + 1];
+                    }
+                else
+                    {
+                    next_k = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idy+1);
+                    }
 
                 // get the position of neighbor k
                 Scalar4 postypek = texFetchScalar4(d_pos, pdata_pos_tex, cur_k);
@@ -454,9 +506,18 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator>);
-        max_block_size = attr.maxThreadsPerBlock;
+        if (pair_args.compute_capability < 35 && pair_args.size_nlist > MAX_TEXTURE_WIDTH)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 1>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+        else
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, gpu_compute_triplet_forces_kernel<evaluator, 0>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
         }
 
     unsigned int run_block_size = min(pair_args.block_size, max_block_size);
@@ -465,18 +526,24 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     dim3 grid( pair_args.N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    // bind the position texture
-    pdata_pos_tex.normalized = false;
-    pdata_pos_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
-    if (error != cudaSuccess)
-        return error;
+    // bind to texture
+    if (pair_args.compute_capability < 35)
+        {
+        pdata_pos_tex.normalized = false;
+        pdata_pos_tex.filterMode = cudaFilterModePoint;
+        cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pair_args.d_pos, sizeof(Scalar4) * pair_args.N);
+        if (error != cudaSuccess)
+            return error;
         
-    nlist_tex.normalized = false;
-    nlist_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
-    if (error != cudaSuccess)
-        return error;
+        if (pair_args.size_nlist <= MAX_TEXTURE_WIDTH)
+            {
+            nlist_tex.normalized = false;
+            nlist_tex.filterMode = cudaFilterModePoint;
+            error = cudaBindTexture(0, nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_nlist);
+            if (error != cudaSuccess)
+                return error;
+            }
+        }
 
     Index2D typpair_idx(pair_args.ntypes);
     unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
@@ -487,20 +554,39 @@ cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                                                             pair_args.N);
 
     // compute the new forces
-    gpu_compute_triplet_forces_kernel<evaluator>
-      <<<grid, threads, shared_bytes>>>(pair_args.d_force,
-                                        pair_args.N,
-                                        pair_args.d_pos,
-                                        pair_args.box,
-                                        pair_args.d_n_neigh,
-                                        pair_args.d_nlist,
-                                        pair_args.d_head_list,
-                                        d_params,
-                                        pair_args.d_rcutsq,
-                                        pair_args.d_ronsq,
-                                        pair_args.ntypes);
+    if (pair_args.compute_capability < 35 && pair_args.size_nlist > MAX_TEXTURE_WIDTH)
+        {
+        gpu_compute_triplet_forces_kernel<evaluator, 1>
+          <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                            pair_args.N,
+                                            pair_args.d_pos,
+                                            pair_args.box,
+                                            pair_args.d_n_neigh,
+                                            pair_args.d_nlist,
+                                            pair_args.d_head_list,
+                                            d_params,
+                                            pair_args.d_rcutsq,
+                                            pair_args.d_ronsq,
+                                            pair_args.ntypes);
+        }
+    else
+        {
+        gpu_compute_triplet_forces_kernel<evaluator, 0>
+          <<<grid, threads, shared_bytes>>>(pair_args.d_force,
+                                            pair_args.N,
+                                            pair_args.d_pos,
+                                            pair_args.box,
+                                            pair_args.d_n_neigh,
+                                            pair_args.d_nlist,
+                                            pair_args.d_head_list,
+                                            d_params,
+                                            pair_args.d_rcutsq,
+                                            pair_args.d_ronsq,
+                                            pair_args.ntypes);
+        }
     return cudaSuccess;
     }
+#undef MAX_TEXTURE_WIDTH
 #endif
 
 #endif // __POTENTIAL_TERSOFF_GPU_CUH__

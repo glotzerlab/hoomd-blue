@@ -144,6 +144,8 @@ struct pair_args_t
     };
 
 #ifdef NVCC
+// Maximum width of a texture bound to 1D linear memory is 2^27 (to date, this limit holds up to compute 5.0)
+#define MAX_TEXTURE_WIDTH 0x8000000
 
 #if (__CUDA_ARCH__ >= 300)
 // need this wrapper here for CUDA toolkit versions (<6.5) which do not provide a
@@ -243,13 +245,15 @@ texture<unsigned int, 1, cudaReadModeElementType> pair_nlist_tex;
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
                        (See PotentialPair for a discussion on what that entails)
     \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
+    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+                           is used depending on architecture.
 
     <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator, unsigned int shift_mode, unsigned int compute_virial>
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned int use_gmem_nlist>
 __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
                                                const unsigned int virial_pitch,
@@ -342,8 +346,17 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 
         unsigned int my_head = d_head_list[idx];
         unsigned int cur_j = 0;
-        unsigned int next_j = threadIdx.x%tpp < n_neigh ?
-            texFetchUint(d_nlist, pair_nlist_tex, my_head + threadIdx.x%tpp) : 0;
+        
+        unsigned int next_j(0);
+        if (use_gmem_nlist)
+            {
+            next_j = (threadIdx.x%tpp < n_neigh) ? d_nlist[my_head + threadIdx.x%tpp] : 0;
+            }
+        else
+            {
+            next_j = threadIdx.x%tpp < n_neigh ? texFetchUint(d_nlist, pair_nlist_tex, my_head + threadIdx.x%tpp) : 0;
+            }
+
         // loop over neighbors
         for (int neigh_idx = threadIdx.x%tpp; neigh_idx < n_neigh; neigh_idx+=tpp)
             {
@@ -351,8 +364,16 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                 // read the current neighbor index (MEM TRANSFER: 4 bytes)
                 cur_j = next_j;
                 if (neigh_idx+tpp < n_neigh)
-                    next_j = texFetchUint(d_nlist, pair_nlist_tex, my_head + neigh_idx+tpp);
-
+                    {
+                    if (use_gmem_nlist)
+                        {
+                        next_j = d_nlist[my_head + neigh_idx + tpp];
+                        }
+                    else
+                        {
+                        next_j = texFetchUint(d_nlist, pair_nlist_tex, my_head + neigh_idx+tpp);
+                        }
+                    }
                 // get the neighbor's position (MEM TRANSFER: 16 bytes)
                 Scalar4 postypej = texFetchScalar4(d_pos, pdata_pos_tex, cur_j);
                 Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
@@ -531,10 +552,63 @@ inline void gpu_pair_force_bind_textures(const pair_args_t pair_args)
     pdata_charge_tex.filterMode = cudaFilterModePoint;
     cudaBindTexture(0, pdata_charge_tex, pair_args.d_charge, sizeof(Scalar) * pair_args.n_max);
     
-    // bind the neighborlist texture
-    pair_nlist_tex.normalized = false;
-    pair_nlist_tex.filterMode = cudaFilterModePoint;
-    cudaBindTexture(0, pair_nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_neigh_list);
+    // bind the neighborlist texture if it will fit
+    if (pair_args.size_neigh_list <= MAX_TEXTURE_WIDTH)
+        {
+        pair_nlist_tex.normalized = false;
+        pair_nlist_tex.filterMode = cudaFilterModePoint;
+        cudaBindTexture(0, pair_nlist_tex, pair_args.d_nlist, sizeof(unsigned int) * pair_args.size_neigh_list);
+        }
+    }
+
+//! Kernel launcher to compact templated kernel launches
+/*!
+ * \param pair_args Other arugments to pass onto the kernel
+ * \param d_params Parameters for the potential, stored per type pair
+ *
+ * \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+ * \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
+ *                       (See PotentialPair for a discussion on what that entails)
+ * \tparam compute_virial When non-zero, the virial tensor is computed. When zero, the virial tensor is not computed.
+ * \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
+ *                        is used depending on architecture.
+ */
+template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned int use_gmem_nlist>
+inline void launch_compute_pair_force_kernel(const pair_args_t& pair_args,
+                                             const typename evaluator::param_type *d_params)
+    {
+    unsigned int block_size = pair_args.block_size;
+    unsigned int tpp = pair_args.threads_per_particle;
+
+    Index2D typpair_idx(pair_args.ntypes);
+    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                * typpair_idx.getNumElements();
+
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist>);
+
+    if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
+
+    block_size = block_size < max_block_size ? block_size : max_block_size;
+    dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
+    if (pair_args.compute_capability < 30 && grid.x > 65535)
+        {
+        grid.y = grid.x/65535 + 1;
+        grid.x = 65535;
+        }
+
+    if (pair_args.compute_capability < 30)
+        {
+        shared_bytes += sizeof(Scalar)*block_size;
+        }
+
+    gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist>
+      <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
+      pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
+      pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
+      pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
+      tpp);
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
@@ -552,211 +626,108 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
     assert(pair_args.d_ronsq);
     assert(pair_args.ntypes > 0);
 
-    // threads per particle
-
-    // setup the grid to run the kernel
-    unsigned int block_size = pair_args.block_size;
-    unsigned int tpp = pair_args.threads_per_particle;
-
-    Index2D typpair_idx(pair_args.ntypes);
-    unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                * typpair_idx.getNumElements();
-
-
     // Launch kernel
-    if (pair_args.compute_virial)
-        {
-        switch (pair_args.shift_mode)
+    if (pair_args.compute_capability < 35 && pair_args.size_neigh_list > MAX_TEXTURE_WIDTH)
+        { // fall back to slow global loads when the neighbor list is too big for texture memory
+        if (pair_args.compute_virial)
             {
-            case 0:
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 0, 1, 1>(pair_args, d_params);
+                    break;
                     }
-
-                if (pair_args.compute_capability < 30)
+                case 1:
                     {
-                    shared_bytes += sizeof(Scalar)*block_size;
+                    launch_compute_pair_force_kernel<evaluator, 1, 1, 1>(pair_args, d_params);
+                    break;
                     }
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 0, 1>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
+                case 2:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 2, 1, 1>(pair_args, d_params);
+                    break;
+                    }
+                default:
+                    break;
                 }
-            case 1:
+            }
+        else
+            {
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 0, 0, 1>(pair_args, d_params);
+                    break;
                     }
-
-                if (pair_args.compute_capability < 30)
+                case 1:
                     {
-                    shared_bytes += sizeof(Scalar)*block_size;
+                    launch_compute_pair_force_kernel<evaluator, 1, 0, 1>(pair_args, d_params);
+                    break;
                     }
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 1, 1>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
+                case 2:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 2, 0, 1>(pair_args, d_params);
+                    break;
+                    }
+                default:
+                    break;
                 }
-            case 2:
-                {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
-                    {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
-                    }
-
-                if (pair_args.compute_capability < 30)
-                    {
-                    shared_bytes += sizeof(Scalar)*block_size;
-                    }
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 2, 1>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
-                }
-            default:
-                break;
             }
         }
     else
         {
-        switch (pair_args.shift_mode)
+        if (pair_args.compute_virial)
             {
-            case 0:
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 0, 1, 0>(pair_args, d_params);
+                    break;
                     }
-
-                if (pair_args.compute_capability < 30)
+                case 1:
                     {
-                    shared_bytes += sizeof(Scalar)*block_size;
+                    launch_compute_pair_force_kernel<evaluator, 1, 1, 0>(pair_args, d_params);
+                    break;
                     }
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 0, 0>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
+                case 2:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 2, 1, 0>(pair_args, d_params);
+                    break;
+                    }
+                default:
+                    break;
                 }
-            case 1:
+            }
+        else
+            {
+            switch (pair_args.shift_mode)
                 {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
+                case 0:
                     {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
+                    launch_compute_pair_force_kernel<evaluator, 0, 0, 0>(pair_args, d_params);
+                    break;
                     }
-
-                if (pair_args.compute_capability < 30)
+                case 1:
                     {
-                    shared_bytes += sizeof(Scalar)*block_size;
+                    launch_compute_pair_force_kernel<evaluator, 1, 0, 0>(pair_args, d_params);
+                    break;
                     }
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 1, 0>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
+                case 2:
+                    {
+                    launch_compute_pair_force_kernel<evaluator, 2, 0, 0>(pair_args, d_params);
+                    break;
+                    }
+                default:
+                    break;
                 }
-            case 2:
-                {
-                static unsigned int max_block_size = UINT_MAX;
-                if (max_block_size == UINT_MAX)
-                    max_block_size = get_max_block_size(gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>);
-
-                if (pair_args.compute_capability < 35) gpu_pair_force_bind_textures(pair_args);
-
-                block_size = block_size < max_block_size ? block_size : max_block_size;
-                dim3 grid(pair_args.N / (block_size/tpp) + 1, 1, 1);
-                if (pair_args.compute_capability < 30 && grid.x > 65535)
-                    {
-                    grid.y = grid.x/65535 + 1;
-                    grid.x = 65535;
-                    }
-
-                if (pair_args.compute_capability < 30)
-                    {
-                    shared_bytes += sizeof(Scalar)*block_size;
-                    }
-
-                gpu_compute_pair_forces_shared_kernel<evaluator, 2, 0>
-                  <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
-                  pair_args.virial_pitch, pair_args.N, pair_args.d_pos, pair_args.d_diameter,
-                  pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
-                  pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes,
-                  tpp);
-                break;
-                }
-            default:
-                break;
             }
         }
 
     return cudaSuccess;
     }
+#undef MAX_TEXTURE_WIDTH
 #endif
-
 #endif // __POTENTIAL_PAIR_GPU_CUH__

@@ -183,7 +183,8 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             d_ronsq.data,
                             this->m_nlist->getNListArray().getPitch(),
                             this->m_pdata->getNTypes(),
-                            this->m_tuner->getParam()),
+                            this->m_tuner->getParam(),
+                            this->m_exec_conf->getComputeCapability()/10),
                             d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
