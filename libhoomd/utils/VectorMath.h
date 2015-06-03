@@ -58,8 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+#undef DEVICE
 #ifdef NVCC
-#define DEVICE __device__
+#define DEVICE __host__ __device__
 #else
 #define DEVICE
 #endif
@@ -123,6 +124,21 @@ struct vec3
     //! Default construct a 0 vector
     DEVICE vec3() : x(0), y(0), z(0)
         {
+        }
+
+    //! Swap with another vector
+    DEVICE void swap(vec3<Real>& v)
+        {
+        Real tx, ty, tz;
+        tx = v.x;
+        ty = v.y;
+        tz = v.z;
+        v.x = x;
+        v.y = y;
+        v.z = z;
+        x = tx;
+        y = ty;
+        z = tz;
         }
 
     Real x; //!< x-component of the vector
@@ -443,6 +459,18 @@ struct vec2
     //! Implicit cast from vec2<float> to the current Real
     DEVICE vec2(const vec2<float>& a) : x(a.x), y(a.y)
         {
+        }
+
+    //! Swap with another vector
+    DEVICE void swap(vec2<Real>& v)
+        {
+        Real tx, ty;
+        tx = v.x;
+        ty = v.y;
+        v.x = x;
+        v.y = y;
+        x = tx;
+        y = ty;
         }
 
     Real x; //!< x-component of the vector
@@ -1228,22 +1256,9 @@ DEVICE inline Vec project(const Vec& a, const Vec& b)
     return dot(a,b)/dot(b,b) * b;
     }
 
-//! Swap two data structures
-/*! \param a first object
-    \param b second object
-    \returns void
-    \note can be applied to vec2, vec3, quaternions, or anything with a sufficiently deep copy constructor.
-*/
-template < class T >
-DEVICE inline void swap(T& a, T&b)
-    {
-    T tmp;
-    tmp = a;
-    a = b;
-    b = tmp;
-    }
-
 // end group math
 /*! @}*/
+
+#undef DEVICE
 
 #endif //__VECTOR_MATH_H__

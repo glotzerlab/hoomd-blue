@@ -482,7 +482,7 @@ void IMDInterface::establishConnectionAttempt()
 void IMDInterface::sendCoords(unsigned int timestep)
     {
     // take a snapshot of the particle data
-    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
     m_pdata->takeSnapshot(snapshot);
 
 #ifdef ENABLE_MPI

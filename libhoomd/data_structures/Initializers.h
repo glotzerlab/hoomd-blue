@@ -63,7 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __INITIALIZERS_H__
 
 //! Forward declaration of SnapshotSystemData
-struct SnapshotSystemData;
+template <class Real> struct SnapshotSystemData;
 
 //! Inits a ParticleData with a simple cubic array of particles
 /*! A number of particles along each axis are specified along with a spacing
@@ -79,7 +79,7 @@ class SimpleCubicInitializer
         virtual ~SimpleCubicInitializer() { }
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
+        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
     private:
         unsigned int m_M;   //!< Number of particles wide to make the box
@@ -102,7 +102,7 @@ class RandomInitializer
         virtual ~RandomInitializer() { }
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
+        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
         //! Sets the random seed to use in the generation
         void setSeed(unsigned int seed);
@@ -129,7 +129,7 @@ class RandomInitializerWithWalls : public RandomInitializer
         virtual ~RandomInitializerWithWalls() ;
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr<SnapshotSystemData> getSnapshot() const;
+        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
     protected:
         Scalar m_wall_buffer;   //!< Buffer distance between the wall and the edge of the box

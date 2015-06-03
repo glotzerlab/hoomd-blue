@@ -129,7 +129,7 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
     rand_init.generate();
 
-    boost::shared_ptr<SnapshotSystemData> snap;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
 
     boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
@@ -226,7 +226,7 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
 
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr<SnapshotSystemData> snap;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
     rand_init.setSeed(12345);
     snap = rand_init.getSnapshot();
 

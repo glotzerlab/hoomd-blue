@@ -54,7 +54,6 @@
 
 import hoomd;
 from hoomd_script import init;
-from hoomd_script import data;
 from hoomd_script import util;
 from hoomd_script import globals;
 

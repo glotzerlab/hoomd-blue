@@ -74,7 +74,7 @@ class Communicator;
 #endif
 
 //! Forward declaration of SnapshotSytemData
-struct SnapshotSystemData;
+template <class Real> struct SnapshotSystemData;
 
 //! Container class for all data needed to define the MD system
 /*! SystemDefinition is a big bucket where all of the data defining the MD system goes.
@@ -130,7 +130,8 @@ class SystemDefinition
                          boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
 
         //! Construct from a snapshot
-        SystemDefinition(boost::shared_ptr<const SnapshotSystemData> snapshot,
+        template <class Real>
+        SystemDefinition(boost::shared_ptr<SnapshotSystemData<Real> > snapshot,
                          boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
                          boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
 
@@ -191,7 +192,8 @@ class SystemDefinition
             }
 
         //! Return a snapshot of the current system data
-        boost::shared_ptr<SnapshotSystemData> takeSnapshot(bool particles,
+        template <class Real>
+        boost::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles,
                                                            bool bonds,
                                                            bool angles,
                                                            bool dihedrals,
@@ -201,7 +203,8 @@ class SystemDefinition
                                                            bool integrators);
 
         //! Re-initialize the system from a snapshot
-        void initializeFromSnapshot(boost::shared_ptr<SnapshotSystemData> snapshot);
+        template <class Real>
+        void initializeFromSnapshot(boost::shared_ptr< SnapshotSystemData<Real> > snapshot);
 
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system

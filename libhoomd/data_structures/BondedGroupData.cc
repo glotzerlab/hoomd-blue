@@ -58,6 +58,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "Index1D.h"
 
+#include "num_util.h"
+
 #ifdef ENABLE_CUDA
 #include "BondedGroupData.cuh"
 #include "CachedAllocator.h"
@@ -1163,10 +1165,11 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
     typedef typename T::Snapshot Snapshot;
     class_<Snapshot, boost::shared_ptr<Snapshot> >
         (snapshot_name.c_str(), init<unsigned int>())
-        .def_readwrite("groups", &Snapshot::groups)
-        .def_readwrite("type_id", &Snapshot::type_id)
-        .def_readwrite("type_mapping", &Snapshot::type_mapping)
+        .add_property("typeid", &Snapshot::getTypeNP)
+        .add_property("group", &Snapshot::getBondedTagsNP)
+        .add_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
         .def("resize", &Snapshot::resize)
+        .def_readonly("N", &Snapshot::size)
         ;
    }
 
@@ -1197,6 +1200,51 @@ void BondedGroupData<group_size, Group, name>::Snapshot::replicate(unsigned int 
             type_id[old_size*j+i] = type;
             }
         }
+    }
+
+/*! \returns a numpy array that wraps the type_id data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template<unsigned int group_size, typename Group, const char *name>
+boost::python::numeric::array BondedGroupData<group_size, Group, name>::Snapshot::getTypeNP()
+    {
+    return num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size());
+    }
+
+/*! \returns a numpy array that wraps the groups data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template<unsigned int group_size, typename Group, const char *name>
+boost::python::numeric::array BondedGroupData<group_size, Group, name>::Snapshot::getBondedTagsNP()
+    {
+    std::vector<intp> dims(2);
+    dims[0] = this->groups.size();
+    dims[1] = group_size;
+    return num_util::makeNumFromData((unsigned int*)&(this->groups[0]), dims);
+    }
+
+/*! \returns A python list of type names
+*/
+template<unsigned int group_size, typename Group, const char *name>
+boost::python::list BondedGroupData<group_size, Group, name>::Snapshot::getTypes()
+    {
+    boost::python::list types;
+
+    for (unsigned int i = 0; i < this->type_mapping.size(); i++)
+        types.append(str(this->type_mapping[i]));
+
+    return types;
+    }
+
+/*! \param types Python list of type names to set
+*/
+template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::Snapshot::setTypes(boost::python::list types)
+    {
+    type_mapping.resize(len(types));
+
+    for (unsigned int i = 0; i < len(types); i++)
+        this->type_mapping[i] = extract<string>(types[i]);
     }
 
 //! Explicit template instantiations

@@ -498,7 +498,7 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
     // create a particle system to sum forces on
     // just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     snap->dihedral_data.type_mapping.push_back("A");
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 

@@ -1116,7 +1116,7 @@ im_b 5 4 3 2\n\
     // now that we have created a test file, load it up into a pdata
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     HOOMDInitializer init(exec_conf,tmp_path+"/test_input.xml");
-    boost::shared_ptr<SnapshotSystemData> snapshot;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
     snapshot = init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();

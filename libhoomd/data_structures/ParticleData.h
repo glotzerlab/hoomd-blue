@@ -81,6 +81,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/python.hpp>
 
 #ifdef ENABLE_MPI
 #include "Index1D.h"
@@ -199,14 +200,15 @@ const unsigned int NOT_LOCAL = 0xffffffff;
  * - inside an Analyzer to iterate over the current ParticleData
  *
  * Initializing the ParticleData is accomplished by first filling the particle data arrays with default values
- * (such as type, mass, diameter). Then a snapshot of this initial state is taken and pased to the
+ * (such as type, mass, diameter). Then a snapshot of this initial state is taken and passed to the
  * ParticleDataInitializer, which may modify any of the fields of the snapshot. It then returns it to
  * ParticleData, which in turn initializes its internal arrays from the snapshot using ParticleData::initializeFromSnapshot().
  *
- * To support the second scenerio it is necessary that particles can be accessed in global tag order. Therefore,
+ * To support the second scenario it is necessary that particles can be accessed in global tag order. Therefore,
  * the data in a snapshot is stored in global tag order.
  * \ingroup data_structs
  */
+template <class Real>
 struct SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
@@ -239,20 +241,45 @@ struct SnapshotParticleData {
     void replicate(unsigned int nx, unsigned int ny, unsigned int nz,
         const BoxDim& old_box, const BoxDim& new_box);
 
-    std::vector<Scalar3> pos;       //!< positions
-    std::vector<Scalar3> vel;       //!< velocities
-    std::vector<Scalar3> accel;     //!< accelerations
-    std::vector<unsigned int> type; //!< types
-    std::vector<Scalar> mass;       //!< masses
-    std::vector<Scalar> charge;     //!< charges
-    std::vector<Scalar> diameter;   //!< diameters
-    std::vector<int3> image;        //!< images
-    std::vector<unsigned int> body; //!< body ids
-    std::vector<Scalar4> orientation; //!< orientations
+    //! Get pos as a numpy array
+    boost::python::numeric::array getPosNP();
+    //! Get vel as a numpy array
+    boost::python::numeric::array getVelNP();
+    //! Get accel as a numpy array
+    boost::python::numeric::array getAccelNP();
+    //! Get type as a numpy array
+    boost::python::numeric::array getTypeNP();
+    //! Get mass as a numpy array
+    boost::python::numeric::array getMassNP();
+    //! Get charge as a numpy array
+    boost::python::numeric::array getChargeNP();
+    //! Get diameter as a numpy array
+    boost::python::numeric::array getDiameterNP();
+    //! Get image as a numpy array
+    boost::python::numeric::array getImageNP();
+    //! Get body as a numpy array
+    boost::python::numeric::array getBodyNP();
+    //! Get orientation as a numpy array
+    boost::python::numeric::array getOrientationNP();
+    //! Get the type names for python
+    boost::python::list getTypes();
+    //! Set the type names from python
+    void setTypes(boost::python::list types);
+
+    std::vector< vec3<Real> > pos;             //!< positions
+    std::vector< vec3<Real> > vel;             //!< velocities
+    std::vector< vec3<Real> > accel;           //!< accelerations
+    std::vector<unsigned int> type;            //!< types
+    std::vector<Real> mass;                    //!< masses
+    std::vector<Real> charge;                  //!< charges
+    std::vector<Real> diameter;                //!< diameters
+    std::vector<int3> image;                   //!< images
+    std::vector<unsigned int> body;            //!< body ids
+    std::vector< quat<Real> > orientation;     //!< orientations
     std::vector<InertiaTensor> inertia_tensor; //!< Moments of inertia
 
-    unsigned int size;              //!< number of particles in this snapshot
-    std::vector<std::string> type_mapping; //!< Mapping between particle type ids and names
+    unsigned int size;                         //!< number of particles in this snapshot
+    std::vector<std::string> type_mapping;     //!< Mapping between particle type ids and names
     };
 
 //! Structure to store packed particle data
@@ -401,7 +428,8 @@ class ParticleData : boost::noncopyable
                      );
 
         //! Construct using a ParticleDataSnapshot
-        ParticleData(const SnapshotParticleData& snapshot,
+        template<class Real>
+        ParticleData(const SnapshotParticleData<Real>& snapshot,
                      const BoxDim& global_box,
                      boost::shared_ptr<ExecutionConfiguration> exec_conf,
                      boost::shared_ptr<DomainDecomposition> decomposition
@@ -846,10 +874,12 @@ class ParticleData : boost::noncopyable
         void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
         //! Initialize from a snapshot
-        void initializeFromSnapshot(const SnapshotParticleData & snapshot);
+        template <class Real>
+        void initializeFromSnapshot(const SnapshotParticleData<Real> & snapshot);
 
         //! Take a snapshot
-        void takeSnapshot(SnapshotParticleData &snapshot);
+        template <class Real>
+        void takeSnapshot(SnapshotParticleData<Real> &snapshot);
 
         //! Add ghost particles at the end of the local particle data
         void addGhostParticles(const unsigned int nghosts);
@@ -1062,7 +1092,8 @@ class ParticleData : boost::noncopyable
         /*! \return true If and only if all particles are in the simulation box
          * \param Snapshot to check
          */
-        bool inBox(const SnapshotParticleData& snap);
+        template <class Real>
+        bool inBox(const SnapshotParticleData<Real>& snap);
     };
 
 

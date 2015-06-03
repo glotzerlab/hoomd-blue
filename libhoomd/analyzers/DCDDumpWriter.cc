@@ -183,7 +183,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         m_prof->push("Dump DCD");
 
     // take particle data snapshot
-    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
 
     m_pdata->takeSnapshot(snapshot);
 
@@ -359,7 +359,7 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     \param snapshot Snapshot to write
     Writes the actual particle positions for all particles at the current time step
 */
-void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleData& snapshot)
+void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleData<Scalar>& snapshot)
     {
     // we need to unsort the positions and write in tag order
     assert(m_staging_buffer);
@@ -378,7 +378,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     unsigned int nparticles = m_group->getNumMembersGlobal();
 
     // Create a tmp copy of the particle data and unwrap particles
-    std::vector<Scalar3> tmp_pos(snapshot.pos);
+    std::vector< vec3<Scalar> > tmp_pos(snapshot.pos);
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
@@ -435,7 +435,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         // this only works in 2D simulations, obviously
         if (m_angle)
             {
-            m_staging_buffer[group_idx] = float(atan2(snapshot.orientation[i].w, snapshot.orientation[i].x) * 2);
+            m_staging_buffer[group_idx] = float(atan2(snapshot.orientation[i].v.z, snapshot.orientation[i].s) * 2);
             }
         }
 

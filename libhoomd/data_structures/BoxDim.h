@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __BOXDIM_H__
 
 #include "HOOMDMath.h"
+#include "VectorMath.h"
 
 #if defined(ENABLE_MPI) && !defined(NVCC)
 #include "HOOMDMPI.h"
@@ -288,6 +289,12 @@ class BoxDim
             return (delta*m_Linv+ghost_frac)/(make_scalar3(1,1,1)+Scalar(2.0)*ghost_frac);
             }
 
+        //! Make fraction using vec3s
+        HOSTDEVICE vec3<Scalar> makeFraction(const vec3<Scalar>& v, const Scalar3& ghost_width=make_scalar3(0.0,0.0,0.0)) const
+            {
+            return vec3<Scalar>(makeFraction(vec_to_scalar3(v), ghost_width));
+            }
+
         //! Convert fractional coordinates into real coordinates
         /*! \param f Fractional coordinates between 0 and 1 to scale
             \return A vector inside the box corresponding to f
@@ -298,6 +305,12 @@ class BoxDim
             v.x += m_xy*v.y+m_xz*v.z;
             v.y += m_yz*v.z;
             return v;
+            }
+
+        //! makeCoordinates for vec3
+        HOSTDEVICE vec3<Scalar> makeCoordinates(const vec3<Scalar>& f) const
+            {
+            return vec3<Scalar>(makeCoordinates(vec_to_scalar3(f)));
             }
 
         //! Compute minimum image
@@ -382,6 +395,12 @@ class BoxDim
             return w;
             }
 
+        //! Minimum image using vec3s
+        HOSTDEVICE vec3<Scalar> minImage(const vec3<Scalar>& v) const
+            {
+            return vec3<Scalar>(minImage(vec_to_scalar3(v)));
+            }
+
         //! Wrap a vector back into the box
         /*! \param w Vector to wrap, updated to the minimum image obeying the periodic settings
             \param img Image of the vector, updated to reflect the new image
@@ -457,6 +476,16 @@ class BoxDim
                 }
            }
 
+        //! Wrap a vec3
+        HOSTDEVICE void wrap(vec3<Scalar>& w, int3& img, char3 flags = make_char3(0,0,0)) const
+            {
+            Scalar3 w_scalar = vec_to_scalar3(w);
+            wrap(w_scalar, img, flags);
+            w.x = w_scalar.x;
+            w.y = w_scalar.y;
+            w.z = w_scalar.z;
+            }
+
         //! Wrap a vector back into the box
         /*! \param w Vector to wrap, updated to the minimum image obeying the periodic settings
             \param img Image of the vector, updated to reflect the new image
@@ -500,6 +529,12 @@ class BoxDim
             Scalar3 r = v;
             r += makeCoordinates(make_scalar3(0.5,0.5,0.5)+make_scalar3(shift.x,shift.y,shift.z));
             return r;
+            }
+
+        //! Shift a vec3
+        HOSTDEVICE vec3<Scalar> shift(const vec3<Scalar>& v, const int3& _shift) const
+            {
+            return vec3<Scalar>(shift(vec_to_scalar3(v), _shift));
             }
 
         //! Get the shortest distance between opposite boundary planes of the box
