@@ -101,6 +101,7 @@ from hoomd_script import util;
 from hoomd_script import variant;
 from hoomd_script import init;
 from hoomd_script import comm;
+from hoomd_script import cite;
 
 ## \internal
 # \brief Base class for integrators
@@ -1005,6 +1006,20 @@ class nve_rigid(_integration_method):
     # \endcode
     def __init__(self, group):
         util.print_status_line();
+        
+        # register the citation
+        c = cite.article(cite_key='nguyen2011',
+                         author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=182,
+                         number=11,
+                         pages='2307--2313',
+                         month='Jun',
+                         year='2011',
+                         doi='10.1016/j.cpc.2011.06.005',
+                         feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
@@ -1053,6 +1068,20 @@ class nvt_rigid(_integration_method):
     # \endcode
     def __init__(self, group, T, tau):
         util.print_status_line();
+
+        # register the citation
+        c = cite.article(cite_key='nguyen2011',
+                         author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=182,
+                         number=11,
+                         pages='2307--2313',
+                         month='Jun',
+                         year='2011',
+                         doi='10.1016/j.cpc.2011.06.005',
+                         feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
@@ -1147,6 +1176,20 @@ class bdnvt_rigid(_integration_method):
     # \endcode
     def __init__(self, group, T, seed=0, gamma_diam=False):
         util.print_status_line();
+
+        # register the citation
+        c = cite.article(cite_key='nguyen2011',
+                         author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
+                         journal='Computer Physics Communications',
+                         volume=182,
+                         number=11,
+                         pages='2307--2313',
+                         month='Jun',
+                         year='2011',
+                         doi='10.1016/j.cpc.2011.06.005',
+                         feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
@@ -1259,6 +1302,20 @@ class npt_rigid(_integration_method):
     def __init__(self, group, T, tau, P, tauP):
         util.print_status_line();
 
+        # register the citation
+        c = cite.article(cite_key='nguyen2011',
+                     author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                     title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
+                     journal='Computer Physics Communications',
+                     volume=182,
+                     number=11,
+                     pages='2307--2313',
+                     month='Jun',
+                     year='2011',
+                     doi='10.1016/j.cpc.2011.06.005',
+                     feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
+
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
             if globals.system_definition.getParticleData().getDomainDecomposition():
@@ -1348,6 +1405,20 @@ class nph_rigid(_integration_method):
     # \endcode
     def __init__(self, group, P, tauP):
         util.print_status_line();
+
+        # register the citation
+        c = cite.article(cite_key='nguyen2011',
+                     author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                     title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
+                     journal='Computer Physics Communications',
+                     volume=182,
+                     number=11,
+                     pages='2307--2313',
+                     month='Jun',
+                     year='2011',
+                     doi='10.1016/j.cpc.2011.06.005',
+                     feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # Error out in MPI simulations
         if (hoomd.is_MPI_available()):
@@ -1534,6 +1605,20 @@ class mode_minimize_rigid_fire(_integrator):
     #   - <i>optional</i>: defaults to 1e-5
     def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, falpha=None, ftol = None, wtol=None, Etol= None):
         util.print_status_line();
+
+        # register the citation
+        c = cite.article(cite_key='nguyen2011',
+                     author=['T D Nguyen', 'C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                     title='Rigid body constraints realized in massively-parallel molecular dynamics on graphics processing units',
+                     journal='Computer Physics Communications',
+                     volume=182,
+                     number=11,
+                     pages='2307--2313',
+                     month='Jun',
+                     year='2011',
+                     doi='10.1016/j.cpc.2011.06.005',
+                     feature='rigid body integration')
+        cite._ensure_global_bib().add(c)
 
         # initialize base class
         _integrator.__init__(self);
