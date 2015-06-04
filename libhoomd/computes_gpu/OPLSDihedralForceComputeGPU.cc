@@ -74,7 +74,7 @@ OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(boost::shared_ptr<Syste
     : OPLSDihedralForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating an OPLSDihedralForceComputeGPU with no GPU in execution configuration" << endl;
         throw std::runtime_error("Error initializing OPLSDihedralForceComputeGPU");
@@ -93,7 +93,7 @@ OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(boost::shared_ptr<Syste
 void OPLSDihedralForceComputeGPU::computeForces(unsigned int timestep)
     {
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "OPLS Dihedral");
+    if (m_prof) m_prof->push(m_exec_conf, "OPLS Dihedral");
 
     ArrayHandle<DihedralData::members_t> d_gpu_dihedral_list(m_dihedral_data->getGPUTable(), access_location::device,access_mode::read);
     ArrayHandle<unsigned int> d_n_dihedrals(m_dihedral_data->getNGroupsArray(), access_location::device, access_mode::read);
@@ -123,11 +123,11 @@ void OPLSDihedralForceComputeGPU::computeForces(unsigned int timestep)
                                          m_dihedral_data->getNTypes(),
                                          this->m_tuner->getParam(),
                                          m_exec_conf->getComputeCapability());
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner->end();
 
-    if (m_prof) m_prof->pop(exec_conf);
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_OPLSDihedralForceComputeGPU()

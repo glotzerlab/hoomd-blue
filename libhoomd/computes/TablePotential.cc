@@ -98,9 +98,9 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
 
     // allocate storage for the tables and parameters
     Index2DUpperTriangular table_index(m_ntypes);
-    GPUArray<Scalar2> tables(m_table_width, table_index.getNumElements(), exec_conf);
+    GPUArray<Scalar2> tables(m_table_width, table_index.getNumElements(), m_exec_conf);
     m_tables.swap(tables);
-    GPUArray<Scalar4> params(table_index.getNumElements(), exec_conf);
+    GPUArray<Scalar4> params(table_index.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
     assert(!m_tables.isNull());
@@ -127,9 +127,9 @@ void TablePotential::slotNumTypesChange()
 
     // allocate storage for the tables and parameters
     Index2DUpperTriangular table_index(m_ntypes);
-    GPUArray<Scalar2> tables(m_table_width, table_index.getNumElements(), exec_conf);
+    GPUArray<Scalar2> tables(m_table_width, table_index.getNumElements(), m_exec_conf);
     m_tables.swap(tables);
-    GPUArray<Scalar4> params(table_index.getNumElements(), exec_conf);
+    GPUArray<Scalar4> params(table_index.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
     assert(!m_tables.isNull());

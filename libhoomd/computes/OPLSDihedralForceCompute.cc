@@ -89,7 +89,7 @@ OPLSDihedralForceCompute::OPLSDihedralForceCompute(boost::shared_ptr<SystemDefin
         }
 
     // allocate the parameters
-    GPUArray<Scalar4> params(m_dihedral_data->getNTypes(), exec_conf);
+    GPUArray<Scalar4> params(m_dihedral_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
 }
 

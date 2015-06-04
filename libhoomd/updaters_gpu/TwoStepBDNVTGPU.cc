@@ -88,21 +88,21 @@ TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepBDNVT(sysdef, group, T, seed, gamma_diam, suffix)
     {
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU what CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
 
     // allocate the sum arrays
-    GPUArray<Scalar> sum(1, exec_conf);
+    GPUArray<Scalar> sum(1, m_exec_conf);
     m_sum.swap(sum);
 
     // initialize the partial sum array
     m_block_size = 256;
     unsigned int group_size = m_group->getNumMembers();
     m_num_blocks = group_size / m_block_size + 1;
-    GPUArray<Scalar> partial_sum1(m_num_blocks, exec_conf);
+    GPUArray<Scalar> partial_sum1(m_num_blocks, m_exec_conf);
     m_partial_sum1.swap(partial_sum1);
     }
 
@@ -117,7 +117,7 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
     {
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVE step 1");
+        m_prof->push(m_exec_conf, "NVE step 1");
 
     // access all the needed data
     BoxDim box = m_pdata->getBox();
@@ -143,12 +143,12 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
                      m_zero_force,
                      256);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -160,7 +160,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVE step 2");
+        m_prof->push(m_exec_conf, "NVE step 2");
 
     // get the dimensionality of the system
     const Scalar D = Scalar(m_sysdef->getNDimensions());
@@ -209,7 +209,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
                            m_limit,
                            m_limit_val);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         }
@@ -228,7 +228,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         }
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_TwoStepBDNVTGPU()

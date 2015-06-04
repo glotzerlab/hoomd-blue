@@ -459,7 +459,7 @@ void finalize_mpi()
 void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     #ifdef ENABLE_MPI
-    if (exec_conf->getNRanksGlobal() > 1)
+    if(exec_conf->getNRanksGlobal() > 1)
         {
         MPI_Abort(exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
         }

@@ -74,7 +74,7 @@ TwoStepNVERigidGPU::TwoStepNVERigidGPU(boost::shared_ptr<SystemDefinition> sysde
     : TwoStepNVERigid(sysdef, group)
     {
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU with no GPUs in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
@@ -102,7 +102,7 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVE rigid step 1");
+        m_prof->push(m_exec_conf, "NVE rigid step 1");
 
     // access all the needed data
     BoxDim box = m_pdata->getBox();
@@ -168,12 +168,12 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
                            box,
                            m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -192,7 +192,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVE rigid step 2");
+        m_prof->push(m_exec_conf, "NVE rigid step 2");
 
     BoxDim box = m_pdata->getBox();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
@@ -265,12 +265,12 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
                            box,
                            m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_TwoStepNVERigidGPU()

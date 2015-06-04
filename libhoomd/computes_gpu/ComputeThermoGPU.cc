@@ -84,7 +84,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                    const std::string& suffix)
     : ComputeThermo(sysdef, group, suffix)
     {
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a ComputeThermoGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ComputeThermoGPU");
@@ -95,14 +95,14 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // is reallocated when the maximum number of particles changes
     m_num_blocks = m_group->getNumMembersGlobal() / m_block_size + 1;
 
-    GPUArray< Scalar4 > scratch(m_num_blocks, exec_conf);
+    GPUArray< Scalar4 > scratch(m_num_blocks, m_exec_conf);
     m_scratch.swap(scratch);
 
-    GPUArray< Scalar > scratch_pressure_tensor(m_num_blocks * 6, exec_conf);
+    GPUArray< Scalar > scratch_pressure_tensor(m_num_blocks * 6, m_exec_conf);
     m_scratch_pressure_tensor.swap(scratch_pressure_tensor);
 
     // override base class allocation using mapped memory
-    GPUArray< Scalar > properties(thermo_index::num_quantities, exec_conf,true);
+    GPUArray< Scalar > properties(thermo_index::num_quantities, m_exec_conf,true);
     m_properties.swap(properties);
 
     cudaEventCreate(&m_event, cudaEventDisableTiming);
@@ -176,7 +176,7 @@ void ComputeThermoGPU::computeProperties()
                         args,
                         flags[pdata_flag::pressure_tensor]);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     }
 

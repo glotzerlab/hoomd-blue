@@ -73,14 +73,13 @@ using namespace boost::python;
 */
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
                                                    boost::shared_ptr<ParticleGroup> group)
-    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf()),
+    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
       m_deltaT(Scalar(0.0)), m_valid_restart(false)
     {
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
     assert(m_group);
-    m_exec_conf = exec_conf;
 
     m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
     }

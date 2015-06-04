@@ -131,7 +131,7 @@ PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sy
     m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
-    GPUArray<param_type> params(m_bond_data->getNTypes(), exec_conf);
+    GPUArray<param_type> params(m_bond_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
     }
 

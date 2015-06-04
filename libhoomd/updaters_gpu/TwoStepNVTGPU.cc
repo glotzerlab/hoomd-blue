@@ -87,7 +87,7 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepNVT(sysdef, group, thermo, tau, T, suffix), m_curr_T(0.0)
     {
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU when CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
@@ -113,7 +113,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT step 1");
+        m_prof->push(m_exec_conf, "NVT step 1");
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -140,7 +140,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
                      xi,
                      m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
 
@@ -161,7 +161,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -190,7 +190,7 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT step 2");
+        m_prof->push(m_exec_conf, "NVT step 2");
 
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
@@ -209,14 +209,14 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
                      xi,
                      m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_two->end();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_TwoStepNVTGPU()

@@ -109,7 +109,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     Scalar3 ghost_width = m_cl->getGhostWidth();
 
     if (m_prof)
-        m_prof->push(exec_conf, "compute");
+        m_prof->push(m_exec_conf, "compute");
 
 
     // acquire the particle data and box dimension
@@ -239,7 +239,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     m_conditions.resetFlags(conditions);
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_NeighborListBinned()

@@ -92,7 +92,7 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
 
     : TwoStepNPTMTK(sysdef, group, thermo_group, tau, tauP, T, P, couple, flags,nph)
     {
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a TwoStepNPTMTKGPU with CUDA disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNPTMTKGPU");
@@ -105,10 +105,10 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
     // this breaks memory scaling (calculate memory requirements from global group size)
     // unless we reallocate memory with every change of the maximum particle number
     m_num_blocks = m_group->getNumMembersGlobal() / m_reduction_block_size + 1;
-    GPUArray< Scalar > scratch(m_num_blocks, exec_conf);
+    GPUArray< Scalar > scratch(m_num_blocks, m_exec_conf);
     m_scratch.swap(scratch);
 
-    GPUArray< Scalar> temperature(1, exec_conf);
+    GPUArray< Scalar> temperature(1, m_exec_conf);
     m_temperature.swap(temperature);
     }
 

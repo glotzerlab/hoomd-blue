@@ -81,7 +81,7 @@ FIREEnergyMinimizerRigidGPU::FIREEnergyMinimizerRigidGPU(boost::shared_ptr<Syste
     :   FIREEnergyMinimizerRigid(sysdef, group, dt, false)
     {
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a FIREEnergyMinimizerRigidGPU with no GPUs in the execution configuration" << endl;
         throw std::runtime_error("Error initializing FIREEnergyMinimizerRigidGPU");
@@ -137,7 +137,7 @@ void FIREEnergyMinimizerRigidGPU::reset()
     d_rdata.angmom = angmom_handle.data;
 
     gpu_fire_rigid_zero_v(d_rdata);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     setDeltaT(m_deltaT_set);
@@ -171,7 +171,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     // CPU version is Scalar energy = computePotentialEnergy(timesteps) / Scalar(nparticles);
     {
     if (m_prof)
-        m_prof->push(exec_conf, "FIRE rigid compute total energy");
+        m_prof->push(m_exec_conf, "FIRE rigid compute total energy");
 
     ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_partial_sum_pe(m_partial_sum_pe, access_location::device, access_mode::overwrite);
@@ -187,11 +187,11 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
                             m_block_size,
                             m_num_blocks);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
     {
@@ -208,7 +208,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     // sum P, vnorm, fnorm
     {
     if (m_prof)
-        m_prof->push(exec_conf, "FIRE rigid P, vnorm, fnorm");
+        m_prof->push(m_exec_conf, "FIRE rigid P, vnorm, fnorm");
 
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -235,11 +235,11 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
                                    d_sum_Pt.data,
                                    d_sum_Pr.data);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
     {
@@ -270,7 +270,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     // Update velocities
     {
     if (m_prof)
-        m_prof->push(exec_conf, "FIRE rigid update velocities and angular momenta");
+        m_prof->push(m_exec_conf, "FIRE rigid update velocities and angular momenta");
 
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -309,12 +309,12 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
                             factor_t,
                             factor_r);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
     Scalar P = Pt + Pr;
@@ -333,7 +333,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
         if (m_prof)
-            m_prof->push(exec_conf, "FIRE rigid zero velocities");
+            m_prof->push(m_exec_conf, "FIRE rigid zero velocities");
 
         ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -351,11 +351,11 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
         d_rdata.angmom = angmom_handle.data;
 
         gpu_fire_rigid_zero_v(d_rdata);
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         if (m_prof)
-            m_prof->pop(exec_conf);
+            m_prof->pop(m_exec_conf);
         }
     m_n_since_start++;
     m_old_energy = energy;

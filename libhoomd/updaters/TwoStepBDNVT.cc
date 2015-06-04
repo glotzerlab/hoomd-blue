@@ -103,7 +103,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
     setIntegratorVariables(v);
 
     // allocate memory for the per-type gamma storage and initialize them to 1.0
-    GPUVector<Scalar> gamma(m_pdata->getNTypes(), exec_conf);
+    GPUVector<Scalar> gamma(m_pdata->getNTypes(), m_exec_conf);
     m_gamma.swap(gamma);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.size(); i++)

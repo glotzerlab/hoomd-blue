@@ -157,28 +157,28 @@ void PPPMForceCompute::setParams(int Nx, int Ny, int Nz, int order, Scalar kappa
         throw std::runtime_error("Error initializing PPPMForceCompute");
         }
 
-    GPUArray<CUFFTCOMPLEX> n_rho_real_space(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_rho_real_space(Nx*Ny*Nz, m_exec_conf);
     m_rho_real_space.swap(n_rho_real_space);
-    GPUArray<Scalar> n_green_hat(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_green_hat(Nx*Ny*Nz, m_exec_conf);
     m_green_hat.swap(n_green_hat);
 
-    GPUArray<Scalar> n_vg(6*Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar> n_vg(6*Nx*Ny*Nz, m_exec_conf);
     m_vg.swap(n_vg);
 
 
-    GPUArray<Scalar3> n_kvec(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar3> n_kvec(Nx*Ny*Nz, m_exec_conf);
     m_kvec.swap(n_kvec);
-    GPUArray<CUFFTCOMPLEX> n_Ex(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_Ex(Nx*Ny*Nz, m_exec_conf);
     m_Ex.swap(n_Ex);
-    GPUArray<CUFFTCOMPLEX> n_Ey(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_Ey(Nx*Ny*Nz, m_exec_conf);
     m_Ey.swap(n_Ey);
-    GPUArray<CUFFTCOMPLEX> n_Ez(Nx*Ny*Nz, exec_conf);
+    GPUArray<CUFFTCOMPLEX> n_Ez(Nx*Ny*Nz, m_exec_conf);
     m_Ez.swap(n_Ez);
-    GPUArray<Scalar> n_gf_b(order, exec_conf);
+    GPUArray<Scalar> n_gf_b(order, m_exec_conf);
     m_gf_b.swap(n_gf_b);
-    GPUArray<Scalar> n_rho_coeff(order*(2*order+1), exec_conf);
+    GPUArray<Scalar> n_rho_coeff(order*(2*order+1), m_exec_conf);
     m_rho_coeff.swap(n_rho_coeff);
-    GPUArray<Scalar3> n_field(Nx*Ny*Nz, exec_conf);
+    GPUArray<Scalar3> n_field(Nx*Ny*Nz, m_exec_conf);
     m_field.swap(n_field);
     const BoxDim& box = m_pdata->getBox();
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);

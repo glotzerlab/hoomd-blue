@@ -80,7 +80,7 @@ ConstraintSphereGPU::ConstraintSphereGPU(boost::shared_ptr<SystemDefinition> sys
                                          Scalar r)
         : ConstraintSphere(sysdef, group, P, r), m_block_size(256)
     {
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a ConstraintSphereGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ConstraintSphereGPU");
@@ -96,7 +96,7 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
     if (group_size == 0)
         return;
 
-    if (m_prof) m_prof->push(exec_conf, "ConstraintSphere");
+    if (m_prof) m_prof->push(m_exec_conf, "ConstraintSphere");
 
     assert(m_pdata);
 
@@ -128,11 +128,11 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
                                          m_deltaT,
                                          m_block_size);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 

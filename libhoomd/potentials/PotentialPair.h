@@ -192,11 +192,11 @@ class PotentialPair : public ForceCompute
             m_typpair_idx = Index2D(m_pdata->getNTypes());
 
             // reallocate parameter arrays
-            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
+            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
             m_rcutsq.swap(rcutsq);
-            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), exec_conf);
+            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
             m_ronsq.swap(ronsq);
-            GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
+            GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
             }
 
@@ -221,11 +221,11 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
     assert(m_pdata);
     assert(m_nlist);
 
-    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
+    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), exec_conf);
+    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_ronsq.swap(ronsq);
-    GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
+    GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
     // initialize name

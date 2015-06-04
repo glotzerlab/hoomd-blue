@@ -122,28 +122,28 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_conditions.swap(conditions);
 
     // allocate m_n_neigh
-    GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
+    GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), m_exec_conf);
     m_n_neigh.swap(n_neigh);
 
     // allocate neighbor list
     allocateNlist();
 
     // allocate m_last_pos
-    GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), exec_conf);
+    GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), m_exec_conf);
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
 
     // note: this breaks O(N/P) memory scaling
-    GPUVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), exec_conf);
+    GPUVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), m_exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
 
-    GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, exec_conf);
+    GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, m_exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
 
-    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), exec_conf);
+    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), m_exec_conf);
     m_n_ex_idx.swap(n_ex_idx);
-    GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, exec_conf);
+    GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, m_exec_conf);
     m_ex_list_idx.swap(ex_list_idx);
 
     // reset exclusions
@@ -256,7 +256,7 @@ double NeighborList::benchmark(unsigned int num_iters)
     buildNlist(0);
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         {
         cudaThreadSynchronize();
         CHECK_CUDA_ERROR();
@@ -269,7 +269,7 @@ double NeighborList::benchmark(unsigned int num_iters)
         buildNlist(0);
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
@@ -1275,7 +1275,7 @@ void NeighborList::allocateNlist()
     m_exec_conf->msg->notice(6) << "nlist: (Re-)Allocating " << m_pdata->getMaxN() << " x " << m_Nmax+1 << endl;
 
     // re-allocate, overwriting old neighbor list
-    GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, exec_conf);
+    GPUArray<unsigned int> nlist(m_pdata->getMaxN(), m_Nmax+1, m_exec_conf);
     m_nlist.swap(nlist);
 
     // update the indexer

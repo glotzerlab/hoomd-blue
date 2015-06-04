@@ -121,7 +121,7 @@ PotentialExternal<evaluator>::PotentialExternal(boost::shared_ptr<SystemDefiniti
     {
     m_log_name = std::string("external_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
-    GPUArray<param_type> params(m_pdata->getNTypes(), exec_conf);
+    GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
