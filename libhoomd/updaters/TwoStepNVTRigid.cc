@@ -54,10 +54,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the TwoStepNVTRigid class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "QuaternionMath.h"
 #include "TwoStepNVTRigid.h"
@@ -499,7 +495,3 @@ void export_TwoStepNVTRigid()
         Scalar,
         const std::string& >());
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

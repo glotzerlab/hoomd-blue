@@ -52,11 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMForceGPU.cuh"
 #include "TextureTools.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file CGCMMForceGPU.cu
     \brief Defines GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.

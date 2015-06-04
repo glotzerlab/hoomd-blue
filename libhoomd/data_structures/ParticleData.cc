@@ -52,12 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file ParticleData.cc
     \brief Contains all code for ParticleData, and SnapshotParticleData.
  */
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 4267 )
-#endif
-
 #include "ParticleData.h"
 #include "Profiler.h"
 
@@ -3056,7 +3050,3 @@ void export_SnapshotParticleData()
     .def("resize", &SnapshotParticleData<double>::resize)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

@@ -58,11 +58,7 @@ Moscow group.
 #include "EAMForceGPU.cuh"
 #include "TextureTools.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file EAMForceGPU.cu
     \brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.

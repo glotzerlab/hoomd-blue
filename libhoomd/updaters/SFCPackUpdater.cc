@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the SFCPackUpdater class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "SFCPackUpdater.h"
 #include "Communicator.h"
@@ -645,7 +641,3 @@ void export_SFCPackUpdater()
     .def("setGrid", &SFCPackUpdater::setGrid)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

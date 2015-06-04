@@ -51,10 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "HOOMDVersion.h"
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>

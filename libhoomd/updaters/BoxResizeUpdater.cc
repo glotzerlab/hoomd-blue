@@ -52,10 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the BoxResizeUpdater class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "BoxResizeUpdater.h"
 #include "RigidData.h"
@@ -242,7 +238,3 @@ void export_BoxResizeUpdater()
      boost::shared_ptr<Variant> >())
     .def("setParams", &BoxResizeUpdater::setParams);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

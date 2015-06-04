@@ -52,11 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicDihedralForceGPU.cuh"
 #include "TextureTools.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 #ifdef SINGLE_PRECISION
 #define __scalar2int_rn __float2int_rn

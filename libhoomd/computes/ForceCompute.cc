@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the ForceCompute class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "ForceCompute.h"
 
@@ -323,7 +320,3 @@ void export_ForceCompute()
     .def("getEnergy", &ForceCompute::getEnergy)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

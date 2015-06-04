@@ -48,12 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Maintainer: joaander
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 4267 )
-#endif
-
 #include "TablePotential.h"
 
 #include <boost/python.hpp>
@@ -401,7 +395,3 @@ void export_TablePotential()
     .def(vector_indexing_suite<std::vector<Scalar> >())
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

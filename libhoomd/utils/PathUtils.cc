@@ -113,9 +113,6 @@ std::string getExePath()
 
     result = std::string(buf);
 
-    #elif WIN32
-    #error Not implemented
-    // see the above link for a howto on implementing this. Not a high priority to do so because windows is deprecated
     #else
     #error Not implemented
     #endif

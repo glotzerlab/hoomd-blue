@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "Updater.h"
 
@@ -112,7 +108,3 @@ void export_Updater()
     .def("setProfiler", &Updater::setProfiler)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

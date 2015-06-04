@@ -50,10 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: morozov
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "HOOMDInitializer.h"
 #include "EAMForceCompute.h"
@@ -552,7 +548,3 @@ void export_EAMForceCompute()
     .def("get_r_cut", &EAMForceCompute::get_r_cut)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

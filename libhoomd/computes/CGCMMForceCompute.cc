@@ -49,10 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: akohlmey
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "CGCMMForceCompute.h"
 
@@ -406,7 +402,3 @@ void export_CGCMMForceCompute()
     .def("setParams", &CGCMMForceCompute::setParams)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

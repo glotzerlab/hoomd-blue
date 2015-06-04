@@ -68,10 +68,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #endif
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 /*! \file PotentialPair.h
     \brief Defines the template class for standard pair potentials
@@ -599,8 +595,5 @@ template < class T > void export_PotentialPair(const std::string& name)
     ;
     }
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 
 #endif // __POTENTIAL_PAIR_H__

@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "TwoStepNVT.h"
 
@@ -289,7 +286,3 @@ void export_TwoStepNVT()
         .def("setTau", &TwoStepNVT::setTau)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

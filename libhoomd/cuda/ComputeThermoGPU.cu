@@ -51,11 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ComputeThermoGPU.cuh"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 //! Shared memory used in reducing the sums
 extern __shared__ Scalar3 compute_thermo_sdata[];

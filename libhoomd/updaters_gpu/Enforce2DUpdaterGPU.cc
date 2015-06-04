@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the Enforce2DUpdaterGPU class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "Enforce2DUpdaterGPU.h"
 #include "Enforce2DUpdaterGPU.cuh"
@@ -114,7 +110,3 @@ void export_Enforce2DUpdaterGPU()
     ("Enforce2DUpdaterGPU", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

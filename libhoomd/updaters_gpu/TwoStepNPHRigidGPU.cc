@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "TwoStepNPHRigidGPU.h"
 #include "TwoStepNPHRigidGPU.cuh"
@@ -478,7 +475,3 @@ void export_TwoStepNPHRigidGPU()
         boost::shared_ptr<Variant> >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

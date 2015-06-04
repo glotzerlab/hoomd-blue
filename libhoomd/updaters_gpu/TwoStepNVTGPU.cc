@@ -57,10 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMPI.h"
 #endif
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -231,7 +228,3 @@ void export_TwoStepNVTGPU()
                           >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

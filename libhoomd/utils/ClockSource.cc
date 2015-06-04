@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the ClockSource class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "ClockSource.h"
 
@@ -97,7 +93,3 @@ void export_ClockSource()
     .def("getTime", &ClockSource::getTime)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

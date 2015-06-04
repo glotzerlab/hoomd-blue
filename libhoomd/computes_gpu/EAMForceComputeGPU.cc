@@ -59,10 +59,6 @@ Moscow group.
     \brief Defines the EAMForceComputeGPU class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "EAMForceComputeGPU.h"
 #include <cuda_runtime.h>
@@ -205,7 +201,3 @@ void export_EAMForceComputeGPU()
         ("EAMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

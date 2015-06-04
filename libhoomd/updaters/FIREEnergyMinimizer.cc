@@ -49,23 +49,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: askeys
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "FIREEnergyMinimizer.h"
 #include "TwoStepNVE.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
-
-// windows feels the need to #define min and max
-#ifdef WIN32
-#undef min
-#undef max
-#endif
-
 
 /*! \file FIREEnergyMinimizer.h
     \brief Contains code for the FIREEnergyMinimizer class
@@ -328,7 +318,3 @@ void export_FIREEnergyMinimizer()
         .def("setMinSteps", &FIREEnergyMinimizer::setMinSteps)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

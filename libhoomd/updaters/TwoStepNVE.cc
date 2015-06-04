@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "TwoStepNVE.h"
 
@@ -253,7 +250,3 @@ void export_TwoStepNVE()
         .def("setZeroForce", &TwoStepNVE::setZeroForce)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the DCDDumpWriter class and related helper functions
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "DCDDumpWriter.h"
 #include "time.h"
@@ -476,7 +473,3 @@ void export_DCDDumpWriter()
     .def("setAngleZ", &DCDDumpWriter::setAngleZ)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

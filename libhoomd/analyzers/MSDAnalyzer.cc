@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the MSDAnalyzer class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "MSDAnalyzer.h"
 #include "HOOMDInitializer.h"
@@ -401,7 +398,3 @@ void export_MSDAnalyzer()
     .def("setR0", &MSDAnalyzer::setR0)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

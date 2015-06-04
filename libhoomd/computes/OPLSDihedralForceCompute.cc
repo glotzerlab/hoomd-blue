@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ksil
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "OPLSDihedralForceCompute.h"
 
@@ -411,7 +408,3 @@ void export_OPLSDihedralForceCompute()
     .def("setParams", &OPLSDihedralForceCompute::setParams)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

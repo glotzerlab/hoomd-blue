@@ -52,11 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FIREEnergyMinimizerRigidGPU.cuh"
 #include "TextureTools.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 #include <stdio.h>
 

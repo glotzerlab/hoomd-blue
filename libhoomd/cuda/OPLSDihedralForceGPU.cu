@@ -52,11 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "OPLSDihedralForceGPU.cuh"
 #include "TextureTools.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file OPLSDihedralForceGPU.cu
     \brief Defines GPU kernel code for calculating OPLS dihedral forces. Used by OPLSDihedralForceComputeGPU.

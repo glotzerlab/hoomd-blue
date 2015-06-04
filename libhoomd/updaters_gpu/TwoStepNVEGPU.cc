@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVEGPU.cuh"
@@ -187,7 +184,3 @@ void export_TwoStepNVEGPU()
         ("TwoStepNVEGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

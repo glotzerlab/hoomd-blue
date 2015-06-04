@@ -456,4 +456,3 @@ __device__ inline double SaruGPU::s(double low, double high)
     }
 
 #endif /* SARUPRNG_H */
-

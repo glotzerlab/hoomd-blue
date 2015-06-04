@@ -57,11 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #ifndef __PARTICLE_DATA_H__
 #define __PARTICLE_DATA_H__
 
@@ -96,11 +91,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stack>
 
 using namespace std;
-
-// windows doesn't understand __restrict__, it is __restrict instead
-#ifdef WIN32
-#define __restrict__ __restrict
-#endif
 
 /*! \ingroup hoomd_lib
     @{
@@ -1104,8 +1094,4 @@ void export_ParticleData();
 //! Export SnapshotParticleData to python
 void export_SnapshotParticleData();
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

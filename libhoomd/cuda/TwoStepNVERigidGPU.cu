@@ -54,11 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVERigidGPU.cuh"
 #include <stdio.h>
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file TwoStepNVERigidGPU.cu
     \brief Defines GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.

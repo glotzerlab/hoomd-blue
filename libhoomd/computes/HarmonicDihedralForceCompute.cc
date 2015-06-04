@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "HarmonicDihedralForceCompute.h"
 
@@ -406,7 +403,3 @@ void export_HarmonicDihedralForceCompute()
     .def("setParams", &HarmonicDihedralForceCompute::setParams)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

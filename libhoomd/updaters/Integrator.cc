@@ -52,10 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the Integrator base class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "Integrator.h"
 
@@ -904,7 +900,3 @@ void export_Integrator()
     .def("getNDOF", &Integrator::getNDOF)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

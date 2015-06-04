@@ -84,11 +84,7 @@ endif (NOT ENABLE_STATIC)
 
 if (ENABLE_STATIC)
     # change the library name to something more sensible
-    if (WIN32)
-        set_target_properties(libhoomd PROPERTIES OUTPUT_NAME "libhoomd")
-    else(WIN32)
-        set_target_properties(libhoomd PROPERTIES OUTPUT_NAME "hoomd")
-    endif(WIN32)
+    set_target_properties(libhoomd PROPERTIES OUTPUT_NAME "hoomd")
 endif (ENABLE_STATIC)
 
 # due to the way that app bundle installs work with relative linking, hoomd.so must be installed into the bin dir, ugh!

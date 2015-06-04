@@ -55,10 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "SFCPackUpdaterGPU.h"
 #include "SFCPackUpdaterGPU.cuh"
@@ -283,8 +279,5 @@ void export_SFCPackUpdaterGPU()
     ;
     }
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 
 #endif

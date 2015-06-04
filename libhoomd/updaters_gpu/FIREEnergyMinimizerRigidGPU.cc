@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerRigidGPU.cuh"
@@ -369,7 +366,3 @@ void export_FIREEnergyMinimizerRigidGPU()
         ("FIREEnergyMinimizerRigidGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

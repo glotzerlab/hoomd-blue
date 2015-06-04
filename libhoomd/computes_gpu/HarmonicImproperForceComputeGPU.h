@@ -48,12 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Maintainer: dnlebard
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #include "HarmonicImproperForceCompute.h"
 #include "HarmonicImproperForceGPU.cuh"
 #include "Autotuner.h"
@@ -117,8 +111,4 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
 //! Export the ImproperForceComputeGPU class to python
 void export_HarmonicImproperForceComputeGPU();
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

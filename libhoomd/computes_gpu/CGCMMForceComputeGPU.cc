@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the CGCMMForceComputeGPU class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "CGCMMForceComputeGPU.h"
 #include "cuda_runtime.h"
@@ -235,7 +231,3 @@ void export_CGCMMForceComputeGPU()
     .def("setBlockSize", &CGCMMForceComputeGPU::setBlockSize)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

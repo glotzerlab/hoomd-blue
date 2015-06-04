@@ -52,10 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines Variant and related classes
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "Variant.h"
 
@@ -152,7 +148,3 @@ void export_Variant()
     class_<VariantLinear, boost::shared_ptr<VariantLinear>, bases<Variant> >("VariantLinear", init< >())
     .def("setPoint", &VariantLinear::setPoint);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

@@ -49,10 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "TablePotentialGPU.h"
 
@@ -164,7 +160,3 @@ void export_TablePotentialGPU()
      const std::string& >())
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

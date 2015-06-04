@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -11,10 +11,10 @@
  *     * Neither the name of the NVIDIA CORPORATION nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
@@ -42,7 +42,7 @@ namespace mgpu {
 ////////////////////////////////////////////////////////////////////////////////
 // Segmented reduce utility functions.
 
-// Extract the upper-bound indices from the coded ranges. Decrement to include 
+// Extract the upper-bound indices from the coded ranges. Decrement to include
 // the first addressed row/segment.
 
 struct SegReduceRange {
@@ -55,17 +55,17 @@ struct SegReduceRange {
 MGPU_DEVICE SegReduceRange DeviceShiftRange(int limit0, int limit1) {
 	SegReduceRange range;
 	range.begin = 0x7fffffff & limit0;
-	range.end = 0x7fffffff & limit1; 
+	range.end = 0x7fffffff & limit1;
 	range.total = range.end - range.begin;
 	range.flushLast = 0 == (0x80000000 & limit1);
 	range.end += !range.flushLast;
 	return range;
 }
 
-// Reconstitute row/segment indices from a starting row index and packed end 
+// Reconstitute row/segment indices from a starting row index and packed end
 // flags. Used for pre-processed versions of interval reduce and interval Spmv.
 template<int VT>
-MGPU_DEVICE void DeviceExpandFlagsToRows(int first, int endFlags, 
+MGPU_DEVICE void DeviceExpandFlagsToRows(int first, int endFlags,
 	int rows[VT + 1]) {
 
 	rows[0] = first;
@@ -77,14 +77,14 @@ MGPU_DEVICE void DeviceExpandFlagsToRows(int first, int endFlags,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// After loading CSR terms into shared memory, each thread binary searches 
+// After loading CSR terms into shared memory, each thread binary searches
 // (upper-bound) to find its starting point. Each thread then walks forward,
 // emitting the csr0-relative row indices to register.
 
 template<int NT, int VT>
-MGPU_DEVICE int DeviceExpandCsrRows(int tidOffset, int* csr_shared, 
+MGPU_DEVICE int DeviceExpandCsrRows(int tidOffset, int* csr_shared,
 	int numRows, int end, int rows[VT + 1], int rowStarts[VT]) {
-		
+
 	// Each thread binary searches for its starting row.
 	int row = BinarySearch<MgpuBoundsUpper>(csr_shared, numRows, tidOffset,
 		mgpu::less<int>()) - 1;
@@ -98,7 +98,7 @@ MGPU_DEVICE int DeviceExpandCsrRows(int tidOffset, int* csr_shared,
 	rows[0] = row;
 	rowStarts[0] = curOffset;
 	int endFlags = 0;
-	
+
 	#pragma unroll
 	for(int i = 1; i <= VT; ++i) {
 		// Advance the row cursor when the iterator hits the next row offset.
@@ -133,7 +133,7 @@ struct SegReduceTerms {
 };
 
 template<int NT, int VT>
-MGPU_DEVICE SegReduceTerms DeviceSegReducePrepare(int* csr_shared, int numRows, 
+MGPU_DEVICE SegReduceTerms DeviceSegReducePrepare(int* csr_shared, int numRows,
 	int tid, int gid, bool flushLast, int rows[VT + 1], int rowStarts[VT]) {
 
 	// Pass a sentinel (end) to point to the next segment start. If we flush,
@@ -169,11 +169,11 @@ struct CTASegReduce {
 		typename SegScan::Storage segScanStorage;
 		T values[Capacity];
 	};
-	
+
 	template<typename DestIt>
 	MGPU_DEVICE static void ReduceToGlobal(const int rows[VT + 1], int total,
-		int tidDelta, int startRow, int block, int tid, T data[VT], 
-		DestIt dest_global, T* carryOut_global, T identity, Op op, 
+		int tidDelta, int startRow, int block, int tid, T data[VT],
+		DestIt dest_global, T* carryOut_global, T identity, Op op,
 		Storage& storage) {
 
 		// Run a segmented scan within the thread.
@@ -193,7 +193,7 @@ struct CTASegReduce {
 
 		// Store the carry-out for the entire CTA to global memory.
 		if(!tid) carryOut_global[block] = carryOut;
-		
+
 		dest_global += startRow;
 		if(HalfCapacity && total > Capacity) {
 			// Add carry-in to each thread-local scan value. Store directly
@@ -217,7 +217,7 @@ struct CTASegReduce {
 				// Add the carry-in to the local scan.
 				T x2 = op(carryIn, localScan[i]);
 
-				// Store reduction when the segment changes and clear the 
+				// Store reduction when the segment changes and clear the
 				// carry-in.
 				if(rows[i] != rows[i + 1]) {
 					storage.values[rows[i]] = x2;
@@ -235,4 +235,3 @@ struct CTASegReduce {
 };
 
 } // namespace mgpu
-

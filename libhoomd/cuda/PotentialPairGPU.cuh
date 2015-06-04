@@ -54,11 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file PotentialPairGPU.cuh
     \brief Defines templated GPU kernel code for calculating the pair forces.

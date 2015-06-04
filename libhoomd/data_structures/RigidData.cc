@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines RigidData and related classes.
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "RigidData.h"
 #include "QuaternionMath.h"
@@ -1338,7 +1334,3 @@ void export_RigidData()
     .def("setRV", &RigidData::setRV)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

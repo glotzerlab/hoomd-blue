@@ -57,11 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #include "Updater.h"
 #include "NeighborList.h"
 #include "GPUVector.h"
@@ -151,8 +146,4 @@ class SFCPackUpdater : public Updater
 //! Export the SFCPackUpdater class to python
 void export_SFCPackUpdater();
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

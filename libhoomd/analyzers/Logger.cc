@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the Logger class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "Logger.h"
 
@@ -355,7 +352,3 @@ void export_Logger()
     .def("getCachedQuantity", &Logger::getCachedQuantity)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

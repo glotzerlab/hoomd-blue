@@ -52,11 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "QuaternionMath.h"
 #include "TwoStepNPTRigidGPU.cuh"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file TwoStepNPTRigidGPU.cu
     \brief Defines GPU kernel code for NPT integration on the GPU. Used by TwoStepNPTRigidGPU.

@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Contains code for the ComputeThermoGPU class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoGPU.cuh"
@@ -215,7 +211,3 @@ void export_ComputeThermoGPU()
          const std::string& >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

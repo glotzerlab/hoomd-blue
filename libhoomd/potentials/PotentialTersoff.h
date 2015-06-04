@@ -63,10 +63,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "NeighborList.h"
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 /*! \file PotentialTersoff.h
     \brief Defines the template class for standard three-body potentials
@@ -565,8 +561,5 @@ template < class T > void export_PotentialTersoff(const std::string& name)
                   ;
     }
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 
 #endif
