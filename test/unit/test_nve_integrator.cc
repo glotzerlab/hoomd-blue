@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -454,8 +450,4 @@ BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_comparison_tests)
     nve_updater_compare_test(nve_creator, nve_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

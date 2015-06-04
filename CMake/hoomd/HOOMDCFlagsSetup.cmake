@@ -54,8 +54,3 @@ if(NOT PASSED_FIRST_CONFIGURE)
 
 SET(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "First configure has run: CXX_FLAGS have had their defaults changed" FORCE)
 endif(NOT PASSED_FIRST_CONFIGURE)
-
-# disable crazy windows warnings
-if (WIN32)
-add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
-endif (WIN32)

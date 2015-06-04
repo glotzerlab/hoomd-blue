@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -581,8 +577,4 @@ BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_smallsystem_test )
     {
     fire_smallsystem_test(gpu_fire_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <math.h>
 #include "HOOMDDumpWriter.h"
@@ -1336,7 +1332,3 @@ im_b 5 4 3 2\n\
     // clean up after ourselves
     remove_all(ph);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

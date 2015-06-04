@@ -47,10 +47,6 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -230,7 +226,3 @@ BOOST_AUTO_TEST_CASE( LJWallForce_particle )
     ljwallforce_creator ljwall_creator_base = bind(base_class_ljwall_creator, _1, _2);
     ljwall_force_particle_test(ljwall_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

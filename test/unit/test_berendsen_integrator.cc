@@ -168,7 +168,3 @@ BOOST_AUTO_TEST_CASE( TwoStepBerendsenGPU_LJ_tests )
     }
 #endif
 
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

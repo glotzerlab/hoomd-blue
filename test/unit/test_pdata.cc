@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \ingroup unit_tests
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -811,7 +807,3 @@ BOOST_AUTO_TEST_CASE( Generator_test )
     MOL2DumpWriter dump(pdata, string("test.mol2"));
     dump.analyze(0);
     }*/
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

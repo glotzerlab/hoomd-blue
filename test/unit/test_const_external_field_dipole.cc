@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Maintainer: baschult
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -219,7 +215,3 @@ BOOST_AUTO_TEST_CASE( cefd_particle )
     cefd_force_creator cefd_creator_base = bind(base_class_cefd_creator, _1, _2,_3,_4,_5);
     cefd_force_particle_test(cefd_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

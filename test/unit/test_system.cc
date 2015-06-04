@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -455,7 +451,3 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 
     Py_Finalize();
     }*/
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

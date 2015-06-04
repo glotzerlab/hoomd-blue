@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -622,8 +618,4 @@ BOOST_AUTO_TEST_CASE( CGCMMForceGPU_compare )
     cgcmm_force_comparison_test(cgcmm_creator_base, cgcmm_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

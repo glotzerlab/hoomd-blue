@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <fstream>
 
@@ -400,8 +396,4 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
     table_potential_type_test(table_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

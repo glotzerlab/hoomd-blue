@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -207,7 +203,3 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_rigid )
     MY_BOOST_CHECK_SMALL(avg_py, tol_small);
     MY_BOOST_CHECK_SMALL(avg_pz, tol_small);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \ingroup unit_tests
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 

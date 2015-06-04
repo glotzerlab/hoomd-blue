@@ -1,22 +1,20 @@
 # Maintainer: joaander
 
 ###############################
-# UNIX like OSes need a few settings for the unit test library
-if (NOT WIN32)
-    # first, they need the boost unit test framework added as a library
-    set(ADDITIONAL_LIBS libhoomd
-            ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-            )
+# need a few settings for the unit test library
+# first, they need the boost unit test framework added as a library
+set(ADDITIONAL_LIBS libhoomd
+        ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+        )
 
-    # then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
-    if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
-    add_definitions(-DBOOST_TEST_DYN_LINK)
-    endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
+# then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
+if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
+add_definitions(-DBOOST_TEST_DYN_LINK)
+endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
 
-    if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
-    add_definitions(-DBOOST_TEST_DYN_LINK)
-    endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
-endif (NOT WIN32)
+if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
+add_definitions(-DBOOST_TEST_DYN_LINK)
+endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
 
 ####################################
 ## Setup valgrind options
