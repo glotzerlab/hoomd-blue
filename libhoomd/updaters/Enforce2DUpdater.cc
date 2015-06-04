@@ -52,10 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the Enforce2DUpdater class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "Enforce2DUpdater.h"
 
@@ -117,7 +113,3 @@ void export_Enforce2DUpdater()
     ("Enforce2DUpdater", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

@@ -205,7 +205,7 @@ inline void Profiler::push(boost::shared_ptr<const ExecutionConfiguration> exec_
     {
 #if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
-    if (exec_conf->isCUDAEnabled())
+    if(exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     push(name);
@@ -215,7 +215,7 @@ inline void Profiler::pop(boost::shared_ptr<const ExecutionConfiguration> exec_c
     {
 #if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
-    if (exec_conf->isCUDAEnabled())
+    if(exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     pop(flop_count, byte_count);

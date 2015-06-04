@@ -51,12 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // temporarily work around issues with the new boost fileystem libraries
 // http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 4267 )
-#endif
-
 #include "HOOMDMath.h"
 #include "ExecutionConfiguration.h"
 #include "ClockSource.h"
@@ -261,54 +255,6 @@ void export_tersoff_params()
 */
 string find_vmd()
     {
-#ifdef WIN32
-
-    // find VMD through the registry
-    vector<string> reg_paths;
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9.1");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9.0");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.7");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.6");
-
-    vector<string>::iterator cur_path;
-    for (cur_path = reg_paths.begin(); cur_path != reg_paths.end(); ++cur_path)
-        {
-        string reg_path = *cur_path;
-
-        char *value = new char[1024];
-        DWORD value_size = 1024;
-        HKEY vmd_root_key;
-        LONG err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ | KEY_WOW64_32KEY, &vmd_root_key);
-        if (err_code == ERROR_SUCCESS)
-            {
-            err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
-            // see if it installed where the reg key says so
-            if (err_code == ERROR_SUCCESS)
-                {
-                path install_dir = path(string(value));
-                if (exists(install_dir / "vmd.exe"))
-                    return (install_dir / "vmd.exe").string();
-                }
-            }
-
-        err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
-        if (err_code == ERROR_SUCCESS)
-            {
-            err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
-            // see if it installed where the reg key says so
-            if (err_code == ERROR_SUCCESS)
-                {
-                path install_dir = path(string(value));
-                if (exists(install_dir / "vmd.exe"))
-                    return (install_dir / "vmd.exe").string();
-                }
-            }
-
-        delete[] value;
-        }
-
-#else
     // check some likely locations
     if (exists("/usr/bin/vmd"))
         return "/usr/bin/vmd";
@@ -322,7 +268,6 @@ string find_vmd()
         return("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
     if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-#endif
 
     // return an empty string if we didn't find it
     return "";
@@ -459,7 +404,7 @@ void finalize_mpi()
 void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     #ifdef ENABLE_MPI
-    if (exec_conf->getNRanksGlobal() > 1)
+    if(exec_conf->getNRanksGlobal() > 1)
         {
         MPI_Abort(exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
         }
@@ -688,8 +633,4 @@ BOOST_PYTHON_MODULE(hoomd)
     // messenger
     export_Messenger();
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 

@@ -71,32 +71,17 @@ if (NOT ENABLE_STATIC)
     endif(APPLE)
     fix_cudart_rpath(libhoomd)
 
-    # set the rpath so that the lib can find other libs stashed in lib/hoomd
-    if (ENABLE_EMBED_CUDA)
-        set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "$ORIGIN/../../hoomd;$ORIGIN/../hoomd")
-    endif (ENABLE_EMBED_CUDA)
-
-    # for non-app-bundle relocatable installs, set the install name of the lib for linking relative to bin/
-    if (NOT ENABLE_APP_BUNDLE_INSTALL)
+    # set the install name of the lib for linking relative to bin/
     set_target_properties(libhoomd PROPERTIES INSTALL_NAME_DIR "@executable_path/../lib/hoomd/python-module")
-    endif (NOT ENABLE_APP_BUNDLE_INSTALL)
 endif (NOT ENABLE_STATIC)
 
 if (ENABLE_STATIC)
     # change the library name to something more sensible
-    if (WIN32)
-        set_target_properties(libhoomd PROPERTIES OUTPUT_NAME "libhoomd")
-    else(WIN32)
-        set_target_properties(libhoomd PROPERTIES OUTPUT_NAME "hoomd")
-    endif(WIN32)
+    set_target_properties(libhoomd PROPERTIES OUTPUT_NAME "hoomd")
 endif (ENABLE_STATIC)
 
 # due to the way that app bundle installs work with relative linking, hoomd.so must be installed into the bin dir, ugh!
-if (ENABLE_APP_BUNDLE_INSTALL)
-set(_hoomd_so_install_dir ${BIN_INSTALL_DIR})
-else (ENABLE_APP_BUNDLE_INSTALL)
 set(_hoomd_so_install_dir ${HOOMD_PYTHON_MODULE_DIR})
-endif(ENABLE_APP_BUNDLE_INSTALL)
 
 # install the library
 install(TARGETS libhoomd

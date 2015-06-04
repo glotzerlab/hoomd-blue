@@ -54,11 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
     using namespace std;
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 

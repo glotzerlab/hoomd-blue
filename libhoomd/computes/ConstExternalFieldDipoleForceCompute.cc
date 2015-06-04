@@ -49,10 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: grva
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "QuaternionMath.h"
@@ -153,7 +149,3 @@ void export_ConstExternalFieldDipoleForceCompute()
     .def("setParams", &ConstExternalFieldDipoleForceCompute::setParams)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

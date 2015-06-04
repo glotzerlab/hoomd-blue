@@ -49,11 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 #include "util/mgpucontext.h"
 

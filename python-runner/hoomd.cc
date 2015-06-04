@@ -51,12 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // temporarily work around issues with the new boost fileystem libraries
 // http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
 #include "HOOMDVersion.h"
 #include "PathUtils.h"
 
@@ -202,6 +196,3 @@ int main(int argc, char **argv)
     Py_Finalize();
     return retval;
     }
-#ifdef WIN32
-#pragma warning( pop )
-#endif

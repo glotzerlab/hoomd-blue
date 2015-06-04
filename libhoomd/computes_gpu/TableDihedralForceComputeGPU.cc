@@ -74,7 +74,7 @@ TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(boost::shared_ptr<Sys
     : TableDihedralForceCompute(sysdef, table_width, log_suffix)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a BondTableForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing BondTableForceComputeGPU");
@@ -97,7 +97,7 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
     {
 
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "Dihedral Table");
+    if (m_prof) m_prof->push(m_exec_conf, "Dihedral Table");
 
     // access the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -136,14 +136,14 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
         }
 
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         {
         CHECK_CUDA_ERROR();
         }
 
     m_tuner->end();
 
-    if (m_prof) m_prof->pop(exec_conf);
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_TableDihedralForceComputeGPU()

@@ -48,12 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Maintainer: joaander
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4267 4244 )
-#endif
-
 #include "ParticleGroup.h"
 
 #ifdef ENABLE_CUDA
@@ -790,7 +784,3 @@ void export_ParticleGroup()
         ("ParticleSelectorCuboid", init< boost::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

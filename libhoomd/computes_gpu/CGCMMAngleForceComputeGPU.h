@@ -48,12 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Maintainer: dnlebard
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #include "CGCMMAngleForceCompute.h"
 #include "CGCMMAngleForceGPU.cuh"
 #include "Autotuner.h"
@@ -121,8 +115,4 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
 //! Export the CGCMMAngleForceComputeGPU class to python
 void export_CGCMMAngleForceComputeGPU();
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

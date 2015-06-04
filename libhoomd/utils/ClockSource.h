@@ -70,68 +70,9 @@ using boost::uint64_t;
 
 #include <iostream>
 
-// If this is being compiled on a windows platform, we need to define a surrogate
-// gettimeofday
-#ifdef WIN32
-#include <windows.h>
-#define EPOCHFILETIME (116444736000000000i64)
-
-//! Emulation class for timezone on windows
-/*! \ingroup utils
-*/
-struct timezone
-    {
-    int tz_minuteswest; //!< no docs
-    int tz_dsttime;     //!< no docs
-    };
-
-//! Emulation for gettimeofday in windows
-/*! \param tv timeval to return current time in
-    \param tz unused
-    \ingroup utils
-*/
-__inline int gettimeofday(struct timeval *tv, struct timezone *tz)
-    {
-    FILETIME        ft;
-    LARGE_INTEGER   li;
-    __int64         t;
-    static int      tzflag;
-
-    if (tv)
-        {
-        GetSystemTimeAsFileTime(&ft);
-        li.LowPart  = ft.dwLowDateTime;
-        li.HighPart = ft.dwHighDateTime;
-        t  = li.QuadPart;       /* In 100-nanosecond intervals */
-        t -= EPOCHFILETIME;     /* Offset to the Epoch time */
-        t /= 10;                /* In microseconds */
-        tv->tv_sec  = (long)(t / 1000000);
-        tv->tv_usec = (long)(t % 1000000);
-        }
-
-    // lets just ignore the whole timezone thing
-    /*if (tz)
-        {
-        if (!tzflag)
-            {
-            _tzset();
-            tzflag++;
-            }
-        tz->tz_minuteswest = _timezone / 60;
-        tz->tz_dsttime = _daylight;
-        }*/
-
-    return 0;
-    }
-
-#else
-// else, we are on a unix-ish platform and need to include a few files to get
-// gettimeofday
 #include <sys/time.h>
 #include <unistd.h>
 
-
-// unix-ish systems also need a Sleep function
 //! Sleep for for a time
 /*! \param msec Number of milliseconds to sleep for
     \ingroup utils
@@ -140,7 +81,6 @@ inline void Sleep(int msec)
     {
     usleep(msec*1000);
     }
-#endif
 
 //! Source of time measurements
 /*! Access the operating system's timer and reports a time since construction in nanoseconds.

@@ -111,7 +111,7 @@ class options:
 #
 # \internal
 # Parses all hoomd_script command line options into the module variable cmd_options
-def _parse_command_line():
+def _parse_command_line(arg_string=None):
     parser = OptionParser();
     parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)", default='auto');
     parser.add_option("--gpu", dest="gpu", help="GPU on which to execute");
@@ -129,7 +129,11 @@ def _parse_command_line():
     parser.add_option("--onelevel", dest="onelevel", action="store_true", default=False, help="(MPI only) Disable two-level (node-local) decomposition");
     parser.add_option("--user", dest="user", help="User options");
 
-    (cmd_options, args) = parser.parse_args();
+    input_args = None;
+    if arg_string is not None:
+        input_args = shlex.split(arg_string);
+
+    (cmd_options, args) = parser.parse_args(args=input_args);
 
     # chedk for valid mode setting
     if cmd_options.mode is not None:
@@ -230,89 +234,6 @@ def _parse_command_line():
     if cmd_options.user is not None:
         globals.options.user = shlex.split(cmd_options.user);
 
-## Set the execution mode
-#
-# \param mode Specifies the hardware on which to execute. Must be either "cpu", "gpu" or None.
-# \note When set to None, the mode is automatically chosen.
-# \note Overrides --mode on the command line.
-# \sa \ref page_command_line_options
-#
-def set_mode(mode):
-    if init.is_initialized():
-            globals.msg.error("Cannot change mode after initialization\n");
-            raise RuntimeError('Error setting option');
-
-    if mode is not None:
-        if not (mode == "cpu" or mode == "gpu"):
-            globals.msg.error("Invalid mode setting\n");
-            raise RuntimeError('Error setting option');
-
-    globals.options.mode = mode;
-
-## Set the gpu
-#
-# \param gpu Specifies the identifier of the GPU on which to execute. Must be an integer.
-# \note When set to None, the GPU is automatically chosen.
-# \note When not None, implies \a mode = "gpu"
-# \note Overrides --gpu on the command line.
-# \sa \ref page_command_line_options
-#
-def set_gpu(gpu):
-    if init.is_initialized():
-            globals.msg.error("Cannot change gpu after initialization\n");
-            raise RuntimeError('Error setting option');
-
-    if gpu is not None:
-        try:
-            gpu = int(gpu);
-        except ValueError:
-            globals.msg.error("gpu must be an integer\n");
-            raise RuntimeError('Error setting option');
-
-        # imply mode=gpu
-        globals.options.mode = "gpu";
-
-    globals.options.gpu = gpu;
-
-## Set the error checking flag
-#
-# \param gpu_error_checking Specifies whether error checks are made after every GPU call. (True or False)
-# \note Overrides --gpu_error_checking on the command line.
-# \sa \ref page_command_line_options
-#
-def set_gpu_error_checking(gpu_error_checking):
-    if init.is_initialized():
-            globals.msg.error("Cannot change error checking flag after initialization\n");
-            raise RuntimeError('Error setting option');
-
-    globals.options.gpu_error_checking = gpu_error_checking;
-
-## Set the minimize CPU usage flag
-#
-# \param min_cpu Specifies whether GPU synchronization blocks to minimize CPU usage. (True or False)
-# \note Overrides --minimize-cpu-usage on the command line.
-# \sa \ref page_command_line_options
-#
-def set_min_cpu(min_cpu):
-    if init.is_initialized():
-            globals.msg.error("Cannot change minimize cpu usage flag after initialization\n");
-            raise RuntimeError('Error setting option');
-
-    globals.options.min_cpu = min_cpu;
-
-## Set the ignore display GPU flag
-#
-# \param ignore_display Specifies whether the display GPU should be ignored. (True or False)
-# \note Overrides --ignore-display-gpu on the command line.
-# \sa \ref page_command_line_options
-#
-def set_ignore_display(ignore_display):
-    if init.is_initialized():
-            globals.msg.error("Cannot change ignore display GPU flag after initialization\n");
-            raise RuntimeError('Error setting option');
-
-    globals.options.ignore_display = ignore_display;
-
 ## Get user options
 #
 # \return List of user options passed in via --user="arg1 arg2 ..."
@@ -370,6 +291,31 @@ def set_autotuner_params(enable=True, period=100000):
     globals.options.autotuner_period = period;
     globals.options.autotuner_enable = enable;
 
+## Parse arguments
+# \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
+#
+# parse_args() parses the command line arguments given, sets the options and initializes MPI and GPU execution
+# (if any). By default, parse_args() reads arguments given on the command line. You can provide a string to parse_args()
+# to set the launch configuration within the job script.
+#
+# parse_args() should be called immediately after `from hoomd_script import *`.
+#
+# **Example:**
+# \code
+# from hoomd_script import *
+# option.parse_args();
+# option.parse_args("--mode=gpu --nrank=64");
+# \endcode
+#
+def parse_args(args=None):
+    if globals.exec_conf is not None:
+        globals.msg.error("Cannot change execution mode after initialization\n");
+        raise RuntimeError('Error setting option');
+
+    globals.options = options();
+    _parse_command_line(args);
+
+    init._create_exec_conf();
 
 ################### Parse command line on load
 globals.options = options();

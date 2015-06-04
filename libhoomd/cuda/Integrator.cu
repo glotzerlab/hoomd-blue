@@ -51,11 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Integrator.cuh"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file Integrator.cu
     \brief Defines methods and data structures used by the Integrator class on the GPU

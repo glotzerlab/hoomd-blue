@@ -53,11 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "QuaternionMath.h"
 #include "TwoStepNVTRigidGPU.cuh"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file TwoStepNVTRigidGPU.cu
     \brief Defines GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTRigidGPU.

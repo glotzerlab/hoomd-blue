@@ -51,11 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Enforce2DUpdaterGPU.cuh"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 #include <stdio.h>
 

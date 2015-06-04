@@ -64,10 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //             University of Illinois at Urbana-Champaign
 //            http://www.ks.uiuc.edu/
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "PDBDumpWriter.h"
 #include "BondedGroupData.h"
@@ -259,7 +256,3 @@ void export_PDBDumpWriter()
     .def("writeFile", &PDBDumpWriter::writeFile)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

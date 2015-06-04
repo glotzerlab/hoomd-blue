@@ -19,11 +19,5 @@ include_directories(${HOOMD_SOURCE_DIR}/libhoomd/utils
                     ${HOOMD_BINARY_DIR}/include)
 
 #######################
-## Configure the version info header file
-
-# handle linux/mac and windows dates differently
-if (NOT WIN32)
-    exec_program("date +%x" OUTPUT_VARIABLE COMPILE_DATE)
-else(NOT WIN32)
-    exec_program("cmd" ARGS "/c date /T" OUTPUT_VARIABLE COMPILE_DATE)
-endif (NOT WIN32)
+## Get the compile date
+exec_program("date +%x" OUTPUT_VARIABLE COMPILE_DATE)

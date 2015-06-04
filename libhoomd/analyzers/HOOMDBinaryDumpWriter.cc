@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the HOOMDBinaryDumpWriter class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "HOOMDBinaryDumpWriter.h"
 #include "BondedGroupData.h"
@@ -506,7 +503,3 @@ void export_HOOMDBinaryDumpWriter()
     .def("enableCompression", &HOOMDBinaryDumpWriter::enableCompression)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

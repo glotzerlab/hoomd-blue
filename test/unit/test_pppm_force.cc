@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 
 
@@ -284,8 +280,4 @@ BOOST_AUTO_TEST_CASE( PPPMForceComputeGPU_triclinic )
     pppm_force_particle_test_triclinic(pppm_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

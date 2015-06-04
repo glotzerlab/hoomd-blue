@@ -49,10 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "QuaternionMath.h"
 #include "TwoStepNVERigid.h"
@@ -863,7 +859,3 @@ void export_TwoStepNVERigid()
     .def("setPartialScale", &TwoStepNVERigid::setPartialScale)
     ;
 }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

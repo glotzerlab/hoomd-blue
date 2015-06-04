@@ -52,11 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMAngleForceGPU.cuh"
 #include "TextureTools.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 // small number. cutoff for igoring the angle as being ill defined.
 #define SMALL Scalar(0.001)

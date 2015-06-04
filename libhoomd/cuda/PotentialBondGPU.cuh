@@ -56,11 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BondedGroupData.cuh"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file PotentialBondGPU.cuh
     \brief Defines templated GPU kernel code for calculating the bond forces.

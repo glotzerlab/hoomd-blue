@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines CGCMMAngleForceComputeGPU
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "CGCMMAngleForceComputeGPU.h"
 
@@ -74,7 +71,7 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
         : CGCMMAngleForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a CGCMMAngleForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing CGCMMAngleForceComputeGPU");
@@ -149,7 +146,7 @@ void CGCMMAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_
 void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     {
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "CGCMM Angle");
+    if (m_prof) m_prof->push(m_exec_conf, "CGCMM Angle");
 
     // the angle table is up to date: we are good to go. Call the kernel
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -188,11 +185,11 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
                                    m_tuner->getParam(),
                                    m_exec_conf->getComputeCapability());
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
 
-    if (m_prof) m_prof->pop(exec_conf);
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_CGCMMAngleForceComputeGPU()

@@ -54,6 +54,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <string>
 
+#ifdef ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif
+
 using namespace std;
 
 /*! \file HOOMDVersion.cc
@@ -69,7 +73,10 @@ string output_version_info()
     o << "HOOMD-blue " << HOOMD_VERSION_LONG;
 
     #ifdef ENABLE_CUDA
-    o << " CUDA";
+    int cudart_major = CUDART_VERSION / 1000;
+    int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
+
+    o << " CUDA (" << cudart_major << "." << cudart_minor << ")";
     #endif
 
     #ifdef SINGLE_PRECISION
@@ -118,7 +125,7 @@ string output_version_info()
 
     // output the compiled date and copyright information
     o << "Compiled: " << COMPILE_DATE << endl;
-    o << "Copyright 2009-2014 The Regents of the University of Michigan." << endl << endl;
+    o << "Copyright 2009-2015 The Regents of the University of Michigan." << endl << endl;
 
     // output the paper citation information
     o << "All publications and presentations based on HOOMD-blue, including any reports" << endl;

@@ -93,7 +93,7 @@ TableDihedralForceCompute::TableDihedralForceCompute(boost::shared_ptr<SystemDef
 
 
     // allocate storage for the tables and parameters
-    GPUArray<Scalar2> tables(m_table_width, m_dihedral_data->getNTypes(), exec_conf);
+    GPUArray<Scalar2> tables(m_table_width, m_dihedral_data->getNTypes(), m_exec_conf);
     m_tables.swap(tables);
     assert(!m_tables.isNull());
 

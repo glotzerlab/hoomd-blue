@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 
 //! label the boost test module
@@ -246,7 +242,3 @@ BOOST_AUTO_TEST_CASE( ParticleDataGridShiftSetMethods )
     BOOST_CHECK_EQUAL(ret_img1.y-new_img1.y, 0);
     BOOST_CHECK_EQUAL(ret_img1.z-new_img1.z, 0);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

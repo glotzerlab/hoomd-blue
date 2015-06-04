@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -288,7 +284,3 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test3)
     BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
     BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "TwoStepNVTRigidGPU.h"
 #include "TwoStepNVTRigidGPU.cuh"
@@ -84,7 +81,7 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
     : TwoStepNVTRigid(sysdef, group, thermo, T, tau, suffix, skip_restart)
     {
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a TwoStepNVTRigidGPU with no GPUs in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepNVTRigidGPU");
@@ -126,7 +123,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT rigid step 1");
+        m_prof->push(m_exec_conf, "NVT rigid step 1");
 
     // access all the needed data
     BoxDim box = m_pdata->getBox();
@@ -203,12 +200,12 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
                            d_nvt_rdata,
                            m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -223,7 +220,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     // phase 1, reduce to find the final Ksum_t and Ksum_r
     {
     if (m_prof)
-        m_prof->push(exec_conf, "NVT reducing");
+        m_prof->push(m_exec_conf, "NVT reducing");
 
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
@@ -238,11 +235,11 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_nvt_rdata.Ksum_r = Ksum_r_handle.data;
 
     gpu_nvt_rigid_reduce_ksum(d_nvt_rdata);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
     // phase 1.5, move the thermostat variables forward
@@ -257,7 +254,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT rigid step 2");
+        m_prof->push(m_exec_conf, "NVT rigid step 2");
 
     BoxDim box = m_pdata->getBox();
     const GPUArray<Scalar4>& net_force = m_pdata->getNetForce();
@@ -344,12 +341,12 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                            d_nvt_rdata,
                            m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_TwoStepNVTRigidGPU()
@@ -363,7 +360,3 @@ void export_TwoStepNVTRigidGPU()
         const std::string& >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

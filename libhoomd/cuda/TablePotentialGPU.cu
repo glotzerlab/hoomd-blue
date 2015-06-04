@@ -54,11 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Index1D.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file TablePotentialGPU.cu
     \brief Defines GPU kernel code for calculating the table pair forces. Used by TablePotentialGPU.

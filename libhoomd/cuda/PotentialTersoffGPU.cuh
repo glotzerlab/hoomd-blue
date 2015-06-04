@@ -52,11 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "Index1D.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file PotentialTersoffGPU.cuh
     \brief Defines templated GPU kernel code for calculating certain three-body forces

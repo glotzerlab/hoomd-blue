@@ -52,12 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file SystemDefinition.cc
     \brief Defines SystemDefinition
 */
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 4267)
-#endif
-
 #include "SystemDefinition.h"
 
 #include "SnapshotSystemData.h"
@@ -385,7 +379,3 @@ void export_SystemDefinition()
     .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot<double>)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

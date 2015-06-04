@@ -523,7 +523,7 @@ def type(type, name=None, update=False):
 # Particle groups can be combined in various ways to build up more complicated matches. See group for information and
 # examples.
 #
-# \npte This group currently does not support being updated when the number of particles changes.
+# \note This group currently does not support being updated when the number of particles changes.
 #
 # \b Examples:
 # \code

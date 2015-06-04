@@ -52,10 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the ZeroMomentumUpdater class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "ZeroMomentumUpdater.h"
 
@@ -189,7 +185,3 @@ void export_ZeroMomentumUpdater()
     ("ZeroMomentumUpdater", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

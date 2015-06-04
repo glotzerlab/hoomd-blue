@@ -52,12 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file HOOMDBinaryInitializer.cc
     \brief Defines the HOOMDBinaryInitializer class
 */
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 4267 )
-#endif
-
 #include "HOOMDBinaryInitializer.h"
 #include "SnapshotSystemData.h"
 
@@ -617,7 +611,3 @@ void export_HOOMDBinaryInitializer()
         .def("setTimeStep", &HOOMDBinaryInitializer::setTimeStep)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

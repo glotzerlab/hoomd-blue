@@ -53,11 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TextureTools.h"
 
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file BondTablePotentialGPU.cu
     \brief Defines GPU kernel code for calculating the table bond forces. Used by BondTablePotentialGPU.

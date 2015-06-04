@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the IMDInterface class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "IMDInterface.h"
 #include "SignalHandler.h"
@@ -537,7 +533,3 @@ void export_IMDInterface()
         ("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int, bool, unsigned int, boost::shared_ptr<ConstForceCompute> >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

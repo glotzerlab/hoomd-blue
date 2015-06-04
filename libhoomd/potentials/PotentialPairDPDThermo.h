@@ -55,10 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPair.h"
 #include "Variant.h"
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 /*! \file PotentialPairDPDThermo.h
     \brief Defines the template class for a dpd thermostat and LJ pair potential
@@ -356,8 +352,5 @@ template < class T, class Base > void export_PotentialPairDPDThermo(const std::s
                   ;
     }
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 
 #endif // __POTENTIAL_PAIR_DPDTHERMO_H__

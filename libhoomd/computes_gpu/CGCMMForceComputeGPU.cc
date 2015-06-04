@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the CGCMMForceComputeGPU class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "CGCMMForceComputeGPU.h"
 #include "cuda_runtime.h"
@@ -86,7 +82,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
     : CGCMMForceCompute(sysdef, nlist, r_cut), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a CGCMMForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing CGCMMForceComputeGPU");
@@ -180,7 +176,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     m_nlist->compute(timestep);
 
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "CGCMM pair");
+    if (m_prof) m_prof->push(m_exec_conf, "CGCMM pair");
 
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
@@ -218,7 +214,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
                              m_pdata->getNTypes(),
                              m_r_cut * m_r_cut,
                              m_block_size);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     Scalar avg_neigh = m_nlist->estimateNNeigh();
@@ -235,7 +231,3 @@ void export_CGCMMForceComputeGPU()
     .def("setBlockSize", &CGCMMForceComputeGPU::setBlockSize)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

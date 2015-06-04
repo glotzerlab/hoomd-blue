@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the TempRescaleUpdater class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "TempRescaleUpdater.h"
 
@@ -178,7 +174,3 @@ void export_TempRescaleUpdater()
     .def("setT", &TempRescaleUpdater::setT)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

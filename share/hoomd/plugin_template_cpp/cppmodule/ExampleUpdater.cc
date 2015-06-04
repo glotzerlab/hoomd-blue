@@ -81,11 +81,11 @@ ExampleUpdater::ExampleUpdater(boost::shared_ptr<SystemDefinition> sysdef)
 void ExampleUpdater::update(unsigned int timestep)
     {
     if (m_prof) m_prof->push("ExampleUpdater");
-    
+
     // access the particle data for writing on the CPU
     assert(m_pdata);
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    
+
     // zero the velocity of every particle
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
@@ -93,7 +93,7 @@ void ExampleUpdater::update(unsigned int timestep)
         h_vel.data[i].y = Scalar(0.0);
         h_vel.data[i].z = Scalar(0.0);
         }
-    
+
     if (m_prof) m_prof->pop();
     }
 
@@ -123,17 +123,17 @@ ExampleUpdaterGPU::ExampleUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef)
 void ExampleUpdaterGPU::update(unsigned int timestep)
     {
     if (m_prof) m_prof->push("ExampleUpdater");
-    
+
     // access the particle data arrays for writing on the GPU
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    
+
     // call the kernel devined in ExampleUpdater.cu
     gpu_zero_velocities(d_vel.data, m_pdata->getN());
-    
+
     // check for error codes from the GPU if error checking is enabled
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    
+
     if (m_prof) m_prof->pop();
     }
 

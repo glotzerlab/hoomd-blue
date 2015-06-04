@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines code needed for common math operations
  */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "HOOMDMath.h"
 
@@ -164,7 +160,3 @@ void export_hoomd_math_functions()
     def("make_char3", &make_char3);
     def("int_as_scalar", &__int_as_scalar);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

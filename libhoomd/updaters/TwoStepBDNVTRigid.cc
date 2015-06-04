@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "QuaternionMath.h"
 #include "TwoStepBDNVTRigid.h"
@@ -274,7 +271,3 @@ void export_TwoStepBDNVTRigid()
         .def("setGamma", &TwoStepBDNVTRigid::setGamma)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

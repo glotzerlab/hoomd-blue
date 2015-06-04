@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "CGCMMAngleForceCompute.h"
 
@@ -429,7 +426,3 @@ void export_CGCMMAngleForceCompute()
     .def("setParams", &CGCMMAngleForceCompute::setParams)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

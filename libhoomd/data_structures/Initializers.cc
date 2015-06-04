@@ -48,10 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "Initializers.h"
 #include "WallData.h"
@@ -323,7 +320,3 @@ void export_RandomInitializerWithWalls()
     ;
     // no need to .def methods, they are all inherited
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

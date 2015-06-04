@@ -212,4 +212,3 @@ cudaError_t gpu_berendsen_step_two(Scalar4 *d_vel,
 
     return cudaSuccess;
     }
-

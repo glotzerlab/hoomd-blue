@@ -48,12 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Maintainer: joaander
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #include "Compute.h"
 #include "Index1D.h"
 
@@ -224,8 +218,4 @@ class ForceCompute : public Compute
 //! Exports the ForceCompute class to python
 void export_ForceCompute();
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

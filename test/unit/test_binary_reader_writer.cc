@@ -46,13 +46,6 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
 #include <math.h>
 #include "HOOMDBinaryDumpWriter.h"
 #include "HOOMDBinaryInitializer.h"
@@ -274,7 +267,3 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
 
     remove_all(ph);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

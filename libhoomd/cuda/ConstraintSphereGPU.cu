@@ -53,11 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorConstraint.h"
 #include "EvaluatorConstraintSphere.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file ConstraintSphereGPU.cu
     \brief Defines GPU kernel code for calculating sphere constraint forces. Used by ConstraintSphereGPU.

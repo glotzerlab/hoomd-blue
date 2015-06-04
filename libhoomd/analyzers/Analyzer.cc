@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the base class Analyzer
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "Analyzer.h"
 
@@ -114,7 +111,3 @@ void export_Analyzer()
         .def("setProfiler", &Analyzer::setProfiler)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

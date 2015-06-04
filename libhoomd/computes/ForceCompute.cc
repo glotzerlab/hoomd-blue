@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the ForceCompute class
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "ForceCompute.h"
 
@@ -181,7 +178,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
     computeForces(0);
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         {
         cudaThreadSynchronize();
         CHECK_CUDA_ERROR();
@@ -194,7 +191,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
         computeForces(0);
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
@@ -323,7 +320,3 @@ void export_ForceCompute()
     .def("getEnergy", &ForceCompute::getEnergy)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

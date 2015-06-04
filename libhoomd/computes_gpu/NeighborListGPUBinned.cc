@@ -120,7 +120,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
 
     // When running on compute 1.x, textures are allocated with the height equal to the number of cells
     // limit the number of cells to the maximum texture dimension
-    if (exec_conf->getComputeCapability() < 200)
+    if(m_exec_conf->getComputeCapability() < 200)
         {
         m_cl->setMaxCells(exec_conf->dev_prop.maxTexture2D[1]);
         }
@@ -187,7 +187,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     m_cl->compute(timestep);
 
     if (m_prof)
-        m_prof->push(exec_conf, "compute");
+        m_prof->push(m_exec_conf, "compute");
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -222,7 +222,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         throw runtime_error("Error updating neighborlist bins");
         }
 
-    if (exec_conf->getComputeCapability() >= 200)
+    if(m_exec_conf->getComputeCapability() >= 200)
         {
         // we should not call the tuner with MPI sync enabled
         // if the kernel is launched more than once in the same timestep,
@@ -258,7 +258,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_filter_diameter,
                                  m_cl->getGhostWidth(),
                                  m_exec_conf->getComputeCapability()/10);
-        if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         if (tune) this->m_tuner->end();
 
         m_last_tuned_timestep = timestep;
@@ -280,14 +280,14 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
             }
 
         // update the values in those arrays
-        if (m_prof) m_prof->push(exec_conf, "copy");
+        if (m_prof) m_prof->push(m_exec_conf, "copy");
         cudaMemcpyToArray(dca_cell_xyzf, 0, 0, d_cell_xyzf.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
         if (m_filter_body || m_filter_diameter)
             cudaMemcpyToArray(dca_cell_tdb, 0, 0, d_cell_tdb.data, sizeof(Scalar4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
 
-        if (m_prof) m_prof->pop(exec_conf);
+        if (m_prof) m_prof->pop(m_exec_conf);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
         gpu_compute_nlist_binned_1x(d_nlist.data,
@@ -311,11 +311,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                     m_filter_diameter,
                                     m_cl->getGhostWidth());
 
-        if (exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 bool NeighborListGPUBinned::needReallocateCudaArrays()

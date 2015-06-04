@@ -48,12 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Maintainer: dnlebard
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #include "HarmonicDihedralForceCompute.h"
 #include "HarmonicDihedralForceGPU.cuh"
 #include "Autotuner.h"
@@ -113,8 +107,4 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
 //! Export the DihedralForceComputeGPU class to python
 void export_HarmonicDihedralForceComputeGPU();
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

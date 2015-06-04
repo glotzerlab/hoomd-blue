@@ -51,11 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TwoStepNPTMTKGPU.cuh"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 /*! \file TwoStepNPTMTKGPU.cu
     \brief Defines GPU kernel code for NPT integration on the GPU using the Martyna-Tobias-Klein update equations. Used by TwoStepNPTMTKGPU.

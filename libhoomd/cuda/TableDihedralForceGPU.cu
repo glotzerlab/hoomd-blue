@@ -54,11 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "VectorMath.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 // SMALL a relatively small number
 #define SMALL 0.001f

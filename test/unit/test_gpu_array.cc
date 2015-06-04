@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -456,8 +452,4 @@ BOOST_AUTO_TEST_CASE( GPUVector_basic_tests )
     BOOST_CHECK_EQUAL(vec[8], (unsigned int)987);
     BOOST_CHECK_EQUAL(vec[9], (unsigned int)890);
     }
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

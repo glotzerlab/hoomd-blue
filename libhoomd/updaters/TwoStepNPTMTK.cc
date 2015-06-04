@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: jglaser
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "TwoStepNPTMTK.h"
 
@@ -688,7 +685,7 @@ void TwoStepNPTMTK::advanceBarostat(Scalar& nuxx, Scalar &nuxy, Scalar &nuxz, Sc
     Scalar W = m_ndof*m_T->getValue(timestep)*m_tauP*m_tauP;
     Scalar mtk_term = Scalar(1.0/2.0)*m_deltaT*m_curr_group_T/W;
 
-    couplingMode couple = m_couple; 
+    couplingMode couple = m_couple;
     // disable irrelevant couplings
     if (! (m_flags & baro_x))
         {
@@ -807,7 +804,3 @@ void export_TwoStepNPTMTK()
     .value("baro_yz", TwoStepNPTMTK::baro_yz)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

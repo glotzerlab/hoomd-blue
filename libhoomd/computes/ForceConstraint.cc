@@ -49,10 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include "ForceConstraint.h"
 
@@ -86,7 +82,3 @@ void export_ForceConstraint()
     ("ForceConstraint", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

@@ -48,12 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // Maintainer: joaander
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 4267)
-#endif
-
 #include "RandomGenerator.h"
 
 #include <cassert>
@@ -711,7 +705,3 @@ void export_RandomGenerator()
     // all methods are internal C++ methods
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

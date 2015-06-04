@@ -52,12 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file HOOMDInitializer.cc
     \brief Defines the HOOMDInitializer class
 */
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 4267 )
-#endif
-
 #include "HOOMDInitializer.h"
 #include "SnapshotSystemData.h"
 #include "ExecutionConfiguration.h"
@@ -1182,7 +1176,3 @@ void export_HOOMDInitializer()
     .def("getSnapshot", &HOOMDInitializer::getSnapshot)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

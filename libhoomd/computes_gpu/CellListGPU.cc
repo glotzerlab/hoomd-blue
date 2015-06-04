@@ -65,7 +65,7 @@ using namespace boost::python;
 CellListGPU::CellListGPU(boost::shared_ptr<SystemDefinition> sysdef)
     : CellList(sysdef)
     {
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a CellListGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing CellListGPU");
@@ -85,7 +85,7 @@ CellListGPU::CellListGPU(boost::shared_ptr<SystemDefinition> sysdef)
 void CellListGPU::computeCellList()
     {
     if (m_prof)
-        m_prof->push(exec_conf, "compute");
+        m_prof->push(m_exec_conf, "compute");
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -105,7 +105,7 @@ void CellListGPU::computeCellList()
 
 
     // take optimized code paths for different GPU generations
-    if (exec_conf->getComputeCapability() >= 200)
+    if(m_exec_conf->getComputeCapability() >= 200)
         {
         // autotune block sizes
         m_tuner->begin();
@@ -130,7 +130,7 @@ void CellListGPU::computeCellList()
                               m_cell_list_indexer,
                               getGhostWidth(),
                               m_tuner->getParam());
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner->end();
         }
@@ -158,7 +158,7 @@ void CellListGPU::computeCellList()
                                  getGhostWidth());
         }
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_sort_cell_list)
@@ -185,12 +185,12 @@ void CellListGPU::computeCellList()
                            m_cell_list_indexer,
                            m_mgpu_context);
 
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_CellListGPU()

@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: dnlebard
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "HarmonicAngleForceCompute.h"
 
@@ -332,7 +329,3 @@ void export_HarmonicAngleForceCompute()
     .def("setParams", &HarmonicAngleForceCompute::setParams)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

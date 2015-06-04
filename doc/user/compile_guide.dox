@@ -111,7 +111,6 @@ the newly selected options.
 - **ENABLE_CUDA** - Enable compiling of the GPU accelerated computations using CUDA. Defaults *on* if the CUDA toolkit
     is found. Defaults *off* if the CUDA toolkit is not found.
 - **ENABLE_DOXYGEN** - enables the generation of detailed user and developer documentation (Defaults *off*)
-- **ENABLE_OCELOT** - compiles hoomd against ocelot instead of the CUDA runtime
 - **ENABLE_VALGRIND** - Runs every unit test through valgrind.
 - **ENABLE_ZLIB** - Links hoomd to libz (must be available) and enables direct writing of zlib compressed files from dump.bin
 - **SINGLE_PRECISION** - Controls precision

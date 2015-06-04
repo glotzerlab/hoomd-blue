@@ -51,10 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "HOOMDVersion.h"
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -580,14 +576,9 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
                 throw runtime_error("Error initializing execution configuration");
                 }
 
-            // calculate a simple priority: multiprocessors * clock = speed, then subtract a bit if the device is
-            // attached to a display
-            float priority = float(prop.clockRate * prop.multiProcessorCount) / float(1e7);
-            // if the GPU is compute 2.x, multiply that by 4 as there are 4x more SPs in each MP
-            if (prop.major == 2)
-                priority *= 4.0f;
-            if (prop.major == 3)
-                priority *= 24.0f;
+            // calculate a simple priority: prefer the newest GPUs first, then those with more multiprocessors,
+            // then subtract a bit if the device is attached to a display
+            float priority = float(prop.major*1000000 + prop.minor*10000 + prop.multiProcessorCount);
 
             if (prop.kernelExecTimeoutEnabled)
                 priority -= 0.1f;
