@@ -256,6 +256,8 @@ Table of contents:
 
 \section sec_index_benchmark Benchmark
  - \link hoomd_script.benchmark.series() benchmark.series\endlink - <i>Perform a series of short runs to benchmark overall simulation performance</i>
+ - \link hoomd_script.cuda_profile_start() cuda_profile_start\endlink - <i>Start nvvp profiling</i>
+ - \link hoomd_script.cuda_profile_stop() cuda_profile_stop\endlink - <i>Stop nvvp profiling</i>
 
 \section sec_index_communicate Communication helpers
  - \link hoomd_script.comm.get_num_ranks() comm.get_num_ranks\endlink - <i>Get the total number of ranks in a a parallel execution</i>
