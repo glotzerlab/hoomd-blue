@@ -91,5 +91,3 @@ if (BUILD_TESTING)
     add_dependencies(check test_all)
     add_subdirectory (test)
 endif (BUILD_TESTING)
-
-add_subdirectory (packaging)
