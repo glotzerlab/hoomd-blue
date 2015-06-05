@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the DCDDumpWriter class and related helper functions
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "DCDDumpWriter.h"
 #include "time.h"
@@ -183,7 +180,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         m_prof->push("Dump DCD");
 
     // take particle data snapshot
-    SnapshotParticleData snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
 
     m_pdata->takeSnapshot(snapshot);
 
@@ -359,7 +356,7 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     \param snapshot Snapshot to write
     Writes the actual particle positions for all particles at the current time step
 */
-void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleData& snapshot)
+void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleData<Scalar>& snapshot)
     {
     // we need to unsort the positions and write in tag order
     assert(m_staging_buffer);
@@ -378,7 +375,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
     unsigned int nparticles = m_group->getNumMembersGlobal();
 
     // Create a tmp copy of the particle data and unwrap particles
-    std::vector<Scalar3> tmp_pos(snapshot.pos);
+    std::vector< vec3<Scalar> > tmp_pos(snapshot.pos);
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
@@ -435,11 +432,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         // this only works in 2D simulations, obviously
         if (m_angle)
             {
-            Scalar s = 1;
-            if (snapshot.orientation[i].w < 0)
-                s = -1;
-
-            m_staging_buffer[group_idx] = acosf(snapshot.orientation[i].x) * 2 * s;
+            m_staging_buffer[group_idx] = float(atan2(snapshot.orientation[i].v.z, snapshot.orientation[i].s) * 2);
             }
         }
 
@@ -480,7 +473,3 @@ void export_DCDDumpWriter()
     .def("setAngleZ", &DCDDumpWriter::setAngleZ)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

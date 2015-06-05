@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,10 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines HarmonicImproperForceComputeGPU
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "HarmonicImproperForceComputeGPU.h"
 
@@ -74,14 +71,14 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
         : HarmonicImproperForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a ImproperForceComputeGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing ImproperForceComputeGPU");
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar2> params(m_improper_data->getNTypes(), exec_conf);
+    GPUArray<Scalar2> params(m_improper_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_improper", this->m_exec_conf));
     }
@@ -116,7 +113,7 @@ void HarmonicImproperForceComputeGPU::setParams(unsigned int type, Scalar K, Sca
 void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
     {
     // start the profile
-    if (m_prof) m_prof->push(exec_conf, "Harmonic Improper");
+    if (m_prof) m_prof->push(m_exec_conf, "Harmonic Improper");
 
     ArrayHandle<ImproperData::members_t> d_gpu_dihedral_list(m_improper_data->getGPUTable(), access_location::device,access_mode::read);
     ArrayHandle<unsigned int> d_n_dihedrals(m_improper_data->getNGroupsArray(), access_location::device, access_mode::read);
@@ -146,11 +143,11 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
                                          m_improper_data->getNTypes(),
                                          m_tuner->getParam(),
                                          m_exec_conf->getComputeCapability());
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
 
-    if (m_prof) m_prof->pop(exec_conf);
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void export_HarmonicImproperForceComputeGPU()

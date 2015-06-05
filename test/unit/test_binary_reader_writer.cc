@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -46,13 +46,6 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
 #include <math.h>
 #include "HOOMDBinaryDumpWriter.h"
 #include "HOOMDBinaryInitializer.h"
@@ -178,7 +171,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_REQUIRE(exists(tmp_path+"/test.0000000000.bin"));
 
     HOOMDBinaryInitializer init(exec_conf, tmp_path+"/test.0000000000.bin");
-    boost::shared_ptr<SnapshotSystemData> snapshot;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
     snapshot = init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snapshot, exec_conf));
     boost::shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
@@ -253,7 +246,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_REQUIRE(exists(tmp_path+"/test.0000000010.bin"));
 
     HOOMDBinaryInitializer init3(exec_conf,tmp_path+"/test.0000000010.bin");
-    boost::shared_ptr<SnapshotSystemData> snapshot2;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot2;
     snapshot2 = init3.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(snapshot2, exec_conf));
     boost::shared_ptr<ParticleData> pdata3 = sysdef3->getParticleData();
@@ -274,7 +267,3 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
 
     remove_all(ph);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

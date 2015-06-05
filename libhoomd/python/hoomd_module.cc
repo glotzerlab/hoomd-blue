@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -51,12 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // temporarily work around issues with the new boost fileystem libraries
 // http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 4267 )
-#endif
-
 #include "HOOMDMath.h"
 #include "ExecutionConfiguration.h"
 #include "ClockSource.h"
@@ -192,6 +186,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDVersion.h"
 #include "PathUtils.h"
 
+#include "num_util.h"
+
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -199,6 +195,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::filesystem;
 using namespace boost::python;
+namespace bnp=boost::python::numeric;
 
 #include <iostream>
 #include <sstream>
@@ -208,6 +205,31 @@ using namespace std;
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
+
+/* numpy is terrible (see /opt/local/Library/Frameworks/Python.framework/Versions/2.7/
+lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
+The following #defines help get around this
+*/
+
+#if PY_VERSION_HEX >= 0x03000000
+#define MY_PY_VER_3x
+#else
+#define MY_PY_VER_2x
+#endif
+
+#ifdef MY_PY_VER_3x
+void *my_import_array()
+    {
+    import_array();
+    return NULL;
+    }
+#endif
+#ifdef MY_PY_VER_2x
+void my_import_array()
+    {
+    import_array();
+    }
+#endif
 
 //! Function to export the tersoff parameter type to python
 void export_tersoff_params()
@@ -233,54 +255,6 @@ void export_tersoff_params()
 */
 string find_vmd()
     {
-#ifdef WIN32
-
-    // find VMD through the registry
-    vector<string> reg_paths;
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9.1");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9.0");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.9");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.7");
-    reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.6");
-
-    vector<string>::iterator cur_path;
-    for (cur_path = reg_paths.begin(); cur_path != reg_paths.end(); ++cur_path)
-        {
-        string reg_path = *cur_path;
-
-        char *value = new char[1024];
-        DWORD value_size = 1024;
-        HKEY vmd_root_key;
-        LONG err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ | KEY_WOW64_32KEY, &vmd_root_key);
-        if (err_code == ERROR_SUCCESS)
-            {
-            err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
-            // see if it installed where the reg key says so
-            if (err_code == ERROR_SUCCESS)
-                {
-                path install_dir = path(string(value));
-                if (exists(install_dir / "vmd.exe"))
-                    return (install_dir / "vmd.exe").string();
-                }
-            }
-
-        err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
-        if (err_code == ERROR_SUCCESS)
-            {
-            err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
-            // see if it installed where the reg key says so
-            if (err_code == ERROR_SUCCESS)
-                {
-                path install_dir = path(string(value));
-                if (exists(install_dir / "vmd.exe"))
-                    return (install_dir / "vmd.exe").string();
-                }
-            }
-
-        delete[] value;
-        }
-
-#else
     // check some likely locations
     if (exists("/usr/bin/vmd"))
         return "/usr/bin/vmd";
@@ -294,7 +268,6 @@ string find_vmd()
         return("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
     if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD")))
         return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-#endif
 
     // return an empty string if we didn't find it
     return "";
@@ -431,7 +404,7 @@ void finalize_mpi()
 void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     #ifdef ENABLE_MPI
-    if (exec_conf->getNRanksGlobal() > 1)
+    if(exec_conf->getNRanksGlobal() > 1)
         {
         MPI_Abort(exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
         }
@@ -452,10 +425,13 @@ BOOST_PYTHON_MODULE(hoomd)
     Py_AtExit(finalize_mpi);
     #endif
 
+    // setup needed for numpy
+    my_import_array();
+    bnp::array::set_module_and_type("numpy", "ndarray");
+
     def("abort_mpi", abort_mpi);
 
-    // write out the version information on the module import
-    output_version_info(false);
+    def("output_version_info", &output_version_info);
     def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
 
@@ -657,8 +633,4 @@ BOOST_PYTHON_MODULE(hoomd)
     // messenger
     export_Messenger();
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 

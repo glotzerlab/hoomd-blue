@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <math.h>
 #include "HOOMDDumpWriter.h"
@@ -1116,7 +1112,7 @@ im_b 5 4 3 2\n\
     // now that we have created a test file, load it up into a pdata
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     HOOMDInitializer init(exec_conf,tmp_path+"/test_input.xml");
-    boost::shared_ptr<SnapshotSystemData> snapshot;
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
     snapshot = init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
     boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -1336,7 +1332,3 @@ im_b 5 4 3 2\n\
     // clean up after ourselves
     remove_all(ph);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

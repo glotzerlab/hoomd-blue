@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ndtrung
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "TwoStepNPHRigidGPU.h"
 #include "TwoStepNPHRigidGPU.cuh"
@@ -86,7 +83,7 @@ TwoStepNPHRigidGPU::TwoStepNPHRigidGPU(boost::shared_ptr<SystemDefinition> sysde
     : TwoStepNPHRigid(sysdef, group, thermo_group, thermo_all, tauP, P, skip_restart)
     {
     // only one GPU is supported
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a TwoStepNPHRigidGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepNPHRigidGPU");
@@ -147,7 +144,7 @@ void TwoStepNPHRigidGPU::integrateStepOne(unsigned int timestep)
         return;
 
     if (m_prof)
-        m_prof->push(exec_conf, "NPH rigid step 1");
+        m_prof->push(m_exec_conf, "NPH rigid step 1");
 
     Scalar tmp, scale;
     Scalar dt_half;
@@ -245,7 +242,7 @@ void TwoStepNPHRigidGPU::integrateStepOne(unsigned int timestep)
                            d_nph_rdata,
                            m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     }
@@ -262,7 +259,7 @@ void TwoStepNPHRigidGPU::integrateStepOne(unsigned int timestep)
     // update thermostats
     {
     if (m_prof)
-        m_prof->push(exec_conf, "NPT kinetic energy reduction");
+        m_prof->push(m_exec_conf, "NPT kinetic energy reduction");
 
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
@@ -277,16 +274,16 @@ void TwoStepNPHRigidGPU::integrateStepOne(unsigned int timestep)
     d_nph_rdata.Ksum_r = Ksum_r_handle.data;
 
     gpu_nph_rigid_reduce_ksum(d_nph_rdata);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -306,7 +303,7 @@ void TwoStepNPHRigidGPU::integrateStepTwo(unsigned int timestep)
     {
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NPT rigid step 2");
+        m_prof->push(m_exec_conf, "NPT rigid step 2");
 
     BoxDim box = m_pdata->getBox();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -382,7 +379,7 @@ void TwoStepNPHRigidGPU::integrateStepTwo(unsigned int timestep)
                     box,
                     m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     // perform the update on the GPU
@@ -395,7 +392,7 @@ void TwoStepNPHRigidGPU::integrateStepTwo(unsigned int timestep)
                            d_nph_rdata,
                            m_deltaT);
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     }
@@ -403,7 +400,7 @@ void TwoStepNPHRigidGPU::integrateStepTwo(unsigned int timestep)
     // calculate current temperature and pressure
     {
     if (m_prof)
-        m_prof->push(exec_conf, "NPT kinetic energy reduction");
+        m_prof->push(m_exec_conf, "NPT kinetic energy reduction");
 
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
@@ -418,11 +415,11 @@ void TwoStepNPHRigidGPU::integrateStepTwo(unsigned int timestep)
     d_nph_rdata.Ksum_r = Ksum_r_handle.data;
 
     gpu_nph_rigid_reduce_ksum(d_nph_rdata);
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
     {
@@ -464,7 +461,7 @@ void TwoStepNPHRigidGPU::integrateStepTwo(unsigned int timestep)
 
     // done profiling
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_TwoStepNPHRigidGPU()
@@ -478,7 +475,3 @@ void export_TwoStepNPHRigidGPU()
         boost::shared_ptr<Variant> >())
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

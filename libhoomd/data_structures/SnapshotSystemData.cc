@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -58,7 +58,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::python;
 
-void SnapshotSystemData::replicate(unsigned int nx, unsigned int ny, unsigned int nz)
+template <class Real>
+void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsigned int nz)
     {
     assert(nx > 0);
     assert(ny > 0);
@@ -92,28 +93,39 @@ void SnapshotSystemData::replicate(unsigned int nx, unsigned int ny, unsigned in
         rigid_data.replicate(n);
     }
 
+// instantiate both float and double snapshots
+template class SnapshotSystemData<float>;
+template class SnapshotSystemData<double>;
+
 void export_SnapshotSystemData()
     {
-    class_<SnapshotSystemData, boost::shared_ptr<SnapshotSystemData> >("SnapshotSystemData")
+    class_<SnapshotSystemData<float>, boost::shared_ptr< SnapshotSystemData<float> > >("SnapshotSystemData_float")
     .def(init<>())
-    .def_readwrite("dimensions", &SnapshotSystemData::dimensions)
-    .def_readwrite("global_box", &SnapshotSystemData::global_box)
-    .def_readwrite("particle_data", &SnapshotSystemData::particle_data)
-    .def_readwrite("bond_data", &SnapshotSystemData::bond_data)
-    .def_readwrite("angle_data", &SnapshotSystemData::angle_data)
-    .def_readwrite("dihedral_data", &SnapshotSystemData::dihedral_data)
-    .def_readwrite("improper_data", &SnapshotSystemData::improper_data)
-    .def_readwrite("rigid_data", &SnapshotSystemData::rigid_data)
-    .def_readwrite("has_particle_data", &SnapshotSystemData::has_particle_data)
-    .def_readwrite("has_bond_data", &SnapshotSystemData::has_bond_data)
-    .def_readwrite("has_angle_data", &SnapshotSystemData::has_angle_data)
-    .def_readwrite("has_dihedral_data", &SnapshotSystemData::has_dihedral_data)
-    .def_readwrite("has_improper_data", &SnapshotSystemData::has_improper_data)
-    .def_readwrite("has_rigid_data", &SnapshotSystemData::has_rigid_data)
-    .def_readwrite("has_wall_data", &SnapshotSystemData::has_wall_data)
-    .def_readwrite("has_integrator_data", &SnapshotSystemData::has_integrator_data)
-    .def("replicate", &SnapshotSystemData::replicate)
+    .def_readwrite("_dimensions", &SnapshotSystemData<float>::dimensions)
+    .def_readwrite("_global_box", &SnapshotSystemData<float>::global_box)
+    .def_readwrite("particles", &SnapshotSystemData<float>::particle_data)
+    .def_readwrite("bonds", &SnapshotSystemData<float>::bond_data)
+    .def_readwrite("angles", &SnapshotSystemData<float>::angle_data)
+    .def_readwrite("dihedrals", &SnapshotSystemData<float>::dihedral_data)
+    .def_readwrite("impropers", &SnapshotSystemData<float>::improper_data)
+    .def_readwrite("bodies", &SnapshotSystemData<float>::rigid_data)
+    .def("replicate", &SnapshotSystemData<float>::replicate)
     ;
 
-    implicitly_convertible<boost::shared_ptr<SnapshotSystemData>, boost::shared_ptr<const SnapshotSystemData> >();
+    implicitly_convertible<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr< const SnapshotSystemData<float> > >();
+
+    class_<SnapshotSystemData<double>, boost::shared_ptr< SnapshotSystemData<double> > >("SnapshotSystemData_double")
+    .def(init<>())
+    .def_readwrite("_dimensions", &SnapshotSystemData<double>::dimensions)
+    .def_readwrite("_global_box", &SnapshotSystemData<double>::global_box)
+    .def_readwrite("particles", &SnapshotSystemData<double>::particle_data)
+    .def_readwrite("bonds", &SnapshotSystemData<double>::bond_data)
+    .def_readwrite("angles", &SnapshotSystemData<double>::angle_data)
+    .def_readwrite("dihedrals", &SnapshotSystemData<double>::dihedral_data)
+    .def_readwrite("impropers", &SnapshotSystemData<double>::improper_data)
+    .def_readwrite("bodies", &SnapshotSystemData<double>::rigid_data)
+    .def("replicate", &SnapshotSystemData<double>::replicate)
+    ;
+
+    implicitly_convertible<boost::shared_ptr< SnapshotSystemData<double> >, boost::shared_ptr< const SnapshotSystemData<double> > >();
     }

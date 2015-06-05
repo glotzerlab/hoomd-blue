@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "TwoStepBDNVT.h"
 
@@ -103,7 +100,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
     setIntegratorVariables(v);
 
     // allocate memory for the per-type gamma storage and initialize them to 1.0
-    GPUVector<Scalar> gamma(m_pdata->getNTypes(), exec_conf);
+    GPUVector<Scalar> gamma(m_pdata->getNTypes(), m_exec_conf);
     m_gamma.swap(gamma);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.size(); i++)
@@ -307,7 +304,3 @@ void export_TwoStepBDNVT()
         .def("setTally", &TwoStepBDNVT::setTally)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

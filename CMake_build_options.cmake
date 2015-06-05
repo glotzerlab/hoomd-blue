@@ -1,21 +1,13 @@
 # Maintainer: joaander
 
 #################################
-## Optional use of zlib to compress binary output files (defaults to off on windows)
-if (WIN32)
-option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output files is available" OFF)
-else (WIN32)
+## Optional use of zlib to compress binary output files
 option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output files is available" ON)
-endif (WIN32)
 
 #################################
 ## Optional static build
 ## ENABLE_STATIC is an option to control whether HOOMD is built as a statically linked exe or as a python module.
-if (WIN32)
-OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" ON)
-else (WIN32)
 OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" OFF)
-endif (WIN32)
 
 mark_as_advanced(ENABLE_STATIC)
 
@@ -33,14 +25,6 @@ option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
 endif (CUDA_FOUND)
 
 if (ENABLE_CUDA)
-    # optional ocelot emulation mode (not tested any more)
-    # option(ENABLE_OCELOT "Enable ocelot emulation for CUDA GPU code" off)
-    # if (ENABLE_OCELOT)
-    #     set(CUDA_ARCH "11")
-    #     add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
-    #     list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")
-    # endif (ENABLE_OCELOT)
-
     option(ENABLE_NVTOOLS "Enable NVTools profiler integration" off)
 endif (ENABLE_CUDA)
 

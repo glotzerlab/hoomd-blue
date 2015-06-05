@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,10 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: ksil
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "OPLSDihedralForceCompute.h"
 
@@ -89,7 +86,7 @@ OPLSDihedralForceCompute::OPLSDihedralForceCompute(boost::shared_ptr<SystemDefin
         }
 
     // allocate the parameters
-    GPUArray<Scalar4> params(m_dihedral_data->getNTypes(), exec_conf);
+    GPUArray<Scalar4> params(m_dihedral_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
 }
 
@@ -411,7 +408,3 @@ void export_OPLSDihedralForceCompute()
     .def("setParams", &OPLSDihedralForceCompute::setParams)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
