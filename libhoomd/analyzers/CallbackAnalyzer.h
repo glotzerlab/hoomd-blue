@@ -90,9 +90,7 @@ class CallbackAnalyzer : public Analyzer
     public:
         //! Construct the msd analyzer
         CallbackAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
-                    std::string fname,
-                    const std::string& header_prefix="",
-                    bool overwrite=false);
+                    boost::python::object callback);
 
         //! Destructor
         ~CallbackAnalyzer();

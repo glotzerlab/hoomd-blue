@@ -646,3 +646,15 @@ class msd(_analyzer):
 
         if delimiter:
             self.cpp_analyzer.setDelimiter(delimiter);
+
+class callback(_analyzer):
+    
+    def __init__(self, callback, period, phase=-1):
+        util.print_status_line();
+
+    # initialize base class
+    _analyzer._init__(self);
+
+    # create the c++ mirror class
+    self.cpp_analyzer = hoomd.CallbackAnalyzer(globals.system_definition, 
+    self.setAnalyzer(period, phase);
