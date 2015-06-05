@@ -327,7 +327,7 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr< SnapshotSystemD
     }
 
 // instantiate both float and double methods
-template SystemDefinition::SystemDefinition<float>(boost::shared_ptr< SnapshotSystemData<float> > snapshot,
+template SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<float> > snapshot,
                                                    boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                                    boost::shared_ptr<DomainDecomposition> decomposition);
 template boost::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSnapshot<float>(bool particles,
@@ -340,7 +340,7 @@ template boost::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSn
                                                                                               bool integrators);
 template void SystemDefinition::initializeFromSnapshot<float>(boost::shared_ptr< SnapshotSystemData<float> > snapshot);
 
-template SystemDefinition::SystemDefinition<double>(boost::shared_ptr< SnapshotSystemData<double> > snapshot,
+template SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<double> > snapshot,
                                                    boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                                    boost::shared_ptr<DomainDecomposition> decomposition);
 template boost::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeSnapshot<double>(bool particles,
