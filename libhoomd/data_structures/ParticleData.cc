@@ -2204,7 +2204,7 @@ string print_ParticleData(ParticleData *pdata)
     }
 
 // instantiate both float and double methods for snapshots
-template ParticleData::ParticleData<double>(const SnapshotParticleData<double>& snapshot,
+template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
                                            const BoxDim& global_box,
                                            boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                            boost::shared_ptr<DomainDecomposition> decomposition
@@ -2213,7 +2213,7 @@ template void ParticleData::initializeFromSnapshot<double>(const SnapshotParticl
 template void ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &snapshot);
 
 
-template ParticleData::ParticleData<float>(const SnapshotParticleData<float>& snapshot,
+template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
                                            const BoxDim& global_box,
                                            boost::shared_ptr<ExecutionConfiguration> exec_conf,
                                            boost::shared_ptr<DomainDecomposition> decomposition
