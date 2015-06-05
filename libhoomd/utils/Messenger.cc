@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,17 +53,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the Messenger class
 */
 
-#include "Messenger.h"
 #include "ExecutionConfiguration.h"
+#include "Messenger.h"
+
+#ifdef ENABLE_MPI
+#include "HOOMDMPI.h"
+#endif
 
 #include <assert.h>
 using namespace std;
 
 #include <boost/python.hpp>
-
-#ifdef ENABLE_MPI
-#include "HOOMDMPI.h"
-#endif
 
 using namespace boost::python;
 
@@ -215,11 +215,11 @@ void Messenger::errorStr(const std::string& msg) const
 */
 std::ostream& Messenger::warning() const
     {
+    if (m_rank != 0) return *m_nullstream;
+
     assert(m_warning_stream);
     if (m_warning_prefix != string(""))
         *m_warning_stream << m_warning_prefix << ": ";
-   if (m_nranks > 1)
-        *m_err_stream << " (Rank " << m_rank << "): ";
     return *m_warning_stream;
     }
 

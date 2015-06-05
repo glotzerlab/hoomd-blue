@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -57,11 +57,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "SystemDefinition.h"
+
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/dynamic_bitset.hpp>
-
-#include "SystemDefinition.h"
 
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__

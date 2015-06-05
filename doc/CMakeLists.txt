@@ -72,7 +72,6 @@ set(DOXYGEN_USER_DOC_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/hoomd-userdoc-${HOOMD
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_user)
 
 set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/quick_start.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/examples.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/index.dox
@@ -97,14 +96,17 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/concepts.dox
                         )
 
-add_custom_command (OUTPUT ${DOXYGEN_USER_DOC_HTML_DIR}/index.html
-                    COMMAND ${DOXYGEN} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_user
-                    DEPENDS ${_module_files}
+file(GLOB _user_doxygen_sources
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.dox
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.html
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.css
                     ${CMAKE_CURRENT_SOURCE_DIR}/dev/*.doc
-                    ${HOOMD_SOURCE_DIR}/share/hoomd/examples/*
+                    ${HOOMD_SOURCE_DIR}/share/hoomd/examples/*)
+
+add_custom_command (OUTPUT ${DOXYGEN_USER_DOC_HTML_DIR}/index.html
+                    COMMAND ${DOXYGEN} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_user
+                    DEPENDS ${_module_files}
+		    ${_user_doxygen_sources}
                     ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in)
 
 add_custom_target (user ALL DEPENDS ${DOXYGEN_USER_DOC_HTML_DIR}/index.html

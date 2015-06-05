@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,14 +49,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
+#include "Compute.h"
+#include "GPUArray.h"
+#include "GPUVector.h"
+#include "GPUFlags.h"
+#include "Index1D.h"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>
 #include <vector>
-
-#include "Compute.h"
-#include "GPUArray.h"
-#include "GPUFlags.h"
-#include "Index1D.h"
 
 /*! \file NeighborList.h
     \brief Declares the NeighborList class
@@ -271,7 +272,7 @@ class NeighborList : public Compute
 
         bool wantExclusions()
             {
-            return m_want_exclusions;
+            return m_need_reallocate_exlist;
             }
 
         //! Gives an estimate of the number of nearest neighbors per particle
@@ -349,17 +350,16 @@ class NeighborList : public Compute
             {
             m_d_max = d_max;
 
-#ifdef ENABLE_MPI
-            if (m_comm)
-                {
-                Scalar rmax = m_r_cut + m_r_buff;
-                // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
-                rmax += m_d_max - Scalar(1.0);
-                m_comm->setGhostLayerWidth(rmax);
-                m_comm->setRBuff(m_r_buff);
-                }
-#endif
             forceUpdate();
+            }
+
+        //! Return the requested ghost layer width
+        virtual Scalar getGhostLayerWidth() const
+            {
+            Scalar rmax = m_r_cut + m_r_buff;
+            // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated
+            rmax += m_d_max - Scalar(1.0);
+            return rmax;
             }
 
         Scalar getMaximumDiameter()
@@ -429,11 +429,12 @@ class NeighborList : public Compute
 
         GPUArray<unsigned int> m_ex_list_tag;  //!< List of excluded particles referenced by tag
         GPUArray<unsigned int> m_ex_list_idx;  //!< List of excluded particles referenced by index
-        GPUArray<unsigned int> m_n_ex_tag;     //!< Number of exclusions for a given particle tag
+        GPUVector<unsigned int> m_n_ex_tag;    //!< Number of exclusions for a given particle tag
         GPUArray<unsigned int> m_n_ex_idx;     //!< Number of exclusions for a given particle index
         Index2D m_ex_list_indexer;             //!< Indexer for accessing the exclusion list
         Index2D m_ex_list_indexer_tag;         //!< Indexer for accessing the by-tag exclusion list
         bool m_exclusions_set;                 //!< True if any exclusions have been set
+        bool m_need_reallocate_exlist;         //!< True if global exclusion list needs to be reallocated
 
         boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
@@ -441,6 +442,7 @@ class NeighborList : public Compute
         #ifdef ENABLE_MPI
         boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
         boost::signals2::connection m_comm_flags_request;         //!< Connection to request ghost particle fields
+        boost::signals2::connection m_ghost_layer_width_request;  //!< Connection to request ghost layer width
         #endif
 
         //! Return true if we are supposed to do a distance check in this time step
@@ -485,8 +487,6 @@ class NeighborList : public Compute
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
         vector<unsigned int> m_update_periods;    //!< Steps between updates
 
-        bool m_want_exclusions;       //!< True if we want updated exclusions
-
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
 
@@ -511,9 +511,7 @@ class NeighborList : public Compute
         //! Method to be called when the global particle number changes
         void slotGlobalParticleNumberChange()
             {
-            m_want_exclusions = true;
-
-            reallocate();
+            m_need_reallocate_exlist = true;
             }
     };
 

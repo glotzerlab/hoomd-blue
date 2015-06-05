@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -66,8 +66,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 const unsigned int min_threads_per_particle=1;
 const unsigned int max_threads_per_particle=WARP_SIZE;
 
-//! Kernel driver for gpu_compute_nlist_shared_kernel()
-cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
+//! Kernel driver for gpu_compute_nlist_kernel()
+cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      Scalar4 *d_last_updated_pos,
                                      unsigned int *d_conditions,

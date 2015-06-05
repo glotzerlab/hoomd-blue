@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,26 +53,184 @@ import hoomd
 from hoomd_script import globals
 from hoomd_script import util
 from hoomd_script import meta
+import hoomd_script
 
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
 #
 # Code in the data package provides high-level access to all of the particle, bond and other %data that define the
-# current state of the system. By writing python code that modifies this %data, any conceivable initialization of the
-# system can be achieved without needing to invoke external tools or generate xml files. Data can be read and additional
-# analysis performed during or after simulation runs as well. Basically, the user's imagination is the limit to what can
-# be done with the %data.
+# current state of the system. You can use python code to directly read and modify this data, allowing you to analyze
+# simulation results while the simulation runs, or to create custom initial configurations with python code.
 #
-# The only thing to be aware of is that accessing the %data in this way can slow a simulation significantly if performed
-# too often. As a general guideline, consider writing a high performance C++ / GPU  plugin (\ref sec_build_plugin)
-# if particle %data needs to accessed more often than once every few thousand time steps.
+# There are two ways to access the data.
 #
-# If modifications need to be done on more than just a few particles, e.g.
-# setting new positions for all particles, or updating the velocities, etc., \b snapshots can be used.
-# \ref data_snapshot store the entire system state in a single (currently opaque) object and can
-# be used to re-initialize the system system_data.restore_snapshot().
+# 1. Snapshots record the system configuration at one instant in time. You can store this state to analyze the data,
+#    restore it at a future point in time, or to modify it and reload it. Use snapshots for initializing simulations,
+#    or when you need to access or modify the entire simulation state.
+# 2. Data proxies directly access the current simulation state. Use data proxies if you need to only touch a few
+#    particles or bonds at a a time.
 #
-# <h2>Documentation by example</h2>
+# \section data_snapshot Snapshots
+# <hr>
+#
+# <h3>Relevant methods:</h3>
+#
+# * system_data.take_snapshot() captures a snapshot of the current system state. A snapshot is a copy of the simulation
+# state. As the simulation continues to progress, data in a captured snapshot will remain constant.
+# * system_data.restore_snapshot() replaces the current system state with the state stored in a snapshot.
+# * data.make_snapshot() creates an empty snapshot that you can populate with custom data.
+# * init.read_snapshot() initializes a simulation from a snapshot.
+#
+# \code
+# snapshot = system.take_snapshot()
+# system.restore_snapshot(snapshot)
+# snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'])
+# # ... populate snapshot with data ...
+# init.read_snapshot(snapshot)
+# \endcode
+#
+# <hr>
+# <h3>Snapshot and MPI</h3>
+# In MPI simulations, the snapshot is only valid on rank 0. make_snapshot, read_snapshot, and take_snapshot, restore_snapshot are
+# collective calls, and need to be called on all ranks. But only rank 0 can access data in the snapshot.
+# \code
+# snapshot = system.take_snapshot(all=True)
+# if comm.get_rank() == 0:
+#     print(numpy.mean(snapshot.particles.velocity))
+#     snapshot.particles.position[0] = [1,2,3];
+#
+# system.restore_snapshot(snapshot);
+# snapshot = data.make_snapshot(N=10)
+# if comm.get_rank() == 0:
+#     snapshot.particles.position = ....
+# init.read_snapshot(snapshot)
+# \endcode
+#
+# <hr>
+# <h3>Simulation box</h3>
+# You can access the simulation box from a snapshot:
+# \code
+# >>> print(snapshot.box)
+# Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0 dimensions=3
+# \endcode
+# and can change it:
+# \code
+# >>> snapsot.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
+# >>> print(snapshot.box)
+# Box: Lx=10 Ly=20 Lz=30 xy=1.0 xz=0.1 yz=2.0 dimensions=3
+# \endcode
+# \b All particles must be inside the box before using the snapshot to initialize a simulation or restoring it.
+# The dimensionality of the system (2D/3D) cannot change after initialization.
+#
+# <h3>Particle properties</h3>
+#
+# Particle properties are present in `snapshot.particles`. Each property is stored in a numpy array that directly
+# accesses the memory of the snapshot. References to these arrays will become invalid when the snapshot itself is
+# garbage collected.
+#
+# - `N` is the number of particles in the particle data snapshot
+# \code
+# >>> print(snapshot.particles.N)
+# 64000
+# \endcode
+# - Change the number of particles in the snapshot with resize. Existing particle properties are
+#   preserved after the resize. Any newly created particles will have default values. After resizing,
+#   existing references to the numpy arrays will be invalid, access them again
+#   from `snapshot.particles.*`
+# \code
+# >>> system.particles.resize(1000);
+# \endcode
+# - The list of all particle types in the simulation can be accessed and modified
+# \code
+# >>> print(system.particles.types)
+# ['A', 'B', 'C']
+# >>> system.particles.types = ['1', '2', '3', '4'];
+# \endcode
+# - Individual particles properties are stored in numpy arrays. Vector quantities are stored in Nx3 arrays of floats
+#   (or doubles) and scalar quantities are stored in N length 1D arrays.
+# \code
+# >>> print(snapshot.particles.position[10])
+# [ 1.2398  -10.2687  100.6324]
+# \endcode
+# - Various properties can be accessed of any particle, and the numpy arrays can be sliced or passed whole to other
+#   routines.
+# \code
+# >>> print(snapshot.particles.typeid[10])
+# 2
+# >>> print(snapshot.particles.velocity[10])
+# (-0.60267972946166992, 2.6205904483795166, -1.7868227958679199)
+# >>> print(snapshot.particles.mass[10])
+# 1.0
+# >>> print(snapshot.particles.diameter[10])
+# 1.0
+# \endcode
+# - Particle properties can be set in the same way. This modifies the data in the snapshot, not the
+#   current simulation state.
+# \code
+# >>> snapshot.particles.position[10] = [1,2,3]
+# >>> print(snapshot.particles.position[10])
+# [ 1.  2.  3.]
+# \endcode
+# - Snapshots store particle types as integers that index into the type name array:
+# \code
+# >>> print(snapshot.particles.typeid)
+# [ 0.  1.  2.  0.  1.  2.  0.  1.  2.  0.]
+# >>> snapshot.particles.types = ['A', 'B', 'C'];
+# >>> snapshot.particles.typeid[0] = 2;   # C
+# >>> snapshot.particles.typeid[1] = 0;   # A
+# >>> snapshot.particles.typeid[2] = 1;   # B
+# \endcode
+#
+# For a list of all particle properties in the snapshot see SnapshotParticleData.
+#
+# <h3>Bonds</h3>
+#
+# Bonds are stored in `snapshot.bonds`. system_data.take_snapshot() does not record the bonds by default, you need to
+# request them with the argument `bonds=True`.
+#
+# - `N` is the number of bonds in the bond data snapshot
+# \code
+# >>> print(snapshot.bonds.N)
+# 100
+# \endcode
+# - Change the number of bonds in the snapshot with resize. Existing bonds are
+#   preserved after the resize. Any newly created bonds will be initialized to 0. After resizing,
+#   existing references to the numpy arrays will be invalid, access them again
+#   from `snapshot.bonds.*`
+# \code
+# >>> system.bonds.resize(1000);
+# \endcode
+# - Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the bond `i`. The second axis `j` goes over
+#   the individual particles in the bond. The value of each element is the tag of the particle participating in the
+#   bond.
+# \code
+# >>> print(system.bonds.group)
+# [[0 1]
+# [1 2]
+# [3 4]
+# [4 5]]
+# >>> system.bonds.group[0] = [10,11]
+# \endcode
+# - Snapshots store bond types as integers that index into the type name array:
+# \code
+# >>> print(snapshot.bonds.typeid)
+# [ 0.  1.  2.  0.  1.  2.  0.  1.  2.  0.]
+# >>> snapshot.bonds.types = ['A', 'B', 'C'];
+# >>> snapshot.bonds.typeid[0] = 2;   # C
+# >>> snapshot.bonds.typeid[1] = 0;   # A
+# >>> snapshot.bonds.typeid[2] = 1;   # B
+# \endcode
+#
+# <h3>Angles, dihedrals and impropers</h3>
+#
+# Angles, dihedrals, and impropers are stored similar to bonds. The only difference is that the group array is sized
+# appropriately to store the number needed for each type of bond.
+#
+# * `snapshot.angles.group` is Nx3
+# * `snapshot.dihedrals.group` is Nx4
+# * `snapshot.impropers.group` is Nx4
+#
+# \section data_proxy Proxy access
 #
 # For most of the cases below, it is assumed that the result of the initialization command was saved at the beginning
 # of the script, like so:
@@ -81,8 +239,8 @@ from hoomd_script import meta
 # \endcode
 #
 # <hr>
-# <h3>Getting/setting the box</h3>
-# You can access the dimensions of the simulation box like so:
+# <h3>Simulation box</h3>
+# You can access the simulation box like so:
 # \code
 # >>> print(system.box)
 # Box: Lx=17.3646569289 Ly=17.3646569289 Lz=17.3646569289 xy=0.0 xz=0.0 yz=0.0
@@ -348,9 +506,8 @@ from hoomd_script import meta
 # \code
 # p = system.particles[i]
 # \endcode
-# is executed, \a p \b doesn't store the position, velocity, ... of particle \a i. Instead, it just stores \a i and
-# provides an interface to get/set the properties on demand. This has some side effects. They aren't necessarily
-# bad side effects, just some to be aware of.
+# is executed, \a p \b does \b not store the position, velocity, ... of particle \a i. Instead, it just stores \a i and
+# provides an interface to get/set the properties on demand. This has some side effects you need to be aware of.
 # - First, it means that \a p (or any other proxy reference) always references the current state of the particle.
 # As an example, note how the position of particle p moves after the run() command.
 # \code
@@ -376,22 +533,6 @@ from hoomd_script import meta
 # If you need to store some particle properties at one time in the simulation and access them again later, you will need
 # to make copies of the actual property values themselves and not of the proxy references.
 #
-# \section data_snapshot Snapshots
-# <hr>
-# <h3>Snapshots</h3>
-#
-# A snaphot of the current system state is obtained using system_data.take_snapshot(). It contains information
-# about the simulation box, particles, bonds, angles, dihedrals, impropers, walls and rigid bodies.
-# Once taken, it is not updated anymore (as opposed to the particle %data proxies, which always
-# return the current state). Instead, it can be used to restart the simulation
-# using system_data.restore_snapshot().
-#
-# In future releases it will be possible to modify or %analyze the contents of a snapshot.
-#
-# Example for taking a snapshot:
-# \code
-# snapshot = system.take_snapshot(all=True)
-# \endcode
 
 ## Define box dimensions
 #
@@ -541,7 +682,7 @@ class boxdim(meta._metadata):
 
     def __str__(self):
         return 'Box: Lx=' + str(self.Lx) + ' Ly=' + str(self.Ly) + ' Lz=' + str(self.Lz) + ' xy=' + str(self.xy) + \
-                    ' xz='+ str(self.xz) + ' yz=' + str(self.yz);
+                    ' xz='+ str(self.xz) + ' yz=' + str(self.yz) + ' dimensions=' + str(self.dimensions);
 
     ## \internal
     # \brief Get a dictionary representation of the box dimensions
@@ -589,70 +730,50 @@ class system_data(meta._metadata):
     # in the snapshot.
     #
     # \param particles If true, particle data is included in the snapshot
-    # \param bonds If true, bond data is included in the snapshot
-    # \param angles If true, angle data is included in the snapshot
-    # \param dihedrals If true, dihedral data is included in the snapshot
-    # \param impropers If true, dihedral data is included in the snapshot
+    # \param bonds If true, bond, angle, dihedral, and improper data is included in the snapshot
     # \param rigid_bodies If true, rigid body data is included in the snapshot
     # \param walls If true, wall data is included in the snapshot
     # \param integrators If true, integrator data is included the snapshot
     # \param all If true, the entire system state is saved in the snapshot
-    #
-    # Specific options (such as \b particles=True) take precedence over \b all=True.
+    # \param dtype Datatype for the snapshot numpy arrays. Must be either 'float' or 'double'.
     #
     # \returns the snapshot object.
     #
     # \code
     # snapshot = system.take_snapshot()
-    # snapshot = system.take_snapshot(particles=true)
+    # snapshot = system.take_snapshot()
     # snapshot = system.take_snapshot(bonds=true)
     # \endcode
     #
     # \MPI_SUPPORTED
-    def take_snapshot(self,particles=None,bonds=None,angles=None,dihedrals=None, impropers=None, rigid_bodies=None, walls=None, integrators=None, all=None):
+    def take_snapshot(self,
+                      particles=True,
+                      bonds=False,
+                      rigid_bodies=False,
+                      walls=False,
+                      integrators=False,
+                      all=False,
+                      dtype='float'):
         util.print_status_line();
 
         if all is True:
-            if particles is None:
                 particles=True
-            if bonds is None:
                 bonds=True
-            if angles is None:
-                angles=True
-            if dihedrals is None:
-                dihedrals=True
-            if impropers is None:
-                impropers=True
-            if rigid_bodies is None:
                 rigid_bodies=True
-            if walls is None:
                 walls=True
-            if integrators is None:
                 integrators=True
-
-        if particles is None and not all:
-            particles = False
-        if bonds is None and not all:
-            bonds = False
-        if angles is None and not all:
-            angles = False
-        if dihedrals is None and not all:
-            dihedrals = False
-        if impropers is None and not all:
-            impropers = False
-        if rigid_bodies is None and not all:
-            rigid_bodies = False
-        if walls is None and not all:
-            walls = False
-        if integrators is None and not all:
-            integrators = False
 
         if not (particles or bonds or angles or dihedrals or impropers or rigid_bodies or walls or integrators):
             globals.msg.warning("No options specified. Ignoring request to create an empty snapshot.\n")
             return None
 
         # take the snapshot
-        cpp_snapshot = self.sysdef.takeSnapshot(particles,bonds,angles,dihedrals,impropers,rigid_bodies,walls,integrators)
+        if dtype == 'float':
+            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
+        elif dtype == 'double':
+            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,rigid_bodies,walls,integrators)
+        else:
+            raise ValueError("dtype must be float or double");
 
         return cpp_snapshot
 
@@ -704,8 +825,7 @@ class system_data(meta._metadata):
         cpp_snapshot = self.take_snapshot(all=True)
         util._disable_status_lines = False
 
-        from hoomd_script import comm
-        if comm.get_rank() == 0:
+        if hoomd_script.comm.get_rank() == 0:
             # replicate
             cpp_snapshot.replicate(nx, ny, nz)
 
@@ -791,7 +911,7 @@ class system_data(meta._metadata):
         if name == "box":
             b = self.sysdef.getParticleData().getGlobalBox();
             L = b.getL();
-            return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ());
+            return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ(), dimensions=self.sysdef.getNDimensions());
 
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
@@ -2125,3 +2245,145 @@ class body_data_proxy:
 
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
+
+## \internal
+# \brief Get data.boxdim from a SnapshotSystemData
+def get_snapshot_box(snapshot):
+    b = snapshot._global_box;
+    L = b.getL();
+    return boxdim(Lx=L.x, Ly=L.y, Lz=L.z, xy=b.getTiltFactorXY(), xz=b.getTiltFactorXZ(), yz=b.getTiltFactorYZ(), dimensions=snapshot._dimensions);
+
+## \internal
+# \brief Set data.boxdim to a SnapshotSystemData
+def set_snapshot_box(snapshot, box):
+    snapshot._global_box = box._getBoxDim();
+    snapshot._dimensions = box.dimensions;
+
+# Inject a box property into SnapshotSystemData that provides and accepts boxdim objects
+hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
+hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_box);
+
+## Make an empty snapshot
+#
+# \param N Number of particles to create
+# \param box a data.boxdim object that defines the simulation box
+# \param particle_types List of particle type names (must not be zero length)
+# \param bond_types List of bond type names (may be zero length)
+# \param angle_types List of angle type names (may be zero length)
+# \param dihedral_types List of Dihedral type names (may be zero length)
+# \param improper_types List of improper type names (may be zero length)
+# \param dtype Data type for the real valued numpy arrays in the snapshot. Must be either 'float' or 'double'.
+#
+# \b Examples:
+# \code
+# snapshot = data.make_snapshot(N=1000, box=data.boxdim(L=10))
+# snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=1, dimensions=2, volume=1000), particle_types=['A', 'B'])
+# snapshot = data.make_snapshot(N=64000, box=data.boxdim(L=20), bond_types=['polymer'], dihedral_types=['dihedralA', 'dihedralB'], improper_types=['improperA', 'improperB', 'improperC'])
+# ... set properties in snapshot ...
+# init.read_snapshot(snapshot);
+# \endcode
+#
+# make_snapshot() creates particles with <b>default properties</b>. You must set reasonable values for particle
+# properties before initializing the system with init.read_snapshot().
+#
+# The default properties are:
+# - position 0,0,0
+# - velocity 0,0,0
+# - image 0,0,0
+# - orientation 1,0,0,0
+# - typeid 0
+# - charge 0
+# - mass 1.0
+# - diameter 1.0
+#
+# make_snapshot() creates the particle, bond, angle, dihedral, and improper types with the names specified. Use these
+# type names later in the job script to refer to particles (i.e. in lj.set_params).
+#
+# \sa hoomd_script.init.read_snapshot()
+def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[], dtype='float'):
+    if dtype == 'float':
+        snapshot = hoomd.SnapshotSystemData_float();
+    elif dtype == 'double':
+        snapshot = hoomd.SnapshotSystemData_double();
+    else:
+        raise ValueError("dtype must be either float or double");
+
+    snapshot.box = box;
+    if hoomd_script.comm.get_rank() == 0:
+        snapshot.particles.resize(N);
+
+    snapshot.particles.types = particle_types;
+    snapshot.bonds.types = bond_types;
+    snapshot.angles.types = angle_types;
+    snapshot.dihedrals.types = dihedral_types;
+    snapshot.impropers.types = improper_types;
+
+    return snapshot;
+
+
+
+## \class SnapshotParticleData
+# \brief Snapshot that stores particle properties
+#
+# Users should not create SnapshotParticleData directly. Use data.make_snapshot() or system_data.take_snapshot()
+# to get a snapshot of the system.
+class SnapshotParticleData:
+    # dummy class just to make doxygen happy
+
+    def __init__(self):
+        # doxygen even needs to see these variables to generate documentation for them
+        self.N = None;
+        self.position = None;
+        self.velocity = None;
+        self.acceleration = None;
+        self.typeid = None;
+        self.mass = None;
+        self.charge = None;
+        self.diameter = None;
+        self.image = None;
+        self.body = None;
+        self.types = None;
+
+    ## \property N
+    # Number of particles in the snapshot
+
+    ## \property types
+    # List of string type names (assignable)
+
+    ## \property position
+    # Nx3 numpy array containing the position of each particle (float or double)
+
+    ## \property velocity
+    # Nx3 numpy array containing the velocity of each particle (float or double)
+
+    ## \property acceleration
+    # Nx3 numpy array containing the acceleration of each particle (float or double)
+
+    ## \property typeid
+    # N length numpy array containing the type id of each particle (32-bit unsigned int)
+
+    ## \property mass
+    # N length numpy array containing the mass of each particle (float or double)
+
+    ## \property charge
+    # N length numpy array containing the charge of each particle (float or double)
+
+    ## \property diameter
+    # N length numpy array containing the diameter of each particle (float or double)
+
+    ## \property image
+    # Nx3 numpy array containing the image of each particle (32-bit int)
+
+    ## \property body
+    # N length numpy array containing the body of each particle (32-bit unsigned int)
+
+    ## Resize the snapshot to hold N particles
+    #
+    # \param N new size of the snapshot
+    #
+    # resize() changes the size of the arrays in the snapshot to hold \a N particles. Existing particle properties are
+    # preserved after the resize. Any newly created particles will have default values. After resizing,
+    # existing references to the numpy arrays will be invalid, access them again
+    # from `snapshot.particles.*`
+    def resize(self, N):
+        pass

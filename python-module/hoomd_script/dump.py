@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -79,6 +79,7 @@ class xml(analyze._analyzer):
     # \param params (optional) Any number of parameters that set_params() accepts
     # \param time_step (optional) Time step to write into the file (overrides the current simulation step). time_step
     #                  is ignored for periodic updates
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -99,7 +100,7 @@ class xml(analyze._analyzer):
     # \a filename is written immediately. \a time_step is passed on to write()
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, time_step=None, **params):
+    def __init__(self, filename="dump", period=None, time_step=None, phase=-1, **params):
         util.print_status_line();
 
         # initialize base class
@@ -112,7 +113,7 @@ class xml(analyze._analyzer):
         util._disable_status_lines = False;
 
         if period is not None:
-            self.setupAnalyzer(period);
+            self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
@@ -290,6 +291,7 @@ class bin(analyze._analyzer):
     # \param file1 (optional) First alternating file name to write
     # \param file2 (optional) Second alternating file name to write
     # \param compress Set to False to disable gzip compression
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -334,7 +336,7 @@ class bin(analyze._analyzer):
     # limit. If you need to store data in a system and version independent manner, use dump.xml().
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True):
+    def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True, phase=-1):
         util.print_status_line();
         globals.msg.warning("dump.bin is deprecated and will be removed in the next release");
 
@@ -366,7 +368,7 @@ class bin(analyze._analyzer):
         globals.msg.warning("dump.bin is deprecated and will be replaced in v1.1.0\n");
 
         if period is not None:
-            self.setupAnalyzer(period);
+            self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
@@ -414,6 +416,7 @@ class mol2(analyze._analyzer):
     #
     # \param filename (optional) Base of the file name
     # \param period (optional) Number of time steps between file dumps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -431,7 +434,7 @@ class mol2(analyze._analyzer):
     # \a filename is written immediately.
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None):
+    def __init__(self, filename="dump", period=None, phase=-1):
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -447,7 +450,7 @@ class mol2(analyze._analyzer):
         self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.system_definition, filename);
 
         if period is not None:
-            self.setupAnalyzer(period);
+            self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":
@@ -517,6 +520,7 @@ class dcd(analyze._analyzer):
     #        unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
     #        some particles may be written just outside it. \a unwrap_rigid is ignored if \a unwrap_full is True.
     # \param angle_z When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -531,7 +535,7 @@ class dcd(analyze._analyzer):
     #   consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False):
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -553,7 +557,7 @@ class dcd(analyze._analyzer):
         self.cpp_analyzer.setUnwrapFull(unwrap_full);
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
         self.cpp_analyzer.setAngleZ(angle_z);
-        self.setupAnalyzer(period);
+        self.setupAnalyzer(period, phase);
 
         # store metadata
         self.filename = filename
@@ -587,6 +591,7 @@ class pdb(analyze._analyzer):
     #
     # \param filename (optional) Base of the file name
     # \param period (optional) Number of time steps between file dumps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -607,7 +612,7 @@ class pdb(analyze._analyzer):
     # \a filename is written immediately.
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None):
+    def __init__(self, filename="dump", period=None, phase=-1):
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -624,7 +629,7 @@ class pdb(analyze._analyzer):
         self.cpp_analyzer = hoomd.PDBDumpWriter(globals.system_definition, filename);
 
         if period is not None:
-            self.setupAnalyzer(period);
+            self.setupAnalyzer(period, phase);
             self.enabled = True;
             self.prev_period = 1;
         elif filename != "dump":

@@ -5,11 +5,6 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4307 )
-#endif
-
 /*
  * Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
 
@@ -431,8 +426,5 @@ inline double Saru::s(double low, double high)
     return d(low, high);
     }
 
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 
 #endif /* SARUPRNGCPU_H */

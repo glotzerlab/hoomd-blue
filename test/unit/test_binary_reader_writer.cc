@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -46,13 +46,6 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
 #include <math.h>
 #include "HOOMDBinaryDumpWriter.h"
 #include "HOOMDBinaryInitializer.h"
@@ -81,6 +74,11 @@ using namespace std;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     {
+    // temporary directory for files (avoid race conditions in multiple test invocations)
+    path ph = unique_path();
+    create_directories(ph);
+    std::string tmp_path = ph.string();
+
     // start by creating a single particle system: see it the correct file is written
     Scalar Lx(2.5), Ly(4.5), Lz(12.1);
 
@@ -164,19 +162,16 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     sysdef1->getImproperData()->addBondedGroup(Dihedral(0, 3, 2, 1, 0));
 
     // create the writer
-    boost::shared_ptr<HOOMDBinaryDumpWriter> writer(new HOOMDBinaryDumpWriter(sysdef1, "test"));
-
-    remove_all("test.0000000000.bin");
-    BOOST_REQUIRE(!exists("test.0000000000.bin"));
+    boost::shared_ptr<HOOMDBinaryDumpWriter> writer(new HOOMDBinaryDumpWriter(sysdef1, tmp_path+"/test"));
 
     // write the first output
     writer->analyze(0);
 
     // make sure the file was created
-    BOOST_REQUIRE(exists("test.0000000000.bin"));
+    BOOST_REQUIRE(exists(tmp_path+"/test.0000000000.bin"));
 
-    HOOMDBinaryInitializer init(exec_conf, "test.0000000000.bin");
-    boost::shared_ptr<SnapshotSystemData> snapshot;
+    HOOMDBinaryInitializer init(exec_conf, tmp_path+"/test.0000000000.bin");
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
     snapshot = init.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snapshot, exec_conf));
     boost::shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
@@ -242,19 +237,16 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
 
     //
     // create the writer
-    boost::shared_ptr<HOOMDBinaryDumpWriter> writer2(new HOOMDBinaryDumpWriter(sysdef1, "test"));
-
-    remove_all("test.0000000010.bin");
-    BOOST_REQUIRE(!exists("test.0000000010.bin"));
+    boost::shared_ptr<HOOMDBinaryDumpWriter> writer2(new HOOMDBinaryDumpWriter(sysdef1, tmp_path+"/test"));
 
     // write the first output
     writer->analyze(10);
 
     // make sure the file was created
-    BOOST_REQUIRE(exists("test.0000000010.bin"));
+    BOOST_REQUIRE(exists(tmp_path+"/test.0000000010.bin"));
 
-    HOOMDBinaryInitializer init3(exec_conf,"test.0000000010.bin");
-    boost::shared_ptr<SnapshotSystemData> snapshot2;
+    HOOMDBinaryInitializer init3(exec_conf,tmp_path+"/test.0000000010.bin");
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot2;
     snapshot2 = init3.getSnapshot();
     boost::shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(snapshot2, exec_conf));
     boost::shared_ptr<ParticleData> pdata3 = sysdef3->getParticleData();
@@ -273,10 +265,5 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_CHECK_EQUAL(h_image.data[2].z, iz2);
     }
 
-    remove_all("test.0000000000.bin");
-    remove_all("test.0000000010.bin");
+    remove_all(ph);
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

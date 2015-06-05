@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -104,19 +104,22 @@ class _updater(meta._metadata):
     # \brief Helper function to setup updater period
     #
     # \param period An integer or callable function period
+    # \param phase Phase parameter
     #
     # If an integer is specified, then that is set as the period for the analyzer.
     # If a callable is passed in as a period, then a default period of 1000 is set
     # to the integer period and the variable period is enabled
     #
-    def setupUpdater(self, period):
+    def setupUpdater(self, period, phase=-1):
+        self.phase = phase;
+
         if type(period) == type(1.0):
             period = int(period);
 
         if type(period) == type(1):
-            globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
+            globals.system.addUpdater(self.cpp_updater, self.updater_name, period, phase);
         elif type(period) == type(lambda n: n*2):
-            globals.system.addUpdater(self.cpp_updater, self.updater_name, 1000);
+            globals.system.addUpdater(self.cpp_updater, self.updater_name, 1000, -1);
             globals.system.setUpdaterPeriodVariable(self.updater_name, period);
         else:
             globals.msg.error("I don't know what to do with a period of type " + str(type(period)) + "expecting an int or a function\n");
@@ -195,7 +198,7 @@ class _updater(meta._metadata):
             globals.msg.warning("Ignoring command to enable an updater that is already enabled");
             return;
 
-        globals.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period);
+        globals.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period, self.phase);
         self.enabled = True;
 
     ## Changes the period between updater executions
@@ -209,7 +212,8 @@ class _updater(meta._metadata):
     # \endcode
     #
     # While the simulation is \ref run() "running", the action of each updater
-    # is executed every \a period time steps.
+    # is executed every \a period time steps. Changing the period does not change the phase set when the analyzer
+    # was first created.
     #
     # To use this command, you must have saved the updater in a variable, as
     # shown in this example:
@@ -226,7 +230,7 @@ class _updater(meta._metadata):
 
         if type(period) == type(1):
             if self.enabled:
-                globals.system.setUpdaterPeriod(self.updater_name, period);
+                globals.system.setUpdaterPeriod(self.updater_name, period, self.phase);
             else:
                 self.prev_period = period;
         elif type(period) == type(lambda n: n*2):
@@ -331,6 +335,7 @@ class rescale_temp(_updater):
     #
     # \param T Temperature set point (in energy units)
     # \param period Velocities will be rescaled every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
@@ -343,7 +348,7 @@ class rescale_temp(_updater):
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, T, period=1):
+    def __init__(self, T, period=1, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -357,7 +362,7 @@ class rescale_temp(_updater):
 
         # create the c++ mirror class
         self.cpp_updater = hoomd.TempRescaleUpdater(globals.system_definition, thermo.cpp_compute, T.cpp_variant);
-        self.setupUpdater(period);
+        self.setupUpdater(period, phase);
 
         # store metadta
         self.T = T
@@ -400,6 +405,7 @@ class zero_momentum(_updater):
     ## Initialize the momentum zeroer
     #
     # \param period Momentum will be zeroed every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \b Examples:
     # \code
@@ -408,7 +414,7 @@ class zero_momentum(_updater):
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, period=1):
+    def __init__(self, period=1, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -416,7 +422,7 @@ class zero_momentum(_updater):
 
         # create the c++ mirror class
         self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.system_definition);
-        self.setupUpdater(period);
+        self.setupUpdater(period, phase);
 
         # store metadata
         self.period = period
@@ -474,6 +480,7 @@ class box_resize(_updater):
     # \param xz (if set) X-Z tilt factor as a function of time (dimensionless)
     # \param yz (if set) Y-Z tilt factor as a function of time (dimensionless)
     # \param period The box size will be updated every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
     #
     # \a L, Lx, \a Ly, \a Lz, \a xy, \a xz, \a yz can either be set to a constant number or a variant may be provided.
     # if any of the box parameters are not specified, they are set to maintain the same value in the current box.
@@ -505,7 +512,7 @@ class box_resize(_updater):
     # If \a period is set to None, then the given box lengths are applied immediately and periodic updates
     # are not performed.
     #
-    def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None):
+    def __init__(self, Lx = None, Ly = None, Lz = None, xy = None, xz = None, yz = None, period = 1, L = None, phase=-1):
         util.print_status_line();
 
         # initialize base class
@@ -562,7 +569,7 @@ class box_resize(_updater):
         if period is None:
             self.cpp_updater.update(globals.system.getCurrentTimeStep());
         else:
-            self.setupUpdater(period);
+            self.setupUpdater(period, phase);
 
     ## Change box_resize parameters
     #

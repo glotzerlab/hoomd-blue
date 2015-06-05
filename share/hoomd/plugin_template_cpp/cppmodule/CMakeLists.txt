@@ -12,6 +12,18 @@ endif (ENABLE_CUDA)
 set(LIB_TARGET "_${PROJECT_NAME}")
 add_library(${LIB_TARGET} ${PLUGIN_SRC} ${PYMODULE_BUILD})
 target_link_libraries(${LIB_TARGET} ${HOOMD_LIBRARIES})
+
+if (ENABLE_MPI)
+    # if we are compiling with MPI support built in, set appropriate
+    # compiler/linker flags
+    if(MPI_COMPILE_FLAGS)
+        set_target_properties(${LIB_TARGET} PROPERTIES COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS}")
+    endif(MPI_COMPILE_FLAGS)
+    if(MPI_LINK_FLAGS)
+        set_target_properties(${LIB_TARGET} PROPERTIES LINK_FLAGS "${MPI_CXX_LINK_FLAGS}")
+    endif(MPI_LINK_FLAGS)
+endif(ENABLE_MPI)
+
 # fix up the file name so it will work as a python module
 set_target_properties(${LIB_TARGET} PROPERTIES PREFIX "" OUTPUT_NAME "${LIB_TARGET}")
 if(APPLE)

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -54,11 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
     using namespace std;
 
-#ifdef WIN32
-#include <cassert>
-#else
 #include <assert.h>
-#endif
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
@@ -1102,7 +1098,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     Scalar rsq = dot(dx,dx);
                     Scalar r = sqrtf(rsq);
                     Scalar qiqj = qi * qj;
-                    Scalar erffac = erf(kappa * r) / r;
+                    Scalar erffac = ::erf(kappa * r) / r;
                     Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * kappa * kappa) * kappa / (sqrtpi * rsq) + erffac / rsq);
                     Scalar pair_eng = qiqj * erffac;
 

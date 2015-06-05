@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,11 +53,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines CellList
 */
 
+#include "CellList.h"
+
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
 #include <algorithm>
-
-#include "CellList.h"
 
 using namespace boost;
 using namespace boost::python;
@@ -67,7 +67,7 @@ using namespace std;
 */
 CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_max_cells(UINT_MAX), m_compute_tdb(false),
-      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false)
+      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
@@ -254,7 +254,7 @@ double CellList::benchmark(unsigned int num_iters)
     computeCellList();
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         {
         cudaThreadSynchronize();
         CHECK_CUDA_ERROR();
@@ -267,7 +267,7 @@ double CellList::benchmark(unsigned int num_iters)
         computeCellList();
 
 #ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
+    if(m_exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
@@ -351,18 +351,18 @@ void CellList::initializeMemory()
     m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
 
     // allocate memory
-    GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), exec_conf);
+    GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
     m_cell_size.swap(cell_size);
 
-    GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), exec_conf);
+    GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
     m_cell_adj.swap(cell_adj);
 
-    GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), exec_conf);
+    GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
     m_xyzf.swap(xyzf);
 
     if (m_compute_tdb)
         {
-        GPUArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), exec_conf);
+        GPUArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_tdb.swap(tdb);
         }
     else
@@ -374,7 +374,7 @@ void CellList::initializeMemory()
 
     if (m_compute_orientation)
         {
-        GPUArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), exec_conf);
+        GPUArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_orientation.swap(orientation);
         }
     else
@@ -384,9 +384,9 @@ void CellList::initializeMemory()
         m_orientation.swap(orientation);
         }
 
-    if (m_compute_idx)
+    if (m_compute_idx || m_sort_cell_list)
         {
-        GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), exec_conf);
+        GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_idx.swap(idx);
         }
     else
@@ -708,6 +708,7 @@ void export_CellList()
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
+        .def("setSortCellList", &CellList::setSortCellList)
         .def("getDim", &CellList::getDim, return_internal_reference<>())
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark)

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -57,19 +57,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
+#include "Updater.h"
+#include "NeighborList.h"
+#include "GPUVector.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
-
-#include "Updater.h"
-#include "NeighborList.h"
-#include "GPUVector.h"
 
 #ifndef __SFCPACK_UPDATER_H__
 #define __SFCPACK_UPDATER_H__
@@ -151,8 +146,4 @@ class SFCPackUpdater : public Updater
 //! Export the SFCPackUpdater class to python
 void export_SFCPackUpdater();
 
-#endif
-
-#ifdef WIN32
-#pragma warning( pop )
 #endif

@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -49,13 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
 
 #include "TwoStepNVT.h"
 
@@ -63,6 +57,9 @@ using namespace boost::python;
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
 
 /*! \file TwoStepNVT.h
     \brief Contains code for the TwoStepNVT class
@@ -289,7 +286,3 @@ void export_TwoStepNVT()
         .def("setTau", &TwoStepNVT::setTau)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

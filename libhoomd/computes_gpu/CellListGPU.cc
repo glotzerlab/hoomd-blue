@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,10 +53,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines CellListGPU
 */
 
-#include <boost/python.hpp>
-
 #include "CellListGPU.h"
 #include "CellListGPU.cuh"
+
+#include <boost/python.hpp>
 
 using namespace boost::python;
 
@@ -65,19 +65,27 @@ using namespace boost::python;
 CellListGPU::CellListGPU(boost::shared_ptr<SystemDefinition> sysdef)
     : CellList(sysdef)
     {
-    if (!exec_conf->isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         m_exec_conf->msg->error() << "Creating a CellListGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing CellListGPU");
         }
 
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "cell_list", this->m_exec_conf));
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // create a ModernGPU context
+        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+        }
+    #endif
     }
 
 void CellListGPU::computeCellList()
     {
     if (m_prof)
-        m_prof->push(exec_conf, "compute");
+        m_prof->push(m_exec_conf, "compute");
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -97,7 +105,7 @@ void CellListGPU::computeCellList()
 
 
     // take optimized code paths for different GPU generations
-    if (exec_conf->getComputeCapability() >= 200)
+    if(m_exec_conf->getComputeCapability() >= 200)
         {
         // autotune block sizes
         m_tuner->begin();
@@ -122,7 +130,7 @@ void CellListGPU::computeCellList()
                               m_cell_list_indexer,
                               getGhostWidth(),
                               m_tuner->getParam());
-        if (exec_conf->isCUDAErrorCheckingEnabled())
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         m_tuner->end();
         }
@@ -150,11 +158,39 @@ void CellListGPU::computeCellList()
                                  getGhostWidth());
         }
 
-    if (exec_conf->isCUDAErrorCheckingEnabled())
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
+    if (m_sort_cell_list)
+        {
+        ScopedAllocation<uint2> d_sort_idx(m_exec_conf->getCachedAllocator(), m_cell_list_indexer.getNumElements());
+        ScopedAllocation<unsigned int> d_sort_permutation(m_exec_conf->getCachedAllocator(), m_cell_list_indexer.getNumElements());
+        ScopedAllocation<unsigned int> d_cell_idx_new(m_exec_conf->getCachedAllocator(), m_idx.getNumElements());
+        ScopedAllocation<Scalar4> d_xyzf_new(m_exec_conf->getCachedAllocator(), m_xyzf.getNumElements());
+        ScopedAllocation<Scalar4> d_cell_orientation_new(m_exec_conf->getCachedAllocator(), m_orientation.getNumElements());
+        ScopedAllocation<Scalar4> d_tdb_new(m_exec_conf->getCachedAllocator(), m_tdb.getNumElements());
+
+        gpu_sort_cell_list(d_cell_size.data,
+                           d_xyzf.data,
+                           d_xyzf_new.data,
+                           d_tdb.data,
+                           d_tdb_new.data,
+                           d_cell_orientation.data,
+                           d_cell_orientation_new.data,
+                           d_cell_idx.data,
+                           d_cell_idx_new.data,
+                           d_sort_idx.data,
+                           d_sort_permutation.data,
+                           m_cell_indexer,
+                           m_cell_list_indexer,
+                           m_mgpu_context);
+
+        if(m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
     if (m_prof)
-        m_prof->pop(exec_conf);
+        m_prof->pop(m_exec_conf);
     }
 
 void export_CellListGPU()

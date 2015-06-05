@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -1450,6 +1450,12 @@ void CommunicatorGPU::exchangeGhosts()
     if (m_prof) m_prof->push(m_exec_conf, "comm_ghost_exch");
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
+
+    if (m_ghost_layer_width_requests.num_slots())
+        {
+        // update the ghost layer width only if subscribers are avaiable
+        m_r_ghost = m_ghost_layer_width_requests();
+        }
 
     // the ghost layer must be at_least m_r_ghost wide along every lattice direction
     Scalar3 ghost_fraction = m_r_ghost/m_pdata->getBox().getNearestPlaneDistance();

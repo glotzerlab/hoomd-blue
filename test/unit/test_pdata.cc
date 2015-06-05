@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -53,10 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \ingroup unit_tests
 */
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
 
 #include <iostream>
 
@@ -672,7 +668,7 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     // make a simple one-particle box
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     SimpleCubicInitializer one(1, 2.0, "ABC");
-    boost::shared_ptr<SnapshotSystemData> snapshot = one.getSnapshot();
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot = one.getSnapshot();
     ParticleData one_data(snapshot->particle_data, snapshot->global_box, exec_conf);
 
     BOOST_CHECK(one_data.getN() == 1);
@@ -689,7 +685,7 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
 
     // now try an 8-particle one
     SimpleCubicInitializer eight(2, 2.0, "A");
-    boost::shared_ptr<SnapshotSystemData> snapshot_eight = eight.getSnapshot();
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot_eight = eight.getSnapshot();
     ParticleData eight_data(snapshot_eight->particle_data, snapshot_eight->global_box, exec_conf);
 
     BOOST_CHECK(eight_data.getN() == 8);
@@ -730,7 +726,7 @@ BOOST_AUTO_TEST_CASE( Random_test )
     boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     Scalar min_dist = Scalar(0.8);
     RandomInitializer rand_init(500, Scalar(0.4), min_dist, "ABC");
-    boost::shared_ptr<SnapshotSystemData> snap = rand_init.getSnapshot();
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     ParticleData pdata(snap->particle_data, snap->global_box, exec_conf);
 
     BOOST_CHECK_EQUAL(pdata.getNameByType(0), "ABC");
@@ -811,7 +807,3 @@ BOOST_AUTO_TEST_CASE( Generator_test )
     MOL2DumpWriter dump(pdata, string("test.mol2"));
     dump.analyze(0);
     }*/
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

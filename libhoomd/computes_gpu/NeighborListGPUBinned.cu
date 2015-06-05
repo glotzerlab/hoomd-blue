@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -59,20 +59,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Texture for reading d_cell_xyzf
 scalar4_tex_t cell_xyzf_1d_tex;
 
-//! Warp-centric scan
+//! Warp-centric scan (Kepler and later)
 template<int NT>
-struct warp_scan
+struct warp_scan_sm30
     {
-    #if __CUDA_ARCH__ >= 300
-    enum { capacity = 0 }; // uses no shared memory
-    #else
-    enum { capacity = NT > 1 ? (2 * NT + 1) : 1};
-    #endif
-
-    __device__ static int Scan(int tid, unsigned char x, volatile unsigned char *shared, unsigned char* total)
+    __device__ static int Scan(int tid, unsigned char x, unsigned char* total)
         {
-        #if __CUDA_ARCH__ >= 300
-        // Kepler version
         unsigned int laneid;
         //This command gets the lane ID within the current warp
         asm("mov.u32 %0, %%laneid;" : "=r"(laneid));
@@ -93,31 +85,11 @@ struct warp_scan
         int y = __shfl(x,(first + tid - 1) &(WARP_SIZE-1));
         x = tid ? y : 0;
 
-        #else // __CUDA_ARCH__ >= 300
-
-        shared[tid] = x;
-        int first = 0;
-        // no syncthreads here (inside warp)
-
-        for(int offset = 1; offset < NT; offset += offset)
-            {
-            if(tid >= offset)
-                x = shared[first + tid - offset] + x;
-            first = NT - first;
-            shared[first + tid] = x;
-            // no syncthreads here (inside warp)
-            }
-        *total = shared[first + NT - 1];
-
-        // shift by one (exclusive scan)
-        x = tid ? shared[first + tid - 1] : 0;
-        #endif
-        // no syncthreads here (inside warp)
         return x;
         }
     };
 
-//! Kernel call for generating neighbor list on the GPU (shared memory version)
+//! Kernel call for generating neighbor list on the GPU (Kepler optimized version)
 /*! \tparam flags Set bit 1 to enable body filtering. Set bit 2 to enable diameter filtering.
     \param d_nlist Neighbor list data structure to write
     \param d_n_neigh Number of neighbors to write
@@ -140,10 +112,10 @@ struct warp_scan
     \param r_max The maximum radius for which to include particles as neighbors
     \param ghost_width Width of ghost cell layer
 
-    \note optimized for Fermi
+    \note optimized for Kepler
 */
 template<unsigned char flags, int threads_per_particle>
-__global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
+__global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                                                     unsigned int *d_n_neigh,
                                                     Scalar4 *d_last_updated_pos,
                                                     unsigned int *d_conditions,
@@ -208,9 +180,6 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
 
     int my_cell = ci(ib,jb,kb);
 
-    // shared memory (volatile is required, since we are doing warp-centric)
-    volatile extern __shared__ unsigned char sh[];
-
     // index of current neighbor
     unsigned int cur_adj = 0;
 
@@ -219,9 +188,6 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
 
     // size of current cell
     unsigned int neigh_size = d_cell_size[neigh_cell];
-
-    // offset of cta in shared memory
-    int cta_offs = (threadIdx.x/threads_per_particle)*warp_scan<threads_per_particle>::capacity;
 
     // current index in cell
     int cur_offset = threadIdx.x % threads_per_particle;
@@ -298,7 +264,6 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
                 sqshift = (delta + Scalar(2.0) * r_max) * delta;
                 }
 
-            // store result in shared memory
             if (drsq <= (r_maxsq + sqshift) && !excluded)
                 {
                 neighbor = cur_neigh;
@@ -309,15 +274,22 @@ __global__ void gpu_compute_nlist_binned_shared_kernel(unsigned int *d_nlist,
         // no syncthreads here, we assume threads_per_particle < warp size
 
         // scan over flags
-        unsigned char n;
-        int k = warp_scan<threads_per_particle>::Scan(threadIdx.x % threads_per_particle,
-            has_neighbor, &sh[cta_offs], &n);
+        int k = 0;
+        #if (__CUDA_ARCH__ >= 300)
+        unsigned char n = 1;
+        k = warp_scan_sm30<threads_per_particle>::Scan(threadIdx.x % threads_per_particle, has_neighbor, &n);
+        #endif
 
         if (has_neighbor && nneigh + k < nli.getH())
             d_nlist[nli(my_pidx, nneigh + k)] = neighbor;
 
         // increment total neighbor count
+        #if (__CUDA_ARCH__ >= 300)
         nneigh += n;
+        #else
+        if (has_neighbor)
+            nneigh++;
+        #endif
         } // end while
 
     if (threadIdx.x % threads_per_particle == 0)
@@ -380,15 +352,13 @@ inline void launcher(unsigned int *d_nlist,
               bool filter_body,
               unsigned int block_size)
     {
-    unsigned int shared_size = 0;
-
     if (tpp == cur_tpp && cur_tpp != 0)
         {
         if (!filter_diameter && !filter_body)
             {
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
-                max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<0,cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<0,cur_tpp>);
             if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
@@ -399,9 +369,7 @@ inline void launcher(unsigned int *d_nlist,
                 grid.x = 65535;
                 }
 
-            if (compute_capability < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
-
-            gpu_compute_nlist_binned_shared_kernel<0,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+            gpu_compute_nlist_binned_kernel<0,cur_tpp><<<grid, block_size>>>(d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,
@@ -426,7 +394,7 @@ inline void launcher(unsigned int *d_nlist,
             {
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
-                max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<1,cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<1,cur_tpp>);
             if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
@@ -437,9 +405,7 @@ inline void launcher(unsigned int *d_nlist,
                 grid.x = 65535;
                 }
 
-            if (compute_capability < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
-
-            gpu_compute_nlist_binned_shared_kernel<1,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+            gpu_compute_nlist_binned_kernel<1,cur_tpp><<<grid, block_size>>>(d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,
@@ -464,7 +430,7 @@ inline void launcher(unsigned int *d_nlist,
             {
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
-                max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<2,cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<2,cur_tpp>);
             if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
@@ -475,9 +441,7 @@ inline void launcher(unsigned int *d_nlist,
                 grid.x = 65535;
                 }
 
-            if (compute_capability < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
-
-            gpu_compute_nlist_binned_shared_kernel<2,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+            gpu_compute_nlist_binned_kernel<2,cur_tpp><<<grid, block_size>>>(d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,
@@ -502,7 +466,7 @@ inline void launcher(unsigned int *d_nlist,
             {
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
-                max_block_size = get_max_block_size(gpu_compute_nlist_binned_shared_kernel<3,cur_tpp>);
+                max_block_size = get_max_block_size(gpu_compute_nlist_binned_kernel<3,cur_tpp>);
             if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
@@ -513,9 +477,7 @@ inline void launcher(unsigned int *d_nlist,
                 grid.x = 65535;
                 }
 
-            if (compute_capability < 30) shared_size = warp_scan<cur_tpp>::capacity*sizeof(unsigned char)*(block_size/cur_tpp);
-
-            gpu_compute_nlist_binned_shared_kernel<3,cur_tpp><<<grid, block_size,shared_size>>>(d_nlist,
+            gpu_compute_nlist_binned_kernel<3,cur_tpp><<<grid, block_size>>>(d_nlist,
                                                                              d_n_neigh,
                                                                              d_last_updated_pos,
                                                                              d_conditions,
@@ -597,7 +559,7 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               unsigned int block_size)
     { }
 
-cudaError_t gpu_compute_nlist_binned_shared(unsigned int *d_nlist,
+cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      Scalar4 *d_last_updated_pos,
                                      unsigned int *d_conditions,

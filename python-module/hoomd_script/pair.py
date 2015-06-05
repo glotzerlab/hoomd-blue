@@ -1,6 +1,6 @@
 # -- start license --
 # Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+# (HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 # the University of Michigan All rights reserved.
 
 # HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -84,6 +84,7 @@ from hoomd_script import tune;
 from hoomd_script import init;
 from hoomd_script import data;
 from hoomd_script import variant;
+from hoomd_script import cite;
 
 import math;
 import sys;
@@ -357,7 +358,7 @@ class nlist:
         # create the C++ mirror class
         if not globals.exec_conf.isCUDAEnabled():
             if mode == "binned":
-                cl_c = hoomd.CellList(globals.system_definition);
+                self.cpp_cl = cl_c = hoomd.CellList(globals.system_definition);
                 globals.system.addCompute(cl_c, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListBinned(globals.system_definition, r_cut, default_r_buff, cl_c)
             else:
@@ -365,7 +366,7 @@ class nlist:
                 raise RuntimeError("Error creating neighbor list");
         else:
             if mode == "binned":
-                cl_g = hoomd.CellListGPU(globals.system_definition);
+                self.cpp_cl = cl_g = hoomd.CellListGPU(globals.system_definition);
                 globals.system.addCompute(cl_g, "auto_cl")
                 self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
             else:
@@ -427,6 +428,7 @@ class nlist:
     #        run() commands. (in distance units)
     # \param dist_check When set to False, disable the distance checking logic and always regenerate the nlist every
     #        \a check_period steps
+    # \param deterministic (if set) Enable deterministic runs on the GPU by sorting the cell list
     #
     # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period
     # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
@@ -460,6 +462,15 @@ class nlist:
     #
     # A single global neighbor list is created for the entire simulation.
     #
+    # \note For truly deterministic simulations, also the autotuner should be disabled.
+    # This can significantly decrease performance.
+    #
+    # \b Example:
+    # \code
+    # nlist.set_params(deterministic=True)
+    # option.set_autotuner_params(enable=False)
+    # \endcode
+    #
     # \b Examples:
     # \code
     # nlist.set_params(r_buff = 0.9)
@@ -467,7 +478,7 @@ class nlist:
     # nlist.set_params(r_buff = 0.7, check_period = 4)
     # nlist.set_params(d_max = 3.0)
     # \endcode
-    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True):
+    def set_params(self, r_buff=None, check_period=None, d_max=None, dist_check=True, deterministic=None):
         util.print_status_line();
 
         if self.cpp_nlist is None:
@@ -484,6 +495,9 @@ class nlist:
 
         if d_max is not None:
             self.cpp_nlist.setMaximumDiameter(d_max);
+
+        if deterministic is not None:
+            self.cpp_cl.setSortCellList(deterministic)
 
     ## Resets all exclusions in the neighborlist
     #
@@ -1866,7 +1880,21 @@ class dpd(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
-
+        
+        # register the citation
+        c = cite.article(cite_key='phillips2011',
+                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
+                         journal='Journal of Computational Physics',
+                         volume=230,
+                         number=19,
+                         pages='7191--7201',
+                         month='Aug',
+                         year='2011',
+                         doi='10.1016/j.jcp.2011.05.021',
+                         feature='DPD')
+        cite._ensure_global_bib().add(c)
+        
         # tell the base class how we operate
 
         # initialize the base class
@@ -1986,6 +2014,20 @@ class dpd_conservative(pair):
     def __init__(self, r_cut, name=None):
         util.print_status_line();
 
+        # register the citation
+        c = cite.article(cite_key='phillips2011',
+                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
+                         journal='Journal of Computational Physics',
+                         volume=230,
+                         number=19,
+                         pages='7191--7201',
+                         month='Aug',
+                         year='2011',
+                         doi='10.1016/j.jcp.2011.05.021',
+                         feature='DPD')
+        cite._ensure_global_bib().add(c)
+
         # tell the base class how we operate
 
         # initialize the base class
@@ -2046,6 +2088,18 @@ class eam(force._force):
     # eam = pair.eam(file='al1.mendelev.eam.fs', type='FS')
     # \endcode
     def __init__(self, file, type):
+        c = cite.article(cite_key = 'morozov2011',
+                         author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
+                         title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
+                         journal = 'Computer Physics Communications',
+                         volume = 182,
+                         number = 9,
+                         pages = '1974--1978',
+                         year = '2011',
+                         doi = '10.1016/j.cpc.2010.12.026',
+                         feature = 'EAM')
+        cite._ensure_global_bib().add(c)
+                     
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -2186,6 +2240,20 @@ class dpdlj(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
+        
+        # register the citation
+        c = cite.article(cite_key='phillips2011',
+                         author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
+                         title='Pseudo-random number generation for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices',
+                         journal='Journal of Computational Physics',
+                         volume=230,
+                         number=19,
+                         pages='7191--7201',
+                         month='Aug',
+                         year='2011',
+                         doi='10.1016/j.jcp.2011.05.021',
+                         feature='DPD')
+        cite._ensure_global_bib().add(c)
 
         # tell the base class how we operate
 

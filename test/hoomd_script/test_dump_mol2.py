@@ -4,6 +4,7 @@
 from hoomd_script import *
 import unittest
 import os
+import tempfile
 
 # unit tests for dump.mol2
 class dmp_mol2_tests (unittest.TestCase):
@@ -13,17 +14,32 @@ class dmp_mol2_tests (unittest.TestCase):
 
         sorter.set_params(grid=8)
 
+        if comm.get_rank() == 0:
+            tmp = tempfile.mkstemp(suffix='.mol2');
+            self.tmp_file = tmp[1];
+        else:
+            self.tmp_file = "invalid";
+
     # tests basic creation of the dump
     def test(self):
-        dump.mol2(filename="dump_mol2", period=100);
-        run(101)
-        os.remove("dump_mol2.0000000000.mol2")
+        dump.mol2(filename=self.tmp_file, period=100);
+        run(10)
+        if comm.get_rank() == 0:
+            os.remove(self.tmp_file + ".0000000000.mol2")
+
+    # tests with phase
+    def test_phase(self):
+        dump.mol2(filename=self.tmp_file, period=100, phase=0);
+        run(10)
+        if comm.get_rank() == 0:
+            os.remove(self.tmp_file + ".0000000000.mol2")
 
     # tests variable periods
     def test_variable(self):
-        dump.mol2(filename="dump_mol2", period=lambda n: n*100);
-        run(100);
-        os.remove("dump_mol2.0000000000.mol2")
+        dump.mol2(filename=self.tmp_file, period=lambda n: n*100);
+        run(10);
+        if comm.get_rank() == 0:
+            os.remove(self.tmp_file + ".0000000000.mol2")
 
     def tearDown(self):
         init.reset();

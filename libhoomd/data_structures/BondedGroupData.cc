@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -57,6 +57,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondedGroupData.h"
 #include "ParticleData.h"
 #include "Index1D.h"
+
+#include "num_util.h"
 
 #ifdef ENABLE_CUDA
 #include "BondedGroupData.cuh"
@@ -173,6 +175,7 @@ void BondedGroupData<group_size, Group, name>::initialize()
 
     // clear set of active tags
     m_tag_set.clear();
+    m_invalid_cached_tags = true;
 
     // clear reservoir of recycled tags
     while (! m_recycled_tags.empty())
@@ -396,6 +399,7 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 
     // add to set of active tags
     m_tag_set.insert(tag);
+    m_invalid_cached_tags = true;
 
     // increment number of bonded groups
     m_nglobal++;
@@ -413,9 +417,9 @@ unsigned int BondedGroupData<group_size, Group, name>::addBondedGroup(Group g)
 /*! \param n Index of bond in global bond table
  */
 template<unsigned int group_size, typename Group, const char *name>
-unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n) const
+unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n)
     {
-   if (n >= getNGlobal())
+    if (n >= getNGlobal())
         {
         m_exec_conf->msg->error() << name << ".*: " << name << " index " << n << " out of bounds!"
             << "The number of " << name << "s is " << getNGlobal() << std::endl;
@@ -423,11 +427,11 @@ unsigned int BondedGroupData<group_size, Group, name>::getNthTag(unsigned int n)
         }
 
     assert(m_tag_set.size() == getNGlobal());
-    std::set<unsigned int>::const_iterator it = m_tag_set.begin();
-    std::advance(it, n);
-    return *it;
-    }
 
+    // maybe_rebuild_tag_cache only rebuilds if necessary
+    maybe_rebuild_tag_cache();
+    return m_cached_tag_set[n];
+    }
 
 /*! \param tag Tag of bonded group
  * \returns the group
@@ -600,6 +604,7 @@ void BondedGroupData<group_size, Group, name>::removeBondedGroup(unsigned int ta
 
     // remove from set of active tags
     m_tag_set.erase(tag);
+    m_invalid_cached_tags = true;
 
     // maintain a stack of deleted group tags for future recycling
     m_recycled_tags.push(tag);
@@ -656,6 +661,31 @@ void BondedGroupData<group_size, Group, name>::setTypeName(unsigned int type, co
         }
 
     m_type_mapping[type] = new_name;
+    }
+
+/*! Rebuild the cached vector of active tags, if necessary
+*/
+template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::maybe_rebuild_tag_cache()
+    {
+    if(!m_invalid_cached_tags)
+        return;
+
+    // GPUVector checks if the resize is necessary
+    m_cached_tag_set.resize(m_tag_set.size());
+
+    ArrayHandle<unsigned int> h_active_tag(m_cached_tag_set, access_location::host, access_mode::overwrite);
+
+    // iterate over each element in the set, building a mapping
+    // from dense array indices to sparse particle tag indices
+    unsigned int i(0);
+    for(std::set<unsigned int>::const_iterator it(m_tag_set.begin());
+        it != m_tag_set.end(); ++it, ++i)
+        {
+        h_active_tag.data[i] = *it;
+        }
+
+    m_invalid_cached_tags = false;
     }
 
 template<unsigned int group_size, typename Group, const char *name>
@@ -1135,10 +1165,11 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
     typedef typename T::Snapshot Snapshot;
     class_<Snapshot, boost::shared_ptr<Snapshot> >
         (snapshot_name.c_str(), init<unsigned int>())
-        .def_readwrite("groups", &Snapshot::groups)
-        .def_readwrite("type_id", &Snapshot::type_id)
-        .def_readwrite("type_mapping", &Snapshot::type_mapping)
+        .add_property("typeid", &Snapshot::getTypeNP)
+        .add_property("group", &Snapshot::getBondedTagsNP)
+        .add_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
         .def("resize", &Snapshot::resize)
+        .def_readonly("N", &Snapshot::size)
         ;
    }
 
@@ -1169,6 +1200,51 @@ void BondedGroupData<group_size, Group, name>::Snapshot::replicate(unsigned int 
             type_id[old_size*j+i] = type;
             }
         }
+    }
+
+/*! \returns a numpy array that wraps the type_id data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template<unsigned int group_size, typename Group, const char *name>
+boost::python::numeric::array BondedGroupData<group_size, Group, name>::Snapshot::getTypeNP()
+    {
+    return num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size());
+    }
+
+/*! \returns a numpy array that wraps the groups data element.
+    The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
+*/
+template<unsigned int group_size, typename Group, const char *name>
+boost::python::numeric::array BondedGroupData<group_size, Group, name>::Snapshot::getBondedTagsNP()
+    {
+    std::vector<intp> dims(2);
+    dims[0] = this->groups.size();
+    dims[1] = group_size;
+    return num_util::makeNumFromData((unsigned int*)&(this->groups[0]), dims);
+    }
+
+/*! \returns A python list of type names
+*/
+template<unsigned int group_size, typename Group, const char *name>
+boost::python::list BondedGroupData<group_size, Group, name>::Snapshot::getTypes()
+    {
+    boost::python::list types;
+
+    for (unsigned int i = 0; i < this->type_mapping.size(); i++)
+        types.append(str(this->type_mapping[i]));
+
+    return types;
+    }
+
+/*! \param types Python list of type names to set
+*/
+template<unsigned int group_size, typename Group, const char *name>
+void BondedGroupData<group_size, Group, name>::Snapshot::setTypes(boost::python::list types)
+    {
+    type_mapping.resize(len(types));
+
+    for (unsigned int i = 0; i < len(types); i++)
+        this->type_mapping[i] = extract<string>(types[i]);
     }
 
 //! Explicit template instantiations
