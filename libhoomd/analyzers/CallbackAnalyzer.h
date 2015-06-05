@@ -67,84 +67,29 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <boost/shared_ptr.hpp>
 
-//! Prints a log of the mean-squared displacement calculated over particles in the simulation
-/*! On construction, CallbackAnalyzer opens the given file name for writing. The file will optionally be overwritten
-    or appended to. If the file is appended to, the added columns are assumed to be provided in the same order
-    as with the initial generation of the file. It also records the initial positions of all particles in the
-    simulation. Each time analyze() is called, the mean-squared displacement is calculated and written out to the file.
-
-    The mean squared displacement (MSD) is calculated as:
-    \f[ \langle |\vec{r} - \vec{r}_0|^2 \rangle \f]
-
-    Multiple MSD columns may be desired in a single simulation run. Rather than requiring the user to specify
-    many analyze.msd commands each with a separate file, a single class instance is designed to be capable of outputting
-    many columns. The particles over which the MSD is calculated for each column are specified with a ParticleGroup.
-
-    To allow for the continuation of msd data when a job is restarted from a file, CallbackAnalyzer can assign the reference
-    state r_0 from a given xml file.
+//! Calls a python functor object
+/*! On construction, CallbackAnalyzer stores a python object to be called every analyzer period.
+    The functor is expected to take the current timestep as single argument.
 
     \ingroup analyzers
 */
 class CallbackAnalyzer : public Analyzer
     {
     public:
-        //! Construct the msd analyzer
+        //! Construct the callback analyzer
         CallbackAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
                     boost::python::object callback);
 
         //! Destructor
         ~CallbackAnalyzer();
 
-        //! Write out the data for the current timestep
+        //! Call the analyzer callback
         void analyze(unsigned int timestep);
 
-        ////! Sets the delimiter to use between fields
-        //void setDelimiter(const std::string& delimiter);
-
-        ////! Adds a column to the analysis
-        //void addColumn(boost::shared_ptr<ParticleGroup> group, const std::string& name);
-
-        ////! Sets r0 from an xml file
-        //void setR0(const std::string& xml_fname);
-
     private:
-        ////! The delimiter to put between columns in the file
-        //std::string m_delimiter;
-        ////! The prefix written at the beginning of the header line
-        //std::string m_header_prefix;
-        ////! Flag indicating this file is being appended to
-        //bool m_appending;
 
-        //bool m_columns_changed; //!< Set to true if the list of columns have changed
-        //std::ofstream m_file;   //!< The file we write out to
-
-        //std::vector<Scalar> m_initial_x;    //!< initial value of the x-component listed by tag
-        //std::vector<Scalar> m_initial_y;    //!< initial value of the y-component listed by tag
-        //std::vector<Scalar> m_initial_z;    //!< initial value of the z-component listed by tag
-
-        //unsigned int m_nglobal; //!< Initial number of particles
-
-        ////! struct for storing the particle group and name assocated with a column in the output
-        //struct column
-        //    {
-        //    //! default constructor
-        //    column() {}
-        //    //! constructs a column
-        //    column(boost::shared_ptr<ParticleGroup const> group, const std::string& name) :
-        //            m_group(group), m_name(name) {}
-
-        //    boost::shared_ptr<ParticleGroup const> m_group; //!< A shared pointer to the group definition
-        //    std::string m_name;                             //!< The name to print across the file header
-        //    };
-
-        //std::vector<column> m_columns;  //!< List of groups to output
-
-        ////! Helper function to write out the header
-        //void writeHeader();
-        ////! Helper function to calculate the MSD of a single group
-        //Scalar calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData<Scalar>& snapshot);
-        ////! Helper function to write one row of output
-        //void writeRow(unsigned int timestep, const SnapshotParticleData<Scalar>& snapshot);
+        ////! The callback function to be called at each analyzer period.
+        boost::python::object callback;
     };
 
 //! Exports the CallbackAnalyzer class to python
