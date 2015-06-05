@@ -95,9 +95,10 @@ class _metadata:
 # \param filename The name of the file to write JSON metadata to (optional)
 # \param obj Additional metadata, has to be a dictionary
 # \param overwrite If true, overwrite output file if it already exists
+# \param indent The json indentation size
 #
 # \returns metadata as a dictionary
-def dump_metadata(filename=None,obj=None,overwrite=False):
+def dump_metadata(filename=None,obj=None,overwrite=False,indent=4):
     util.print_status_line();
 
     from hoomd_script import init
@@ -128,10 +129,12 @@ def dump_metadata(filename=None,obj=None,overwrite=False):
     # Generate time stamp
     import time
     import datetime
+    from . import context
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     obj['timestamp'] = st
     obj['timestep'] = globals.system.getCurrentTimeStep()
+    obj['execution_context'] = context.ExecutionContext()
 
     from hoomd_script.data import system_data
     global_objs = [system_data(globals.system_definition)];
@@ -153,11 +156,10 @@ def dump_metadata(filename=None,obj=None,overwrite=False):
     default_handler = lambda obj: obj.get_metadata() if hasattr(obj,'get_metadata') and callable(getattr(obj, 'get_metadata')) else None
 
     if filename is not None:
-        with open(filename, 'w') as f:
+        with open(filename, 'w') as file:
             # dump to JSON
-            json.dump(metadata, f,indent=4,default=default_handler)
+            json.dump(metadata, file, indent=indent, default=default_handler)
 
     # serialize into string
     meta_str = json.dumps(metadata,default=default_handler)
-
     return json.loads(meta_str)
