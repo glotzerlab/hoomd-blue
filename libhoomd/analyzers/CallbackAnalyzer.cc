@@ -72,11 +72,7 @@ using namespace boost::filesystem;
 using namespace std;
 
 /*! \param sysdef SystemDefinition containing the Particle data to analyze
-    \param fname File name to write output to
-    \param header_prefix String to print before the file header
-    \param overwrite Will overwite an exiting file if true (default is to append)
-
-    analyze()
+    \param callback A python functor object to be used as callback
 */
 CallbackAnalyzer::CallbackAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
                          boost::python::object callback)
