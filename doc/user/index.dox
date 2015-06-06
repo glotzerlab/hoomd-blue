@@ -82,6 +82,7 @@ Table of contents:
  - \ref sec_index_compute
  - \ref sec_index_analyze
  - \ref sec_index_dump
+ - \ref sec_index_meta
  - Potentials
    - \ref sec_index_pair
    - \ref sec_index_manybody
@@ -172,6 +173,9 @@ Table of contents:
  - \link hoomd_script.dump.pdb dump.pdb\endlink - <i>Writes simulation snapshots in the PBD format </i>
  - \link hoomd_script.dump.bin dump.bin\endlink - <i>Writes simulation snapshots in a binary format </i>
  - \link hoomd_script.dump.xml dump.xml\endlink - <i>Writes simulation snapshots in the HOOMD XML format </i>
+
+\section sec_index_meta Meta
+ - \link hoomd_script.meta\endlink - <i>Dumps metadata about the execution status and context </i>
 
 <h2>Potentials</h2>
 

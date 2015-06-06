@@ -50,11 +50,19 @@
 # Maintainer: joaander / All Developers are free to add commands for new features
 
 ## \package hoomd_script.meta
-# \brief Commands to write out simulation metadata
+# \brief Write out simulation and environment context metadata
 #
 # Metadata is stored in form of key-value pairs in a JSON file and used
 # to summarize the per-run simulation parameters so that they can be easily
 # taken up by other scripts and stored in a database.
+#
+# The metadata is returned by dump_metadata() and can optionally be written to a file.
+# Provide user defined metadata as mapping type.
+#
+# \code
+# metadata = meta.dump_metadata()
+# meta.dump_metadata(filename = "metadata.json", overwrite = False, extra = {'debug': True})
+# \endcode
 
 import hoomd;
 from hoomd_script import globals;
