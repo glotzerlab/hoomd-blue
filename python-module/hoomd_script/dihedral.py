@@ -620,3 +620,14 @@ class opls(force._force):
             if not cur_type in self.opls_types_set:
                 globals.msg.error(str(cur_type) + " coefficients missing in dihedral.opls\n");
                 raise RuntimeError("Error updating coefficients");
+                
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['dihedral_coeff'] = self.dihedral_coeff
+        return data
