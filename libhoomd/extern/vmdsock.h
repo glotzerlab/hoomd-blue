@@ -62,4 +62,3 @@ void  vmdsock_destroy(void *);
 #ifdef __cplusplus
 }
 #endif
-

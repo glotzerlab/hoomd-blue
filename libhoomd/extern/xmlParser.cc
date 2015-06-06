@@ -2719,4 +2719,3 @@ unsigned char *XMLParserBase64Tool::decode(XMLCSTR data, int *outlen, XMLError *
     if(!decode(data,(unsigned char*)buf,len,xe)){ return NULL; }
     return (unsigned char*)buf;
 }
-

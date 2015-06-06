@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -48,10 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
+
 
 #include "Initializers.h"
 #include "WallData.h"
@@ -88,12 +85,12 @@ SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, c
     }
 
 /*! initialize a snapshot with a cubic crystal */
-boost::shared_ptr<SnapshotSystemData> SimpleCubicInitializer::getSnapshot() const
+boost::shared_ptr< SnapshotSystemData<Scalar> > SimpleCubicInitializer::getSnapshot() const
     {
-    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
     snapshot->global_box = box;
 
-    SnapshotParticleData& pdata = snapshot->particle_data;
+    SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
     unsigned int num_particles = m_M * m_M * m_M;
     pdata.resize(num_particles);
 
@@ -169,12 +166,12 @@ void RandomInitializer::setSeed(unsigned int seed)
     \note An exception is thrown if too many tries are made to find a spot where
         min_dist can be satisfied.
 */
-boost::shared_ptr<SnapshotSystemData> RandomInitializer::getSnapshot() const
+boost::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() const
     {
-    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
     snapshot->global_box = m_box;
 
-    SnapshotParticleData& pdata = snapshot->particle_data;
+    SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
     pdata.resize(m_N);
 
     Scalar L = m_box.getL().x;
@@ -231,7 +228,7 @@ boost::shared_ptr<SnapshotSystemData> RandomInitializer::getSnapshot() const
                 }
             }
 
-        pdata.pos[i] = make_scalar3(x,y,z);
+        pdata.pos[i] = vec3<Scalar>(x,y,z);
         }
 
     pdata.type_mapping.push_back(m_type_name);
@@ -267,9 +264,9 @@ RandomInitializerWithWalls::~RandomInitializerWithWalls()
     {
     }
 
-boost::shared_ptr<SnapshotSystemData> RandomInitializerWithWalls::getSnapshot() const
+boost::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializerWithWalls::getSnapshot() const
     {
-    boost::shared_ptr<SnapshotSystemData> snapshot = RandomInitializer::getSnapshot();
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot = RandomInitializer::getSnapshot();
 
     // the real box dimensions need to be increased by m_wall_buffer*2
     Scalar L = m_real_box.getL().x + m_wall_buffer*2;
@@ -323,7 +320,3 @@ void export_RandomInitializerWithWalls()
     ;
     // no need to .def methods, they are all inherited
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

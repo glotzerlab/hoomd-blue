@@ -1,6 +1,6 @@
 /*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2014 The Regents of
+(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
 the University of Michigan All rights reserved.
 
 HOOMD-blue may contain modifications ("Contributions") provided, and to which
@@ -52,12 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file HOOMDBinaryInitializer.cc
     \brief Defines the HOOMDBinaryInitializer class
 */
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 4267 )
-#endif
-
 #include "HOOMDBinaryInitializer.h"
 #include "SnapshotSystemData.h"
 
@@ -115,9 +109,9 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
     }
 
 /*! initializes a snapshot with the internally stored copy of the particle data */
-boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() const
+boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDBinaryInitializer::getSnapshot() const
     {
-    boost::shared_ptr<SnapshotSystemData> snapshot(new SnapshotSystemData());
+    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
 
     // execute only on rank zero
     if (m_exec_conf->getRank()) return snapshot;
@@ -129,7 +123,7 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
     snapshot->global_box = m_box;
 
     // init particle data snapshot
-    SnapshotParticleData& pdata = snapshot->particle_data;
+    SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
 
     // resize snapshot
     pdata.resize(m_x_array.size());
@@ -139,10 +133,10 @@ boost::shared_ptr<SnapshotSystemData> HOOMDBinaryInitializer::getSnapshot() cons
         {
         unsigned int rtag = m_rtag_array[i];
 
-        pdata.pos[i] = make_scalar3(m_x_array[rtag], m_y_array[rtag], m_z_array[rtag]);
+        pdata.pos[i] = vec3<Scalar>(m_x_array[rtag], m_y_array[rtag], m_z_array[rtag]);
         pdata.image[i] = make_int3(m_ix_array[rtag], m_iy_array[rtag], m_iz_array[rtag]);
-        pdata.vel[i] = make_scalar3(m_vx_array[rtag], m_vy_array[rtag], m_vz_array[rtag]);
-        pdata.accel[i] = make_scalar3(m_ax_array[rtag], m_ay_array[rtag], m_az_array[rtag]);
+        pdata.vel[i] = vec3<Scalar>(m_vx_array[rtag], m_vy_array[rtag], m_vz_array[rtag]);
+        pdata.accel[i] = vec3<Scalar>(m_ax_array[rtag], m_ay_array[rtag], m_az_array[rtag]);
         pdata.mass[i] = m_mass_array[rtag];
         pdata.type[i] = m_type_array[rtag];
         pdata.diameter[i] = m_diameter_array[rtag];
@@ -617,7 +611,3 @@ void export_HOOMDBinaryInitializer()
         .def("setTimeStep", &HOOMDBinaryInitializer::setTimeStep)
         ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

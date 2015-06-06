@@ -23,7 +23,7 @@ set(_libhoomd_cu_sources "")
 
 # process all subdirectories, which add source files to _libhoomd_sources and _libhoomd_cu_sources
 set(_dir_list analyzers communication computes data_structures extern
-    potentials python system updaters utils)
+    potentials system updaters utils)
 if (ENABLE_CUDA)
 list(APPEND _dir_list computes_gpu cuda updaters_gpu)
 endif (ENABLE_CUDA)
@@ -31,6 +31,9 @@ endif (ENABLE_CUDA)
 foreach (dir ${_dir_list})
 add_libhoomd_source_dir(${dir})
 endforeach (dir)
+
+# Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc
+set_source_files_properties(${_libhoomd_sources} ${_libhoomd_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
 if (ENABLE_CUDA)
 if (BUILD_SHARED_LIBS)
@@ -40,7 +43,7 @@ CUDA_COMPILE(_CUDA_GENERATED_FILES ${_libhoomd_cu_sources} OPTIONS ${CUDA_ADDITI
 source_group(cuda_generated FILES ${_CUDA_GENERATED_FILES})
 endif (ENABLE_CUDA)
 
-add_library (libhoomd ${_libhoomd_sources} ${_CUDA_GENERATED_FILES})
+add_library (libhoomd ${_libhoomd_sources} ${_CUDA_GENERATED_FILES} python/hoomd_module.cc)
 
 ##################################
 # change the name of the library if it is dynamic
@@ -68,32 +71,17 @@ if (NOT ENABLE_STATIC)
     endif(APPLE)
     fix_cudart_rpath(libhoomd)
 
-    # set the rpath so that the lib can find other libs stashed in lib/hoomd
-    if (ENABLE_EMBED_CUDA)
-        set_target_properties(libhoomd PROPERTIES INSTALL_RPATH "$ORIGIN/../../hoomd;$ORIGIN/../hoomd")
-    endif (ENABLE_EMBED_CUDA)
-
-    # for non-app-bundle relocatable installs, set the install name of the lib for linking relative to bin/
-    if (NOT ENABLE_APP_BUNDLE_INSTALL)
+    # set the install name of the lib for linking relative to bin/
     set_target_properties(libhoomd PROPERTIES INSTALL_NAME_DIR "@executable_path/../lib/hoomd/python-module")
-    endif (NOT ENABLE_APP_BUNDLE_INSTALL)
 endif (NOT ENABLE_STATIC)
 
 if (ENABLE_STATIC)
     # change the library name to something more sensible
-    if (WIN32)
-        set_target_properties(libhoomd PROPERTIES OUTPUT_NAME "libhoomd")
-    else(WIN32)
-        set_target_properties(libhoomd PROPERTIES OUTPUT_NAME "hoomd")
-    endif(WIN32)
+    set_target_properties(libhoomd PROPERTIES OUTPUT_NAME "hoomd")
 endif (ENABLE_STATIC)
 
 # due to the way that app bundle installs work with relative linking, hoomd.so must be installed into the bin dir, ugh!
-if (ENABLE_APP_BUNDLE_INSTALL)
-set(_hoomd_so_install_dir ${BIN_INSTALL_DIR})
-else (ENABLE_APP_BUNDLE_INSTALL)
 set(_hoomd_so_install_dir ${HOOMD_PYTHON_MODULE_DIR})
-endif(ENABLE_APP_BUNDLE_INSTALL)
 
 # install the library
 install(TARGETS libhoomd
@@ -102,4 +90,4 @@ install(TARGETS libhoomd
         )
 
 add_subdirectory(api)
-
+add_subdirectory(python)

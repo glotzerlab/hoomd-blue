@@ -74,16 +74,6 @@ if (ENABLE_CUDA)
     list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${_cuda_max_arch},code=compute_${_cuda_max_arch}")
 endif (ENABLE_CUDA)
 
-# embed the CUDA libraries into the lib dir
-if (ENABLE_EMBED_CUDA)
-
-    # determine the directory of the found cuda libs
-    get_filename_component(_cuda_libdir ${CUDA_CUDART_LIBRARY} PATH)
-    FILE(GLOB _cuda_libs ${_cuda_libdir}/libcudart.* ${_cuda_libdir}/libcufft.*)
-    install(PROGRAMS ${_cuda_libs} DESTINATION ${LIB_INSTALL_DIR})
-
-endif (ENABLE_EMBED_CUDA)
-
 # automatically handle setting ccbin to /usr when needed
 if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_VERSION VERSION_GREATER 2.8.7)
     # CMAKE_CXX_COMPILER_VERSION is only available on 2.8.8 and newer
