@@ -52,6 +52,9 @@ import sys;
 import ctypes;
 import os;
 
+# Early import to keep track of the CPU and wallclock time
+from . import context
+
 # need to import HOOMD with RTLD_GLOBAL in python sitedir builds
 if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     flags = sys.getdlopenflags();

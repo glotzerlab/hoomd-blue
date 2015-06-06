@@ -93,30 +93,28 @@ class _metadata:
 # JSON file, together with a timestamp.
 #
 # \param filename The name of the file to write JSON metadata to (optional)
-# \param obj Additional metadata, has to be a dictionary
+# \param extra Additional metadata, needs to be a mapping type
 # \param overwrite If true, overwrite output file if it already exists
 # \param indent The json indentation size
 #
 # \returns metadata as a dictionary
-def dump_metadata(filename=None,obj=None,overwrite=False,indent=4):
+def dump_metadata(filename=None,extra=None,overwrite=False,indent=4):
     util.print_status_line();
+    import json, collections
 
     from hoomd_script import init
     if not init.is_initialized():
         globals.msg.error("Need to initialize system first.\n")
         raise RuntimeError("Error writing out metadata.")
 
-    import json
-
     metadata = []
-    if obj is None:
-        obj = OrderedDict()
-    else:
-        if not isinstance(obj,dict):
-            globals.msg.warning("Metadata needs to be of type dictionary. Ignoring.\n")
-            obj = OrderedDict()
+    obj = OrderedDict()
+
+    if extra is not None:
+        if not isinstance(extra, collections.Mapping):
+            globals.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
-            obj = OrderedDict(obj)
+            obj.update(extra)
 
     if not overwrite and filename is not None:
         try:
@@ -134,7 +132,7 @@ def dump_metadata(filename=None,obj=None,overwrite=False,indent=4):
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     obj['timestamp'] = st
     obj['timestep'] = globals.system.getCurrentTimeStep()
-    obj['execution_context'] = context.ExecutionContext()
+    obj['context'] = context.ExecutionContext()
 
     from hoomd_script.data import system_data
     global_objs = [system_data(globals.system_definition)];
@@ -148,18 +146,17 @@ def dump_metadata(filename=None,obj=None,overwrite=False,indent=4):
 
     # add list of objects to JSON
     for o in global_objs:
-        obj[o.__module__+'.'+o.__class__.__name__] = o
+        if o is not None:
+            obj[o.__module__+'.'+o.__class__.__name__] = o
 
     metadata.append(obj)
 
     # handler for unknown objects
     default_handler = lambda obj: obj.get_metadata() if hasattr(obj,'get_metadata') and callable(getattr(obj, 'get_metadata')) else None
 
+    # dump to JSON
+    meta_str = json.dumps(metadata,default=default_handler,indent=indent)
     if filename is not None:
         with open(filename, 'w') as file:
-            # dump to JSON
-            json.dump(metadata, file, indent=indent, default=default_handler)
-
-    # serialize into string
-    meta_str = json.dumps(metadata,default=default_handler)
+            file.write(meta_str)
     return json.loads(meta_str)

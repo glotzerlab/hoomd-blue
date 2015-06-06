@@ -57,6 +57,11 @@
 import hoomd;
 from hoomd_script import meta;
 
+# The following global variables keep track of the walltime and processing time since the import of hoomd_script
+import time
+TIME_START = time.time()
+CLOCK_START = time.clock()
+
 ## \internal
 # \brief Gather context from the environment
 class ExecutionContext(meta._metadata):
@@ -66,7 +71,8 @@ class ExecutionContext(meta._metadata):
         meta._metadata.__init__(self)
         self.metadata_fields = [
             'hostname', 'num_cpu', 'gpu', 'num_ranks',
-            'hoomd_version', 'git_hash', 'username']
+            'hoomd_version', 'git_hash', 'username',
+            'wallclocktime', 'cputime']
 
     ## \internal
     # \brief Return the execution configuration if initialized or raise exception.
@@ -127,3 +133,13 @@ class ExecutionContext(meta._metadata):
     def username(self):
         import getpass
         return getpass.getuser()
+
+    # \brief Return the wallclock time since the import of hoomd_script
+    @property
+    def wallclocktime(self):
+        return time.time() - TIME_START
+
+    # \brief Return the CPU clock time since the import of hoomd_script
+    @property
+    def cputime(self):
+        return time.clock() - CLOCK_START

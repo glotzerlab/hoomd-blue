@@ -49,27 +49,33 @@
 
 # Maintainer: csadorf / All Developers are free to add commands for new features
 
-## \package hoomd_script.context
-# \brief Gather information about the execution context
-#
-# As much data from the environment is gathered as possible.
+## \package hoomd_script.git_tools
+# \brief Gather information about the git stage
 
 import subprocess
 import os
 
 BIN_GIT = 'git'
 
+## \internal
+# \brief A RuntimeWarning for a dirty git stage.
 class StageDirtyWarning(RuntimeWarning):
     pass
 
+## \internal
+# \brief Wrapper for subprocess call surpressing any output to stdout or stderr.
 def call_dev_null(cmd):
-    FNULL = open(os.devnull, 'w')
-    return subprocess.call(cmd.split(), stdout = FNULL, stderr = subprocess.STDOUT)
+    with open(os.devnull, 'w') as FNULL:
+        return subprocess.call(cmd.split(), stdout = FNULL, stderr = subprocess.STDOUT)
 
+## \internal
+# \brief Wrapper for subprocess call surpressing any output to stderr and capturing stdout.
 def check_output_dev_null(cmd):
-    FNULL = open(os.devnull, 'w')
-    return subprocess.check_output(cmd.split(), stderr = FNULL)
+    with open(os.devnull, 'w') as FNULL:
+        return subprocess.check_output(cmd.split(), stderr = FNULL)
 
+## \internal
+# \brief Returns true if a call to git was successful.
 def found_git():
     try:
         clean_stage()
@@ -78,21 +84,31 @@ def found_git():
     else:
         return True
 
+## \internal
+# \brief Returns the git hash value of HEAD
 def current_sha1():
     cmd = BIN_GIT + ' show -s --pretty=format:%H HEAD'
     return check_output_dev_null(cmd).strip().decode('utf-8')
 
+## \internal
+# \brief Returns true if there are unstaged changes, otherwise false
 def local_changes():
     cmd = BIN_GIT + ' diff --exit-code'
     return call_dev_null(cmd)
 
+## \internal
+# \brief Returns true if there are cached (staged) changes, otherwise false
 def cached_changes():
     cmd = BIN_GIT + ' diff --cached --exit-code'
     return call_dev_null(cmd)
 
+## \internal
+# \brief Returns true when there are neither unstaged nor cached (staged) changes, otherwise false
 def clean_stage():
     return not (local_changes() or cached_changes())
 
+## \internal
+# \brief Returns the git hash value of HEAD if there are neither cached (staged) or unstaged changes, otherwise raises a StageDirtyWarning
 def sha1_if_clean_stage():
     if clean_stage():
         return current_sha1()
