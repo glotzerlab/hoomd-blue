@@ -62,18 +62,6 @@ import time
 TIME_START = time.time()
 CLOCK_START = time.clock()
 
-from . import git_tools
-GIT_SHA1_CWD = None
-try:
-    GIT_SHA1_CWD = git_tools.sha1_if_clean_stage()
-except git_tools.StageDirtyWarning:
-    # Do not keep track of sha1 if stage is not clean,
-    # because it is misleading.
-    pass
-except OSError:
-    # git was not found
-    pass
-
 ## \internal
 # \brief Gather context from the environment
 class ExecutionContext(meta._metadata):
@@ -86,7 +74,6 @@ class ExecutionContext(meta._metadata):
             'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
             'cuda_version', 'compiler_version',
             'username', 'wallclocktime', 'cputime',
-            'git_hash',
             ]
 
     ## \internal
@@ -148,15 +135,6 @@ class ExecutionContext(meta._metadata):
     def compiler_version(self):
         from hoomd import __compiler_version__
         return __compiler_version__
-
-    # \brief Return the git hash value of the current working directory.
-    #
-    # The hash value is only obtained if the git executable is found and
-    # the commit stage is clean, that means no unstaged changes to the
-    # working directory and no uncommited, but staged changes.
-    @property
-    def git_hash(self):
-        return GIT_SHA1_CWD
 
     # \brief Return the username.
     @property
