@@ -77,15 +77,17 @@ using namespace boost;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to dump
     \param base_fname The base name of the file xml file to output the information
+    \param mode_restart Set to true to enable restart writing mode. False writes one XML file per time step.
 
     \note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
-HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
+HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname, bool mode_restart)
         : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true),
         m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false),
         m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false),
         m_output_dihedral(false), m_output_improper(false), m_output_accel(false), m_output_body(false),
-        m_output_charge(false), m_output_orientation(false), m_output_moment_inertia(false), m_vizsigma_set(false)
+        m_output_charge(false), m_output_orientation(false), m_output_moment_inertia(false), m_vizsigma_set(false),
+        m_mode_restart(mode_restart)
     {
     m_exec_conf->msg->notice(5) << "Constructing HOOMDDumpWriter: " << base_fname << endl;
     }
@@ -571,12 +573,25 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
     if (m_prof)
         m_prof->push("Dump XML");
 
-    ostringstream full_fname;
-    string filetype = ".xml";
+    if (m_mode_restart)
+        {
+        string tmp_file = m_base_fname + string(".tmp");
+        writeFile(tmp_file, timestep);
+        if (rename(tmp_file.c_str(), m_base_fname.c_str()) != 0)
+            {
+            m_exec_conf->msg->error() << "dump.xml: Error renaming restart file." << endl;
+            throw runtime_error("Error writing restart file");
+            }
+        }
+    else
+        {
+        ostringstream full_fname;
+        string filetype = ".xml";
 
-    // Generate a filename with the timestep padded to ten zeros
-    full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
-    writeFile(full_fname.str(), timestep);
+        // Generate a filename with the timestep padded to ten zeros
+        full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
+        writeFile(full_fname.str(), timestep);
+        }
 
     if (m_prof)
         m_prof->pop();
@@ -585,7 +600,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 void export_HOOMDDumpWriter()
     {
     class_<HOOMDDumpWriter, boost::shared_ptr<HOOMDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("HOOMDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string >())
+    ("HOOMDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, bool >())
     .def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
     .def("setOutputImage", &HOOMDDumpWriter::setOutputImage)
     .def("setOutputVelocity", &HOOMDDumpWriter::setOutputVelocity)
