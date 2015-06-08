@@ -52,7 +52,7 @@ import sys;
 import ctypes;
 import os;
 
-# Early import to keep track of the CPU and wallclock time
+# Early import required to keep track of CPU and walltime clock
 from . import context
 
 # need to import HOOMD with RTLD_GLOBAL in python sitedir builds

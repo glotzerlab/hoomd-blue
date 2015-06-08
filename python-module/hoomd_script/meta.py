@@ -160,7 +160,11 @@ def dump_metadata(filename=None,extra=None,overwrite=False,indent=4):
     metadata.append(obj)
 
     # handler for unknown objects
-    default_handler = lambda obj: obj.get_metadata() if hasattr(obj,'get_metadata') and callable(getattr(obj, 'get_metadata')) else None
+    def default_handler(obj):
+        try:
+            return obj.get_metadata()
+        except (AttributeError, NotImplementedError):
+            return None
 
     # dump to JSON
     meta_str = json.dumps(metadata,default=default_handler,indent=indent)

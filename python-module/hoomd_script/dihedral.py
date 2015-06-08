@@ -624,10 +624,4 @@ class opls(force._force):
     ## \internal
     # \brief Get metadata
     def get_metadata(self):
-        data = force._force.get_metadata(self)
-
-        # make sure coefficients are up-to-date
-        self.update_coeffs()
-
-        data['dihedral_coeff'] = self.dihedral_coeff
-        return data
+        raise NotImplementedError()

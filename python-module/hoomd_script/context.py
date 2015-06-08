@@ -62,6 +62,18 @@ import time
 TIME_START = time.time()
 CLOCK_START = time.clock()
 
+from . import git_tools
+GIT_SHA1_CWD = None
+try:
+    GIT_SHA1_CWD = git_tools.sha1_if_clean_stage()
+except git_tools.StageDirtyWarning:
+    # Do not keep track of sha1 if stage is not clean,
+    # because it is misleading.
+    pass
+except OSError:
+    # git was not found
+    pass
+
 ## \internal
 # \brief Gather context from the environment
 class ExecutionContext(meta._metadata):
@@ -71,8 +83,11 @@ class ExecutionContext(meta._metadata):
         meta._metadata.__init__(self)
         self.metadata_fields = [
             'hostname', 'num_cpu', 'gpu', 'num_ranks',
-            'hoomd_version', 'git_hash', 'username',
-            'wallclocktime', 'cputime']
+            'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
+            'cuda_version', 'compiler_version',
+            'username', 'wallclocktime', 'cputime',
+            'git_hash',
+            ]
 
     ## \internal
     # \brief Return the execution configuration if initialized or raise exception.
@@ -107,8 +122,32 @@ class ExecutionContext(meta._metadata):
     # \brief Return the hoomd version.
     @property
     def hoomd_version(self):
-        from hoomd_script import get_hoomd_script_version
-        return get_hoomd_script_version()
+        from hoomd import __version__
+        return __version__
+
+    # \brief Return the hoomd git hash
+    @property
+    def hoomd_git_sha1(self):
+        from hoomd import __git_sha1__
+        return __git_sha1__
+
+    # \brief Return the hoomd git refspec
+    @property
+    def hoomd_git_refspec(self):
+        from hoomd import __git_refspec__
+        return __git_refspec__
+
+    # \brief Return the cuda version
+    @property
+    def cuda_version(self):
+        from hoomd import __cuda_version__
+        return __cuda_version__
+
+    # \brief Return the compiler version
+    @property
+    def compiler_version(self):
+        from hoomd import __compiler_version__
+        return __compiler_version__
 
     # \brief Return the git hash value of the current working directory.
     #
@@ -117,16 +156,7 @@ class ExecutionContext(meta._metadata):
     # working directory and no uncommited, but staged changes.
     @property
     def git_hash(self):
-        from . import git_tools
-        try:
-            return git_tools.sha1_if_clean_stage()
-        except git_tools.StageDirtyWarning:
-            # Do not keep track of sha1 if stage is not clean, 
-            # because it is misleading.
-            return None
-        except OSError:
-            # git was not found
-            return None
+        return GIT_SHA1_CWD
 
     # \brief Return the username.
     @property
