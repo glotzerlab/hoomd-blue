@@ -95,6 +95,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DCDDumpWriter.h"
 #include "Logger.h"
 #include "MSDAnalyzer.h"
+#include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
 #include "IntegratorTwoStep.h"
@@ -573,6 +574,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_MOL2DumpWriter();
     export_Logger();
     export_MSDAnalyzer();
+    export_CallbackAnalyzer();
     export_ParticleGroup();
 
     // updaters
