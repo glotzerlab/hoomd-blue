@@ -646,3 +646,27 @@ class msd(_analyzer):
 
         if delimiter:
             self.cpp_analyzer.setDelimiter(delimiter);
+
+class callback(_analyzer):
+    ## Initialize the callback analyzer
+    #
+    # \param callback The python callback object
+    # \param period The callback is called every \a period time steps
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
+    #
+    # \b Examples:
+    # \code
+    # def my_callback(timestep):
+    #   print(timestep)
+    #
+    # analyze.callback(callback = my_callback, period = 100)
+    # \endcode
+    def __init__(self, callback, period, phase=-1):
+        util.print_status_line();
+
+        # initialize base class
+        _analyzer.__init__(self);
+
+        # create the c++ mirror class
+        self.cpp_analyzer = hoomd.CallbackAnalyzer(globals.system_definition, callback)
+        self.setupAnalyzer(period, phase);
