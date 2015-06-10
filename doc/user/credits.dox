@@ -128,6 +128,7 @@ Jens Glaser, University of Michigan
  - Enable cell based neighbor list on small boxes
  - Testing of angle.table and dihedral.table
  - Replicate command
+ - metadata output
 
 Pavani Medapuram, University of Minnesota
  - Framework for external potentials
@@ -161,6 +162,9 @@ Sumedh R. Risbud, James W. Swan, Massachusetts Institute of Technology
 
 Michael P. Howard, Princeton University
  - Automatic citation list generator
+
+Carl Simon Adorf, University of Michigan
+ - metadata output
 
 <hr>
 <h1>Source code</h1>
