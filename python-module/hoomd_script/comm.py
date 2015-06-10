@@ -124,7 +124,7 @@ def barrier_all():
 # \note does nothing in in non-MPI builds
 def barrier():
     if hoomd.is_MPI_available():
-        if init.is_initialized():
+        if globals.exec_conf is not None:
             globals.exec_conf.barrier()
         else:
             # perform a synchronization across all partitions
