@@ -333,6 +333,13 @@ bool is_MPI_available()
 #endif
     }
 
+void mpi_barrier_world()
+    {
+    #ifdef ENABLE_MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+    #endif
+    }
+
 //! Start the CUDA profiler
 void cuda_profile_start()
     {
@@ -355,15 +362,9 @@ void cuda_profile_stop()
 unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
 bool hoomd_launch_timing=false;
 
-
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
-
-void mpi_barrier_world()
-    {
-    MPI_Barrier(MPI_COMM_WORLD);
-    }
 
 //! Initialize the MPI environment
 void initialize_mpi()

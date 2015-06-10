@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd_script import *
+init.setup_exec_conf()
 import unittest
 import os
 import tempfile
