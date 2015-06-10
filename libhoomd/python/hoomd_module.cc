@@ -360,6 +360,11 @@ bool hoomd_launch_timing=false;
 //! Environment variables needed for setting up MPI
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 
+void mpi_barrier_world()
+    {
+    MPI_Barrier(MPI_COMM_WORLD);
+    }
+
 //! Initialize the MPI environment
 void initialize_mpi()
     {
@@ -431,6 +436,7 @@ BOOST_PYTHON_MODULE(hoomd)
     bnp::array::set_module_and_type("numpy", "ndarray");
 
     def("abort_mpi", abort_mpi);
+    def("mpi_barrier_world", mpi_barrier_world);
 
     def("output_version_info", &output_version_info);
     def("find_vmd", &find_vmd);
