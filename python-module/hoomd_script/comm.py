@@ -109,3 +109,23 @@ def get_partition():
                 return 0
     else:
         return 0;
+
+## Perform a MPI barrier synchronization inside a partition
+# \note does nothing in in non-MPI builds
+def barrier_all():
+    if hoomd.is_MPI_available():
+        hoomd.mpi_barrier_world();
+
+## Perform a MPI barrier synchronization inside a partition
+#
+# If partitions have not been initialized yet via init.setup_exec_conf(),
+# this functions performs a global sync
+#
+# \note does nothing in in non-MPI builds
+def barrier():
+    if hoomd.is_MPI_available():
+        if init.is_initialized():
+            globals.exec_conf.barrier()
+        else:
+            # perform a synchronization across all partitions
+            barrier_all()
