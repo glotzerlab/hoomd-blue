@@ -104,7 +104,10 @@ class ExecutionContext(meta._metadata):
     # \brief Return the number of ranks.
     @property
     def num_ranks(self):
-        return self._get_exec_conf().getNRanks()
+        try:
+            return self._get_exec_conf().getNRanks()
+        except AttributeError:
+            return 1
 
     # \brief Return the hoomd version.
     @property
