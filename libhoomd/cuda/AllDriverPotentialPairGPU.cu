@@ -161,3 +161,10 @@ cudaError_t gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
     return gpu_compute_pair_forces<EvaluatorPairForceShiftedLJ>(args,
                                                                 d_params);
     }
+
+cudaError_t gpu_compute_mie_forces(const pair_args_t & args,
+                                                const Scalar4 *d_params)
+    {
+    return gpu_compute_pair_forces<EvaluatorPairMie>(args,
+                                                     d_params);
+    }

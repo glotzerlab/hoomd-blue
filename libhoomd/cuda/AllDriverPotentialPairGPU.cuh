@@ -112,4 +112,9 @@ cudaError_t gpu_compute_dpdljthermo_forces(const pair_args_t& args,
 //! Compute force shifted lj pair forces on the GPU with PairEvaluatorForceShiftedLJ
 cudaError_t gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
                                                 const Scalar2 *d_params);
+
+//! Compute mie potential pair forces on the GPU with PairEvaluatorMie
+cudaError_t gpu_compute_mie_forces(const pair_args_t & args,
+                                                const Scalar4 *d_params);
+
 #endif
