@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
+#include "num_util.h"
 
 #include "HOOMDMath.h"
 #include "Index1D.h"
@@ -172,8 +173,11 @@ class PotentialPair : public ForceCompute
         //! Calculates the energy between two lists of particles.
         template< class InputIterator >
         void computeEnergyBetweenSets(  InputIterator first1, InputIterator last1,
-                                        InputIterator first2, InputIterator last2,
-                                        Scalar& energy );
+                                            InputIterator first2, InputIterator last2,
+                                            Scalar& energy );
+        //! Calculates the energy between two lists of particles.
+        Scalar computeEnergyBetweenSetsPythonList(  boost::python::list tags1,
+                                                    boost::python::list tags2);
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -721,6 +725,26 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
     if (m_prof) m_prof->pop();
     }
 
+//! Calculates the energy between two lists of particles.
+template < class evaluator >
+Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  boost::python::list tags1,
+                                                                        boost::python::list tags2 )
+    {
+    boost::python::ssize_t n1 = boost::python::len(tags1);
+    boost::python::ssize_t n2 = boost::python::len(tags2);
+
+    Scalar eng = 0.0;
+    std::vector<size_t> t1(n1), t2(n2);
+    for(size_t i = 0; i < n1; i++)
+        t1[i] = boost::python::extract< size_t >(tags1[i]);
+
+    for(size_t i = 0; i < n2; i++)
+        t2[i] = boost::python::extract< size_t >(tags2[i]);
+
+    computeEnergyBetweenSets(  t1.begin(), t1.end(),  t2.begin(), t2.end(), eng);
+    return eng;
+    }
+
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
@@ -734,6 +758,7 @@ template < class T > void export_PotentialPair(const std::string& name)
                   .def("setRcut", &T::setRcut)
                   .def("setRon", &T::setRon)
                   .def("setShiftMode", &T::setShiftMode)
+                  .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
                   ;
 
     boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")

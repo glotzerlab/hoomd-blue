@@ -811,6 +811,10 @@ class pair(force._force):
 
         return max_rcut;
 
+    def compute_energy(self, tags1, tags2):
+        # need to be a python list
+        return self.cpp_force.computeEnergyBetweenSets(tags1, tags2);
+
 ## Lennard-Jones %pair %force
 #
 # The command pair.lj specifies that a Lennard-Jones type %pair %force should be added to every
@@ -1854,7 +1858,7 @@ class dpd(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
-        
+
         # register the citation
         c = cite.article(cite_key='phillips2011',
                          author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
@@ -1868,7 +1872,7 @@ class dpd(pair):
                          doi='10.1016/j.jcp.2011.05.021',
                          feature='DPD')
         cite._ensure_global_bib().add(c)
-        
+
         # tell the base class how we operate
 
         # initialize the base class
@@ -2073,7 +2077,7 @@ class eam(force._force):
                          doi = '10.1016/j.cpc.2010.12.026',
                          feature = 'EAM')
         cite._ensure_global_bib().add(c)
-                     
+
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -2214,7 +2218,7 @@ class dpdlj(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
-        
+
         # register the citation
         c = cite.article(cite_key='phillips2011',
                          author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
