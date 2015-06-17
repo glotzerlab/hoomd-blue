@@ -56,7 +56,9 @@
 
 import os
 import hoomd;
-from hoomd_script import meta;
+import hoomd_script
+import socket
+import getpass
 
 # The following global variables keep track of the walltime and processing time since the import of hoomd_script
 import time
@@ -65,11 +67,11 @@ CLOCK_START = time.clock()
 
 ## \internal
 # \brief Gather context from the environment
-class ExecutionContext(meta._metadata):
+class ExecutionContext(hoomd_script.meta._metadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
-        meta._metadata.__init__(self)
+        hoomd_script.meta._metadata.__init__(self)
         self.metadata_fields = [
             'hostname', 'gpu', 'mode', 'num_ranks',
             'username', 'wallclocktime', 'cputime',
@@ -79,16 +81,14 @@ class ExecutionContext(meta._metadata):
     ## \internal
     # \brief Return the execution configuration if initialized or raise exception.
     def _get_exec_conf(self):
-        from hoomd_script import globals
-        if globals.exec_conf is None:
+        if hoomd_script.globals.exec_conf is None:
             raise RuntimeError("Not initialized.")
         else:
-            return globals.exec_conf
+            return hoomd_script.globals.exec_conf
 
     # \brief Return the network hostname.
     @property
     def hostname(self):
-        import socket
         return socket.gethostname()
 
     # \brief Return the name of the GPU used in GPU mode.
@@ -107,13 +107,11 @@ class ExecutionContext(meta._metadata):
     # \brief Return the number of ranks.
     @property
     def num_ranks(self):
-        from hoomd_script import comm
-        return comm.get_num_ranks()
+        return hoomd_script.comm.get_num_ranks()
 
     # \brief Return the username.
     @property
     def username(self):
-        import getpass
         return getpass.getuser()
 
     # \brief Return the wallclock time since the import of hoomd_script
@@ -149,11 +147,11 @@ class ExecutionContext(meta._metadata):
 
 ## \internal
 # \brief Gather context about HOOMD
-class HOOMDContext(meta._metadata):
+class HOOMDContext(hoomd_script.meta._metadata):
     ## \internal
     # \brief Constructs the context object
     def __init__(self):
-        meta._metadata.__init__(self)
+        hoomd_script.meta._metadata.__init__(self)
         self.metadata_fields = [
             'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
             'cuda_version', 'compiler_version',
@@ -162,29 +160,24 @@ class HOOMDContext(meta._metadata):
     # \brief Return the hoomd version.
     @property
     def hoomd_version(self):
-        from hoomd import __version__
-        return __version__
+        return hoomd.__version__
 
     # \brief Return the hoomd git hash
     @property
     def hoomd_git_sha1(self):
-        from hoomd import __git_sha1__
-        return __git_sha1__
+        return hoomd.__git_sha1__
 
     # \brief Return the hoomd git refspec
     @property
     def hoomd_git_refspec(self):
-        from hoomd import __git_refspec__
-        return __git_refspec__
+        return hoomd.__git_refspec__
 
     # \brief Return the cuda version
     @property
     def cuda_version(self):
-        from hoomd import __cuda_version__
-        return __cuda_version__
+        return hoomd.__cuda_version__
 
     # \brief Return the compiler version
     @property
     def compiler_version(self):
-        from hoomd import __compiler_version__
-        return __compiler_version__
+        return hoomd.__compiler_version__

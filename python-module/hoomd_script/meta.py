@@ -65,8 +65,10 @@
 # \endcode
 
 import hoomd;
-from hoomd_script import globals;
-from hoomd_script import util;
+import hoomd_script;
+import json, collections;
+import time
+import datetime
 
 from collections import OrderedDict
 
@@ -118,12 +120,10 @@ class _metadata_from_dict:
 #
 # \returns metadata as a dictionary
 def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
-    util.print_status_line();
-    import json, collections
+    hoomd_script.util.print_status_line();
 
-    from hoomd_script import init
-    if not init.is_initialized():
-        globals.msg.error("Need to initialize system first.\n")
+    if not hoomd_script.init.is_initialized():
+        hoomd_script.globals.msg.error("Need to initialize system first.\n")
         raise RuntimeError("Error writing out metadata.")
 
     metadata = []
@@ -144,24 +144,20 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
             pass
 
     # Generate time stamp
-    import time
-    import datetime
-    from . import context
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     obj['timestamp'] = st
-    obj['context'] = context.ExecutionContext()
-    obj['hoomd'] = context.HOOMDContext()
+    obj['context'] = hoomd_script.context.ExecutionContext()
+    obj['hoomd'] = hoomd_script.context.HOOMDContext()
 
-    from hoomd_script.data import system_data
-    global_objs = [system_data(globals.system_definition)];
-    global_objs += globals.forces;
-    global_objs += globals.constraint_forces;
-    global_objs += [globals.integrator];
-    global_objs += globals.integration_methods;
-    global_objs += globals.forces
-    global_objs += globals.analyzers;
-    global_objs += globals.updaters;
+    global_objs = [hoomd_script.data.system_data(hoomd_script.globals.system_definition)];
+    global_objs += hoomd_script.globals.forces;
+    global_objs += hoomd_script.globals.constraint_forces;
+    global_objs += [hoomd_script.globals.integrator];
+    global_objs += hoomd_script.globals.integration_methods;
+    global_objs += hoomd_script.globals.forces
+    global_objs += hoomd_script.globals.analyzers;
+    global_objs += hoomd_script.globals.updaters;
 
     # add list of objects to JSON
     for o in global_objs:

@@ -52,9 +52,6 @@ import sys;
 import ctypes;
 import os;
 
-# Early import required to keep track of CPU and walltime clock
-from . import context
-
 # need to import HOOMD with RTLD_GLOBAL in python sitedir builds
 if not ('NOT_HOOMD_PYTHON_SITEDIR' in os.environ):
     flags = sys.getdlopenflags();
@@ -95,6 +92,7 @@ from hoomd_script import comm;
 from hoomd_script import meta;
 from hoomd_script import cite;
 from hoomd_script import data;
+from hoomd_script import context
 
 from hoomd import WalltimeLimitReached;
 
