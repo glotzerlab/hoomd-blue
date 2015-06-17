@@ -271,6 +271,7 @@ class _analyzer(meta._metadata):
     # \endcode
     def set_period(self, period):
         util.print_status_line();
+        self.period = period;
 
         if type(period) == type(1):
             if self.enabled:

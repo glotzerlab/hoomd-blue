@@ -141,6 +141,7 @@ def dump_metadata(filename=None,extra=None,overwrite=False,indent=4):
     obj['timestamp'] = st
     obj['timestep'] = globals.system.getCurrentTimeStep()
     obj['context'] = context.ExecutionContext()
+    obj['hoomd'] = context.HOOMDContext()
 
     from hoomd_script.data import system_data
     global_objs = [system_data(globals.system_definition)];

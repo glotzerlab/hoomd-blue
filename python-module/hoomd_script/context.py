@@ -54,6 +54,7 @@
 #
 # As much data from the environment is gathered as possible.
 
+import os
 import hoomd;
 from hoomd_script import meta;
 
@@ -70,10 +71,9 @@ class ExecutionContext(meta._metadata):
     def __init__(self):
         meta._metadata.__init__(self)
         self.metadata_fields = [
-            'hostname', 'num_cpu', 'gpu', 'num_ranks',
-            'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
-            'cuda_version', 'compiler_version',
+            'hostname', 'gpu', 'mode', 'num_ranks',
             'username', 'wallclocktime', 'cputime',
+            'job_id', 'job_name'
             ]
 
     ## \internal
@@ -91,21 +91,73 @@ class ExecutionContext(meta._metadata):
         import socket
         return socket.gethostname()
 
-    # \brief Return the number of CPUs used.
-    @property
-    def num_cpu(self):
-        return self._get_exec_conf().n_cpu
-
     # \brief Return the name of the GPU used in GPU mode.
     @property
     def gpu(self):
         return self._get_exec_conf().getGPUName()
+
+    # \brief Return the execution mode
+    @property
+    def mode(self):
+        if self._get_exec_conf().isCUDAEnabled():
+            return 'gpu';
+        else:
+            return 'cpu';
 
     # \brief Return the number of ranks.
     @property
     def num_ranks(self):
         from hoomd_script import comm
         return comm.get_num_ranks()
+
+    # \brief Return the username.
+    @property
+    def username(self):
+        import getpass
+        return getpass.getuser()
+
+    # \brief Return the wallclock time since the import of hoomd_script
+    @property
+    def wallclocktime(self):
+        return time.time() - TIME_START
+
+    # \brief Return the CPU clock time since the import of hoomd_script
+    @property
+    def cputime(self):
+        return time.clock() - CLOCK_START
+
+    # \brief Return the job id
+    @property
+    def job_id(self):
+        if 'PBS_JOBID' in os.environ:
+            return os.environ['PBS_JOBID'];
+        elif 'SLURM_JOB_ID' in os.environ:
+            return os.environ['SLURM_JOB_ID'];
+        else:
+            return '';
+
+    # \brief Return the job name
+    @property
+    def job_name(self):
+        if 'PBS_JOBNAME' in os.environ:
+            return os.environ['PBS_JOBNAME'];
+        elif 'SLURM_JOB_NAME' in os.environ:
+            return os.environ['SLURM_JOB_NAME'];
+        else:
+            return '';
+
+
+## \internal
+# \brief Gather context about HOOMD
+class HOOMDContext(meta._metadata):
+    ## \internal
+    # \brief Constructs the context object
+    def __init__(self):
+        meta._metadata.__init__(self)
+        self.metadata_fields = [
+            'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
+            'cuda_version', 'compiler_version',
+            ]
 
     # \brief Return the hoomd version.
     @property
@@ -136,19 +188,3 @@ class ExecutionContext(meta._metadata):
     def compiler_version(self):
         from hoomd import __compiler_version__
         return __compiler_version__
-
-    # \brief Return the username.
-    @property
-    def username(self):
-        import getpass
-        return getpass.getuser()
-
-    # \brief Return the wallclock time since the import of hoomd_script
-    @property
-    def wallclocktime(self):
-        return time.time() - TIME_START
-
-    # \brief Return the CPU clock time since the import of hoomd_script
-    @property
-    def cputime(self):
-        return time.clock() - CLOCK_START

@@ -885,23 +885,13 @@ class system_data(meta._metadata):
         data = meta._metadata.get_metadata(self)
         data['box'] = self.box
         data['particles'] = self.particles
-        data['density'] = len(self.particles)/self.box.get_volume()
+        data['number_density'] = len(self.particles)/self.box.get_volume()
 
-        # Only include additional data structures if they are initialized
-        if len(self.bonds):
-            data['bonds'] = self.bonds
-
-        if len(self.angles):
-            data['angles'] = self.angles
-
-        if len(self.dihedrals):
-            data['dihedrals'] = self.dihedrals
-
-        if len(self.impropers):
-            data['impropers'] = self.impropers
-
-        if len(self.bodies):
-            data['bodies'] = self.bodies
+        data['bonds'] = self.bonds
+        data['angles'] = self.angles
+        data['dihedrals'] = self.dihedrals
+        data['impropers'] = self.impropers
+        data['bodies'] = self.bodies
 
         return data
 
