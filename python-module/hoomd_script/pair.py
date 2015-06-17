@@ -2698,8 +2698,8 @@ class mie(pair):
     # \b Example:
     # \code
     # mie = pair.mie(r_cut=3.0)
-    # mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-    # mie.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, alpha=0.5, r_cut=3.0, r_on=2.0);
+    # mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=13.0, m=7.0)
+    # mie.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, n=14.0, m=7.0, r_cut=3.0, r_on=2.0);
     # mie.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
     # \endcode
     #
