@@ -379,7 +379,6 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(
     {
     // cache the ghost width fractions into shared memory (N_types*sizeof(Scalar3) B)
     extern __shared__ Scalar3 s_ghost_fractions[];
-//     Scalar3 *s_ghost_fractions = (Scalar3 *)(&s_data[0]);
     for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < ntypes)
