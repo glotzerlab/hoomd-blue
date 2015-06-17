@@ -27,20 +27,20 @@ class metadata_tests(unittest.TestCase):
 
     def test_with_extra(self):
         extra = {'my_extra_field': 123}
-        metadata = meta.dump_metadata(extra = extra)
-        self.assertEqual(metadata[0]['my_extra_field'], 123)
+        metadata = meta.dump_metadata(user = extra)
+        self.assertEqual(metadata[0]['user']['my_extra_field'], 123)
 
     def test_with_file(self):
         import json, socket
         extra = {'my_extra_field': 123}
         tmp = tempfile.NamedTemporaryFile()
-        metadata = meta.dump_metadata(filename = tmp.name, overwrite = False, extra = extra)
-        self.assertEqual(metadata[0]['my_extra_field'], 123)
+        metadata = meta.dump_metadata(filename = tmp.name, overwrite = False, user = extra)
+        self.assertEqual(metadata[0]['user']['my_extra_field'], 123)
         with tmp:
             metadata_check = json.loads(tmp.read().decode())
         self.assertEqual(len(metadata), len(metadata_check))
         self.assertEqual(len(metadata[0]), len(metadata_check[0]))
-        self.assertEqual(metadata[0]['my_extra_field'], metadata_check[0]['my_extra_field'])
+        self.assertEqual(metadata[0]['user']['my_extra_field'], metadata_check[0]['user']['my_extra_field'])
         for a,b in zip(metadata, metadata_check):
             for key in a.keys():
                 self.assertEqual(a[key], b[key])
