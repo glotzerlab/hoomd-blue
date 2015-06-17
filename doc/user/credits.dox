@@ -161,6 +161,7 @@ Sumedh R. Risbud, James W. Swan, Massachusetts Institute of Technology
 
 Michael P. Howard, Princeton University
  - Automatic citation list generator
+ - Per-type MPI ghost layer communication
 
 Carl Simon Adof, University of Michigan
  - Analyzer callback
