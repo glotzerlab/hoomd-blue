@@ -109,8 +109,8 @@ void mie_force_particle_test(mieforce_creator mie_creator, boost::shared_ptr<Exe
     Scalar sigma = Scalar(1.0);
     Scalar mie3 = Scalar(13.5);
     Scalar mie4 = Scalar(6.5);
-    Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4),(mie4/(mie3-mie4))) 
-    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4),(mie4/(mie3-mie4))) 
+    Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
+    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
     fc_3->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
 
     // compute the forces
@@ -149,8 +149,8 @@ void mie_force_particle_test(mieforce_creator mie_creator, boost::shared_ptr<Exe
 
     // now change sigma and alpha so we can check that it is computing the right force
     sigma = Scalar(1.2); // < bigger sigma should push particle 0 left and particle 2 right
-    mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4),(mie4/(mie3-mie4))) 
-    mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4),(mie4/(mie3-mie4))) 
+    mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
+    mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
     fc_3->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
     fc_3->compute(1);
 
@@ -243,8 +243,8 @@ void mie_force_comparison_test(mieforce_creator mie_creator1, mieforce_creator m
     Scalar sigma = Scalar(1.2);
     Scalar mie3 = Scalar(13.5);
     Scalar mie4 = Scalar(6.5);
-    Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4),(mie4/(mie3-mie4))) 
-    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4),(mie4/(mie3-mie4))) 
+    Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
+    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4)))); 
 
     // specify the force parameters
     fc1->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
@@ -335,8 +335,8 @@ void mie_force_shift_test(mieforce_creator mie_creator, boost::shared_ptr<Execut
     Scalar sigma = Scalar(1.0);
     Scalar mie3 = Scalar(13.5);
     Scalar mie4 = Scalar(6.5);
-    Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4),(mie4/(mie3-mie4))) 
-    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4),(mie4/(mie3-mie4))) 
+    Scalar mie1 = epsilon * Scalar(pow(sigma,mie3)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
+    Scalar mie2 = epsilon * Scalar(pow(sigma,mie4)) * Scalar(mie3/(mie3-mie4)) * Scalar(pow(mie3/mie4,(mie4/(mie3-mie4))));
     fc_no_shift->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
     fc_shift->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
     fc_xplor->setParams(0,0,make_scalar4(mie1,mie2,mie3,mie4));
@@ -416,9 +416,9 @@ void mie_force_shift_test(mieforce_creator mie_creator, boost::shared_ptr<Execut
     ArrayHandle<Scalar4> h_force_12(force_array_12,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_12(virial_array_12,access_location::host,access_mode::read);
     MY_BOOST_CHECK_CLOSE(h_force_12.data[0].x, 1.0373505201621, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_12.data[0].w, -0.12677780846387, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_12.data[0].w, -0.12828256582666, tol);
     MY_BOOST_CHECK_CLOSE(h_force_12.data[1].x, -1.0373505201621, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_12.data[1].w, -0.12677780846387, tol);
+    MY_BOOST_CHECK_CLOSE(h_force_12.data[1].w, -0.12828256582666, tol);
     }
 
     // check once again to verify that nothing fish happens past r_cut
