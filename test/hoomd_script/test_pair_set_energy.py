@@ -21,7 +21,7 @@ class pair_set_energy_tests (unittest.TestCase):
         all = group.all();
         integrate.mode_standard(dt=0.005)
         integrate.nvt(group=all, T=1.2, tau=0.5)
-        run(1, quiet=True);
+        run(100, quiet=True);
         import numpy as np
         t1 = np.array([0], dtype=np.int64);
         t2 = np.linspace(1, 99, 99, dtype=np.int64);
