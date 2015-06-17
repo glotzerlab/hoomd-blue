@@ -893,6 +893,7 @@ class system_data(meta._metadata):
         data['impropers'] = self.impropers
         data['bodies'] = self.bodies
 
+        data['timestep'] = globals.system.getCurrentTimeStep()
         return data
 
     ## \internal

@@ -80,11 +80,22 @@ class _metadata:
     ## \internal
     # \brief Return the metadata
     def get_metadata(self):
-        from collections import OrderedDict
         data = OrderedDict()
 
         for m in self.metadata_fields:
             data[m] = getattr(self, m)
+
+        return data
+
+class _metadata_from_dict:
+    def __init__(self, d):
+        self.d = d;
+
+    def get_metadata(self):
+        data = OrderedDict()
+
+        for m in self.d.keys():
+            data[m] = self.d[m];
 
         return data
 
@@ -101,12 +112,12 @@ class _metadata:
 # JSON file, together with a timestamp.
 #
 # \param filename The name of the file to write JSON metadata to (optional)
-# \param extra Additional metadata, needs to be a mapping type
+# \param user Additional metadata, needs to be a mapping type, such as a dict()
 # \param overwrite If true, overwrite output file if it already exists
 # \param indent The json indentation size
 #
 # \returns metadata as a dictionary
-def dump_metadata(filename=None,extra=None,overwrite=False,indent=4):
+def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
     util.print_status_line();
     import json, collections
 
@@ -118,11 +129,11 @@ def dump_metadata(filename=None,extra=None,overwrite=False,indent=4):
     metadata = []
     obj = OrderedDict()
 
-    if extra is not None:
-        if not isinstance(extra, collections.Mapping):
+    if user is not None:
+        if not isinstance(user, collections.Mapping):
             globals.msg.warning("Extra meta data needs to be a mapping type. Ignoring.\n")
         else:
-            obj.update(extra)
+            obj['user'] = _metadata_from_dict(user);
 
     if not overwrite and filename is not None:
         try:
@@ -139,7 +150,6 @@ def dump_metadata(filename=None,extra=None,overwrite=False,indent=4):
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     obj['timestamp'] = st
-    obj['timestep'] = globals.system.getCurrentTimeStep()
     obj['context'] = context.ExecutionContext()
     obj['hoomd'] = context.HOOMDContext()
 
