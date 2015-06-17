@@ -230,6 +230,12 @@ struct ExecutionConfiguration : boost::noncopyable
         {
         m_mpi_comm = mpi_comm;
         }
+
+    //! Perform a job-wide MPI barrier
+    void barrier()
+        {
+        MPI_Barrier(m_mpi_comm);
+        }
     #endif
 
     #ifdef ENABLE_CUDA

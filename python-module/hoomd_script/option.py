@@ -60,7 +60,6 @@ from optparse import OptionParser;
 
 import hoomd;
 from hoomd_script import globals;
-from hoomd_script import init;
 import sys;
 import shlex;
 
@@ -290,33 +289,3 @@ def set_msg_file(fname):
 def set_autotuner_params(enable=True, period=100000):
     globals.options.autotuner_period = period;
     globals.options.autotuner_enable = enable;
-
-## Parse arguments
-# \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
-#
-# parse_args() parses the command line arguments given, sets the options and initializes MPI and GPU execution
-# (if any). By default, parse_args() reads arguments given on the command line. You can provide a string to parse_args()
-# to set the launch configuration within the job script.
-#
-# parse_args() should be called immediately after `from hoomd_script import *`.
-#
-# **Example:**
-# \code
-# from hoomd_script import *
-# option.parse_args();
-# option.parse_args("--mode=gpu --nrank=64");
-# \endcode
-#
-def parse_args(args=None):
-    if globals.exec_conf is not None:
-        globals.msg.error("Cannot change execution mode after initialization\n");
-        raise RuntimeError('Error setting option');
-
-    globals.options = options();
-    _parse_command_line(args);
-
-    init._create_exec_conf();
-
-################### Parse command line on load
-globals.options = options();
-_parse_command_line();

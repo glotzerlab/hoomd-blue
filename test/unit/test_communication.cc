@@ -149,7 +149,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
         h_pos.data[7].z = 0.5;
         }
 
-    SnapshotParticleData snap(8);
+    SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
@@ -252,7 +252,7 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     pdata->setPosition(6, TO_TRICLINIC(make_scalar3(-0.5, 0.5, 0.5)),false);
     pdata->setPosition(7, TO_TRICLINIC(make_scalar3( 0.5, 0.5, 0.5)),false);
 
-    SnapshotParticleData snap(8);
+    SnapshotParticleData<Scalar> snap(8);
 
     pdata->takeSnapshot(snap);
 
@@ -538,7 +538,7 @@ void test_communicator_ghosts(communicator_creator comm_creator, boost::shared_p
     pdata->setPosition(15, TO_TRICLINIC(make_scalar3( 0.01, -0.0123, -0.09)),false);
 
     // distribute particle data on processors
-    SnapshotParticleData snap(16);
+    SnapshotParticleData<Scalar> snap(16);
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
@@ -1501,7 +1501,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator, boost::s
     bdata->addBondedGroup(Bond(0,5,7));  // bond 10
     bdata->addBondedGroup(Bond(0,6,7));  // bond 11
 
-    SnapshotParticleData snap(8);
+    SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
 
     BondData::Snapshot bdata_snap(12);
@@ -2167,7 +2167,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator, boost::s
     bdata->addBondedGroup(Bond(0,5,7));
     bdata->addBondedGroup(Bond(0,6,7));
 
-    SnapshotParticleData snap(8);
+    SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
 
     BondData::Snapshot snap_bdata(12);
@@ -2315,13 +2315,13 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     Scalar3 lo = pdata_1->getBox().getLo();
     Scalar3 L = pdata_1->getBox().getL();
 
-    SnapshotParticleData snap(n);
+    SnapshotParticleData<Scalar> snap(n);
     snap.type_mapping.push_back("A");
 
     srand(12345);
     for (unsigned int i = 0; i < n; ++i)
         {
-        snap.pos[i] = make_scalar3(lo.x + (Scalar)rand()/(Scalar)RAND_MAX*L.x,
+        snap.pos[i] = vec3<Scalar>(lo.x + (Scalar)rand()/(Scalar)RAND_MAX*L.x,
                                    lo.y + (Scalar)rand()/(Scalar)RAND_MAX*L.y,
                                    lo.z + (Scalar)rand()/(Scalar)RAND_MAX*L.z);
         }
@@ -2475,7 +2475,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
     pdata->setOrientation(8,make_scalar4(97.0,98.0,99.0,100.0));
 
     // distribute particle data on processors
-    SnapshotParticleData snap(9);
+    SnapshotParticleData<Scalar> snap(9);
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
@@ -2696,7 +2696,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     pdata->setPosition(7, make_scalar3( 0.5, 0.5, 0.5),false);
 
     // distribute particle data on processors
-    SnapshotParticleData snap(9);
+    SnapshotParticleData<Scalar> snap(9);
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
