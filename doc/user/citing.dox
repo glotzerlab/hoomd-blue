@@ -49,11 +49,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \page page_citing Citing HOOMD-blue
 
-<p>Include <b>both</b> of the following citations in any work that uses HOOMD-blue.</p>
+<p>Include <b>all</b> of the following citations in any work that uses HOOMD-blue.</p>
 <ul>
 <li>HOOMD-blue web page: http://codeblue.umich.edu/hoomd-blue</li>
 <li>J. A. Anderson, C. D. Lorenz, and A. Travesset. General purpose molecular dynamics simulations fully implemented on graphics processing units <em>Journal of Computational Physics</em> 227(10):5342-5359, May 2008.
 <a href="http://dx.doi.org/10.1016/j.jcp.2008.01.047">10.1016/j.jcp.2008.01.047</a></li>
+<li>
+J. Glaser, T. D. Nguyen, J. A. Anderson, P. Liu, F. Spiga, J. A. Millan, D. C. Morse, S. C. Glotzer. Strong scaling of general-purpose molecular dynamics simulations on GPUs <em>Computer Physics Communications</em> 192: 97-107, July 2015.
+<a href="http://dx.doi.org/10.1016/j.cpc.2015.02.028" onclick="_gaq.push(['_trackEvent', 'papers', 'follow-link', 'Glaser2015']);">10.1016/j.cpc.2015.02.028</a>
+</li>
 </ul>
 
 <p>If you utilize the rigid body functionality, also cite</p>
