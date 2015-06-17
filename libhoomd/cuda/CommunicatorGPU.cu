@@ -372,16 +372,31 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(
     const Scalar4 *d_postype,
     unsigned int *d_plan,
     const BoxDim box,
-    Scalar3 ghost_fraction,
+    const Scalar *d_r_ghost,
+    unsigned int ntypes,
     unsigned int mask
     )
     {
+    // cache the ghost width fractions into shared memory (N_types*sizeof(Scalar3) B)
+    extern __shared__ Scalar3 s_ghost_fractions[];
+//     Scalar3 *s_ghost_fractions = (Scalar3 *)(&s_data[0]);
+    for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < ntypes)
+            {
+            s_ghost_fractions[cur_offset + threadIdx.x] = d_r_ghost[cur_offset + threadIdx.x] / box.getNearestPlaneDistance();
+            }
+        }
+    __syncthreads();
+
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx >= N) return;
 
     Scalar4 postype = d_postype[idx];
     Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
+    const unsigned int type = __scalar_as_int(postype.w);
+    const Scalar3 ghost_fraction = s_ghost_fractions[type];
     Scalar3 f = box.makeFraction(pos);
 
     unsigned int plan = 0;
@@ -417,18 +432,21 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   unsigned int N,
                                   const Scalar4 *d_pos,
                                   const BoxDim &box,
-                                  Scalar3 ghost_fraction,
+                                  const Scalar *d_r_ghost,
+                                  unsigned int ntypes,
                                   unsigned int mask)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = N/block_size + 1;
+    unsigned int shared_bytes = sizeof(Scalar3) * ntypes;
 
-    gpu_make_ghost_exchange_plan_kernel<<<n_blocks, block_size>>>(
+    gpu_make_ghost_exchange_plan_kernel<<<n_blocks, block_size, shared_bytes>>>(
         N,
         d_pos,
         d_plan,
         box,
-        ghost_fraction,
+        d_r_ghost,
+        ntypes,
         mask);
     }
 

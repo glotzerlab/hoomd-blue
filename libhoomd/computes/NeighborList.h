@@ -354,7 +354,7 @@ class NeighborList : public Compute
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth() const
+        virtual Scalar getGhostLayerWidth(unsigned int type) const
             {
             Scalar rmax = m_r_cut + m_r_buff;
             // add d_max - 1.0 all the time - this is needed so that all interacting slj particles are communicated

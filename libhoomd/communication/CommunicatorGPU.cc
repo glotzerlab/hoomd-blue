@@ -1451,14 +1451,8 @@ void CommunicatorGPU::exchangeGhosts()
 
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost exchange" << std::endl;
 
-    if (m_ghost_layer_width_requests.num_slots())
-        {
-        // update the ghost layer width only if subscribers are avaiable
-        m_r_ghost = m_ghost_layer_width_requests();
-        }
-
-    // the ghost layer must be at_least m_r_ghost wide along every lattice direction
-    Scalar3 ghost_fraction = m_r_ghost/m_pdata->getBox().getNearestPlaneDistance();
+    // update the subscribed ghost layer width
+    updateGhostWidth();
 
     // resize arrays
     m_n_send_ghosts.resize(m_num_stages);
@@ -1495,11 +1489,14 @@ void CommunicatorGPU::exchangeGhosts()
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
 
+            ArrayHandle<Scalar> d_r_ghost(m_r_ghost, access_location::device, access_mode::read);
+
             gpu_make_ghost_exchange_plan(d_ghost_plan.data,
                                          m_pdata->getN()+m_pdata->getNGhosts(),
                                          d_pos.data,
                                          m_pdata->getBox(),
-                                         ghost_fraction,
+                                         d_r_ghost.data,
+                                         m_pdata->getNTypes(),
                                          m_comm_mask[stage]);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
