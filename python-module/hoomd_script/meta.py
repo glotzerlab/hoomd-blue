@@ -162,7 +162,10 @@ def dump_metadata(filename=None,user=None,overwrite=False,indent=4):
     # add list of objects to JSON
     for o in global_objs:
         if o is not None:
-            obj[o.__module__+'.'+o.__class__.__name__] = o
+            name = o.__module__+'.'+o.__class__.__name__;
+            if len(name) > 13 and name[:13] == 'hoomd_script.':
+                name = name[13:];
+            obj[name] = o
 
     metadata.append(obj)
 
