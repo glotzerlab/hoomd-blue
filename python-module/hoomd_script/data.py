@@ -137,13 +137,13 @@ import hoomd_script
 #   existing references to the numpy arrays will be invalid, access them again
 #   from `snapshot.particles.*`
 # \code
-# >>> system.particles.resize(1000);
+# >>> snapshot.particles.resize(1000);
 # \endcode
 # - The list of all particle types in the simulation can be accessed and modified
 # \code
-# >>> print(system.particles.types)
+# >>> print(snapshot.particles.types)
 # ['A', 'B', 'C']
-# >>> system.particles.types = ['1', '2', '3', '4'];
+# >>> snapshot.particles.types = ['1', '2', '3', '4'];
 # \endcode
 # - Individual particles properties are stored in numpy arrays. Vector quantities are stored in Nx3 arrays of floats
 #   (or doubles) and scalar quantities are stored in N length 1D arrays.
@@ -197,18 +197,18 @@ import hoomd_script
 #   existing references to the numpy arrays will be invalid, access them again
 #   from `snapshot.bonds.*`
 # \code
-# >>> system.bonds.resize(1000);
+# >>> snapshot.bonds.resize(1000);
 # \endcode
 # - Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the bond `i`. The second axis `j` goes over
 #   the individual particles in the bond. The value of each element is the tag of the particle participating in the
 #   bond.
 # \code
-# >>> print(system.bonds.group)
+# >>> print(snapshot.bonds.group)
 # [[0 1]
 # [1 2]
 # [3 4]
 # [4 5]]
-# >>> system.bonds.group[0] = [10,11]
+# >>> snapshot.bonds.group[0] = [10,11]
 # \endcode
 # - Snapshots store bond types as integers that index into the type name array:
 # \code

@@ -77,6 +77,7 @@ Table of contents:
  - \ref sec_index_run
  - \ref sec_index_option
  - \ref sec_index_init
+ - \ref sec_index_data
  - \ref sec_index_integration
  - \ref sec_index_update
  - \ref sec_index_compute
@@ -129,6 +130,7 @@ Table of contents:
  - \link hoomd_script.init.reset() init.reset\endlink - <i>Resets all hoomd_script variables </i>
  - \link hoomd_script.init.is_initialized() init.is_initialized\endlink - <i>Tests if the system has been initialized </i>
 
+\section sec_index_data Data access
  - \link hoomd_script.data data access\endlink - <i>Access particles, bonds, and other state information inside scripts </i>
  - \link hoomd_script.data.make_snapshot data.make_snapshot\endlink - <i>Make an empty snapshot</i>
  - \link hoomd_script.data.system_data.take_snapshot system_data.take_snapshot\endlink - <i>Take a snapshot of the current configuration </i>
