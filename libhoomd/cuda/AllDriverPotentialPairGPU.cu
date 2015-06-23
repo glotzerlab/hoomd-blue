@@ -66,6 +66,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairZBL.h"
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairForceShiftedLJ.h"
+#include "EvaluatorPairMie.h"
 
 cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
                                       const Scalar2 *d_params)
