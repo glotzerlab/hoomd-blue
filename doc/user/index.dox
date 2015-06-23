@@ -167,7 +167,7 @@ Table of contents:
  - \link hoomd_script.analyze.imd analyze.imd\endlink - <i>Sends simulation snapshots to VMD in real-time </i>
  - \link hoomd_script.analyze.log analyze.log\endlink - <i>Logs a number of calculated quantities to a file </i>
  - \link hoomd_script.analyze.msd analyze.msd\endlink - <i>Calculates the mean-squared displacement of groups of particles and logs the values to a file </i>
- - \link hoomd_script.analyze.callback analyze.callback.msd\endlink - <i>Call a callback with each analyzer period </i>
+ - \link hoomd_script.analyze.callback analyze.callback\endlink - <i>Call a callback with each analyzer period </i>
 
 \section sec_index_dump Dump
  - \link hoomd_script.dump.dcd dump.dcd\endlink - <i>Writes simulation snapshots in the DCD format </i>
