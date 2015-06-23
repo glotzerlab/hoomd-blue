@@ -95,6 +95,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DCDDumpWriter.h"
 #include "Logger.h"
 #include "MSDAnalyzer.h"
+#include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
 #include "IntegratorTwoStep.h"
@@ -332,6 +333,13 @@ bool is_MPI_available()
 #endif
     }
 
+void mpi_barrier_world()
+    {
+    #ifdef ENABLE_MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+    #endif
+    }
+
 //! Start the CUDA profiler
 void cuda_profile_start()
     {
@@ -353,7 +361,6 @@ void cuda_profile_stop()
 // values used in measuring hoomd launch timing
 unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
 bool hoomd_launch_timing=false;
-
 
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
@@ -430,6 +437,7 @@ BOOST_PYTHON_MODULE(hoomd)
     bnp::array::set_module_and_type("numpy", "ndarray");
 
     def("abort_mpi", abort_mpi);
+    def("mpi_barrier_world", mpi_barrier_world);
 
     def("output_version_info", &output_version_info);
     def("find_vmd", &find_vmd);
@@ -575,6 +583,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_MOL2DumpWriter();
     export_Logger();
     export_MSDAnalyzer();
+    export_CallbackAnalyzer();
     export_ParticleGroup();
 
     // updaters

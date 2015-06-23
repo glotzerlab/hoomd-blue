@@ -49,8 +49,6 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-from optparse import OptionParser;
-
 import hoomd;
 
 import math;
@@ -190,7 +188,7 @@ def create_empty(N, box, particle_types=['A'], bond_types=[], angle_types=[], di
 
     globals.msg.warning("init.create_empty() is deprecated. Use data.make_snapshot and init.read_snapshot instead\n");
 
-    my_exec_conf = _create_exec_conf();
+    my_exec_conf = _create_exec_conf_deprecated();
 
     # create the empty system
     if not isinstance(box, hoomd_script.data.boxdim):
@@ -282,7 +280,7 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
-    my_exec_conf = _create_exec_conf();
+    my_exec_conf = _create_exec_conf_deprecated();
 
     # check if initialization has already occured
     if is_initialized():
@@ -347,7 +345,7 @@ def read_bin(filename, time_step = None):
     globals.msg.warning("init.read_bin is deprecated and will be removed in the next release");
 
     # initialize GPU/CPU execution configuration and MPI early
-    my_exec_conf = _create_exec_conf();
+    my_exec_conf = _create_exec_conf_deprecated();
 
     # check if initialization has already occurred
     if is_initialized():
@@ -407,7 +405,7 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
-    my_exec_conf = _create_exec_conf();
+    my_exec_conf = _create_exec_conf_deprecated();
 
     # check if initialization has already occured
     if is_initialized():
@@ -570,7 +568,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
-    my_exec_conf = _create_exec_conf();
+    my_exec_conf = _create_exec_conf_deprecated();
 
     # check if initialization has already occured
     if is_initialized():
@@ -719,7 +717,7 @@ def read_snapshot(snapshot):
     util.print_status_line();
 
     # initialize GPU/CPU execution configuration and MPI early
-    my_exec_conf = _create_exec_conf();
+    my_exec_conf = _create_exec_conf_deprecated();
 
     # check if initialization has already occured
     if is_initialized():
@@ -773,6 +771,18 @@ def _perform_common_init_tasks():
             # set Communicator in C++ System
             globals.system.setCommunicator(cpp_communicator)
 
+
+## Backward compatible initialization
+#
+# \internal
+def _create_exec_conf_deprecated():
+    if globals.exec_conf is not None:
+        return globals.exec_conf;
+    else:
+        globals.msg.warning("Delayed creation of execution configuration is deprecated.\n")
+        globals.msg.warning("Call init.setup_exec_conf() after importing hoomd_script to avoid this message.\n");
+        setup_exec_conf()
+        return globals.exec_conf;
 
 ## Initializes the execution configuration
 #
@@ -849,3 +859,29 @@ def _create_domain_decomposition(box):
 
         # initialize domain decomposition
         return hoomd.DomainDecomposition(globals.exec_conf, box.getL(), nx, ny, nz, not globals.options.onelevel);
+
+## Setup execution configuration
+# \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
+#
+# setup_exec_conf() parses the command line arguments given, sets the options and initializes MPI and GPU execution
+# (if any). By default, setup_exec_conf() reads arguments given on the command line. Provide a string to setup_exec_conf()
+# to set the launch configuration within the job script.
+#
+# setup_exec_conf() should be called immediately after `from hoomd_script import *`.
+#
+# **Example:**
+# \code
+# from hoomd_script import *
+# init.setup_exec_conf();
+# init.setup_exec_conf("--mode=gpu --nrank=64");
+# \endcode
+#
+def setup_exec_conf(args=None):
+    if globals.exec_conf is not None:
+        globals.msg.error("Cannot change execution mode after initialization\n");
+        raise RuntimeError('Error setting option');
+
+    globals.options = hoomd_script.option.options();
+    hoomd_script.option._parse_command_line(args);
+
+    _create_exec_conf();
