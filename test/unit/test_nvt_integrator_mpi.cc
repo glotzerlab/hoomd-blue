@@ -223,8 +223,8 @@ void test_nvt_integrator_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf
     if (exec_conf->getRank() == 0)
         nvt_2->prepRun(0);
 
-    SnapshotParticleData snap_1(N);
-    SnapshotParticleData snap_2(N);
+    SnapshotParticleData<Scalar> snap_1(N);
+    SnapshotParticleData<Scalar> snap_2(N);
     for (int i=0; i< 100; i++)
         {
         // compare temperatures
