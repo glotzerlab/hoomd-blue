@@ -65,6 +65,39 @@ import time
 TIME_START = time.time()
 CLOCK_START = time.clock()
 
+## Initialize the execution context
+# \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
+#
+# initialize() parses the command line arguments given, sets the options and initializes MPI and GPU execution
+# (if any). By default, initialize() reads arguments given on the command line. Provide a string to initialize()
+# to set the launch configuration within the job script.
+#
+# initialize() should be called immediately after `from hoomd_script import *`.
+#
+# **Example:**
+# \code
+# from hoomd_script import *
+# context.initialize();
+# context.initialize("--mode=gpu --nrank=64");
+# \endcode
+#
+def initialize(args=None):
+    if hoomd_script.globals.exec_conf is not None:
+        hoomd_script.globals.msg.error("Cannot change execution mode after initialization\n");
+        raise RuntimeError('Error setting option');
+
+    hoomd_script.globals.options = hoomd_script.option.options();
+    hoomd_script.option._parse_command_line(args);
+
+    hoomd_script.init._create_exec_conf();
+
+## \internal
+# \brief Throw an error if the context is not initialized
+def _verify_init():
+    if hoomd_script.globals.exec_conf is None:
+        hoomd_script.globals.msg.error("call context.initialize() before any other method in hoomd.")
+        raise RuntimeError("hoomd execution context is not available")
+
 ## \internal
 # \brief Gather context from the environment
 class ExecutionContext(hoomd_script.meta._metadata):
