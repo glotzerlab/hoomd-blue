@@ -141,7 +141,7 @@ typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDLJThermo, gpu_compute_dpdljthe
 //! Pair potential force compute for force shifted LJ on the GPU
 typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, gpu_compute_force_shifted_lj_forces> PotentialPairForceShiftedLJGPU;
 //! Pair potential force compute for Mie potential
-typedef PotentialPairGPU<EvaluatorPairMie, gpu_compute_mie_forces> PotentialPairForceShiftedLJGPU;
+typedef PotentialPairGPU<EvaluatorPairMie, gpu_compute_mie_forces> PotentialPairMieGPU;
 
 #endif
 
