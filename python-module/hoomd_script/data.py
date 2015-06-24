@@ -1115,7 +1115,7 @@ class particle_data(meta._metadata):
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
-        data['ntypes'] = self.pdata.getNTypes()
+        data['types'] = list(self.types);
         return data
 
 ## Access a single particle via a proxy
@@ -1519,7 +1519,7 @@ class bond_data(meta._metadata):
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
-        data['ntypes'] = self.bdata.getNTypes()
+        data['types'] = [self.bdata.getNameByType(i) for i in range(self.bdata.getNTypes())];
         return data
 
 ## Access a single bond via a proxy
@@ -1708,7 +1708,7 @@ class angle_data(meta._metadata):
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
-        data['ntypes'] = self.adata.getNTypes()
+        data['types'] = [self.adata.getNameByType(i) for i in range(self.adata.getNTypes())];
         return data
 
 ## Access a single angle via a proxy
@@ -1906,7 +1906,7 @@ class dihedral_data(meta._metadata):
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
-        data['ntypes'] = self.ddata.getNTypes()
+        data['types'] = [self.ddata.getNameByType(i) for i in range(self.ddata.getNTypes())];
         return data
 
 ## Access a single dihedral via a proxy
@@ -2029,7 +2029,7 @@ class body_data(meta._metadata):
     # \param bdata BodyData to connect
     def __init__(self, bdata):
         self.bdata = bdata;
-        meta._metadata.__init__(self) 
+        meta._metadata.__init__(self)
 
     # \brief updates the v and x positions of a rigid body
     # \note the second arguement is dt, but the value should not matter as long as not zero
