@@ -76,6 +76,8 @@ TwoStepNVERigidGPU::TwoStepNVERigidGPU(boost::shared_ptr<SystemDefinition> sysde
         m_exec_conf->msg->error() << "Creating a TwoStepNVEGPU with no GPUs in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
+
+    setup();
     }
 
 /*! \param timestep Current time step
@@ -84,12 +86,6 @@ TwoStepNVERigidGPU::TwoStepNVERigidGPU(boost::shared_ptr<SystemDefinition> sysde
 */
 void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     {
-    if (m_first_step)
-        {
-        setup();
-        m_first_step = false;
-        }
-
     // sanity check
     if (m_n_bodies <= 0)
         return;

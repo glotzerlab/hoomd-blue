@@ -84,6 +84,8 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
         m_exec_conf->msg->error() << "Creating a TwoStepBDNVTRigidGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepBDNVTRigidGPU");
         }
+
+    setup();
     }
 
 /*! \param timestep Current time step
@@ -92,12 +94,6 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
 */
 void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     {
-    if (m_first_step)
-        {
-        setup();
-        m_first_step = false;
-        }
-
     // sanity check
     if (m_n_bodies <= 0)
         return;

@@ -156,6 +156,8 @@ TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
         {
         setRestartIntegratorVariables();
         }
+
+    setup();
     }
 
 TwoStepNPTRigid::~TwoStepNPTRigid()
@@ -322,12 +324,6 @@ void TwoStepNPTRigid::setup()
 */
 void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     {
-    if (m_first_step)
-        {
-        setup();
-        m_first_step = false;
-        }
-
     // sanity check
     if (m_n_bodies <= 0)
         return;

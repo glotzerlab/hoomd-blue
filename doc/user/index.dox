@@ -77,6 +77,7 @@ Table of contents:
  - \ref sec_index_run
  - \ref sec_index_option
  - \ref sec_index_init
+ - \ref sec_index_data
  - \ref sec_index_integration
  - \ref sec_index_update
  - \ref sec_index_compute
@@ -130,6 +131,7 @@ Table of contents:
  - \link hoomd_script.init.reset() init.reset\endlink - <i>Resets all hoomd_script variables </i>
  - \link hoomd_script.init.is_initialized() init.is_initialized\endlink - <i>Tests if the system has been initialized </i>
 
+\section sec_index_data Data access
  - \link hoomd_script.data data access\endlink - <i>Access particles, bonds, and other state information inside scripts </i>
  - \link hoomd_script.data.make_snapshot data.make_snapshot\endlink - <i>Make an empty snapshot</i>
  - \link hoomd_script.data.system_data.take_snapshot system_data.take_snapshot\endlink - <i>Take a snapshot of the current configuration </i>
@@ -166,7 +168,7 @@ Table of contents:
  - \link hoomd_script.analyze.imd analyze.imd\endlink - <i>Sends simulation snapshots to VMD in real-time </i>
  - \link hoomd_script.analyze.log analyze.log\endlink - <i>Logs a number of calculated quantities to a file </i>
  - \link hoomd_script.analyze.msd analyze.msd\endlink - <i>Calculates the mean-squared displacement of groups of particles and logs the values to a file </i>
- - \link hoomd_script.analyze.callback analyze.callback.msd\endlink - <i>Call a callback with each analyzer period </i>
+ - \link hoomd_script.analyze.callback analyze.callback\endlink - <i>Call a callback with each analyzer period </i>
 
 \section sec_index_dump Dump
  - \link hoomd_script.dump.dcd dump.dcd\endlink - <i>Writes simulation snapshots in the DCD format </i>
@@ -188,6 +190,7 @@ Table of contents:
  - \link hoomd_script.pair.ewald pair.ewald\endlink - <i>Short range ewald %pair %force </i>
  - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>Gaussian %pair %force </i>
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>Lennard-Jones %pair %force </i>
+ - \link hoomd_script.pair.mie pair.mie\endlink - <i>Mie potential %pair %force </i>
  - \link hoomd_script.pair.moliere pair.moliere\endlink - <i>Moliere %pair %force</i>
  - \link hoomd_script.pair.morse pair.morse\endlink - <i>Morse %pair %force </i>
  - \link hoomd_script.pair.table pair.table\endlink - <i>Tabulated %pair %force </i>
