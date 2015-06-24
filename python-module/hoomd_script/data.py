@@ -2003,7 +2003,7 @@ class dihedral_data_proxy:
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # body_data, documented by example.
 #
-class body_data:
+class body_data(meta._metadata):
     ## \internal
     # \brief bond_data iterator
     class body_data_iterator:
@@ -2029,6 +2029,7 @@ class body_data:
     # \param bdata BodyData to connect
     def __init__(self, bdata):
         self.bdata = bdata;
+        meta._metadata.__init__(self) 
 
     # \brief updates the v and x positions of a rigid body
     # \note the second arguement is dt, but the value should not matter as long as not zero
