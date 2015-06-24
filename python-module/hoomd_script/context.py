@@ -187,7 +187,7 @@ class HOOMDContext(hoomd_script.meta._metadata):
         hoomd_script.meta._metadata.__init__(self)
         self.metadata_fields = [
             'hoomd_version', 'hoomd_git_sha1', 'hoomd_git_refspec',
-            'cuda_version', 'compiler_version',
+            'hoomd_compile_flags', 'cuda_version', 'compiler_version',
             ]
 
     # \brief Return the hoomd version.
@@ -204,6 +204,11 @@ class HOOMDContext(hoomd_script.meta._metadata):
     @property
     def hoomd_git_refspec(self):
         return hoomd.__git_refspec__
+
+    # \brief Return the hoomd compile flags
+    @property
+    def hoomd_compile_flags(self):
+        return hoomd.hoomd_compile_flags();
 
     # \brief Return the cuda version
     @property

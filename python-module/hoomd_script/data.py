@@ -84,7 +84,7 @@ import hoomd_script
 # \code
 # snapshot = system.take_snapshot()
 # system.restore_snapshot(snapshot)
-# snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'])
+# snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'], box=data.boxdim(L=10))
 # # ... populate snapshot with data ...
 # init.read_snapshot(snapshot)
 # \endcode
@@ -100,9 +100,9 @@ import hoomd_script
 #     snapshot.particles.position[0] = [1,2,3];
 #
 # system.restore_snapshot(snapshot);
-# snapshot = data.make_snapshot(N=10)
+# snapshot = data.make_snapshot(N=10, box=data.boxdim(L=10))
 # if comm.get_rank() == 0:
-#     snapshot.particles.position = ....
+#     snapshot.particles.position[:] = ....
 # init.read_snapshot(snapshot)
 # \endcode
 #
@@ -138,13 +138,13 @@ import hoomd_script
 #   existing references to the numpy arrays will be invalid, access them again
 #   from `snapshot.particles.*`
 # \code
-# >>> system.particles.resize(1000);
+# >>> snapshot.particles.resize(1000);
 # \endcode
 # - The list of all particle types in the simulation can be accessed and modified
 # \code
-# >>> print(system.particles.types)
+# >>> print(snapshot.particles.types)
 # ['A', 'B', 'C']
-# >>> system.particles.types = ['1', '2', '3', '4'];
+# >>> snapshot.particles.types = ['1', '2', '3', '4'];
 # \endcode
 # - Individual particles properties are stored in numpy arrays. Vector quantities are stored in Nx3 arrays of floats
 #   (or doubles) and scalar quantities are stored in N length 1D arrays.
@@ -198,18 +198,18 @@ import hoomd_script
 #   existing references to the numpy arrays will be invalid, access them again
 #   from `snapshot.bonds.*`
 # \code
-# >>> system.bonds.resize(1000);
+# >>> snapshot.bonds.resize(1000);
 # \endcode
 # - Bonds are stored in an Nx2 numpy array `group`. The first axis accesses the bond `i`. The second axis `j` goes over
 #   the individual particles in the bond. The value of each element is the tag of the particle participating in the
 #   bond.
 # \code
-# >>> print(system.bonds.group)
+# >>> print(snapshot.bonds.group)
 # [[0 1]
 # [1 2]
 # [3 4]
 # [4 5]]
-# >>> system.bonds.group[0] = [10,11]
+# >>> snapshot.bonds.group[0] = [10,11]
 # \endcode
 # - Snapshots store bond types as integers that index into the type name array:
 # \code
@@ -1115,7 +1115,7 @@ class particle_data(meta._metadata):
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
-        data['ntypes'] = self.pdata.getNTypes()
+        data['types'] = list(self.types);
         return data
 
 ## Access a single particle via a proxy
@@ -1519,7 +1519,7 @@ class bond_data(meta._metadata):
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
-        data['ntypes'] = self.bdata.getNTypes()
+        data['types'] = [self.bdata.getNameByType(i) for i in range(self.bdata.getNTypes())];
         return data
 
 ## Access a single bond via a proxy
@@ -1708,7 +1708,7 @@ class angle_data(meta._metadata):
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
-        data['ntypes'] = self.adata.getNTypes()
+        data['types'] = [self.adata.getNameByType(i) for i in range(self.adata.getNTypes())];
         return data
 
 ## Access a single angle via a proxy
@@ -1906,7 +1906,7 @@ class dihedral_data(meta._metadata):
     def get_metadata(self):
         data = meta._metadata.get_metadata(self)
         data['N'] = len(self)
-        data['ntypes'] = self.ddata.getNTypes()
+        data['types'] = [self.ddata.getNameByType(i) for i in range(self.ddata.getNTypes())];
         return data
 
 ## Access a single dihedral via a proxy
@@ -2003,7 +2003,7 @@ class dihedral_data_proxy:
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # body_data, documented by example.
 #
-class body_data:
+class body_data(meta._metadata):
     ## \internal
     # \brief bond_data iterator
     class body_data_iterator:
@@ -2029,6 +2029,7 @@ class body_data:
     # \param bdata BodyData to connect
     def __init__(self, bdata):
         self.bdata = bdata;
+        meta._metadata.__init__(self)
 
     # \brief updates the v and x positions of a rigid body
     # \note the second arguement is dt, but the value should not matter as long as not zero

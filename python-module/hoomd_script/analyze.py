@@ -667,6 +667,10 @@ class msd(_analyzer):
         if delimiter:
             self.cpp_analyzer.setDelimiter(delimiter);
 
+## Callback analyzer
+#
+# Create an analyzer that runs a given python callback method at a defined period.
+#
 class callback(_analyzer):
     ## Initialize the callback analyzer
     #

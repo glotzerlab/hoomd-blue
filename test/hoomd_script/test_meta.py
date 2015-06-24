@@ -25,16 +25,16 @@ class metadata_tests(unittest.TestCase):
     def test_after_init(self):
         meta.dump_metadata()
 
-    def test_with_extra(self):
-        extra = {'my_extra_field': 123}
-        metadata = meta.dump_metadata(user = extra)
+    def test_with_user(self):
+        user = {'my_extra_field': 123}
+        metadata = meta.dump_metadata(user = user)
         self.assertEqual(metadata[0]['user']['my_extra_field'], 123)
 
     def test_with_file(self):
         import json, socket
-        extra = {'my_extra_field': 123}
+        user = {'my_extra_field': 123}
         tmp = tempfile.NamedTemporaryFile()
-        metadata = meta.dump_metadata(filename = tmp.name, overwrite = False, user = extra)
+        metadata = meta.dump_metadata(filename = tmp.name, overwrite = False, user = user)
         self.assertEqual(metadata[0]['user']['my_extra_field'], 123)
         with tmp:
             metadata_check = json.loads(tmp.read().decode())

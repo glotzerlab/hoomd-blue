@@ -66,6 +66,7 @@ set(TEST_LIST
     test_external_periodic
     test_neighborlist
     test_lj_force
+    test_mie_force
     test_table_potential
     test_bondtable_bond_force
     test_slj_force
