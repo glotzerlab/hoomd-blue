@@ -313,12 +313,24 @@ object get_cuda_version_tuple()
 //! Get the compiler version
 string get_compiler_version()
     {
-    #ifdef __GNUC__
+    #if defined(__GNUC__) && !(defined(__clang__) || defined(__INTEL_COMPILER))
     ostringstream o;
     o << "gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." <<  __GNUC_PATCHLEVEL__;
     return o.str();
+
+    #elif defined(__clang__)
+    ostringstream o;
+    o << "clang " << __clang_major__ << "." << __clang_minor__ << "." <<  __clang_patchlevel__;
+    return o.str();
+
+    #elif defined(__INTEL_COMPILER)
+    ostringstream o;
+    o << "icc " << __INTEL_COMPILER;
+    return o.str();
+
     #else
     return string("unknown");
+
     #endif
     }
 
