@@ -439,6 +439,7 @@ BOOST_PYTHON_MODULE(hoomd)
     def("abort_mpi", abort_mpi);
     def("mpi_barrier_world", mpi_barrier_world);
 
+    def("hoomd_compile_flags", &hoomd_compile_flags);
     def("output_version_info", &output_version_info);
     def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
