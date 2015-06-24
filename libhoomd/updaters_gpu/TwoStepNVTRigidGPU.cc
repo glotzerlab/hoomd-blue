@@ -86,6 +86,24 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
         m_exec_conf->msg->error() << "Creating a TwoStepNVTRigidGPU with no GPUs in the execution configuration" << endl;
         throw std::runtime_error("Error initializing TwoStepNVTRigidGPU");
         }
+
+        setup();
+
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+
+    GPUArray<Scalar> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
+    m_partial_Ksum_t.swap(partial_Ksum_t);
+
+    GPUArray<Scalar> partial_Ksum_r(m_n_bodies, m_pdata->getExecConf());
+    m_partial_Ksum_r.swap(partial_Ksum_r);
+
+    GPUArray<Scalar> Ksum_t(1, m_pdata->getExecConf());
+    m_Ksum_t.swap(Ksum_t);
+
+    GPUArray<Scalar> Ksum_r(1, m_pdata->getExecConf());
+    m_Ksum_r.swap(Ksum_r);
     }
 
 /*! \param timestep Current time step
@@ -94,29 +112,6 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
 */
 void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     {
-    if (m_first_step)
-        {
-        setup();
-
-        // sanity check
-        if (m_n_bodies <= 0)
-            return;
-
-        GPUArray<Scalar> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
-        m_partial_Ksum_t.swap(partial_Ksum_t);
-
-        GPUArray<Scalar> partial_Ksum_r(m_n_bodies, m_pdata->getExecConf());
-        m_partial_Ksum_r.swap(partial_Ksum_r);
-
-        GPUArray<Scalar> Ksum_t(1, m_pdata->getExecConf());
-        m_Ksum_t.swap(Ksum_t);
-
-        GPUArray<Scalar> Ksum_r(1, m_pdata->getExecConf());
-        m_Ksum_r.swap(Ksum_r);
-
-        m_first_step = false;
-        }
-
     // sanity check
     if (m_n_bodies <= 0)
         return;
