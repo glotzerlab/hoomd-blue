@@ -89,6 +89,8 @@ from hoomd_script import cite;
 import math;
 import sys;
 
+from collections import OrderedDict
+
 ## Defines %pair coefficients
 #
 # All %pair forces use coeff to specify the coefficients between different
@@ -132,6 +134,20 @@ class coeff:
     def __init__(self):
         self.values = {};
         self.default_coeff = {}
+
+    ## \internal
+    # \brief Return a compact representation of the pair coefficients
+    def get_metadata(self):
+        # return list for easy serialization
+        l = []
+        for (a,b) in self.values:
+            item = OrderedDict()
+            item['typei'] = a
+            item['typej'] = b
+            for coeff in self.values[(a,b)]:
+                item[coeff] = self.values[(a,b)][coeff]
+            l.append(item)
+        return l
 
     ## \var values
     # \internal
@@ -306,7 +322,6 @@ class coeff:
             raise RuntimeError("Error setting pair coeff");
 
         return self.values[cur_pair][coeff_name];
-
 
 ## Interface for controlling neighbor list parameters
 #
@@ -810,6 +825,17 @@ class pair(force._force):
                 max_rcut = max(max_rcut, r_cut);
 
         return max_rcut;
+
+    ## \internal
+    # \brief Return metadata for this pair potential
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure all coefficients are set
+        self.update_coeffs()
+
+        data['pair_coeff'] = self.pair_coeff
+        return data
 
 ## Lennard-Jones %pair %force
 #

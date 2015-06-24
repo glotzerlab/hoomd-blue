@@ -66,60 +66,69 @@ using namespace std;
     \ingroup utils
 */
 
+std::string hoomd_compile_flags()
+    {
+    ostringstream o;
+
+    #ifdef ENABLE_CUDA
+    int cudart_major = CUDART_VERSION / 1000;
+    int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
+
+    o << "CUDA (" << cudart_major << "." << cudart_minor << ") ";
+    #endif
+
+    #ifdef SINGLE_PRECISION
+    o << "SINGLE ";
+    #else
+    o << "DOUBLE ";
+    #endif
+
+    #ifdef ENABLE_MPI
+    o << "MPI ";
+    #endif
+
+    #ifdef ENABLE_MPI_CUDA
+    o << "MPI_CUDA ";
+    #endif
+
+    #ifdef __SSE__
+    o << "SSE ";
+    #endif
+
+    #ifdef __SSE2__
+    o << "SSE2 ";
+    #endif
+
+    #ifdef __SSE3__
+    o << "SSE3 ";
+    #endif
+
+    #ifdef __SSE4_1__
+    o << "SSE4_1 ";
+    #endif
+
+    #ifdef __SSE4_2__
+    o << "SSE4_2 ";
+    #endif
+
+    #ifdef __AVX__
+    o << "AVX ";
+    #endif
+
+    #ifdef __AVX2__
+    o << "AVX2 ";
+    #endif
+
+    return o.str();
+    }
+
 string output_version_info()
     {
     ostringstream o;
     // output the version info that comes from CMake
     o << "HOOMD-blue " << HOOMD_VERSION_LONG;
 
-    #ifdef ENABLE_CUDA
-    int cudart_major = CUDART_VERSION / 1000;
-    int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
-
-    o << " CUDA (" << cudart_major << "." << cudart_minor << ")";
-    #endif
-
-    #ifdef SINGLE_PRECISION
-    o << " SINGLE";
-    #else
-    o << " DOUBLE";
-    #endif
-
-    #ifdef ENABLE_MPI
-    o << " MPI";
-    #endif
-
-    #ifdef ENABLE_MPI_CUDA
-    o << " MPI_CUDA";
-    #endif
-
-    #ifdef __SSE__
-    o << " SSE";
-    #endif
-
-    #ifdef __SSE2__
-    o << " SSE2";
-    #endif
-
-    #ifdef __SSE3__
-    o << " SSE3";
-    #endif
-
-    #ifdef __SSE4_1__
-    o << " SSE4_1";
-    #endif
-
-    #ifdef __SSE4_2__
-    o << " SSE4_2";
-    #endif
-
-    #ifdef __AVX__
-    o << " AVX";
-    #endif
-
-    #ifdef __AVX2__
-    o << " AVX2";
-    #endif
+    o << " " << hoomd_compile_flags();
 
     o << endl;
 

@@ -55,6 +55,7 @@ import hoomd;
 from hoomd_script import util;
 from hoomd_script import data;
 from hoomd_script import init;
+from hoomd_script import meta;
 
 ## \package hoomd_script.force
 # \brief Other types of forces
@@ -69,7 +70,7 @@ from hoomd_script import init;
 # writers. 1) The instance of the c++ analyzer itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle
-class _force:
+class _force(meta._metadata):
     ## \internal
     # \brief Constructs the force
     #
@@ -100,6 +101,9 @@ class _force:
         self.enabled = True;
         self.log =True;
         globals.forces.append(self);
+
+        # base class constructor
+        meta._metadata.__init__(self)
 
     ## \var enabled
     # \internal
@@ -239,6 +243,17 @@ class _force:
 
     forces = property(__forces);
 
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = meta._metadata.get_metadata(self)
+        data['enabled'] = self.enabled
+        data['log'] = self.log
+        if self.name is not "":
+            data['name'] = self.name
+
+        return data
+
 # set default counter
 _force.cur_id = 0;
 
@@ -274,6 +289,15 @@ class constant(_force):
         else:
             self.cpp_force = hoomd.ConstForceCompute(globals.system_definition, globals.group_all.cpp_group, fx, fy, fz);
 
+        # store metadata
+        self.metadata_fields = ['fx','fy','fz']
+        self.fx = fx
+        self.fy = fy
+        self.fz = fz
+        if group is not None:
+            self.metadata_fields.append('group')
+            self.group = group
+
         globals.system.addCompute(self.cpp_force, self.force_name);
 
     ## Change the value of the force
@@ -299,6 +323,10 @@ class constant(_force):
             self.cpp_force.setGroupForce(group.cpp_group,fx,fy,fz);
         else:
             self.cpp_force.setForce(fx, fy, fz);
+
+        self.fx = fx
+        self.fy = fy
+        self.fz = fz
 
     # there are no coeffs to update in the constant force compute
     def update_coeffs(self):
@@ -326,8 +354,12 @@ class const_external_field_dipole(_force):
         self.cpp_force = hoomd.ConstExternalFieldDipoleForceCompute(globals.system_definition, field_x, field_y, field_z, p)
 
         globals.system.addCompute(self.cpp_force, self.force_name)
-        #
 
+        # store metadata
+        self.metdata_fields = ['field_x', 'field_y', 'field_z']
+        self.field_x = field_x
+        self.field_y = field_y
+        self.field_z = field_z
 
     ## Change the %constant %field and %dipole moment
     #
