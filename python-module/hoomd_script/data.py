@@ -83,7 +83,7 @@ import hoomd_script
 # \code
 # snapshot = system.take_snapshot()
 # system.restore_snapshot(snapshot)
-# snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'])
+# snapshot = data.make_snapshot(N=100, particle_types=['A', 'B'], box=data.boxdim(L=10))
 # # ... populate snapshot with data ...
 # init.read_snapshot(snapshot)
 # \endcode
@@ -99,9 +99,9 @@ import hoomd_script
 #     snapshot.particles.position[0] = [1,2,3];
 #
 # system.restore_snapshot(snapshot);
-# snapshot = data.make_snapshot(N=10)
+# snapshot = data.make_snapshot(N=10, box=data.boxdim(L=10))
 # if comm.get_rank() == 0:
-#     snapshot.particles.position = ....
+#     snapshot.particles.position[:] = ....
 # init.read_snapshot(snapshot)
 # \endcode
 #
