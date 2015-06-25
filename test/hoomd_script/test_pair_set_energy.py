@@ -25,7 +25,7 @@ class pair_set_energy_tests (unittest.TestCase):
         import numpy as np
         t1 = np.array([0], dtype=np.int64);
         t2 = np.linspace(1, 99, 99, dtype=np.int64);
-        eng = lj.compute_energy(t1.tolist(), t2.tolist());
+        eng = lj.compute_energy(t1, t2);
         self.assertAlmostEqual(eng/2.0, self.s.particles.get(0).net_energy, places=5); # do this for all particles?
 
     def tearDown(self):
