@@ -89,6 +89,8 @@ from hoomd_script import cite;
 import math;
 import sys;
 
+from collections import OrderedDict
+
 ## Defines %pair coefficients
 #
 # All %pair forces use coeff to specify the coefficients between different
@@ -132,6 +134,20 @@ class coeff:
     def __init__(self):
         self.values = {};
         self.default_coeff = {}
+
+    ## \internal
+    # \brief Return a compact representation of the pair coefficients
+    def get_metadata(self):
+        # return list for easy serialization
+        l = []
+        for (a,b) in self.values:
+            item = OrderedDict()
+            item['typei'] = a
+            item['typej'] = b
+            for coeff in self.values[(a,b)]:
+                item[coeff] = self.values[(a,b)][coeff]
+            l.append(item)
+        return l
 
     ## \var values
     # \internal
@@ -306,7 +322,6 @@ class coeff:
             raise RuntimeError("Error setting pair coeff");
 
         return self.values[cur_pair][coeff_name];
-
 
 ## Interface for controlling neighbor list parameters
 #
@@ -810,6 +825,17 @@ class pair(force._force):
                 max_rcut = max(max_rcut, r_cut);
 
         return max_rcut;
+
+    ## \internal
+    # \brief Return metadata for this pair potential
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure all coefficients are set
+        self.update_coeffs()
+
+        data['pair_coeff'] = self.pair_coeff
+        return data
 
     ## Compute the energy between two sets of particles
     #
@@ -2670,3 +2696,101 @@ class tersoff(pair):
         ang_consts = hoomd.make_scalar3(c2, d2, m);
 
         return hoomd.make_tersoff_params(cutoff_d, tersoff_coeffs, exp_consts, dimer_r, n, gamman, lambda3_cube, ang_consts, alpha);
+
+## Mie potential %pair %force
+#
+# The command pair.mie specifies that a Mie potential type %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# \f{eqnarray*}
+# V_{\mathrm{LJ}}(r)  = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{n} -
+#                   \left( \frac{\sigma}{r} \right)^{m} \right] & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
+#
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon (in energy units)
+# - \f$ \sigma \f$ - \c sigma (in distance units)
+# - \f$ n \f$ - \c n (unitless)
+# - \f$ m \f$ - \c m (unitless)
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut (in distance units)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on (in distance units)
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# pair.mie is a standard %pair potential and supports a number of energy shift / smoothing modes. See hoomd_script.pair.pair for a full
+# description of the various options.
+#
+# \b Example:
+# \code
+# mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=12, m=6)
+# mie.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, n=14, m=7, r_cut=3.0, r_on=2.0);
+# mie.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, n=15.1, m=6.5, r_cut=2**(1.0/6.0), r_on=2.0);
+# mie.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
+# \endcode
+#
+# For more information on setting pair coefficients, including examples with <i>wildcards</i>, see
+# \link hoomd_script.pair.coeff.set() pair_coeff.set()\endlink.
+#
+# The cutoff radius \a r_cut passed into the initial pair.mie command sets the default \a r_cut for all %pair
+# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
+#
+# \MPI_SUPPORTED
+class mie(pair):
+    ## Specify the Mie potential %pair %force
+    #
+    # \param r_cut Default cutoff radius (in distance units)
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # mie = pair.mie(r_cut=3.0)
+    # mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=13.0, m=7.0)
+    # mie.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, n=14.0, m=7.0, r_cut=3.0, r_on=2.0);
+    # mie.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, name=None):
+        util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+
+        # create the c++ mirror class
+        if not globals.exec_conf.isCUDAEnabled():
+            self.cpp_force = hoomd.PotentialPairMie(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairMie;
+        else:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairMieGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairMieGPU;
+
+        globals.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'sigma', 'n', 'm'];
+
+    def process_coeff(self, coeff):
+        epsilon = float(coeff['epsilon']);
+        sigma = float(coeff['sigma']);
+        n = float(coeff['n']);
+        m = float(coeff['m']);
+
+        mie1 = epsilon * math.pow(sigma, n) * (n/(n-m)) * math.pow(n/m,m/(n-m));
+        mie2 = epsilon * math.pow(sigma, m) * (n/(n-m)) * math.pow(n/m,m/(n-m));
+        mie3 = n
+        mie4 = m
+        return hoomd.make_scalar4(mie1, mie2, mie3, mie4);

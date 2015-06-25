@@ -77,6 +77,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	\ingroup utils
 */
 
+//! Formats the HOOMD compile flags as a strong
+std::string hoomd_compile_flags();
+
 //! Formats the HOOMD version info header as string
 std::string output_version_info();
 

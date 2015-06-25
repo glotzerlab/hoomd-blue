@@ -93,6 +93,12 @@ neighbor_list = None;
 ## Global variable tracking all the loggers that have been created
 loggers = [];
 
+## Global variable tracking all the analyzers that have been created
+analyzers = [];
+
+## Global variable tracking all the updaters that have been created
+updaters = [];
+
 ## Global variable tracking all the compute thermos that have been created
 thermos = [];
 
@@ -114,7 +120,7 @@ bib = None;
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
 def clear():
-    global system_definition, system, forces, constraint_forces, external_forces, integration_methods, integrator, neighbor_list, loggers, thermos;
+    global system_definition, system, forces, constraint_forces, external_forces, integration_methods, integrator, neighbor_list, loggers, analyzers, thermos, updaters;
     global sorter, group_all, exec_conf, bib;
 
     system_definition = None;
@@ -126,7 +132,9 @@ def clear():
     integrator = None;
     neighbor_list = None;
     loggers = [];
+    analyzers = [];
     thermos = [];
     group_all = None;
     sorter = None;
+    updaters = []
     bib = None;
