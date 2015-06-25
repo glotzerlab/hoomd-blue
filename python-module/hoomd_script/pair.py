@@ -812,16 +812,17 @@ class pair(force._force):
         return max_rcut;
 
     ## Compute the energy between two sets of particles
-    # \f{eqnarray*}
-    # U =& \sum_{i \in tags1, j \in tags2} V_{ij}(r) \\
-    # \f}
-    # where $V_{ij}(r)$ is the pairwise energy between two particles $i$ and $j$.
+    #
+    # \f$
+    # U = \sum_{i \in \mathrm{tags1}, j \in \mathrm{tags2}} V_{ij}(r)
+    # \f$,
+    # where \f$V_{ij}(r)\f$ is the pairwise energy between two particles \f$i\f$ and \f$j\f$.
     #
     # \param tags1 is a numpy array of particle tags in the first group
     # \param tags2 is a numpy array of particle tags in the second group
     #
     # Some assumed properties of the sets \a tags1 and \a tags2 are:
-    #   - \a tags1 and \a tags2 should be disjoint
+    #   - \a tags1 and \a tags2 are disjoint
     #   - all elements in \a tags1 and \a tags2 are unique
     #
     # Niether of these properties are checked in the current version.
@@ -829,10 +830,11 @@ class pair(force._force):
     # \b Examples:
     # \code
     # ...
-    # tags=np.linspace(0,N-1,1, dtype=numpy.int)
+    # tags=numpy.linspace(0,N-1,1, dtype=numpy.int)
     # U = mypair.compute_energy(tags1=tags[0:N:2], tags2=tags[1:N:2]) # computes the energy between even and odd particles
     # \endcode
     def compute_energy(self, tags1, tags2):
+        # future versions could use np functions to test the assumptions above and raise an error if they occur.
         return self.cpp_force.computeEnergyBetweenSets(tags1, tags2);
 
 ## Lennard-Jones %pair %force

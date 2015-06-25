@@ -9,7 +9,8 @@ import os
 class pair_set_energy_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = init.create_random(N=100, phi_p=0.05);
+        self.N=100;
+        self.s = init.create_random(N=self.N, phi_p=0.05);
         sorter.set_params(grid=8) # not sure what this does
 
     # basic test of creation
@@ -24,8 +25,10 @@ class pair_set_energy_tests (unittest.TestCase):
         run(100, quiet=True);
         import numpy as np
         t1 = np.array([0], dtype=np.int64);
-        t2 = np.linspace(1, 99, 99, dtype=np.int64);
+        t2 = np.linspace(1, self.N-1, self.N-1, dtype=np.int64);
         eng = lj.compute_energy(t1, t2);
+        # tags = np.linspace(0, self.N-1, self.N, dtype=np.int64);
+        # print "Even and odd Energy = ", lj.compute_energy(tags1=tags[0:self.N:2], tags2=tags[1:self.N:2])
         self.assertAlmostEqual(eng/2.0, self.s.particles.get(0).net_energy, places=5); # do this for all particles?
 
     def tearDown(self):
