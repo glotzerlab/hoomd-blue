@@ -739,8 +739,10 @@ Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  boost::p
                                                                         boost::python::numeric::array tags2 )
     {
     Scalar eng = 0.0;
-    computeEnergyBetweenSets(   boost::python::stl_input_iterator<unsigned int>(tags1), boost::python::stl_input_iterator<unsigned int>(),
-                                boost::python::stl_input_iterator<unsigned int>(tags2), boost::python::stl_input_iterator<unsigned int>(),
+    int* itags1 = (int*)num_util::data(num_util::astype(tags1, num_util::getEnum<int>()));
+    int* itags2 = (int*)num_util::data(num_util::astype(tags2, num_util::getEnum<int>()));
+    computeEnergyBetweenSets(   itags1, itags1+num_util::size(tags1),
+                                itags2, itags2+num_util::size(tags2),
                                 eng);
     return eng;
     }

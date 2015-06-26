@@ -232,37 +232,6 @@ void my_import_array()
     }
 #endif
 
-template<typename T>
-struct enable_numpy_to_int
-{
-    enable_numpy_to_int()
-    {
-    boost::python::converter::registry::push_back( &convertible, &construct, boost::python::type_id<T>());
-    }
-    static void construct(PyObject* obj, boost::python::converter::rvalue_from_python_stage1_data* data)
-    {
-        boost::python::object bp_object(boost::python::handle<>(boost::python::borrowed(obj)));
-        // Grab pointer to memory into which to construct the new int
-        void* storage = ((boost::python::converter::rvalue_from_python_storage<T>*) data)->storage.bytes;
-        T i = boost::python::extract<T>(bp_object.attr("__int__")());
-        memcpy(storage, &i, sizeof(T));
-        data->convertible = storage;
-    }
-    static void* convertible(PyObject* obj)
-    {
-        boost::python::object bp_object(boost::python::handle<>(boost::python::borrowed(obj)));
-        try
-            {
-            bp_object.attr("__int__")();
-            }
-        catch(...)
-            {
-            return NULL;
-            }
-        return obj;
-    }
-};
-
 //! Function to export the tersoff parameter type to python
 void export_tersoff_params()
 {
@@ -478,8 +447,6 @@ BOOST_PYTHON_MODULE(hoomd)
     // setup needed for numpy
     my_import_array();
     bnp::array::set_module_and_type("numpy", "ndarray");
-    enable_numpy_to_int<int>();
-    enable_numpy_to_int<unsigned int>();
 
     def("abort_mpi", abort_mpi);
     def("mpi_barrier_world", mpi_barrier_world);
@@ -690,3 +657,4 @@ BOOST_PYTHON_MODULE(hoomd)
     // messenger
     export_Messenger();
     }
+
