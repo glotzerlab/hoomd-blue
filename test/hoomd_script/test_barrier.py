@@ -2,7 +2,7 @@
 # Maintainer: jglaser
 
 from hoomd_script import *
-init.setup_exec_conf();
+context.initialize();
 import unittest
 import os
 

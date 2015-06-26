@@ -62,6 +62,7 @@ import hoomd;
 from hoomd_script import globals;
 import sys;
 import shlex;
+import os;
 
 ## \internal
 # \brief Storage for all option values
@@ -239,6 +240,7 @@ def _parse_command_line(arg_string=None):
 # \sa \ref page_command_line_options
 #
 def get_user():
+    _verify_init();
     return globals.options.user;
 
 ## Set the notice level
@@ -251,6 +253,8 @@ def get_user():
 # \sa \ref page_command_line_options
 #
 def set_notice_level(notice_level):
+    _verify_init();
+
     try:
         notice_level = int(notice_level);
     except ValueError:
@@ -272,6 +276,8 @@ def set_notice_level(notice_level):
 # \sa \ref page_command_line_options
 #
 def set_msg_file(fname):
+    _verify_init();
+
     if fname is not None:
         globals.msg.openFile(fname);
     else:
@@ -287,5 +293,19 @@ def set_msg_file(fname):
 # \sa page_autotuner
 #
 def set_autotuner_params(enable=True, period=100000):
+    _verify_init();
+
     globals.options.autotuner_period = period;
     globals.options.autotuner_enable = enable;
+
+## \internal
+# \brief Throw an error if the context is not initialized
+def _verify_init():
+    if globals.options is None:
+        globals.msg.error("call context.initialize() before any other method in hoomd.")
+        raise RuntimeError("hoomd execution context is not available")
+
+################### Parse command line on load
+if '_HOOMD_EXEC' in os.environ:
+    globals.options = options();
+    _parse_command_line();

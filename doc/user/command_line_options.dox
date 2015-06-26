@@ -51,8 +51,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Overview
 
-Arguments are processed in \link hoomd_script.init.setup_exec_conf() init.setup_exec_conf\endlink. Call
-`init.setup_exec_conf()` immediately after `from hoomd_script import *` so that the requested MPI and GPU options can be
+Arguments are processed in \link hoomd_script.context.initialize() context.initialize\endlink. Call
+`context.initialize()` immediately after `from hoomd_script import *` so that the requested MPI and GPU options can be
 initialized as early as possible.
 
 There are two ways to specify arguments.
@@ -60,18 +60,18 @@ There are two ways to specify arguments.
  1. On the command line: `hoomd script.py [options]`:
     \code
     from hoomd_script import *
-    init.setup_exec_conf()
+    context.initialize()
     \endcode
  2. Within your script:
     \code
     from hoomd_script import *
-    init.setup_exec_conf("[options]")
+    context.initialize("[options]")
     \endcode
 
-With no arguments, `init.setup_exec_conf()` will attempt to parse **all** arguments from the command line, whether
+With no arguments, `context.initialize()` will attempt to parse **all** arguments from the command line, whether
 it understands them or not. When you pass a string, it ignores the command line (sys.argv)
 and parses the given string as if it were issued on the command line. In ipython notebooks, use
-`init.setup_exec_conf("")` to avoid errors from ipython specific command line arguments.
+`context.initialize("")` to avoid errors from ipython specific command line arguments.
 
 ### Options
 

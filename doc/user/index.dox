@@ -121,7 +121,7 @@ Table of contents:
     - \link hoomd_script.option.set_autotuner_params() option.set_autotuner_params\endlink - <i>Set autotuner params</i>
 
 \section sec_index_init Initialize
- - \link hoomd_script.init.setup_exec_conf() init.setup_exec_conf\endlink - <i>Parse command line arguments and initialize the execution configuration</i>
+ - \link hoomd_script.context.initialize() context.initialize\endlink - <i>Parse command line arguments and initialize the execution context</i>
  - \link hoomd_script.init.create_empty() init.create_empty\endlink - <i>Create an empty system</i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>Generates N randomly positioned particles of the same type </i>
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>Generates any number of randomly positioned polymers of configurable types </i>

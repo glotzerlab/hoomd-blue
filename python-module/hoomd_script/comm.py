@@ -56,6 +56,7 @@ import hoomd;
 from hoomd_script import init;
 from hoomd_script import util;
 from hoomd_script import globals;
+import hoomd_script;
 
 import sys;
 
@@ -63,12 +64,9 @@ import sys;
 # \returns the number of MPI ranks in this partition
 # \note Returns 1 in non-mpi builds
 def get_num_ranks():
+    hoomd_script.context._verify_init();
     if hoomd.is_MPI_available():
-        if globals.exec_conf is not None:
-            return globals.exec_conf.getNRanks();
-        else:
-            globals.msg.error("Must call init.setup_exec_conf before calling comm methods");
-            raise RuntimeError("Error getting num ranks");
+        return globals.exec_conf.getNRanks();
     else:
         return 1;
 
@@ -78,12 +76,10 @@ def get_num_ranks():
 # variables.
 # \note Always returns 0 in non-mpi builds
 def get_rank():
+    hoomd_script.context._verify_init();
+
     if hoomd.is_MPI_available():
-        if globals.exec_conf is not None:
-            return globals.exec_conf.getRank()
-        else:
-            globals.msg.error("Must call init.setup_exec_conf before calling comm methods");
-            raise RuntimeError("Error getting rank");
+        return globals.exec_conf.getRank()
     else:
         return 0;
 
@@ -93,12 +89,10 @@ def get_rank():
 # variables.
 # \note Always returns 0 in non-mpi builds
 def get_partition():
+    hoomd_script.context._verify_init();
+
     if hoomd.is_MPI_available():
-        if globals.exec_conf is not None:
-            return globals.exec_conf.getPartition()
-        else:
-            globals.msg.error("Must call init.setup_exec_conf before calling comm methods");
-            raise RuntimeError("Error getting partition");
+        return globals.exec_conf.getPartition()
     else:
         return 0;
 
@@ -109,15 +103,9 @@ def barrier_all():
         hoomd.mpi_barrier_world();
 
 ## Perform a MPI barrier synchronization inside a partition
-#
-# If partitions have not been initialized yet via init.setup_exec_conf(),
-# this functions performs a global sync
-#
 # \note does nothing in in non-MPI builds
 def barrier():
+    hoomd_script.context._verify_init();
+
     if hoomd.is_MPI_available():
-        if globals.exec_conf is not None:
-            globals.exec_conf.barrier()
-        else:
-            # perform a synchronization across all partitions
-            barrier_all()
+        globals.exec_conf.barrier()
