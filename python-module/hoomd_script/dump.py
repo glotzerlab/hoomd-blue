@@ -280,8 +280,7 @@ class xml(analyze._analyzer):
     ## Write a restart file at the current time step
     #
     # This only works when dump.xml() is in **restart** mode. write_restart() writes out a restart file at the current
-    # time step. It is useful to put at the end of a script to ensure that the system state is written out before
-    # exiting.
+    # time step. Put it at the end of a script to ensure that the system state is written out before exiting.
     def write_restart(self):
         util.print_status_line();
 
