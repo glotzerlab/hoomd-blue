@@ -11,7 +11,7 @@ class pair_set_energy_tests (unittest.TestCase):
         print
         self.N=100;
         self.s = init.create_random(N=self.N, phi_p=0.05);
-        sorter.set_params(grid=8) # not sure what this does
+        sorter.set_params(grid=8) 
 
     # basic test of creation
     def test(self):
