@@ -144,6 +144,8 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
 
     m_log_names.push_back(string("nvt_rigid_xi_t") + suffix);
     m_log_names.push_back(string("nvt_rigid_xi_r") + suffix);
+
+    setup();
     }
 
 TwoStepNVTRigid::~TwoStepNVTRigid()
@@ -285,12 +287,6 @@ Scalar TwoStepNVTRigid::getLogValue(const std::string& quantity, unsigned int ti
 */
 void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     {
-    if (m_first_step)
-        {
-        setup();
-        m_first_step = false;
-        }
-
     // sanity check
     if (m_n_bodies <= 0)
         return;

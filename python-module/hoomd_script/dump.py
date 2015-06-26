@@ -123,6 +123,11 @@ class xml(analyze._analyzer):
         else:
             self.enabled = False;
 
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.metadata_fields = ['filename','period']
+
     ## Change xml write parameters
     #
     # \param all (if True) Enables the output of all optional parameters below
@@ -455,6 +460,11 @@ class mol2(analyze._analyzer):
         else:
             self.enabled = False;
 
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.metadata_fields = ['filename','period']
+
     ## Write a file at the current time step
     #
     # \param filename File name to write to
@@ -476,7 +486,6 @@ class mol2(analyze._analyzer):
         self.check_initialization();
 
         self.cpp_analyzer.writeFile(filename);
-
 
 ## Writes simulation snapshots in the DCD format
 #
@@ -549,6 +558,12 @@ class dcd(analyze._analyzer):
         self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
         self.cpp_analyzer.setAngleZ(angle_z);
         self.setupAnalyzer(period, phase);
+
+        # store metadata
+        self.filename = filename
+        self.period = period
+        self.group = group
+        self.metadata_fields = ['filename','period','group']
 
     def enable(self):
         util.print_status_line();
@@ -665,3 +680,4 @@ class pdb(analyze._analyzer):
         self.check_initialization();
 
         self.cpp_analyzer.writeFile(filename);
+

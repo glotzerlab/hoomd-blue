@@ -89,8 +89,10 @@ from hoomd_script import hoomd;
 from hoomd_script import compute;
 from hoomd_script import charge;
 from hoomd_script import comm;
+from hoomd_script import meta;
 from hoomd_script import cite;
 from hoomd_script import data;
+from hoomd_script import context
 
 from hoomd import WalltimeLimitReached;
 

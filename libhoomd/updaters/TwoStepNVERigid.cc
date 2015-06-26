@@ -86,8 +86,6 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     // Get the particle data associated with the rigid data (i.e. the system particle data?)
     m_pdata = sysdef->getParticleData();
 
-    m_first_step = true;
-
     // Create my rigid body group from the particle group
     m_body_group = boost::shared_ptr<RigidBodyGroup>(new RigidBodyGroup(sysdef, m_group));
     if (m_body_group->getNumMembers() == 0)
@@ -104,6 +102,8 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     // Using thermostat or barostat
     t_stat = false;
     p_stat = false;
+
+    setup();
     }
 
 TwoStepNVERigid::~TwoStepNVERigid()
@@ -329,12 +329,6 @@ void TwoStepNVERigid::setup()
 */
 void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     {
-    if (m_first_step)
-        {
-        setup();
-        m_first_step = false;
-        }
-
     // sanity check
     if (m_n_bodies <= 0)
         return;

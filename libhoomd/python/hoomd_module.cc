@@ -313,12 +313,24 @@ object get_cuda_version_tuple()
 //! Get the compiler version
 string get_compiler_version()
     {
-    #ifdef __GNUC__
+    #if defined(__GNUC__) && !(defined(__clang__) || defined(__INTEL_COMPILER))
     ostringstream o;
     o << "gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." <<  __GNUC_PATCHLEVEL__;
     return o.str();
+
+    #elif defined(__clang__)
+    ostringstream o;
+    o << "clang " << __clang_major__ << "." << __clang_minor__ << "." <<  __clang_patchlevel__;
+    return o.str();
+
+    #elif defined(__INTEL_COMPILER)
+    ostringstream o;
+    o << "icc " << __INTEL_COMPILER;
+    return o.str();
+
     #else
     return string("unknown");
+
     #endif
     }
 
@@ -331,6 +343,13 @@ bool is_MPI_available()
 #else
        false;
 #endif
+    }
+
+void mpi_barrier_world()
+    {
+    #ifdef ENABLE_MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+    #endif
     }
 
 //! Start the CUDA profiler
@@ -354,7 +373,6 @@ void cuda_profile_stop()
 // values used in measuring hoomd launch timing
 unsigned int hoomd_launch_time, hoomd_start_time, hoomd_mpi_init_time;
 bool hoomd_launch_timing=false;
-
 
 #ifdef ENABLE_MPI
 //! Environment variables needed for setting up MPI
@@ -431,7 +449,9 @@ BOOST_PYTHON_MODULE(hoomd)
     bnp::array::set_module_and_type("numpy", "ndarray");
 
     def("abort_mpi", abort_mpi);
+    def("mpi_barrier_world", mpi_barrier_world);
 
+    def("hoomd_compile_flags", &hoomd_compile_flags);
     def("output_version_info", &output_version_info);
     def("find_vmd", &find_vmd);
     def("get_hoomd_version", &get_hoomd_version);
@@ -511,6 +531,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairMoliere> ("PotentialPairMoliere");
     export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
+    export_PotentialPair<PotentialPairMie>("PotentialPairMie");
     export_tersoff_params();
     export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
     export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
@@ -542,6 +563,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL> ("PotentialPairZBLGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTersoffGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
+    export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>("PotentialPairMieGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");

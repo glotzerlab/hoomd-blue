@@ -192,7 +192,6 @@ class Compute : boost::noncopyable
             }
 #endif
 
-
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with

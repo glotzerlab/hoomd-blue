@@ -57,6 +57,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/python.hpp>
 #include <boost/bind.hpp>
+#include "num_util.h"
+#include <boost/python/stl_iterator.hpp>
 
 #include "HOOMDMath.h"
 #include "Index1D.h"
@@ -172,8 +174,11 @@ class PotentialPair : public ForceCompute
         //! Calculates the energy between two lists of particles.
         template< class InputIterator >
         void computeEnergyBetweenSets(  InputIterator first1, InputIterator last1,
-                                        InputIterator first2, InputIterator last2,
-                                        Scalar& energy );
+                                            InputIterator first2, InputIterator last2,
+                                            Scalar& energy );
+        //! Calculates the energy between two lists of particles.
+        Scalar computeEnergyBetweenSetsPythonList(  boost::python::numeric::array tags1,
+                                                    boost::python::numeric::array tags2);
 
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -583,7 +588,6 @@ CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timeste
 //! function to compute the energy between two lists of particles.
 //! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.
 //! \param energy is the sum of the energies between all particles in tags1 and tags2, U = \sum_{i \in tags1, j \in tags2} u_{ij}.
-//! TODO: using the iterator for generality. Numpy interface should supply iterator. Wrtie an overload that calls this function to deal with the numpy case.
 template< class evaluator >
 template< class InputIterator >
 inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterator first1, InputIterator last1,
@@ -632,93 +636,115 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_rtags.data[*iter];
-            assert(j < m_pdata->getN() + m_pdata->getNGhosts());
-
-            // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-            Scalar3 dx = pi - pj;
-
-            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
-            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
-            assert(typej < m_pdata->getNTypes());
-
-            // access diameter and charge (if needed)
-            Scalar dj = Scalar(0.0);
-            Scalar qj = Scalar(0.0);
-            if (evaluator::needsDiameter())
-                dj = h_diameter.data[j];
-            if (evaluator::needsCharge())
-                qj = h_charge.data[j];
-
-            // apply periodic boundary conditions
-            dx = box.minImage(dx);
-
-            // calculate r_ij squared (FLOPS: 5)
-            Scalar rsq = dot(dx, dx);
-
-            // get parameters for this type pair
-            unsigned int typpair_idx = m_typpair_idx(typei, typej);
-            param_type param = h_params.data[typpair_idx];
-            Scalar rcutsq = h_rcutsq.data[typpair_idx];
-            Scalar ronsq = Scalar(0.0);
-            if (m_shift_mode == xplor)
-                ronsq = h_ronsq.data[typpair_idx];
-
-            // design specifies that energies are shifted if
-            // 1) shift mode is set to shift
-            // or 2) shift mode is explor and ron > rcut
-            bool energy_shift = false;
-            if (m_shift_mode == shift)
-                energy_shift = true;
-            else if (m_shift_mode == xplor)
+            if (j < m_pdata->getN() + m_pdata->getNGhosts())
                 {
-                if (ronsq > rcutsq)
-                    energy_shift = true;
-                }
+                // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+                Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+                Scalar3 dx = pi - pj;
 
-            // compute the force and potential energy
-            Scalar force_divr = Scalar(0.0);
-            Scalar pair_eng = Scalar(0.0);
-            evaluator eval(rsq, rcutsq, param);
-            if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
-            if (evaluator::needsCharge())
-                eval.setCharge(qi, qj);
+                // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
+                unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+                assert(typej < m_pdata->getNTypes());
 
-            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+                // access diameter and charge (if needed)
+                Scalar dj = Scalar(0.0);
+                Scalar qj = Scalar(0.0);
+                if (evaluator::needsDiameter())
+                    dj = h_diameter.data[j];
+                if (evaluator::needsCharge())
+                    qj = h_charge.data[j];
 
-            if (evaluated)
-                {
-                // modify the potential for xplor shifting
+                // apply periodic boundary conditions
+                dx = box.minImage(dx);
+
+                // calculate r_ij squared (FLOPS: 5)
+                Scalar rsq = dot(dx, dx);
+
+                // get parameters for this type pair
+                unsigned int typpair_idx = m_typpair_idx(typei, typej);
+                param_type param = h_params.data[typpair_idx];
+                Scalar rcutsq = h_rcutsq.data[typpair_idx];
+                Scalar ronsq = Scalar(0.0);
                 if (m_shift_mode == xplor)
+                    ronsq = h_ronsq.data[typpair_idx];
+
+                // design specifies that energies are shifted if
+                // 1) shift mode is set to shift
+                // or 2) shift mode is explor and ron > rcut
+                bool energy_shift = false;
+                if (m_shift_mode == shift)
+                    energy_shift = true;
+                else if (m_shift_mode == xplor)
                     {
-                    if (rsq >= ronsq && rsq < rcutsq)
-                        {
-                        // Implement XPLOR smoothing (FLOPS: 16)
-                        Scalar old_pair_eng = pair_eng;
-                        Scalar old_force_divr = force_divr;
-
-                        // calculate 1.0 / (xplor denominator)
-                        Scalar xplor_denom_inv =
-                            Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-
-                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
-                                   (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
-                        Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-
-                        // make modifications to the old pair energy and force
-                        pair_eng = old_pair_eng * s;
-                        // note: I'm not sure why the minus sign needs to be there: my notes have a +
-                        // But this is verified correct via plotting
-                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
-                        }
+                    if (ronsq > rcutsq)
+                        energy_shift = true;
                     }
-                energy += pair_eng;
+
+                // compute the force and potential energy
+                Scalar force_divr = Scalar(0.0);
+                Scalar pair_eng = Scalar(0.0);
+                evaluator eval(rsq, rcutsq, param);
+                if (evaluator::needsDiameter())
+                    eval.setDiameter(di, dj);
+                if (evaluator::needsCharge())
+                    eval.setCharge(qi, qj);
+
+                bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+                if (evaluated)
+                    {
+                    // modify the potential for xplor shifting
+                    if (m_shift_mode == xplor)
+                        {
+                        if (rsq >= ronsq && rsq < rcutsq)
+                            {
+                            // Implement XPLOR smoothing (FLOPS: 16)
+                            Scalar old_pair_eng = pair_eng;
+                            Scalar old_force_divr = force_divr;
+
+                            // calculate 1.0 / (xplor denominator)
+                            Scalar xplor_denom_inv =
+                                Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+
+                            Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                            Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
+                                       (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
+                            Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+
+                            // make modifications to the old pair energy and force
+                            pair_eng = old_pair_eng * s;
+                            // note: I'm not sure why the minus sign needs to be there: my notes have a +
+                            // But this is verified correct via plotting
+                            force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
+                            }
+                        }
+                    energy += pair_eng;
+                    }
                 }
             }
         }
+    #ifdef ENABLE_MPI
+    if (this->m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &energy, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
     if (m_prof) m_prof->pop();
+    }
+
+//! Calculates the energy between two lists of particles.
+template < class evaluator >
+Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  boost::python::numeric::array tags1,
+                                                                        boost::python::numeric::array tags2 )
+    {
+    Scalar eng = 0.0;
+    int* itags1 = (int*)num_util::data(num_util::astype(tags1, num_util::getEnum<int>()));
+    int* itags2 = (int*)num_util::data(num_util::astype(tags2, num_util::getEnum<int>()));
+    computeEnergyBetweenSets(   itags1, itags1+num_util::size(tags1),
+                                itags2, itags2+num_util::size(tags2),
+                                eng);
+    return eng;
     }
 
 //! Export this pair potential to python
@@ -734,6 +760,7 @@ template < class T > void export_PotentialPair(const std::string& name)
                   .def("setRcut", &T::setRcut)
                   .def("setRon", &T::setRon)
                   .def("setShiftMode", &T::setShiftMode)
+                  .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
                   ;
 
     boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")

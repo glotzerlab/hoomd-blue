@@ -93,6 +93,17 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
         rigid_data.replicate(n);
     }
 
+template <class Real>
+void SnapshotSystemData<Real>::broadcast(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    #ifdef ENABLE_MPI
+    if (exec_conf->getNRanks() > 1)
+        {
+        bcast(global_box, 0, exec_conf->getMPICommunicator());
+        }
+    #endif
+    }
+
 // instantiate both float and double snapshots
 template class SnapshotSystemData<float>;
 template class SnapshotSystemData<double>;
@@ -110,6 +121,7 @@ void export_SnapshotSystemData()
     .def_readwrite("impropers", &SnapshotSystemData<float>::improper_data)
     .def_readwrite("bodies", &SnapshotSystemData<float>::rigid_data)
     .def("replicate", &SnapshotSystemData<float>::replicate)
+    .def("_broadcast", &SnapshotSystemData<float>::broadcast)
     ;
 
     implicitly_convertible<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr< const SnapshotSystemData<float> > >();
@@ -125,6 +137,7 @@ void export_SnapshotSystemData()
     .def_readwrite("impropers", &SnapshotSystemData<double>::improper_data)
     .def_readwrite("bodies", &SnapshotSystemData<double>::rigid_data)
     .def("replicate", &SnapshotSystemData<double>::replicate)
+    .def("_broadcast", &SnapshotSystemData<double>::broadcast)
     ;
 
     implicitly_convertible<boost::shared_ptr< SnapshotSystemData<double> >, boost::shared_ptr< const SnapshotSystemData<double> > >();
