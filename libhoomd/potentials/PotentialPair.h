@@ -616,6 +616,8 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
     while (first1 != last1)
         {
         unsigned int i = h_rtags.data[*first1]; first1++;
+        if (i > m_pdata->getN() + m_pdata->getNGhosts()) // not on this processor.
+            continue;
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
@@ -636,90 +638,89 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_rtags.data[*iter];
-            if (j < m_pdata->getN() + m_pdata->getNGhosts())
+            if (j > m_pdata->getN() + m_pdata->getNGhosts())
+                continue;
+            // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
+            Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 dx = pi - pj;
+
+            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
+            unsigned int typej = __scalar_as_int(h_pos.data[j].w);
+            assert(typej < m_pdata->getNTypes());
+
+            // access diameter and charge (if needed)
+            Scalar dj = Scalar(0.0);
+            Scalar qj = Scalar(0.0);
+            if (evaluator::needsDiameter())
+                dj = h_diameter.data[j];
+            if (evaluator::needsCharge())
+                qj = h_charge.data[j];
+
+            // apply periodic boundary conditions
+            dx = box.minImage(dx);
+
+            // calculate r_ij squared (FLOPS: 5)
+            Scalar rsq = dot(dx, dx);
+
+            // get parameters for this type pair
+            unsigned int typpair_idx = m_typpair_idx(typei, typej);
+            param_type param = h_params.data[typpair_idx];
+            Scalar rcutsq = h_rcutsq.data[typpair_idx];
+            Scalar ronsq = Scalar(0.0);
+            if (m_shift_mode == xplor)
+                ronsq = h_ronsq.data[typpair_idx];
+
+            // design specifies that energies are shifted if
+            // 1) shift mode is set to shift
+            // or 2) shift mode is explor and ron > rcut
+            bool energy_shift = false;
+            if (m_shift_mode == shift)
+                energy_shift = true;
+            else if (m_shift_mode == xplor)
                 {
-                // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
-                Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-                Scalar3 dx = pi - pj;
-
-                // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
-                unsigned int typej = __scalar_as_int(h_pos.data[j].w);
-                assert(typej < m_pdata->getNTypes());
-
-                // access diameter and charge (if needed)
-                Scalar dj = Scalar(0.0);
-                Scalar qj = Scalar(0.0);
-                if (evaluator::needsDiameter())
-                    dj = h_diameter.data[j];
-                if (evaluator::needsCharge())
-                    qj = h_charge.data[j];
-
-                // apply periodic boundary conditions
-                dx = box.minImage(dx);
-
-                // calculate r_ij squared (FLOPS: 5)
-                Scalar rsq = dot(dx, dx);
-
-                // get parameters for this type pair
-                unsigned int typpair_idx = m_typpair_idx(typei, typej);
-                param_type param = h_params.data[typpair_idx];
-                Scalar rcutsq = h_rcutsq.data[typpair_idx];
-                Scalar ronsq = Scalar(0.0);
-                if (m_shift_mode == xplor)
-                    ronsq = h_ronsq.data[typpair_idx];
-
-                // design specifies that energies are shifted if
-                // 1) shift mode is set to shift
-                // or 2) shift mode is explor and ron > rcut
-                bool energy_shift = false;
-                if (m_shift_mode == shift)
+                if (ronsq > rcutsq)
                     energy_shift = true;
-                else if (m_shift_mode == xplor)
+                }
+
+            // compute the force and potential energy
+            Scalar force_divr = Scalar(0.0);
+            Scalar pair_eng = Scalar(0.0);
+            evaluator eval(rsq, rcutsq, param);
+            if (evaluator::needsDiameter())
+                eval.setDiameter(di, dj);
+            if (evaluator::needsCharge())
+                eval.setCharge(qi, qj);
+
+            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+
+            if (evaluated)
+                {
+                // modify the potential for xplor shifting
+                if (m_shift_mode == xplor)
                     {
-                    if (ronsq > rcutsq)
-                        energy_shift = true;
-                    }
-
-                // compute the force and potential energy
-                Scalar force_divr = Scalar(0.0);
-                Scalar pair_eng = Scalar(0.0);
-                evaluator eval(rsq, rcutsq, param);
-                if (evaluator::needsDiameter())
-                    eval.setDiameter(di, dj);
-                if (evaluator::needsCharge())
-                    eval.setCharge(qi, qj);
-
-                bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-
-                if (evaluated)
-                    {
-                    // modify the potential for xplor shifting
-                    if (m_shift_mode == xplor)
+                    if (rsq >= ronsq && rsq < rcutsq)
                         {
-                        if (rsq >= ronsq && rsq < rcutsq)
-                            {
-                            // Implement XPLOR smoothing (FLOPS: 16)
-                            Scalar old_pair_eng = pair_eng;
-                            Scalar old_force_divr = force_divr;
+                        // Implement XPLOR smoothing (FLOPS: 16)
+                        Scalar old_pair_eng = pair_eng;
+                        Scalar old_force_divr = force_divr;
 
-                            // calculate 1.0 / (xplor denominator)
-                            Scalar xplor_denom_inv =
-                                Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+                        // calculate 1.0 / (xplor denominator)
+                        Scalar xplor_denom_inv =
+                            Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
 
-                            Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                            Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
-                                       (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
-                            Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
+                                   (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
+                        Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
 
-                            // make modifications to the old pair energy and force
-                            pair_eng = old_pair_eng * s;
-                            // note: I'm not sure why the minus sign needs to be there: my notes have a +
-                            // But this is verified correct via plotting
-                            force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
-                            }
+                        // make modifications to the old pair energy and force
+                        pair_eng = old_pair_eng * s;
+                        // note: I'm not sure why the minus sign needs to be there: my notes have a +
+                        // But this is verified correct via plotting
+                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
                         }
-                    energy += pair_eng;
                     }
+                energy += pair_eng;
                 }
             }
         }
