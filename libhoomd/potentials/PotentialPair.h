@@ -740,8 +740,15 @@ Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  boost::p
                                                                         boost::python::numeric::array tags2 )
     {
     Scalar eng = 0.0;
-    int* itags1 = (int*)num_util::data(num_util::astype(tags1, num_util::getEnum<int>()));
-    int* itags2 = (int*)num_util::data(num_util::astype(tags2, num_util::getEnum<int>()));
+    num_util::check_contiguous(tags1);
+    num_util::check_rank(tags1, 1);
+    num_util::check_type(tags1, NPY_INT);
+    unsigned int* itags1 = (unsigned int*)num_util::data(tags1);
+
+    num_util::check_contiguous(tags2);
+    num_util::check_rank(tags2, 1);
+    num_util::check_type(tags2, NPY_INT);
+    unsigned int* itags2 = (unsigned int*)num_util::data(tags2);
     computeEnergyBetweenSets(   itags1, itags1+num_util::size(tags1),
                                 itags2, itags2+num_util::size(tags2),
                                 eng);

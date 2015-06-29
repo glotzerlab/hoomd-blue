@@ -844,20 +844,22 @@ class pair(force._force):
     # \f$,
     # where \f$V_{ij}(r)\f$ is the pairwise energy between two particles \f$i\f$ and \f$j\f$.
     #
-    # \param tags1 is a numpy array of particle tags in the first group
-    # \param tags2 is a numpy array of particle tags in the second group
+    # \param tags1 is a numpy array of particle tags in the first group (type int32)
+    # \param tags2 is a numpy array of particle tags in the second group (type int32)
     #
     # Some assumed properties of the sets \a tags1 and \a tags2 are:
     #   - \a tags1 and \a tags2 are disjoint
     #   - all elements in \a tags1 and \a tags2 are unique
+    #   - \a tags1 and \a tags2 are contiguous numpy arrays of dtype int32
     #
     # Niether of these properties are checked in the current version.
     #
     # \b Examples:
     # \code
     # ...
-    # tags=numpy.linspace(0,N-1,1, dtype=numpy.int)
-    # U = mypair.compute_energy(tags1=tags[0:N:2], tags2=tags[1:N:2]) # computes the energy between even and odd particles
+    # tags=numpy.linspace(0,N-1,1, dtype=numpy.int32)
+    # # computes the energy between even and odd particles
+    # U = mypair.compute_energy(tags1=numpy.array(tags[0:N:2]), tags2=numpy.array(tags[1:N:2]))
     # \endcode
     def compute_energy(self, tags1, tags2):
         # future versions could use np functions to test the assumptions above and raise an error if they occur.

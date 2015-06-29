@@ -4,6 +4,7 @@
 from hoomd_script import *
 import unittest
 import os
+import numpy
 
 # pair.lj
 class pair_set_energy_tests (unittest.TestCase):
@@ -23,15 +24,16 @@ class pair_set_energy_tests (unittest.TestCase):
         integrate.mode_standard(dt=0.005)
         integrate.nvt(group=all, T=1.2, tau=0.5)
         run(100, quiet=True);
-        import numpy as np
-        t1 = np.array([0], dtype=np.int64);
-        t2 = np.linspace(1, self.N-1, self.N-1, dtype=np.int64);
+
+        t1 = numpy.array([0], dtype=numpy.int32);
+        t2 = numpy.linspace(1, self.N-1, self.N-1, dtype=numpy.int32);
         eng = lj.compute_energy(t1, t2);
-        # tags = np.linspace(0, self.N-1, self.N, dtype=np.int64);
+        # tags = numpy.linspace(0, self.N-1, self.N, dtype=numpy.int64);
         # print "Even and odd Energy = ", lj.compute_energy(tags1=tags[0:self.N:2], tags2=tags[1:self.N:2])
-        self.assertAlmostEqual(eng/2.0, self.s.particles.get(0).net_energy, places=5); # do this for all particles?
+        self.assertAlmostEqual(eng/2.0, self.s.particles.get(0).net_energy, places=5);
 
     def tearDown(self):
+        self.s = None
         init.reset();
 
 
