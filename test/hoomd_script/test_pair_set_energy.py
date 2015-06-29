@@ -21,15 +21,17 @@ class pair_set_energy_tests (unittest.TestCase):
         lj.update_coeffs();
 
         all = group.all();
-        integrate.mode_standard(dt=0.005)
+        integrate.mode_standard(dt=0.0)
         integrate.nvt(group=all, T=1.2, tau=0.5)
-        run(100, quiet=True);
+        run(1, quiet=True);
 
         t1 = numpy.array([0], dtype=numpy.int32);
         t2 = numpy.linspace(1, self.N-1, self.N-1, dtype=numpy.int32);
         eng = lj.compute_energy(t1, t2);
-        # tags = numpy.linspace(0, self.N-1, self.N, dtype=numpy.int64);
-        # print "Even and odd Energy = ", lj.compute_energy(tags1=tags[0:self.N:2], tags2=tags[1:self.N:2])
+
+        # tags = numpy.linspace(0, self.N-1, self.N, dtype=numpy.int32);
+        # print("Even and odd Energy = ", lj.compute_energy(tags1=numpy.array(tags[0:self.N:2]), tags2=numpy.array(tags[1:self.N:2])))
+
         self.assertAlmostEqual(eng/2.0, self.s.particles.get(0).net_energy, places=5);
 
     def tearDown(self):
