@@ -681,3 +681,51 @@ class pdb(analyze._analyzer):
 
         self.cpp_analyzer.writeFile(filename);
 
+## Writes simulation snapshots in the POS format
+#
+# The file is opened on initialization and a new frame is appended every \a period steps.
+#
+# \warning dump.pos Is not restart compatible. It always overwrites the file on initialization.
+#
+class pos(analyze._analyzer):
+    ## Initialize the pos writer
+    #
+    # \param filename File name to write
+    # \param period (optional) Number of time steps between file dumps
+    # \param unwrap_rigid When False, (the default) individual particles are written inside
+    #        the simulation box which breaks up rigid bodies near box boundaries. When True,
+    #        particles belonging to the same rigid body will be unwrapped so that the body
+    #        is continuous. The center of mass of the body remains in the simulation box, but
+    #        some particles may be written just outside it.
+    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
+    #
+    # \b Examples:
+    # \code
+    # dump.pos(filename="dump.pos", period=1000)
+    # pos = dump.pos(filename="particles.pos", period=1e5)
+    # \endcode
+    #
+    # dump.pos always overwrites the file when initializing.
+    #
+    # \a period can be a function: see \ref variable_period_docs for details
+    #
+    def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1):
+        util.print_status_line();
+
+        # initialize base class
+        analyze._analyzer.__init__(self);
+
+        # create the c++ mirror class
+        self.cpp_analyzer = hoomd.POSDumpWriter(globals.system_definition, filename);
+
+        self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
+        if period is not None:
+            self.setupAnalyzer(period, phase);
+            self.enabled = True;
+            self.prev_period = 1;
+        else:
+            self.enabled = False;
+
+    def set_def(self, typ, shape):
+        v = globals.system_definition.getParticleData().getTypeByName(typ);
+        self.cpp_analyzer.setDef(v, shape)
