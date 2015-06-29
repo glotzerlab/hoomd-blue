@@ -58,3 +58,6 @@ Save this as `lj.py` and run with `hoomd lj.py`.
 
 Documentation for the current stable release is available online: [http://codeblue.umich.edu/hoomd-blue/doc/](http://codeblue.umich.edu/hoomd-blue/doc/)
 
+# Change log
+
+See [ChangeLog.md](ChangeLog.md).
