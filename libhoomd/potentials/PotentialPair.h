@@ -616,7 +616,7 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
     while (first1 != last1)
         {
         unsigned int i = h_rtags.data[*first1]; first1++;
-        if (i > m_pdata->getN() + m_pdata->getNGhosts()) // not on this processor.
+        if (i >= m_pdata->getN()) // not owned by this processor.
             continue;
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
@@ -638,7 +638,7 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
             unsigned int j = h_rtags.data[*iter];
-            if (j > m_pdata->getN() + m_pdata->getNGhosts())
+            if (j >= m_pdata->getN() + m_pdata->getNGhosts()) // not on this processor at all
                 continue;
             // calculate dr_ji (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pj = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
