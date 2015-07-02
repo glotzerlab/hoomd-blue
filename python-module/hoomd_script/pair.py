@@ -837,6 +837,34 @@ class pair(force._force):
         data['pair_coeff'] = self.pair_coeff
         return data
 
+    ## Compute the energy between two sets of particles
+    #
+    # \f$
+    # U = \sum_{i \in \mathrm{tags1}, j \in \mathrm{tags2}} V_{ij}(r)
+    # \f$,
+    # where \f$V_{ij}(r)\f$ is the pairwise energy between two particles \f$i\f$ and \f$j\f$.
+    #
+    # \param tags1 is a numpy array of particle tags in the first group (type int32)
+    # \param tags2 is a numpy array of particle tags in the second group (type int32)
+    #
+    # Some assumed properties of the sets \a tags1 and \a tags2 are:
+    #   - \a tags1 and \a tags2 are disjoint
+    #   - all elements in \a tags1 and \a tags2 are unique
+    #   - \a tags1 and \a tags2 are contiguous numpy arrays of dtype int32
+    #
+    # Niether of these properties are checked in the current version.
+    #
+    # \b Examples:
+    # \code
+    # ...
+    # tags=numpy.linspace(0,N-1,1, dtype=numpy.int32)
+    # # computes the energy between even and odd particles
+    # U = mypair.compute_energy(tags1=numpy.array(tags[0:N:2]), tags2=numpy.array(tags[1:N:2]))
+    # \endcode
+    def compute_energy(self, tags1, tags2):
+        # future versions could use np functions to test the assumptions above and raise an error if they occur.
+        return self.cpp_force.computeEnergyBetweenSets(tags1, tags2);
+
 ## Lennard-Jones %pair %force
 #
 # The command pair.lj specifies that a Lennard-Jones type %pair %force should be added to every
@@ -1880,7 +1908,7 @@ class dpd(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
-        
+
         # register the citation
         c = cite.article(cite_key='phillips2011',
                          author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],
@@ -1894,7 +1922,7 @@ class dpd(pair):
                          doi='10.1016/j.jcp.2011.05.021',
                          feature='DPD')
         cite._ensure_global_bib().add(c)
-        
+
         # tell the base class how we operate
 
         # initialize the base class
@@ -2099,7 +2127,7 @@ class eam(force._force):
                          doi = '10.1016/j.cpc.2010.12.026',
                          feature = 'EAM')
         cite._ensure_global_bib().add(c)
-                     
+
         util.print_status_line();
 
         # Error out in MPI simulations
@@ -2240,7 +2268,7 @@ class dpdlj(pair):
     # set before it can be started with run()
     def __init__(self, r_cut, T, seed=1, name=None):
         util.print_status_line();
-        
+
         # register the citation
         c = cite.article(cite_key='phillips2011',
                          author=['C L Phillips', 'J A Anderson', 'S C Glotzer'],

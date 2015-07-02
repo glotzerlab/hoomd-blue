@@ -89,9 +89,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // MAX gives the larger of two values
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MAX_PPPM(a,b) ((a) > (b) ? (a) : (b))
 // MIN gives the lesser of two values
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MIN_PPPM(a,b) ((a) < (b) ? (a) : (b))
 // MaxOrder is the largest allowed value of the interpolation order
 #define MaxOrder 7
 // ConstSize is used to make sure the rho_coeff will fit into memory on the GPU
