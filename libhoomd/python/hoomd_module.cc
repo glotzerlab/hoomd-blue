@@ -89,6 +89,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Analyzer.h"
 #include "IMDInterface.h"
 #include "HOOMDDumpWriter.h"
+#include "POSDumpWriter.h"
 #include "HOOMDBinaryDumpWriter.h"
 #include "PDBDumpWriter.h"
 #include "MOL2DumpWriter.h"
@@ -590,6 +591,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Analyzer();
     export_IMDInterface();
     export_HOOMDDumpWriter();
+    export_POSDumpWriter();
     export_HOOMDBinaryDumpWriter();
     export_PDBDumpWriter();
     export_DCDDumpWriter();
