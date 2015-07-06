@@ -284,7 +284,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef,
       m_num_local_members(0),
       m_particles_sorted(true),
       m_selector(selector),
-      m_update_tags(update_tags)
+      m_update_tags(update_tags),
+      m_warning_printed(false)
     {
     #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled())
@@ -318,7 +319,8 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
       m_exec_conf(m_pdata->getExecConf()),
       m_num_local_members(0),
       m_particles_sorted(true),
-      m_update_tags(false)
+      m_update_tags(false),
+      m_warning_printed(false)
     {
     // let's make absolutely sure that the tag order given from outside is sorted
     std::vector<unsigned int> sorted_member_tags =  member_tags;
@@ -382,11 +384,12 @@ ParticleGroup::~ParticleGroup()
  */
 void ParticleGroup::updateMemberTags(bool force_update)
     {
-    if (m_selector && !(m_update_tags || force_update))
+    if (m_selector && !(m_update_tags || force_update) && ! m_warning_printed)
         {
-        m_pdata->getExecConf()->msg->notice(2)
+        m_pdata->getExecConf()->msg->warning()
             << "Particle number change but group is static. Create group with update=True if it should be updated."
-            << std::endl;
+            << std::endl << "This warning is printed only once." << std::endl;
+        m_warning_printed = true;
         }
 
     if (m_selector && (m_update_tags || force_update))
