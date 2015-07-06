@@ -65,6 +65,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/bind.hpp>
+
 using namespace boost::python;
 using namespace boost::filesystem;
 
@@ -138,12 +140,27 @@ MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
         m_initial_z[tag] = unwrapped.z;
         }
 
-    m_nglobal = m_pdata->getNGlobal();
+    m_ptls_sort_connection = m_pdata->connectParticleSort(boost::bind(&MSDAnalyzer::slotParticleSort, this));
     }
 
 MSDAnalyzer::~MSDAnalyzer()
     {
     m_exec_conf->msg->notice(5) << "Destroying MSDAnalyzer" << endl;
+
+    m_ptls_sort_connection.disconnect();
+    }
+
+void MSDAnalyzer::slotParticleSort()
+    {
+    // check if any of the groups has changed size
+    for (unsigned int i = 0; i < m_columns.size(); i++)
+        {
+        if (m_columns[i].m_group->getNumMembersGlobal() != m_initial_group_N[i])
+            {
+            m_exec_conf->msg->error() << "analyze.msd: Change in number of particles for column " << m_columns[i].m_name << " unsupported." << std::endl;
+            throw std::runtime_error("Error adding/removing particles");
+            }
+        }
     }
 
 /*!\param timestep Current time step of the simulation
@@ -156,12 +173,6 @@ void MSDAnalyzer::analyze(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Analyze MSD");
-
-    if (m_nglobal != m_pdata->getNGlobal())
-        {
-        m_exec_conf->msg->error() << "analyze.msd: Change in number of particles unsupported." << std::endl;
-        throw std::runtime_error("Error computing MSD");
-        }
 
     // take particle data snapshot
     SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
@@ -223,6 +234,10 @@ void MSDAnalyzer::setDelimiter(const std::string& delimiter)
 void MSDAnalyzer::addColumn(boost::shared_ptr<ParticleGroup> group, const std::string& name)
     {
     m_columns.push_back(column(group, name));
+
+    // store initial number of particles
+    m_initial_group_N.push_back(group->getNumMembersGlobal());
+
     m_columns_changed = true;
     }
 
@@ -337,6 +352,7 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group, const 
         {
         // get the tag for the current group member from the group
         unsigned int tag = group->getMemberTag(group_idx);
+        assert(tag < snapshot.size);
         vec3<Scalar> pos = snapshot.pos[tag];
         int3 image = snapshot.image[tag];
         vec3<Scalar> unwrapped = box.shift(pos, image);

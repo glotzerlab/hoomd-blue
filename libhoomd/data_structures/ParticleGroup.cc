@@ -382,6 +382,13 @@ ParticleGroup::~ParticleGroup()
  */
 void ParticleGroup::updateMemberTags(bool force_update)
     {
+    if (m_selector && !(m_update_tags || force_update))
+        {
+        m_pdata->getExecConf()->msg->notice(2)
+            << "Particle number change but group is static. Create group with update=True if it should be updated."
+            << std::endl;
+        }
+
     if (m_selector && (m_update_tags || force_update))
         {
         // notice message
