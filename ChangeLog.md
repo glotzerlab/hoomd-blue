@@ -30,6 +30,7 @@ del system.particles[0]
 * Mie pair potential.
 * `meta.dump_metadata()` writes job metadata information out to a json file.
 * `context.initialize()` initializes the execution context.
+* Restart option for `dump.xml()`
 
 *Bug fixes*
 
