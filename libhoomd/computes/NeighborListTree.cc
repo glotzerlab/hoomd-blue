@@ -190,7 +190,7 @@ void NeighborListTree::updateImageVectors()
 
     // check that rcut fits in the box
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
-    Scalar rmax = m_r_cut_max + m_r_buff;
+    Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
         

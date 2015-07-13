@@ -375,9 +375,9 @@ class NeighborList : public Compute
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth() const
             {
-            if (m_r_cut_max > Scalar(0.0)) // ensure communication is required
+            if (m_rcut_max_max > Scalar(0.0)) // ensure communication is required
                 {
-                Scalar rmax = m_r_cut_max + m_r_buff;
+                Scalar rmax = m_rcut_max_max + m_r_buff;
 
                 // diameter shifting requires to communicate a larger rlist
                 if (m_diameter_shift)
@@ -444,7 +444,7 @@ class NeighborList : public Compute
         GPUArray<Scalar> m_r_cut;   //!< The potential cutoffs stored by pair type
         GPUArray<Scalar> m_r_listsq;//!< The neighborlist cutoff radius squared stored by pair type
         GPUArray<Scalar> m_rcut_max;//!< The maximum value of rcut per particle type
-        Scalar m_r_cut_max;         //!< The maximum cutoff radius of any pair
+        Scalar m_rcut_max_max;      //!< The maximum cutoff radius of any pair
         Scalar m_r_buff;            //!< The buffer around the cuttoff
         Scalar m_d_max;             //!< The maximum diameter of any particle in the system (or greater)
         bool m_filter_body;         //!< Set to true if particles in the same body are to be filtered

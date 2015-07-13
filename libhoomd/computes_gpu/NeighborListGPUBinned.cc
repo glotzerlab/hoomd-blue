@@ -139,7 +139,7 @@ void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborListGPU::setRCut(r_cut, r_buff);
     
-    Scalar rmax = m_r_cut_max + m_r_buff;
+    Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
         
@@ -150,7 +150,7 @@ void NeighborListGPUBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Sc
     {
     NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
     
-    Scalar rmax = m_r_cut_max + m_r_buff;
+    Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
         
@@ -162,7 +162,7 @@ void NeighborListGPUBinned::setMaximumDiameter(Scalar d_max)
     NeighborListGPU::setMaximumDiameter(d_max);
 
     // need to update the cell list settings appropriately
-    Scalar rmax = m_r_cut_max + m_r_buff;
+    Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
         
@@ -204,7 +204,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
 
     // the maximum cutoff that any particle can participate in
-    Scalar rmax = m_r_cut_max + m_r_buff;
+    Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
     
