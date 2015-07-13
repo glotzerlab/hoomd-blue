@@ -91,7 +91,7 @@ void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
     {
     NeighborList::setRCut(r_cut, r_buff);
     
-    Scalar rmax = m_r_cut_max + m_r_buff;
+    Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
         
@@ -102,7 +102,7 @@ void NeighborListBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scala
     {
     NeighborList::setRCutPair(typ1,typ2,r_cut);
     
-    Scalar rmax = m_r_cut_max + m_r_buff;
+    Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
         
@@ -114,7 +114,7 @@ void NeighborListBinned::setMaximumDiameter(Scalar d_max)
     NeighborList::setMaximumDiameter(d_max);
 
     // need to update the cell list settings appropriately
-    Scalar rmax = m_r_cut_max + m_r_buff;
+    Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
         
@@ -140,7 +140,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
 
     // validate that the cutoff fits inside the box
-    Scalar rmax = m_r_cut_max + m_r_buff;
+    Scalar rmax = m_rcut_max_max + m_r_buff;
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
 

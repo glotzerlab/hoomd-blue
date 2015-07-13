@@ -85,7 +85,7 @@ using namespace std;
     \post The storage mode defaults to half
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
-    : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_r_cut_max(_r_cut), m_r_buff(r_buff), m_d_max(1.0),
+    : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(_r_cut), m_r_buff(r_buff), m_d_max(1.0),
       m_filter_body(false), m_diameter_shift(false), m_storage_mode(half), m_updates(0), m_forced_updates(0),
       m_dangerous_updates(0), m_force_update(true), m_dist_check(true), m_has_been_updated_once(false)
     {
@@ -398,7 +398,7 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
         if (r_cut_max_i > r_cut_max)
             r_cut_max = r_cut_max_i;
         }
-    m_r_cut_max = r_cut_max;
+    m_rcut_max_max = r_cut_max;
     forceUpdate();
     }
     
@@ -453,7 +453,7 @@ Scalar NeighborList::estimateNNeigh()
 
     // calculate the average number of neighbors by multiplying by the volume
     // within the cutoff
-    Scalar r_max = m_r_cut_max + m_r_buff;
+    Scalar r_max = m_rcut_max_max + m_r_buff;
     // diameter shifting requires to communicate a larger rlist
     if (m_diameter_shift)
         r_max += m_d_max - Scalar(1.0);
