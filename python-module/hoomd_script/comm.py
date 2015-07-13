@@ -62,6 +62,7 @@ import sys;
 
 ## Get the number of ranks
 # \returns the number of MPI ranks in this partition
+# context.initialize() must be called before get_num_ranks()
 # \note Returns 1 in non-mpi builds
 def get_num_ranks():
     hoomd_script.context._verify_init();
@@ -71,9 +72,7 @@ def get_num_ranks():
         return 1;
 
 ## Return the current rank
-# If HOOMD is already initialized, it returns the actual MPI rank.
-# If HOOMD is not yet initialized, it guesses the rank from environment
-# variables.
+# context.initialize() must be called before get_rank()
 # \note Always returns 0 in non-mpi builds
 def get_rank():
     hoomd_script.context._verify_init();
@@ -84,9 +83,7 @@ def get_rank():
         return 0;
 
 ## Return the current partition
-# If HOOMD is already initialized, it returns the actual partition.
-# If HOOMD is not yet initialized, it guesses the partition id from environment
-# variables.
+# context.initialize() must be called before get_partition()
 # \note Always returns 0 in non-mpi builds
 def get_partition():
     hoomd_script.context._verify_init();
@@ -103,6 +100,7 @@ def barrier_all():
         hoomd.mpi_barrier_world();
 
 ## Perform a MPI barrier synchronization inside a partition
+# context.initialize() must be called before barrier()
 # \note does nothing in in non-MPI builds
 def barrier():
     hoomd_script.context._verify_init();
