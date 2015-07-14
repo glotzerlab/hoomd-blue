@@ -343,7 +343,8 @@ boost::signals2::connection ParticleData::connectMaxParticleNumberChange(const b
     for every global particle should subscribe to this signal.
 
     Changes in global particle number imply a local change in particle number (on some processor),
-    and are indicated both by this signal, and notifyParticleSort().
+    and are indicated both by this signal, and notifyParticleSort(), which is triggered
+    *after* the global particle number change signal.
 
     The signal is to be triggered after all changes to the particle data are complete.
  */

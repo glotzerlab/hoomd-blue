@@ -485,6 +485,7 @@ def tag_list(name, tags):
 # \code
 # groupA = group.type(name='a-particles', type='A')
 # groupB = group.type(name='b-particles', type='B')
+# groupB = group.type(name='b-particles', type='B',update=True)
 # \endcode
 def type(type, name=None, update=False):
     util.print_status_line();

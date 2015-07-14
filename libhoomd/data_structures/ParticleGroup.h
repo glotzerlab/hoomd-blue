@@ -360,6 +360,7 @@ class ParticleGroup
         boost::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
 
         bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
+        bool m_warning_printed;                         //!< True if warning about static groups has been printed
 
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;                //!< moderngpu context
